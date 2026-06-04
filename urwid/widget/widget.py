@@ -56,7 +56,12 @@ class WidgetMeta(signals.MetaSignals, MetaSuper):
     parameter, so it may be ignored when caching.
     """
 
-    def __init__(cls, name, bases, d):
+    def __init__(
+        cls,
+        name: str,
+        bases: tuple[type, ...],
+        d: dict[str, typing.Any],
+    ) -> None:
         no_cache = d.get("no_cache", [])
 
         super().__init__(name, bases, d)

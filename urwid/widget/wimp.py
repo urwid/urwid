@@ -79,7 +79,7 @@ class SelectableIcon(Text):
         self,
         size: tuple[int] | tuple[()],  # type: ignore[override]
         focus: bool = False,
-    ) -> TextCanvas | CompositeCanvas:  # type: ignore[override]
+    ) -> TextCanvas | CompositeCanvas:
         """
         Render the text content of this widget with a cursor when
         in focus.
@@ -213,7 +213,7 @@ class CheckBox(WidgetWrap[Columns]):
         ) = None,
         user_data: _T | None = None,
         checked_symbol: str | None = None,
-    ):
+    ) -> None:
         """
         :param label: markup for check box label
         :param state: False, True or "mixed"
@@ -271,7 +271,11 @@ class CheckBox(WidgetWrap[Columns]):
             ),
         )
 
-    def pack(self, size: tuple[()] | tuple[int] | None = None, focus: bool = False) -> tuple[str, str]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | None = None,
+        focus: bool = False,
+    ) -> tuple[int, int]:
         """Pack for widget.
 
         :param size: size data. Special case: None - get minimal widget size to fit
@@ -296,7 +300,7 @@ class CheckBox(WidgetWrap[Columns]):
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {**super()._repr_attrs(), "state": self.state}
 
-    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]):
+    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
         Change the check box label.
 
@@ -314,7 +318,7 @@ class CheckBox(WidgetWrap[Columns]):
         # no need to call self._invalidate(). WidgetWrap takes care of
         # that when self.w changes
 
-    def get_label(self):
+    def get_label(self) -> str | bytes:
         """
         Return label text.
 
@@ -533,7 +537,13 @@ class RadioButton(CheckBox):
             state = not group
 
         self.group = group
-        super().__init__(label, state, False, on_state_change, user_data)  # type: ignore[call-overload]
+        super().__init__(  # type: ignore[call-overload]
+            label,
+            state,
+            has_mixed=False,
+            on_state_change=on_state_change,
+            user_data=user_data,
+        )
         group.append(self)
 
     def set_state(self, state: bool | Literal["mixed"], do_callback: bool = True) -> None:
@@ -692,7 +702,11 @@ class Button(WidgetWrap[Columns]):
         if on_press:
             connect_signal(self, "click", on_press, user_data)
 
-    def pack(self, size: tuple[()] | tuple[int] | None = None, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | None = None,
+        focus: bool = False,
+    ) -> tuple[int, int]:
         """Pack for widget.
 
         :param size: size data. Special case: None - get minimal widget size to fit
@@ -786,7 +800,7 @@ class Button(WidgetWrap[Columns]):
         return True
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()

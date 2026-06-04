@@ -189,7 +189,7 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
 
     sis0 = sis[0].replace(SI, b"")
     sout = []
-    cout = []
+    cout: list[tuple[Literal["U", "0"] | None, int]] = []
     if sis0:
         sout.append(sis0)
         cout.append((None, len(sis0)))

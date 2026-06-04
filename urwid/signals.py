@@ -35,7 +35,12 @@ class MetaSignals(abc.ABCMeta):
     including signals in superclasses.
     """
 
-    def __init__(cls, name: str, bases: tuple[type, ...], d: dict[str, typing.Any]) -> None:
+    def __init__(
+        cls,
+        name: str,
+        bases: tuple[type, ...],
+        d: dict[str, typing.Any],
+    ) -> None:
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, "signals", []))
