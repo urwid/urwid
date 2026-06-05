@@ -412,7 +412,7 @@ def rle_join_modify(
 def rle_product(
     rle1: MutableSequence[tuple[Hashable, int]],
     rle2: MutableSequence[tuple[Hashable, int]],
-) -> list[tuple[Hashable, int]]:
+) -> list[tuple[tuple[Hashable, Hashable], int]]:
     """
     Merge the runs of rle1 and rle2 like this:
     eg.
@@ -428,10 +428,10 @@ def rle_product(
     a1, r1 = rle1[0]
     a2, r2 = rle2[0]
 
-    result: list[tuple[Hashable, int]] = []
+    result: list[tuple[tuple[Hashable, Hashable], int]] = []
     while r1 and r2:
         r = min(r1, r2)
-        rle_append_modify(result, ((a1, a2), r))
+        rle_append_modify(result, ((a1, a2), r))  # type: ignore[arg-type]
         r1 -= r
         if r1 == 0 and i1 < len(rle1):
             a1, r1 = rle1[i1]

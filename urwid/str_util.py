@@ -47,7 +47,7 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
         stacklevel=2,
     )
     if (width := wcwidth.wcwidth(char)) >= 0:
-        return width
+        return typing.cast("Literal[0, 1, 2]", width)
 
     return 0
 
@@ -64,7 +64,7 @@ def get_width(o: int) -> Literal[0, 1, 2]:
         stacklevel=2,
     )
     if (width := wcwidth.wcwidth(chr(o))) >= 0:
-        return width
+        return typing.cast("Literal[0, 1, 2]", width)
 
     return 0
 

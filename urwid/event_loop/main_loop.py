@@ -561,7 +561,7 @@ class MainLoop:
                 raise TypeError(f"{key!r} is not str | tuple[str, int, int, int]")
 
             if key:
-                if command_map[key] == Command.REDRAW_SCREEN:
+                if command_map[key] == Command.REDRAW_SCREEN:  # type: ignore[index]  # not `str` is mouse event
                     self.screen.clear()
                     something_handled = True
                 else:

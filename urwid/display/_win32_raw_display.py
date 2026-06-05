@@ -65,12 +65,20 @@ class Screen(_raw_display_base.Screen):
     _dwOriginalOutMode = None
     _dwOriginalInMode = None
 
-    def _start(self, alternate_buffer: bool = True) -> None:
+    def _start(  # pylint: disable=keyword-arg-before-vararg
+        self,
+        alternate_buffer: bool = True,
+        *args,
+        **kwargs,
+    ) -> None:
         """
         Initialize the screen and input mode.
 
         alternate_buffer -- use alternate screen buffer
         """
+        if args or kwargs:
+            raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
+
         if alternate_buffer:
             self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
             self._rows_used = None

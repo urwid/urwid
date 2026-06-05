@@ -249,7 +249,7 @@ class StandardTextLayout(TextLayout):
         Returns a layout structure without an alignment applied.
         """
         if wrap in {"clip", "ellipsis"}:
-            return self._calculate_trimmed_segments(text, width, wrap)
+            return self._calculate_trimmed_segments(text, width, wrap)  # type: ignore[arg-type]  # filtered by if
 
         nl: str | bytes
         nl_o: int | str
@@ -540,19 +540,11 @@ def trim_line(
     return result
 
 
-def calc_line_pos(
+def _calc_literal_line_pos(
     text: str | bytes,
     line_layout: _LayoutLine,
-    pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
+    pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT],
 ) -> int | None:
-    """
-    Calculate the closest linear position to pref_col given a line layout structure.
-    Returns None if no position found.
-    """
-    closest_sc = None
-    closest_pos: LayoutSegment | int | None = None
-    current_sc = 0
-
     if pref_col == "left":
         for seg in line_layout:
             layout = LayoutSegment(seg)
@@ -573,7 +565,34 @@ def calc_line_pos(
         if found.end is None:
             return found.offs
 
-        return calc_text_pos(text, found.offs, found.end, found.sc - 1)[0]
+        return calc_text_pos(
+            text,
+            found.offs,  # type: ignore[arg-type]  # filtered by if in lookup cycle
+            found.end,
+            found.sc - 1,
+        )[0]
+
+    raise ValueError(f"Invalid pref_col value: {pref_col}")
+
+
+def calc_line_pos(
+    text: str | bytes,
+    line_layout: _LayoutLine,
+    pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
+) -> int | None:
+    """
+    Calculate the closest linear position to pref_col given a line layout structure.
+    Returns None if no position found.
+    """
+    if pref_col in {"left", "right"}:
+        return _calc_literal_line_pos(text, line_layout, pref_col)
+
+    if not isinstance(pref_col, int):
+        raise TypeError(f"Invalid pref_col value: {pref_col}")
+
+    closest_sc = None
+    closest_pos: LayoutSegment | int | None = None
+    current_sc = 0
 
     for seg in line_layout:
         s = LayoutSegment(seg)
@@ -600,7 +619,7 @@ def calc_line_pos(
 
     # return the last positions in the segment "closest_pos"
     s = closest_pos
-    return calc_text_pos(text, s.offs, s.end, s.sc - 1)[0]
+    return calc_text_pos(text, s.offs, s.end, s.sc - 1)[0]  # type: ignore[arg-type]  # s.offs and s.end are set
 
 
 def calc_pos(

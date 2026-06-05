@@ -48,7 +48,7 @@ from urwid.widget import Sizing, Widget
 from .display.common import _BASIC_COLORS, _color_desc_256, _color_desc_true
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
 
     from typing_extensions import Literal
 
@@ -1415,7 +1415,7 @@ class TermCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         """Canvas content.
 

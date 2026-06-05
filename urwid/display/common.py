@@ -31,7 +31,7 @@ from urwid import signals
 from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Callable, Iterable, Sequence
 
     from typing_extensions import Literal, Self
 
@@ -112,12 +112,12 @@ _BASIC_COLOR_VALUES = [
     (255, 255, 255),
 ]
 
-_COLOR_VALUES_256 = (
+_COLOR_VALUES_256: list[tuple[int, int, int]] = (
     _BASIC_COLOR_VALUES
     + [(r, g, b) for r in _CUBE_STEPS_256 for g in _CUBE_STEPS_256 for b in _CUBE_STEPS_256]
     + [(gr, gr, gr) for gr in _GRAY_STEPS_256]
 )
-_COLOR_VALUES_88 = (
+_COLOR_VALUES_88: list[tuple[int, int, int]] = (
     _BASIC_COLOR_VALUES
     + [(r, g, b) for r in _CUBE_STEPS_88 for g in _CUBE_STEPS_88 for b in _CUBE_STEPS_88]
     + [(gr, gr, gr) for gr in _GRAY_STEPS_88]
@@ -418,7 +418,7 @@ def _parse_color_256(desc: str) -> int | None:
                 r = _CUBE_256_LOOKUP_16[r]
                 g = _CUBE_256_LOOKUP_16[g]
                 b = _CUBE_256_LOOKUP_16[b]
-                return _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b
+                return typing.cast("int", _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b)
 
             return None
 
@@ -498,7 +498,7 @@ def _parse_color_88(desc: str) -> int | None:
                 r = _CUBE_88_LOOKUP_16[r]
                 g = _CUBE_88_LOOKUP_16[g]
                 b = _CUBE_88_LOOKUP_16[b]
-                return _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b
+                return typing.cast("int", _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b)
 
             return None
 
@@ -743,6 +743,7 @@ class AttrSpec:
 
     def __set_foreground(self, foreground: str) -> None:
         color = None
+        scolor: int | None
         flags = 0
         # handle comma-separated foreground
         for part in foreground.split(","):
@@ -793,6 +794,7 @@ class AttrSpec:
 
     def __set_background(self, background: str) -> None:
         flags = 0
+        color: int | None
         if background in {"", "default"}:
             color = 0
         elif background in _BASIC_COLORS:
@@ -824,6 +826,7 @@ class AttrSpec:
         >>> AttrSpec("default", "g92").get_rgb_values()
         (None, None, None, 238, 238, 238)
         """
+        vals: tuple[int | None, int | None, int | None]
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             vals = (None, None, None)
         elif self.colors == 88:
@@ -832,7 +835,10 @@ class AttrSpec:
             vals = _COLOR_VALUES_88[self.foreground_number]
         elif self.colors == 2**24:
             h = f"{self.foreground_number:06x}"
-            vals = tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6]))
+            vals = typing.cast(
+                "tuple[int, int, int]",
+                tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])),
+            )
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
@@ -841,12 +847,12 @@ class AttrSpec:
         if self.colors == 88:
             if self.background_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
-            return vals + _COLOR_VALUES_88[self.background_number]
+            return (*vals, *_COLOR_VALUES_88[self.background_number])
         if self.colors == 2**24:
             h = f"{self.background_number:06x}"
-            return vals + tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6]))
+            return (*vals, *(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])))
 
-        return vals + _COLOR_VALUES_256[self.background_number]
+        return (*vals, *_COLOR_VALUES_256[self.background_number])
 
     def __eq__(self, other: object) -> bool:
         return isinstance(other, AttrSpec) and self.__value == other._value
@@ -871,7 +877,7 @@ class RealTerminal:
             stop: Literal["undefined"] | int | None = None,
             susp: Literal["undefined"] | int | None = None,
             fileno: int | None = None,
-        ):
+        ) -> tuple[int, int, int, int, int] | None:
             """
             Read and/or set the tty's signal character settings.
             This function returns the current settings as a tuple.
@@ -885,7 +891,7 @@ class RealTerminal:
             then the original settings will be restored when stop()
             is called.
             """
-            return ()
+            return None
 
     else:
 
@@ -897,7 +903,7 @@ class RealTerminal:
             stop: Literal["undefined"] | int | None = None,
             susp: Literal["undefined"] | int | None = None,
             fileno: int | None = None,
-        ):
+        ) -> tuple[int, int, int, int, int] | None:
             """
             Read and/or set the tty's signal character settings.
             This function returns the current settings as a tuple.
@@ -981,7 +987,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     def started(self) -> bool:
         return self._started
 
-    def start(self, *args, **kwargs) -> StoppingContext:
+    def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
         """Set up the screen.  If the screen has already been started, does
         nothing.
 
@@ -999,8 +1005,8 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             self._start(*args, **kwargs)
         return StoppingContext(self)
 
-    def _start(self) -> None:
-        pass
+    def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        """Perform the actual setup of the screen. Subclasses should override this method."""
 
     def stop(self) -> None:
         if self._started:
@@ -1008,11 +1014,17 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         self._started = False
 
     def _stop(self) -> None:
-        pass
+        """Perform actual teardown of the screen. Subclasses should override this method."""
 
-    def run_wrapper(self, fn, *args, **kwargs) -> None:
-        """Start the screen, call a function, then stop the screen.  Extra
-        arguments are passed to `start`.
+    def run_wrapper(
+        self,
+        fn: Callable[[], typing.Any],
+        *args: typing.Any,
+        **kwargs: typing.Any,
+    ) -> None:
+        """Start the screen, call a function, then stop the screen.
+
+        Extra arguments are passed to `start`.
 
         Deprecated in favor of calling `start` as a context manager.
         """
@@ -1023,7 +1035,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             stacklevel=3,
         )
         with self.start(*args, **kwargs):
-            return fn()
+            fn()
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
         pass
@@ -1179,7 +1191,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         self._palette[name] = (basic, mono_spec, high_88, high_256, high_true)
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()
