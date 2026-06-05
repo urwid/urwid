@@ -208,7 +208,12 @@ class Screen(BaseScreen, RealTerminal):
             self.write(escape.MOUSE_TRACKING_OFF)
 
     @abc.abstractmethod
-    def _start(self, alternate_buffer: bool = True) -> None:
+    def _start(  # pylint: disable=keyword-arg-before-vararg
+        self,
+        alternate_buffer: bool = True,
+        *args,
+        **kwargs,
+    ) -> None:
         """
         Initialize the screen and input mode.
 

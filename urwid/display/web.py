@@ -183,7 +183,7 @@ class Screen(BaseScreen):
     def tty_signal_keys(self, *args, **vargs):
         """Do nothing."""
 
-    def start(self) -> StoppingContext:
+    def start(self, *args, **kwargs) -> StoppingContext:
         """
         This function reads the initial screen size, generates a
         unique id and handles cleanup when fn exits.

@@ -280,7 +280,7 @@ class Canvas:
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
         raise NotImplementedError()
 
@@ -446,7 +446,7 @@ class TextCanvas(Canvas):
             if cs_gap < 0:
                 raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}")
             if cs_gap:
-                rle_append_modify(cs[i], (None, cs_gap))
+                rle_append_modify(cs[i], (None, cs_gap))  # type: ignore[arg-type]  # str|None is Hashable
 
         self._attr = attr
         self._cs = cs
@@ -510,20 +510,24 @@ class TextCanvas(Canvas):
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:
-                text, a_row, cs_row = trim_text_attr_cs(  # noqa: PLW2901
+                text, a_row, cs_row = trim_text_attr_cs(  # type: ignore[assignment]  # noqa: PLW2901
                     text,
                     a_row,
-                    cs_row,
+                    cs_row,  # type: ignore[arg-type]  # str|None is Hashable
                     trim_left,
                     trim_left + cols,
                 )
-            attr_cs = rle_product(a_row, cs_row)
+
+            attr_cs = typing.cast(
+                "list[tuple[tuple[Hashable, Literal['0', 'U'] | None], int]]",
+                rle_product(a_row, cs_row),  # type: ignore[arg-type]  # str|None is Hashable
+            )
             i = 0
             row = []
             for (a, cs), run in attr_cs:
                 if attr and a in attr:
                     a = attr[a]  # noqa: PLW2901
-                row.append((a, cs, text[i : i + run]))
+                row.append((typing.cast("AttrSpec | str | None", a), cs, text[i : i + run]))
                 i += run
             yield row
 
@@ -551,7 +555,7 @@ class BlankCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
         """
         return (cols, rows) of spaces with default attributes.
@@ -603,7 +607,7 @@ class SolidCanvas(Canvas):
         trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
         if cols is None:
             cols = self.size[0]
@@ -698,7 +702,7 @@ class CompositeCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
         """
         Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
@@ -728,7 +732,8 @@ class CompositeCanvas(Canvas):
             shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
             for num_rows, cviews in shards_delta(self.shards, other.shards):
                 # combine shard and shard tail
-                sbody = shard_body(cviews, shard_tail)
+                # broken contract, content_delta is deprecated and not used
+                sbody = shard_body(cviews, shard_tail)  # type: ignore[arg-type]
 
                 # output rows
                 row: _ContentLine = []
@@ -1037,6 +1042,7 @@ def shard_body(
     col = 0
     body: list[tuple[int, Iterator[_ContentLine] | None, _CView]] = []  # build the next shard tail
     cviews_iter = iter(cviews)
+    new_iter: Iterator[_ContentLine] | None
     for col_gap, done_rows, content_iter, tail_cview in shard_tail:
         while col_gap:
             try:
@@ -1049,7 +1055,7 @@ def shard_body(
             if col_gap < 0:
                 raise CanvasError("cviews overflow gaps in shard_tail!")
             if create_iter and canv:
-                new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)
+                new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)  # type: ignore[arg-type]
             else:
                 new_iter = iter_default
             body.append((0, new_iter, cview))
@@ -1057,7 +1063,7 @@ def shard_body(
     for cview in cviews_iter:
         (trim_left, trim_top, cols, rows, attr_map, canv) = cview[:6]
         if create_iter and canv:
-            new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)
+            new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)  # type: ignore[arg-type]
         else:
             new_iter = iter_default
         body.append((0, new_iter, cview))
@@ -1410,13 +1416,13 @@ def apply_text_layout(
             if s.end:
                 tseg, cs = apply_target_encoding(text[s.offs : s.end])
                 line.append(tseg)
-                attrrange(s.offs, s.end, rle_len(cs))
-                rle_join_modify(linec, cs)
+                attrrange(s.offs, s.end, rle_len(cs))  # type: ignore[arg-type]  # s.end is set
+                rle_join_modify(linec, cs)  # type: ignore[arg-type]
             elif s.text:
                 tseg, cs = apply_target_encoding(s.text)
                 line.append(tseg)
-                attrrange(s.offs, s.offs, len(tseg))
-                rle_join_modify(linec, cs)
+                attrrange(s.offs, s.offs, len(tseg))  # type: ignore[arg-type]  # s.text is set
+                rle_join_modify(linec, cs)  # type: ignore[arg-type]
             elif s.offs:
                 if s.sc:
                     line.append(b"".rjust(s.sc))
