@@ -21,11 +21,11 @@ class ProgressBar(Widget):
 
     def __init__(
         self,
-        normal: Hashable | None,
-        complete: Hashable | None,
+        normal: Hashable,
+        complete: Hashable,
         current: int = 0,
         done: int = 100,
-        satt: Hashable | None = None,
+        satt: Hashable = None,
     ) -> None:
         """
         :param normal: display attribute for incomplete part of progress bar

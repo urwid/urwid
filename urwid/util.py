@@ -30,13 +30,15 @@ from contextlib import suppress
 from urwid import str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator, Iterable
+    from collections.abc import Generator, Hashable, Iterable, MutableSequence
     from types import TracebackType
 
     from typing_extensions import Literal, Protocol, Self
 
     class CanBeStopped(Protocol):
         def stop(self) -> None: ...
+
+    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", str, bytes], list["_TagMarkup"]]
 
 
 def __getattr__(name: str) -> typing.Any:
@@ -202,18 +204,18 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
         if len(sl) == 1:
             sin = sl[0]
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))  # type: ignore[arg-type]
             continue
 
         sin, son = sl
         son = son.replace(SI, b"")
         if sin:
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
+            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))  # type: ignore[arg-type]
 
         if son:
             sout.append(son)
-            rle_append_modify(cout, (None, len(son)))
+            rle_append_modify(cout, (None, len(son)))  # type: ignore[arg-type]
 
     outstr = b"".join(sout)
     return outstr, cout
@@ -267,7 +269,13 @@ def calc_trim_text(
     return (spos, pos, pad_left, pad_right)
 
 
-def trim_text_attr_cs(text: bytes, attr, cs, start_col: int, end_col: int):
+def trim_text_attr_cs(
+    text: bytes,
+    attr: MutableSequence[tuple[Hashable, int]],
+    cs: MutableSequence[tuple[Hashable, int]],
+    start_col: int,
+    end_col: int,
+) -> tuple[bytes, list[tuple[Hashable, int]], list[tuple[Hashable, int]]]:
     """
     Return ( trimmed text, trimmed attr, trimmed cs ).
     """
@@ -286,7 +294,10 @@ def trim_text_attr_cs(text: bytes, attr, cs, start_col: int, end_col: int):
     return (b"".rjust(pad_left) + text[spos:epos] + b"".rjust(pad_right), attrtr, cstr)
 
 
-def rle_get_at(rle, pos: int):
+def rle_get_at(
+    rle: Iterable[tuple[Hashable, int]],
+    pos: int,
+) -> Hashable | None:
     """
     Return the attribute at offset pos.
     """
@@ -300,7 +311,11 @@ def rle_get_at(rle, pos: int):
     return None
 
 
-def rle_subseg(rle, start: int, end: int):
+def rle_subseg(
+    rle: Iterable[tuple[Hashable, int]],
+    start: int,
+    end: int,
+) -> list[tuple[Hashable, int]]:
     """Return a sub segment of a rle list."""
     sub_segment = []
     x = 0
@@ -322,7 +337,9 @@ def rle_subseg(rle, start: int, end: int):
     return sub_segment
 
 
-def rle_len(rle: Iterable[tuple[typing.Any, int]]) -> int:
+def rle_len(
+    rle: Iterable[tuple[Hashable, int]],
+) -> int:
     """
     Return the number of characters covered by a run length
     encoded attribute list.
@@ -337,7 +354,10 @@ def rle_len(rle: Iterable[tuple[typing.Any, int]]) -> int:
     return run
 
 
-def rle_prepend_modify(rle, a_r) -> None:
+def rle_prepend_modify(
+    rle: MutableSequence[tuple[Hashable, int]],
+    a_r: tuple[Hashable, int],
+) -> None:
     """
     Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
     Merge with first run when possible
@@ -355,10 +375,13 @@ def rle_prepend_modify(rle, a_r) -> None:
             rle[0:0] = [(a, r)]
 
 
-def rle_append_modify(rle, a_r) -> None:
+def rle_append_modify(
+    rle: MutableSequence[tuple[Hashable, int]],
+    a_r: tuple[Hashable, int],
+) -> None:
     """
     Append (a, r) (unpacked from *a_r*) to the rle list rle.
-    Merge with last run when possible.
+    Merge with the last run when possible.
 
     MODIFIES rle parameter contents. Returns None.
     """
@@ -370,7 +393,10 @@ def rle_append_modify(rle, a_r) -> None:
     rle[-1] = (a, lr + r)
 
 
-def rle_join_modify(rle, rle2) -> None:
+def rle_join_modify(
+    rle: MutableSequence[tuple[Hashable, int]],
+    rle2: MutableSequence[tuple[Hashable, int]],
+) -> None:
     """
     Append attribute list rle2 to rle.
     Merge last run of rle with first run of rle2 when possible.
@@ -383,7 +409,10 @@ def rle_join_modify(rle, rle2) -> None:
     rle += rle2[1:]
 
 
-def rle_product(rle1, rle2):
+def rle_product(
+    rle1: MutableSequence[tuple[Hashable, int]],
+    rle2: MutableSequence[tuple[Hashable, int]],
+) -> list[tuple[Hashable, int]]:
     """
     Merge the runs of rle1 and rle2 like this:
     eg.
@@ -399,7 +428,7 @@ def rle_product(rle1, rle2):
     a1, r1 = rle1[0]
     a2, r2 = rle2[0]
 
-    result = []
+    result: list[tuple[Hashable, int]] = []
     while r1 and r2:
         r = min(r1, r2)
         rle_append_modify(result, ((a1, a2), r))
@@ -414,29 +443,22 @@ def rle_product(rle1, rle2):
     return result
 
 
-def rle_factor(rle):
-    """
-    Inverse of rle_product.
-    """
-    rle1 = []
-    rle2 = []
-    for (a1, a2), r in rle:
-        rle_append_modify(rle1, (a1, r))
-        rle_append_modify(rle2, (a2, r))
-    return rle1, rle2
-
-
 class TagMarkupException(Exception):
     pass
 
 
-def decompose_tagmarkup(tm):
+def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
     """Return (text string, attribute list) for tagmarkup passed."""
 
     tl, al = _tagmarkup_recurse(tm, None)
-    # join as unicode or bytes based on type of first element
+    # join as str or bytes based on type of first element
+    text: str | bytes
     if tl:
-        text = tl[0][:0].join(tl)
+        encoding = get_encoding()
+        if isinstance(tl[0], str):
+            text = "".join(item if isinstance(item, str) else item.decode(encoding) for item in tl)
+        else:
+            text = b"".join(item if isinstance(item, bytes) else item.encode(encoding) for item in tl)
     else:
         text = ""
 
@@ -446,7 +468,10 @@ def decompose_tagmarkup(tm):
     return text, al
 
 
-def _tagmarkup_recurse(tm, attr):
+def _tagmarkup_recurse(
+    tm: _TagMarkup,
+    attr: Hashable,
+) -> tuple[list[str | bytes], list[tuple[Hashable, int]]]:
     """Return (text list, attribute list) for tagmarkup passed.
 
     tm -- tagmarkup
@@ -454,8 +479,8 @@ def _tagmarkup_recurse(tm, attr):
 
     if isinstance(tm, list):
         # for lists recurse to process each subelement
-        rtl = []
-        ral = []
+        rtl: list[str | bytes] = []
+        ral: list[tuple[Hashable, int]] = []
         for element in tm:
             tl, al = _tagmarkup_recurse(element, attr)
             if ral:

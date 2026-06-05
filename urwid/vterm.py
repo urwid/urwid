@@ -1427,7 +1427,10 @@ class TermCanvas(Canvas):
             viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
             yield from (*self.scrollback_buffer, *self.term)[viewport_range]
 
-    def content_delta(self, other: Canvas):
+    def content_delta(
+        self,
+        other: Canvas,
+    ) -> list[int] | Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
         if other is self:
             return [self.cols()] * self.rows()
         return self.content()

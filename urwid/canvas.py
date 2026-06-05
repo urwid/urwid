@@ -41,10 +41,21 @@ from urwid.util import (
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator, Mapping, Sequence
 
-    from typing_extensions import Literal
+    from typing_extensions import Literal, NotRequired
 
     from .display.common import AttrSpec
     from .widget import Widget
+
+    _ContentLine = list[tuple[typing.Union[AttrSpec, str, None], typing.Union[Literal["0", "U"], None], bytes]]
+    _CView = tuple[int, int, int, int, typing.Union[dict[Hashable, Hashable], None], "Canvas"]
+
+    _CanvasCoords = typing.TypedDict(
+        "_CanvasCoords",
+        {
+            "pop up": NotRequired[tuple[int, int, tuple["Widget", int, int]]],
+            "cursor": NotRequired[tuple[int, int, None]],
+        },
+    )
 
 
 class CanvasCache:
@@ -69,13 +80,13 @@ class CanvasCache:
             Widget,
             dict[
                 tuple[type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
-                weakref.ReferenceType,
+                weakref.ReferenceType[Canvas],
             ],
         ]
     ] = {}
     _refs: typing.ClassVar[
         dict[
-            weakref.ReferenceType,
+            weakref.ReferenceType[Canvas],
             tuple[Widget, type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
         ]
     ] = {}
@@ -106,7 +117,7 @@ class CanvasCache:
             """
             # FIXME: is this recursion necessary?  The cache invalidating might work with only one level.
             depends = []
-            for _x, _y, c, _pos in canv.children:
+            for _x, _y, c, _pos in canv.children:  # type: ignore[attr-defined]  # we made `hasattr` check
                 if c.widget_info:
                     depends.append(c.widget_info[0])
                 elif hasattr(c, "children"):
@@ -129,7 +140,13 @@ class CanvasCache:
         cls._widgets.setdefault(widget, {})[wcls, size, focus] = ref
 
     @classmethod
-    def fetch(cls, widget: Widget, wcls: type[Widget], size, focus: bool) -> Canvas | None:
+    def fetch(
+        cls,
+        widget: Widget,
+        wcls: type[Widget],
+        size: tuple[int, int] | tuple[int] | tuple[()],
+        focus: bool,
+    ) -> Canvas | None:
         """
         Return the cached canvas or None.
 
@@ -170,7 +187,7 @@ class CanvasCache:
             cls.invalidate(w)
 
     @classmethod
-    def cleanup(cls, ref: weakref.ReferenceType) -> None:
+    def cleanup(cls, ref: weakref.ReferenceType[Canvas]) -> None:
         cls.cleanups += 1  # collect stats
 
         w = cls._refs.get(ref, None)
@@ -216,7 +233,7 @@ class Canvas:
     def __init__(self) -> None:
         """Base Canvas class"""
         self._widget_info: tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
-        self.coords: dict[str, tuple[int, int, tuple[Widget, int, int]] | tuple[int, int, None]] = {}
+        self.coords: _CanvasCoords = {}
         self.shortcuts: dict[str, str] = {}
 
     def finalize(
@@ -264,7 +281,7 @@ class Canvas:
         cols: int = 0,
         rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
-    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+    ) -> Iterator[_ContentLine]:
         raise NotImplementedError()
 
     def cols(self) -> int:
@@ -273,7 +290,12 @@ class Canvas:
     def rows(self) -> int:
         raise NotImplementedError()
 
-    def content_delta(self, other: Canvas):
+    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
+        """Delta between two canvases
+
+        Returns list of row deltas if other is None, otherwise returns iterator of row deltas.
+        Not used by code base.
+        """
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
@@ -294,10 +316,7 @@ class Canvas:
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self) -> tuple[int, int, tuple[Widget, int, int]] | None:
-        if c := self.coords.get("pop up", None):
-            return c
-
-        return None
+        return self.coords.get("pop up", None)
 
     def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int) -> None:
         """
@@ -322,13 +341,14 @@ class Canvas:
 
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
 
-    def translate_coords(self, dx: int, dy: int) -> dict[str, tuple[int, int, tuple[Widget, int, int] | None]]:
+    def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
         """
         Return coords shifted by (dx, dy).
         """
-        d = {}
-        for name, (x, y, data) in self.coords.items():
-            d[name] = (x + dx, y + dy, data)
+        d: _CanvasCoords = {}
+        for name, (x, y, data) in self.coords.items():  # type: ignore[misc]
+            # MyPy issue with expansion of TypedDict
+            d[name] = (x + dx, y + dy, data)  # type: ignore[has-type, literal-required]
         return d
 
     def __repr__(self) -> str:
@@ -359,7 +379,7 @@ class TextCanvas(Canvas):
     def __init__(
         self,
         text: list[bytes] | None = None,
-        attr: list[list[tuple[Hashable | None, int]]] | None = None,
+        attr: list[list[tuple[Hashable, int]]] | None = None,
         cs: list[list[tuple[Literal["0", "U"] | None, int]]] | None = None,
         cursor: tuple[int, int] | None = None,
         maxcol: int | None = None,
@@ -459,7 +479,7 @@ class TextCanvas(Canvas):
         cols: int = 0,
         rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
-    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+    ) -> Iterator[_ContentLine]:
         """
         Return the canvas content as a list of rows where each row
         is a list of (attr, cs, text) tuples.
@@ -507,13 +527,12 @@ class TextCanvas(Canvas):
                 i += run
             yield row
 
-    def content_delta(self, other: Canvas):
+    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
         """
         Return the differences between other and this canvas.
 
-        If other is the same object as self this will return no
-        differences, otherwise this is the same as calling
-        content().
+        If other is the same object as self this will return no differences,
+        otherwise this is the same as calling content().
         """
         if other is self:
             return [self.cols()] * self.rows()
@@ -533,7 +552,7 @@ class BlankCanvas(Canvas):
         cols: int = 0,
         rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
-    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+    ) -> Iterator[_ContentLine]:
         """
         return (cols, rows) of spaces with default attributes.
         """
@@ -542,7 +561,7 @@ class BlankCanvas(Canvas):
             def_attr = attr[None]
         line = [(def_attr, None, b"".rjust(cols))]
         for _ in range(rows):
-            yield line
+            yield line  # type: ignore[misc]  # Yes, list is invariant, but we return it
 
     def cols(self) -> typing.NoReturn:
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
@@ -585,7 +604,7 @@ class SolidCanvas(Canvas):
         cols: int | None = None,
         rows: int | None = None,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
-    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+    ) -> Iterator[_ContentLine]:
         if cols is None:
             cols = self.size[0]
         if rows is None:
@@ -598,7 +617,7 @@ class SolidCanvas(Canvas):
         for _ in range(rows):
             yield line
 
-    def content_delta(self, other):
+    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
         """
         Return the differences between other and this canvas.
         """
@@ -618,8 +637,8 @@ class CompositeCanvas(Canvas):
 
         if canv is a CompositeCanvas, make a copy of its contents
         """
-        # a "shard" is a (num_rows, list of cviews) tuple, one for
-        # each cview starting in this shard
+        # a "shard" is a (num_rows, list of cviews) tuple,
+        # one for each cview starting in this shard
 
         # a "cview" is a tuple that defines a view of a canvas:
         # (trim_left, trim_top, cols, rows, attr_map, canv)
@@ -627,17 +646,11 @@ class CompositeCanvas(Canvas):
         # a "shard tail" is a list of tuples:
         # (col_gap, done_rows, content_iter, cview)
 
-        # tuples that define the unfinished cviews that are part of
-        # shards following the first shard.
+        # tuples that define the unfinished cviews that are part of shards following the first shard.
         super().__init__()
 
         if canv is None:
-            self.shards: list[
-                tuple[
-                    int,
-                    list[tuple[int, int, int, int, dict[Hashable | None, Hashable] | None, Canvas]],
-                ]
-            ] = []
+            self.shards: list[tuple[int, list[_CView]]] = []
             self.children: list[tuple[int, int, Canvas, typing.Any]] = []
         else:
             if hasattr(canv, "shards"):
@@ -686,13 +699,13 @@ class CompositeCanvas(Canvas):
         cols: int = 0,
         rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
-    ) -> Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+    ) -> Iterator[_ContentLine]:
         """
         Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
 
         All parameters are ignored.
         """
-        shard_tail = []
+        shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
         for num_rows, cviews in self.shards:
             # combine shard and shard tail
             sbody = shard_body(cviews, shard_tail)
@@ -704,30 +717,30 @@ class CompositeCanvas(Canvas):
             # prepare next shard tail
             shard_tail = shard_body_tail(num_rows, sbody)
 
-    def content_delta(self, other: Canvas):
+    def content_delta(self, other: Canvas) -> Iterator[_ContentLine]:
         """
         Return the differences between other and this canvas.
         """
         if not hasattr(other, "shards"):
             yield from self.content()
-            return
 
-        shard_tail = []
-        for num_rows, cviews in shards_delta(self.shards, other.shards):
-            # combine shard and shard tail
-            sbody = shard_body(cviews, shard_tail)
+        else:
+            shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
+            for num_rows, cviews in shards_delta(self.shards, other.shards):
+                # combine shard and shard tail
+                sbody = shard_body(cviews, shard_tail)
 
-            # output rows
-            row = []
-            for _ in range(num_rows):
-                # if whole shard is unchanged, don't keep
-                # calling shard_body_row
-                if len(row) != 1 or not isinstance(row[0], int):
-                    row = shard_body_row(sbody)
-                yield row
+                # output rows
+                row: _ContentLine = []
+                for _ in range(num_rows):
+                    # if whole shard is unchanged, don't keep
+                    # calling shard_body_row
+                    if len(row) != 1 or not isinstance(row[0], int):
+                        row = shard_body_row(sbody)
+                    yield row
 
-            # prepare next shard tail
-            shard_tail = shard_body_tail(num_rows, sbody)
+                # prepare next shard tail
+                shard_tail = shard_body_tail(num_rows, sbody)
 
     def trim(self, top: int, count: int | None = None) -> None:
         """Trim lines from the top and/or bottom of canvas.
@@ -870,7 +883,7 @@ class CompositeCanvas(Canvas):
         """
         self.fill_attr_apply({None: a})
 
-    def fill_attr_apply(self, mapping: dict[Hashable | None, Hashable]) -> None:
+    def fill_attr_apply(self, mapping: dict[Hashable, Hashable]) -> None:
         """
         Apply an attribute-mapping dictionary to the canvas.
 
@@ -879,9 +892,9 @@ class CompositeCanvas(Canvas):
         if self.widget_info:
             raise self._finalized_error
 
-        shards = []
+        shards: list[tuple[int, list[_CView]]] = []
         for num_rows, original_cviews in self.shards:
-            new_cviews = []
+            new_cviews: list[_CView] = []
             for cv in original_cviews:
                 # cv[4] == attr_map
                 if cv[4] is None:
@@ -905,7 +918,7 @@ class CompositeCanvas(Canvas):
         self.depends_on = widget_list
 
 
-def shard_body_row(sbody):
+def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]]):
     """
     Return one row, advancing the iterators in sbody.
 
@@ -925,7 +938,10 @@ def shard_body_row(sbody):
     return row
 
 
-def shard_body_tail(num_rows: int, sbody):
+def shard_body_tail(
+    num_rows: int,
+    sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]],
+) -> list[tuple[int, int, Iterator[_ContentLine] | None, _CView]]:
     """
     Return a new shard tail that follows this shard body.
     """
@@ -943,7 +959,10 @@ def shard_body_tail(num_rows: int, sbody):
     return shard_tail
 
 
-def shards_delta(shards, other_shards):
+def shards_delta(
+    shards: list[tuple[int, list[_CView]]],
+    other_shards: list[tuple[int, list[_CView]]],
+) -> Iterator[tuple[int, Iterable[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]]]:
     """
     Yield shards1 with cviews that are the same as shards2 having canv = None.
     """
@@ -962,13 +981,20 @@ def shards_delta(shards, other_shards):
             done += num_rows
             continue
         # top-aligned shards, compare each cview
-        yield (num_rows, shard_cviews_delta(cviews, other_cviews))
+        yield (num_rows, shard_cviews_delta(cviews, other_cviews))  # type: ignore[arg-type]  # `list` is `Iterable`
         other_done += other_num_rows
         other_num_rows = None
         done += num_rows
 
 
-def shard_cviews_delta(cviews, other_cviews):
+def shard_cviews_delta(
+    cviews: Iterable[_CView],
+    other_cviews: Iterable[_CView],
+) -> Iterator[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]:
+    """Return iterator of cviews with differences between shards
+
+    If Canvas and shard tail are equal between shards, return None instead of canvas.
+    """
     # pylint: disable=stop-iteration-return
     other_cviews_iter = iter(other_cviews)
     other_cv = None
@@ -993,20 +1019,23 @@ def shard_cviews_delta(cviews, other_cviews):
         cols += cv[2]
 
 
-def shard_body(cviews, shard_tail, create_iter: bool = True, iter_default=None):
+def shard_body(
+    cviews: Iterable[_CView],
+    shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]],
+    create_iter: bool = True,
+    iter_default: Iterator[_ContentLine] | None = None,
+) -> list[tuple[int, Iterator[_ContentLine] | None, _CView]]:
     """
-    Return a list of (done_rows, content_iter, cview) tuples for
-    this shard and shard tail.
+    Return a list of (done_rows, content_iter, cview) tuples for this shard and shard tail.
 
-    If a canvas in cviews is None (eg. when unchanged from
-    shard_cviews_delta()) or if create_iter is False then no
-    iterator is created for content_iter.
+    If a canvas in cviews is None (eg. when unchanged from shard_cviews_delta())
+    or if create_iter is False
+    then no iterator is created for content_iter.
 
-    iter_default is the value used for content_iter when no iterator
-    is created.
+    iter_default is the value used for content_iter when no iterator is created.
     """
     col = 0
-    body = []  # build the next shard tail
+    body: list[tuple[int, Iterator[_ContentLine] | None, _CView]] = []  # build the next shard tail
     cviews_iter = iter(cviews)
     for col_gap, done_rows, content_iter, tail_cview in shard_tail:
         while col_gap:
@@ -1035,7 +1064,10 @@ def shard_body(cviews, shard_tail, create_iter: bool = True, iter_default=None):
     return body
 
 
-def shards_trim_top(shards, top: int):
+def shards_trim_top(
+    shards: Iterable[tuple[int, list[_CView]]],
+    top: int,
+) -> list[tuple[int, list[_CView]]]:
     """
     Return shards with top rows removed.
     """
@@ -1043,7 +1075,7 @@ def shards_trim_top(shards, top: int):
         raise ValueError(top)
 
     shard_iter = iter(shards)
-    shard_tail = []
+    shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
     # skip over shards that are completely removed
     for num_rows, cviews in shard_iter:
         if top < num_rows:
@@ -1069,7 +1101,10 @@ def shards_trim_top(shards, top: int):
     return new_shards
 
 
-def shards_trim_rows(shards, keep_rows: int):
+def shards_trim_rows(
+    shards: list[tuple[int, list[_CView]]],
+    keep_rows: int,
+) -> list[tuple[int, list[_CView]]]:
     """
     Return the topmost keep_rows rows from shards.
     """
@@ -1097,7 +1132,11 @@ def shards_trim_rows(shards, keep_rows: int):
     return new_shards
 
 
-def shards_trim_sides(shards, left: int, cols: int):
+def shards_trim_sides(
+    shards: list[tuple[int, list[_CView]]],
+    left: int,
+    cols: int,
+) -> list[tuple[int, list[_CView]]]:
     """
     Return shards with starting from column left and cols total width.
     """
@@ -1105,8 +1144,8 @@ def shards_trim_sides(shards, left: int, cols: int):
         raise ValueError(left)
     if cols <= 0:
         raise ValueError(cols)
-    shard_tail = []
-    new_shards = []
+    shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
+    new_shards: list[tuple[int, list[_CView]]] = []
     right = left + cols
     for num_rows, cviews in shards:
         sbody = shard_body(cviews, shard_tail, False)
@@ -1134,20 +1173,20 @@ def shards_trim_sides(shards, left: int, cols: int):
     return new_shards
 
 
-def shards_join(shard_lists):
+def shards_join(shard_lists: Iterable[list[tuple[int, list[_CView]]]]) -> list[tuple[int, list[_CView]]]:
     """
     Return the result of joining shard lists horizontally.
     All shards lists must have the same number of rows.
     """
-    shards_iters = [iter(sl) for sl in shard_lists]
-    shards_current = [next(i) for i in shards_iters]
+    shards_iters: list[Iterator[tuple[int, list[_CView]]]] = [iter(sl) for sl in shard_lists]
+    shards_current: list[tuple[int, list[_CView] | None]] = [next(i) for i in shards_iters]
 
     new_shards = []
     while True:
         new_cviews = []
-        num_rows = min(r for r, cv in shards_current)
+        num_rows = min(r for r, _cv in shards_current)
 
-        shards_next = []
+        shards_next: list[tuple[int, list[_CView] | None]] = []
         for rows, cviews in shards_current:
             if cviews:
                 new_cviews.extend(cviews)
@@ -1167,19 +1206,19 @@ def shards_join(shard_lists):
     return new_shards
 
 
-def cview_trim_rows(cv, rows: int):
+def cview_trim_rows(cv: _CView, rows: int) -> _CView:
     return (*cv[:3], rows, *cv[4:])
 
 
-def cview_trim_top(cv, trim: int):
+def cview_trim_top(cv: _CView, trim: int) -> _CView:
     return (cv[0], trim + cv[1], cv[2], cv[3] - trim, *cv[4:])
 
 
-def cview_trim_left(cv, trim: int):
+def cview_trim_left(cv: _CView, trim: int) -> _CView:
     return (cv[0] + trim, cv[1], cv[2] - trim, *cv[3:])
 
 
-def cview_trim_cols(cv, cols: int):
+def cview_trim_cols(cv: _CView, cols: int) -> _CView:
     return (*cv[:2], cols, *cv[3:])
 
 
@@ -1215,7 +1254,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
         children = [children[focus_index], *children[:focus_index], *children[focus_index + 1 :]]
 
     combined_canvas.shards = shards
-    combined_canvas.children = children
+    combined_canvas.children = children  # type: ignore[assignment]  # `CompositeCanvas` is subtype of `Canvas`
     return combined_canvas
 
 
@@ -1281,7 +1320,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
         children = [children[focus_item], *children[:focus_item], *children[focus_item + 1 :]]
 
     joined_canvas.shards = shards_join(shard_lists)
-    joined_canvas.children = children
+    joined_canvas.children = children  # type: ignore[assignment]  # `CompositeCanvas` is subtype of `Canvas`
     return joined_canvas
 
 
@@ -1298,17 +1337,17 @@ def apply_text_layout(
     maxcol: int,
 ) -> TextCanvas:
     t: list[bytes] = []
-    a: list[list[tuple[Hashable | None, int]]] = []
+    a: list[list[tuple[Hashable, int]]] = []
     c: list[list[tuple[Literal["0", "U"] | None, int]]] = []
 
     aw = _AttrWalk()
 
-    def arange(start_offs: int, end_offs: int) -> list[tuple[Hashable | None, int]]:
+    def arange(start_offs: int, end_offs: int) -> list[tuple[Hashable, int]]:
         """Return an attribute list for the range of text specified."""
         if start_offs < aw.offset:
             aw.counter = 0
             aw.offset = 0
-        o = []
+        o: list[tuple[Hashable, int]] = []
         # the loop should run at least once, the '=' part ensures that
         while aw.offset <= end_offs:
             if len(attr) <= aw.counter:
@@ -1334,8 +1373,8 @@ def apply_text_layout(
         line_layout = trim_line(line_layout, text, 0, maxcol)  # noqa: PLW2901
 
         line = []
-        linea = []
-        linec = []
+        linea: list[tuple[Hashable, int]] = []
+        linec: list[tuple[Literal["0", "U"] | None, int]] = []
 
         def attrrange(start_offs: int, end_offs: int, destw: int) -> None:
             """
