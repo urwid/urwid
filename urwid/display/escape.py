@@ -36,6 +36,10 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
+    _KeyQueueData = dict[int, typing.Union[str, "_KeyQueueData"]]
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
 import urwid.util  # isort: skip  # pylint: disable=wrong-import-position
@@ -78,7 +82,7 @@ def escape_modifier(digit: str) -> str:
     return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
 
 
-input_sequences = [
+input_sequences: list[tuple[str, str]] = [
     ("[A", "up"),
     ("[B", "down"),
     ("[C", "right"),
@@ -192,7 +196,7 @@ class KeyqueueTrie:
     __slots__ = ("data",)
 
     def __init__(self, sequences: Iterable[tuple[str, str]]) -> None:
-        self.data: dict[int, str | dict[int, str | dict[int, str]]] = {}
+        self.data: _KeyQueueData = {}
         for s, result in sequences:
             if isinstance(result, dict):
                 raise TypeError(result)
@@ -200,24 +204,33 @@ class KeyqueueTrie:
 
     def add(
         self,
-        root: MutableMapping[int, str | MutableMapping[int, str | MutableMapping[int, str]]],
+        root: _KeyQueueData,
         s: str,
         result: str,
     ) -> None:
         if not isinstance(root, MutableMapping) or not s:
             raise RuntimeError("trie conflict detected")
 
-        if ord(s[0]) in root:
-            self.add(root[ord(s[0])], s[1:], result)
+        seq_start = ord(s[0])
+        if seq_start in root:
+            child = root[seq_start]
+            if isinstance(child, str):
+                raise ValueError("trie conflict detected")
+
+            self.add(child, s[1:], result)
             return
         if len(s) > 1:
-            d = {}
-            root[ord(s[0])] = d
+            d: _KeyQueueData = {}
+            root[seq_start] = d
             self.add(d, s[1:], result)
             return
-        root[ord(s)] = result
+        root[seq_start] = result
 
-    def get(self, keys, more_available: bool):
+    def get(
+        self,
+        keys: Sequence[int],
+        more_available: bool,
+    ) -> tuple[str | _MouseInput | _CursorPosition, Sequence[int]] | None:
         if result := self.get_recurse(self.data, keys, more_available):
             return result
 
@@ -225,13 +238,10 @@ class KeyqueueTrie:
 
     def get_recurse(
         self,
-        root: (
-            MutableMapping[int, str | MutableMapping[int, str | MutableMapping[int, str]]]
-            | typing.Literal["mouse", "sgrmouse"]
-        ),
+        root: (_KeyQueueData | str),
         keys: Sequence[int],
         more_available: bool,
-    ):
+    ) -> tuple[str | _MouseInput, Sequence[int]] | None:
         if not isinstance(root, MutableMapping):
             if root == "mouse":
                 return self.read_mouse_info(keys, more_available)
@@ -240,20 +250,23 @@ class KeyqueueTrie:
                 return self.read_sgrmouse_info(keys, more_available)
 
             return (root, keys)
+
         if not keys:
             # get more keys
             if more_available:
                 raise MoreInputRequired()
             return None
+
         if keys[0] not in root:
             return None
+
         return self.get_recurse(root[keys[0]], keys[1:], more_available)
 
     def read_mouse_info(
         self,
         keys: Sequence[int],
         more_available: bool,
-    ) -> tuple[tuple[str, int, int, int], Sequence[int]] | None:
+    ) -> tuple[_MouseInput, Sequence[int]] | None:
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -296,7 +309,7 @@ class KeyqueueTrie:
         self,
         keys: Sequence[int],
         more_available: bool,
-    ) -> tuple[tuple[str, int, int, int], Sequence[int]] | None:
+    ) -> tuple[_MouseInput, Sequence[int]] | None:
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
@@ -359,7 +372,7 @@ class KeyqueueTrie:
         self,
         keys: Sequence[int],
         more_available: bool,
-    ) -> tuple[tuple[str, int, int], Sequence[int]] | None:
+    ) -> tuple[_CursorPosition, Sequence[int]] | None:
         """
         Interpret cursor position information being sent by the
         user's terminal.  Returned as ('cursor position', x, y)
@@ -431,7 +444,6 @@ input_trie = KeyqueueTrie(input_sequences)
 #################################################
 
 _keyconv = {
-    -1: None,
     8: "backspace",
     9: "tab",
     10: "enter",
@@ -482,7 +494,10 @@ if IS_WINDOWS:
     _keyconv[358] = "end"
 
 
-def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[str], Sequence[int]]:
+def process_keyqueue(
+    codes: Sequence[int],
+    more_available: bool,
+) -> tuple[list[str | int | _MouseInput | _CursorPosition], Sequence[int]]:
     """
     codes -- list of key codes
     more_available -- if True then raise MoreInputRequired when in the
@@ -503,22 +518,6 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         return [f"ctrl {ord('A') + code - 1:c}"], codes[1:]
 
     em = str_util.get_byte_encoding()
-
-    if (
-        em == "wide"
-        and code < 256
-        and within_double_byte(
-            code.to_bytes(1, "little"),
-            0,
-            0,
-        )
-    ):
-        if not codes[1:] and more_available:
-            raise MoreInputRequired()
-        if codes[1:] and codes[1] < 256:
-            db = chr(code) + chr(codes[1])
-            if within_double_byte(db, 0, 1):
-                return [db], codes[2:]
 
     if em == "utf8" and 127 < code < 256:
         if code & 0xE0 == 0xC0:  # 2-byte form
@@ -548,6 +547,23 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         except UnicodeDecodeError:
             return [f"<{code:d}>"], codes[1:]
 
+    if (
+        em == "wide"
+        and code < 256
+        and str_util.within_double_byte(
+            (start_code := code.to_bytes(1, "little")),
+            0,
+            0,
+        )
+    ):
+        if not codes[1:] and more_available:
+            raise MoreInputRequired()
+        if codes[1:] and codes[1] < 256:
+            end_code = codes[1].to_bytes(1, "little")
+
+            if str_util.within_double_byte(start_code + end_code, 0, 1):
+                return [chr(code) + chr(codes[1])], codes[2:]
+
     if 127 < code < 256:
         key = chr(code)
         return [key], codes[1:]
@@ -555,15 +571,15 @@ def process_keyqueue(codes: Sequence[int], more_available: bool) -> tuple[list[s
         return [f"<{code:d}>"], codes[1:]
 
     if (result := input_trie.get(codes[1:], more_available)) is not None:
-        result, remaining_codes = result
-        return [result], remaining_codes
+        decoded, remaining_codes = result
+        return [decoded], remaining_codes
 
     if codes[1:]:
         # Meta keys -- ESC+Key form
         run, remaining_codes = process_keyqueue(codes[1:], more_available)
         if urwid.util.is_mouse_event(run[0]):
             return ["esc", *run], remaining_codes
-        if run[0] == "esc" or run[0].find("meta ") >= 0:
+        if run[0] == "esc" or typing.cast("str", run[0]).find("meta ") >= 0:
             return ["esc", *run], remaining_codes
         return [f"meta {run[0]}", *run[1:]], remaining_codes
 
