@@ -32,7 +32,7 @@ import logging
 import typing
 from contextlib import suppress
 
-from tornado import ioloop
+from tornado import ioloop  # type: ignore[attr-defined]
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -119,9 +119,12 @@ class TornadoEventLoop(EventLoop):
         :return: future object for the function call outcome.
         :rtype: asyncio.Future
         """
-        return self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs))
+        return typing.cast(
+            "asyncio.Future[_T]",
+            self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs)),
+        )
 
-    def alarm(self, seconds: float, callback: Callable[[], typing.Any]):
+    def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> object:
         @self._also_call_idle
         @functools.wraps(callback)
         def wrapped() -> None:

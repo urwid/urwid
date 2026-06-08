@@ -123,6 +123,7 @@ class MainLoop:
     ):
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
+        self._topmost_widget = widget
         self.handle_mouse = handle_mouse
         self._pop_ups = False  # only initialize placeholder
         self.pop_ups = pop_ups  # triggers property setting side-effect
@@ -298,7 +299,7 @@ class MainLoop:
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         return self.event_loop.watch_file(fd, callback)
 
-    def remove_watch_file(self, handle):
+    def remove_watch_file(self, handle) -> bool:
         """
         Remove a watch file. Returns ``True`` if the watch file
         exists, ``False`` otherwise.
@@ -317,7 +318,7 @@ class MainLoop:
         with suppress(ExitMainLoop):
             self._run()
 
-    def _test_run(self):
+    def _test_run(self) -> None:
         """
         >>> w = _refl("widget")  # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
@@ -492,7 +493,7 @@ class MainLoop:
             if "window resize" in keys:
                 self.screen_size = None
 
-    def _test_run_screen_event_loop(self):
+    def _test_run_screen_event_loop(self) -> None:
         """
         >>> w = _refl("widget")
         >>> scr = _refl("screen")
@@ -571,7 +572,7 @@ class MainLoop:
 
         return something_handled
 
-    def _test_process_input(self):
+    def _test_process_input(self) -> None:
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -642,7 +643,7 @@ class MainLoop:
         self.screen.draw_screen(self.screen_size, canvas)
 
 
-def _refl(name: str, rval=None, loop_exit=False):
+def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callable[..., _T | typing.Any]:
     """
     This function is used to test the main loop classes.
 
@@ -660,11 +661,11 @@ def _refl(name: str, rval=None, loop_exit=False):
     """
 
     class Reflect:
-        def __init__(self, name: str, rval=None):
+        def __init__(self, name: str, rval: _T | None = None) -> None:
             self._name = name
             self._rval = rval
 
-        def __call__(self, *argl, **argd):
+        def __call__(self, *argl: typing.Any, **argd: typing.Any) -> _T | None:
             args = ", ".join([repr(a) for a in argl])
             if args and argd:
                 args = f"{args}, "
@@ -674,7 +675,7 @@ def _refl(name: str, rval=None, loop_exit=False):
                 raise ExitMainLoop()
             return self._rval
 
-        def __getattr__(self, attr):
+        def __getattr__(self, attr: str) -> Reflect:  # pylint: disable=undefined-variable
             if attr.endswith("_rval"):
                 raise AttributeError()
             # print(self._name+"."+attr)
@@ -685,7 +686,7 @@ def _refl(name: str, rval=None, loop_exit=False):
     return Reflect(name)
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()

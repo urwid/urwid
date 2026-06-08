@@ -46,13 +46,20 @@ if typing.TYPE_CHECKING:
     from typing_extensions import ParamSpec
 
     _Spec = ParamSpec("_Spec")
-    _T = typing.TypeVar("_T")
 
 __all__ = ("TwistedEventLoop",)
 
 
-class _TwistedInputDescriptor(FileDescriptor):
-    def __init__(self, reactor: ReactorBase, fd: int, cb: Callable[[], typing.Any]) -> None:
+_T = typing.TypeVar("_T")
+
+
+class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
+    def __init__(
+        self,
+        reactor: ReactorBase,
+        fd: int,
+        cb: Callable[[], _T],
+    ) -> None:
         self._fileno = fd
         self.cb = cb
         super().__init__(typing.cast("IReactorFDSet", reactor))
@@ -60,13 +67,13 @@ class _TwistedInputDescriptor(FileDescriptor):
     def fileno(self) -> int:
         return self._fileno
 
-    def doRead(self):
+    def doRead(self) -> _T:
         return self.cb()
 
-    def getHost(self):
+    def getHost(self) -> typing.NoReturn:
         raise NotImplementedError("No network operation expected")
 
-    def getPeer(self):
+    def getPeer(self) -> typing.NoReturn:
         raise NotImplementedError("No network operation expected")
 
     def writeSomeData(self, data: bytes) -> int | BaseException:
@@ -107,7 +114,7 @@ class TwistedEventLoop(EventLoop):
 
             reactor = twisted.internet.reactor
         self.reactor: ReactorBase = reactor
-        self._watch_files: dict[int, _TwistedInputDescriptor] = {}
+        self._watch_files: dict[int, _TwistedInputDescriptor[typing.Any]] = {}
         self._idle_handle: int = 0
         self._twisted_idle_enabled = False
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
@@ -156,7 +163,7 @@ class TwistedEventLoop(EventLoop):
 
         return True
 
-    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
+    def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
         """
         Call callback() when fd has some data to read.  No parameters
         are passed to callback.
