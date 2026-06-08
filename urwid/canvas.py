@@ -23,6 +23,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import typing
+import warnings
 import weakref
 from contextlib import suppress
 
@@ -294,8 +295,13 @@ class Canvas:
         """Delta between two canvases
 
         Returns list of row deltas if other is None, otherwise returns iterator of row deltas.
-        Not used by code base.
+        Not used by code base and will be removed in the future releases.
         """
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
@@ -538,6 +544,11 @@ class TextCanvas(Canvas):
         If other is the same object as self this will return no differences,
         otherwise this is the same as calling content().
         """
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if other is self:
             return [self.cols()] * self.rows()
         return self.content()
@@ -574,6 +585,11 @@ class BlankCanvas(Canvas):
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
     def content_delta(self, other: Canvas) -> typing.NoReturn:
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
 
@@ -625,6 +641,11 @@ class SolidCanvas(Canvas):
         """
         Return the differences between other and this canvas.
         """
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if other is self:
             return [self.cols()] * self.rows()
         return self.content()
@@ -725,6 +746,11 @@ class CompositeCanvas(Canvas):
         """
         Return the differences between other and this canvas.
         """
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if not hasattr(other, "shards"):
             yield from self.content()
 
@@ -971,6 +997,11 @@ def shards_delta(
     """
     Yield shards1 with cviews that are the same as shards2 having canv = None.
     """
+    warnings.warn(
+        "shards_delta is deprecated and will be removed in a future version",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # pylint: disable=stop-iteration-return
     other_shards_iter = iter(other_shards)
     other_num_rows = other_cviews = None
@@ -1000,6 +1031,11 @@ def shard_cviews_delta(
 
     If Canvas and shard tail are equal between shards, return None instead of canvas.
     """
+    warnings.warn(
+        "shard_cviews_delta is deprecated and will be removed in a future version",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     # pylint: disable=stop-iteration-return
     other_cviews_iter = iter(other_cviews)
     other_cv = None

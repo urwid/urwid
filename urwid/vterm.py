@@ -35,6 +35,7 @@ import termios
 import time
 import traceback
 import typing
+import warnings
 from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass
@@ -1431,6 +1432,11 @@ class TermCanvas(Canvas):
         self,
         other: Canvas,
     ) -> list[int] | Iterator[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]:
+        warnings.warn(
+            "content_delta is not used by code base and will be removed in the future releases",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if other is self:
             return [self.cols()] * self.rows()
         return self.content()
