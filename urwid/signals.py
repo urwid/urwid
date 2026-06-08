@@ -28,6 +28,8 @@ import weakref
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Container, Hashable, Iterable
 
+    _T = typing.TypeVar("_T")
+
 
 class MetaSignals(abc.ABCMeta):
     """
@@ -50,10 +52,10 @@ class MetaSignals(abc.ABCMeta):
         super().__init__(name, bases, d)
 
 
-def setdefaultattr(obj, name, value):
+def setdefaultattr(obj: typing.Any, name: str, value: _T) -> _T:
     # like dict.setdefault() for object attributes
     if hasattr(obj, name):
-        return getattr(obj, name)
+        return getattr(obj, name)  # type: ignore[no-any-return]
     setattr(obj, name, value)
     return value
 
@@ -71,14 +73,13 @@ class Signals:
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
     def __init__(self) -> None:
-        self._supported = {}
+        self._supported: dict[MetaSignals, Container[Hashable]] = {}
 
-    def register(self, sig_cls, signals: Container[Hashable]) -> None:
+    def register(self, sig_cls: MetaSignals, signals: Container[Hashable]) -> None:
         """
         :param sig_cls: the class of an object that will be sending signals
         :type sig_cls: class
-        :param signals: a list of signals that may be sent, typically each
-                        signal is represented by a string
+        :param signals: a list of signals that may be sent, typically each signal is represented by a string
         :type signals: signal names
 
         This function must be called for a class before connecting any
@@ -277,7 +278,7 @@ class Signals:
         handlers = setdefaultattr(obj, self._signal_attr, {}).get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name: Hashable, *args) -> bool:
+    def emit(self, obj, name: Hashable, *args: typing.Any) -> bool:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -298,7 +299,7 @@ class Signals:
 
     def _call_callback(
         self,
-        callback,
+        callback: Callable[..., typing.Any],  # we cannot use type signature here due to args decomposition
         user_arg: typing.Any,
         weak_args: Iterable[weakref.ReferenceType],
         user_args: Iterable[typing.Any],

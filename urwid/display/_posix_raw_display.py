@@ -56,8 +56,8 @@ class Screen(_raw_display_base.Screen):
         self,
         input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
         output: _raw_display_base.TextWriter = sys.stdout,
-        bracketed_paste_mode=False,
-        focus_reporting=False,
+        bracketed_paste_mode: bool = False,
+        focus_reporting: bool = False,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
@@ -70,7 +70,7 @@ class Screen(_raw_display_base.Screen):
             and `focus out` keystrokes when the application gains and loses focus.
         """
         super().__init__(input, output)
-        self.gpm_mev: Popen | None = None
+        self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
         self.bracketed_paste_mode = bracketed_paste_mode
         self.focus_reporting = focus_reporting
@@ -177,8 +177,8 @@ class Screen(_raw_display_base.Screen):
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
         alternate_buffer: bool = True,
-        *args,
-        **kwargs,
+        *args: typing.Any,
+        **kwargs: typing.Any,
     ) -> None:
         """
         Initialize the screen and input mode.
@@ -216,7 +216,7 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-        super()._start()
+        super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
     def _stop(self) -> None:
         """
@@ -243,7 +243,7 @@ class Screen(_raw_display_base.Screen):
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys, fd)
 
-        super()._stop()
+        super()._stop()  # type: ignore[safe-super]
 
     def get_input_descriptors(self) -> list[_raw_display_base.SupportsFileno | int]:
         """
@@ -343,23 +343,24 @@ class Screen(_raw_display_base.Screen):
             return []
 
         s = self.gpm_mev.stdout.readline()
-        result = s.split(", ")
-        if len(result) != 6:
+        event_result = s.split(",")
+        if len(event_result) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
             signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
-        ev, x, y, _ign, b, m = s.split(",")
-        ev = int(ev.split("x")[-1], 16)
-        x = int(x.split(" ")[-1])
-        y = int(y.lstrip().split(" ")[0])
-        b = int(b.split(" ")[-1])
-        m = int(m.split("x")[-1].rstrip(), 16)
+
+        ev_, x_, y_, _ign, b_, m_ = s.split(",")
+        ev = int(ev_.rsplit("x", 1)[-1], 16)
+        x = int(x_.rsplit(" ", 1)[-1])
+        y = int(y_.lstrip().split(" ", 1)[0])
+        b = int(b_.rsplit(" ", 1)[-1])
+        m = int(m_.rsplit("x", 1)[-1].rstrip(), 16)
 
         # convert to xterm-like escape sequence
 
         last_state = next_state = self.last_bstate
-        result = []
+        result: list[int] = []
 
         mod = 0
         if m & 1:
@@ -434,7 +435,7 @@ class Screen(_raw_display_base.Screen):
         return x, y
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()
