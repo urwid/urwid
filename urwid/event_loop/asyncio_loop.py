@@ -63,7 +63,7 @@ class AsyncioEventLoop(EventLoop):
             asyncio.get_event_loop().call_soon(main_loop.draw_screen)
     """
 
-    def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs) -> None:
+    def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs: typing.Any) -> None:
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
@@ -170,7 +170,7 @@ class AsyncioEventLoop(EventLoop):
         """
         return self._loop.call_later(seconds, self._also_call_idle(callback))
 
-    def remove_alarm(self, handle) -> bool:
+    def remove_alarm(self, handle: asyncio.TimerHandle) -> bool:
         """
         Remove an alarm.
 
@@ -225,7 +225,7 @@ class AsyncioEventLoop(EventLoop):
             return False
         return True
 
-    def _exception_handler(self, loop: asyncio.AbstractEventLoop, context):
+    def _exception_handler(self, loop: asyncio.AbstractEventLoop, context: dict[str, typing.Any]) -> None:
         if exc := context.get("exception"):
             loop.stop()
 
