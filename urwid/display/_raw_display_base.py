@@ -395,7 +395,7 @@ class Screen(BaseScreen, RealTerminal):
                 self._input_timeout = None
 
             # should we deprecate?
-            timeout, keys, raw = self.get_input_nonblocking()  # pylint: disable=no-member  # type: ignore[attr-defined]
+            timeout, keys, raw = self.get_input_nonblocking()  # type: ignore[attr-defined]  # pylint: disable=no-member
             if timeout is not None:
                 self._input_timeout = event_loop.alarm(timeout, wrapper)
 
