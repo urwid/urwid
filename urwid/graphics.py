@@ -20,32 +20,20 @@
 
 from __future__ import annotations
 
+import typing
+
 from urwid.display import AttrSpec
 from urwid.widget import (
-    BarGraph,
-    BarGraphError,
-    BarGraphMeta,
-    BigText,
-    GraphVScale,
-    LineBox,
-    ProgressBar,
     Sizing,
     Text,
     Widget,
     fixed_size,
-    scale_bar_values,
 )
 
-__all__ = (
-    "BarGraph",
-    "BarGraphError",
-    "BarGraphMeta",
-    "BigText",
-    "GraphVScale",
-    "LineBox",
-    "ProgressBar",
-    "scale_bar_values",
-)
+if typing.TYPE_CHECKING:
+    from urwid import canvas
+
+__all__ = ("PythonLogo",)
 
 
 class PythonLogo(Widget):
@@ -61,7 +49,7 @@ class PythonLogo(Widget):
         yel = AttrSpec("yellow", "default")
         width = 17
         # fmt: off
-        self._canvas = Text(
+        self._canvas: canvas.TextCanvas = Text(
             [
                 (blu, "     ______\n"),
                 (blu, "   _|_o__  |"), (yel, "__\n"),
@@ -72,13 +60,13 @@ class PythonLogo(Widget):
         ).render((width,))
         # fmt: on
 
-    def pack(self, size: tuple[()] | None = None, focus: bool = False):
+    def pack(self, size: tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:  # type: ignore[override]
         """
         Return the size from our pre-rendered canvas.
         """
         return self._canvas.cols(), self._canvas.rows()
 
-    def render(self, size: tuple[()], focus: bool = False):
+    def render(self, size: tuple[()], focus: bool = False) -> canvas.TextCanvas:  # type: ignore[override]
         """
         Return the pre-rendered canvas.
         """
@@ -86,7 +74,7 @@ class PythonLogo(Widget):
         return self._canvas
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()
