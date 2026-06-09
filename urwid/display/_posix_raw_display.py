@@ -48,7 +48,10 @@ if typing.TYPE_CHECKING:
 
     from urwid.event_loop import EventLoop
 
-    SignalHandler = Callable[[int, FrameType | None], typing.Any] | int | None  # pylint: disable=unsupported-binary-operation
+    SignalHandler = typing.Union[Callable[[int, typing.Union[FrameType, None]], typing.Any], int, None]
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
 
 
 class Screen(_raw_display_base.Screen):
@@ -277,7 +280,7 @@ class Screen(_raw_display_base.Screen):
     def hook_event_loop(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
         """
         Register the given callback with the event loop, to be called with new
@@ -291,7 +294,7 @@ class Screen(_raw_display_base.Screen):
         else:
 
             @functools.wraps(callback)
-            def wrapper() -> tuple[list[str], typing.Any] | None:
+            def wrapper() -> tuple[_DecodedInput, list[int]] | None:
                 self.logger.debug('Calling callback for "watch file"')
                 return self.parse_input(event_loop, callback, self.get_available_raw_input())
 

@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 import sys
 import typing
-from collections.abc import MutableMapping, Sequence
+from collections.abc import MutableMapping
 
 from urwid import str_util
 
@@ -228,9 +228,9 @@ class KeyqueueTrie:
 
     def get(
         self,
-        keys: Sequence[int],
+        keys: list[int],
         more_available: bool,
-    ) -> tuple[str | _MouseInput | _CursorPosition, Sequence[int]] | None:
+    ) -> tuple[str | _MouseInput | _CursorPosition, list[int]] | None:
         if result := self.get_recurse(self.data, keys, more_available):
             return result
 
@@ -239,9 +239,9 @@ class KeyqueueTrie:
     def get_recurse(
         self,
         root: (_KeyQueueData | str),
-        keys: Sequence[int],
+        keys: list[int],
         more_available: bool,
-    ) -> tuple[str | _MouseInput, Sequence[int]] | None:
+    ) -> tuple[str | _MouseInput, list[int]] | None:
         if not isinstance(root, MutableMapping):
             if root == "mouse":
                 return self.read_mouse_info(keys, more_available)
@@ -264,9 +264,9 @@ class KeyqueueTrie:
 
     def read_mouse_info(
         self,
-        keys: Sequence[int],
+        keys: list[int],
         more_available: bool,
-    ) -> tuple[_MouseInput, Sequence[int]] | None:
+    ) -> tuple[_MouseInput, list[int]] | None:
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -307,9 +307,9 @@ class KeyqueueTrie:
 
     def read_sgrmouse_info(
         self,
-        keys: Sequence[int],
+        keys: list[int],
         more_available: bool,
-    ) -> tuple[_MouseInput, Sequence[int]] | None:
+    ) -> tuple[_MouseInput, list[int]] | None:
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
@@ -370,9 +370,9 @@ class KeyqueueTrie:
 
     def read_cursor_position(
         self,
-        keys: Sequence[int],
+        keys: list[int],
         more_available: bool,
-    ) -> tuple[_CursorPosition, Sequence[int]] | None:
+    ) -> tuple[_CursorPosition, list[int]] | None:
         """
         Interpret cursor position information being sent by the
         user's terminal.  Returned as ('cursor position', x, y)
@@ -495,9 +495,9 @@ if IS_WINDOWS:
 
 
 def process_keyqueue(
-    codes: Sequence[int],
+    codes: list[int],
     more_available: bool,
-) -> tuple[list[str | int | _MouseInput | _CursorPosition], Sequence[int]]:
+) -> tuple[list[str | _MouseInput | _CursorPosition], list[int]]:
     """
     codes -- list of key codes
     more_available -- if True then raise MoreInputRequired when in the

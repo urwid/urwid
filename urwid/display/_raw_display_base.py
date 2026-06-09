@@ -48,6 +48,10 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, EventLoop
 
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 
@@ -255,12 +259,12 @@ class Screen(BaseScreen, RealTerminal):
         self._term_output_file.flush()
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
+    def get_input(self, raw_keys: Literal[False]) -> _DecodedInput: ...
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
+    def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
-    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
+    def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return pending input as a list.
 
         raw_keys -- return raw keycodes as well as translated versions
@@ -367,7 +371,7 @@ class Screen(BaseScreen, RealTerminal):
     def hook_event_loop(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
         """
         Register the given callback with the event loop, to be called with new
@@ -382,7 +386,7 @@ class Screen(BaseScreen, RealTerminal):
     def _make_legacy_input_wrapper(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> Callable[[], None]:
         """
         Support old Screen classes that still have a get_input_nonblocking and expect it to work.
@@ -437,7 +441,7 @@ class Screen(BaseScreen, RealTerminal):
         callback: None,
         codes: list[int],
         wait_for_more: bool = ...,
-    ) -> tuple[list[str], list[int]]: ...
+    ) -> tuple[_DecodedInput, list[int]]: ...
 
     @typing.overload
     def parse_input(
@@ -446,13 +450,13 @@ class Screen(BaseScreen, RealTerminal):
         callback: None,
         codes: list[int],
         wait_for_more: bool = ...,
-    ) -> tuple[list[str], list[int]]: ...
+    ) -> tuple[_DecodedInput, list[int]]: ...
 
     @typing.overload
     def parse_input(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
         codes: list[int],
         wait_for_more: bool = ...,
     ) -> None: ...
@@ -460,21 +464,19 @@ class Screen(BaseScreen, RealTerminal):
     def parse_input(
         self,
         event_loop: EventLoop | None,
-        callback: Callable[[list[str], list[int]], typing.Any] | None,
+        callback: Callable[[_DecodedInput, list[int]], typing.Any] | None,
         codes: list[int],
         wait_for_more: bool = True,
-    ) -> tuple[list[str], list[int]] | None:
+    ) -> tuple[_DecodedInput, list[int]] | None:
         """
-        Read any available input from get_available_raw_input, parses it into
-        keys, and calls the given callback.
+        Read any available input from get_available_raw_input, parses it into keys, and calls the given callback.
 
         The current implementation tries to avoid any assumptions about what
         the screen or event loop look like; it only deals with parsing keycodes
         and setting a timeout when an incomplete one is detected.
 
         `codes` should be a sequence of keycodes, i.e. bytes.  A bytearray is
-        appropriate, but beware of using bytes, which only iterates as integers
-        on Python 3.
+        appropriate, but beware of using bytes, which only iterates as integers on Python 3.
         """
 
         logger = self.logger.getChild("parse_input")

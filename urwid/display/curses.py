@@ -41,6 +41,10 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas
 
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+
 IS_WINDOWS = sys.platform == "win32"
 
 # curses.KEY_RESIZE (sometimes not defined)
@@ -298,12 +302,12 @@ class Screen(BaseScreen, RealTerminal):
         self.resize_tenths = convert_to_tenths(resize_wait)
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
+    def get_input(self, raw_keys: Literal[False]) -> _DecodedInput: ...
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
+    def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
-    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
+    def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return pending input as a list.
 
         raw_keys -- return raw keycodes as well as translated versions
@@ -374,7 +378,7 @@ class Screen(BaseScreen, RealTerminal):
             return keys, raw
         return keys
 
-    def _get_input(self, wait_tenths: int | None) -> tuple[list[str], list[int]]:
+    def _get_input(self, wait_tenths: int | None) -> tuple[_DecodedInput, list[int]]:
         # this works around a strange curses bug with window resizing
         # not being reported correctly with repeated calls to this
         # function without a doupdate call in between
@@ -488,7 +492,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _dbg_instr(self) -> bytes:  # messy input string (intended for debugging)
         curses.echo()
-        self.s.nodelay(0)
+        self.s.nodelay(False)
         curses.halfdelay(100)
         string = self.s.getstr()
         curses.noecho()

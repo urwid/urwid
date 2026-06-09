@@ -38,6 +38,10 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas
 
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join(chr(x) for x in range(32, 256))
 
@@ -53,7 +57,7 @@ class HtmlGenerator(BaseScreen):
     # class variables
     fragments: typing.ClassVar[list[str]] = []
     sizes: typing.ClassVar[list[tuple[int, int]]] = []
-    keys: typing.ClassVar[list[list[str]]] = []
+    keys: typing.ClassVar[list[_DecodedInput]] = []
     started = True
 
     def __init__(self) -> None:
@@ -128,19 +132,19 @@ class HtmlGenerator(BaseScreen):
         # add the fragment to the list
         self.fragments.append(f"<pre>{''.join(lines)}</pre>")
 
-    def get_cols_rows(self):
+    def get_cols_rows(self) -> tuple[int, int]:
         """Return the next screen size in HtmlGenerator.sizes."""
         if not self.sizes:
             raise HtmlGeneratorSimulationError("Ran out of screen sizes to return!")
         return self.sizes.pop(0)
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
+    def get_input(self, raw_keys: Literal[False]) -> _DecodedInput: ...
 
     @typing.overload
-    def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
+    def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
-    def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
+    def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return the next list of keypresses in HtmlGenerator.keys."""
         if not self.keys:
             raise ExitMainLoop()
@@ -183,7 +187,10 @@ def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     return _span(html_fg, html_bg, s)
 
 
-def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None:
+def screenshot_init(
+    sizes: list[tuple[int, int]],
+    keys: list[_DecodedInput],
+) -> None:
     """
     Replace curses_display.Screen and raw_display.Screen class with
     HtmlGenerator.
@@ -231,8 +238,8 @@ def screenshot_init(sizes: list[tuple[int, int]], keys: list[list[str]]) -> None
 
     from . import curses, raw
 
-    curses.Screen = HtmlGenerator
-    raw.Screen = HtmlGenerator
+    curses.Screen = HtmlGenerator  # type: ignore[assignment,misc]
+    raw.Screen = HtmlGenerator  # type: ignore[assignment,misc]
 
     HtmlGenerator.sizes = sizes
     HtmlGenerator.keys = keys
