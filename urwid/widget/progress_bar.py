@@ -83,11 +83,11 @@ class ProgressBar(Widget):
     current = property(lambda self: self._current, set_completion)
 
     @property
-    def done(self):
+    def done(self) -> int:
         return self._done
 
     @done.setter
-    def done(self, done):
+    def done(self, done: int) -> None:
         """
         done -- progress amount at 100%
         """

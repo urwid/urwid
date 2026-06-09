@@ -140,6 +140,7 @@ exclude_lines = [
 show_error_context = true
 show_column_numbers = true
 show_error_codes = true
+disallow_untyped_defs = true
 pretty = true
 
 [[tool.mypy.overrides]]
