@@ -45,6 +45,10 @@ if typing.TYPE_CHECKING:
 
     from urwid.event_loop import EventLoop
 
+    _MouseInput = tuple[str, int, int, int]
+    _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+
 
 class Screen(_raw_display_base.Screen):
     _term_input_file: socket.socket
@@ -114,7 +118,7 @@ class Screen(_raw_display_base.Screen):
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
 
-        super()._start()
+        super()._start()  # type: ignore[safe-super]
 
     def _stop(self) -> None:
         """
@@ -135,7 +139,7 @@ class Screen(_raw_display_base.Screen):
         if not (ok := _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)):
             raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
 
-        super()._stop()
+        super()._stop()  # type: ignore[safe-super]
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
         """
@@ -159,7 +163,7 @@ class Screen(_raw_display_base.Screen):
     def hook_event_loop(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
         """
         Register the given callback with the event loop, to be called with new
@@ -265,7 +269,7 @@ class ReadInputThread(threading.Thread):
                     pass  # TODO: handle mouse events
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()

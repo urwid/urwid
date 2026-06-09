@@ -34,4 +34,4 @@ if IS_WINDOWS:
     from ._win32_raw_display import Screen
 
 else:
-    from ._posix_raw_display import Screen
+    from ._posix_raw_display import Screen  # type: ignore[assignment]

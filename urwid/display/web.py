@@ -45,9 +45,13 @@ from urwid.util import StoppingContext, get_encoding
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+    from types import FrameType
+
     from typing_extensions import Literal
 
-    from urwid import Canvas
+    from urwid.canvas import Canvas
+    from urwid.display import AttrSpec
 
 TEMP_DIR = tempfile.gettempdir()
 CURRENT_DIR = pathlib.Path(__file__).parent
@@ -125,7 +129,7 @@ Status: <span id="status">Set up</span>
 class Screen(BaseScreen):
     def __init__(self) -> None:
         super().__init__()
-        self.palette = {}
+        self.palette: dict[str | None, tuple[str, str, str | None]] = {}
         self.has_color = True
         self._started = False
 
@@ -133,7 +137,10 @@ class Screen(BaseScreen):
     def started(self) -> bool:
         return self._started
 
-    def register_palette(self, palette) -> None:
+    def register_palette(
+        self,
+        palette: Iterable[tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str]],  # type: ignore[override]
+    ) -> None:
         """Register a list of palette entries.
 
         palette -- list of (name, foreground, background) or
@@ -180,10 +187,10 @@ class Screen(BaseScreen):
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Not yet implemented"""
 
-    def tty_signal_keys(self, *args, **vargs):
+    def tty_signal_keys(self, *args: typing.Any, **vargs: typing.Any) -> None:
         """Do nothing."""
 
-    def start(self, *args, **kwargs) -> StoppingContext:
+    def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
         """
         This function reads the initial screen size, generates a
         unique id and handles cleanup when fn exits.
@@ -201,7 +208,7 @@ class Screen(BaseScreen):
         x = int(x)
         y = int(y)
         self._set_screen_size(x, y)
-        self.last_screen = {}
+        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
         self.last_screen_width = 0
 
         self.update_method = os.environ["HTTP_X_URWID_METHOD"]
@@ -264,7 +271,7 @@ class Screen(BaseScreen):
             sys.stdout.write("\r\nZ\r\n--ZZ--\r\n")
             sys.stdout.flush()
 
-    def _cleanup_pipe(self, *args) -> None:
+    def _cleanup_pipe(self, *args: typing.Any) -> None:
         if not self.pipe_name:
             return
         # XXX which exceptions does this actually raise? EnvironmentError?
@@ -283,6 +290,7 @@ class Screen(BaseScreen):
         """Send a screen update to the client."""
 
         (cols, rows) = size
+        encoding = get_encoding()
 
         if cols != self.last_screen_width:
             self.last_screen = {}
@@ -297,7 +305,7 @@ class Screen(BaseScreen):
                 s, _addr = self.server_socket.accept()
             except socket.timeout:
                 sys.exit(0)
-            send = s.sendall
+            send = s.sendall  # type: ignore[assignment]  # use default flags
         else:
             signal.alarm(0)
             send = sendq.append
@@ -312,16 +320,16 @@ class Screen(BaseScreen):
         else:
             cx = cy = None
 
-        new_screen = {}
+        new_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
 
         y = -1
         for row in canvas.content():
             y += 1
-            l_row = tuple((attr_, line.decode(get_encoding())) for attr_, _, line in row)
+            l_row = tuple((attr_, line.decode(encoding)) for attr_, _, line in row)
 
             line = []
 
-            sig = l_row
+            sig: tuple[tuple[AttrSpec | str | None, str] | int | None, ...] = l_row
             if y == cy:
                 sig = (*sig, cx)
             new_screen[sig] = [*new_screen.get(sig, []), y]
@@ -340,7 +348,7 @@ class Screen(BaseScreen):
                 if a is None:
                     fg, bg, _mono = "black", "light gray", None
                 else:
-                    fg, bg, _mono = self.palette[a]
+                    fg, bg, _mono = self.palette[typing.cast("str | None", a)]
                 if y == cy and col <= cx:
                     run_width = calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
@@ -391,7 +399,7 @@ class Screen(BaseScreen):
         s.settimeout(POLL_CONNECT)
         self.server_socket = s
 
-    def _handle_alarm(self, sig, frame) -> None:
+    def _handle_alarm(self, sig: int, frame: FrameType | None) -> None:
         if self.update_method not in {"multipart", "polling child"}:
             raise ValueError(self.update_method)
         if self.update_method == "polling child":
@@ -442,9 +450,7 @@ class Screen(BaseScreen):
         for k in keys[:-1]:
             if k.startswith("window resize "):
                 _ign1, _ign2, x, y = k.split(" ", 3)
-                x = int(x)
-                y = int(y)
-                self._set_screen_size(x, y)
+                self._set_screen_size(int(x), int(y))
                 resized = True
             else:
                 pending_input.append(k)
@@ -533,10 +539,10 @@ def handle_short_request() -> bool:
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
             s.connect(os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}.update"))
-            data = f"Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ)}"
+            data = f"Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ).decode('utf-8')}"
             while data:
                 sys.stdout.write(data)
-                data = s.recv(BUF_SZ)
+                data = s.recv(BUF_SZ).decode("utf-8")
         except OSError:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True

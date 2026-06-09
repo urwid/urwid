@@ -27,9 +27,9 @@ import typing
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
+    from collections.abc import Collection, Iterable, Sequence
 
-    from typing_extensions import Literal
+    from typing_extensions import Literal, SupportsIndex
 
     from urwid import Canvas
 
@@ -47,13 +47,13 @@ class LCDScreen(BaseScreen, abc.ABC):
     ) -> None:
         pass
 
-    def set_input_timeouts(self, *args):
+    def set_input_timeouts(self, *args: typing.Any) -> None:
         pass
 
-    def reset_default_terminal_palette(self, *args):
+    def reset_default_terminal_palette(self, *args: typing.Any) -> None:
         pass
 
-    def get_cols_rows(self):
+    def get_cols_rows(self) -> tuple[int, int]:
         return self.DISPLAY_SIZE
 
 
@@ -159,7 +159,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         # complement that is sent in the packet.
         return (((~new_crc) >> 8) & 0xFFFF).to_bytes(2, "little")
 
-    def _send_packet(self, command: int, data: bytes) -> None:
+    def _send_packet(self, command: int, data: Collection[SupportsIndex]) -> None:
         """
         low-level packet sending.
         Following the protocol requires waiting for ack packet between
@@ -345,11 +345,11 @@ class CF635Screen(CFLCDScreen):
         self.key_repeat = KeyRepeatSimulator(repeat_delay, repeat_next)
         self.key_map = tuple(key_map)
 
-        self._last_command = None
-        self._last_command_time = 0
+        self._last_command: int | None = None
+        self._last_command_time = 0.0
         self._command_queue: list[tuple[int, bytearray]] = []
-        self._screen_buf = None
-        self._previous_canvas = None
+        self._screen_buf: list[list[bytes]] = []
+        self._previous_canvas: Canvas | None = None
         self._update_cursor = False
 
     def get_input_descriptors(self) -> list[int]:
@@ -435,10 +435,10 @@ class CF635Screen(CFLCDScreen):
             osb = self._screen_buf
         else:
             osb = []
-        sb = []
+        sb: list[list[bytes]] = []
 
         for y, row in enumerate(canvas.content()):
-            text = [run for _a, _cs, run in row]
+            text: list[bytes] = [run for _a, _cs, run in row]
 
             if not osb or osb[y] != text:
                 data = bytearray([0, y])

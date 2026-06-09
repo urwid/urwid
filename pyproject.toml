@@ -143,6 +143,12 @@ show_error_codes = true
 pretty = true
 
 [[tool.mypy.overrides]]
+module = "urwid.display.curses"
+disable_error_code = [
+  "union-attr",  # chacking for started state before each operation if too expensive
+]
+
+[[tool.mypy.overrides]]
 module = [
   "gi.*",
   "trio.*",
