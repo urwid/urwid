@@ -452,7 +452,7 @@ class TextCanvas(Canvas):
             if cs_gap < 0:
                 raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}")
             if cs_gap:
-                rle_append_modify(cs[i], (None, cs_gap))  # str|None is Hashable
+                rle_append_modify(cs[i], (None, cs_gap))  # type: ignore[arg-type]  # str|None is Hashable
 
         self._attr = attr
         self._cs = cs
@@ -516,17 +516,17 @@ class TextCanvas(Canvas):
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:
-                text, a_row, cs_row = trim_text_attr_cs(  # noqa: PLW2901
+                text, a_row, cs_row = trim_text_attr_cs(  # type: ignore[assignment]  # noqa: PLW2901
                     text,
                     a_row,
-                    cs_row,  # str|None is Hashable
+                    cs_row,  # type: ignore[arg-type]  # str|None is Hashable
                     trim_left,
                     trim_left + cols,
                 )
 
             attr_cs = typing.cast(
                 "list[tuple[tuple[Hashable, Literal['0', 'U'] | None], int]]",
-                rle_product(a_row, cs_row),  # str|None is Hashable
+                rle_product(a_row, cs_row),  # type: ignore[arg-type]  # str|None is Hashable
             )
             i = 0
             row = []
@@ -949,22 +949,19 @@ class CompositeCanvas(Canvas):
         self.depends_on = widget_list
 
 
-def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]]):
+def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]]) -> _ContentLine:
     """
     Return one row, advancing the iterators in sbody.
 
     ** MODIFIES sbody by calling next() on its iterators **
     """
     row = []
-    for _done_rows, content_iter, cview in sbody:
+    for _done_rows, content_iter, _cview in sbody:
         if content_iter:
             row.extend(next(content_iter))
-        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
-            # need to skip this unchanged canvas
-            if row and isinstance(row[-1], int):
-                row[-1] += cview[2]
-            else:
-                row.append(cview[2])
+        else:
+            msg = f"Invalid canvas state: content_iter is falsy: {content_iter!r}. Impossible to display."
+            raise ValueError(msg)
 
     return row
 
@@ -1452,13 +1449,13 @@ def apply_text_layout(
             if s.end:
                 tseg, cs = apply_target_encoding(text[s.offs : s.end])
                 line.append(tseg)
-                attrrange(s.offs, s.end, rle_len(cs))  # s.end is set
-                rle_join_modify(linec, cs)
+                attrrange(typing.cast("int", s.offs), s.end, rle_len(cs))  # s.end is set
+                rle_join_modify(linec, cs)  # type: ignore[arg-type]
             elif s.text:
                 tseg, cs = apply_target_encoding(s.text)
                 line.append(tseg)
-                attrrange(s.offs, s.offs, len(tseg))  # s.text is set
-                rle_join_modify(linec, cs)
+                attrrange(typing.cast("int", s.offs), typing.cast("int", s.offs), len(tseg))  # s.text is set
+                rle_join_modify(linec, cs)  # type: ignore[arg-type]
             elif s.offs:
                 if s.sc:
                     line.append(b"".rjust(s.sc))
