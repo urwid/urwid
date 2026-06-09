@@ -865,7 +865,7 @@ class RealTerminal:
     def __init__(self) -> None:
         super().__init__()
         self._signal_keys_set = False
-        self._old_signal_keys = None
+        self._old_signal_keys: tuple[int, int, int, int, int] | None = None
 
     if IS_WINDOWS:
 

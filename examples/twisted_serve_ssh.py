@@ -269,20 +269,11 @@ class TwistedScreen(Screen):
         self.terminal.write(data)
 
     # Private
-    def _on_update_palette_entry(self, name, *attrspecs):
+    def _on_update_palette_entry(self, name: str | None, *attrspecs: urwid.AttrSpec) -> None:
         # copy the attribute to a dictionary containing the escape sequences
         self._pal_escape[name] = self._attrspec_to_escape(attrspecs[{16: 0, 1: 1, 88: 2, 256: 3}[self.colors]])
 
-    def _attr_to_escape(self, a):
-        if a in self._pal_escape:
-            return self._pal_escape[a]
-        if isinstance(a, urwid.AttrSpec):
-            return self._attrspec_to_escape(a)
-        # undefined attributes use default/default
-        # TODO: track and report these
-        return self._attrspec_to_escape(urwid.AttrSpec("default", "default"))
-
-    def _attrspec_to_escape(self, a):
+    def _attrspec_to_escape(self, a: urwid.AttrSpec) -> str:
         """
         Convert AttrSpec instance a to an escape sequence for the terminal
 
