@@ -18,7 +18,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import TextCanvas
 
-    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", str, bytes], list["_TagMarkup"]]
+    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", typing.Union[str, bytes]], list["_TagMarkup"]]
 
 
 class TextError(WidgetError):
@@ -76,6 +76,8 @@ class Text(Widget):
         super().__init__()
         self._cache_maxcol: int | None = None
         self._layout: text_layout.TextLayout = layout or text_layout.default_layout
+        self._text: str | bytes
+        self._attrib: list[tuple[Hashable, int]]
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 

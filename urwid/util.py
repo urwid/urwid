@@ -38,7 +38,7 @@ if typing.TYPE_CHECKING:
     class CanBeStopped(Protocol):
         def stop(self) -> None: ...
 
-    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", str, bytes], list["_TagMarkup"]]
+    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", typing.Union[str, bytes]], list["_TagMarkup"]]
 
 
 def __getattr__(name: str) -> typing.Any:
