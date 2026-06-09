@@ -18,6 +18,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import TextCanvas
 
+    _TagMarkup = typing.Union[str, bytes, tuple["Hashable", str, bytes], list["_TagMarkup"]]
+
 
 class TextError(WidgetError):
     pass
@@ -35,7 +37,7 @@ class Text(Widget):
 
     def __init__(
         self,
-        markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        markup: _TagMarkup,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: text_layout.TextLayout | None = None,
@@ -102,7 +104,7 @@ class Text(Widget):
         self._cache_maxcol = None
         super()._invalidate()
 
-    def set_text(self, markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_text(self, markup: _TagMarkup) -> None:
         """
         Set content of text widget.
 
@@ -243,7 +245,7 @@ class Text(Widget):
     wrap = property(lambda self: self._wrap_mode, set_wrap_mode)
 
     @property
-    def layout(self):
+    def layout(self) -> text_layout.TextLayout:
         return self._layout
 
     def render(
@@ -317,9 +319,9 @@ class Text(Widget):
         self._cache_maxcol = maxcol
         self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
-        size: tuple[()] | tuple[int] | None = None,  # type: ignore[override]
+        size: tuple[()] | tuple[int] | None = None,
         focus: bool = False,
     ) -> tuple[int, int]:
         """

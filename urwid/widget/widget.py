@@ -76,9 +76,9 @@ class WidgetMeta(signals.MetaSignals, MetaSuper):
         if "rows" in d and "rows" not in no_cache:
             cls.rows = cache_widget_rows(cls)
         if "no_cache" in d:
-            del cls.no_cache
+            del cls.no_cache  # type: ignore[attr-defined]
         if "ignore_focus" in d:
-            del cls.ignore_focus
+            del cls.ignore_focus  # type: ignore[attr-defined]
 
 
 class WidgetError(Exception):
@@ -89,7 +89,11 @@ class WidgetWarning(Warning):
     """Widget specific warnings."""
 
 
-def validate_size(widget, size, canv):
+def validate_size(
+    widget: Widget,
+    size: tuple[()] | tuple[int] | tuple[int, int],
+    canv: Canvas,
+) -> None:
     """
     Raise a WidgetError if a canv does not match size.
     """
@@ -99,22 +103,25 @@ def validate_size(widget, size, canv):
         )
 
 
-def cache_widget_render(cls):
+def cache_widget_render(cls: WidgetMeta) -> Callable[[Widget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
-    Return a function that wraps the cls.render() method
-    and fetches and stores canvases with CanvasCache.
+    Return a function that wraps the cls.render() method and fetches and stores canvases with CanvasCache.
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.render
 
     @functools.wraps(fn)
-    def cached_render(self, size, focus=False):
+    def cached_render(
+        self: Widget,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas:
         focus = focus and not ignore_focus
 
         if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv
 
-        canv = fn(self, size, focus=focus)
+        canv = fn(self, size, focus=focus)  # type: ignore[call-arg]
         validate_size(self, size, canv)
         if canv.widget_info:
             canv = CompositeCanvas(canv)
@@ -122,11 +129,13 @@ def cache_widget_render(cls):
         CanvasCache.store(cls, canv)
         return canv
 
-    cached_render.original_fn = fn
+    cached_render.original_fn = fn  # type: ignore[attr-defined]
     return cached_render
 
 
-def nocache_widget_render(cls):
+def nocache_widget_render(
+    cls: WidgetMeta,
+) -> Callable[[Widget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
     Return a function that wraps the cls.render() method
     and finalizes the canvas that it returns.
@@ -136,48 +145,58 @@ def nocache_widget_render(cls):
         fn = fn.original_fn
 
     @functools.wraps(fn)
-    def finalize_render(self, size, focus=False):
-        canv = fn(self, size, focus=focus)
+    def finalize_render(
+        self: Widget,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas:
+        canv = fn(self, size, focus=focus)  # type: ignore[call-arg]
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         validate_size(self, size, canv)
         canv.finalize(self, size, focus)
         return canv
 
-    finalize_render.original_fn = fn
+    finalize_render.original_fn = fn  # type: ignore[attr-defined]  # un-cache
     return finalize_render
 
 
-def nocache_widget_render_instance(self):
+def nocache_widget_render_instance(self: Widget) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
     Return a function that wraps the cls.render() method
     and finalizes the canvas that it returns, but does not
     cache the canvas.
     """
-    fn = self.render.original_fn
+    fn = self.render.original_fn  # type: ignore[attr-defined]
 
     @functools.wraps(fn)
-    def finalize_render(size, focus=False):
+    def finalize_render(
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas:
         canv = fn(self, size, focus=focus)
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)
-        return canv
+        return canv  # type: ignore[no-any-return]
 
-    finalize_render.original_fn = fn
+    finalize_render.original_fn = fn  # type: ignore[attr-defined]  # un-cache
     return finalize_render
 
 
-def cache_widget_rows(cls):
+def cache_widget_rows(cls: WidgetMeta) -> Callable[[Widget, tuple[int], bool], int]:
     """
-    Return a function that wraps the cls.rows() method
-    and returns rows from the CanvasCache if available.
+    Return a function that wraps the cls.rows() method and returns rows from the CanvasCache if available.
     """
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.rows
 
     @functools.wraps(fn)
-    def cached_rows(self, size: tuple[int], focus: bool = False) -> int:
+    def cached_rows(
+        self: Widget,
+        size: tuple[int],
+        focus: bool = False,
+    ) -> int:
         focus = focus and not ignore_focus
 
         if canv := CanvasCache.fetch(self, cls, size, focus):
@@ -310,7 +329,7 @@ class Widget(metaclass=WidgetMeta):
         """Mark cached canvases rendered by this widget as dirty so that they will not be used again."""
         CanvasCache.invalidate(self)
 
-    def _emit(self, name: Hashable, *args) -> None:
+    def _emit(self, name: Hashable, *args: typing.Any) -> None:
         """Convenience function to emit signals with self as first argument."""
         signals.emit_signal(self, name, self, *args)
 
@@ -401,7 +420,8 @@ class Widget(metaclass=WidgetMeta):
 
         if len(size) == 1:
             if Sizing.FLOW in self.sizing():
-                return (*size, self.rows(size, focus))  # pylint: disable=no-member  # can not announce abstract
+                # can not announce abstract
+                return (*size, self.rows(size, focus))  # type: ignore[attr-defined]  # pylint: disable=no-member
 
             raise WidgetError(f"Cannot pack (maxcol,) size, this is not a flow widget: {self!r}")
 
@@ -424,7 +444,7 @@ class Widget(metaclass=WidgetMeta):
         """
         return None
 
-    def _not_a_container(self, val=None):
+    def _not_a_container(self: Widget, val: typing.Any = None) -> typing.NoReturn:
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     focus_position = property(
@@ -438,7 +458,7 @@ class Widget(metaclass=WidgetMeta):
         """,
     )
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """A friendly __repr__ for widgets.
 
         Designed to be extended by subclasses with _repr_words and _repr_attr methods.
@@ -446,7 +466,7 @@ class Widget(metaclass=WidgetMeta):
         return split_repr(self)
 
     def _repr_words(self) -> list[str]:
-        words = []
+        words: list[str] = []
         if self.selectable():
             words = ["selectable", *words]
         if self.sizing() and self.sizing() != frozenset([Sizing.FLOW, Sizing.BOX, Sizing.FIXED]):
@@ -595,7 +615,11 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     class DelegateToWidgetMixin(Widget):
         no_cache: typing.ClassVar[list[str]] = ["rows"]  # crufty metaclass work-around
 
-        def render(self, size, focus: bool = False) -> CompositeCanvas:
+        def render(
+            self,
+            size: tuple[()] | tuple[int] | tuple[int, int],
+            focus: bool = False,
+        ) -> CompositeCanvas:
             canv = get_delegate(self).render(size, focus=focus)
             return CompositeCanvas(canv)
 
@@ -723,7 +747,7 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         self._invalidate()
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()
