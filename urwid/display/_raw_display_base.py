@@ -437,7 +437,7 @@ class Screen(BaseScreen, RealTerminal):
     @typing.overload
     def parse_input(
         self,
-        event_loop: None,
+        event_loop: EventLoop | None,
         callback: None,
         codes: list[int],
         wait_for_more: bool = ...,
@@ -446,16 +446,7 @@ class Screen(BaseScreen, RealTerminal):
     @typing.overload
     def parse_input(
         self,
-        event_loop: EventLoop,
-        callback: None,
-        codes: list[int],
-        wait_for_more: bool = ...,
-    ) -> tuple[_DecodedInput, list[int]]: ...
-
-    @typing.overload
-    def parse_input(
-        self,
-        event_loop: EventLoop,
+        event_loop: EventLoop | None,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
         codes: list[int],
         wait_for_more: bool = ...,

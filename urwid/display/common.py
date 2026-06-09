@@ -418,7 +418,7 @@ def _parse_color_256(desc: str) -> int | None:
                 r = _CUBE_256_LOOKUP_16[r]
                 g = _CUBE_256_LOOKUP_16[g]
                 b = _CUBE_256_LOOKUP_16[b]
-                return typing.cast("int", _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b)
+                return _CUBE_START + (r * _CUBE_SIZE_256 + g) * _CUBE_SIZE_256 + b
 
             return None
 
@@ -498,7 +498,7 @@ def _parse_color_88(desc: str) -> int | None:
                 r = _CUBE_88_LOOKUP_16[r]
                 g = _CUBE_88_LOOKUP_16[g]
                 b = _CUBE_88_LOOKUP_16[b]
-                return typing.cast("int", _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b)
+                return _CUBE_START + (r * _CUBE_SIZE_88 + g) * _CUBE_SIZE_88 + b
 
             return None
 
