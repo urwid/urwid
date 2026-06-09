@@ -164,15 +164,15 @@ class GLibEventLoop(EventLoop):
         elif handler == signal.Handlers.SIG_DFL:
             return
 
-        def final_handler(signal_number: int):
+        def final_handler(signal_number: int) -> bool:
             # MyPy False-negative: signal.Handlers casted
             handler(signal_number, None)  # type: ignore[operator]
-            return GLib.SOURCE_CONTINUE
+            return GLib.SOURCE_CONTINUE  # type: ignore[no-any-return]
 
         source = GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signum, final_handler, signum)
         self._signal_handlers[signum] = source
 
-    def remove_alarm(self, handle) -> bool:
+    def remove_alarm(self, handle: tuple[int, Callable[[], typing.Any]]) -> bool:
         """
         Remove an alarm.
 
@@ -199,7 +199,7 @@ class GLibEventLoop(EventLoop):
         """
 
         @self.handle_exit
-        def io_callback(source, cb_condition) -> Literal[True]:
+        def io_callback(source: GLib.IOChannel, cb_condition: GLib.IOCondition) -> Literal[True]:
             callback()
             self._enable_glib_idle()
             return True
@@ -235,13 +235,13 @@ class GLibEventLoop(EventLoop):
         GLib.idle_add(self._glib_idle_callback)
         self._glib_idle_enabled = True
 
-    def _glib_idle_callback(self):
+    def _glib_idle_callback(self) -> bool:
         for callback in self._idle_callbacks.values():
             callback()
         self._glib_idle_enabled = False
         return False  # ask glib not to call again (or we would be called
 
-    def remove_enter_idle(self, handle) -> bool:
+    def remove_enter_idle(self, handle: int) -> bool:
         """
         Remove an idle callback.
 
@@ -272,9 +272,8 @@ class GLibEventLoop(EventLoop):
     def handle_exit(self, f: Callable[_Spec, _T]) -> Callable[_Spec, _T | Literal[False]]:
         """
         Decorator that cleanly exits the :class:`GLibEventLoop` if
-        :exc:`ExitMainLoop` is thrown inside of the wrapped function. Store the
-        exception info if some other exception occurs, it will be reraised after
-        the loop quits.
+        :exc:`ExitMainLoop` is thrown inside of the wrapped function.
+        Store the exception info if some other exception occurs, it will be reraised after the loop quits.
 
         *f* -- function to be wrapped
         """
