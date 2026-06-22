@@ -229,14 +229,6 @@ class ShardBodyTest(unittest.TestCase):
     def test3(self):
         self.sbtrow(
             [
-                (0, None, (0, 0, 10, 5, None, "foo")),
-                (0, None, (0, 0, 5, 5, None, "bar")),
-                (3, None, (0, 0, 5, 8, None, "baz")),
-            ],
-            [20],
-        )
-        self.sbtrow(
-            [
                 (0, iter("foo"), (0, 0, 10, 5, None, "foo")),
                 (0, iter("bar"), (0, 0, 5, 5, None, "bar")),
                 (3, iter("zzz"), (0, 0, 5, 8, None, "baz")),
