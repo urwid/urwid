@@ -7,9 +7,35 @@ import typing
 from .constants import Sizing, WHSettings
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator
+    from collections.abc import Iterable, Iterator, MutableSequence, Sequence
 
     from .widget import Widget
+
+    _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
+
+    class WidgetContainerProto(typing.Protocol[_KT_contra]):
+        def __getitem__(self, index: _KT_contra) -> tuple[Widget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...
+
+    class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
+        @property
+        def contents(self) -> WidgetContainerProto[_KT_contra]: ...
+
+        @property
+        def focus_position(self) -> int | str: ...
+
+        @focus_position.setter
+        def focus_position(self, value: int | str) -> None: ...
+
+        @property
+        def base_widget(self) -> Widget: ...
+else:
+    _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
+
+    class WidgetContainerMixinProto(typing.Generic[_KT_contra]):
+        pass
+
+
+_WidgetParams = typing.TypeVar("_WidgetParams", bound=tuple[typing.Any, ...])
 
 
 # Ideally, we would like to use an IntFlag coupled with enum.auto().
@@ -55,12 +81,12 @@ class _ContainerElementSizingFlag(enum.IntEnum):
         return "|".join(sorted(mode.upper() for mode in sizing)) + render_string
 
 
-class WidgetContainerMixin:
+class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     """
     Mixin class for widget containers implementing common container methods
     """
 
-    def __getitem__(self, position) -> Widget:
+    def __getitem__(self, position: _KT_contra) -> Widget:
         """
         Container short-cut for self.contents[position][0].base_widget
         which means "give me the child widget at position without any
@@ -87,14 +113,13 @@ class WidgetContainerMixin:
             except IndexError:
                 return out
             out.append(p)
-            w = w.focus.base_widget
+            w = w.focus.base_widget  # type: ignore[assignment]
 
     def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """
         Set the .focus_position property starting from this container
-        widget and proceeding along newly focused child widgets.  Any
-        failed assignment due do incompatible position types or invalid
-        positions will raise an IndexError.
+        widget and proceeding along newly focused child widgets.
+        Any failed assignment due to incompatible position types or invalid positions will raise an IndexError.
 
         This method may be used to restore a particular widget to the
         focus by passing in the value returned from an earlier call to
@@ -102,11 +127,11 @@ class WidgetContainerMixin:
 
         positions -- sequence of positions
         """
-        w: Widget = self
+        w: Widget = self  # type: ignore[assignment]
         for p in positions:
             if p != w.focus_position:
                 w.focus_position = p  # modifies w.focus
-            w = w.focus.base_widget  # type: ignore[assignment]
+            w = w.focus.base_widget  # type: ignore[union-attr]
 
     def get_focus_widgets(self) -> list[Widget]:
         """
@@ -120,14 +145,14 @@ class WidgetContainerMixin:
         """
         out = []
         w = self
-        while (w := w.base_widget.focus) is not None:
+        while (w := w.base_widget.focus) is not None:  # type: ignore[assignment]
             out.append(w)
 
         return out
 
     @property
     @abc.abstractmethod
-    def focus(self) -> Widget:
+    def focus(self) -> Widget | None:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -135,7 +160,7 @@ class WidgetContainerMixin:
         """
 
 
-class WidgetContainerListContentsMixin:
+class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
@@ -160,11 +185,11 @@ class WidgetContainerListContentsMixin:
 
     @property
     @abc.abstractmethod
-    def contents(self) -> list[tuple[Widget, typing.Any]]:
+    def contents(self) -> MutableSequence[tuple[Widget, _WidgetParams]]:
         """The contents of container as a list of (widget, options)"""
 
     @contents.setter
-    def contents(self, new_contents: list[tuple[Widget, typing.Any]]) -> None:
+    def contents(self, new_contents: Sequence[tuple[Widget, _WidgetParams]]) -> None:
         """The contents of container as a list of (widget, options)"""
 
     @property

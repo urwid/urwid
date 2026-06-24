@@ -22,7 +22,12 @@ class BarGraphMeta(WidgetMeta):
     should use set_data() instead of overriding get_data().
     """
 
-    def __init__(cls, name, bases, d):
+    def __init__(
+        cls,
+        name: str,
+        bases: tuple[type, ...],
+        d: dict[str, typing.Any],
+    ) -> None:
         # pylint: disable=protected-access
 
         super().__init__(name, bases, d)
@@ -425,7 +430,12 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return canv
 
 
-def calculate_bargraph_display(bardata, top: float, bar_widths: list[int], maxrow: int):
+def calculate_bargraph_display(
+    bardata,
+    top: float,
+    bar_widths: list[int],
+    maxrow: int,
+):
     """
     Calculate a rendering of the bar graph described by data, bar_widths
     and height.

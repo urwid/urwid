@@ -1,1 +1,2 @@
 wcwidth>=0.4
+typing-extensions
