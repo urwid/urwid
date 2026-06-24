@@ -21,15 +21,17 @@
 
 from __future__ import annotations
 
+import decimal
 import re
+import typing
 import warnings
-from decimal import Decimal
-from typing import TYPE_CHECKING
 
 from urwid import Edit
 
-if TYPE_CHECKING:
-    from collections.abc import Container
+if typing.TYPE_CHECKING:
+    from collections.abc import Container, Hashable
+
+    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
 
 
 class NumEdit(Edit):
@@ -48,7 +50,7 @@ class NumEdit(Edit):
     def __init__(
         self,
         allowed: Container[str],
-        caption,
+        caption: _TagMarkup,
         default: str,
         trimLeadingZeros: bool | None = None,
         *,
@@ -131,8 +133,8 @@ class IntegerEdit(NumEdit):
 
     def __init__(
         self,
-        caption="",
-        default: int | str | Decimal | None = None,
+        caption: _TagMarkup = "",
+        default: int | str | decimal.Decimal | None = None,
         base: int = 10,
         *,
         allow_negative: bool = False,
@@ -159,7 +161,7 @@ class IntegerEdit(NumEdit):
         >>> e.keypress(size, "end")
         >>> e.keypress(size, "1")
         >>> assert e.edit_text == "10101"
-        >>> assert e.value() == Decimal("21")
+        >>> assert e.value() == decimal.Decimal("21")
         >>> # HEX
         >>> e, size = IntegerEdit("", "10", base=16), (10,)
         >>> e.keypress(size, "end")
@@ -171,7 +173,7 @@ class IntegerEdit(NumEdit):
         >>> # keep leading 0's when not base 10
         >>> e, size = IntegerEdit("", "10FF", base=16), (10,)
         >>> assert e.edit_text == "10FF"
-        >>> assert e.value() == Decimal("4351")
+        >>> assert e.value() == decimal.Decimal("4351")
         >>> e.keypress(size, "home")
         >>> e.keypress(size, "delete")
         >>> e.keypress(size, "0")
@@ -186,7 +188,7 @@ class IntegerEdit(NumEdit):
         Traceback (most recent call last):
             ...
         ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
-        >>> e, size = IntegerEdit("", Decimal("10.0")), (10,)
+        >>> e, size = IntegerEdit("", decimal.Decimal("10.0")), (10,)
         Traceback (most recent call last):
             ...
         ValueError: not an 'integer Decimal' instance
@@ -195,7 +197,7 @@ class IntegerEdit(NumEdit):
         val = ""
         allowed_chars = self.ALLOWED[: self.base]
         if default is not None:
-            if not isinstance(default, (int, str, Decimal)):
+            if not isinstance(default, (int, str, decimal.Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
             # convert to a long first, this will raise a ValueError
@@ -206,7 +208,7 @@ class IntegerEdit(NumEdit):
                 if not re.match(validation_re, str(default), re.IGNORECASE):
                     raise ValueError(f"invalid value: {default} for base {base}")
 
-            elif isinstance(default, Decimal) and default.as_tuple()[2] != 0:
+            elif isinstance(default, decimal.Decimal) and default.as_tuple()[2] != 0:
                 # a Decimal instance with no fractional part
                 raise ValueError("not an 'integer Decimal' instance")
 
@@ -221,7 +223,7 @@ class IntegerEdit(NumEdit):
             allow_negative=allow_negative,
         )
 
-    def value(self) -> Decimal | None:
+    def value(self) -> decimal.Decimal | None:
         """
         Return the numeric value of self.edit_text.
 
@@ -231,7 +233,7 @@ class IntegerEdit(NumEdit):
         >>> assert e.value() == 51
         """
         if self.edit_text:
-            return Decimal(int(self.edit_text, self.base))
+            return decimal.Decimal(int(self.edit_text, self.base))
 
         return None
 
@@ -255,8 +257,8 @@ class FloatEdit(NumEdit):
 
     def __init__(
         self,
-        caption="",
-        default: str | int | Decimal | None = None,
+        caption: _TagMarkup = "",
+        default: str | int | decimal.Decimal | None = None,
         preserveSignificance: bool | None = None,
         decimalSeparator: str | None = None,
         *,
@@ -285,7 +287,7 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, ".")
         >>> e.keypress(size, "5")
         >>> e.keypress(size, "1")
-        >>> assert e.value() == Decimal("51.51"), e.value()
+        >>> assert e.value() == decimal.Decimal("51.51"), e.value()
         >>> e, size = FloatEdit(decimal_separator=":"), (10,)
         Traceback (most recent call last):
             ...
@@ -302,11 +304,11 @@ class FloatEdit(NumEdit):
         >>> e.keypress(size, "backspace")
         >>> e.keypress(size, "backspace")
         >>> assert e.edit_text == "3.14"
-        >>> assert e.value() == Decimal("3.1400")
+        >>> assert e.value() == decimal.Decimal("3.1400")
         >>> e.keypress(size, "1")
         >>> e.keypress(size, "5")
         >>> e.keypress(size, "9")
-        >>> assert e.value() == Decimal("3.1416"), e.value()
+        >>> assert e.value() == decimal.Decimal("3.1416"), e.value()
         >>> e, size = FloatEdit("", ""), (10,)
         >>> assert e.value() is None
         >>> e, size = FloatEdit("", 10.0), (10,)
@@ -337,27 +339,27 @@ class FloatEdit(NumEdit):
 
         val = ""
         if default is not None and default != "":  # noqa: PLC1901,RUF100
-            if not isinstance(default, (int, str, Decimal)):
+            if not isinstance(default, (int, str, decimal.Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
             if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
                 float(default)
-                default = Decimal(default)
+                default = decimal.Decimal(default)
 
-            if preserve_significance and isinstance(default, Decimal):
+            if preserve_significance and isinstance(default, decimal.Decimal):
                 self.significance = default
 
             val = str(default)
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
-    def value(self) -> Decimal | None:
+    def value(self) -> decimal.Decimal | None:
         """
         Return the numeric value of self.edit_text.
         """
         if self.edit_text:
-            normalized = Decimal(self.edit_text.replace(self._decimal_separator, "."))
+            normalized = decimal.Decimal(self.edit_text.replace(self._decimal_separator, "."))
             if self.significance is not None:
                 return normalized.quantize(self.significance)
             return normalized

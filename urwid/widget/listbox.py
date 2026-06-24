@@ -1886,7 +1886,7 @@ class ListBox(Widget, WidgetContainerMixin):
     def mouse_event(
         self,
         size: tuple[int, int],  # type: ignore[override]
-        event,
+        event: str,
         button: int,
         col: int,
         row: int,

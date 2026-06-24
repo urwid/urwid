@@ -20,6 +20,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import TextCanvas
 
+    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+
 
 class EditError(TextError):
     pass
@@ -65,7 +67,7 @@ class Edit(Text):
 
     def __init__(
         self,
-        caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]] = "",
+        caption: _TagMarkup = "",
         edit_text: str = "",
         multiline: bool = False,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
@@ -111,7 +113,7 @@ class Edit(Text):
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
-        self._caption, self._attrib = decompose_tagmarkup(caption)
+        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]  # discourage `bytes` input
         self._edit_text = ""
         self.highlight: tuple[int, int] | None = None
         self.set_edit_text(edit_text)
@@ -153,7 +155,7 @@ class Edit(Text):
 
         return self._caption + (self._mask * len(self._edit_text)), self._attrib
 
-    def set_text(self, markup: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_text(self, markup: _TagMarkup) -> None:
         """
         Not supported by Edit widget.
 
@@ -579,7 +581,7 @@ class Edit(Text):
         self.highlight = None
         return True
 
-    def render(
+    def render(  # type: ignore[override]
         self,
         size: tuple[int],  # type: ignore[override]
         focus: bool = False,
@@ -667,7 +669,7 @@ class IntEdit(Edit):
         """
         return len(ch) == 1 and ch in string.digits
 
-    def __init__(self, caption="", default: int | str | None = None) -> None:
+    def __init__(self, caption: _TagMarkup = "", default: int | str | None = None) -> None:
         """
         caption -- caption markup
         default -- default edit value

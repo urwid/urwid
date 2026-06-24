@@ -6,14 +6,19 @@ import warnings
 from .attr_map import AttrMap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Hashable, Mapping
 
     from .constants import Sizing
     from .widget import Widget
 
 
 class AttrWrap(AttrMap):
-    def __init__(self, w: Widget, attr, focus_attr=None):
+    def __init__(
+        self,
+        w: Widget,
+        attr: Hashable | Mapping[Hashable, Hashable],
+        focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
+    ) -> None:
         """
         w -- widget to wrap (stored as self.original_widget)
         attr -- attribute to apply to w
@@ -112,11 +117,12 @@ class AttrWrap(AttrMap):
 
     focus_attr = property(get_focus_attr, set_focus_attr)
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> typing.Any:
         """
-        Call getattr on wrapped widget.  This has been the longstanding
-        behaviour of AttrWrap, but is discouraged.  New code should be
-        using AttrMap and .base_widget or .original_widget instead.
+        Call getattr on wrapped widget.
+
+        This has been the longstanding behaviour of AttrWrap, but is discouraged.
+        New code should be using AttrMap and .base_widget or .original_widget instead.
         """
         return getattr(self._original_widget, name)
 

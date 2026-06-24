@@ -11,6 +11,8 @@ from .text import Text
 from .widget_decoration import WidgetDecoration, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
+
     from typing_extensions import Literal
 
     from .widget import Widget
@@ -26,7 +28,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         original_widget: WrappedWidget,
         title: str = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
-        title_attr=None,
+        title_attr: Hashable = None,
         tlcorner: str = BOX_SYMBOLS.LIGHT.TOP_LEFT,
         tline: str = BOX_SYMBOLS.LIGHT.HORIZONTAL,
         lline: str = BOX_SYMBOLS.LIGHT.VERTICAL,

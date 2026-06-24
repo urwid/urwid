@@ -163,7 +163,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         return self._current_widget.pack(size)
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()

@@ -300,7 +300,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
     def mouse_event(
         self,
         size: tuple[int, int] | tuple[int],  # type: ignore[override]
-        event,
+        event: str,
         button: int,
         col: int,
         row: int,
