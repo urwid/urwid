@@ -282,7 +282,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     ) -> int | None:
         return None
 
-    def set_validate_contents_modified(self, callback: Callable[[tuple[int, int, int], Collection[_T]], int | None]):
+    def set_validate_contents_modified(
+        self,
+        callback: Callable[[tuple[int, int, int], Collection[_T]], int | None],
+    ) -> None:
         """
         Assign a callback function to handle validating changes to the list.
         This may raise an exception if the change should not be performed.

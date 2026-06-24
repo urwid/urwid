@@ -98,7 +98,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
 
-    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int):
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
         (maxcol,) = size
         if not hasattr(self._original_widget, "move_cursor_to_coords"):
             return True

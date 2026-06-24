@@ -142,7 +142,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, True)
         return self._current_widget.keypress(size, key)
 
-    def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int):
+    def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int) -> bool:
         self._update_overlay(size, True)
         return self._current_widget.move_cursor_to_coords(size, x, y)
 

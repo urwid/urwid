@@ -330,9 +330,9 @@ def normalize_height(
 
 @typing.overload
 def normalize_height(
-    height: Literal["flow", "pack", Sizing.FLOW, WHSettings.PACK],
+    height: Literal["flow", "pack", WHSettings.FLOW, WHSettings.PACK],
     err: type[BaseException],
-) -> tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]: ...
+) -> tuple[Literal[WHSettings.FLOW, WHSettings.PACK], None]: ...
 
 
 @typing.overload
@@ -352,13 +352,13 @@ def normalize_height(
 def normalize_height(
     height: (
         int
-        | Literal["flow", "pack", Sizing.FLOW, WHSettings.PACK]
+        | Literal["flow", "pack", WHSettings.FLOW, WHSettings.PACK]
         | tuple[Literal["relative", WHSettings.RELATIVE], int]
         | tuple[Literal["weight", WHSettings.WEIGHT], int | float]
     ),
     err: type[BaseException],
 ) -> (
-    tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]
+    tuple[Literal[WHSettings.FLOW, WHSettings.PACK], None]
     | tuple[Literal[WHSettings.RELATIVE, WHSettings.GIVEN], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
@@ -366,8 +366,8 @@ def normalize_height(
     Split height into (height_type, height_amount).  Raise exception err
     if height isn't valid.
     """
-    if height == Sizing.FLOW:
-        return (Sizing.FLOW, None)
+    if height == WHSettings.FLOW:
+        return (WHSettings.FLOW, None)
 
     if height == WHSettings.PACK:
         return (WHSettings.PACK, None)

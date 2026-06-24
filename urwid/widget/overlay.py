@@ -4,6 +4,8 @@ import typing
 import warnings
 from collections.abc import MutableSequence
 
+from typing_extensions import Literal
+
 from urwid.canvas import CanvasOverlay, CompositeCanvas
 from urwid.split_repr import remove_defaults
 
@@ -30,8 +32,6 @@ from .widget import Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
-
-    from typing_extensions import Literal
 
 
 TopWidget = typing.TypeVar("TopWidget", bound=Widget)
@@ -73,7 +73,12 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
-class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, typing.Generic[TopWidget, BottomWidget]):
+class Overlay(
+    Widget,
+    WidgetContainerMixin[Literal[0, 1]],
+    WidgetContainerListContentsMixin[OverlayOptions],
+    typing.Generic[TopWidget, BottomWidget],
+):
     """Overlay contains two widgets and renders one on top of the other.
 
     Top widget can be Box, Flow or Fixed.
@@ -422,14 +427,14 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         See also :meth:`.set_overlay_parameters`
         """
         if align_type in {Align.LEFT, Align.CENTER, Align.RIGHT}:
-            align = Align(align_type)
+            align: Align | Literal[WHSettings.RELATIVE] = Align(align_type)
         elif align_type == WHSettings.RELATIVE:
             align = WHSettings.RELATIVE
         else:
             raise ValueError(f"Unknown alignment type {align_type!r}")
 
         if valign_type in {VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM}:
-            valign = VAlign(valign_type)
+            valign: VAlign | Literal[WHSettings.RELATIVE] = VAlign(valign_type)
         elif valign_type == WHSettings.RELATIVE:
             valign = WHSettings.RELATIVE
         else:
@@ -495,10 +500,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         if isinstance(width, tuple):
             if width[0] == "fixed left":
                 left = width[1]
-                width = RELATIVE_100
+                width = RELATIVE_100  # type: ignore[assignment]
             elif width[0] == "fixed right":
                 right = width[1]
-                width = RELATIVE_100
+                width = RELATIVE_100  # type: ignore[assignment]
 
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
@@ -519,10 +524,10 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         if isinstance(height, tuple):
             if height[0] == "fixed bottom":
                 bottom = height[1]
-                height = RELATIVE_100
+                height = RELATIVE_100  # type: ignore[assignment]
             elif height[0] == "fixed top":
                 top = height[1]
-                height = RELATIVE_100
+                height = RELATIVE_100  # type: ignore[assignment]
 
         if width is None:  # more obsolete values accepted
             width = WHSettings.PACK
@@ -590,17 +595,17 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         """
         return 1
 
-    @focus_position.setter
-    def focus_position(self, position: int) -> None:
+    @focus_position.setter  # type: ignore[override]
+    def focus_position(self, position: Literal[1]) -> None:
         """
-        Set the widget in focus.  Currently only position 0 is accepted.
+        Set the widget in focus.  Currently only position 1 is accepted.
 
         position -- index of child widget to be made focus
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
-    @property
+    @property  # type: ignore[override]
     def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
         """
         a list-like object similar to::
@@ -637,8 +642,8 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
             def __len__(inner_self) -> int:
                 return 2
 
-            __getitem__ = self._contents__getitem__
-            __setitem__ = self._contents__setitem__
+            __getitem__ = self._contents__getitem__  # type: ignore[assignment]
+            __setitem__ = self._contents__setitem__  # type: ignore[assignment]
 
             def __delitem__(self, index: int | slice) -> typing.NoReturn:
                 raise TypeError("OverlayContents is fixed-sized sequence")
@@ -653,13 +658,13 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
                 for val in inner_self:
                     yield None, val
 
-            def __iter__(inner_self) -> Iterator[tuple[Widget, OverlayOptions]]:
+            def __iter__(inner_self) -> Iterator[tuple[TopWidget | BottomWidget, OverlayOptions]]:
                 for idx in range(2):
-                    yield inner_self[idx]
+                    yield inner_self[idx]  # type: ignore[arg-type]
 
         return OverlayContents()
 
-    @contents.setter
+    @contents.setter  # type: ignore[override]
     def contents(self, new_contents: Sequence[tuple[TopWidget | BottomWidget, OverlayOptions]]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
@@ -695,6 +700,20 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
             )
         raise IndexError(f"Overlay.contents has no position {index!r}")
 
+    @typing.overload
+    def _contents__setitem__(
+        self,
+        index: Literal[0],
+        value: tuple[BottomWidget, OverlayOptions],
+    ) -> None: ...
+
+    @typing.overload
+    def _contents__setitem__(
+        self,
+        index: Literal[1],
+        value: tuple[TopWidget, OverlayOptions],
+    ) -> None: ...
+
     def _contents__setitem__(
         self,
         index: Literal[0, 1],
@@ -707,7 +726,7 @@ class Overlay(Widget, WidgetContainerMixin, WidgetContainerListContentsMixin, ty
         if index == 0:
             if value_options != self._DEFAULT_BOTTOM_OPTIONS:
                 raise OverlayError(f"bottom_options must be set to {self._DEFAULT_BOTTOM_OPTIONS!r}")
-            self.bottom_w = value_w
+            self.bottom_w = value_w  # type: ignore[assignment]
         elif index == 1:
             try:
                 (
