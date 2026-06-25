@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 4.0.3
+===========
+
+2026-06-25
+
+Deprecations ⚡
+++++++++++++++
+* Deprecate `content_delta` as unused by @penguinolog in https://github.com/urwid/urwid/pull/1151
+Bug fixes 🕷
+++++++++++++
+* Fix `shard_body_row`: falsy content_iter raises ValueError by @penguinolog in https://github.com/urwid/urwid/pull/1162
+Documentation 🕮
+++++++++++++++++
+* Mass typing annotations fixes.
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.2...4.0.3
+
 Urwid 4.0.2
 ===========
 
