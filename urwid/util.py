@@ -483,7 +483,7 @@ def _tagmarkup_recurse(
         ral: list[tuple[Hashable, int]] = []
         for element in tm:
             tl, al = _tagmarkup_recurse(element, attr)
-            if ral:
+            if ral and al:
                 # merge attributes when possible
                 last_attr, last_run = ral[-1]
                 top_attr, top_run = al[0]
