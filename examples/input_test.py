@@ -91,7 +91,7 @@ else:
         logging.captureWarnings(True)
 
 
-def key_test():
+def key_test() -> None:
     screen = Screen()
     header = urwid.AttrMap(
         urwid.Text("Values from get_input(). Q exits."),
@@ -104,7 +104,7 @@ def key_test():
     )
     top = urwid.Frame(listbox, header)
 
-    def input_filter(keys, raw):
+    def input_filter(keys: list[str | tuple[str, int, int, int]], raw: list[int]) -> list[str]:
         if "q" in keys or "Q" in keys:
             raise urwid.ExitMainLoop
 

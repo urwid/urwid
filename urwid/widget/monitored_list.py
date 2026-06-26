@@ -546,7 +546,12 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = max(0, len(self) - self._focus - 1)
         return rval
 
-    def sort(self, **kwargs) -> None:
+    def sort(
+        self,
+        *,
+        key: Callable[[_T], typing.Any] | None = None,
+        reverse: bool = False,
+    ) -> None:
         """
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
@@ -556,7 +561,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if not self:
             return None
         value = self[self._focus]
-        rval = super().sort(**kwargs)
+        rval = super().sort(key=key, reverse=reverse)
         self.focus = self.index(value)
         return rval
 
@@ -568,7 +573,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             self.focus = focus
 
 
-def _test():
+def _test() -> None:
     import doctest
 
     doctest.testmod()

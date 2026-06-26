@@ -38,7 +38,14 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable
+    from collections.abc import Hashable
+
+    from typing_extensions import NotRequired
+
+
+class SampleTree(typing.TypedDict):
+    name: str
+    children: NotRequired[list[SampleTree]]
 
 
 class ExampleTreeWidget(urwid.TreeWidget):
@@ -61,11 +68,11 @@ class ExampleParentNode(urwid.ParentNode):
     def load_widget(self) -> ExampleTreeWidget:
         return ExampleTreeWidget(self)
 
-    def load_child_keys(self) -> Iterable[int]:
+    def load_child_keys(self) -> tuple[int, ...]:
         data = self.get_value()
-        return range(len(data["children"]))
+        return tuple(range(len(data["children"])))
 
-    def load_child_node(self, key) -> ExampleParentNode | ExampleNode:
+    def load_child_node(self, key: int) -> ExampleParentNode | ExampleNode:
         """Return either an ExampleNode or ExampleParentNode"""
         childdata = self.get_value()["children"][key]
         childdepth = self.get_depth() + 1
@@ -77,7 +84,7 @@ class ExampleParentNode(urwid.ParentNode):
 
 
 class ExampleTreeBrowser:
-    palette: typing.ClassVar[tuple[str, str, str, ...]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray"),
         ("focus", "light gray", "dark blue", "standout"),
         ("head", "yellow", "black", "standout"),
@@ -112,7 +119,7 @@ class ExampleTreeBrowser:
         ("key", "Q"),
     ]
 
-    def __init__(self, data=None) -> None:
+    def __init__(self, data: SampleTree) -> None:
         self.topnode = ExampleParentNode(data)
         self.listbox = urwid.TreeListBox(urwid.TreeWalker(self.topnode))
         self.listbox.offset_rows = 1
@@ -135,9 +142,9 @@ class ExampleTreeBrowser:
             raise urwid.ExitMainLoop()
 
 
-def get_example_tree():
+def get_example_tree() -> SampleTree:
     """generate a quick 100 leaf tree for demo purposes"""
-    retval = {"name": "parent", "children": []}
+    retval: SampleTree = {"name": "parent", "children": []}
     for i in range(10):
         retval["children"].append({"name": f"child {i!s}"})
         retval["children"][i]["children"] = []

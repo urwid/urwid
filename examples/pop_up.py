@@ -7,12 +7,12 @@ import typing
 import urwid
 
 
-class PopUpDialog(urwid.WidgetWrap):
+class PopUpDialog(urwid.WidgetWrap[urwid.AttrMap[urwid.Filler[urwid.Pile]]]):
     """A dialog that appears with nothing but a close button"""
 
     signals: typing.ClassVar[list[str]] = ["close"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         close_button = urwid.Button("that's pretty cool")
         urwid.connect_signal(close_button, "click", lambda button: self._emit("close"))
         pile = urwid.Pile(
@@ -24,7 +24,7 @@ class PopUpDialog(urwid.WidgetWrap):
         super().__init__(urwid.AttrMap(urwid.Filler(pile), "popbg"))
 
 
-class ThingWithAPopUp(urwid.PopUpLauncher):
+class ThingWithAPopUp(urwid.PopUpLauncher[urwid.Button]):
     def __init__(self) -> None:
         super().__init__(urwid.Button("click-me"))
         urwid.connect_signal(self.original_widget, "click", lambda button: self.open_pop_up())

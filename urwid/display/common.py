@@ -1094,7 +1094,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         name: str | None,
         foreground: str,
         background: str,
-        mono: str | None = None,
+        mono: str | tuple[str, ...] | None = None,
         foreground_high: str | None = None,
         background_high: str | None = None,
     ) -> None:
@@ -1156,8 +1156,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         basic = AttrSpec(foreground, background, 16)
 
         if isinstance(mono, tuple):
-            # old style of specifying mono attributes was to put them
-            # in a tuple.  convert to comma-separated string
+            # old style of specifying mono attributes was to put them in a tuple.  convert to comma-separated string
             mono = ",".join(mono)
         if mono is None:
             mono = DEFAULT

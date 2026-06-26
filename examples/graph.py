@@ -33,6 +33,9 @@ import typing
 
 import urwid
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
 UPDATE_INTERVAL = 0.2
 
 
@@ -52,7 +55,7 @@ class GraphModel:
 
     data_max_value = 100
 
-    def __init__(self):
+    def __init__(self) -> None:
         data = [
             ("Saw", list(range(0, 100, 2)) * 2),
             ("Square", [0] * 30 + [100] * 30),
@@ -66,13 +69,13 @@ class GraphModel:
             self.modes.append(m)
             self.data[m] = d
 
-    def get_modes(self):
+    def get_modes(self) -> list[str]:
         return self.modes
 
-    def set_mode(self, m) -> None:
+    def set_mode(self, m: str) -> None:
         self.current_mode = m
 
-    def get_data(self, offset, r):
+    def get_data(self, offset: int, r):
         """
         Return the data in [offset:offset+r], the maximum value
         for items returned, and the offset at which the data
@@ -95,7 +98,7 @@ class GraphView(urwid.WidgetWrap):
     graph display.
     """
 
-    palette: typing.ClassVar[tuple[str, str, str, ...]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray", "standout"),
         ("header", "white", "dark red", "bold"),
         ("screen edge", "light blue", "dark cyan"),
@@ -118,7 +121,7 @@ class GraphView(urwid.WidgetWrap):
     graph_num_bars = 5
     graph_offset_per_second = 5
 
-    def __init__(self, controller):
+    def __init__(self, controller) -> None:
         self.controller = controller
         self.started = True
         self.start_time = None
@@ -126,7 +129,7 @@ class GraphView(urwid.WidgetWrap):
         self.last_offset = None
         super().__init__(self.main_window())
 
-    def get_offset_now(self):
+    def get_offset_now(self) -> int:
         if self.start_time is None:
             return 0
         if not self.started:
@@ -134,7 +137,7 @@ class GraphView(urwid.WidgetWrap):
         tdelta = time.time() - self.start_time
         return int(self.offset + (tdelta * self.graph_offset_per_second))
 
-    def update_graph(self, force_update=False):
+    def update_graph(self, force_update: bool = False) -> bool:
         o = self.get_offset_now()
         if o == self.last_offset and not force_update:
             return False
@@ -164,32 +167,32 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress.current = prog
         return True
 
-    def on_animate_button(self, button):
+    def on_animate_button(self, button: urwid.AttrMap[urwid.Button]) -> None:
         """Toggle started state and button text."""
         if self.started:  # stop animation
-            button.base_widget.set_label("Start")
+            button.set_label("Start")
             self.offset = self.get_offset_now()
             self.started = False
             self.controller.stop_animation()
         else:
-            button.base_widget.set_label("Stop")
+            button.set_label("Stop")
             self.started = True
             self.start_time = time.time()
             self.controller.animate_graph()
 
-    def on_reset_button(self, w):
+    def on_reset_button(self, w: urwid.Button) -> None:
         self.offset = 0
         self.start_time = time.time()
         self.update_graph(True)
 
-    def on_mode_button(self, button, state):
+    def on_mode_button(self, button: urwid.RadioButton, state: bool) -> None:
         """Notify the controller of a new mode setting."""
         if state:
             # The new mode is the label of the button
             self.controller.set_mode(button.get_label())
         self.last_offset = None
 
-    def on_mode_change(self, m):
+    def on_mode_change(self, m: str) -> None:
         """Handle external mode change by updating radio buttons."""
         for rb in self.mode_buttons:
             if rb.base_widget.label == m:
@@ -197,7 +200,7 @@ class GraphView(urwid.WidgetWrap):
                 break
         self.last_offset = None
 
-    def on_unicode_checkbox(self, w, state):
+    def on_unicode_checkbox(self, w: urwid.CheckBox, state: bool) -> None:
         self.graph = self.bar_graph(state)
         self.graph_wrap._w = self.graph
         self.animate_progress = self.progress_bar(state)
@@ -235,30 +238,42 @@ class GraphView(urwid.WidgetWrap):
         )
         return w
 
-    def bar_graph(self, smooth=False):
+    def bar_graph(self, smooth: bool = False) -> urwid.BarGraph:
         satt = None
         if smooth:
             satt = {(1, 0): "bg 1 smooth", (2, 0): "bg 2 smooth"}
         w = urwid.BarGraph(["bg background", "bg 1", "bg 2"], satt=satt)
         return w
 
-    def button(self, t, fn):
+    def button(
+        self,
+        t: str,
+        fn: Callable[[urwid.Button], None],
+    ) -> urwid.AttrMap[urwid.Button]:
         w = urwid.Button(t, fn)
         w = urwid.AttrMap(w, "button normal", "button select")
         return w
 
-    def radio_button(self, g, label, fn):
+    def radio_button(
+        self,
+        g: list[urwid.RadioButton],
+        label: str,
+        fn: Callable[[urwid.RadioButton, bool], None],
+    ) -> urwid.AttrMap[urwid.RadioButton]:
         w = urwid.RadioButton(g, label, False, on_state_change=fn)
         w = urwid.AttrMap(w, "button normal", "button select")
         return w
 
-    def progress_bar(self, smooth=False):
-        if smooth:
-            return urwid.ProgressBar("pg normal", "pg complete", 0, 1, "pg smooth")
+    def progress_bar(self, smooth: bool = False) -> urwid.ProgressBar:
+        return urwid.ProgressBar(
+            "pg normal",
+            "pg complete",
+            0,
+            1,
+            "pg smooth" if smooth else None,
+        )
 
-        return urwid.ProgressBar("pg normal", "pg complete", 0, 1)
-
-    def exit_program(self, w):
+    def exit_program(self, w) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
     def graph_controls(self):
@@ -271,7 +286,7 @@ class GraphView(urwid.WidgetWrap):
             self.mode_buttons.append(rb)
         # setup animate button
         self.animate_button = self.button("", self.on_animate_button)
-        self.on_animate_button(self.animate_button)
+        self.on_animate_button(self.animate_button.original_widget)
         self.offset = 0
         self.animate_progress = self.progress_bar()
         animate_controls = urwid.GridFlow(

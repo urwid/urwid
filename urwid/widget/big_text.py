@@ -28,7 +28,6 @@ class BigText(Widget):
         self.text: str = ""
         self.attrib: list[tuple[Hashable, int]] = []
         self.font: Font = font
-        self.set_font(font)
         self.set_text(markup)
 
     def set_text(self, markup: _TagMarkup) -> None:

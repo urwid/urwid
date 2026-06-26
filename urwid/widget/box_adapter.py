@@ -8,7 +8,10 @@ from urwid.canvas import CompositeCanvas
 from .constants import Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+if typing.TYPE_CHECKING:
+    from urwid import Widget
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class BoxAdapterError(WidgetError):
@@ -127,7 +130,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         canv = CompositeCanvas(self._original_widget.render((maxcol, self.height), focus))
         return canv
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> typing.Any:
         """
         Pass calls to box widget.
         """

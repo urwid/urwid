@@ -178,9 +178,9 @@ class DirectoryNode(urwid.ParentNode):
         parent.set_child_node(self.get_key(), self)
         return parent
 
-    def load_child_keys(self):
-        dirs = []
-        files = []
+    def load_child_keys(self) -> list[str] | list[None]:
+        dirs: list[str] = []
+        files: list[str] = []
         try:
             path = self.get_value()
             # separate dirs and files
@@ -207,7 +207,7 @@ class DirectoryNode(urwid.ParentNode):
             keys = [None]
         return keys
 
-    def load_child_node(self, key) -> EmptyNode | DirectoryNode | FileNode:
+    def load_child_node(self, key: Hashable) -> EmptyNode | DirectoryNode | FileNode:
         """Return either a FileNode or DirectoryNode"""
         index = self.get_child_index(key)
         if key is None:
@@ -225,11 +225,11 @@ class DirectoryNode(urwid.ParentNode):
 
 
 class DirectoryBrowser:
-    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+    palette: typing.ClassVar[list[tuple[str, ...] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray"),
-        ("flagged", "black", "dark green", ("bold", "underline")),
+        ("flagged", "black", "dark green", "bold,underline"),
         ("focus", "light gray", "dark blue", "standout"),
-        ("flagged focus", "yellow", "dark cyan", ("bold", "standout", "underline")),
+        ("flagged focus", "yellow", "dark cyan", "bold,standout,underline"),
         ("head", "yellow", "black", "standout"),
         ("foot", "light gray", "black"),
         ("key", "light cyan", "black", "underline"),

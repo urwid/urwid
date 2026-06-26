@@ -165,7 +165,7 @@ class Screen(BaseScreen):
         name: str | None,
         foreground: str,
         background: str,
-        mono: str | None = None,
+        mono: str | None = None,  # type: ignore[override]
         foreground_high: str | None = None,
         background_high: str | None = None,
     ) -> None:

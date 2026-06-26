@@ -19,8 +19,8 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterator
 
 BodyWidget = typing.TypeVar("BodyWidget", bound=Widget)
-HeaderWidget = typing.TypeVar("HeaderWidget", bound=Widget)
-FooterWidget = typing.TypeVar("FooterWidget", bound=Widget)
+HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[Widget, None])
+FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[Widget, None])
 
 
 class FrameError(WidgetError):
@@ -375,11 +375,11 @@ class Frame(
         except (ValueError, TypeError) as exc:
             raise FrameError(f"added content invalid: {value!r}").with_traceback(exc.__traceback__) from exc
         if key == "body":
-            self.body = value_w
+            self.body = value_w  # type: ignore[assignment]
         elif key == "footer":
-            self.footer = value_w
+            self.footer = value_w  # type: ignore[assignment]
         else:
-            self.header = value_w
+            self.header = value_w  # type: ignore[assignment]
 
     def _contents__delitem__(self, key: Literal["header", "footer"]) -> None:
         if key not in {"header", "footer"}:
@@ -414,10 +414,10 @@ class Frame(
         frows = hrows = 0
 
         if self.header:
-            hrows = self.header.rows((maxcol,), self.focus_part == "header" and focus)
+            hrows = self.header.rows((maxcol,), self.focus_part == "header" and focus)  # type: ignore[union-attr]
 
         if self.footer:
-            frows = self.footer.rows((maxcol,), self.focus_part == "footer" and focus)
+            frows = self.footer.rows((maxcol,), self.focus_part == "footer" and focus)  # type: ignore[union-attr]
 
         remaining = maxrow
 
@@ -465,7 +465,7 @@ class Frame(
             head = Filler(self.header, VAlign.TOP).render((maxcol, htrim), focus and self.focus_part == "header")
         elif htrim:
             head = self.header.render((maxcol,), focus and self.focus_part == "header")
-            if head.rows() != hrows:
+            if head.rows() != hrows:  # type: ignore[union-attr]
                 raise RuntimeError("rows, render mismatch")
         if head:
             combinelist.append((head, "header", self.focus_part == "header"))
@@ -481,7 +481,7 @@ class Frame(
             foot = Filler(self.footer, VAlign.BOTTOM).render((maxcol, ftrim), focus and self.focus_part == "footer")
         elif ftrim:
             foot = self.footer.render((maxcol,), focus and self.focus_part == "footer")
-            if foot.rows() != frows:
+            if foot.rows() != frows:  # type: ignore[union-attr]
                 raise RuntimeError("rows, render mismatch")
         if foot:
             combinelist.append((foot, "footer", self.focus_part == "footer"))
@@ -509,9 +509,9 @@ class Frame(
             return key
         remaining = maxrow
         if self.header is not None:
-            remaining -= self.header.rows((maxcol,))
+            remaining -= self.header.rows((maxcol,))  # type: ignore[attr-defined]
         if self.footer is not None:
-            remaining -= self.footer.rows((maxcol,))
+            remaining -= self.footer.rows((maxcol,))  # type: ignore[attr-defined]
         if remaining <= 0:
             return key
 
@@ -537,19 +537,23 @@ class Frame(
 
         if row < htrim:  # within header
             focus = focus and self.focus_part == "header"
-            if is_mouse_press(event) and button == 1 and self.header.selectable():
+            if is_mouse_press(event) and button == 1 and self.header.selectable():  # type: ignore[union-attr]
                 self.focus_position = "header"
-            if not hasattr(self.header, "mouse_event"):
-                return False
-            return self.header.mouse_event((maxcol,), event, button, col, row, focus)
+
+            if (header_mouse_event := getattr(self.header, "mouse_event", None)) is not None:
+                return header_mouse_event((maxcol,), event, button, col, row, focus)
+
+            return False
 
         if row >= maxrow - ftrim:  # within footer
             focus = focus and self.focus_part == "footer"
-            if is_mouse_press(event) and button == 1 and self.footer.selectable():
+            if is_mouse_press(event) and button == 1 and self.footer.selectable():  # type: ignore[union-attr]
                 self.focus_position = "footer"
-            if not hasattr(self.footer, "mouse_event"):
-                return False
-            return self.footer.mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
+
+            if (footer_mouse_event := getattr(self.footer, "mouse_event", None)) is not None:
+                return footer_mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
+
+            return False
 
         # within body
         focus = focus and self.focus_part == "body"
@@ -562,7 +566,7 @@ class Frame(
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focus widget."""
-        if not self.focus.selectable():
+        if not self.focus.selectable():  # type: ignore[union-attr]  # mypy bug on union
             return None
         if not hasattr(self.focus, "get_cursor_coords"):
             return None
@@ -573,13 +577,13 @@ class Frame(
 
         if fp == "header":
             row_adjust = 0
-            coords = self.header.get_cursor_coords((maxcol,))
+            coords = self.header.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None
         elif fp == "body":
             row_adjust = hrows
             coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))
         else:
             row_adjust = maxrow - frows
-            coords = self.footer.get_cursor_coords((maxcol,))
+            coords = self.footer.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None
 
         if coords is None:
             return None

@@ -30,6 +30,7 @@ Features:
 from __future__ import annotations
 
 import typing
+import warnings
 
 from .columns import Columns
 from .constants import WHSettings
@@ -56,10 +57,22 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     unexpanded_icon = SelectableIcon("+", 0)
     expanded_icon = SelectableIcon("-", 0)
 
-    def __init__(self, node: TreeNode) -> None:
+    def __init__(self, node: TreeNode | ParentNode) -> None:
         self._node = node
         self._innerwidget: Text | None = None
-        self.is_leaf = not hasattr(node, "get_first_child")
+        if not isinstance(node, ParentNode):
+            if hasattr(node, "get_first_child"):
+                warnings.warn(
+                    f"get_first_child is defined, but node is not a ParentNode instance: {type(node)}",
+                    DeprecationWarning,
+                    stacklevel=2,
+                )
+                self.is_leaf = False
+            else:
+                self.is_leaf = True
+        else:
+            self.is_leaf = False
+
         self.expanded = True
         widget = self.get_indented_widget()
         super().__init__(widget)
@@ -95,7 +108,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
         return typing.cast("Text", self._innerwidget)
 
     def load_inner_widget(self) -> Text:
-        return Text(self.get_display_text())
+        return Text(self.get_display_text())  # type: ignore[arg-type]
 
     def get_node(self) -> TreeNode:
         return self._node
@@ -273,10 +286,12 @@ class TreeNode:
             self._parent = self.load_parent()
         return typing.cast("ParentNode", self._parent)
 
-    def load_parent(self):
-        """Provide TreeNode with a parent for the current node.  This function
-        is only required if the tree was instantiated from a child node
-        (virtual function)"""
+    def load_parent(self) -> ParentNode:
+        """Provide TreeNode with a parent for the current node.
+
+        This function is only required if the tree was instantiated from a child node
+        (virtual function)
+        """
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
     def get_value(self):
@@ -329,12 +344,12 @@ class ParentNode(TreeNode):
         """Provide ParentNode with an ordered list of child keys (virtual function)"""
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
-    def get_child_widget(self, key) -> TreeWidget:
+    def get_child_widget(self, key: Hashable) -> TreeWidget:
         """Return the widget for a given key.  Create if necessary."""
 
         return self.get_child_node(key).get_widget()
 
-    def get_child_node(self, key, reload: bool = False) -> TreeNode:
+    def get_child_node(self, key: Hashable, reload: bool = False) -> TreeNode:
         """Return the child node for a given key. Create if necessary."""
         if key not in self._children or reload:
             self._children[key] = self.load_child_node(key)
@@ -402,26 +417,26 @@ class TreeWalker(ListWalker):
 
     positions are TreeNodes."""
 
-    def __init__(self, start_from) -> None:
+    def __init__(self, start_from: TreeNode) -> None:
         """start_from: TreeNode with the initial focus."""
         self.focus = start_from
 
-    def get_focus(self):
+    def get_focus(self) -> tuple[TreeWidget, TreeNode]:
         widget = self.focus.get_widget()
         return widget, self.focus
 
-    def set_focus(self, focus) -> None:
+    def set_focus(self, focus: TreeNode) -> None:
         self.focus = focus
         self._modified()
 
     # pylint: disable=arguments-renamed  # its bad, but we should not change API
-    def get_next(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
+    def get_next(self, start_from: TreeNode) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
         if (target := start_from.get_widget().next_inorder()) is not None:
             return target, target.get_node()
 
         return None, None
 
-    def get_prev(self, start_from) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
+    def get_prev(self, start_from: TreeNode) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
         if (target := start_from.get_widget().prev_inorder()) is not None:
             return target, target.get_node()
 
@@ -431,17 +446,15 @@ class TreeWalker(ListWalker):
 
 
 class TreeListBox(ListBox):
-    """A ListBox with special handling for navigation and
-    collapsing of TreeWidgets"""
+    """A ListBox with special handling for navigation and collapsing of TreeWidgets"""
 
     def keypress(
         self,
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
-        key: str | None = super().keypress(size, key)
-        if key:
-            return self.unhandled_input(size, key)
+        if unhandled := super().keypress(size, key):
+            return self.unhandled_input(size, unhandled)
         return None
 
     def unhandled_input(self, size: tuple[int, int], data: str) -> str | None:
