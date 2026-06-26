@@ -43,17 +43,17 @@ def main() -> None:
         ),
     )
 
-    def set_title(widget, title: str) -> None:
+    def set_title(widget: urwid.Terminal, title: str) -> None:
         mainframe.set_title(title)
 
-    def execute_quit(*args, **kwargs) -> typing.NoReturn:
+    def execute_quit(*args: typing.Any, **kwargs: typing.Any) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
     def handle_key(key: str | tuple[str, int, int, int]) -> None:
         if key in {"q", "Q"}:
             execute_quit()
 
-    def handle_resize(widget, size: tuple[int, int]) -> None:
+    def handle_resize(widget: urwid.Terminal, size: tuple[int, int]) -> None:
         size_widget.set_text(f"Terminal size: [{size[0]}, {size[1]}]")
 
     urwid.connect_signal(term, "title", set_title)

@@ -40,7 +40,7 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Hashable, Iterable
 
 # use appropriate Screen class
 if urwid.display.web.is_web_request():
@@ -99,7 +99,7 @@ class CalcEvent(Exception):
     def __init__(self, message: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         self.message = message
 
-    def widget(self):
+    def widget(self) -> urwid.AttrMap[urwid.Text]:
         """Return a widget containing event information"""
         text = urwid.Text(self.message, urwid.CENTER)
         return urwid.AttrMap(text, self.attr)
@@ -110,7 +110,7 @@ class ColumnDeleteEvent(CalcEvent):
 
     attr = "confirm"
 
-    def __init__(self, letter: str, from_parent=0) -> None:
+    def __init__(self, letter: str, from_parent: int = 0) -> None:
         super().__init__(["Press ", ("key", "BACKSPACE"), " again to confirm column removal."])
         self.letter = letter
 
@@ -120,14 +120,14 @@ class UpdateParentEvent(Exception):
 
 
 class Cell:
-    def __init__(self, op) -> None:
+    def __init__(self, op: str | None) -> None:
         self.op = op
         self.is_top = op is None
         self.child = None
         self.setup_edit()
         self.result = urwid.Text("", layout=CALC_LAYOUT)
 
-    def show_result(self, next_cell) -> bool:
+    def show_result(self, next_cell: Cell | None) -> bool:
         """Return whether this widget should display its result.
 
         next_cell -- the cell following self or None"""
@@ -192,7 +192,7 @@ class Cell:
 class ParentEdit(urwid.Edit):
     """Edit widget modified to link to a child column"""
 
-    def __init__(self, op, letter: str) -> None:
+    def __init__(self, op: str | None, letter: str) -> None:
         """Use the operator and letter of the child column as caption
 
         op -- operator or None
@@ -226,20 +226,23 @@ class ParentEdit(urwid.Edit):
 
 
 class CellWalker(urwid.ListWalker):
-    def __init__(self, content):
+    def __init__(self, content: Iterable[Cell]) -> None:
         self.content = urwid.MonitoredList(content)
-        self.content.modified = self._modified
+        self.content.set_modified_callback(self._modified)
         self.focus = (0, 0)
         # everyone can share the same divider widget
         self.div = urwid.Divider("-")
 
-    def get_cell(self, i):
+    def get_cell(self, i: int) -> Cell | None:
         if i < 0 or i >= len(self.content):
             return None
 
         return self.content[i]
 
-    def _get_at_pos(self, pos):
+    def _get_at_pos(
+        self,
+        pos: tuple[int, int],
+    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
         i, sub = pos
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if i < 0 or i >= len(self.content):
@@ -252,13 +255,18 @@ class CellWalker(urwid.ListWalker):
 
         return self.content[i].result, pos
 
-    def get_focus(self):
+    def get_focus(
+        self,
+    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
         return self._get_at_pos(self.focus)
 
-    def set_focus(self, focus) -> None:
+    def set_focus(self, focus: tuple[int, int]) -> None:
         self.focus = focus
 
-    def get_next(self, position):
+    def get_next(
+        self,
+        position: tuple[int, int],
+    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
@@ -272,7 +280,10 @@ class CellWalker(urwid.ListWalker):
 
         return self._get_at_pos((i + 1, 0))
 
-    def get_prev(self, position):
+    def get_prev(
+        self,
+        position: tuple[int, int],
+    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
@@ -289,7 +300,7 @@ class CellWalker(urwid.ListWalker):
         return self._get_at_pos((i, 1))
 
 
-class CellColumn(urwid.WidgetWrap):
+class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwid.ListBox, None]]):
     def __init__(self, letter: str) -> None:
         self.walker = CellWalker([Cell(None)])
         self.content = self.walker.content
@@ -304,7 +315,7 @@ class CellColumn(urwid.WidgetWrap):
         header = urwid.AttrMap(urwid.Text(["Column ", ("key", letter)], layout=CALC_LAYOUT), "colhead")
         self.frame = urwid.Frame(self.listbox, header)
 
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         key = self.frame.keypress(size, key)
         if key is None:
             changed = self.update_results()
@@ -387,7 +398,7 @@ class CellColumn(urwid.WidgetWrap):
             return None
         return key
 
-    def move_focus_next(self, size) -> None:
+    def move_focus_next(self, size: tuple[int, int]) -> None:
         _f, (i, _sub) = self.walker.get_focus()
         assert i < len(self.content) - 1  # noqa: S101  # for examples "assert" is acceptable
 
@@ -396,7 +407,7 @@ class CellColumn(urwid.WidgetWrap):
             self.frame.keypress(size, "down")
             _nf, (ni, _nsub) = self.walker.get_focus()
 
-    def move_focus_prev(self, size) -> None:
+    def move_focus_prev(self, size: tuple[int, int]) -> None:
         _f, (i, _sub) = self.walker.get_focus()
         assert i > 0  # noqa: S101  # for examples "assert" is acceptable
 
@@ -442,7 +453,7 @@ class CellColumn(urwid.WidgetWrap):
 
         return True
 
-    def create_child(self, letter):
+    def create_child(self, letter: str) -> tuple[Cell, CellColumn] | tuple[None, None]:
         """Return (parent cell,child column) or None,None on failure."""
         _f, (i, sub) = self.walker.get_focus()
         if sub != 0:
@@ -479,7 +490,7 @@ class CellColumn(urwid.WidgetWrap):
 
         return "".join(lines)
 
-    def get_result(self):
+    def get_result(self) -> int | None:
         """Return the result of the last cell in the column."""
 
         return self.content[-1].get_result()
@@ -541,7 +552,7 @@ class HelpColumn(urwid.Widget):
         self.body = urwid.AttrMap(self.listbox, "help")
         self.frame = urwid.Frame(self.body, header=self.head)
 
-    def render(self, size, focus: bool = False) -> urwid.Canvas:
+    def render(self, size: tuple[int, int], focus: bool = False) -> urwid.Canvas:
         maxcol, maxrow = size
         head_rows = self.head.rows((maxcol,))
         if "bottom" in self.listbox.ends_visible((maxcol, maxrow - head_rows)):
@@ -551,17 +562,17 @@ class HelpColumn(urwid.Widget):
 
         return self.frame.render((maxcol, maxrow), focus)
 
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         return self.frame.keypress(size, key)
 
 
 class CalcDisplay:
-    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "white", "dark blue"),
         ("edit", "yellow", "dark blue"),
         ("editfocus", "yellow", "dark cyan", "bold"),
-        ("key", "dark cyan", "light gray", ("standout", "underline")),
-        ("title", "white", "light gray", ("bold", "standout")),
+        ("key", "dark cyan", "light gray", "standout,underline"),
+        ("title", "white", "light gray", "bold,standout"),
         ("help", "black", "light gray", "standout"),
         ("helpnote", "dark green", "light gray"),
         ("colhead", "black", "light gray", "standout"),
@@ -586,7 +597,7 @@ class CalcDisplay:
         print(expression)
         print("Result:", result)
 
-    def input_filter(self, data, raw_input):
+    def input_filter(self, data: list[str | tuple[str, int, int, int]], raw_input: list[int]) -> list[str]:
         if "q" in data or "Q" in data:
             raise urwid.ExitMainLoop()
 
@@ -604,7 +615,7 @@ class CalcDisplay:
         # remove all input from further processing by MainLoop
         return []
 
-    def wrap_keypress(self, key: str) -> None:
+    def wrap_keypress(self, key: str | tuple[str, int, int, int]) -> None:
         """Handle confirmation and throw event on bad input."""
 
         try:
@@ -633,7 +644,7 @@ class CalcDisplay:
         if key not in EDIT_KEYS and key not in MOVEMENT_KEYS:
             raise CalcEvent(E_invalid_key % key.upper())
 
-    def keypress(self, key: str) -> str | None:
+    def keypress(self, key: str | tuple[str, int, int, int]) -> str | None:
         """Handle a keystroke."""
 
         self.loop.process_input([key])
@@ -774,7 +785,7 @@ class CalcNumLayout(urwid.TextLayout):
     the last line for the cursor.
     """
 
-    def layout(self, text, width: int, align, wrap):
+    def layout(self, text: str | bytes, width: int, align: typing.Any, wrap: typing.Any):
         """
         Return layout structure for calculator number display.
         """

@@ -116,7 +116,7 @@ class MainLoop:
         ] = (),
         screen: BaseScreen | None = None,
         handle_mouse: bool = True,
-        input_filter: Callable[[list[str], list[int]], list[str]] | None = None,
+        input_filter: Callable[[list[str | tuple[str, int, int, int]], list[int]], list[str]] | None = None,
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
@@ -424,7 +424,7 @@ class MainLoop:
             raise
         self.stop()
 
-    def _update(self, keys: list[str], raw: list[int]) -> None:
+    def _update(self, keys: list[str | tuple[str, int, int, int]], raw: list[int]) -> None:
         """
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
@@ -464,7 +464,7 @@ class MainLoop:
             if not next_alarm and self.event_loop._alarms:
                 next_alarm = heapq.heappop(self.event_loop._alarms)
 
-            keys: list[str] = []
+            keys: list[str | tuple[str, int, int, int]] = []
             raw: list[int] = []
             while not keys:
                 if next_alarm:
@@ -587,7 +587,11 @@ class MainLoop:
         True
         """
 
-    def input_filter(self, keys: list[str], raw: list[int]) -> list[str]:
+    def input_filter(
+        self,
+        keys: list[str | tuple[str, int, int, int]],
+        raw: list[int],
+    ) -> list[str | tuple[str, int, int, int]]:
         """
         This function is passed each all the input events and raw keystroke
         values. These values are passed to the *input_filter* function

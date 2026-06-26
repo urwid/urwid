@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
 
     from .widget import Widget
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
@@ -120,13 +120,16 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
             if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
                 raise ValueError('title_align must be one of "left", "right", or "center"')
             if title_align == Align.LEFT:
-                tline_widgets = [(WHSettings.PACK, self.title_widget), w_tline]
+                tline_widgets: list[tuple[Literal[WHSettings.PACK], Widget] | Widget] = [
+                    (WHSettings.PACK, self.title_widget),
+                    w_tline,
+                ]
             else:
                 tline_widgets = [w_tline, (WHSettings.PACK, self.title_widget)]
                 if title_align == Align.CENTER:
                     tline_widgets.append(w_tline)
 
-            self.tline_widget = Columns(tline_widgets)
+            self.tline_widget: Columns | None = Columns(tline_widgets)
             top = Columns(
                 (
                     (int(bool(tlcorner and lline)), w_tlcorner),
@@ -158,7 +161,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         else:
             bottom = None
 
-        pile_widgets = []
+        pile_widgets: list[tuple[Literal[WHSettings.PACK], Widget] | Widget] = []
         if top:
             pile_widgets.append((WHSettings.PACK, top))
         pile_widgets.append(middle)
@@ -177,7 +180,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
     def original_widget(self, original_widget: WrappedWidget) -> None:
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
-        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
+        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])  # type: ignore[misc]
         _old_widget, options = middle.contents[h_index]
         middle.contents[h_index] = (original_widget, options)
         WidgetDecoration.original_widget.fset(self, original_widget)  # pylint: disable=no-member

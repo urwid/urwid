@@ -151,7 +151,7 @@ class SimpleListWalker(MonitoredList[_T], ListWalker):
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleListWalker expecting list like object, got: {contents!r}")
-        MonitoredList.__init__(self, contents)
+        super().__init__(contents)
         self.focus = 0
         self.wrap_around = wrap_around
 
@@ -235,7 +235,7 @@ class SimpleFocusListWalker(ListWalker, MonitoredFocusList[_T]):
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusListWalker expecting iterable object, got: {contents!r}")
-        MonitoredFocusList.__init__(self, contents)
+        super().__init__(contents)
         self.wrap_around = wrap_around
 
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
@@ -823,7 +823,7 @@ class ListBox(Widget, WidgetContainerMixin):
     def set_focus_valign(
         self,
         valign: Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int],
-    ):
+    ) -> None:
         """Set the focus widget's display offset and inset.
 
         :param valign: one of: 'top', 'middle', 'bottom' ('relative', percentage 0=top 100=bottom)
@@ -842,6 +842,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         if coming_from not in {"above", "below", None}:
             raise ListBoxError(f"coming_from value invalid: {coming_from!r}")
+
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:
             raise IndexError("Can't set focus, ListBox is empty")
@@ -952,7 +953,7 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         return self._contents()
 
-    def options(self):
+    def options(self) -> None:
         """
         There are currently no options for ListBox contents.
 
@@ -1309,7 +1310,7 @@ class ListBox(Widget, WidgetContainerMixin):
                 self.make_cursor_visible((maxcol, maxrow))
                 return None
 
-        def actual_key(unhandled) -> str | None:
+        def actual_key(unhandled: str | bool | None) -> str | None:
             if unhandled:
                 return key
             return None
@@ -1328,10 +1329,10 @@ class ListBox(Widget, WidgetContainerMixin):
             return actual_key(self._keypress_page_down((maxcol, maxrow)))
 
         if self._command_map[key] == Command.MAX_LEFT:
-            return actual_key(self._keypress_max_left((maxcol, maxrow)))
+            return actual_key(self._keypress_max_left((maxcol, maxrow)))  # type: ignore[func-returns-value]
 
         if self._command_map[key] == Command.MAX_RIGHT:
-            return actual_key(self._keypress_max_right((maxcol, maxrow)))
+            return actual_key(self._keypress_max_right((maxcol, maxrow)))  # type: ignore[func-returns-value]
 
         return key
 

@@ -148,7 +148,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def mouse_event(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -158,7 +158,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, focus)
         return self._current_widget.mouse_event(size, event, button, col, row, focus)
 
-    def pack(self, size: tuple[int, int] | None = None, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[int, int] | None = None,  # type: ignore[override]
+        focus: bool = False,
+    ) -> tuple[int, int]:
         self._update_overlay(size, focus)
         return self._current_widget.pack(size)
 

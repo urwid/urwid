@@ -51,10 +51,10 @@ class LineWalker(urwid.ListWalker):
         if self.file is not None:
             self.file.close()
 
-    def get_focus(self):
+    def get_focus(self) -> tuple[urwid.Edit, int] | tuple[None, None]:
         return self._get_at_pos(self.focus)
 
-    def set_focus(self, focus) -> None:
+    def set_focus(self, focus: int) -> None:
         self.focus = focus
         self._modified()
 
@@ -145,7 +145,7 @@ class LineWalker(urwid.ListWalker):
 
 
 class EditDisplay:
-    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "default", "default"),
         ("foot", "dark cyan", "dark blue", "bold"),
         ("key", "light cyan", "dark blue", "underline"),
@@ -231,7 +231,7 @@ class EditDisplay:
                 prefix = "\n"
 
 
-def re_tab(s) -> str:
+def re_tab(s: str) -> str:
     """Return a tabbed string from an expanded one."""
     line = []
     p = 0

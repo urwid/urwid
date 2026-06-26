@@ -24,7 +24,9 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+    from urwid import Widget
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class PaddingError(WidgetError):
@@ -48,7 +50,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             int
             | Literal["pack", "clip", WHSettings.PACK, WHSettings.CLIP]
             | tuple[Literal["relative", WHSettings.RELATIVE, "fixed left", "fixed right"], int]
-        ) = RELATIVE_100,
+        ) = RELATIVE_100,  # type: ignore[assignment]
         min_width: int | None = None,
         left: int = 0,
         right: int = 0,
@@ -75,8 +77,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             ``'clip'``
               to enable clipping mode for a fixed widget
 
-        :param min_width: the minimum number of columns for
-            self.original_widget or ``None``
+        :param min_width: the minimum number of columns for self.original_widget or ``None``
         :type min_width: int | None
 
         :param left: a fixed number of columns to pad on the left
@@ -140,7 +141,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                 left = width[1]
             else:
                 right = width[1]
-            width = RELATIVE_100
+            width = RELATIVE_100  # type: ignore[assignment]
 
         # convert old clipping mode width=None to width='clip'
         if width is None:
@@ -148,8 +149,13 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
         self.left = left
         self.right = right
-        self._align_type, self._align_amount = normalize_align(align, PaddingError)
-        self._width_type, self._width_amount = normalize_width(width, PaddingError)
+        self._align_type: Align | Literal[WHSettings.RELATIVE]
+        self._align_amount: int | None
+        self._width_type: WHSettings
+        self._width_amount: int | float | None
+
+        self._align_type, self._align_amount = normalize_align(align, PaddingError)  # type: ignore[arg-type]
+        self._width_type, self._width_amount = normalize_width(width, PaddingError)  # type: ignore[arg-type]
         self.min_width = min_width
 
     def sizing(self) -> frozenset[Sizing]:
@@ -218,15 +224,11 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     @property
     def width(
         self,
-    ) -> (
-        Literal["clip", "pack", WHSettings.CLIP, WHSettings.PACK]
-        | int
-        | tuple[Literal["relative", WHSettings.RELATIVE], int]
-    ):
+    ) -> Literal[WHSettings.CLIP, WHSettings.PACK] | int | tuple[Literal[WHSettings.RELATIVE], int]:
         """
         Return the padding width.
         """
-        return simplify_width(self._width_type, self._width_amount)
+        return simplify_width(self._width_type, self._width_amount)  # type: ignore[call-overload]
 
     @width.setter
     def width(
@@ -265,9 +267,11 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                     stacklevel=3,
                 )
 
+            width_amount = typing.cast("int", self._width_amount)
+
             return (
-                max(self._width_amount, self.min_width or 1) + expand,
-                self.original_widget.rows((self._width_amount,), focus),
+                max(width_amount, self.min_width or 1) + expand,
+                self.original_widget.rows((width_amount,), focus),  # type: ignore[attr-defined]  # we warned
             )
 
         if Sizing.FIXED not in w_sizing:
@@ -282,7 +286,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             return max(width, self.min_width or 1) + expand, height
 
         if self._width_type == WHSettings.RELATIVE:
-            return max(int(width * 100 / self._width_amount + 0.5), self.min_width or 1) + expand, height
+            width_amount = typing.cast("int | float", self._width_amount)  # type: ignore[assignment]  # branch-local
+            return max(int(width * 100 / width_amount + 0.5), self.min_width or 1) + expand, height
 
         raise PaddingError(f"Unexpected width type: {self._width_type.upper()})")
 
@@ -297,7 +302,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             canv = self._original_widget.render((), focus)
         elif size:
             maxcol = size[0] - (left + right)
-            if self._width_type == WHSettings.GIVEN and maxcol < self._width_amount:
+            if self._width_type == WHSettings.GIVEN and maxcol < self._width_amount:  # type: ignore[operator]
                 warnings.warn(
                     f"{self}.render(size={size}, focus={focus}): too narrow size ({maxcol!r} < {self._width_amount!r})",
                     PaddingWarning,
@@ -305,11 +310,14 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                 )
             canv = self._original_widget.render((maxcol, *size[1:]), focus)
         elif self._width_type == WHSettings.GIVEN:
-            canv = self._original_widget.render((self._width_amount, *size[1:]), focus)
+            canv = self._original_widget.render((typing.cast("int", self._width_amount), *size[1:]), focus)
         else:
             canv = self._original_widget.render((), focus)
 
         if canv.cols() == 0:
+            if not size:
+                raise ValueError(f"{self}.render(size={size}, focus={focus}): size is required for empty widget")
+
             canv = SolidCanvas(" ", size[0], canv.rows())
             canv = CompositeCanvas(canv)
             canv.set_depends([self._original_widget])
@@ -368,15 +376,20 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         if size:
             maxcol = size[0]
         elif self._width_type == WHSettings.GIVEN:
-            maxcol = self._width_amount + self.left + self.right
+            maxcol = typing.cast("int", self._width_amount) + self.left + self.right  # type: ignore[operator]
         else:
             maxcol = (
-                max(self._original_widget.pack((), focus=focus)[0] * 100 // self._width_amount, self.min_width or 1)
+                max(  # type: ignore[assignment]  # `//` will produce int
+                    self._original_widget.pack((), focus=focus)[0]
+                    * 100
+                    // typing.cast("int | float", self._width_amount),
+                    self.min_width or 1,
+                )
                 + self.left
                 + self.right
             )
 
-        return calculate_left_right_padding(
+        return calculate_left_right_padding(  # type: ignore[misc]  # too many unions...
             maxcol,
             self._align_type,
             self._align_amount,
@@ -397,7 +410,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         if self._width_type == WHSettings.CLIP:
             _fcols, frows = self._original_widget.pack((), focus)
             return frows
-        return self._original_widget.rows((maxcol - left - right,), focus=focus)
+        return self._original_widget.rows((maxcol - left - right,), focus=focus)  # type: ignore[attr-defined]
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass keypress to self._original_widget."""
@@ -497,10 +510,49 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         return x
 
 
+@typing.overload
+def calculate_left_right_padding(
+    maxcol: int,
+    align_type: Literal["relative", WHSettings.RELATIVE],
+    align_amount: int,
+    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
+    width_amount: int,
+    min_width: int | None,
+    left: int,
+    right: int,
+) -> tuple[int, int]: ...
+
+
+@typing.overload
+def calculate_left_right_padding(
+    maxcol: int,
+    align_type: Literal["relative", WHSettings.RELATIVE],
+    align_amount: None,
+    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
+    width_amount: int,
+    min_width: int | None,
+    left: int,
+    right: int,
+) -> typing.NoReturn: ...
+
+
+@typing.overload
 def calculate_left_right_padding(
     maxcol: int,
     align_type: Literal["left", "center", "right"] | Align,
-    align_amount: int,
+    align_amount: int | None,
+    width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
+    width_amount: int,
+    min_width: int | None,
+    left: int,
+    right: int,
+) -> tuple[int, int]: ...
+
+
+def calculate_left_right_padding(
+    maxcol: int,
+    align_type: Literal["left", "center", "right", "relative", WHSettings.RELATIVE] | Align,
+    align_amount: int | None,
     width_type: Literal["fixed", "relative", "clip", "given", WHSettings.RELATIVE, WHSettings.CLIP, WHSettings.GIVEN],
     width_amount: int,
     min_width: int | None,
@@ -514,8 +566,7 @@ def calculate_left_right_padding(
     align_type -- 'left', 'center', 'right', 'relative'
     align_amount -- a percentage when align_type=='relative'
     width_type -- 'fixed', 'relative', 'clip'
-    width_amount -- a percentage when width_type=='relative'
-        otherwise equal to the width of the widget
+    width_amount -- a percentage when width_type=='relative' otherwise equal to the width of the widget
     min_width -- a desired minimum width for the widget or None
     left -- a fixed number of columns to pad on the left
     right -- a fixed number of columns to pad on the right
@@ -542,6 +593,9 @@ def calculate_left_right_padding(
     >>> clrp(20, "relative", 30, "relative", 60, 14, 0, 0)
     (2, 4)
     """
+    if align_type == WHSettings.RELATIVE and align_amount is None:
+        raise TypeError("align_amount must be specified when align_type is relative")
+
     if width_type == WHSettings.RELATIVE:
         maxwidth = max(maxcol - left - right, 0)
         width = int(maxwidth * width_amount / 100 + 0.5)
@@ -550,7 +604,11 @@ def calculate_left_right_padding(
     else:
         width = width_amount
 
-    align = {Align.LEFT: 0, Align.CENTER: 50, Align.RIGHT: 100}.get(align_type, align_amount)
+    align: int = {  # type: ignore[assignment]  # we filtered not allowed None
+        Align.LEFT: 0,
+        Align.CENTER: 50,
+        Align.RIGHT: 100,
+    }.get(align_type, align_amount)  # type: ignore[arg-type]  # we filtered not allowed None
 
     # add the remainder of left/right the padding
     padding = maxcol - width - left - right

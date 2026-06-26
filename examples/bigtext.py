@@ -48,7 +48,7 @@ class SwitchingPadding(urwid.Padding[_Wrapped]):
 
 
 class BigTextDisplay:
-    palette: typing.ClassVar[list[tuple[str, str, str, ...]]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray", "standout"),
         ("header", "white", "dark red", "bold"),
         ("button normal", "light gray", "dark blue", "standout"),

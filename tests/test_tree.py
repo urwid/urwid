@@ -7,7 +7,7 @@ import urwid
 from urwid import TreeNode
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection, Hashable, Iterable
+    from collections.abc import Hashable, Iterable
 
 
 class SelfRegisteringParent(urwid.ParentNode):
@@ -30,7 +30,7 @@ class SelfRegisteringParent(urwid.ParentNode):
             self._child_keys.append(key)
             child.set_parent(self)
 
-    def load_child_keys(self) -> Collection[Hashable]:
+    def load_child_keys(self) -> list[Hashable]:
         return list(self._children)
 
     def set_child_node(self, key: Hashable, node: TreeNode) -> None:

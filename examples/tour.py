@@ -159,7 +159,7 @@ def main():
         " widget is used to keep the instructions at the top of the screen.",
     ]
 
-    def button_press(button):
+    def button_press(button: urwid.Button) -> None:
         frame.footer = urwid.AttrMap(urwid.Text(["Pressed: ", button.get_label()]), "header")
 
     radio_button_group = []
@@ -355,11 +355,11 @@ def main():
         ("body", "black", "light gray", "standout"),
         ("reverse", "light gray", "black"),
         ("header", "white", "dark red", "bold"),
-        ("important", "dark blue", "light gray", ("standout", "underline")),
+        ("important", "dark blue", "light gray", "standout,underline"),
         ("editfc", "white", "dark blue", "bold"),
         ("editbx", "light gray", "dark blue"),
         ("editcp", "black", "light gray", "standout"),
-        ("bright", "dark gray", "light gray", ("bold", "standout")),
+        ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
     ]
