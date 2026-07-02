@@ -43,6 +43,7 @@ dev = [
   { include-group = "mypy" },
   { include-group = "pre-commit" },
   { include-group = "pylint" },
+  { include-group = "pytest" }
 ]
 build = [
   "build",
@@ -63,6 +64,11 @@ pre-commit = [
 ]
 pylint = [
   "pylint",
+]
+pytest = [
+  "pytest",
+  "pytest-cov",
+  "pytest-asyncio"
 ]
 
 [tool.setuptools]
@@ -290,7 +296,7 @@ ignore_missing_imports = true
 minversion = "6.0"
 addopts = "-vvvv --doctest-modules -s --cov=urwid"
 doctest_optionflags = [ "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
-testpaths = [ "urwid" ]
+testpaths = [ "tests" ]
 
 [tool.coverage.report]
 exclude_lines = [

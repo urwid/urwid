@@ -26,58 +26,151 @@ import sys
 import typing
 import unittest
 from itertools import dropwhile
-from time import sleep
+from unittest import mock
 
 import urwid
+import urwid.vterm
 from urwid.util import set_temporary_encoding
 
 IS_WINDOWS = sys.platform == "win32"
 
+# Sentinel values for the mocked PTY.
+# They never collide with real fds/pids because every os.* call in vterm.py is intercepted while the test is running.
+_FAKE_MASTER_FD = 0xC0FFEE
+_FAKE_PID = 0xBEEF
 
-class DummyCommand:
-    QUITSTRING = b"|||quit|||"
+
+def _pty_echo(data: bytes) -> bytes:
+    """Mimic the Linux PTY cooked-mode echo of bytes written to the master.
+
+    Control characters become caret notation (e.g. ESC -> ``^[``),
+    matching what a real PTY driver would push back when ECHO/ECHOCTL is enabled
+    - which is how the `keypress` writes to show up on the canvas.
+    """
+    out = bytearray()
+    for byte in data:
+        if byte < 0x20:
+            out.append(0x5E)  # '^'
+            out.append(byte + 0x40)
+        elif byte == 0x7F:
+            out.extend(b"^?")
+        else:
+            out.append(byte)
+    return bytes(out)
+
+
+class _FakePTY:
+    """In-memory replacement for the spawned subprocess + PTY pair.
+
+    ``to_widget`` is the byte stream the widget will read via ``os.read``
+    - i.e. what a real subprocess would have written to its stdout.
+    ``from_widget`` captures everything the widget writes to the PTY master.
+    """
 
     def __init__(self) -> None:
-        self.reader, self.writer = os.pipe()
+        self.to_widget = bytearray()
+        self.from_widget = bytearray()
+        self.closed = False
+        self.signals_sent: list[int] = []
 
-    def __call__(self) -> None:
-        # reset
-        stdout = getattr(sys.stdout, "buffer", sys.stdout)
-        stdout.write(b"\x1bc")
 
-        while True:
-            data = self.read(1024)
-            if self.QUITSTRING == data:
-                break
-            stdout.write(data)
-            stdout.flush()
+class _FakeRealTerminal:
+    """Drop-in for ``urwid.display.RealTerminal`` that never touches a real tty."""
 
-    def read(self, size: int) -> bytes:
-        while True:
-            try:
-                return os.read(self.reader, size)
-            except OSError as e:
-                if e.errno != errno.EINTR:
-                    raise
-
-    def write(self, data: bytes) -> None:
-        os.write(self.writer, data)
-        sleep(0.025)
-
-    def quit(self) -> None:
-        self.write(self.QUITSTRING)
+    def tty_signal_keys(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+        return None
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
-        self.command = DummyCommand()
+        self.pty = _FakePTY()
+        self._install_patches()
 
-        self.term = urwid.Terminal(self.command)
+        # The command is never actually executed:
+        # pty.fork is mocked to take the parent branch and os.execvpe is a no-op for safety.
+        self.term = urwid.Terminal(["/bin/false"])
         self.resize(80, 24)
 
     def tearDown(self) -> None:
-        self.command.quit()
+        if not self.term.terminated:
+            self.term.terminate()
+
+    # ------------------------------------------------------------------
+    # Patching
+    # ------------------------------------------------------------------
+
+    def _install_patches(self) -> None:
+        pty_state = self.pty
+        orig_os_read = os.read
+        orig_os_write = os.write
+        orig_os_close = os.close
+
+        def fake_os_read(fd: int, n: int) -> bytes:
+            if fd != _FAKE_MASTER_FD:
+                return orig_os_read(fd, n)
+            if pty_state.closed:
+                raise OSError(errno.EIO, os.strerror(errno.EIO))
+            if not pty_state.to_widget:
+                raise OSError(errno.EWOULDBLOCK, os.strerror(errno.EWOULDBLOCK))
+            chunk = bytes(pty_state.to_widget[:n])
+            del pty_state.to_widget[:n]
+            return chunk
+
+        def fake_os_write(fd: int, data: bytes) -> int:
+            if fd != _FAKE_MASTER_FD:
+                return orig_os_write(fd, data)
+            pty_state.from_widget.extend(data)
+            # Cooked-mode PTY echo:
+            # bytes written to the master come back on the read side so the canvas sees them as input.
+            pty_state.to_widget.extend(_pty_echo(data))
+            return len(data)
+
+        def fake_os_close(fd: int) -> None:
+            if fd == _FAKE_MASTER_FD:
+                pty_state.closed = True
+                return
+            orig_os_close(fd)
+
+        def fake_os_kill(pid: int, sig: int) -> None:
+            if pid == _FAKE_PID:
+                pty_state.signals_sent.append(sig)
+                pty_state.closed = True
+                return
+            os.kill(pid, sig)  # pragma: no cover - defensive only
+
+        def fake_os_waitpid(pid: int, options: int) -> tuple[int, int]:
+            # Pretend the child is already gone so terminate() exits the loop immediately
+            # instead of sleeping for every SIG* candidate.
+            if pid == _FAKE_PID:
+                return 0, 0
+            return os.waitpid(pid, options)  # pragma: no cover
+
+        def fake_wait_and_feed(self_: urwid.Terminal, timeout: float = 1.0) -> None:
+            # No real fd to select on - data is yet in pty_state.to_widget.
+            self_.feed()
+
+        patches = [
+            mock.patch("urwid.vterm.pty.fork", return_value=(_FAKE_PID, _FAKE_MASTER_FD)),
+            mock.patch("urwid.vterm.os.read", side_effect=fake_os_read),
+            mock.patch("urwid.vterm.os.write", side_effect=fake_os_write),
+            mock.patch("urwid.vterm.os.close", side_effect=fake_os_close),
+            mock.patch("urwid.vterm.os.kill", side_effect=fake_os_kill),
+            mock.patch("urwid.vterm.os.waitpid", side_effect=fake_os_waitpid),
+            mock.patch("urwid.vterm.os.execvpe"),
+            mock.patch("urwid.vterm.fcntl.fcntl", return_value=0),
+            mock.patch("urwid.vterm.fcntl.ioctl", return_value=0),
+            mock.patch("urwid.vterm.atexit.register"),
+            mock.patch("urwid.vterm.RealTerminal", _FakeRealTerminal),
+            mock.patch.object(urwid.vterm.Terminal, "wait_and_feed", fake_wait_and_feed),
+        ]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    # ------------------------------------------------------------------
+    # Signal helpers
+    # ------------------------------------------------------------------
 
     def connect_signal(self, signal: str):
         self._sig_response = None
@@ -98,14 +191,25 @@ class TermTest(unittest.TestCase):
     def caught_beep(self, obj):
         self.beeped = True
 
+    # ------------------------------------------------------------------
+    # Drive the widget
+    # ------------------------------------------------------------------
+
     def resize(self, width: int, height: int, soft: bool = False) -> None:
         self.termsize = (width, height)
         if not soft:
             self.term.render(self.termsize, focus=False)
 
     def write(self, data: str) -> None:
-        data = data.encode("iso8859-1")
-        self.command.write(data.replace(rb"\e", b"\x1b"))
+        """Push bytes into the widget's input stream.
+
+        Equivalent to the spawned subprocess writing to its stdout.
+        PTY cooked-mode ONLCR is applied as a bare ``\\n`` becomes ``\\r\\n`` on the master read side
+        - matching what the kernel would do for a real child process.
+        """
+        encoded = data.encode("iso8859-1").replace(rb"\e", b"\x1b")
+        encoded = encoded.replace(b"\n", b"\r\n")
+        self.pty.to_widget.extend(encoded)
 
     def flush(self) -> None:
         self.write(chr(0x7F))
@@ -145,6 +249,10 @@ class TermTest(unittest.TestCase):
             desc += "\n"
         desc += f"Expected:\n{what!r}\nGot:\n{got!r}"
         self.assertEqual(got, what, desc)
+
+    # ------------------------------------------------------------------
+    # Tests
+    # ------------------------------------------------------------------
 
     def test_simplestring(self):
         self.write("hello world")
@@ -385,7 +493,7 @@ class TermTest(unittest.TestCase):
 
     def test_in_listbox(self):
         listbox = urwid.ListBox([urwid.BoxAdapter(self.term, 80)])
-        rendered = listbox.render((80, 24))
+        listbox.render((80, 24))
 
     def test_bracketed_paste_mode_on(self):
         self.write(r"\e[?2004htest")
@@ -394,7 +502,6 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "begin paste")
         self.term.keypress(None, "A")
         self.term.keypress(None, "end paste")
-        sleep(0.1)
         self.expect(r"test^[[200~A^[[201~")
 
     def test_bracketed_paste_mode_off(self):
@@ -404,5 +511,8 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "begin paste")
         self.term.keypress(None, "B")
         self.term.keypress(None, "end paste")
-        sleep(0.1)
         self.expect(r"testB")
+
+
+if __name__ == "__main__":
+    unittest.main()
