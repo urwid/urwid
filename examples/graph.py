@@ -276,7 +276,7 @@ class GraphView(urwid.WidgetWrap):
     def exit_program(self, w) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
-    def graph_controls(self):
+    def graph_controls(self) -> urwid.ListBox[int]:
         modes = self.controller.get_modes()
         # setup mode radio buttons
         self.mode_buttons = []
