@@ -256,6 +256,7 @@ class Columns(
         """
         self._selectable = False
         self._cache_column_widths: list[int] = []
+        self._cache_pack_widths: dict[int, int] = {}
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -771,8 +772,41 @@ class Columns(
         0 values in the list means hide the corresponding column completely
         """
         maxcol = size[0]
-        # FIXME: get rid of this check and recalculate only when a 'pack' widget has been modified.
-        if maxcol == self._cache_maxcol and not any(t == WHSettings.PACK for w, (t, n, b) in self.contents):
+
+        def pack_width(index: int, widget: Widget, size_kind: WHSettings, is_box: bool) -> int:
+            """Calculate the width a 'pack' column takes by packing its widget."""
+            if isinstance(widget, Widget):
+                w_sizing = widget.sizing()
+            else:
+                warnings.warn(f"{widget!r} is not a Widget", ColumnsWarning, stacklevel=4)
+                w_sizing = frozenset((urwid.BOX, urwid.FLOW))
+
+            if w_sizing & frozenset((Sizing.FIXED, Sizing.FLOW)):
+                candidate_size = 0
+
+                if Sizing.FIXED in w_sizing:
+                    candidate_size = widget.pack((), focus and index == self.focus_position)[0]
+
+                if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
+                    # FIXME: should be able to pack with a different maxcol value
+                    candidate_size = widget.pack((maxcol,), focus and index == self.focus_position)[0]
+
+                return candidate_size
+
+            warnings.warn(
+                f"Unusual widget {widget} sizing for {size_kind} (box={is_box}). "
+                f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for width calculation",
+                ColumnsWarning,
+                stacklevel=4,
+            )
+            return widget.pack((maxcol,), focus and index == self.focus_position)[0]
+
+        # 'pack' widgets can change their packed width without invalidating the cache,
+        # so recompute their widths and reuse the cached result only when nothing changed.
+        pack_widths = {
+            i: pack_width(i, w, t, b) for i, (w, (t, width, b)) in enumerate(self.contents) if t == WHSettings.PACK
+        }
+        if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
             return self._cache_column_widths
 
         widths = []
@@ -782,37 +816,11 @@ class Columns(
 
         static_w: int
 
-        for i, (w, (t, width, b)) in enumerate(self.contents):
+        for i, (_w, (t, width, _b)) in enumerate(self.contents):
             if t == WHSettings.GIVEN:
                 static_w = typing.cast("int", width)
             elif t == WHSettings.PACK:
-                if isinstance(w, Widget):
-                    w_sizing = w.sizing()
-                else:
-                    warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
-                    w_sizing = frozenset((urwid.BOX, urwid.FLOW))
-
-                if w_sizing & frozenset((Sizing.FIXED, Sizing.FLOW)):
-                    candidate_size = 0
-
-                    if Sizing.FIXED in w_sizing:
-                        candidate_size = w.pack((), focus and i == self.focus_position)[0]
-
-                    if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
-                        # FIXME: should be able to pack with a different maxcol value
-                        candidate_size = w.pack((maxcol,), focus and i == self.focus_position)[0]
-
-                    static_w = candidate_size
-
-                else:
-                    warnings.warn(
-                        f"Unusual widget {w} sizing for {t} (box={b}). "
-                        f"Assuming wrong sizing and using {Sizing.FLOW.upper()} for width calculation",
-                        ColumnsWarning,
-                        stacklevel=3,
-                    )
-                    static_w = w.pack((maxcol,), focus and i == self.focus_position)[0]
-
+                static_w = pack_widths[i]
             else:
                 static_w = self.min_width
 
@@ -846,6 +854,7 @@ class Columns(
 
         self._cache_maxcol = maxcol
         self._cache_column_widths = widths
+        self._cache_pack_widths = pack_widths
         return widths
 
     def _get_fixed_column_sizes(
