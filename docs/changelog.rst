@@ -2,6 +2,28 @@
 Changelog
 ---------
 
+Urwid 4.0.4
+===========
+
+2026-07-13
+
+New features 🗹
++++++++++++++++
+* urwid.Colmns: re-calculate column_widths only if pack widgets changed by @penguinolog in https://github.com/urwid/urwid/pull/1178
+Bug fixes 🕷
+++++++++++++
+* Fix IndexError in decompose_tagmarkup when a nested sublist is empty by @gaoflow in https://github.com/urwid/urwid/pull/1172
+Documentation 🕮
+++++++++++++++++
+* Typing: partially annotate examples and fix annotations by @penguinolog in https://github.com/urwid/urwid/pull/1173
+* urwid.WidgetContainerMixin: return use protocol base class by @penguinolog in https://github.com/urwid/urwid/pull/1181
+
+New Contributors
+++++++++++++++++
+* @gaoflow made their first contribution in https://github.com/urwid/urwid/pull/1172
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.3...4.0.4
+
 Urwid 4.0.3
 ===========
 
