@@ -17,7 +17,7 @@ if typing.TYPE_CHECKING:
         def __getitem__(
             self,
             index: _KT_contra,
-        ) -> tuple[Widget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...  # type: ignore[valid-type]  # unpack
+        ) -> tuple[Widget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...
 
     class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
         @property
@@ -36,6 +36,9 @@ if typing.TYPE_CHECKING:
         def base_widget(self) -> Widget: ...
 else:
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
+
+    class WidgetContainerMixinProto(typing.Generic[_KT_contra]):
+        """Generic protocol support."""
 
 
 _WidgetParams = typing.TypeVar("_WidgetParams", bound=tuple[typing.Any, ...])
@@ -84,15 +87,12 @@ class _ContainerElementSizingFlag(enum.IntEnum):
         return "|".join(sorted(mode.upper() for mode in sizing)) + render_string
 
 
-class WidgetContainerMixin(typing.Generic[_KT_contra]):
+class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     """
     Mixin class for widget containers implementing common container methods
     """
 
-    def __getitem__(
-        self: WidgetContainerMixinProto[_KT_contra],
-        position: _KT_contra,
-    ) -> Widget:
+    def __getitem__(self, position: _KT_contra) -> Widget:
         """
         Container short-cut for self.contents[position][0].base_widget
         which means "give me the child widget at position without any
@@ -105,7 +105,7 @@ class WidgetContainerMixin(typing.Generic[_KT_contra]):
         """
         return self.contents[position][0].base_widget
 
-    def get_focus_path(self: WidgetContainerMixinProto[_KT_contra]) -> list[int | str]:
+    def get_focus_path(self) -> list[int | str]:
         """
         Return the .focus_position values starting from this container
         and proceeding along each child widget until reaching a leaf
@@ -119,12 +119,9 @@ class WidgetContainerMixin(typing.Generic[_KT_contra]):
             except IndexError:
                 return out
             out.append(p)
-            w = w.focus.base_widget  # type: ignore[assignment,attr-defined]
+            w = w.focus.base_widget  # type: ignore[assignment]
 
-    def set_focus_path(
-        self: WidgetContainerMixinProto[_KT_contra],
-        positions: Iterable[int | str],
-    ) -> None:
+    def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """
         Set the .focus_position property starting from this container
         widget and proceeding along newly focused child widgets.
