@@ -22,7 +22,9 @@ from .widget_decoration import WidgetDecoration, WidgetError
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+    from urwid import Widget
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 
 
 class FillerError(WidgetError):
@@ -91,12 +93,12 @@ class Filler(WidgetDecoration[WrappedWidget]):
                 if not isinstance(valign, tuple) or valign[0] != "fixed bottom":
                     raise FillerError("fixed top height may only be used with fixed bottom valign")
                 top = height[1]
-                height = RELATIVE_100
+                height = RELATIVE_100  # type: ignore[assignment]
             elif height[0] == "fixed bottom":
                 if not isinstance(valign, tuple) or valign[0] != "fixed top":
                     raise FillerError("fixed bottom height may only be used with fixed top valign")
                 bottom = height[1]
-                height = RELATIVE_100
+                height = RELATIVE_100  # type: ignore[assignment]
 
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
@@ -120,6 +122,9 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         self.top = top
         self.bottom = bottom
+        self.valign_type: Literal[WHSettings.RELATIVE] | VAlign
+        self.height_type: WHSettings
+        self.height_amount: int | float | None
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
         self.height_type, self.height_amount = normalize_height(height, FillerError)
 
@@ -144,14 +149,14 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if self.height_type == WHSettings.PACK:
             return self.original_widget.rows(size, focus) + self.top + self.bottom
         if self.height_type == WHSettings.GIVEN:
-            return self.height_amount + self.top + self.bottom
+            return typing.cast("int", self.height_amount) + self.top + self.bottom
         raise FillerError("Method 'rows' not supported for BOX widgets")  # pragma: no cover
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = {
             **super()._repr_attrs(),
             "valign": simplify_valign(self.valign_type, self.valign_amount),
-            "height": simplify_height(self.height_type, self.height_amount),
+            "height": simplify_height(self.height_type, self.height_amount),  # type: ignore[call-overload]
             "top": self.top,
             "bottom": self.bottom,
             "min_height": self.min_height,

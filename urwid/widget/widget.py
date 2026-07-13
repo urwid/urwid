@@ -37,7 +37,7 @@ from .constants import Sizing
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
-WrappedWidget = typing.TypeVar("WrappedWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
 LOGGER = logging.getLogger(__name__)
 
 
