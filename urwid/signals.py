@@ -293,7 +293,7 @@ class Signals:
         """
         result = False
         handlers = getattr(obj, self._signal_attr, {}).get(name, [])
-        for _key, callback, user_arg, (weak_args, user_args) in handlers:
+        for _key, callback, user_arg, (weak_args, user_args) in handlers.copy():
             result |= self._call_callback(callback, user_arg, weak_args, user_args, args)
         return result
 

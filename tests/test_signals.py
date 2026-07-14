@@ -25,6 +25,30 @@ class SiglnalsTest(unittest.TestCase):
         edit.set_edit_text("another text")
         handler.assert_not_called()
 
+    def test_handler_mutation_during_emit(self):
+        emitter = self.EmClass()
+        calls = []
+
+        def third():
+            calls.append("third")
+
+        def first():
+            calls.append("first")
+            disconnect_signal(emitter, "test", first)
+            connect_signal(emitter, "test", third)
+
+        def second():
+            calls.append("second")
+
+        connect_signal(emitter, "test", first)
+        connect_signal(emitter, "test", second)
+
+        emit_signal(emitter, "test")
+        self.assertEqual(calls, ["first", "second"])
+
+        emit_signal(emitter, "test")
+        self.assertEqual(calls, ["first", "second", "second", "third"])
+
     @unittest.skipIf(sys.implementation.name == "pypy", "WeakRef works differently on PyPy")
     def test_weak_del(self):
         emitter = SiglnalsTest.EmClass()
