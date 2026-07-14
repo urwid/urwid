@@ -46,10 +46,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
     """
 
     def __init__(self, original_widget: WrappedWidget) -> None:
-        # TODO(Aleksei): reduce amount of multiple inheritance usage
-        # Special case: subclasses with multiple inheritance causes `super` call wrong way
-        # Call parent __init__ explicit
-        Widget.__init__(self)
+        super().__init__()
         if not isinstance(original_widget, Widget):
             obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"
             warnings.warn(
@@ -133,9 +130,17 @@ class WidgetDisable(WidgetDecoration[WrappedWidget]):
     def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()
 
-    def pack(self, size, focus: bool = False) -> tuple[int, int]:
+    def pack(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> tuple[int, int]:
         return self._original_widget.pack(size, False)
 
-    def render(self, size, focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> CompositeCanvas:
         canv = self._original_widget.render(size, False)
         return CompositeCanvas(canv)

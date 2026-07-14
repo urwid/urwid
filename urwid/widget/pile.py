@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import itertools
 import typing
 import warnings
 from itertools import chain, repeat
@@ -869,16 +870,16 @@ class Pile(
             # Try to move to the center
             offset = len(before) - len(after)
             if not offset:
-                indexes: Iterable[int] = (element for pair in zip(after[::-1], before) for element in pair)
+                indexes: Iterable[int] = itertools.chain.from_iterable(zip(after[::-1], before))
             elif offset > 0:
                 indexes = (
                     *before[:offset],
-                    *(element for pair in zip(after[::-1], before[offset:]) for element in pair),
+                    *itertools.chain.from_iterable(zip(after[::-1], before[offset:])),
                 )
             else:
                 indexes = (
                     *after[-1 : offset - 1 : -1],
-                    *(element for pair in zip(after[offset - 1 :: -1], before) for element in pair),
+                    *itertools.chain.from_iterable(zip(after[offset - 1 :: -1], before)),
                 )
 
             for idx in indexes:
