@@ -90,7 +90,7 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         # FIXME: a dictionary that detects modifications would be better
         return dict(self._attr_map)
 
-    def set_attr_map(self, attr_map: dict[Hashable, Hashable] | None) -> None:
+    def set_attr_map(self, attr_map: dict[Hashable, Hashable]) -> None:
         """
         Set the attribute mapping dictionary {from_attr: to_attr, ...}
 
@@ -152,7 +152,11 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
 
     focus_map = property(get_focus_map, set_focus_map)
 
-    def render(self, size, focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> CompositeCanvas:
         """
         Render wrapped widget and apply attribute. Return canvas.
         """
