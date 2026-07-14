@@ -655,7 +655,7 @@ class Edit(WidgetWrap[Text]):
         >>> c.cursor
         (5, 0)
         """
-        self._shift_view_to_cursor = bool(focus)
+        self._shift_view_to_cursor = focus
 
         (maxcol,) = size
         text, attr = self.get_text()
