@@ -333,7 +333,7 @@ class Screen(_raw_display_base.Screen):
             input_ready = selector.select(0)
             while input_ready:
                 chunk = os.read(fd, 1024)
-                if len(chunk) == 0:
+                if not chunk:
                     raise RuntimeError("stdin has been closed")
                 chars.extend(chunk)
                 input_ready = selector.select(0)

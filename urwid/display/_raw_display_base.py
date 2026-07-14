@@ -483,7 +483,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             while codes:
                 run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
-                codes = list(remaining_codes)
+                codes = remaining_codes.copy()
                 decoded_codes.extend(run)
         except escape.MoreInputRequired:
             # Set a timer to wait for the rest of the input; if it goes off
@@ -587,9 +587,7 @@ class Screen(BaseScreen, RealTerminal):
             run: bytes,
             last: bool,
         ) -> None:
-            nonlocal last_charset_flag  # type: ignore[misc]
-            nonlocal last_attributes  # type: ignore[misc]
-            nonlocal first  # type: ignore[misc]
+            nonlocal last_charset_flag, last_attributes, first  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes
                 raise TypeError(run)

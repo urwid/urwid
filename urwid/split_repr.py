@@ -52,7 +52,7 @@ def split_repr(self: Widget) -> str:
     >>> Bar()
     <Bar words here too attrs='appear too' barttr=42>
     """
-    alist = sorted((str(k), normalize_repr(v)) for k, v in self._repr_attrs().items())
+    alist = sorted((k, normalize_repr(v)) for k, v in self._repr_attrs().items())
 
     words = self._repr_words()
     if not words and not alist:
