@@ -4,7 +4,7 @@ import string
 import typing
 
 from urwid import text_layout
-from urwid.canvas import CompositeCanvas
+from urwid.canvas import CompositeCanvas, apply_text_layout
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.str_util import is_wide_char, move_next_char, move_prev_char
@@ -12,6 +12,7 @@ from urwid.util import decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
 from .text import Text, TextError
+from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
@@ -27,7 +28,7 @@ class EditError(TextError):
     pass
 
 
-class Edit(Text):
+class Edit(WidgetWrap[Text]):
     """
     Text editing widget implements cursor movement, text insertion and
     deletion.  A caption may prefix the editing area.  Uses text class
@@ -78,12 +79,10 @@ class Edit(Text):
         mask: str | None = None,
     ) -> None:
         """
-        :param caption: markup for caption preceding edit_text, see
-                        :class:`Text` for description of text markup.
+        :param caption: markup for caption preceding edit_text, see :class:`Text` for description of text markup.
         :type caption: text markup
-        :param edit_text: initial text for editing, type (bytes or unicode)
-                          must match the text in the caption
-        :type edit_text: bytes or unicode
+        :param edit_text: initial text for editing, type (bytes or str) must match the text in the caption
+        :type edit_text: bytes or str
         :param multiline: True: 'enter' inserts newline  False: return it
         :type multiline: bool
         :param align: typically 'left', 'center' or 'right'
@@ -97,7 +96,7 @@ class Edit(Text):
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :type layout: text layout instance
         :param mask: hide text entered with this character, None:disable mask
-        :type mask: bytes or unicode
+        :type mask: bytes or str
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -108,32 +107,59 @@ class Edit(Text):
         >>> Edit("", "3.14", align="right")
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
         """
-
-        super().__init__("", align, wrap, layout)
+        super().__init__(Text("", align, wrap, layout))
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
-        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]  # discourage `bytes` input
+        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
         self._edit_text = ""
         self.highlight: tuple[int, int] | None = None
+        self._mask: str | None = None
+        self._shift_view_to_cursor = False
+        self.pref_col_maxcol: tuple[int | None, int | None] = (None, None)
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
         self.set_edit_pos(edit_pos)
         self.set_mask(mask)
-        self._shift_view_to_cursor = False
+
+    def selectable(self) -> bool:
+        """Selectable mark.
+
+        Wrapped Text widget is not selectable while the edit widget has to be selectable.
+        """
+        return True
+
+    def sizing(self) -> frozenset[Sizing]:
+        """Sizing information.
+
+        Edit widget sizing is narrower than Text: we cannot predict the final input length.
+        """
+        return self._sizing
 
     def _repr_words(self) -> list[str]:
-        return (
-            super()._repr_words()[:-1]
-            + [repr(self._edit_text)]
-            + [f"caption={self._caption!r}"] * bool(self._caption)
-            + ["multiline"] * (self.multiline is True)
-        )
+        return [
+            *super()._repr_words(),
+            repr(self._edit_text),
+            *([f"caption={self._caption!r}"] if self._caption else []),
+            *(["multiline"] if self.multiline is True else []),
+        ]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = {**super()._repr_attrs(), "edit_pos": self._edit_pos}
+        attrs = {
+            **super()._repr_attrs(),
+            "align": self._w.align,
+            "wrap": self._w.wrap,
+            "edit_pos": self._edit_pos,
+        }
         return remove_defaults(attrs, Edit.__init__)
+
+    def _sync_wrapped(self) -> None:
+        """Synchronize the wrapped Text widget with current caption+edit_text state."""
+        text, attrib = self.get_text()
+        self._w._text = text  # pylint: disable=protected-access
+        self._w._attrib = attrib  # pylint: disable=protected-access
+        self._w._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
         """
@@ -151,27 +177,59 @@ class Edit(Text):
         """
 
         if self._mask is None:
-            return self._caption + self._edit_text, self._attrib
+            return self._caption + self._edit_text, self._attrib  # type: ignore[operator]  # type normalised
 
-        return self._caption + (self._mask * len(self._edit_text)), self._attrib
+        return self._caption + (self._mask * len(self._edit_text)), self._attrib  # type: ignore[operator]
 
-    def set_text(self, markup: _TagMarkup) -> None:
+    @property
+    def text(self) -> str | bytes:
         """
-        Not supported by Edit widget.
-
-        >>> Edit().set_text("test")
-        Traceback (most recent call last):
-        EditError: set_text() not supported.  Use set_caption() or set_edit_text() instead.
+        Read-only property returning the complete bytes/unicode content
+        of this widget (caption plus edit_text, possibly masked).
         """
-        # FIXME: this smells. reimplement Edit as a WidgetWrap subclass to
-        # clean this up
+        return self.get_text()[0]
 
-        # hack to let Text.__init__() work
-        if not hasattr(self, "_text") and markup == "":  # noqa: PLC1901,RUF100
-            self._text = None
-            return
+    @property
+    def attrib(self) -> list[tuple[Hashable, int]]:
+        """
+        Read-only property returning the run-length encoded display
+        attributes of this widget.
+        """
+        return self.get_text()[1]
 
-        raise EditError("set_text() not supported.  Use set_caption() or set_edit_text() instead.")
+    def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
+        """
+        Set text alignment mode. See :meth:`Text.set_align_mode` for details.
+        """
+        self._w.set_align_mode(mode)
+        self._invalidate()
+
+    def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
+        """
+        Set text wrapping mode. See :meth:`Text.set_wrap_mode` for details.
+        """
+        self._w.set_wrap_mode(mode)
+        self._invalidate()
+
+    def set_layout(
+        self,
+        align: Literal["left", "center", "right"] | Align,
+        wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
+        layout: text_layout.TextLayout | None = None,
+    ) -> None:
+        """
+        Set the text layout object, alignment and wrapping modes at the same time.
+        See :meth:`Text.set_layout` for details.
+        """
+        self._w.set_layout(align, wrap, layout)
+        self._invalidate()
+
+    align = property(lambda self: self._w.align, set_align_mode)
+    wrap = property(lambda self: self._w.wrap, set_wrap_mode)
+
+    @property
+    def layout(self) -> text_layout.TextLayout:
+        return self._w.layout
 
     def get_pref_col(self, size: tuple[int]) -> int:
         """
@@ -209,7 +267,7 @@ class Edit(Text):
         if then_maxcol != maxcol:
             return self.get_cursor_coords((maxcol,))[0]
 
-        return pref_col
+        return typing.cast("int", pref_col)
 
     def set_caption(self, caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """
@@ -231,11 +289,12 @@ class Edit(Text):
         Traceback (most recent call last):
         AttributeError: can't set attribute
         """
-        self._caption, self._attrib = decompose_tagmarkup(caption)
+        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
+        self._sync_wrapped()
         self._invalidate()
 
     @property
-    def caption(self) -> str:
+    def caption(self) -> str | bytes:
         """
         Read-only property returning the caption for this widget.
         """
@@ -285,6 +344,7 @@ class Edit(Text):
         """
 
         self._mask = mask
+        self._sync_wrapped()
         self._invalidate()
 
     def set_edit_text(self, text: str) -> None:
@@ -310,6 +370,7 @@ class Edit(Text):
         self._emit("change", text)
         old_text = self._edit_text
         self._edit_text = text
+        self._sync_wrapped()
         self.edit_pos = min(self.edit_pos, len(text))
 
         self._emit("postchange", old_text)
@@ -367,8 +428,8 @@ class Edit(Text):
         if tu == cu:
             return text
         if tu:
-            return text.encode("ascii")  # follow python2's implicit conversion
-        return text.decode("ascii")
+            return text.encode("ascii")  # type: ignore[union-attr]  # follow python2's implicit conversion
+        return text.decode("ascii")  # type: ignore[union-attr]
 
     def insert_text_result(self, text: str) -> tuple[str | bytes, int]:
         """
@@ -401,7 +462,7 @@ class Edit(Text):
 
     def keypress(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         key: str,
     ) -> str | None:
         """
@@ -459,9 +520,6 @@ class Edit(Text):
             pref_col = self.get_pref_col(size)
             if pref_col is None:
                 raise ValueError(pref_col)
-
-            # if pref_col is None:
-            #    pref_col = x
 
             if self._command_map[key] == Command.UP:
                 y -= 1
@@ -546,7 +604,7 @@ class Edit(Text):
 
     def mouse_event(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         event: str,
         button: int,
         col: int,
@@ -581,9 +639,9 @@ class Edit(Text):
         self.highlight = None
         return True
 
-    def render(  # type: ignore[override]
+    def render(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:
         """
@@ -599,7 +657,11 @@ class Edit(Text):
         """
         self._shift_view_to_cursor = bool(focus)
 
-        canv: TextCanvas | CompositeCanvas = super().render(size, focus)
+        (maxcol,) = size
+        text, attr = self.get_text()
+        trans = self.get_line_translation(maxcol, (text, attr))
+        canv: TextCanvas | CompositeCanvas = apply_text_layout(text, attr, trans, maxcol)
+
         if focus:
             canv = CompositeCanvas(canv)
             canv.cursor = self.get_cursor_coords(size)
@@ -615,7 +677,7 @@ class Edit(Text):
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        trans = super().get_line_translation(maxcol, ta)
+        trans = self._w.get_line_translation(maxcol, ta)
         if not self._shift_view_to_cursor:
             return trans
 
@@ -685,7 +747,7 @@ class IntEdit(Edit):
 
     def keypress(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         key: str,
     ) -> str | None:
         """
