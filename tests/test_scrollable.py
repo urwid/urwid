@@ -142,6 +142,72 @@ class TestScrollBarScrollable(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
+    def test_mouse_left_click_scrollbar(self):
+        """Left click on the rendered scrollbar jumps to the clicked position."""
+        content = urwid.Text("\n".join(string.ascii_letters))  # 52 single-char lines
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+        scrollbar_col = reduced_size[0] - 1  # right side scrollbar
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # posmax == 52 - 5 == 47, thumb_height == 1, thumb travel == 5 - 1 == 4.
+        # Clicking the bottom row moves past the end and is clamped to posmax.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+        # Clicking the top row scrolls back to the top.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 0, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Intermediate rows map proportionally: round(row * posmax / travel).
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 1, False))
+        self.assertEqual(12, scrollable.get_scrollpos())
+
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 3, False))
+        self.assertEqual(35, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_content_ignored(self):
+        """Left click outside of the scrollbar columns does not scroll."""
+        content = urwid.Text("\n".join(string.ascii_letters))
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Column 0 belongs to the wrapped content, not the scrollbar.
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_left_side_scrollbar(self):
+        """Left click detection honours a left-aligned scrollbar."""
+        content = urwid.Text("\n".join(string.ascii_letters))
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content), side="left")
+        scrollable = widget.original_widget
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # The scrollbar occupies column 0 when aligned to the left.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+        # A click on the content columns is ignored.
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 1, 0, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_without_scrollbar(self):
+        """Without a rendered scrollbar a left click is not handled."""
+        content = urwid.Text("a\nb")  # fits into the available height
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 2, 2, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
     def test_alt_symbols(self):
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)

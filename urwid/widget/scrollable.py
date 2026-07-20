@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import contextlib
+import dataclasses
 import enum
 import typing
 
@@ -459,6 +460,23 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
         return self._rows_max_cached
 
 
+@dataclasses.dataclass(frozen=True)
+class _ScrollbarLayout:
+    """Geometry of a scrollbar rendered next to its wrapped widget.
+
+    Produced by :meth:`ScrollBar._scrollbar_layout` and shared between rendering and mouse handling
+    so the scrollbar hit-box and the thumb placement always stay in sync.
+    """
+
+    ow_size: tuple[int, int]
+    sb_width: int
+    pos: int
+    posmax: int
+    thumb_height: int
+    top_height: int
+    bottom_height: int
+
+
 class ScrollBar(WidgetDecoration[WrappedWidget]):
     Symbols = ScrollbarSymbols
 
@@ -509,13 +527,18 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         self._original_widget_size = size
         return self._original_widget.render(size, focus)
 
-    def render(
+    def _scrollbar_layout(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int, int],
         focus: bool = False,
-    ) -> Canvas:
-        from urwid import canvas
+    ) -> _ScrollbarLayout | None:
+        """Compute the scrollbar geometry for ``size``.
 
+        :returns: ``None`` is returned as a "not shown" flag when the wrapped widget fits without scrolling
+            and therefore no scrollbar is drawn.
+            Otherwise, the thumb and trough placement is returned,
+            so :meth:`render` and :meth:`mouse_event` can share the same geometry without duplicating the maths.
+        """
         maxcol, maxrow = size
 
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
@@ -535,7 +558,6 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
             # `operator.length_hint` is Protocol (Spec) over class base and can end false-negative on the instance
             # use length_hint-like approach with safe `AttributeError` handling
             ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", int))()
-            ow_canv = self._render_original(ow_size, focus)
             visible_amount = ow_base.get_visible_amount(ow_size, focus)
             pos = ow_base.get_first_visible_pos(ow_size, focus)
 
@@ -550,7 +572,6 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
         if not use_relative:
             if ow_base.rows_max(size, focus) > maxrow:
-                ow_canv = self._render_original(ow_size, focus)
                 # re-calculate using wrapped size
                 ow_rows_max = ow_base.rows_max(ow_size, focus)
                 pos = ow_base.get_scrollpos(ow_size, focus)
@@ -559,7 +580,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
             else:
                 # Canvas fits without scrolling - no scrollbar needed
-                return self._render_original(size, focus)
+                return None
 
         # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
         thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment
@@ -573,25 +594,54 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         # Bottom part is remaining space
         bottom_height = maxrow - thumb_height - top_height
 
+        return _ScrollbarLayout(
+            ow_size=ow_size,
+            sb_width=sb_width,
+            pos=pos,
+            posmax=posmax,
+            thumb_height=thumb_height,
+            top_height=top_height,
+            bottom_height=bottom_height,
+        )
+
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> Canvas:
+        from urwid import canvas
+
+        maxcol, maxrow = size
+
+        # Render the wrapped widget first
+        # so any pending scroll action is applied before the scroll position is queried for the scrollbar geometry.
+        ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
+        ow_canv = self._render_original(ow_size, focus)
+
+        layout = self._scrollbar_layout(size, focus)
+        if layout is None:
+            # Canvas fits without scrolling - no scrollbar needed
+            return self._render_original(size, focus)
+
         # Create scrollbar canvas
         # Creating SolidCanvases of correct height may result in
         # "cviews do not fill gaps in shard_tail!" or "cviews overflow gaps in shard_tail!" exceptions.
         # Stacking the same SolidCanvas is a workaround.
         # https://github.com/urwid/urwid/issues/226#issuecomment-437176837
-        top = canvas.SolidCanvas(self._trough_char, sb_width, 1)
-        thumb = canvas.SolidCanvas(self._thumb_char, sb_width, 1)
-        bottom = canvas.SolidCanvas(self._trough_char, sb_width, 1)
+        top = canvas.SolidCanvas(self._trough_char, layout.sb_width, 1)
+        thumb = canvas.SolidCanvas(self._thumb_char, layout.sb_width, 1)
+        bottom = canvas.SolidCanvas(self._trough_char, layout.sb_width, 1)
         sb_canv = canvas.CanvasCombine(
             (
-                *((top, None, False) for _ in range(top_height)),
-                *((thumb, None, False) for _ in range(thumb_height)),
-                *((bottom, None, False) for _ in range(bottom_height)),
+                *((top, None, False) for _ in range(layout.top_height)),
+                *((thumb, None, False) for _ in range(layout.thumb_height)),
+                *((bottom, None, False) for _ in range(layout.bottom_height)),
             ),
         )
 
         combinelist = [
-            (ow_canv, None, True, ow_size[0]),  # pylint: disable=possibly-used-before-assignment
-            (sb_canv, None, False, sb_width),
+            (ow_canv, None, True, layout.ow_size[0]),
+            (sb_canv, None, False, layout.sb_width),
         ]
 
         if self._scrollbar_side != SCROLLBAR_LEFT:
@@ -665,5 +715,22 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
                 pos = ow.get_scrollpos(ow_size)
                 ow.set_scrollpos(pos + 1)
                 return True
+            if button == 1:  # left click may target the scrollbar itself
+                layout = self._scrollbar_layout(size, focus)
+                if layout is not None:
+                    if self._scrollbar_side == SCROLLBAR_LEFT:
+                        on_scrollbar = col < layout.sb_width
+                    else:
+                        on_scrollbar = col >= layout.ow_size[0]
+
+                    if on_scrollbar:
+                        # Move the thumb top to the clicked row, inverting the placement done during render.
+                        thumb_travel = size[1] - layout.thumb_height
+                        if thumb_travel > 0:
+                            newpos = round(row * layout.posmax / thumb_travel)
+                        else:
+                            newpos = 0
+                        ow.set_scrollpos(max(0, min(layout.posmax, newpos)))
+                        return True
 
         return handled
