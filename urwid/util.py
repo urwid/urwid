@@ -429,17 +429,22 @@ def rle_product(
     a2, r2 = rle2[0]
 
     result: list[tuple[tuple[Hashable, Hashable], int]] = []
-    while r1 and r2:
+    while True:
+        # Skip zero-length runs (e.g. produced by empty markup segments): they carry no
+        # columns but must not stop the merge early, otherwise following runs are dropped.
+        while r1 == 0 and i1 < len(rle1):
+            a1, r1 = rle1[i1]
+            i1 += 1
+        while r2 == 0 and i2 < len(rle2):
+            a2, r2 = rle2[i2]
+            i2 += 1
+        if r1 == 0 or r2 == 0:
+            break
+
         r = min(r1, r2)
         rle_append_modify(result, ((a1, a2), r))  # type: ignore[arg-type]
         r1 -= r
-        if r1 == 0 and i1 < len(rle1):
-            a1, r1 = rle1[i1]
-            i1 += 1
         r2 -= r
-        if r2 == 0 and i2 < len(rle2):
-            a2, r2 = rle2[i2]
-            i2 += 1
     return result
 
 
