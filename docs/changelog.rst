@@ -2,6 +2,33 @@
 Changelog
 ---------
 
+Urwid 4.0.5
+===========
+
+2026-07-20
+
+New features 🗹
++++++++++++++++
+* Copy signal handlers before emission by @Sanjays2402 in https://github.com/urwid/urwid/pull/1187
+* Implement `_scrollbar_layout` and left click handling for `Scrollable` by @penguinolog in https://github.com/urwid/urwid/pull/1192
+Bug fixes 🕷
+++++++++++++
+* Fix rle_product for zero-len elements by @penguinolog in https://github.com/urwid/urwid/pull/1191
+Documentation 🕮
+++++++++++++++++
+* typing: fix `Filler` typing annotations by @penguinolog in https://github.com/urwid/urwid/pull/1183
+* typing: extend widget_decoration module typing coverage by @penguinolog in https://github.com/urwid/urwid/pull/1184
+* Typing: annotate and fix attr_map by @penguinolog in https://github.com/urwid/urwid/pull/1186
+Refactoring 🛠
+++++++++++++++
+* Migrate `Edit` widget to use `WidgetWrap` as base class and update methods by @penguinolog in https://github.com/urwid/urwid/pull/1180
+
+New Contributors
+++++++++++++++++
+* @Sanjays2402 made their first contribution in https://github.com/urwid/urwid/pull/1187
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.4...4.0.5
+
 Urwid 4.0.4
 ===========
 
