@@ -39,6 +39,58 @@ class TextTest(unittest.TestCase):
             got = urwid.Text("û").render((3,))._text
             assert got == expected, f"got: {got!r} expected: {expected!r}"
 
+    def test_empty_markup_segment_middle(self) -> None:
+        """An empty markup segment in the middle must not truncate the rendered row."""
+        widget = urwid.Text([("a", "X" * 10), ("b", ""), ("c", " END")])
+
+        self.assertEqual(("XXXXXXXXXX END", [("a", 10), ("b", 0), ("c", 4)]), widget.get_text())
+
+        canvas = widget.render(())
+        self.assertEqual([b"XXXXXXXXXX END"], canvas.text)
+        self.assertEqual(("XXXXXXXXXX END",), canvas.decoded_text)
+
+    def test_empty_markup_segment_start(self) -> None:
+        """An empty markup segment at the start must keep the whole rendered row."""
+        widget = urwid.Text([("b", ""), ("a", "X" * 10), ("c", " END")])
+
+        self.assertEqual(("XXXXXXXXXX END", [("b", 0), ("a", 10), ("c", 4)]), widget.get_text())
+
+        canvas = widget.render(())
+        self.assertEqual([b"XXXXXXXXXX END"], canvas.text)
+        self.assertEqual(("XXXXXXXXXX END",), canvas.decoded_text)
+
+    def test_empty_markup_segment_end(self) -> None:
+        """An empty markup segment at the end must keep the whole rendered row."""
+        widget = urwid.Text([("a", "X" * 10), ("c", " END"), ("b", "")])
+
+        self.assertEqual(("XXXXXXXXXX END", [("a", 10), ("c", 4), ("b", 0)]), widget.get_text())
+
+        canvas = widget.render(())
+        self.assertEqual([b"XXXXXXXXXX END"], canvas.text)
+        self.assertEqual(("XXXXXXXXXX END",), canvas.decoded_text)
+
+    def test_multiple_empty_markup_segments(self) -> None:
+        """Several consecutive empty markup segments must not drop following content."""
+        widget = urwid.Text([("a", "AB"), ("b", ""), ("c", ""), ("d", "CD")])
+
+        self.assertEqual(("ABCD", [("a", 2), ("b", 0), ("c", 0), ("d", 2)]), widget.get_text())
+
+        canvas = widget.render(())
+        self.assertEqual([b"ABCD"], canvas.text)
+        self.assertEqual(("ABCD",), canvas.decoded_text)
+
+    def test_empty_markup_segment_render_content(self) -> None:
+        """The canvas content rows must expose the display attribute of each segment."""
+        widget = urwid.Text([("a", "X" * 10), ("b", ""), ("c", " END")])
+
+        content = list(widget.render(()).content())
+        attrs = [attr for row in content for attr, _cs, _text in row]
+        rendered = b"".join(text for row in content for _attr, _cs, text in row)
+
+        self.assertEqual(b"XXXXXXXXXX END", rendered)
+        self.assertIn("a", attrs)
+        self.assertIn("c", attrs)
+
 
 class EditTest(unittest.TestCase):
     def setUp(self):
