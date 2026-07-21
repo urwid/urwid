@@ -105,8 +105,10 @@ class WidgetProto(typing.Protocol):
     def pack(self, size: tuple[int, int], focus: bool = False) -> tuple[int, int]: ...
 
     @property
-    def base_widget(self) -> Widget:
-        raise NotImplementedError
+    def base_widget(self) -> Widget: ...
+
+    @property
+    def focus(self) -> Widget | None: ...
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None: ...
 
@@ -175,9 +177,9 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             raise ValueError(f"Not a fixed or flow widget: {widget!r}")
 
         self._trim_top = 0
-        self._scroll_action = None
-        self._forward_keypress = None
-        self._old_cursor_coords = None
+        self._scroll_action: str | None = None
+        self._forward_keypress: bool | None = None
+        self._old_cursor_coords: tuple[int, int] | None = None
         self._rows_max_cached = 0
         self.force_forward_keypress = force_forward_keypress
         super().__init__(widget)
@@ -211,10 +213,10 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
                     if not w.selectable():
                         continue
 
-                    ow.focus_item = pwi
+                    ow.focus_position = pwi
 
                     st = None
-                    nf = ow.get_focus()
+                    nf = ow.focus
                     if hasattr(nf, "key_timeout"):
                         st = nf
                     elif hasattr(nf, "original_widget"):
@@ -232,7 +234,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
         # Render complete original widget
         ow = self._original_widget
         ow_size = self._get_original_widget_size(size)
-        canv_full = ow.render(ow_size, focus)
+        canv_full = ow.render(ow_size, focus)  # type: ignore[arg-type]  # Support only Fixed and Flow
 
         # Make full canvas editable
         canv = canvas.CompositeCanvas(canv_full)
@@ -315,8 +317,9 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             if hasattr(ow, "get_cursor_coords"):
                 self._old_cursor_coords = ow.get_cursor_coords(ow_size)
 
-            key = ow.keypress(ow_size, key)
-            if key is None:
+            if (handled := ow.keypress(ow_size, key)) is not None:  # type: ignore[arg-type]  # Only Fixed and Flow
+                key = handled
+            else:
                 return None
 
         # Handle up/down, page up/down, etc.
@@ -355,7 +358,14 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
         if hasattr(ow, "mouse_event"):
             ow_size = self._get_original_widget_size(size)
             row += self._trim_top
-            return ow.mouse_event(ow_size, event, button, col, row, focus)
+            return ow.mouse_event(
+                ow_size,  # type: ignore[arg-type]  # Only Fixed and Flow
+                event,
+                button,
+                col,
+                row,
+                focus,
+            )
 
         return False
 
@@ -452,11 +462,11 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             ow_size = self._get_original_widget_size(size)
             sizing = ow.sizing()
             if Sizing.FIXED in sizing:
-                self._rows_max_cached = ow.pack(ow_size, focus)[1]
+                self._rows_max_cached = ow.pack(ow_size, focus)[1]  # type: ignore[arg-type]  # FIXED
             elif Sizing.FLOW in sizing:
-                self._rows_max_cached = ow.rows(ow_size, focus)
+                self._rows_max_cached = ow.rows(ow_size, focus)  # type: ignore[attr-defined]  # FLOW
             else:
-                raise ScrollableError(f"Not a flow/box widget: {self._original_widget!r}")
+                raise ScrollableError(f"Not a flow/fixed widget: {self._original_widget!r}")
         return self._rows_max_cached
 
 
@@ -491,7 +501,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
         widget: WrappedWidget,
         thumb_char: str = ScrollbarSymbols.FULL_BLOCK,
         trough_char: str = " ",
-        side: Literal["left", "right"] = SCROLLBAR_RIGHT,
+        side: Literal["left", "right"] = SCROLLBAR_RIGHT,  # type: ignore[assignment]  # constant
         width: int = 1,
     ) -> None:
         """Box widget that adds a scrollbar to `widget`
@@ -677,7 +687,7 @@ class ScrollBar(WidgetDecoration[WrappedWidget]):
 
         w = self
 
-        for w in orig_iter(self):
+        for w in orig_iter(self):  # type: ignore[assignment]
             if isinstance(w, SupportsScroll):
                 return w
 

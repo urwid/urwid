@@ -444,19 +444,18 @@ class Widget(metaclass=WidgetMeta):
         """
         return None
 
-    def _not_a_container(self: Widget, val: typing.Any = None) -> typing.NoReturn:
+    @property
+    def focus_position(self) -> typing.Any:
+        """
+        Property for reading and setting the focus position for container widgets.
+        This default implementation raises :exc:`IndexError`,
+        making normal widgets fail the same way accessing :attr:`.focus_position` on an empty container widget would.
+        """
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
-    focus_position = property(
-        _not_a_container,
-        _not_a_container,
-        doc="""
-        Property for reading and setting the focus position for
-        container widgets. This default implementation raises
-        :exc:`IndexError`, making normal widgets fail the same way
-        accessing :attr:`.focus_position` on an empty container widget would.
-        """,
-    )
+    @focus_position.setter
+    def focus_position(self, val: typing.Any) -> None:
+        raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     def __repr__(self) -> str:
         """A friendly __repr__ for widgets.
