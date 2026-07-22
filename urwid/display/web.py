@@ -65,6 +65,12 @@ MAX_ROWS = 100
 MAX_READ = 4096
 BUF_SZ = 16384
 
+# Characters that may appear in an id produced by secrets.token_urlsafe():
+# the URL-safe base64 alphabet. Used to validate client-supplied ids before
+# they are interpolated into pipe file names.
+_URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
+_URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
+
 _code_colours = {
     "black": "0",
     "dark red": "1",
@@ -522,23 +528,22 @@ def handle_short_request() -> bool:
         return False
 
     urwid_id = os.environ["HTTP_X_URWID_ID"]
-    if len(urwid_id) > 20:
+    if len(urwid_id) > _URWID_ID_MAX_LEN:
         # invalid. handle by ignoring
         # assert 0, "urwid id too long!"
         sys.stdout.write("Status: 414 URI Too Long\r\n\r\n")
         return True
-    for c in urwid_id:
-        if c not in string.digits:
-            # invald. handle by ignoring
-            # assert 0, "invalid chars in id!"
-            sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
-            return True
+    if any(c not in _URWID_ID_CHARS for c in urwid_id):
+        # invalid. handle by ignoring
+        # assert 0, "invalid chars in id!"
+        sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
+        return True
 
     if os.environ.get("HTTP_X_URWID_METHOD", None) == "polling":
         # this is a screen update request
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            s.connect(os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}.update"))
+            s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
             data = f"Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ).decode('utf-8')}"
             while data:
                 sys.stdout.write(data)
@@ -550,7 +555,7 @@ def handle_short_request() -> bool:
 
     # this is a keyboard input request
     try:
-        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}.in")), os.O_WRONLY)
+        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.in")), os.O_WRONLY)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
