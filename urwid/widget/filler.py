@@ -22,9 +22,9 @@ from .widget_decoration import WidgetDecoration, WidgetError
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from urwid import Widget
+    from .widget import AbstractWidget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class FillerError(WidgetError):
@@ -321,8 +321,22 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return False
 
         if self.height_type == WHSettings.PACK:
-            return self._original_widget.mouse_event((maxcol,), event, button, col, row - top, focus)
-        return self._original_widget.mouse_event((maxcol, maxrow - top - bottom), event, button, col, row - top, focus)
+            return self._original_widget.mouse_event(
+                (maxcol,),
+                event,
+                button,
+                col,
+                row - top,
+                focus,
+            )
+        return self._original_widget.mouse_event(
+            (maxcol, maxrow - top - bottom),
+            event,
+            button,
+            col,
+            row - top,
+            focus,
+        )
 
 
 def calculate_top_bottom_filler(

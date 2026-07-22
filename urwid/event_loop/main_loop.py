@@ -45,7 +45,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Self
 
     from urwid.display import BaseScreen
-    from urwid.widget import Widget
+    from urwid.widget import AbstractWidget
 
     from .abstract_loop import EventLoop
 
@@ -110,7 +110,7 @@ class MainLoop:
 
     def __init__(
         self,
-        widget: Widget,
+        widget: AbstractWidget,
         palette: Iterable[
             tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str] | tuple[str, str, str, str, str, str]
         ] = (),
@@ -154,7 +154,7 @@ class MainLoop:
         self._watch_pipes: dict[int, tuple[Callable[[], typing.Any], int]] = {}
 
     @property
-    def widget(self) -> Widget:
+    def widget(self) -> AbstractWidget:
         """
         Property for the topmost widget used to draw the screen.
         This must be a box widget.
@@ -162,7 +162,7 @@ class MainLoop:
         return self._widget
 
     @widget.setter
-    def widget(self, widget: Widget) -> None:
+    def widget(self, widget: AbstractWidget) -> None:
         self._widget = widget
         if self.pop_ups:
             self._topmost_widget.original_widget = self._widget

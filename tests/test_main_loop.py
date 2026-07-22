@@ -22,7 +22,7 @@ class ClosingTemporaryFilesPair(typing.ContextManager[tuple[typing.TextIO, typin
     Since `sys.stdout` is TextIO, tests have to use compatible api for the proper behavior imitation.
     """
 
-    __slots__ = ("rd_s", "wr_s", "rd_f", "wr_f")
+    __slots__ = ("rd_f", "rd_s", "wr_f", "wr_s")
 
     def __init__(self) -> None:
         self.rd_s: socket.socket | None = None

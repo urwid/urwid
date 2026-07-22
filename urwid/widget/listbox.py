@@ -42,6 +42,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
+    from .widget import AbstractWidget
+
 __all__ = (
     "ListBox",
     "ListBoxError",
@@ -67,13 +69,13 @@ class ListWalkerError(Exception):
 class ScrollSupportingBody(typing.Protocol):
     """Protocol for ListWalkers."""
 
-    def get_focus(self) -> tuple[Widget, _K]: ...
+    def get_focus(self) -> tuple[AbstractWidget, _K]: ...
 
     def set_focus(self, position: _K) -> None: ...
 
-    def get_next(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
+    def get_next(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
 
-    def get_prev(self, position: _K) -> tuple[Widget, _K] | tuple[None, None]: ...
+    def get_prev(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
 
 
 @typing.runtime_checkable
@@ -289,7 +291,7 @@ class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     offset: int
-    focus_widget: Widget
+    focus_widget: AbstractWidget
     focus_pos: Hashable
     focus_rows: int
     cursor: tuple[int, int] | tuple[int] | None
@@ -298,7 +300,7 @@ class VisibleInfoMiddle(typing.NamedTuple):
 class VisibleInfoFillItem(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
-    widget: Widget
+    widget: AbstractWidget
     position: Hashable
     rows: int
 
@@ -313,7 +315,7 @@ class VisibleInfoTopBottom(typing.NamedTuple):
     def from_raw_data(
         cls,
         trim: int,
-        fill: Iterable[tuple[Widget, Hashable, int]],
+        fill: Iterable[tuple[AbstractWidget, Hashable, int]],
     ) -> Self:
         """Construct from not typed data.
 
@@ -329,9 +331,9 @@ class VisibleInfo(typing.NamedTuple):
     @classmethod
     def from_raw_data(
         cls,
-        middle: tuple[int, Widget, Hashable, int, tuple[int, int] | tuple[int] | None],
-        top: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
-        bottom: tuple[int, Iterable[tuple[Widget, Hashable, int]]],
+        middle: tuple[int, AbstractWidget, Hashable, int, tuple[int, int] | tuple[int] | None],
+        top: tuple[int, Iterable[tuple[AbstractWidget, Hashable, int]]],
+        bottom: tuple[int, Iterable[tuple[AbstractWidget, Hashable, int]]],
     ) -> Self:
         """Construct from not typed data.
 
@@ -352,7 +354,7 @@ class ListBox(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, body: ListWalker | Iterable[Widget]) -> None:
+    def __init__(self, body: ListWalker | Iterable[AbstractWidget]) -> None:
         """
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
@@ -404,7 +406,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body
 
     @body.setter
-    def body(self, body: Iterable[Widget] | ListWalker) -> None:
+    def body(self, body: Iterable[AbstractWidget] | ListWalker) -> None:
         with suppress(AttributeError):
             signals.disconnect_signal(self._body, "modified", self._invalidate)
             # _body may be not yet assigned
@@ -867,7 +869,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body.get_focus()
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """
         the child widget in focus or None when ListBox is empty.
 
@@ -1925,7 +1927,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         if not hasattr(w, "mouse_event"):
             warnings.warn(
-                f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                f"{w.__class__.__module__}.{w.__class__.__name__} is  not implementing Widget API",
                 DeprecationWarning,
                 stacklevel=2,
             )

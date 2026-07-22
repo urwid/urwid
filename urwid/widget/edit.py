@@ -116,7 +116,7 @@ class Edit(WidgetWrap[Text]):
         self.highlight: tuple[int, int] | None = None
         self._mask: str | None = None
         self._shift_view_to_cursor = False
-        self.pref_col_maxcol: tuple[int | None, int | None] = (None, None)
+        self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -365,7 +365,7 @@ class Edit(WidgetWrap[Text]):
         >>> print(e.edit_text)
         no
         """
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -415,9 +415,9 @@ class Edit(WidgetWrap[Text]):
         >>> print(e.edit_text)
         42a.5
         """
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         result_text, result_pos = self.insert_text_result(text)
-        self.set_edit_text(result_text)
+        self.set_edit_text(result_text)  # type: ignore[arg-type]  # normalisation happen
         self.set_edit_pos(result_pos)
         self.highlight = None
 
@@ -442,7 +442,7 @@ class Edit(WidgetWrap[Text]):
         """
 
         # if there's highlighted text, it'll get replaced by the new text
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
@@ -485,7 +485,7 @@ class Edit(WidgetWrap[Text]):
         pos = self.edit_pos
         if self.valid_char(key):
             if isinstance(key, str) and not isinstance(self._caption, str):
-                key = key.encode("utf-8")
+                key = key.encode("utf-8")  # type: ignore[assignment]
             self.insert_text(key)
             return None
 

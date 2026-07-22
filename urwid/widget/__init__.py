@@ -41,6 +41,7 @@ from .solid_fill import SolidFill
 from .text import Text, TextError
 from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from .widget import (
+    AbstractWidget,
     Widget,
     WidgetError,
     WidgetMeta,
@@ -74,6 +75,7 @@ __all__ = (
     "SPACE",
     "TOP",
     "WEIGHT",
+    "AbstractWidget",
     "Align",
     "AttrMap",
     "AttrMapError",

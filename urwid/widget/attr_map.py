@@ -9,10 +9,10 @@ from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from .widget import Widget
+    from .widget import AbstractWidget
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrMapError(WidgetError):

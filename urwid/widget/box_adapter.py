@@ -9,9 +9,10 @@ from .constants import Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
-    from urwid import Widget
+    from .widget import AbstractBoxWidget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
 class BoxAdapterError(WidgetError):

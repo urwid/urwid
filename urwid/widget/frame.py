@@ -13,28 +13,31 @@ from urwid.util import is_mouse_press
 from .constants import Sizing, VAlign
 from .container import WidgetContainerMixin
 from .filler import Filler
-from .widget import Widget, WidgetError
+from .widget import AbstractBoxWidget, AbstractFlowWidget, AbstractWidget, Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
 
-BodyWidget = typing.TypeVar("BodyWidget", bound=Widget)
-HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[Widget, None])
-FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[Widget, None])
+    from urwid.canvas import Canvas
+
+
+BodyWidget = typing.TypeVar("BodyWidget", bound=AbstractBoxWidget)
+HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[AbstractFlowWidget, None])
+FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[AbstractFlowWidget, None])
 
 
 class FrameError(WidgetError):
     pass
 
 
-def _check_widget_subclass(widget: Widget | None) -> None:
+def _check_widget_subclass(widget: AbstractWidget | None) -> None:
     if widget is None:
         return
 
-    if not isinstance(widget, Widget):
+    if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
         warnings.warn(
-            f"{obj_class_path} is not subclass of Widget",
+            f"{obj_class_path} is not implementing Widget API",
             DeprecationWarning,
             stacklevel=3,
         )
@@ -265,10 +268,14 @@ class Frame(
         """
         child :class:`Widget` in focus: the body, header or footer widget.
         This is a read-only property."""
-        return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
+        return {  # type: ignore[return-value]
+            "header": self._header,
+            "footer": self._footer,
+            "body": self._body,
+        }[self.focus_part]
 
     @property
-    def contents(
+    def contents(  # type: ignore[override]
         self,
     ) -> MutableMapping[
         Literal["header", "footer", "body"],
@@ -322,7 +329,7 @@ class Frame(
             def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
                 yield from inner_self.items()
 
-        return FrameContents()
+        return FrameContents()  # type: ignore[return-value]
 
     def _contents_keys(self) -> list[Literal["header", "footer", "body"]]:
         keys = ["body"]
@@ -458,29 +465,44 @@ class Frame(
         (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         combinelist = []
-        depends_on = []
+        depends_on: list[BodyWidget | HeaderWidget | FooterWidget] = []
 
-        head = None
+        head: Canvas | None = None
         if htrim and htrim < hrows:
-            head = Filler(self.header, VAlign.TOP).render((maxcol, htrim), focus and self.focus_part == "header")
+            head = Filler(self.header, VAlign.TOP).render(  # type: ignore[type-var]
+                (maxcol, htrim),
+                focus and self.focus_part == "header",
+            )
         elif htrim:
-            head = self.header.render((maxcol,), focus and self.focus_part == "header")
-            if head.rows() != hrows:  # type: ignore[union-attr]
+            head = self.header.render(  # type: ignore[union-attr]
+                (maxcol,),
+                focus and self.focus_part == "header",
+            )
+            if head.rows() != hrows:
                 raise RuntimeError("rows, render mismatch")
         if head:
             combinelist.append((head, "header", self.focus_part == "header"))
             depends_on.append(self.header)
 
         if ftrim + htrim < maxrow:
-            body = self.body.render((maxcol, maxrow - ftrim - htrim), focus and self.focus_part == "body")
+            body = self.body.render(
+                (maxcol, maxrow - ftrim - htrim),
+                focus and self.focus_part == "body",
+            )
             combinelist.append((body, "body", self.focus_part == "body"))
             depends_on.append(self.body)
 
         foot = None
         if ftrim and ftrim < frows:
-            foot = Filler(self.footer, VAlign.BOTTOM).render((maxcol, ftrim), focus and self.focus_part == "footer")
+            foot = Filler(self.footer, VAlign.BOTTOM).render(  # type: ignore[type-var]
+                (maxcol, ftrim),
+                focus and self.focus_part == "footer",
+            )
         elif ftrim:
-            foot = self.footer.render((maxcol,), focus and self.focus_part == "footer")
+            foot = self.footer.render(  # type: ignore[union-attr]
+                (maxcol,),
+                focus and self.focus_part == "footer",
+            )
             if foot.rows() != frows:  # type: ignore[union-attr]
                 raise RuntimeError("rows, render mismatch")
         if foot:
@@ -509,9 +531,9 @@ class Frame(
             return key
         remaining = maxrow
         if self.header is not None:
-            remaining -= self.header.rows((maxcol,))  # type: ignore[attr-defined]
+            remaining -= self.header.rows((maxcol,))
         if self.footer is not None:
-            remaining -= self.footer.rows((maxcol,))  # type: ignore[attr-defined]
+            remaining -= self.footer.rows((maxcol,))
         if remaining <= 0:
             return key
 

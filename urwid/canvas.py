@@ -45,7 +45,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal, NotRequired
 
     from .display.common import AttrSpec
-    from .widget import Widget
+    from .widget import AbstractWidget
 
     _ContentLine = list[tuple[typing.Union[AttrSpec, str, None], typing.Union[Literal["0", "U"], None], bytes]]
     _CView = tuple[int, int, int, int, typing.Union[dict[Hashable, Hashable], None], "Canvas"]
@@ -53,7 +53,7 @@ if typing.TYPE_CHECKING:
     _CanvasCoords = typing.TypedDict(
         "_CanvasCoords",
         {
-            "pop up": NotRequired[tuple[int, int, tuple["Widget", int, int]]],
+            "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, int, int]]],
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
@@ -78,9 +78,9 @@ class CanvasCache:
 
     _widgets: typing.ClassVar[
         dict[
-            Widget,
+            AbstractWidget,
             dict[
-                tuple[type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
+                tuple[type[AbstractWidget], tuple[int, int] | tuple[int] | tuple[()], bool],
                 weakref.ReferenceType[Canvas],
             ],
         ]
@@ -88,16 +88,16 @@ class CanvasCache:
     _refs: typing.ClassVar[
         dict[
             weakref.ReferenceType[Canvas],
-            tuple[Widget, type[Widget], tuple[int, int] | tuple[int] | tuple[()], bool],
+            tuple[AbstractWidget, type[AbstractWidget], tuple[int, int] | tuple[int] | tuple[()], bool],
         ]
     ] = {}
-    _deps: typing.ClassVar[dict[Widget, list[Widget]]] = {}
+    _deps: typing.ClassVar[dict[AbstractWidget, list[AbstractWidget]]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
 
     @classmethod
-    def store(cls, wcls: type[Widget], canvas: Canvas) -> None:
+    def store(cls, wcls: type[AbstractWidget], canvas: Canvas) -> None:
         """
         Store a weakref to canvas in the cache.
 
@@ -111,7 +111,7 @@ class CanvasCache:
             raise TypeError("Can't store canvas without widget_info")
         widget, size, focus = canvas.widget_info
 
-        def walk_depends(canv: Canvas) -> list[Widget]:
+        def walk_depends(canv: Canvas) -> list[AbstractWidget]:
             """
             Collect all child widgets for determining who we
             depend on.
@@ -143,8 +143,8 @@ class CanvasCache:
     @classmethod
     def fetch(
         cls,
-        widget: Widget,
-        wcls: type[Widget],
+        widget: AbstractWidget,
+        wcls: type[AbstractWidget],
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool,
     ) -> Canvas | None:
@@ -169,7 +169,7 @@ class CanvasCache:
         return canv
 
     @classmethod
-    def invalidate(cls, widget: Widget) -> None:
+    def invalidate(cls, widget: AbstractWidget) -> None:
         """
         Remove all canvases cached for widget.
         """
@@ -233,13 +233,13 @@ class Canvas:
 
     def __init__(self) -> None:
         """Base Canvas class"""
-        self._widget_info: tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
+        self._widget_info: tuple[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
         self.coords: _CanvasCoords = {}
         self.shortcuts: dict[str, str] = {}
 
     def finalize(
         self,
-        widget: Widget,
+        widget: AbstractWidget,
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool,
     ) -> None:
@@ -259,7 +259,7 @@ class Canvas:
         self._widget_info = widget, size, focus
 
     @property
-    def widget_info(self) -> tuple[Widget, tuple[()] | tuple[int] | tuple[int, int], bool] | None:
+    def widget_info(self) -> tuple[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool] | None:
         return self._widget_info
 
     @property
@@ -321,10 +321,17 @@ class Canvas:
 
     cursor = property(get_cursor, set_cursor)
 
-    def get_pop_up(self) -> tuple[int, int, tuple[Widget, int, int]] | None:
+    def get_pop_up(self) -> tuple[int, int, tuple[AbstractWidget, int, int]] | None:
         return self.coords.get("pop up", None)
 
-    def set_pop_up(self, w: Widget, left: int, top: int, overlay_width: int, overlay_height: int) -> None:
+    def set_pop_up(
+        self,
+        w: AbstractWidget,
+        left: int,
+        top: int,
+        overlay_width: int,
+        overlay_height: int,
+    ) -> None:
         """
         This method adds pop-up information to the canvas.  This information
         is intercepted by a PopUpTarget widget higher in the chain to
@@ -937,7 +944,7 @@ class CompositeCanvas(Canvas):
             shards.append((num_rows, new_cviews))
         self.shards = shards
 
-    def set_depends(self, widget_list: Sequence[Widget]) -> None:
+    def set_depends(self, widget_list: Sequence[AbstractWidget]) -> None:
         """
         Explicitly specify the list of widgets that this canvas
         depends on.  If any of these widgets change this canvas

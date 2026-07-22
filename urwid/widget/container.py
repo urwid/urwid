@@ -9,7 +9,7 @@ from .constants import Sizing, WHSettings
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, MutableSequence, Sequence
 
-    from .widget import Widget
+    from .widget import AbstractWidget
 
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
@@ -17,14 +17,11 @@ if typing.TYPE_CHECKING:
         def __getitem__(
             self,
             index: _KT_contra,
-        ) -> tuple[Widget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...
+        ) -> tuple[AbstractWidget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...
 
-    class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
+    class WidgetContainerMixinProto(AbstractWidget, typing.Protocol[_KT_contra]):
         @property
         def contents(self) -> WidgetContainerProto[_KT_contra]: ...
-
-        @property
-        def focus(self) -> Widget: ...
 
         @property
         def focus_position(self) -> int | str: ...
@@ -32,12 +29,10 @@ if typing.TYPE_CHECKING:
         @focus_position.setter
         def focus_position(self, position: int | str) -> None: ...
 
-        @property
-        def base_widget(self) -> Widget: ...
 else:
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
-    class WidgetContainerMixinProto(typing.Generic[_KT_contra]):
+    class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
         """Generic protocol support."""
 
 
@@ -92,7 +87,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     Mixin class for widget containers implementing common container methods
     """
 
-    def __getitem__(self, position: _KT_contra) -> Widget:
+    def __getitem__(self, position: _KT_contra) -> AbstractWidget:
         """
         Container short-cut for self.contents[position][0].base_widget
         which means "give me the child widget at position without any
@@ -119,7 +114,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
             except IndexError:
                 return out
             out.append(p)
-            w = w.focus.base_widget  # type: ignore[assignment]
+            w = w.focus.base_widget  # type: ignore[union-attr,assignment]
 
     def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """
@@ -133,13 +128,13 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
 
         positions -- sequence of positions
         """
-        w: Widget = self  # type: ignore[assignment]
+        w: WidgetContainerMixin[typing.Any] | AbstractWidget = self
         for p in positions:
-            if p != w.focus_position:
-                w.focus_position = p  # modifies w.focus
+            if p != w.focus_position:  # type: ignore[union-attr]
+                w.focus_position = p  # type: ignore[union-attr]  # modifies w.focus
             w = w.focus.base_widget  # type: ignore[union-attr]
 
-    def get_focus_widgets(self) -> list[Widget]:
+    def get_focus_widgets(self) -> list[WidgetContainerMixin[typing.Any] | AbstractWidget]:
         """
         Return the .focus values starting from this container
         and proceeding along each child widget until reaching a leaf
@@ -154,11 +149,11 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         while (w := w.base_widget.focus) is not None:  # type: ignore[assignment]
             out.append(w)
 
-        return out
+        return out  # type: ignore[return-value]
 
     @property
     @abc.abstractmethod
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -191,11 +186,11 @@ class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
 
     @property
     @abc.abstractmethod
-    def contents(self) -> MutableSequence[tuple[Widget, _WidgetParams]]:
+    def contents(self) -> MutableSequence[tuple[AbstractWidget, _WidgetParams]]:
         """The contents of container as a list of (widget, options)"""
 
     @contents.setter
-    def contents(self, new_contents: Sequence[tuple[Widget, _WidgetParams]]) -> None:
+    def contents(self, new_contents: Sequence[tuple[AbstractWidget, _WidgetParams]]) -> None:
         """The contents of container as a list of (widget, options)"""
 
     @property

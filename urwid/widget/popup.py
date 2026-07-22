@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas
 
-    from .widget import Widget
+    from .widget import AbstractWidget
 
     class PopUpParametersModel(TypedDict):
         left: int
@@ -43,15 +43,15 @@ if typing.TYPE_CHECKING:
         overlay_height: int
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
-        self._pop_up_widget = None
+        self._pop_up_widget: AbstractWidget | None = None
 
-    def create_pop_up(self) -> Widget:
+    def create_pop_up(self) -> AbstractWidget:
         """
         Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
@@ -77,7 +77,11 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         self._pop_up_widget = None
         self._invalidate()
 
-    def render(self, size, focus: bool = False) -> CompositeCanvas | Canvas:
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> CompositeCanvas | Canvas:
         canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
@@ -92,7 +96,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
-        self._pop_up = None
+        self._pop_up: AbstractWidget | None = None
         self._current_widget = self._original_widget
 
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
@@ -126,7 +130,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             self._pop_up = None
             self._current_widget = self._original_widget
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> Canvas:
         self._update_overlay(size, focus)
         return self._current_widget.render(size, focus=focus)
 
@@ -138,7 +146,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, True)
         return self._current_widget.get_pref_col(size)
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         self._update_overlay(size, True)
         return self._current_widget.keypress(size, key)
 
@@ -158,12 +170,12 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, focus)
         return self._current_widget.mouse_event(size, event, button, col, row, focus)
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
-        size: tuple[int, int] | None = None,  # type: ignore[override]
+        size: tuple[int, int] | None = None,
         focus: bool = False,
     ) -> tuple[int, int]:
-        self._update_overlay(size, focus)
+        self._update_overlay(size, focus)  # type: ignore[arg-type]
         return self._current_widget.pack(size)
 
 

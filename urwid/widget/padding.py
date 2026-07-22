@@ -24,9 +24,9 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
-    from urwid import Widget
+    from .widget import AbstractFlowWidget, AbstractWidget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class PaddingError(WidgetError):
@@ -271,7 +271,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
             return (
                 max(width_amount, self.min_width or 1) + expand,
-                self.original_widget.rows((width_amount,), focus),  # type: ignore[attr-defined]  # we warned
+                typing.cast("AbstractFlowWidget", self.original_widget).rows((width_amount,), focus),
             )
 
         if Sizing.FIXED not in w_sizing:
@@ -376,7 +376,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         if size:
             maxcol = size[0]
         elif self._width_type == WHSettings.GIVEN:
-            maxcol = typing.cast("int", self._width_amount) + self.left + self.right  # type: ignore[operator]
+            maxcol = typing.cast("int", self._width_amount) + self.left + self.right
         else:
             maxcol = (
                 max(  # type: ignore[assignment]  # `//` will produce int
@@ -410,7 +410,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         if self._width_type == WHSettings.CLIP:
             _fcols, frows = self._original_widget.pack((), focus)
             return frows
-        return self._original_widget.rows((maxcol - left - right,), focus=focus)  # type: ignore[attr-defined]
+        return typing.cast("AbstractFlowWidget", self.original_widget).rows(
+            (maxcol - left - right,),
+            focus=focus,
+        )
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass keypress to self._original_widget."""

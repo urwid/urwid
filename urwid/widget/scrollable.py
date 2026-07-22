@@ -27,6 +27,7 @@ import enum
 import typing
 
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
+from .widget import AbstractBoxWidget, AbstractWidget
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
@@ -36,7 +37,7 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, CompositeCanvas
 
-    from .widget import Widget
+    from .widget import AbstractFlowWidget
 
 
 __all__ = (
@@ -91,42 +92,7 @@ class ScrollbarSymbols(str, enum.Enum):
 
 
 @typing.runtime_checkable
-class WidgetProto(typing.Protocol):
-    """Protocol for widget.
-
-    Due to protocol cannot inherit non-protocol bases, define several obligatory Widget methods.
-    """
-
-    # Base widget methods (from Widget)
-    def sizing(self) -> frozenset[Sizing]: ...
-
-    def selectable(self) -> bool: ...
-
-    def pack(self, size: tuple[int, int], focus: bool = False) -> tuple[int, int]: ...
-
-    @property
-    def base_widget(self) -> Widget: ...
-
-    @property
-    def focus(self) -> Widget | None: ...
-
-    def keypress(self, size: tuple[int, int], key: str) -> str | None: ...
-
-    def mouse_event(
-        self,
-        size: tuple[int, int],
-        event: str,
-        button: int,
-        col: int,
-        row: int,
-        focus: bool,
-    ) -> bool | None: ...
-
-    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas: ...
-
-
-@typing.runtime_checkable
-class SupportsScroll(WidgetProto, typing.Protocol):
+class SupportsScroll(AbstractBoxWidget, typing.Protocol):
     """Scroll specific methods."""
 
     def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int: ...
@@ -135,7 +101,7 @@ class SupportsScroll(WidgetProto, typing.Protocol):
 
 
 @typing.runtime_checkable
-class SupportsRelativeScroll(WidgetProto, typing.Protocol):
+class SupportsRelativeScroll(AbstractBoxWidget, typing.Protocol):
     """Relative scroll-specific methods."""
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
@@ -145,7 +111,7 @@ class SupportsRelativeScroll(WidgetProto, typing.Protocol):
     def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int: ...
 
 
-def orig_iter(w: Widget) -> Iterator[Widget]:
+def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
     visited = {w}
     yield w
     while (w := getattr(w, "original_widget", w)) not in visited:
@@ -420,7 +386,7 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
 
     def _get_original_widget_size(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int, int],
     ) -> tuple[int] | tuple[()]:
         ow = self._original_widget
         sizing = ow.sizing()
@@ -464,7 +430,10 @@ class Scrollable(WidgetDecoration[WrappedWidget]):
             if Sizing.FIXED in sizing:
                 self._rows_max_cached = ow.pack(ow_size, focus)[1]  # type: ignore[arg-type]  # FIXED
             elif Sizing.FLOW in sizing:
-                self._rows_max_cached = ow.rows(ow_size, focus)  # type: ignore[attr-defined]  # FLOW
+                self._rows_max_cached = typing.cast("AbstractFlowWidget", ow).rows(
+                    typing.cast("tuple[int]", ow_size),
+                    focus,
+                )
             else:
                 raise ScrollableError(f"Not a flow/fixed widget: {self._original_widget!r}")
         return self._rows_max_cached

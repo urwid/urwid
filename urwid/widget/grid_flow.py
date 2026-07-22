@@ -14,7 +14,7 @@ from .divider import Divider
 from .monitored_list import MonitoredFocusList, MonitoredList
 from .padding import Padding
 from .pile import Pile
-from .widget import Widget, WidgetError, WidgetWarning, WidgetWrap
+from .widget import AbstractWidget, WidgetError, WidgetWarning, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
@@ -51,12 +51,12 @@ class GridFlow(
 
     def __init__(
         self,
-        cells: Iterable[Widget],
+        cells: Iterable[AbstractWidget],
         cell_width: int,
         h_sep: int,
         v_sep: int,
         align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
-        focus: int | Widget | None = None,
+        focus: int | AbstractWidget | None = None,
     ) -> None:
         """
         :param cells: iterable of flow widgets to display
@@ -68,7 +68,7 @@ class GridFlow(
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         :param focus: widget index or widget instance to focus on
         """
-        prepared_contents: list[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = []
+        prepared_contents: list[tuple[AbstractWidget, tuple[Literal[WHSettings.GIVEN], int]]] = []
         focus_position: int = -1
 
         for idx, widget in enumerate(cells):
@@ -78,9 +78,11 @@ class GridFlow(
 
         focus_position = max(focus_position, 0)
 
-        self._contents: MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = MonitoredFocusList(
-            prepared_contents,
-            focus=focus_position,
+        self._contents: MonitoredFocusList[tuple[AbstractWidget, tuple[Literal[WHSettings.GIVEN], int]]] = (
+            MonitoredFocusList(
+                prepared_contents,
+                focus=focus_position,
+            )
         )
         self._contents.set_modified_callback(self._invalidate)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
@@ -130,7 +132,7 @@ class GridFlow(
     def _contents_modified(
         self,
         _slc: tuple[int, int, int],
-        new_items: Iterable[tuple[Widget, tuple[Literal["given", WHSettings.GIVEN], int]]],
+        new_items: Iterable[tuple[AbstractWidget, tuple[Literal["given", WHSettings.GIVEN], int]]],
     ) -> None:
         for item in new_items:
             try:
@@ -141,7 +143,7 @@ class GridFlow(
                 raise GridFlowError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
 
     @property
-    def cells(self) -> MonitoredList[Widget]:
+    def cells(self) -> MonitoredList[AbstractWidget]:
         """
         A list of the widgets in this GridFlow
 
@@ -165,7 +167,7 @@ class GridFlow(
         return ml
 
     @cells.setter
-    def cells(self, widgets: MonitoredList[Widget]) -> None:
+    def cells(self, widgets: MonitoredList[AbstractWidget]) -> None:
         warnings.warn(
             "only for backwards compatibility."
             "You should use the new standard container property `contents` to modify GridFlow."
@@ -194,7 +196,7 @@ class GridFlow(
         self._cell_width = width
 
     @property
-    def contents(self) -> MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]:
+    def contents(self) -> MonitoredFocusList[tuple[AbstractWidget, tuple[Literal[WHSettings.GIVEN], int]]]:
         """
         The contents of this GridFlow as a list of (widget, options)
         tuples.
@@ -211,7 +213,7 @@ class GridFlow(
         return self._contents
 
     @contents.setter
-    def contents(self, c: Sequence[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]) -> None:
+    def contents(self, c: Sequence[tuple[AbstractWidget, tuple[Literal[WHSettings.GIVEN], int]]]) -> None:
         self._contents[:] = c
 
     def options(
@@ -231,7 +233,7 @@ class GridFlow(
             width_amount = self._cell_width
         return (WHSettings.GIVEN, width_amount)
 
-    def set_focus(self, cell: Widget | int) -> None:
+    def set_focus(self, cell: AbstractWidget | int) -> None:
         """
         Set the cell in focus, for backwards compatibility.
 
@@ -266,13 +268,13 @@ class GridFlow(
         raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """the child widget in focus or None when GridFlow is empty"""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
 
-    def get_focus(self) -> Widget | None:
+    def get_focus(self) -> AbstractWidget | None:
         """
         Return the widget in focus, for backwards compatibility.
 
@@ -291,7 +293,7 @@ class GridFlow(
         return self.contents[self.focus_position][0]
 
     @property
-    def focus_cell(self) -> Widget | None:
+    def focus_cell(self) -> AbstractWidget | None:
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
@@ -303,7 +305,7 @@ class GridFlow(
         return self.focus
 
     @focus_cell.setter
-    def focus_cell(self, cell: Widget) -> None:
+    def focus_cell(self, cell: AbstractWidget) -> None:
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
@@ -453,7 +455,7 @@ class GridFlow(
 
     def keypress(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         key: str,
     ) -> str | None:
         """
@@ -470,7 +472,7 @@ class GridFlow(
 
     def pack(
         self,
-        size: tuple[int] | tuple[()] = (),  # type: ignore[override]
+        size: tuple[int] | tuple[()] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         if size:
@@ -487,7 +489,7 @@ class GridFlow(
 
     def render(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         focus: bool = False,
     ) -> Canvas:
         self.get_display_widget(size)
@@ -507,7 +509,7 @@ class GridFlow(
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         event: str,
         button: int,
         col: int,
