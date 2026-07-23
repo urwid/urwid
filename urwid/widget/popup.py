@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas
 
-    from .widget import AbstractWidget
+    from .widget import AbstractBoxWidget, AbstractWidget
 
     class PopUpParametersModel(TypedDict):
         left: int
@@ -43,7 +43,7 @@ if typing.TYPE_CHECKING:
         overlay_height: int
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
 class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
@@ -97,7 +97,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
         self._pop_up: AbstractWidget | None = None
-        self._current_widget = self._original_widget
+        self._current_widget: WrappedWidget | Overlay[AbstractWidget, WrappedWidget] = self._original_widget
 
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         canv = self._original_widget.render(size, focus=focus)
@@ -172,11 +172,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def pack(  # type: ignore[override]
         self,
-        size: tuple[int, int] | None = None,
+        size: tuple[int, int] | tuple[()] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         self._update_overlay(size, focus)  # type: ignore[arg-type]
-        return self._current_widget.pack(size)
+        return self._current_widget.pack(size)  # type: ignore[arg-type]
 
 
 def _test() -> None:
