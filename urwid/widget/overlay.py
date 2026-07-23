@@ -28,14 +28,14 @@ from .constants import (
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .filler import calculate_top_bottom_filler
 from .padding import calculate_left_right_padding
-from .widget import Widget, WidgetError, WidgetWarning
+from .widget import AbstractBoxWidget, AbstractWidget, Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 
-TopWidget = typing.TypeVar("TopWidget", bound=Widget)
-BottomWidget = typing.TypeVar("BottomWidget", bound=Widget)
+TopWidget = typing.TypeVar("TopWidget", bound=AbstractWidget)
+BottomWidget = typing.TypeVar("BottomWidget", bound=AbstractBoxWidget)
 
 
 class OverlayError(WidgetError):
@@ -46,11 +46,11 @@ class OverlayWarning(WidgetWarning):
     """Overlay specific warnings."""
 
 
-def _check_widget_subclass(widget: Widget) -> None:
-    if not isinstance(widget, Widget):
+def _check_widget_subclass(widget: AbstractWidget) -> None:
+    if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
         warnings.warn(
-            f"{obj_class_path} is not subclass of Widget",
+            f"{obj_class_path} is not implementing Widget API",
             DeprecationWarning,
             stacklevel=3,
         )

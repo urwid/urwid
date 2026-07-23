@@ -154,7 +154,7 @@ class OverlayTest(unittest.TestCase):
             self.assertEqual(rows, canvas.rows())
 
             self.assertEqual(
-                "##########################\n" "#Flow and Fixed widget  ##\n" "##########################",
+                "##########################\n#Flow and Fixed widget  ##\n##########################",
                 str(canvas),
             )
 
@@ -182,7 +182,7 @@ class OverlayTest(unittest.TestCase):
             self.assertEqual(rows, canvas.rows())
 
             self.assertEqual(
-                "#########################\n" "#Flow and Fixed widget  #\n" "#########################",
+                "#########################\n#Flow and Fixed widget  #\n#########################",
                 str(canvas),
             )
 

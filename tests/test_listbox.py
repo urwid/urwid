@@ -1965,7 +1965,7 @@ class PageDownAboveTopTest(unittest.TestCase):
         # Two-row rows so the four-item list does not fit the viewport at once.
         lb = urwid.ListBox(
             urwid.SimpleListWalker(
-                            [
+                [
                     urwid.Text("a0\nb0"),
                     SelectableText("a1\nb1"),
                     urwid.Text("a2\nb2"),

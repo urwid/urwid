@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import abc
 import functools
 import logging
 import typing
@@ -37,23 +38,46 @@ from .constants import Sizing
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+
+__all__ = (
+    "AbstractBoxWidget",
+    "AbstractFixedWidget",
+    "AbstractFlowWidget",
+    "AbstractWidget",
+    "Widget",
+    "WidgetError",
+    "WidgetMeta",
+    "WidgetWarning",
+    "WidgetWrap",
+    "WidgetWrapError",
+    "cache_widget_render",
+    "cache_widget_rows",
+    "delegate_to_widget_mixin",
+    "fixed_size",
+    "nocache_widget_render",
+    "nocache_widget_render_instance",
+)
+
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 LOGGER = logging.getLogger(__name__)
 
 
-class WidgetMeta(signals.MetaSignals, MetaSuper):
+class WidgetMeta(
+    signals.MetaSignals,
+    type(typing.Protocol),  # type: ignore[misc]  # hack: _ProtocolMeta is private, but need to subclass protocols
+    MetaSuper,
+):
     """
     Bases: :class:`MetaSuper`, :class:`MetaSignals`
 
     Automatic caching of render and rows methods.
 
-    Class variable *no_cache* is a list of names of methods to not cache
-    automatically.  Valid method names for *no_cache* are ``'render'`` and
-    ``'rows'``.
+    Class variable *no_cache* is a list of names of methods to not cache automatically.
+    Valid method names for *no_cache* are ``'render'`` and ``'rows'``.
 
     Class variable *ignore_focus* if defined and set to ``True`` indicates
-    that the canvas this widget renders is not affected by the focus
-    parameter, so it may be ignored when caching.
+    that the canvas this widget renders is not affected by the focus parameter, so it may be ignored when caching.
     """
 
     def __init__(
@@ -76,9 +100,183 @@ class WidgetMeta(signals.MetaSignals, MetaSuper):
         if "rows" in d and "rows" not in no_cache:
             cls.rows = cache_widget_rows(cls)
         if "no_cache" in d:
-            del cls.no_cache  # type: ignore[attr-defined]
+            del cls.no_cache
         if "ignore_focus" in d:
-            del cls.ignore_focus  # type: ignore[attr-defined]
+            del cls.ignore_focus
+
+
+@typing.runtime_checkable
+class AbstractWidget(typing.Protocol):
+    """Protocol for widget.
+
+    Act as protocol for attributes-based type checking and as abstract base class for widget implementation.
+    While normal widgets are expected to subclass :class:`Widget`,
+    in some special cases we may deal with "implementation from scratch".
+    In this case `isinstance` will fail to compare with :class:`Widget`,
+    but if all required interfaces present - we can use it as valid widget implementation.
+
+    .. note: sizing specific arguments left `typing.Any` to prevent static type checking errors.
+    .. note: focus_position is not listed since it's raising `IndexError` on attribute access check
+    """
+
+    # Base widget methods (from Widget)
+    @abc.abstractmethod
+    def sizing(self) -> frozenset[Sizing]: ...
+
+    @abc.abstractmethod
+    def selectable(self) -> bool: ...
+
+    @abc.abstractmethod
+    def pack(
+        self,
+        size: typing.Any,
+        focus: bool = False,
+    ) -> tuple[int, int]: ...
+
+    @property
+    @abc.abstractmethod
+    def base_widget(self) -> AbstractWidget: ...
+
+    @property
+    @abc.abstractmethod
+    def focus(self) -> AbstractWidget | None: ...
+
+    @abc.abstractmethod
+    def keypress(self, size: typing.Any, key: str) -> str | None: ...
+
+    @abc.abstractmethod
+    def mouse_event(
+        self,
+        size: typing.Any,
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None: ...
+
+    @abc.abstractmethod
+    def render(
+        self,
+        size: typing.Any,
+        focus: bool = False,
+    ) -> Canvas: ...
+
+    # Protected methods
+
+    @abc.abstractmethod
+    def _invalidate(self) -> None: ...
+
+
+@typing.runtime_checkable
+class AbstractBoxWidget(AbstractWidget, typing.Protocol):
+    """Box widget protocol.
+
+    Used internally to declare explicit required API.
+    """
+
+    @abc.abstractmethod
+    def keypress(self, size: tuple[int, int], key: str) -> str | None: ...
+
+    @abc.abstractmethod
+    def mouse_event(
+        self,
+        size: tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None: ...
+
+    @abc.abstractmethod
+    def pack(
+        self,
+        size: tuple[int, int],
+        focus: bool = False,
+    ) -> tuple[int, int]: ...
+
+    @abc.abstractmethod
+    def render(
+        self,
+        size: tuple[int, int],
+        focus: bool = False,
+    ) -> Canvas: ...
+
+
+@typing.runtime_checkable
+class AbstractFlowWidget(AbstractWidget, typing.Protocol):
+    """Flow widget protocol.
+
+    Used internally to declare explicit required API.
+    """
+
+    @abc.abstractmethod
+    def keypress(self, size: tuple[int], key: str) -> str | None: ...
+
+    @abc.abstractmethod
+    def mouse_event(
+        self,
+        size: tuple[int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None: ...
+
+    @abc.abstractmethod
+    def rows(self, size: tuple[int], focus: bool = False) -> int: ...
+
+    @abc.abstractmethod
+    def pack(
+        self,
+        size: tuple[int],
+        focus: bool = False,
+    ) -> tuple[int, int]: ...
+
+    @abc.abstractmethod
+    def render(
+        self,
+        size: tuple[int],
+        focus: bool = False,
+    ) -> Canvas: ...
+
+
+@typing.runtime_checkable
+class AbstractFixedWidget(AbstractWidget, typing.Protocol):
+    """Fixed widget protocol.
+
+    Used internally to declare explicit required API.
+    """
+
+    @abc.abstractmethod
+    def keypress(self, size: tuple[()], key: str) -> str | None: ...
+
+    @abc.abstractmethod
+    def mouse_event(
+        self,
+        size: tuple[()],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None: ...
+
+    @abc.abstractmethod
+    def pack(
+        self,
+        size: tuple[()],
+        focus: bool = False,
+    ) -> tuple[int, int]: ...
+
+    @abc.abstractmethod
+    def render(
+        self,
+        size: tuple[()],
+        focus: bool = False,
+    ) -> Canvas: ...
 
 
 class WidgetError(Exception):
@@ -90,7 +288,7 @@ class WidgetWarning(Warning):
 
 
 def validate_size(
-    widget: Widget,
+    widget: AbstractWidget,
     size: tuple[()] | tuple[int] | tuple[int, int],
     canv: Canvas,
 ) -> None:
@@ -103,7 +301,9 @@ def validate_size(
         )
 
 
-def cache_widget_render(cls: WidgetMeta) -> Callable[[Widget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
+def cache_widget_render(
+    cls: WidgetMeta,
+) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
     Return a function that wraps the cls.render() method and fetches and stores canvases with CanvasCache.
     """
@@ -112,7 +312,7 @@ def cache_widget_render(cls: WidgetMeta) -> Callable[[Widget, tuple[()] | tuple[
 
     @functools.wraps(fn)
     def cached_render(
-        self: Widget,
+        self: AbstractWidget,
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
@@ -135,7 +335,7 @@ def cache_widget_render(cls: WidgetMeta) -> Callable[[Widget, tuple[()] | tuple[
 
 def nocache_widget_render(
     cls: WidgetMeta,
-) -> Callable[[Widget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
+) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
     Return a function that wraps the cls.render() method
     and finalizes the canvas that it returns.
@@ -146,7 +346,7 @@ def nocache_widget_render(
 
     @functools.wraps(fn)
     def finalize_render(
-        self: Widget,
+        self: AbstractWidget,
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
@@ -161,7 +361,9 @@ def nocache_widget_render(
     return finalize_render
 
 
-def nocache_widget_render_instance(self: Widget) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
+def nocache_widget_render_instance(
+    self: AbstractWidget,
+) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """
     Return a function that wraps the cls.render() method
     and finalizes the canvas that it returns, but does not
@@ -178,13 +380,13 @@ def nocache_widget_render_instance(self: Widget) -> Callable[[tuple[()] | tuple[
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)
-        return canv  # type: ignore[no-any-return]
+        return canv
 
     finalize_render.original_fn = fn  # type: ignore[attr-defined]  # un-cache
     return finalize_render
 
 
-def cache_widget_rows(cls: WidgetMeta) -> Callable[[Widget, tuple[int], bool], int]:
+def cache_widget_rows(cls: WidgetMeta) -> Callable[[AbstractWidget, tuple[int], bool], int]:
     """
     Return a function that wraps the cls.rows() method and returns rows from the CanvasCache if available.
     """
@@ -193,7 +395,7 @@ def cache_widget_rows(cls: WidgetMeta) -> Callable[[Widget, tuple[int], bool], i
 
     @functools.wraps(fn)
     def cached_rows(
-        self: Widget,
+        self: AbstractWidget,
         size: tuple[int],
         focus: bool = False,
     ) -> int:
@@ -207,7 +409,7 @@ def cache_widget_rows(cls: WidgetMeta) -> Callable[[Widget, tuple[int], bool], i
     return cached_rows
 
 
-class Widget(metaclass=WidgetMeta):
+class Widget(AbstractWidget, metaclass=WidgetMeta):
     """
     Widget base class
 
@@ -428,7 +630,7 @@ class Widget(metaclass=WidgetMeta):
         return size
 
     @property
-    def base_widget(self) -> Widget:
+    def base_widget(self) -> AbstractWidget:
         """Read-only property that steps through decoration widgets and returns the one at the base.
 
         This default implementation returns self.
@@ -436,7 +638,7 @@ class Widget(metaclass=WidgetMeta):
         return self
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """
         Read-only property returning the child widget in focus for container widgets.
 
@@ -686,10 +888,10 @@ class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[Wra
         WidgetDecoration, or it may hide them from outside access.
         """
         super().__init__()
-        if not isinstance(w, Widget):
+        if not isinstance(w, AbstractWidget):
             obj_class_path = f"{w.__class__.__module__}.{w.__class__.__name__}"
             warnings.warn(
-                f"{obj_class_path} is not subclass of Widget",
+                f"{obj_class_path} is not implementing Widget API",
                 DeprecationWarning,
                 stacklevel=2,
             )

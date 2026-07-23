@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import unittest
+import warnings
 
 import urwid
 from tests.util import SelectableText
@@ -10,6 +11,85 @@ if typing.TYPE_CHECKING:
     from collections.abc import Collection
 
     from typing_extensions import Literal
+
+
+class NotAWidget:
+    __slots__ = ("name", "symbol")
+
+    def __init__(self, name: str, symbol: bytes) -> None:
+        self.name = name
+        self.symbol = symbol
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+    def selectable(self) -> bool:
+        return False
+
+    def rows(self, max_col_row: tuple[int], focus: bool = False) -> int:
+        return 1
+
+    def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = max_col_row[0]
+        line = self.symbol * maxcol
+        if len(max_col_row) == 1:
+            return urwid.TextCanvas((line,), maxcol=maxcol)
+        return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+
+class ImplementWidget:
+    __slots__ = ("name", "symbol")
+
+    def sizing(self) -> frozenset[urwid.Sizing]:
+        return frozenset((urwid.BOX, urwid.FLOW))
+
+    @property
+    def base_widget(self) -> urwid.AbstractWidget:
+        return self
+
+    def __init__(self, name: str, symbol: bytes) -> None:
+        self.name = name
+        self.symbol = symbol
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+    def selectable(self) -> bool:
+        return False
+
+    @property
+    def focus(self) -> None:
+        return None
+
+    def _invalidate(self) -> None:
+        pass
+
+    def rows(self, max_col_row: tuple[int], focus: bool = False) -> int:
+        return 1
+
+    def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
+        return self.rows(size, focus)
+
+    def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = max_col_row[0]
+        line = self.symbol * maxcol
+        if len(max_col_row) == 1:
+            return urwid.TextCanvas((line,), maxcol=maxcol)
+        return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+    def keypress(self, size: tuple[int, int] | tuple[int], key: str) -> str | None:
+        return key
+
+    def mouse_event(
+        self,
+        size: tuple[int, int] | tuple[int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        return False
 
 
 class ColumnsTest(unittest.TestCase):
@@ -320,29 +400,6 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(("          ",), canvas.decoded_text)
 
     def test_not_a_widget(self):
-        class NotAWidget:
-            __slots__ = ("name", "symbol")
-
-            def __init__(self, name: str, symbol: bytes) -> None:
-                self.name = name
-                self.symbol = symbol
-
-            def __repr__(self) -> str:
-                return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
-
-            def selectable(self) -> bool:
-                return False
-
-            def rows(self, max_col_row: tuple[int], focus: bool = False) -> int:
-                return 1
-
-            def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
-                maxcol = max_col_row[0]
-                line = self.symbol * maxcol
-                if len(max_col_row) == 1:
-                    return urwid.TextCanvas((line,), maxcol=maxcol)
-                return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
-
         with self.subTest("Box"), self.assertWarns(urwid.widget.ColumnsWarning) as ctx:
             items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
             widget = urwid.Columns(items)
@@ -358,6 +415,35 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(("***^^^",), widget.render((6,)).decoded_text)
             self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
             self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
+    def test_implement_widget_interface(self):
+        with (
+            warnings.catch_warnings(record=True) as collected_w,
+            self.subTest("Box"),
+        ):
+            items = (ImplementWidget("First", b"*"), ImplementWidget("Second", b"^"))
+            widget = urwid.Columns(items)
+
+            self.assertEqual(("**^^", "**^^"), widget.render((4, 2)).decoded_text)
+
+            columns_warnings = tuple(
+                warning.message for warning in collected_w if warning.category == urwid.widget.ColumnsWarning
+            )
+            self.assertTrue(len(columns_warnings) == 0, "No warnings expected")
+
+        with (
+            warnings.catch_warnings(record=True) as collected_w,
+            self.subTest("Flow"),
+        ):
+            items = (ImplementWidget("First", b"*"), ImplementWidget("Second", b"^"))
+            widget = urwid.Columns(items)
+
+            self.assertEqual(("***^^^",), widget.render((6,)).decoded_text)
+
+            columns_warnings = tuple(
+                warning.message for warning in collected_w if warning.category == urwid.widget.ColumnsWarning
+            )
+            self.assertTrue(len(columns_warnings) == 0, "No warnings expected")
 
     def test_zero_width_column(self):
         elem_1 = urwid.BoxAdapter(urwid.SolidFill("#"), 2)

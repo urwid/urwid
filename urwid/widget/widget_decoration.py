@@ -5,7 +5,7 @@ import warnings
 
 from urwid.canvas import CompositeCanvas
 
-from .widget import Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
+from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -22,7 +22,7 @@ __all__ = (
     "delegate_to_widget_mixin",
 )
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method
@@ -47,10 +47,10 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
 
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__()
-        if not isinstance(original_widget, Widget):
+        if not isinstance(original_widget, AbstractWidget):
             obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"
             warnings.warn(
-                f"{obj_class_path} is not subclass of Widget",
+                f"{obj_class_path} is not implementing Widget API",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -69,7 +69,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         self._invalidate()
 
     @property
-    def base_widget(self) -> Widget:
+    def base_widget(self) -> AbstractWidget:
         """
         Return the widget without decorations.
 

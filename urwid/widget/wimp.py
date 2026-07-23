@@ -72,7 +72,7 @@ class SelectableIcon(Text):
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        super().__init__(text, align=align, wrap=wrap, layout=layout)
+        super().__init__(text, align=align, wrap=wrap, layout=layout)  # type: ignore[arg-type]  # markup
         self._cursor_position = cursor_position
 
     def render(  # type: ignore[override]
@@ -252,7 +252,7 @@ class CheckBox(WidgetWrap[Columns]):
         if state not in self.states:
             raise ValueError(f"{state!r} not in {tuple(self.states.keys())}")
 
-        self._label = Text(label)
+        self._label = Text(label)  # type: ignore[arg-type]  # markup specific
         self.has_mixed = has_mixed
 
         self._state = state
@@ -314,7 +314,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> cb
         <CheckBox selectable fixed/flow widget 'bar' state=False>
         """
-        self._label.set_text(label)
+        self._label.set_text(label)  # type: ignore[arg-type]  # markup specific
         # no need to call self._invalidate(). WidgetWrap takes care of
         # that when self.w changes
 
@@ -737,7 +737,7 @@ class Button(WidgetWrap[Columns]):
         >>> b
         <Button selectable fixed/flow widget 'Yup yup'>
         """
-        self._label.set_text(label)
+        self._label.set_text(label)  # type: ignore[arg-type]  # markup specific
 
     def get_label(self) -> str | bytes:
         """

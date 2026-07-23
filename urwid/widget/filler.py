@@ -22,9 +22,9 @@ from .widget_decoration import WidgetDecoration, WidgetError
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
-    from urwid import Widget
+    from .widget import AbstractFlowWidget, AbstractWidget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class FillerError(WidgetError):
@@ -147,7 +147,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Flow pack support if FLOW sizing supported."""
         if self.height_type == WHSettings.PACK:
-            return self.original_widget.rows(size, focus) + self.top + self.bottom
+            return typing.cast("AbstractFlowWidget", self._original_widget).rows(size, focus) + self.top + self.bottom
         if self.height_type == WHSettings.GIVEN:
             return typing.cast("int", self.height_amount) + self.top + self.bottom
         raise FillerError("Method 'rows' not supported for BOX widgets")  # pragma: no cover
@@ -195,7 +195,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         maxcol, maxrow = self.pack(size, focus)
 
         if self.height_type == WHSettings.PACK:
-            height = self._original_widget.rows((maxcol,), focus=focus)
+            height = typing.cast("AbstractFlowWidget", self._original_widget).rows((maxcol,), focus=focus)
             return calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -321,8 +321,22 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return False
 
         if self.height_type == WHSettings.PACK:
-            return self._original_widget.mouse_event((maxcol,), event, button, col, row - top, focus)
-        return self._original_widget.mouse_event((maxcol, maxrow - top - bottom), event, button, col, row - top, focus)
+            return self._original_widget.mouse_event(
+                (maxcol,),
+                event,
+                button,
+                col,
+                row - top,
+                focus,
+            )
+        return self._original_widget.mouse_event(
+            (maxcol, maxrow - top - bottom),
+            event,
+            button,
+            col,
+            row - top,
+            focus,
+        )
 
 
 def calculate_top_bottom_filler(

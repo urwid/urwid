@@ -83,7 +83,7 @@ class NumEdit(Edit):
 
     def keypress(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         key: str,
     ) -> str | None:
         """

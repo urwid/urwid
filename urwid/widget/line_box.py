@@ -15,9 +15,9 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
-    from .widget import Widget
+    from .widget import AbstractWidget, Widget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
@@ -180,7 +180,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
     def original_widget(self, original_widget: WrappedWidget) -> None:
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
-        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])  # type: ignore[misc]
+        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
         middle.contents[h_index] = (original_widget, options)
         WidgetDecoration.original_widget.fset(self, original_widget)  # pylint: disable=no-member
@@ -202,7 +202,7 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         self.tline_widget._invalidate()
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """LineBox is partially container.
 
         While focus position is a bit hacky

@@ -32,7 +32,7 @@ import logging
 import typing
 from contextlib import suppress
 
-from tornado import ioloop  # type: ignore[attr-defined]
+from tornado import ioloop
 
 from .abstract_loop import EventLoop, ExitMainLoop
 

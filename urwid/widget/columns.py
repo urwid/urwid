@@ -15,10 +15,12 @@ from urwid.util import is_mouse_press
 from .constants import Align, Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
 from .monitored_list import MonitoredFocusList, MonitoredList
-from .widget import Widget, WidgetError, WidgetWarning
+from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
+
+    from .widget import AbstractBoxWidget, AbstractFixedWidget, AbstractFlowWidget
 
 
 class ColumnsError(WidgetError):
@@ -213,13 +215,14 @@ class Columns(
     def __init__(
         self,
         widget_list: Iterable[
-            Widget
-            | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
-            | tuple[Literal["given", WHSettings.GIVEN], int, Widget]
-            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, Widget]
+            AbstractWidget
+            | tuple[Literal["pack", WHSettings.PACK], AbstractFlowWidget | AbstractFixedWidget]
+            | tuple[int, AbstractBoxWidget | AbstractFlowWidget]
+            | tuple[Literal["given", WHSettings.GIVEN], int, AbstractBoxWidget | AbstractFlowWidget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
         dividechars: int = 0,
-        focus_column: int | Widget | None = None,
+        focus_column: int | AbstractWidget | None = None,
         min_width: int = 1,
         box_columns: Iterable[int] | None = None,
     ):
@@ -260,7 +263,7 @@ class Columns(
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
-                Widget,
+                AbstractWidget,
                 tuple[Literal[WHSettings.PACK], None, bool]
                 | tuple[Literal[WHSettings.GIVEN], int, bool]
                 | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
@@ -300,7 +303,7 @@ class Columns(
             if focus_column == w or (focus_column is None and w.selectable()):
                 focus_column = i
 
-            if not isinstance(w, Widget):
+            if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
 
         self.dividechars = dividechars
@@ -331,9 +334,9 @@ class Columns(
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
         widget_list: list[
-            Widget
-            | tuple[Literal[WHSettings.PACK] | int, Widget]
-            | tuple[Literal[WHSettings.WEIGHT], int | float, Widget]
+            AbstractWidget
+            | tuple[Literal[WHSettings.PACK] | int, AbstractWidget]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, AbstractWidget]
         ] = []
         box_columns: list[int] = []
         for idx, (w_instance, (sizing, amount, is_box)) in enumerate(self._contents):
@@ -371,14 +374,14 @@ class Columns(
         slc: tuple[int, int, int],
         new_items: Collection[
             tuple[
-                Widget,
+                AbstractWidget,
                 tuple[Literal[WHSettings.PACK], None, bool]
                 | tuple[Literal[WHSettings.GIVEN], int, bool]
                 | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
             ]
         ],
     ) -> None:
-        invalid_items: list[tuple[Widget, tuple[typing.Any, typing.Any, typing.Any]]] = []
+        invalid_items: list[tuple[AbstractWidget, tuple[typing.Any, typing.Any, typing.Any]]] = []
         try:
             for item in new_items:
                 _w, (t, n, b) = item
@@ -397,7 +400,7 @@ class Columns(
             raise ColumnsError(f"added content invalid: {invalid_items!r}")
 
     @property
-    def widget_list(self) -> MonitoredList[Widget]:
+    def widget_list(self) -> MonitoredList[AbstractWidget]:
         """
         A list of the widgets in this Columns
 
@@ -419,7 +422,7 @@ class Columns(
         return ml
 
     @widget_list.setter
-    def widget_list(self, widgets: MonitoredList[Widget]) -> None:
+    def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container `contents`."
             "API will be removed in version 5.0.",
@@ -549,7 +552,7 @@ class Columns(
         self,
     ) -> MonitoredFocusList[
         tuple[
-            Widget,
+            AbstractWidget,
             tuple[Literal[WHSettings.PACK], None, bool]
             | tuple[Literal[WHSettings.GIVEN], int, bool]
             | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
@@ -569,7 +572,7 @@ class Columns(
         self,
         c: Sequence[
             tuple[
-                Widget,
+                AbstractWidget,
                 tuple[Literal[WHSettings.PACK], None, bool]
                 | tuple[Literal[WHSettings.GIVEN], int, bool]
                 | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
@@ -654,7 +657,7 @@ class Columns(
         )
         return self.focus_position
 
-    def set_focus(self, item: Widget | int) -> None:
+    def set_focus(self, item: AbstractWidget | int) -> None:
         """
         Set the item in focus
 
@@ -679,7 +682,7 @@ class Columns(
         raise ValueError(f"Widget not found in Columns contents: {item!r}")
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """
         the child widget in focus or None when Columns is empty
 
@@ -691,7 +694,7 @@ class Columns(
             return None
         return self.contents[self.focus_position][0]
 
-    def get_focus(self) -> Widget | None:
+    def get_focus(self) -> AbstractWidget | None:
         """
         Return the widget in focus, for backwards compatibility.
 
@@ -773,9 +776,14 @@ class Columns(
         """
         maxcol = size[0]
 
-        def pack_width(index: int, widget: Widget, size_kind: WHSettings, is_box: bool) -> int:
+        def pack_width(
+            index: int,
+            widget: AbstractWidget,
+            size_kind: WHSettings,
+            is_box: bool,
+        ) -> int:
             """Calculate the width a 'pack' column takes by packing its widget."""
-            if isinstance(widget, Widget):
+            if isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
                 warnings.warn(f"{widget!r} is not a Widget", ColumnsWarning, stacklevel=4)
@@ -785,11 +793,17 @@ class Columns(
                 candidate_size = 0
 
                 if Sizing.FIXED in w_sizing:
-                    candidate_size = widget.pack((), focus and index == self.focus_position)[0]
+                    candidate_size = widget.pack(
+                        (),
+                        focus and index == self.focus_position,
+                    )[0]
 
                 if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
                     # FIXME: should be able to pack with a different maxcol value
-                    candidate_size = widget.pack((maxcol,), focus and index == self.focus_position)[0]
+                    candidate_size = widget.pack(
+                        (maxcol,),
+                        focus and index == self.focus_position,
+                    )[0]
 
                 return candidate_size
 
@@ -866,7 +880,7 @@ class Columns(
         heights: dict[int, int] = {}
         w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
         box: list[int] = []
-        weighted: dict[int | float, list[tuple[Widget, int, bool, bool]]] = {}
+        weighted: dict[int | float, list[tuple[AbstractWidget, int, bool, bool]]] = {}
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
 
@@ -880,7 +894,7 @@ class Columns(
                 if is_box:
                     box.append(i)
                 elif Sizing.FLOW in w_sizing:
-                    heights[i] = widget.rows((size_weight,), focused)  # type: ignore[attr-defined]
+                    heights[i] = typing.cast("AbstractFlowWidget", widget).rows((size_weight,), focused)
                     w_h_args[i] = (size_weight,)
                 else:
                     raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
@@ -923,7 +937,7 @@ class Columns(
                     widths[i] = width
 
                     if not is_box:
-                        heights[i] = widget.rows((width,), focused)  # type: ignore[attr-defined]  # float or fail
+                        heights[i] = typing.cast("AbstractFlowWidget", widget).rows((width,), focused)
                         w_h_args[i] = (width,)
                     else:
                         box.append(i)
@@ -958,10 +972,10 @@ class Columns(
         box_need_height: list[int] = []
 
         for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
-            if isinstance(widget, Widget):
+            if isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
-                warnings.warn(f"{widget!r} is not Widget.", ColumnsWarning, stacklevel=3)
+                warnings.warn(f"{widget!r} is not a Widget.", ColumnsWarning, stacklevel=3)
                 # This branch should be fully deleted later.
                 w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
 
@@ -974,7 +988,10 @@ class Columns(
 
             elif Sizing.FLOW in w_sizing:
                 if width > 0:
-                    heights[i] = widget.rows((width,), focus and i == self.focus_position)  # type: ignore[attr-defined]
+                    heights[i] = typing.cast("AbstractFlowWidget", widget).rows(
+                        (width,),
+                        focus and i == self.focus_position,
+                    )
                 else:
                     heights[i] = 0
                 w_h_args[i] = (width,)
@@ -1103,7 +1120,7 @@ class Columns(
         except Exception as exc:
             raise ValueError(self.contents, size, col, row) from exc
 
-        best: tuple[int, int, int, Widget] | None = None
+        best: tuple[int, int, int, AbstractWidget] | None = None
         x = 0
         for i, (width, (w, _options)) in enumerate(zip(widths, self.contents)):
             end: int = x + width
@@ -1112,7 +1129,7 @@ class Columns(
                     # no other choice
                     best = i, x, end, w
                     break
-                if col != Align.RIGHT and x > col and col - best[2] < x - col:  # type: ignore[operator]
+                if col != Align.RIGHT and x > col and col - best[2] < x - col:  # type: ignore[index,operator]
                     # choose one on left
                     break
                 best = i, x, end, w
@@ -1170,7 +1187,7 @@ class Columns(
 
             if not hasattr(w, "mouse_event"):
                 warnings.warn(
-                    f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                    f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API",
                     DeprecationWarning,
                     stacklevel=2,
                 )
