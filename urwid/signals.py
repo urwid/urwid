@@ -23,6 +23,7 @@ from __future__ import annotations
 import abc
 import itertools
 import typing
+import uuid
 import weakref
 
 if typing.TYPE_CHECKING:
@@ -60,15 +61,6 @@ def setdefaultattr(obj: typing.Any, name: str, value: _T) -> _T:
     return value
 
 
-class Key:
-    """
-    Minimal class, whose only purpose is to produce objects with a
-    unique hash
-    """
-
-    __slots__ = ()
-
-
 class Signals:
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
@@ -96,7 +88,7 @@ class Signals:
         *,
         weak_args: Iterable[typing.Any] = (),
         user_args: Iterable[typing.Any] = (),
-    ) -> Key:
+    ) -> uuid.UUID:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -178,7 +170,7 @@ class Signals:
             raise NameError(f"No such signal {name!r} for object {obj!r}")
 
         # Just generate an arbitrary (but unique) key
-        key = Key()
+        key = uuid.uuid4()
 
         handlers = setdefaultattr(obj, self._signal_attr, {}).setdefault(name, [])
 
@@ -258,7 +250,7 @@ class Signals:
                 return self.disconnect_by_key(obj, name, h[0])
         return None
 
-    def disconnect_by_key(self, obj, name: Hashable, key: Key) -> None:
+    def disconnect_by_key(self, obj, name: Hashable, key: uuid.UUID) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
