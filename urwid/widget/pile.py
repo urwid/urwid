@@ -180,7 +180,7 @@ class Pile(
             | tuple[Literal["pack", WHSettings.PACK], AbstractFlowWidget | AbstractFixedWidget]
             | tuple[int, AbstractBoxWidget]
             | tuple[Literal["given", WHSettings.GIVEN], int, AbstractBoxWidget]
-            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractWidget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
         focus_item: AbstractWidget | int | None = None,
     ) -> None:

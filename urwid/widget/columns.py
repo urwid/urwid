@@ -219,7 +219,7 @@ class Columns(
             | tuple[Literal["pack", WHSettings.PACK], AbstractFlowWidget | AbstractFixedWidget]
             | tuple[int, AbstractBoxWidget | AbstractFlowWidget]
             | tuple[Literal["given", WHSettings.GIVEN], int, AbstractBoxWidget | AbstractFlowWidget]
-            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractWidget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
         dividechars: int = 0,
         focus_column: int | AbstractWidget | None = None,
