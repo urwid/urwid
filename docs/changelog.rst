@@ -2,6 +2,30 @@
 Changelog
 ---------
 
+Urwid 4.0.6
+===========
+
+2026-07-23
+
+Implemented protocol base classes `AbstractWidget` and internal `AbstractBoxWidget`, `AbstractFlowWidget` and `AbstractFixedWidget` for protocol based typing.
+All classes implementing `AbstractWidget` are considered valid widget (as all required APIs available).
+Container widgets as `Columns`, `Pile`, `GridFlow`, `Frame`, `Overlay` and `Padding` now declare expected APIs from widgets depends on sizing parameter in `__init__`.
+
+Bug fixes 🕷
+++++++++++++
+* Fix web display broken by token_urlsafe session ids by @2018302345 in https://github.com/urwid/urwid/pull/1195
+Documentation 🕮
+++++++++++++++++
+* Typing: fix scrollable module annotations by @penguinolog in https://github.com/urwid/urwid/pull/1194
+* Typing: introduce `AbstractWidget` abstract base class/protocol by @penguinolog in https://github.com/urwid/urwid/pull/1196
+
+
+New Contributors
+++++++++++++++++
+* @2018302345 made their first contribution in https://github.com/urwid/urwid/pull/1195
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.5...4.0.6
+
 Urwid 4.0.5
 ===========
 
