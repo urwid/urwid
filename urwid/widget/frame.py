@@ -467,7 +467,7 @@ class Frame(
         combinelist = []
         depends_on: list[BodyWidget | HeaderWidget | FooterWidget] = []
 
-        head: Canvas | None = None
+        head: Canvas | CompositeCanvas | None = None
         if htrim and htrim < hrows:
             head = Filler(self.header, VAlign.TOP).render(  # type: ignore[type-var]
                 (maxcol, htrim),
@@ -482,7 +482,7 @@ class Frame(
                 raise RuntimeError("rows, render mismatch")
         if head:
             combinelist.append((head, "header", self.focus_part == "header"))
-            depends_on.append(self.header)
+            depends_on.append(self.header)  # type: ignore[arg-type]
 
         if ftrim + htrim < maxrow:
             body = self.body.render(
@@ -492,7 +492,7 @@ class Frame(
             combinelist.append((body, "body", self.focus_part == "body"))
             depends_on.append(self.body)
 
-        foot = None
+        foot: Canvas | CompositeCanvas | None = None
         if ftrim and ftrim < frows:
             foot = Filler(self.footer, VAlign.BOTTOM).render(  # type: ignore[type-var]
                 (maxcol, ftrim),
@@ -503,11 +503,11 @@ class Frame(
                 (maxcol,),
                 focus and self.focus_part == "footer",
             )
-            if foot.rows() != frows:  # type: ignore[union-attr]
+            if foot.rows() != frows:
                 raise RuntimeError("rows, render mismatch")
         if foot:
             combinelist.append((foot, "footer", self.focus_part == "footer"))
-            depends_on.append(self.footer)
+            depends_on.append(self.footer)  # type: ignore[arg-type]
 
         return CanvasCombine(combinelist)
 

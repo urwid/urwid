@@ -20,7 +20,7 @@ from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
 
-    from .widget import AbstractFlowWidget
+    from .widget import AbstractFixedWidget, AbstractFlowWidget
 
 
 class PileError(WidgetError):
@@ -177,7 +177,7 @@ class Pile(
         self,
         widget_list: Iterable[
             AbstractWidget
-            | tuple[Literal["pack", WHSettings.PACK] | int, AbstractWidget]
+            | tuple[Literal["pack", WHSettings.PACK] | int, AbstractFlowWidget | AbstractFixedWidget]
             | tuple[Literal["given", WHSettings.GIVEN], int, AbstractWidget]
             | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractWidget]
         ],
@@ -299,14 +299,14 @@ class Pile(
         slc: tuple[int, int, int],
         new_items: Collection[
             tuple[
-                Widget,
+                AbstractWidget,
                 tuple[Literal[WHSettings.PACK], None]
                 | tuple[Literal[WHSettings.GIVEN], int]
                 | tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ],
     ) -> None:
-        invalid_items: list[tuple[Widget, tuple[typing.Any, typing.Any]]] = []
+        invalid_items: list[tuple[AbstractWidget, tuple[typing.Any, typing.Any]]] = []
         try:
             for item in new_items:
                 _w, (t, n) = item

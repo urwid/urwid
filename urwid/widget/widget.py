@@ -41,6 +41,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = (
     "AbstractBoxWidget",
+    "AbstractFixedWidget",
     "AbstractFlowWidget",
     "AbstractWidget",
     "Widget",
@@ -238,6 +239,42 @@ class AbstractFlowWidget(AbstractWidget, typing.Protocol):
     def render(
         self,
         size: tuple[int],
+        focus: bool = False,
+    ) -> Canvas: ...
+
+
+@typing.runtime_checkable
+class AbstractFixedWidget(AbstractWidget, typing.Protocol):
+    """Fixed widget protocol.
+
+    Used internally to declare explicit required API.
+    """
+
+    @abc.abstractmethod
+    def keypress(self, size: tuple[()], key: str) -> str | None: ...
+
+    @abc.abstractmethod
+    def mouse_event(
+        self,
+        size: tuple[()],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None: ...
+
+    @abc.abstractmethod
+    def pack(
+        self,
+        size: tuple[()],
+        focus: bool = False,
+    ) -> tuple[int, int]: ...
+
+    @abc.abstractmethod
+    def render(
+        self,
+        size: tuple[()],
         focus: bool = False,
     ) -> Canvas: ...
 

@@ -21,6 +21,8 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas
 
+    from .widget import AbstractFixedWidget, AbstractFlowWidget
+
 
 class GridFlowError(WidgetError):
     """GridFlow specific error."""
@@ -51,7 +53,7 @@ class GridFlow(
 
     def __init__(
         self,
-        cells: Iterable[AbstractWidget],
+        cells: Iterable[AbstractFlowWidget | AbstractFixedWidget],
         cell_width: int,
         h_sep: int,
         v_sep: int,
@@ -127,7 +129,7 @@ class GridFlow(
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
-        super()._invalidate()
+        super()._invalidate()  # type: ignore[safe-super]  # dynamic base
 
     def _contents_modified(
         self,
@@ -464,8 +466,8 @@ class GridFlow(
         """
         self.get_display_widget(size)
 
-        if (key := super().keypress(size, key)) is not None:
-            return key
+        if (processed := super().keypress(size, key)) is not None:  # type: ignore[safe-super]  # dynamic base
+            return processed
 
         self._set_focus_from_display_widget()
         return None
@@ -476,7 +478,7 @@ class GridFlow(
         focus: bool = False,
     ) -> tuple[int, int]:
         if size:
-            return super().pack(size, focus)
+            return super().pack(size, focus)  # type: ignore[safe-super]  # dynamic base
         if self:
             cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
         else:
@@ -493,7 +495,7 @@ class GridFlow(
         focus: bool = False,
     ) -> Canvas:
         self.get_display_widget(size)
-        return super().render(size, focus)
+        return super().render(size, focus)  # type: ignore[safe-super]  # dynamic base
 
     def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int]:
         """Get cursor from display widget."""
@@ -517,7 +519,7 @@ class GridFlow(
         focus: bool,
     ) -> Literal[True]:
         self.get_display_widget(size)
-        super().mouse_event(size, event, button, col, row, focus)
+        super().mouse_event(size, event, button, col, row, focus)  # type: ignore[safe-super]  # dynamic base
         self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 

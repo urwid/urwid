@@ -20,7 +20,7 @@ from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
 
-    from .widget import AbstractFlowWidget
+    from .widget import AbstractFixedWidget, AbstractFlowWidget
 
 
 class ColumnsError(WidgetError):
@@ -216,7 +216,7 @@ class Columns(
         self,
         widget_list: Iterable[
             AbstractWidget
-            | tuple[Literal["pack", WHSettings.PACK] | int, AbstractWidget]
+            | tuple[Literal["pack", WHSettings.PACK] | int, AbstractFlowWidget | AbstractFixedWidget]
             | tuple[Literal["given", WHSettings.GIVEN], int, AbstractWidget]
             | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractWidget]
         ],
