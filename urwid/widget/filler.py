@@ -342,7 +342,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 def calculate_top_bottom_filler(
     maxrow: int,
     valign_type: Literal["top", "middle", "bottom", "relative", WHSettings.RELATIVE] | VAlign,
-    valign_amount: int,
+    valign_amount: int | None,
     height_type: Literal["given", "relative", "clip", WHSettings.GIVEN, WHSettings.RELATIVE, WHSettings.CLIP],
     height_amount: int,
     min_height: int | None,
@@ -380,6 +380,9 @@ def calculate_top_bottom_filler(
     >>> ctbf(20, "relative", 30, "relative", 60, 14, 0, 0)
     (2, 4)
     """
+    if valign_type == WHSettings.RELATIVE and valign_amount is None:
+        raise TypeError("valign_amount must be specified when valign_type is relative")
+
     if height_type == WHSettings.RELATIVE:
         maxheight = max(maxrow - top - bottom, 0)
         height = int_scale(height_amount, 101, maxheight + 1)
@@ -388,7 +391,9 @@ def calculate_top_bottom_filler(
     else:
         height = height_amount
 
-    valign = {VAlign.TOP: 0, VAlign.MIDDLE: 50, VAlign.BOTTOM: 100}.get(valign_type, valign_amount)
+    valign: int = {VAlign.TOP: 0, VAlign.MIDDLE: 50, VAlign.BOTTOM: 100}.get(  # type: ignore[assignment]
+        valign_type, valign_amount
+    )  # relative + None already filtered above
 
     # add the remainder of top/bottom to the filler
     filler = maxrow - height - top - bottom

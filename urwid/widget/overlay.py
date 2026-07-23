@@ -15,7 +15,6 @@ from .constants import (
     Sizing,
     VAlign,
     WHSettings,
-    WrapMode,
     normalize_align,
     normalize_height,
     normalize_valign,
@@ -485,6 +484,7 @@ class Overlay(
         """
 
         # convert obsolete parameters 'fixed ...':
+        normalized_align: Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(align, tuple):
             if align[0] == "fixed left":
                 left = align[1]
@@ -493,7 +493,8 @@ class Overlay(
                 right = align[1]
                 normalized_align = Align.RIGHT
             else:
-                normalized_align = align
+                # 'fixed left'/'fixed right' handled above, so only the relative form remains.
+                normalized_align = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", align)
         else:
             normalized_align = Align(align)
 
@@ -505,6 +506,7 @@ class Overlay(
                 right = width[1]
                 width = RELATIVE_100  # type: ignore[assignment]
 
+        normalized_valign: VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
                 top = valign[1]
@@ -513,7 +515,8 @@ class Overlay(
                 bottom = valign[1]
                 normalized_valign = VAlign.BOTTOM
             else:
-                normalized_valign = valign
+                # 'fixed top'/'fixed bottom' handled above, so only the relative form remains.
+                normalized_valign = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", valign)
 
         elif not isinstance(valign, (VAlign, str)):
             raise OverlayError(f"invalid valign: {valign!r}")
@@ -751,9 +754,15 @@ class Overlay(
                 ) from exc
             # normalize first, this is where errors are raised
             align_type, align_amount = normalize_align(simplify_align(align_type, align_amount), OverlayError)
-            width_type, width_amount = normalize_width(simplify_width(width_type, width_amount), OverlayError)
+            width_type, width_amount = normalize_width(
+                simplify_width(width_type, width_amount),  # type: ignore[call-overload]  # broad WHSettings
+                OverlayError,
+            )
             valign_type, valign_amount = normalize_valign(simplify_valign(valign_type, valign_amount), OverlayError)
-            height_type, height_amount = normalize_height(simplify_height(height_type, height_amount), OverlayError)
+            height_type, height_amount = normalize_height(
+                simplify_height(height_type, height_amount),  # type: ignore[call-overload]  # broad WHSettings
+                OverlayError,
+            )
             self.align_type = align_type
             self.align_amount = align_amount
             self.width_type = width_type
@@ -803,7 +812,7 @@ class Overlay(
                 maxcol,
                 self.align_type,
                 self.align_amount,
-                WrapMode.CLIP,
+                WHSettings.CLIP,
                 width,
                 None,
                 self.left,

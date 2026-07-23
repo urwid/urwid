@@ -246,14 +246,17 @@ def normalize_width(
     if width doesn't match a valid alignment.
     """
     if width in {WHSettings.CLIP, WHSettings.PACK}:
-        return (WHSettings(width), None)
+        return (typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width)), None)
 
     if isinstance(width, int):
         return (WHSettings.GIVEN, width)
 
     if isinstance(width, tuple) and len(width) == 2 and width[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
         width_type, width_amount = width
-        return (WHSettings(width_type), width_amount)
+        return typing.cast(
+            "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+            (WHSettings(width_type), width_amount),
+        )
 
     raise err(
         f"width value {width!r} is not one of"
@@ -310,7 +313,7 @@ def simplify_width(
     Inverse of normalize_width.
     """
     if width_type in {WHSettings.CLIP, WHSettings.PACK}:
-        return WHSettings(width_type)
+        return typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width_type))
 
     if not isinstance(width_amount, int):
         raise TypeError(width_amount)
@@ -318,7 +321,10 @@ def simplify_width(
     if width_type == WHSettings.GIVEN:
         return width_amount
 
-    return (WHSettings(width_type), width_amount)
+    return typing.cast(
+        "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+        (WHSettings(width_type), width_amount),
+    )
 
 
 @typing.overload
@@ -373,7 +379,10 @@ def normalize_height(
         return (WHSettings.PACK, None)
 
     if isinstance(height, tuple) and len(height) == 2 and height[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
-        return (WHSettings(height[0]), height[1])
+        return typing.cast(
+            "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+            (WHSettings(height[0]), height[1]),
+        )
 
     if isinstance(height, int):
         return (WHSettings.GIVEN, height)
@@ -444,7 +453,7 @@ def simplify_height(
     Inverse of normalize_height.
     """
     if height_type in {WHSettings.FLOW, WHSettings.PACK}:
-        return WHSettings(height_type)
+        return typing.cast("Literal[WHSettings.FLOW, WHSettings.PACK]", WHSettings(height_type))
 
     if not isinstance(height_amount, int):
         raise TypeError(height_amount)
@@ -452,7 +461,10 @@ def simplify_height(
     if height_type == WHSettings.GIVEN:
         return height_amount
 
-    return (WHSettings(height_type), height_amount)
+    return typing.cast(
+        "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+        (WHSettings(height_type), height_amount),
+    )
 
 
 @dataclasses.dataclass(frozen=True)

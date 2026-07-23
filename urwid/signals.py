@@ -69,6 +69,15 @@ class Key:
     __slots__ = ()
 
 
+if typing.TYPE_CHECKING:
+    # ``weak_args`` (converted to weakrefs) and ``user_args`` as prepared by ``_prepare_user_args``.
+    _UserArgs = tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]
+    # A single connected handler: (key, callback, deprecated user_arg, prepared args).
+    _SignalHandler = tuple[Key, Callable[..., typing.Any], typing.Any, _UserArgs]
+    # Per-sender storage attached to ``obj`` under ``Signals._signal_attr``.
+    _SignalStore = dict[Hashable, list[_SignalHandler]]
+
+
 class Signals:
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
@@ -89,7 +98,7 @@ class Signals:
 
     def connect(
         self,
-        obj,
+        obj: typing.Any,
         name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
@@ -180,7 +189,8 @@ class Signals:
         # Just generate an arbitrary (but unique) key
         key = Key()
 
-        handlers = setdefaultattr(obj, self._signal_attr, {}).setdefault(name, [])
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
+        handlers = signals.setdefault(name, [])
 
         # Remove the signal handler when any of the weakref'd arguments
         # are garbage collected. Note that this means that the handlers
@@ -216,7 +226,7 @@ class Signals:
 
     def disconnect(
         self,
-        obj,
+        obj: typing.Any,
         name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
@@ -242,7 +252,7 @@ class Signals:
         If the callback is not connected or already disconnected, this
         function will simply do nothing.
         """
-        signals = setdefaultattr(obj, self._signal_attr, {})
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
         if name not in signals:
             return None
 
@@ -258,7 +268,7 @@ class Signals:
                 return self.disconnect_by_key(obj, name, h[0])
         return None
 
-    def disconnect_by_key(self, obj, name: Hashable, key: Key) -> None:
+    def disconnect_by_key(self, obj: typing.Any, name: Hashable, key: Key) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -275,10 +285,11 @@ class Signals:
         If the callback is not connected or already disconnected, this
         function will simply do nothing.
         """
-        handlers = setdefaultattr(obj, self._signal_attr, {}).get(name, [])
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
+        handlers = signals.get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name: Hashable, *args: typing.Any) -> bool:
+    def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """
         :param obj: the object sending a signal
         :type obj: object

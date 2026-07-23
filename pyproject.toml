@@ -289,6 +289,14 @@ disable_error_code = [
   "union-attr", # chacking for started state before each operation if too expensive
 ]
 [[tool.mypy.overrides]]
+module = "urwid.widget.constants"
+disable_error_code = [
+  # False positive: plain-string `Literal`s (e.g. "relative") are reported as overlapping
+  # sibling `str`-based enums (`Align`/`VAlign`) in the size/alignment overloads, even though
+  # the underlying values are disjoint. The public API must accept both string and enum forms.
+  "overload-overlap",
+]
+[[tool.mypy.overrides]]
 module = [ "gi.*", "serial.*", "trio.*" ]
 ignore_missing_imports = true
 
