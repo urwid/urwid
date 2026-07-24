@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 4.0.7
+===========
+
+2026-07-24
+
+Bug fixes 🕷
+++++++++++++
+* Fix encoding handling by web display by @penguinolog in https://github.com/urwid/urwid/pull/1201
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate `MainLoop` and `signals` by @penguinolog in https://github.com/urwid/urwid/pull/1199
+* Typing: fix `ListBox` expected widget API by @penguinolog in https://github.com/urwid/urwid/pull/1200
+* Typing: partial annotation for `treetools` by @penguinolog in https://github.com/urwid/urwid/pull/1197
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.6...4.0.7
+
 Urwid 4.0.6
 ===========
 
