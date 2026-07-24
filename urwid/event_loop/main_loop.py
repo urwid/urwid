@@ -42,7 +42,7 @@ from .select_loop import SelectEventLoop
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
-    from typing_extensions import Self
+    from typing_extensions import Literal, Self
 
     from urwid.display import BaseScreen
     from urwid.widget import AbstractWidget
@@ -50,6 +50,37 @@ if typing.TYPE_CHECKING:
     from .abstract_loop import EventLoop
 
     _T = typing.TypeVar("_T")
+
+    class _ExternalLoopScreen(typing.Protocol):
+        """Screen able to drive an external event loop (e.g. raw_display / curses screens).
+
+        These members are not part of :class:`BaseScreen`;
+        :class:`MainLoop` only uses them after guarding with ``hasattr``
+        (or after :meth:`MainLoop.start` raised :exc:`CantUseExternalLoop`),
+        so accessing them through this protocol via ``cast`` is safe.
+        """
+
+        signal_handler_setter: Callable[..., typing.Any]
+
+        def hook_event_loop(
+            self,
+            event_loop: EventLoop,
+            callback: Callable[[list[str | tuple[str, int, int, int]], list[int]], typing.Any],
+        ) -> None: ...
+
+        def unhook_event_loop(self, event_loop: EventLoop) -> None: ...
+
+        def get_input(self, raw_keys: Literal[True]) -> tuple[list[str | tuple[str, int, int, int]], list[int]]: ...
+
+        def set_input_timeouts(self, max_wait: float | None = ...) -> None: ...
+
+    class _EventLoopWithAlarmsStore(typing.Protocol):
+        """Event loop that supports alarms storage (like :class:`SelectEventLoop`).
+
+        Not all event loops support alarms storage.
+        """
+
+        _alarms: list[tuple[float, int, Callable[[], typing.Any]]]
 
 
 IS_WINDOWS = sys.platform == "win32"
@@ -116,7 +147,9 @@ class MainLoop:
         ] = (),
         screen: BaseScreen | None = None,
         handle_mouse: bool = True,
-        input_filter: Callable[[list[str | tuple[str, int, int, int]], list[int]], list[str]] | None = None,
+        input_filter: (
+            Callable[[list[str | tuple[str, int, int, int]], list[int]], list[str | tuple[str, int, int, int]]] | None
+        ) = None,
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
@@ -149,7 +182,7 @@ class MainLoop:
         if hasattr(self.screen, "signal_handler_setter"):
             # Tell the screen what function it must use to set
             # signal handlers
-            self.screen.signal_handler_setter = self.event_loop.set_signal_handler
+            typing.cast("_ExternalLoopScreen", self.screen).signal_handler_setter = self.event_loop.set_signal_handler
 
         self._watch_pipes: dict[int, tuple[Callable[[], typing.Any], int]] = {}
 
@@ -164,7 +197,7 @@ class MainLoop:
     @widget.setter
     def widget(self, widget: AbstractWidget) -> None:
         self._widget = widget
-        if self.pop_ups:
+        if self.pop_ups and hasattr(self._topmost_widget, "original_widget"):
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
@@ -181,7 +214,12 @@ class MainLoop:
         else:
             self._topmost_widget = self._widget
 
-    def set_alarm_in(self, sec: float, callback: Callable[[Self, _T], typing.Any], user_data: _T = None):
+    def set_alarm_in(
+        self,
+        sec: float,
+        callback: Callable[[Self, _T | None], typing.Any],
+        user_data: _T | None = None,
+    ) -> typing.Any:
         """
         Schedule an alarm in *sec* seconds that will call *callback* from the
         within the :meth:`run` method.
@@ -201,7 +239,12 @@ class MainLoop:
 
         return self.event_loop.alarm(sec, cb)
 
-    def set_alarm_at(self, tm: float, callback: Callable[[Self, _T], typing.Any], user_data: _T = None):
+    def set_alarm_at(
+        self,
+        tm: float,
+        callback: Callable[[Self, _T | None], typing.Any],
+        user_data: _T | None = None,
+    ) -> typing.Any:
         """
         Schedule an alarm at *tm* time that will call *callback* from the
         within the :meth:`run` function. Returns a handle that may be passed to
@@ -223,7 +266,7 @@ class MainLoop:
 
         return self.event_loop.alarm(sec, cb)
 
-    def remove_alarm(self, handle) -> bool:
+    def remove_alarm(self, handle: typing.Any) -> bool:
         """
         Remove an alarm. Return ``True`` if *handle* was found, ``False``
         otherwise.
@@ -289,7 +332,7 @@ class MainLoop:
             os.close(pipe_rd)
             return True
 
-    def watch_file(self, fd: int, callback: Callable[[], typing.Any]):
+    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
         """
         Call *callback* when *fd* has some data to read. No parameters are
         passed to callback.
@@ -299,7 +342,7 @@ class MainLoop:
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         return self.event_loop.watch_file(fd, callback)
 
-    def remove_watch_file(self, handle) -> bool:
+    def remove_watch_file(self, handle: typing.Any) -> bool:
         """
         Remove a watch file. Returns ``True`` if the watch file
         exists, ``False`` otherwise.
@@ -399,13 +442,14 @@ class MainLoop:
         self.event_loop.remove_enter_idle(self.idle_handle)
         del self.idle_handle
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
-        self.screen.unhook_event_loop(self.event_loop)
+        typing.cast("_ExternalLoopScreen", self.screen).unhook_event_loop(self.event_loop)
 
         self.screen.stop()
 
     def _reset_input_descriptors(self) -> None:
-        self.screen.unhook_event_loop(self.event_loop)
-        self.screen.hook_event_loop(self.event_loop, self._update)
+        screen = typing.cast("_ExternalLoopScreen", self.screen)
+        screen.unhook_event_loop(self.event_loop)
+        screen.hook_event_loop(self.event_loop, self._update)
 
     def _run(self) -> None:
         try:
@@ -456,23 +500,26 @@ class MainLoop:
         # pylint: disable=protected-access  # special case for alarms handling
         self.logger.debug(f"Starting screen {self.screen!r} event loop")
 
-        next_alarm = None
+        screen = typing.cast("_ExternalLoopScreen", self.screen)
+        event_loop = typing.cast("_EventLoopWithAlarmsStore", self.event_loop)
+
+        next_alarm: tuple[float, int, Callable[[], typing.Any]] | None = None
 
         while True:
             self.draw_screen()
 
-            if not next_alarm and self.event_loop._alarms:
-                next_alarm = heapq.heappop(self.event_loop._alarms)
+            if not next_alarm and event_loop._alarms:
+                next_alarm = heapq.heappop(event_loop._alarms)
 
             keys: list[str | tuple[str, int, int, int]] = []
             raw: list[int] = []
             while not keys:
                 if next_alarm:
                     sec = max(0.0, next_alarm[0] - time.time())
-                    self.screen.set_input_timeouts(sec)
+                    screen.set_input_timeouts(sec)
                 else:
-                    self.screen.set_input_timeouts(None)
-                keys, raw = self.screen.get_input(True)
+                    screen.set_input_timeouts(None)
+                keys, raw = screen.get_input(True)
                 if not keys and next_alarm and next_alarm[0] - time.time() <= 0:
                     break
 
@@ -485,8 +532,8 @@ class MainLoop:
                 _tm, _tie_break, callback = next_alarm
                 callback()
 
-                if self.event_loop._alarms:
-                    next_alarm = heapq.heappop(self.event_loop._alarms)
+                if event_loop._alarms:
+                    next_alarm = heapq.heappop(event_loop._alarms)
                 else:
                     next_alarm = None
 
