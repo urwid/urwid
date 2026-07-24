@@ -42,7 +42,26 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
-    from .widget import AbstractWidget
+    from .widget import AbstractFlowWidget, AbstractWidget
+
+    _T = typing.TypeVar("_T")
+    _K = typing.TypeVar("_K")
+    _V_co = typing.TypeVar("_V_co", covariant=True)
+
+    class ListWalkerProto(typing.Protocol[_K, _V_co]):
+        def __getitem__(self, key: _K) -> _V_co: ...
+
+        def next_position(self, position: _K) -> _K: ...
+
+        def prev_position(self, position: _K) -> _K: ...
+
+else:
+    _T = typing.TypeVar("_T")
+    _K = typing.TypeVar("_K")
+    _V_co = typing.TypeVar("_V_co", covariant=True)
+
+    class ListWalkerProto(typing.Generic[_K, _V_co]): ...
+
 
 __all__ = (
     "ListBox",
@@ -56,9 +75,6 @@ __all__ = (
     "VisibleInfoMiddle",
     "VisibleInfoTopBottom",
 )
-
-_T = typing.TypeVar("_T")
-_K = typing.TypeVar("_K")
 
 
 class ListWalkerError(Exception):
@@ -90,54 +106,60 @@ class EstimatedSized(typing.Protocol):
     def __length_hint__(self) -> int: ...
 
 
-class ListWalker(metaclass=signals.MetaSignals):  # pylint: disable=no-member, unsubscriptable-object
+class ListWalker(
+    ListWalkerProto[_K, _V_co],
+    metaclass=signals.MetaSignals,
+):
     # mixin not named as mixin
     signals: typing.ClassVar[list[str]] = ["modified"]
 
     def _modified(self) -> None:
         signals.emit_signal(self, "modified")
 
-    def get_focus(self):
+    def get_focus(self) -> tuple[_V_co, _K] | tuple[None, None]:
         """
-        This default implementation relies on a focus attribute and a
-        __getitem__() method defined in a subclass.
+        This default implementation relies on a focus attribute and a __getitem__() method defined in a subclass.
 
         Override and don't call this method if these are not defined.
         """
         try:
-            focus = self.focus
+            focus = self.focus  # type: ignore[attr-defined]  # we're OK with fail
             return self[focus], focus
         except (IndexError, KeyError, TypeError):
             return None, None
 
-    def get_next(self, position):
+    def get_next(
+        self,
+        position: _K,
+    ) -> tuple[_V_co, _K] | tuple[None, None]:
         """
-        This default implementation relies on a next_position() method and a
-        __getitem__() method defined in a subclass.
+        This default implementation relies on a next_position() method and a __getitem__() method defined in a subclass.
 
         Override and don't call this method if these are not defined.
         """
         try:
-            position = self.next_position(position)
+            position = self.next_position(position)  # pylint: disable=assignment-from-no-return
             return self[position], position
         except (IndexError, KeyError):
             return None, None
 
-    def get_prev(self, position):
+    def get_prev(
+        self,
+        position: _K,
+    ) -> tuple[_V_co, _K] | tuple[None, None]:
         """
-        This default implementation relies on a prev_position() method and a
-        __getitem__() method defined in a subclass.
+        This default implementation relies on a prev_position() method and a __getitem__() method defined in a subclass.
 
         Override and don't call this method if these are not defined.
         """
         try:
-            position = self.prev_position(position)
+            position = self.prev_position(position)  # pylint: disable=assignment-from-no-return
             return self[position], position
         except (IndexError, KeyError):
             return None, None
 
 
-class SimpleListWalker(MonitoredList[_T], ListWalker):
+class SimpleListWalker(MonitoredList[_T], ListWalker[int, _T]):
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
@@ -169,7 +191,7 @@ class SimpleListWalker(MonitoredList[_T], ListWalker):
     def _modified(self) -> None:
         if self.focus >= len(self):
             self.focus = max(0, len(self) - 1)
-        ListWalker._modified(self)
+        ListWalker._modified(self)  # pylint: disable=protected-access
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
         """
@@ -217,7 +239,7 @@ class SimpleListWalker(MonitoredList[_T], ListWalker):
         return range(len(self))
 
 
-class SimpleFocusListWalker(ListWalker, MonitoredFocusList[_T]):
+class SimpleFocusListWalker(MonitoredFocusList[_T], ListWalker[int, _T]):
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
@@ -291,16 +313,16 @@ class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
     offset: int
-    focus_widget: AbstractWidget
+    focus_widget: AbstractFlowWidget
     focus_pos: Hashable
     focus_rows: int
-    cursor: tuple[int, int] | tuple[int] | None
+    cursor: tuple[int, int] | None
 
 
 class VisibleInfoFillItem(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
-    widget: AbstractWidget
+    widget: AbstractFlowWidget
     position: Hashable
     rows: int
 
@@ -315,7 +337,7 @@ class VisibleInfoTopBottom(typing.NamedTuple):
     def from_raw_data(
         cls,
         trim: int,
-        fill: Iterable[tuple[AbstractWidget, Hashable, int]],
+        fill: Iterable[tuple[AbstractFlowWidget, Hashable, int]],
     ) -> Self:
         """Construct from not typed data.
 
@@ -331,9 +353,9 @@ class VisibleInfo(typing.NamedTuple):
     @classmethod
     def from_raw_data(
         cls,
-        middle: tuple[int, AbstractWidget, Hashable, int, tuple[int, int] | tuple[int] | None],
-        top: tuple[int, Iterable[tuple[AbstractWidget, Hashable, int]]],
-        bottom: tuple[int, Iterable[tuple[AbstractWidget, Hashable, int]]],
+        middle: tuple[int, AbstractFlowWidget, Hashable, int, tuple[int, int] | None],
+        top: tuple[int, Iterable[tuple[AbstractFlowWidget, Hashable, int]]],
+        bottom: tuple[int, Iterable[tuple[AbstractFlowWidget, Hashable, int]]],
     ) -> Self:
         """Construct from not typed data.
 
@@ -346,7 +368,7 @@ class VisibleInfo(typing.NamedTuple):
         )
 
 
-class ListBox(Widget, WidgetContainerMixin):
+class ListBox(Widget, WidgetContainerMixin[typing.Any]):
     """
     Vertically stacked list of widgets
     """
@@ -354,7 +376,7 @@ class ListBox(Widget, WidgetContainerMixin):
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, body: ListWalker | Iterable[AbstractWidget]) -> None:
+    def __init__(self, body: ListWalker | Iterable[AbstractFlowWidget]) -> None:
         """
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
@@ -362,16 +384,16 @@ class ListBox(Widget, WidgetContainerMixin):
         """
         super().__init__()
         if isinstance(body, ListWalker):
-            self._body: ListWalker = body
+            self._body: ListWalker[typing.Any, AbstractFlowWidget] = body
         elif getattr(body, "get_focus", None):
-            self._body = typing.cast("ListWalker", body)
+            self._body = typing.cast("ListWalker[typing.Any, AbstractFlowWidget]", body)
             warnings.warn(
                 f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}",
                 DeprecationWarning,
                 stacklevel=2,
             )
         else:
-            self._body = SimpleListWalker(body)
+            self._body = SimpleListWalker["AbstractFlowWidget"](body)
 
         self.body = self._body  # Initialization hack
 
@@ -385,7 +407,7 @@ class ListBox(Widget, WidgetContainerMixin):
 
         # pref_col is the preferred column for the cursor when moving
         # between widgets that use the cursor (edit boxes etc.)
-        self.pref_col = "left"
+        self.pref_col: int | str = "left"
 
         # variable for delayed focus change used by set_focus
         self.set_focus_pending = "first selectable"
@@ -406,7 +428,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body
 
     @body.setter
-    def body(self, body: Iterable[AbstractWidget] | ListWalker) -> None:
+    def body(self, body: Iterable[AbstractFlowWidget] | ListWalker) -> None:
         with suppress(AttributeError):
             signals.disconnect_signal(self._body, "modified", self._invalidate)
             # _body may be not yet assigned
@@ -425,10 +447,9 @@ class ListBox(Widget, WidgetContainerMixin):
         try:
             signals.connect_signal(self._body, "modified", self._invalidate)
         except NameError:
-            # our list walker has no modified signal so we must not
-            # cache our canvases because we don't know when our
-            # content has changed
-            self.render = nocache_widget_render_instance(self)
+            # our list walker has no modified signal,
+            # so we must not cache our canvases because we don't know when our content has changed
+            self.render = nocache_widget_render_instance(self)  # type: ignore[method-assign,assignment]
         self._invalidate()
 
     @property
@@ -603,15 +624,15 @@ class ListBox(Widget, WidgetContainerMixin):
         if size is not None:
             self._rendered_size = size
 
-        mid, top, _bottom = self.calculate_visible(self._rendered_size, focus)
+        visible = typing.cast("VisibleInfo", self.calculate_visible(self._rendered_size, focus))
 
-        start_row = top.trim
+        start_row = visible.top.trim
         maxcol = self._rendered_size[0]
 
-        if top.fill:
-            pos = top.fill[-1].position
+        if visible.top.fill:
+            pos = visible.top.fill[-1].position
         else:
-            pos = mid.focus_pos
+            pos = visible.middle.focus_pos
 
         prev, pos = self._body.get_prev(pos)
         while prev is not None:
@@ -659,9 +680,9 @@ class ListBox(Widget, WidgetContainerMixin):
         if not self._body:
             return 0
 
-        _mid, top, _bottom = self.calculate_visible(size, focus)
-        if top.fill:
-            first_pos = top.fill[-1].position
+        visible = typing.cast("VisibleInfo", self.calculate_visible(size, focus))
+        if visible.top.fill:
+            first_pos = visible.top.fill[-1].position
         else:
             first_pos = self.focus_position
 
@@ -679,8 +700,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if not self._body:
             return 1
 
-        _mid, top, bottom = self.calculate_visible(size, focus)
-        return 1 + len(top.fill) + len(bottom.fill)
+        visible = typing.cast("VisibleInfo", self.calculate_visible(size, focus))
+        return 1 + len(visible.top.fill) + len(visible.bottom.fill)
 
     def render(
         self,
@@ -700,11 +721,11 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return SolidCanvas(" ", maxcol, maxrow)
 
-        _ignore, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
-        trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
-        trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
+        _ignore, focus_widget, focus_pos, focus_rows, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
+        trim_top, fill_above = typing.cast("VisibleInfoTopBottom", top)  # pylint: disable=unpacking-non-sequence
+        trim_bottom, fill_below = typing.cast("VisibleInfoTopBottom", bottom)  # pylint: disable=unpacking-non-sequence
 
-        combinelist: list[tuple[Canvas, int, bool]] = []
+        combinelist: list[tuple[Canvas, Hashable, bool]] = []
         rows = 0
         fill_above.reverse()  # fill_above is in bottom-up order
         for widget, w_pos, w_rows in fill_above:
@@ -812,7 +833,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return None
 
-        offset_inset, _ignore1, _ignore2, _ignore3, cursor = middle  # pylint: disable=unpacking-non-sequence
+        offset_inset, _ignore1, _ignore2, _ignore3, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
         if not cursor:
             return None
 
@@ -849,7 +870,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if focus_widget is None:
             raise IndexError("Can't set focus, ListBox is empty")
 
-        self.set_focus_pending = coming_from, focus_widget, focus_pos
+        self.set_focus_pending = coming_from, focus_widget, focus_pos  # type: ignore[assignment]
         self._body.set_focus(position)
 
     def get_focus(self):
@@ -869,7 +890,7 @@ class ListBox(Widget, WidgetContainerMixin):
         return self._body.get_focus()
 
     @property
-    def focus(self) -> AbstractWidget | None:
+    def focus(self) -> AbstractFlowWidget | None:
         """
         the child widget in focus or None when ListBox is empty.
 
@@ -901,12 +922,13 @@ class ListBox(Widget, WidgetContainerMixin):
 
     def _contents(self):
         # noinspection PyMethodParameters
-        class ListBoxContents:
+        class ListBoxContents(Sized):
             # pylint: disable=no-self-argument
 
             __getitem__ = self._contents__getitem__
 
-            __len__ = self.__len__
+            def __len__(inner_self) -> int:
+                return len(self)
 
             def __repr__(inner_self) -> str:
                 return f"<{inner_self.__class__.__name__} for {self!r} at 0x{id(inner_self):X}>"
@@ -1126,7 +1148,7 @@ class ListBox(Widget, WidgetContainerMixin):
         position,
         offset_inset: int = 0,
         coming_from: Literal["above", "below"] | None = None,
-        cursor_coords: tuple[int, int] | None = None,
+        cursor_coords: tuple[int | str, int] | tuple[int | str] | None = None,
         snap_rows: int | None = None,
     ) -> None:
         """
@@ -1146,9 +1168,8 @@ class ListBox(Widget, WidgetContainerMixin):
         :type offset_inset: int
         :param coming_from: either 'above', 'below' or unspecified `None`
         :type coming_from: str
-        :param cursor_coords: (x, y) tuple indicating the desired
-            column and row for the cursor, a (x,) tuple indicating only
-            the column for the cursor, or unspecified
+        :param cursor_coords: (x, y) tuple indicating the desired column and row for the cursor,
+            a (x,) tuple indicating only the column for the cursor, or unspecified
         :type cursor_coords: (int, int)
         :param snap_rows: the maximum number of extra rows to scroll
             when trying to "snap" a selectable focus into the view
@@ -1207,7 +1228,7 @@ class ListBox(Widget, WidgetContainerMixin):
         if not hasattr(target, "move_cursor_to_coords"):
             return
 
-        attempt_rows = []
+        attempt_rows: Iterable[int] = []
 
         if len(cursor_coords) == 1:
             # only column (not row) specified
@@ -1307,8 +1328,9 @@ class ListBox(Widget, WidgetContainerMixin):
             return key
 
         if focus_widget.selectable():
-            key = focus_widget.keypress((maxcol,), key)
-            if key is None:
+            if handled := focus_widget.keypress((maxcol,), key):
+                key = handled
+            else:
                 self.make_cursor_visible((maxcol, maxrow))
                 return None
 
@@ -1426,8 +1448,8 @@ class ListBox(Widget, WidgetContainerMixin):
         if middle is None:
             return True
 
-        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
-        _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
+        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
+        _trim_bottom, fill_below = typing.cast("VisibleInfoTopBottom", bottom)  # pylint: disable=unpacking-non-sequence
 
         row_offset = focus_row_offset + focus_rows
         rows = focus_rows
@@ -1978,7 +2000,7 @@ class ListBox(Widget, WidgetContainerMixin):
             if self._body.get_prev(pos) == (None, None):
                 result.insert(0, "top")
 
-        return result
+        return result  # type: ignore[return-value]
 
     def __iter__(self):
         """

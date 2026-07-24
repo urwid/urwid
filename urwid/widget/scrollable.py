@@ -528,16 +528,16 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
         # Use hasattr instead of protocol: hasattr will return False in case of getattr raise AttributeError
         # Use __length_hint__ first since it's less resource intensive
-        use_relative = (
-            isinstance(ow_base, SupportsRelativeScroll)
-            and any(hasattr(ow_base, attrib) for attrib in ("__length_hint__", "__len__"))
-            and ow_base.require_relative_scroll(size, focus)
-        )
+        require_absolute = True
 
-        if use_relative:
+        if (
+            isinstance(ow_base, SupportsRelativeScroll)
+            and callable(len_getter := getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", None)))
+            and ow_base.require_relative_scroll(size, focus)
+        ):
             # `operator.length_hint` is Protocol (Spec) over class base and can end false-negative on the instance
             # use length_hint-like approach with safe `AttributeError` handling
-            ow_len = getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", int))()
+            ow_len = len_getter()
             visible_amount = ow_base.get_visible_amount(ow_size, focus)
             pos = ow_base.get_first_visible_pos(ow_size, focus)
 
@@ -546,21 +546,24 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             posmax = ow_len - visible_amount
             thumb_weight = min(1.0, visible_amount / max(1, ow_len))
 
-            if ow_len == visible_amount:
-                # Corner case: formally all contents indexes should be visible, but this does not mean all rows
-                use_relative = False
+            # Corner case possible: formally all contents indexes should be visible, but this does not mean all rows
+            if ow_len != visible_amount:
+                require_absolute = False
 
-        if not use_relative:
-            if ow_base.rows_max(size, focus) > maxrow:
-                # re-calculate using wrapped size
-                ow_rows_max = ow_base.rows_max(ow_size, focus)
-                pos = ow_base.get_scrollpos(ow_size, focus)
-                posmax = ow_rows_max - maxrow
-                thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+        if require_absolute:
+            if isinstance(ow_base, SupportsScroll):
+                if ow_base.rows_max(size, focus) > maxrow:
+                    # re-calculate using wrapped size
+                    ow_rows_max = ow_base.rows_max(ow_size, focus)
+                    pos = ow_base.get_scrollpos(ow_size, focus)
+                    posmax = ow_rows_max - maxrow
+                    thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
 
+                else:
+                    # Canvas fits without scrolling - no scrollbar needed
+                    return None
             else:
-                # Canvas fits without scrolling - no scrollbar needed
-                return None
+                raise TypeError(f"Not a scrollable widget: {ow_base!r}")
 
         # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
         thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment
