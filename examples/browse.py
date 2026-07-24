@@ -132,7 +132,7 @@ class DirectoryWidget(FlagFileWidget):
         return node.get_key()
 
 
-class FileNode(urwid.TreeNode):
+class FileNode(urwid.TreeNode[str]):
     """Metadata storage for individual files"""
 
     def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:

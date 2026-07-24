@@ -55,14 +55,14 @@ class ExampleTreeWidget(urwid.TreeWidget):
         return self.get_node().get_value()["name"]
 
 
-class ExampleNode(urwid.TreeNode):
+class ExampleNode(urwid.TreeNode[str | None]):
     """Data storage object for leaf nodes"""
 
     def load_widget(self) -> ExampleTreeWidget:
         return ExampleTreeWidget(self)
 
 
-class ExampleParentNode(urwid.ParentNode):
+class ExampleParentNode(urwid.ParentNode[SampleTree]):
     """Data storage object for interior/parent nodes"""
 
     def load_widget(self) -> ExampleTreeWidget:

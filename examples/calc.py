@@ -225,7 +225,7 @@ class ParentEdit(urwid.Edit):
         return key
 
 
-class CellWalker(urwid.ListWalker):
+class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text]):
     def __init__(self, content: Iterable[Cell]) -> None:
         self.content = urwid.MonitoredList(content)
         self.content.set_modified_callback(self._modified)
