@@ -38,6 +38,7 @@ import sys
 import tempfile
 import typing
 from contextlib import suppress
+from email.message import Message
 
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import StoppingContext, get_encoding
@@ -264,7 +265,7 @@ class Screen(BaseScreen):
         self._started = False
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Not supported for web display."""
 
     def _close_connection(self) -> None:
         if self.update_method == "polling child":
@@ -501,6 +502,12 @@ def is_web_request() -> bool:
     return "REQUEST_METHOD" in os.environ
 
 
+def _request_charset() -> str:
+    content_type = Message()
+    content_type["content-type"] = os.environ.get("CONTENT_TYPE", "")
+    return content_type.get_content_charset() or "utf-8"
+
+
 def handle_short_request() -> bool:
     """
     Handle short requests such as passing keystrokes to the application
@@ -541,16 +548,23 @@ def handle_short_request() -> bool:
 
     if os.environ.get("HTTP_X_URWID_METHOD", None) == "polling":
         # this is a screen update request
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
-            data = f"Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ).decode('utf-8')}"
-            while data:
-                sys.stdout.write(data)
-                data = s.recv(BUF_SZ).decode("utf-8")
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
+                chunks = []
+                while data := s.recv(BUF_SZ):
+                    chunks.append(data)
         except OSError:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
+
+        try:
+            decoded = b"".join(chunks).decode("utf-8")
+        except UnicodeDecodeError:
+            sys.stdout.write("Status: 502 Bad Gateway\r\n\r\n")
+            return True
+
+        sys.stdout.write(f"Content-type: text/plain; charset=utf-8\r\n\r\n{decoded}")
         return True
 
     # this is a keyboard input request
@@ -560,10 +574,17 @@ def handle_short_request() -> bool:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
 
-    # FIXME: use the correct encoding based on the request
-    keydata = sys.stdin.read(MAX_READ)
-    os.write(fd, keydata.encode("ascii"))
-    os.close(fd)
+    try:
+        try:
+            keydata = sys.stdin.read(MAX_READ)
+            encoded_keydata = keydata.encode(_request_charset())
+        except (LookupError, UnicodeError):
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            return True
+        os.write(fd, encoded_keydata)
+    finally:
+        with suppress(OSError):
+            os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
 
     return True
