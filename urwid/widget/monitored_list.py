@@ -422,11 +422,11 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if isinstance(i, slice):
             focus = self._adjust_focus_on_contents_modified(i, y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [y])
-        super().__setitem__(i, y)
+            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [y])  # type: ignore[list-item]
+        super().__setitem__(i, y)  # type: ignore[index]  # int is SupportsIndex
         self.focus = focus
 
-    def __imul__(self, n: int) -> Self:
+    def __imul__(self, n: typing.SupportsIndex) -> Self:
         """
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {list(new_items)!r}")
@@ -441,11 +441,12 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> print(ml.focus)
         None
         """
-        if n > 0:
-            focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (n - 1))
+        multiplier = int(n)
+        if multiplier > 0:
+            focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (multiplier - 1))
         else:  # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
-        rval = super().__imul__(n)
+        rval = super().__imul__(multiplier)
         self.focus = focus
         return rval
 
@@ -475,7 +476,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         super().extend(items)
         self.focus = focus
 
-    def insert(self, index: int, item: _T) -> None:
+    def insert(self, index: typing.SupportsIndex, item: _T) -> None:
         """
         >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
         >>> ml.insert(-1, -1)
@@ -492,7 +493,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         super().insert(index, item)
         self.focus = focus
 
-    def pop(self, index: int = -1) -> _T:
+    def pop(self, index: typing.SupportsIndex = -1) -> _T:
         """
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, 3], focus=4)
         >>> ml.pop(3)
@@ -512,7 +513,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([0, 1], focus=1)
         """
-        focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
+        focus = self._adjust_focus_on_contents_modified(slice(index, int(index) + 1 or None))
         rval = super().pop(index)
         self.focus = focus
         return rval

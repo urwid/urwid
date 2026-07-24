@@ -55,7 +55,7 @@ class MetaSignals(abc.ABCMeta):
 def setdefaultattr(obj: typing.Any, name: str, value: _T) -> _T:
     # like dict.setdefault() for object attributes
     if hasattr(obj, name):
-        return getattr(obj, name)  # type: ignore[no-any-return]
+        return getattr(obj, name)
     setattr(obj, name, value)
     return value
 
