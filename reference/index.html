@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Reference &#8212; Urwid 4.0.2</title>
+    <title>Urwid Reference &#8212; Urwid 4.0.8</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=a084f797"></script>
+    <script src="../_static/documentation_options.js?v=1097caeb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>  
@@ -246,12 +246,12 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="widget.html#edit">Edit</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="widget.html#urwid.Edit"><code class="docutils literal notranslate"><span class="pre">Edit</span></code></a><ul>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.attrib"><code class="docutils literal notranslate"><span class="pre">Edit.attrib</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.caption"><code class="docutils literal notranslate"><span class="pre">Edit.caption</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.edit_pos"><code class="docutils literal notranslate"><span class="pre">Edit.edit_pos</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.edit_text"><code class="docutils literal notranslate"><span class="pre">Edit.edit_text</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">Edit.get_cursor_coords()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.get_edit_text"><code class="docutils literal notranslate"><span class="pre">Edit.get_edit_text()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.get_line_translation"><code class="docutils literal notranslate"><span class="pre">Edit.get_line_translation()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.get_pref_col"><code class="docutils literal notranslate"><span class="pre">Edit.get_pref_col()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.get_text"><code class="docutils literal notranslate"><span class="pre">Edit.get_text()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.insert_text"><code class="docutils literal notranslate"><span class="pre">Edit.insert_text()</span></code></a></li>
@@ -261,11 +261,16 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.move_cursor_to_coords"><code class="docutils literal notranslate"><span class="pre">Edit.move_cursor_to_coords()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.position_coords"><code class="docutils literal notranslate"><span class="pre">Edit.position_coords()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.render"><code class="docutils literal notranslate"><span class="pre">Edit.render()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.selectable"><code class="docutils literal notranslate"><span class="pre">Edit.selectable()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_align_mode"><code class="docutils literal notranslate"><span class="pre">Edit.set_align_mode()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_caption"><code class="docutils literal notranslate"><span class="pre">Edit.set_caption()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_edit_pos"><code class="docutils literal notranslate"><span class="pre">Edit.set_edit_pos()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_edit_text"><code class="docutils literal notranslate"><span class="pre">Edit.set_edit_text()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_layout"><code class="docutils literal notranslate"><span class="pre">Edit.set_layout()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_mask"><code class="docutils literal notranslate"><span class="pre">Edit.set_mask()</span></code></a></li>
-<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_text"><code class="docutils literal notranslate"><span class="pre">Edit.set_text()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.set_wrap_mode"><code class="docutils literal notranslate"><span class="pre">Edit.set_wrap_mode()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.sizing"><code class="docutils literal notranslate"><span class="pre">Edit.sizing()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.text"><code class="docutils literal notranslate"><span class="pre">Edit.text</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Edit.valid_char"><code class="docutils literal notranslate"><span class="pre">Edit.valid_char()</span></code></a></li>
 </ul>
 </li>
@@ -760,6 +765,7 @@
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.register_palette"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette_entry()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="display_modules.html#urwid.display.web.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
@@ -899,6 +905,7 @@
 <li class="toctree-l1"><a class="reference internal" href="canvas.html">Canvas Classes and Functions</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="canvas.html#canvas-classes">Canvas Classes</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="canvas.html#urwid.Canvas"><code class="docutils literal notranslate"><span class="pre">Canvas</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.content_delta"><code class="docutils literal notranslate"><span class="pre">Canvas.content_delta()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.decoded_text"><code class="docutils literal notranslate"><span class="pre">Canvas.decoded_text</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.finalize"><code class="docutils literal notranslate"><span class="pre">Canvas.finalize()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.Canvas.set_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.set_pop_up()</span></code></a></li>
@@ -916,6 +923,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="canvas.html#urwid.BlankCanvas"><code class="docutils literal notranslate"><span class="pre">BlankCanvas</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.BlankCanvas.content"><code class="docutils literal notranslate"><span class="pre">BlankCanvas.content()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="canvas.html#urwid.BlankCanvas.content_delta"><code class="docutils literal notranslate"><span class="pre">BlankCanvas.content_delta()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="canvas.html#urwid.SolidCanvas"><code class="docutils literal notranslate"><span class="pre">SolidCanvas</span></code></a><ul>
@@ -1154,7 +1162,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>
