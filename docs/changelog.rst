@@ -2,6 +2,18 @@
 Changelog
 ---------
 
+Urwid 4.0.8
+===========
+
+2026-07-26
+
+Bug fixes 🕷
+++++++++++++
+* Fix MRO for SimpleFocusListWalker: wrong order causes delayed invalidate by @penguinolog in https://github.com/urwid/urwid/pull/1204
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.7...4.0.8
+
 Urwid 4.0.7
 ===========
 
