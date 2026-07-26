@@ -239,7 +239,7 @@ class SimpleListWalker(MonitoredList[_T], ListWalker[int, _T]):
         return range(len(self))
 
 
-class SimpleFocusListWalker(MonitoredFocusList[_T], ListWalker[int, _T]):
+class SimpleFocusListWalker(ListWalker[int, _T], MonitoredFocusList[_T]):
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
