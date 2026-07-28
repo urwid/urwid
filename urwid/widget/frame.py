@@ -602,7 +602,7 @@ class Frame(
             coords = self.header.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None
         elif fp == "body":
             row_adjust = hrows
-            coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))
+            coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))  # type: ignore[attr-defined]
         else:
             row_adjust = maxrow - frows
             coords = self.footer.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None

@@ -72,10 +72,13 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
+OverlayContentsItem = tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]
+
+
 class Overlay(
     Widget,
     WidgetContainerMixin[Literal[0, 1]],
-    WidgetContainerListContentsMixin[tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]],
+    WidgetContainerListContentsMixin[OverlayContentsItem],
     typing.Generic[TopWidget, BottomWidget],
 ):
     """Overlay contains two widgets and renders one on top of the other.
@@ -609,7 +612,7 @@ class Overlay(
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
     @property
-    def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
+    def contents(self) -> MutableSequence[OverlayContentsItem]:
         """
         a list-like object similar to::
 
@@ -633,14 +636,7 @@ class Overlay(
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(
-            MutableSequence[
-                tuple[
-                    typing.Union[TopWidget, BottomWidget],
-                    OverlayOptions,
-                ]
-            ]
-        ):
+        class OverlayContents(MutableSequence[OverlayContentsItem]):
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
@@ -661,14 +657,14 @@ class Overlay(
                 for val in inner_self:
                     yield None, val
 
-            def __iter__(inner_self) -> Iterator[tuple[TopWidget | BottomWidget, OverlayOptions]]:
+            def __iter__(inner_self) -> Iterator[OverlayContentsItem]:
                 for idx in range(2):
                     yield inner_self[idx]  # type: ignore[arg-type]
 
         return OverlayContents()
 
     @contents.setter
-    def contents(self, new_contents: Sequence[tuple[TopWidget | BottomWidget, OverlayOptions]]) -> None:
+    def contents(self, new_contents: Sequence[OverlayContentsItem]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]
@@ -813,7 +809,7 @@ class Overlay(
                 self.align_type,
                 self.align_amount,
                 WHSettings.CLIP,
-                width,
+                typing.cast("int", width),
                 None,
                 self.left,
                 self.right,
@@ -824,7 +820,7 @@ class Overlay(
                 self.align_type,
                 self.align_amount,
                 self.width_type,
-                self.width_amount,
+                typing.cast("int", self.width_amount),
                 self.min_width,
                 self.left,
                 self.right,
