@@ -53,8 +53,11 @@ class MonitoredList(list[_T], typing.Generic[_T]):
     with the usual list operations append, extend, etc.
     """
 
-    def _modified(self) -> None:  # pylint: disable=method-hidden  # monkeypatch used
-        pass
+    _modified_callback: Callable[[], typing.Any] | None = None
+
+    def _modified(self) -> None:
+        if self._modified_callback is not None:
+            self._modified_callback()
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
         """
@@ -77,7 +80,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         >>> ml
         MonitoredList([1, 2, 12, 13])
         """
-        self._modified = callback  # monkeypatch
+        self._modified_callback = callback
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({list(self)!r})"
@@ -158,6 +161,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     before and/or after modification, and any time the focus index is changed.
     """
 
+    _focus_changed_callback: Callable[[int], typing.Any] | None = None
+    _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
+
     def __init__(self, *args, focus: int = 0, **kwargs) -> None:
         """
         This is a list that tracks one item as the focus item.  If items
@@ -183,7 +189,6 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         super().__init__(*args, **kwargs)
 
         self._focus = focus
-        self._focus_modified = lambda ml, indices, new_items: None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
@@ -216,8 +221,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         This function may call self._focus_changed when the focus
         is modified, passing the new focus position to the
         callback just before changing the old focus setting.
-        That method may be overridden on the
-        instance with set_focus_changed_callback().
+        The callback may be assigned with set_focus_changed_callback().
 
         >>> ml = MonitoredFocusList([9, 10, 11])
         >>> ml.focus = 2
@@ -243,8 +247,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             self._focus_changed(index)
         self._focus = index
 
-    def _focus_changed(self, new_focus: int) -> None:  # pylint: disable=method-hidden  # monkeypatch used
-        pass
+    def _focus_changed(self, new_focus: int) -> None:
+        if self._focus_changed_callback is not None:
+            self._focus_changed_callback(new_focus)
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
         """
@@ -273,13 +278,15 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([12, 13, 14, 2, 3, 10], focus=5)
         """
-        self._focus_changed = callback  # Monkeypatch
+        self._focus_changed_callback = callback
 
-    def _validate_contents_modified(  # pylint: disable=method-hidden  # monkeypatch used
+    def _validate_contents_modified(
         self,
         indices: tuple[int, int, int],
         new_items: Collection[_T],
     ) -> int | None:
+        if self._validate_contents_modified_callback is not None:
+            return self._validate_contents_modified_callback(indices, new_items)
         return None
 
     def set_validate_contents_modified(
@@ -301,7 +308,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             empty if items are being removed, if step==1 this list may
             contain any number of items
         """
-        self._validate_contents_modified = callback  # Monkeypatch
+        self._validate_contents_modified_callback = callback
 
     def _adjust_focus_on_contents_modified(self, slc: slice, new_items: Collection[_T] = ()) -> int:
         """
