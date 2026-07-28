@@ -32,11 +32,13 @@ def main():
     text_header = "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."
     text_intro = [
         ("important", "Text"),
-        " widgets are the most common in "
-        "any urwid program.  This Text widget was created "
-        "without setting the wrap or align mode, so it "
-        "defaults to left alignment with wrapping on space "
-        "characters.  ",
+        (
+            " widgets are the most common in "
+            "any urwid program.  This Text widget was created "
+            "without setting the wrap or align mode, so it "
+            "defaults to left alignment with wrapping on space "
+            "characters.  "
+        ),
         ("important", "Change the window width"),
         " to see how the widgets on this page react.  This Text widget is wrapped with a ",
         ("important", "Padding"),
@@ -81,10 +83,12 @@ def main():
     text_edit = [
         "The ",
         ("important", "Edit"),
-        " widget is a simple text editing widget.  It supports cursor "
-        "movement and tries to maintain the current column when focus "
-        "moves to another edit widget.  It wraps and aligns the same "
-        "way as Text widgets.",
+        (
+            " widget is a simple text editing widget.  It supports cursor "
+            "movement and tries to maintain the current column when focus "
+            "moves to another edit widget.  It wraps and aligns the same "
+            "way as Text widgets."
+        ),
     ]
     text_edit_cap1 = ("editcp", "This is a caption.  Edit here: ")
     text_edit_text1 = "editable stuff"
@@ -105,10 +109,12 @@ def main():
     text_edit_padding = ("editcp", "Edit widget within a Padding widget ")
     text_columns1 = [
         ("important", "Columns"),
-        " are used to share horizontal screen space.  "
-        "This one splits the space into two parts with "
-        "three characters between each column.  The "
-        "contents of each column is a single widget.",
+        (
+            " are used to share horizontal screen space.  "
+            "This one splits the space into two parts with "
+            "three characters between each column.  The "
+            "contents of each column is a single widget."
+        ),
     ]
     text_columns2 = [
         "When you need to put more than one widget into a column you can use a ",
@@ -136,11 +142,13 @@ def main():
     text_gridflow = [
         "A ",
         ("important", "GridFlow"),
-        " widget "
-        "may be used to display a list of flow widgets with equal "
-        "widths.  Widgets that don't fit on the first line will "
-        "flow to the next.  This is useful for small widgets that "
-        "you want to keep together such as ",
+        (
+            " widget "
+            "may be used to display a list of flow widgets with equal "
+            "widths.  Widgets that don't fit on the first line will "
+            "flow to the next.  This is useful for small widgets that "
+            "you want to keep together such as "
+        ),
         ("important", "Button"),
         ", ",
         ("important", "CheckBox"),

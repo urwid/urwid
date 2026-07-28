@@ -284,7 +284,7 @@ class GLibEventLoop(EventLoop):
                 return f(*args, **kwargs)
             except ExitMainLoop:
                 self._loop.quit()
-            except BaseException as exc:
+            except BaseException as exc:  # noqa: BLE001  # special case
                 self._exc = exc
                 if self._loop.is_running():
                     self._loop.quit()

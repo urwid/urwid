@@ -1559,7 +1559,7 @@ class Terminal(Widget):
                     # noinspection PyBroadException
                     try:
                         self.command()
-                    except BaseException:  # special case
+                    except BaseException:  # noqa: BLE001  # special case
                         sys.stderr.write(traceback.format_exc())
                         sys.stderr.flush()
                 finally:

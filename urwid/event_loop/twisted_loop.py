@@ -267,7 +267,7 @@ class TwistedEventLoop(EventLoop):
             except ExitMainLoop:
                 if self.manage_reactor:
                     self.reactor.stop()
-            except BaseException as exc:
+            except BaseException as exc:  # noqa: BLE001  # we will crash if needed
                 print(sys.exc_info())
                 self._exc = exc
                 if self.manage_reactor:
