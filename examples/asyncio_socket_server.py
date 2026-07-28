@@ -33,7 +33,7 @@ def build_widgets():
             # widget is dead; the main loop must've been destroyed
             return
 
-        widget.set_text(datetime.now().isoformat())
+        widget.set_text(datetime.now().isoformat())  # noqa: DTZ005  # use naive time
 
         # Schedule us to update the clock again in one second
         loop.call_later(1, update_clock, widget_ref)

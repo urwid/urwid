@@ -195,7 +195,7 @@ class TornadoEventLoop(EventLoop):
                 return f(*args, **kwargs)
             except ExitMainLoop:
                 pass  # handled later
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  # special case
                 self._exc = exc
 
             if self._idle_asyncio_handle:

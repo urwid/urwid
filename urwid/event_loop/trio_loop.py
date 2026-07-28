@@ -162,7 +162,7 @@ class TrioEventLoop(EventLoop):
 
         try:
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001  # would be handled
             self._handle_main_loop_exception(exc)
 
     async def run_async(self) -> None:
@@ -191,7 +191,7 @@ class TrioEventLoop(EventLoop):
                 await self._main_task()
             finally:
                 trio.lowlevel.remove_instrument(emulate_idle_callbacks)
-        except BaseException as exc:
+        except BaseException as exc:  # noqa: BLE001  # would be handled
             self._handle_main_loop_exception(exc)
 
     def watch_file(
