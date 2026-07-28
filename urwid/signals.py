@@ -221,7 +221,7 @@ class Signals:
     ) -> tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]:
         # Turn weak_args into weakrefs and prepend them to user_args
         w_args = tuple(weakref.ref(w_arg, callback) for w_arg in weak_args)
-        args = tuple(user_args) or ()
+        args = tuple(user_args)
         return (w_args, args)
 
     def disconnect(
