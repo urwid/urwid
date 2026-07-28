@@ -108,7 +108,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
                 bottom = valign[1]
                 normalized_valign = VAlign.BOTTOM
             else:
-                normalized_valign = valign
+                normalized_valign = valign  # type: ignore[assignment]
 
         elif not isinstance(valign, (VAlign, str)):
             raise FillerError(f"invalid valign: {valign!r}")
