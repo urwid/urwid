@@ -75,7 +75,7 @@ class OverlayOptions(typing.NamedTuple):
 class Overlay(
     Widget,
     WidgetContainerMixin[Literal[0, 1]],
-    WidgetContainerListContentsMixin[OverlayOptions],
+    WidgetContainerListContentsMixin[tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]],
     typing.Generic[TopWidget, BottomWidget],
 ):
     """Overlay contains two widgets and renders one on top of the other.
@@ -608,7 +608,7 @@ class Overlay(
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
-    @property  # type: ignore[override]
+    @property
     def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
         """
         a list-like object similar to::
@@ -667,7 +667,7 @@ class Overlay(
 
         return OverlayContents()
 
-    @contents.setter  # type: ignore[override]
+    @contents.setter
     def contents(self, new_contents: Sequence[tuple[TopWidget | BottomWidget, OverlayOptions]]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")

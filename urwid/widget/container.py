@@ -36,7 +36,7 @@ else:
         """Generic protocol support."""
 
 
-_WidgetParams = typing.TypeVar("_WidgetParams", bound=tuple[typing.Any, ...])
+_ContentsItem = typing.TypeVar("_ContentsItem", bound=tuple[typing.Any, ...])
 
 
 # Ideally, we would like to use an IntFlag coupled with enum.auto().
@@ -161,7 +161,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         """
 
 
-class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
+class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
@@ -186,11 +186,11 @@ class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
 
     @property
     @abc.abstractmethod
-    def contents(self) -> MutableSequence[tuple[AbstractWidget, _WidgetParams]]:
+    def contents(self) -> MutableSequence[_ContentsItem]:
         """The contents of container as a list of (widget, options)"""
 
     @contents.setter
-    def contents(self, new_contents: Sequence[tuple[AbstractWidget, _WidgetParams]]) -> None:
+    def contents(self, new_contents: Sequence[_ContentsItem]) -> None:
         """The contents of container as a list of (widget, options)"""
 
     @property
