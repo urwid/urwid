@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 4.0.9
+===========
+
+2026-08-14
+
+Documentation 🕮
+++++++++++++++++
+* Typing: fix `WidgetContainerListContentsMixin` typing by @penguinolog in https://github.com/urwid/urwid/pull/1210
+* Typing: simplify internal annotations by @penguinolog in https://github.com/urwid/urwid/pull/1211
+* Typing: explicit annotate enum literals for widget constants by @penguinolog in https://github.com/urwid/urwid/pull/1218
+Refactoring 🛠
+++++++++++++++
+* Refactoring: get rid of monkeypatching in monitored_list by @penguinolog in https://github.com/urwid/urwid/pull/1213
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.8...4.0.9
+
 Urwid 4.0.8
 ===========
 
