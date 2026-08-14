@@ -86,3 +86,203 @@ class HandleShortRequestTest(unittest.TestCase):
 
         sock.__exit__.assert_called_once()
         self.assertEqual("Status: 502 Bad Gateway\r\n\r\n", stdout.getvalue())
+
+
+class ScreenGetInputTest(unittest.TestCase):
+    """Tests for Screen.get_input method with improved validation."""
+
+    def setUp(self) -> None:
+        self.screen = web.Screen()
+        self.screen.input_fd = 10
+        self.screen.pipe_name = "/tmp/test_pipe"
+        self.screen.update_method = "multipart"
+        self.screen.input_tail = ""  # Initialize input_tail attribute
+
+    def _make_selector_mock(self, has_input: bool):
+        """Create a mock selector that optionally returns file descriptor events."""
+        selector = mock.MagicMock()
+        if has_input:
+            event = mock.MagicMock()
+            event.fd = 10
+            selector.__enter__.return_value = selector
+            selector.__exit__.return_value = None
+            selector.select.return_value = [(event, None)]
+        else:
+            selector.__enter__.return_value = selector
+            selector.__exit__.return_value = None
+            selector.select.return_value = []
+        return selector
+
+    def test_get_input_no_input_available_raw_false(self) -> None:
+        """When no input available and raw_keys=False, returns empty list."""
+        selector_mock = self._make_selector_mock(has_input=False)
+
+        with mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, [])
+
+    def test_get_input_no_input_available_raw_true(self) -> None:
+        """When no input available and raw_keys=True, returns tuple of empty lists."""
+        selector_mock = self._make_selector_mock(has_input=False)
+
+        with mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock):
+            result = self.screen.get_input(raw_keys=True)
+
+        self.assertEqual(result, ([], []))
+
+    def test_get_input_regular_keys(self) -> None:
+        """Returns regular keyboard input."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "a\nb\nc\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["a", "b", "c"])
+
+    def test_get_input_valid_window_resize(self) -> None:
+        """Handles valid window resize commands correctly."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize 80 24\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["window resize"])
+        self.assertEqual(self.screen.screen_size, (80, 24))
+
+    def test_get_input_window_resize_with_regular_keys(self) -> None:
+        """Handles window resize mixed with regular input."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "key1\nwindow resize 120 40\nkey2\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["key1", "key2", "window resize"])
+        self.assertEqual(self.screen.screen_size, (120, 40))
+
+    def test_get_input_invalid_resize_wrong_param_count_too_few(self) -> None:
+        """Rejects window resize with too few parameters."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize 80\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        # Invalid resize should be treated as regular input, not as resize command
+        self.assertEqual(result, ["window resize 80"])
+
+    def test_get_input_invalid_resize_wrong_param_count_too_many(self) -> None:
+        """Rejects window resize with too many parameters."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize 80 24 extra\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["window resize 80 24 extra"])
+
+    def test_get_input_invalid_resize_non_decimal_negative(self) -> None:
+        """Rejects window resize with negative dimensions."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize -80 24\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["window resize -80 24"])
+
+    def test_get_input_invalid_resize_non_decimal_float(self) -> None:
+        """Rejects window resize with floating point dimensions."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize 80.5 24\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["window resize 80.5 24"])
+
+    def test_get_input_invalid_resize_non_decimal_alpha(self) -> None:
+        """Rejects window resize with non-numeric dimensions."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "window resize abc 24\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["window resize abc 24"])
+
+    def test_get_input_input_tail_buffering(self) -> None:
+        """Properly buffers incomplete lines at the end of input."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        self.screen.input_tail = "incom"
+        keydata = "plete\nkey2\n"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["incomplete", "key2"])
+        self.assertEqual(self.screen.input_tail, "")
+
+    def test_get_input_input_tail_carried_forward(self) -> None:
+        """Incomplete last line is carried to next read."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        keydata = "key1\nincompl"
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            result = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(result, ["key1"])
+        self.assertEqual(self.screen.input_tail, "incompl")
