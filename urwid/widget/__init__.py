@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import typing
+
 from .attr_map import AttrMap, AttrMapError
 from .attr_wrap import AttrWrap
 from .bar_graph import BarGraph, BarGraphError, BarGraphMeta, GraphVScale, scale_bar_values
@@ -178,24 +180,24 @@ __all__ = (
 )
 
 # Backward compatibility
-FLOW = Sizing.FLOW
-BOX = Sizing.BOX
-FIXED = Sizing.FIXED
+FLOW: typing.Literal[Sizing.FLOW] = Sizing.FLOW
+BOX: typing.Literal[Sizing.BOX] = Sizing.BOX
+FIXED: typing.Literal[Sizing.FIXED] = Sizing.FIXED
 
-LEFT = Align.LEFT
-RIGHT = Align.RIGHT
-CENTER = Align.CENTER
+LEFT: typing.Literal[Align.LEFT] = Align.LEFT
+RIGHT: typing.Literal[Align.RIGHT] = Align.RIGHT
+CENTER: typing.Literal[Align.CENTER] = Align.CENTER
 
-TOP = VAlign.TOP
-MIDDLE = VAlign.MIDDLE
-BOTTOM = VAlign.BOTTOM
+TOP: typing.Literal[VAlign.TOP] = VAlign.TOP
+MIDDLE: typing.Literal[VAlign.MIDDLE] = VAlign.MIDDLE
+BOTTOM: typing.Literal[VAlign.BOTTOM] = VAlign.BOTTOM
 
-SPACE = WrapMode.SPACE
-ANY = WrapMode.ANY
-CLIP = WrapMode.CLIP
-ELLIPSIS = WrapMode.ELLIPSIS
+SPACE: typing.Literal[WrapMode.SPACE] = WrapMode.SPACE
+ANY: typing.Literal[WrapMode.ANY] = WrapMode.ANY
+CLIP: typing.Literal[WrapMode.CLIP] = WrapMode.CLIP
+ELLIPSIS: typing.Literal[WrapMode.ELLIPSIS] = WrapMode.ELLIPSIS
 
-PACK = WHSettings.PACK
-GIVEN = WHSettings.GIVEN
-RELATIVE = WHSettings.RELATIVE
-WEIGHT = WHSettings.WEIGHT
+PACK: typing.Literal[WHSettings.PACK] = WHSettings.PACK
+GIVEN: typing.Literal[WHSettings.GIVEN] = WHSettings.GIVEN
+RELATIVE: typing.Literal[WHSettings.RELATIVE] = WHSettings.RELATIVE
+WEIGHT: typing.Literal[WHSettings.WEIGHT] = WHSettings.WEIGHT
