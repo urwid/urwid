@@ -456,9 +456,20 @@ class Screen(BaseScreen):
 
         for k in keys[:-1]:
             if k.startswith("window resize "):
-                _ign1, _ign2, x, y = k.split(" ", 3)
+                input_resize = k.removeprefix("window resize ").split(" ")
+                if len(input_resize) != 2:
+                    pending_input.append(k)
+                    continue
+
+                x, y = input_resize
+                if not x.isdecimal() or not y.isdecimal():
+                    self.logger.debug("Invalid resize input format: %r", k)
+                    pending_input.append(k)
+                    continue
+
                 self._set_screen_size(int(x), int(y))
                 resized = True
+
             else:
                 pending_input.append(k)
         if resized:
