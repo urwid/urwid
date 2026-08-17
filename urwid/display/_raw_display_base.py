@@ -757,7 +757,7 @@ class Screen(BaseScreen, RealTerminal):
     ) -> tuple[
         list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes],
+        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes] | None,
     ]:
         """On the last row we need to slide the bottom right character into place.
 
@@ -767,6 +767,10 @@ class Screen(BaseScreen, RealTerminal):
         XXXXXXXXXXXXXXXXXXXXYZ
 
         Y will be drawn after Z, shifting Z into position.
+
+        When the whole row is a single grapheme, as happens with a double width
+        character on a two column screen, there is no Y to draw after Z.
+        The row is then returned untouched and no insert sequence is produced.
         """
 
         new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
@@ -774,6 +778,8 @@ class Screen(BaseScreen, RealTerminal):
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
         last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
         if last_offs == 0:
+            if not new_row:
+                return row, 0, None
             z_text = last_text
             del new_row[-1]
             # we need another segment
