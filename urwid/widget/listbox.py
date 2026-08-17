@@ -875,6 +875,9 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         if coming_from not in {"above", "below", None}:
             raise ListBoxError(f"coming_from value invalid: {coming_from!r}")
 
+        if not hasattr(self._body, "set_focus"):
+            raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
+
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:
             raise IndexError("Can't set focus, ListBox is empty")
@@ -1037,6 +1040,9 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         if focus_widget.selectable():
             return
 
+        if not hasattr(self._body, "set_focus"):
+            raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
+
         if trim_bottom:
             fill_below = fill_below[:-1]
         new_row_offset = row_offset + focus_rows
@@ -1066,6 +1072,9 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         if focus_pos == position:
             # do nothing
             return None
+
+        if not hasattr(self._body, "set_focus"):
+            raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
 
         # restore old focus temporarily
         self._body.set_focus(focus_pos)
@@ -1193,6 +1202,9 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         """
         (maxcol, maxrow) = size
 
+        if not hasattr(self._body, "set_focus"):
+            raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
+
         # update pref_col before change
         if cursor_coords:
             self.pref_col = cursor_coords[0]
@@ -1200,6 +1212,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
             self.update_pref_col_from_focus((maxcol, maxrow))
 
         self._invalidate()
+
         self._body.set_focus(position)
         widget, _ignore = self._body.get_focus()
         # focus was just set to `position`, so the walker has a focus widget
@@ -1379,10 +1392,16 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         return key
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
+        if not hasattr(self.body, "positions"):
+            raise TypeError(f"{type(self.body)}.positions is not implemented.")
+
         self.focus_position = next(iter(self.body.positions()))
         self.set_focus_valign(VAlign.TOP)
 
     def _keypress_max_right(self, size: tuple[int, int]) -> None:
+        if not hasattr(self.body, "positions"):
+            raise TypeError(f"{type(self.body)}.positions is not implemented.")
+
         self.focus_position = next(iter(self.body.positions(reverse=True)))
         self.set_focus_valign(VAlign.BOTTOM)
 

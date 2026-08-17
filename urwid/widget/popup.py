@@ -121,7 +121,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     top=top,
                 )
             else:
-                self._current_widget.set_overlay_parameters(
+                typing.cast("Overlay", self._current_widget).set_overlay_parameters(
                     align=Align.LEFT,
                     width=overlay_width,
                     valign=VAlign.TOP,
