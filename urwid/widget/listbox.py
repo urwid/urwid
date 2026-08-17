@@ -159,7 +159,10 @@ class ListWalker(
             return None, None
 
 
-class SimpleListWalker(MonitoredList[_T], ListWalker[int, _T]):
+class SimpleListWalker(
+    MonitoredList[_T],
+    ListWalker[int, _T],
+):
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
@@ -239,7 +242,10 @@ class SimpleListWalker(MonitoredList[_T], ListWalker[int, _T]):
         return range(len(self))
 
 
-class SimpleFocusListWalker(ListWalker[int, _T], MonitoredFocusList[_T]):
+class SimpleFocusListWalker(
+    MonitoredFocusList[_T],
+    ListWalker[typing.SupportsIndex, _T],
+):
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         contents -- list to copy into this object
@@ -262,6 +268,10 @@ class SimpleFocusListWalker(ListWalker[int, _T], MonitoredFocusList[_T]):
         super().__init__(contents)
         self.wrap_around = wrap_around
 
+    def _modified(self) -> None:
+        # Prefer ListWalker's signal emission over MonitoredList's callback hook.
+        ListWalker._modified(self)  # pylint: disable=protected-access
+
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
         """
         This function inherited from MonitoredList is not
@@ -276,25 +286,27 @@ class SimpleFocusListWalker(ListWalker[int, _T], MonitoredFocusList[_T]):
         self.focus = position
         self._modified()
 
-    def next_position(self, position: int) -> int:
+    def next_position(self, position: typing.SupportsIndex) -> int:
         """
         Return position after start_from.
         """
-        if len(self) - 1 <= position:
+        pos = int(position)
+        if len(self) - 1 <= pos:
             if self.wrap_around:
                 return 0
             raise IndexError
-        return position + 1
+        return pos + 1
 
-    def prev_position(self, position: int) -> int:
+    def prev_position(self, position: typing.SupportsIndex) -> int:
         """
         Return position before start_from.
         """
-        if position <= 0:
+        pos = int(position)
+        if pos <= 0:
             if self.wrap_around:
                 return len(self) - 1
             raise IndexError
-        return position - 1
+        return pos - 1
 
     def positions(self, reverse: bool = False) -> Iterable[int]:
         """
@@ -410,10 +422,12 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         self.pref_col: int | str = "left"
 
         # variable for delayed focus change used by set_focus
-        self.set_focus_pending = "first selectable"
+        self.set_focus_pending: (
+            Literal["first selectable"] | tuple[Literal["above", "below"] | None, AbstractWidget, typing.Any] | None
+        ) = "first selectable"
 
         # variable for delayed valign change used by set_focus_valign
-        self.set_focus_valign_pending = None
+        self.set_focus_valign_pending: tuple[VAlign | Literal[WHSettings.RELATIVE], int | None] | None = None
 
         # used for scrollable protocol
         self._rows_max_cached = 0
@@ -796,22 +810,17 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
                 bottom_pos = fill_below[-1][1]
 
             rendered_positions = frozenset(idx for _, idx, _ in combinelist)
-            widget, next_pos = self._body.get_next(bottom_pos)
-            while all(
-                (
-                    widget is not None,
-                    next_pos is not None,
-                    next_pos not in rendered_positions,
-                )
-            ):
-                if widget.rows((maxcol,), False):
+            next_widget, next_pos = self._body.get_next(bottom_pos)
+            while next_widget is not None and next_pos is not None and next_pos not in rendered_positions:
+                if next_widget.rows((maxcol,), False):
                     raise ListBoxError(
                         f"Listbox contents too short!\n"
                         f"Render top={top!r}, middle={middle!r}, bottom={bottom!r}\n"
-                        f"Not rendered not empty widgets available (first is {widget!r} with position {next_pos!r})"
+                        f"Not rendered not empty widgets available "
+                        f"(first is {next_widget!r} with position {next_pos!r})"
                     )
 
-                widget, next_next_pos = self._body.get_next(next_pos)
+                next_widget, next_next_pos = self._body.get_next(next_pos)
                 if next_pos == next_next_pos:
                     raise ListBoxError(
                         f"Next position after {next_pos!r} is invalid (points to itself)\n"
@@ -870,7 +879,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         if focus_widget is None:
             raise IndexError("Can't set focus, ListBox is empty")
 
-        self.set_focus_pending = coming_from, focus_widget, focus_pos  # type: ignore[assignment]
+        self.set_focus_pending = coming_from, focus_widget, focus_pos
         self._body.set_focus(position)
 
     def get_focus(self):
@@ -987,7 +996,10 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
     def _set_focus_valign_complete(self, size: tuple[int, int], focus: bool) -> None:
         """Finish setting the offset and inset now that we have have a maxcol & maxrow."""
         (maxcol, maxrow) = size
-        vt, va = self.set_focus_valign_pending
+        pending = self.set_focus_valign_pending
+        if pending is None:  # pragma: no cover  # only called with a pending valign
+            return
+        vt, va = pending
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
 
@@ -1015,7 +1027,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
-        if middle is None:
+        if middle is None or top is None or bottom is None:
             return
 
         row_offset, focus_widget, _focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1043,7 +1055,10 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
             return self._set_focus_first_selectable((maxcol, maxrow), focus)
         if self.set_focus_valign_pending is not None:
             return self._set_focus_valign_complete((maxcol, maxrow), focus)
-        coming_from, _focus_widget, focus_pos = self.set_focus_pending
+        pending = self.set_focus_pending
+        if pending is None or isinstance(pending, str):  # pragma: no cover  # nothing to complete
+            return None
+        coming_from, _focus_widget, focus_pos = pending
         self.set_focus_pending = None
 
         # new position
@@ -1056,7 +1071,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         self._body.set_focus(focus_pos)
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus)
-        if middle is None:
+        if middle is None or top is None or bottom is None:
             return None
 
         focus_offset, _focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1080,7 +1095,8 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         # failed to find widget among visible widgets
         self._body.set_focus(position)
         widget, position = self._body.get_focus()
-        rows = widget.rows((maxcol,), focus)
+        # focus was just set to `position`, so the walker has a focus widget
+        rows = typing.cast("AbstractFlowWidget", widget).rows((maxcol,), focus)
 
         if coming_from == "below":
             offset = 0
@@ -1116,7 +1132,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
             self.inset_fraction = (0, 1)
         else:
             target, _ignore = self._body.get_focus()
-            tgt_rows = target.rows((maxcol,), True)
+            tgt_rows = typing.cast("AbstractFlowWidget", target).rows((maxcol,), True)
             if offset_inset + tgt_rows <= 0:
                 raise ListBoxError(f"Invalid offset_inset: {offset_inset!r}, only {tgt_rows!r} rows in target!")
             self.offset_rows = 0
@@ -1185,7 +1201,9 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
         self._invalidate()
         self._body.set_focus(position)
-        target, _ignore = self._body.get_focus()
+        widget, _ignore = self._body.get_focus()
+        # focus was just set to `position`, so the walker has a focus widget
+        target = typing.cast("AbstractFlowWidget", widget)
         tgt_rows = target.rows((maxcol,), True)
         if snap_rows is None:
             snap_rows = maxrow - 1
@@ -1264,7 +1282,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         """Return (offset rows, inset rows) for focus widget."""
         (maxcol, _maxrow) = size
         focus_widget, _pos = self._body.get_focus()
-        focus_rows = focus_widget.rows((maxcol,), True)
+        focus_rows = typing.cast("AbstractFlowWidget", focus_widget).rows((maxcol,), True)
         offset_rows = self.offset_rows
         inset_rows = 0
         if offset_rows == 0:
@@ -1372,7 +1390,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         (maxcol, maxrow) = size
 
         middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-        if middle is None:
+        if middle is None or top is None:
             return True
 
         focus_row_offset, focus_widget, focus_pos, _ignore, cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1524,7 +1542,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         (maxcol, maxrow) = size
 
         middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-        if middle is None:
+        if middle is None or top is None:
             return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1557,7 +1575,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         row_offset = scroll_from_row + maxrow
 
         # not used below:
-        scroll_from_row = topmost_visible = None
+        del scroll_from_row, topmost_visible
 
         # gather potential target widgets and add current focus
         t = [(row_offset, focus_widget, focus_pos, focus_rows)]
@@ -1569,15 +1587,15 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         # add newly visible ones, including within snap_rows
         snap_region_start = len(t)
         while row_offset > -snap_rows:
-            widget, pos = self._body.get_prev(pos)
-            if widget is None:
+            prev_widget, pos = self._body.get_prev(pos)
+            if prev_widget is None:
                 break
-            rows = widget.rows((maxcol,))
+            rows = prev_widget.rows((maxcol,))
             row_offset -= rows
             # determine if one below puts current one into snap rgn
             if row_offset > 0:
                 snap_region_start += 1
-            t.append((row_offset, widget, pos, rows))
+            t.append((row_offset, prev_widget, pos, rows))
 
         # if we can't fill the top we need to adjust the row offsets
         row_offset, _w, _p, _r = t[-1]
@@ -1637,7 +1655,8 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
             # find out where that actually puts us
             middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle  # pylint: disable=unpacking-non-sequence
+            act_middle = typing.cast("VisibleInfoMiddle", middle)
+            act_row_offset, _ign1, _ign2, _ign3, _ign4 = act_middle  # pylint: disable=unpacking-non-sequence
 
             # discard chosen widget if it will reduce scroll amount
             # because of a fixed cursor (absolute last resort)
@@ -1687,7 +1706,8 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
         # final check for pathological case where we may fall short
         middle, top, _bottom = self.calculate_visible((maxcol, maxrow), True)
-        act_row_offset, _ign1, pos, _ign2, _ign3 = middle  # pylint: disable=unpacking-non-sequence
+        act_middle = typing.cast("VisibleInfoMiddle", middle)
+        act_row_offset, _act_w, pos, _act_rows, _act_cursor = act_middle  # pylint: disable=unpacking-non-sequence
         if act_row_offset >= row_offset:
             # no problem
             return None
@@ -1695,13 +1715,13 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         # fell short, try to select anything else above
         if not t:
             return None
-        _ign1, _ign2, pos, _ign3 = t[-1]
-        widget, pos = self._body.get_prev(pos)
-        if widget is None:
+        _last_offset, _last_w, pos, _last_rows = t[-1]
+        prev_widget, pos = self._body.get_prev(pos)
+        if prev_widget is None:
             # no dice, we're stuck here
             return None
         # bring in only one row if possible
-        rows = widget.rows((maxcol,), True)
+        rows = prev_widget.rows((maxcol,), True)
         self.change_focus(
             (maxcol, maxrow),
             pos,
@@ -1716,7 +1736,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         (maxcol, maxrow) = size
 
         middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
-        if middle is None:
+        if middle is None or bottom is None:
             return True
 
         row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1748,7 +1768,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         row_offset = -scroll_from_row
 
         # not used below:
-        scroll_from_row = bottom_edge = None
+        del scroll_from_row, bottom_edge
 
         # gather potential target widgets and add current focus
         t = [(row_offset, focus_widget, focus_pos, focus_rows)]
@@ -1761,11 +1781,11 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         # add newly visible ones, including within snap_rows
         snap_region_start = len(t)
         while row_offset < maxrow + snap_rows:
-            widget, pos = self._body.get_next(pos)
-            if widget is None:
+            next_widget, pos = self._body.get_next(pos)
+            if next_widget is None:
                 break
-            rows = widget.rows((maxcol,))
-            t.append((row_offset, widget, pos, rows))
+            rows = next_widget.rows((maxcol,))
+            t.append((row_offset, next_widget, pos, rows))
             row_offset += rows
             # determine if one above puts current one into snap rgn
             if row_offset < maxrow:
@@ -1834,7 +1854,8 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
             # find out where that actually puts us
             middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
-            act_row_offset, _ign1, _ign2, _ign3, _ign4 = middle  # pylint: disable=unpacking-non-sequence
+            act_middle = typing.cast("VisibleInfoMiddle", middle)
+            act_row_offset, _ign1, _ign2, _ign3, _ign4 = act_middle  # pylint: disable=unpacking-non-sequence
 
             # discard chosen widget if it will reduce scroll amount
             # because of a fixed cursor (absolute last resort)
@@ -1883,7 +1904,8 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
         # final check for pathological case where we may fall short
         middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
-        act_row_offset, _ign1, pos, _ign2, _ign3 = middle  # pylint: disable=unpacking-non-sequence
+        act_middle = typing.cast("VisibleInfoMiddle", middle)
+        act_row_offset, _act_w, pos, _act_rows, _act_cursor = act_middle  # pylint: disable=unpacking-non-sequence
         if act_row_offset <= row_offset:
             # no problem
             return None
@@ -1891,13 +1913,13 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         # fell short, try to select anything else below
         if not t:
             return None
-        _ign1, _ign2, pos, _ign3 = t[-1]
-        widget, pos = self._body.get_next(pos)
-        if widget is None:
+        _last_offset, _last_w, pos, _last_rows = t[-1]
+        next_widget, pos = self._body.get_next(pos)
+        if next_widget is None:
             # no dice, we're stuck here
             return None
         # bring in only one row if possible
-        rows = widget.rows((maxcol,), True)
+        rows = next_widget.rows((maxcol,), True)
         self.change_focus(
             (maxcol, maxrow),
             pos,
@@ -1925,7 +1947,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
 
         (maxcol, maxrow) = size
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=True)
-        if middle is None:
+        if middle is None or top is None or bottom is None:
             return False
 
         _ignore, focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
@@ -1980,7 +2002,7 @@ class ListBox(Widget, WidgetContainerMixin[typing.Any]):
         (maxcol, maxrow) = size
         result = []
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
-        if middle is None:  # empty listbox
+        if middle is None or top is None or bottom is None:  # empty listbox
             return ["top", "bottom"]
         trim_top, above = top  # pylint: disable=unpacking-non-sequence
         trim_bottom, below = bottom  # pylint: disable=unpacking-non-sequence
