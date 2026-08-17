@@ -262,7 +262,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         Calculate display data.
         """
         (maxcol, maxrow) = size
-        bardata, top, hlines = self.get_data((maxcol, maxrow))  # type: ignore[attr-defined]  # pylint: disable=no-member  # metaclass defined
+        bardata, top, hlines = self._get_data((maxcol, maxrow))
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
 
         disp_inner: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]
