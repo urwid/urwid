@@ -98,7 +98,10 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         return self._original_widget.sizing()
 
 
-class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class WidgetPlaceholder(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     """
     This is a do-nothing decoration widget that can be used for swapping
     between widgets without modifying the container of this widget.
@@ -125,7 +128,7 @@ class WidgetDisable(WidgetDecoration[WrappedWidget]):
         return False
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        return self._original_widget.rows(size, False)
+        return self._original_widget.rows(size, False)  # type: ignore[attr-defined]  # AttributeError is a valid case
 
     def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()

@@ -19,7 +19,10 @@ class AttrMapError(WidgetError):
     pass
 
 
-class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class AttrMap(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     """
     AttrMap is a decoration that maps one set of attributes to another.
     This object will pass all function calls and variable references to the

@@ -151,8 +151,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         self.right = right
         self._align_type: Align | Literal[WHSettings.RELATIVE]
         self._align_amount: int | None
-        self._width_type: WHSettings
-        self._width_amount: int | float | None
+        self._width_type: Literal[WHSettings.CLIP, WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+        self._width_amount: int | None
 
         self._align_type, self._align_amount = normalize_align(align, PaddingError)  # type: ignore[arg-type]
         self._width_type, self._width_amount = normalize_width(width, PaddingError)  # type: ignore[arg-type]
@@ -228,7 +228,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         """
         Return the padding width.
         """
-        return simplify_width(self._width_type, self._width_amount)  # type: ignore[call-overload]
+        return simplify_width(self._width_type, self._width_amount)
 
     @width.setter
     def width(
@@ -286,7 +286,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             return max(width, self.min_width or 1) + expand, height
 
         if self._width_type == WHSettings.RELATIVE:
-            width_amount = typing.cast("int | float", self._width_amount)  # type: ignore[assignment]  # branch-local
+            width_amount = typing.cast("int", self._width_amount)
             return max(int(width * 100 / width_amount + 0.5), self.min_width or 1) + expand, height
 
         raise PaddingError(f"Unexpected width type: {self._width_type.upper()})")
@@ -339,9 +339,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
         Override this method to define custom padding behaviour."""
         if self._width_type == WHSettings.CLIP:
-            width, _ignore = self._original_widget.pack((), focus=focus)
             if not size:
                 raise PaddingError("WHSettings.CLIP makes Padding FLOW-only widget")
+
+            width, _ignore = self._original_widget.pack((), focus=focus)
             return calculate_left_right_padding(
                 size[0],
                 self._align_type,
@@ -379,22 +380,20 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             maxcol = typing.cast("int", self._width_amount) + self.left + self.right
         else:
             maxcol = (
-                max(  # type: ignore[assignment]  # `//` will produce int
-                    self._original_widget.pack((), focus=focus)[0]
-                    * 100
-                    // typing.cast("int | float", self._width_amount),
+                max(
+                    self._original_widget.pack((), focus=focus)[0] * 100 // typing.cast("int", self._width_amount),
                     self.min_width or 1,
                 )
                 + self.left
                 + self.right
             )
 
-        return calculate_left_right_padding(  # type: ignore[misc]  # too many unions...
+        return calculate_left_right_padding(
             maxcol,
             self._align_type,
             self._align_amount,
             self._width_type,
-            self._width_amount,
+            typing.cast("int", self._width_amount),
             self.min_width,
             self.left,
             self.right,

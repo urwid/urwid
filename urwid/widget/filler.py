@@ -123,10 +123,10 @@ class Filler(WidgetDecoration[WrappedWidget]):
         self.top = top
         self.bottom = bottom
         self.valign_type: Literal[WHSettings.RELATIVE] | VAlign
-        self.height_type: WHSettings
-        self.height_amount: int | float | None
+        self.height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+        self.height_amount: int | None
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
-        self.height_type, self.height_amount = normalize_height(height, FillerError)
+        self.height_type, self.height_amount = normalize_height(height, FillerError)  # type: ignore[assignment]
 
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
@@ -156,7 +156,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         attrs = {
             **super()._repr_attrs(),
             "valign": simplify_valign(self.valign_type, self.valign_amount),
-            "height": simplify_height(self.height_type, self.height_amount),  # type: ignore[call-overload]
+            "height": simplify_height(self.height_type, self.height_amount),
             "top": self.top,
             "bottom": self.bottom,
             "min_height": self.min_height,
@@ -212,7 +212,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
             self.valign_type,
             self.valign_amount,
             self.height_type,
-            self.height_amount,
+            typing.cast("int", self.height_amount),
             self.min_height,
             self.top,
             self.bottom,
@@ -392,7 +392,8 @@ def calculate_top_bottom_filler(
         height = height_amount
 
     valign: int = {VAlign.TOP: 0, VAlign.MIDDLE: 50, VAlign.BOTTOM: 100}.get(  # type: ignore[assignment]
-        valign_type, valign_amount
+        valign_type,  # type: ignore[arg-type]  # VAlign keys; relative uses valign_amount default
+        valign_amount,  # type: ignore[arg-type]  # valign_amount is not None for relative
     )  # relative + None already filtered above
 
     # add the remainder of top/bottom to the filler

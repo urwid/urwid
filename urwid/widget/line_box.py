@@ -20,7 +20,10 @@ if typing.TYPE_CHECKING:
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
-class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
+class LineBox(
+    WidgetDecoration[WrappedWidget],
+    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+):
     Symbols = BOX_SYMBOLS
 
     def __init__(
@@ -182,8 +185,8 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         h_index = 1  # constant
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
-        middle.contents[h_index] = (original_widget, options)
-        WidgetDecoration.original_widget.fset(self, original_widget)  # pylint: disable=no-member
+        middle.contents[h_index] = (original_widget, options)  # type: ignore[assignment]
+        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]  # pylint: disable=no-member
 
     @property
     def _w(self) -> Pile:
