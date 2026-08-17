@@ -33,6 +33,7 @@ if typing.TYPE_CHECKING:
 __all__ = ("MonitoredFocusList", "MonitoredList")
 
 _T = typing.TypeVar("_T")
+_S = typing.TypeVar("_S")
 
 
 def _call_modified(
@@ -90,8 +91,15 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         for item in self:
             yield None, item
 
+    # list.__add__/__rmul__ return a new list, not Self — match that API.
+    @typing.overload
+    def __add__(self, __value: list[_T], /) -> list[_T]: ...
+
+    @typing.overload
+    def __add__(self, __value: list[_S], /) -> list[_T | _S]: ...
+
     @_call_modified
-    def __add__(self, __value: list[_T]) -> Self:
+    def __add__(self, __value: list[typing.Any]) -> list[typing.Any]:
         return super().__add__(__value)
 
     @_call_modified
@@ -99,11 +107,11 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         super().__delitem__(__key)
 
     @_call_modified
-    def __iadd__(self, __value: Iterable[_T]) -> Self:
+    def __iadd__(self, __value: Iterable[_T]) -> Self:  # type: ignore[override]
         return super().__iadd__(__value)
 
     @_call_modified
-    def __rmul__(self, __value: typing.SupportsIndex) -> Self:
+    def __rmul__(self, __value: typing.SupportsIndex) -> list[_T]:
         return super().__rmul__(__value)
 
     @_call_modified
@@ -111,16 +119,17 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         return super().__imul__(__value)
 
     @typing.overload
-    @_call_modified
     def __setitem__(self, __key: typing.SupportsIndex, __value: _T) -> None: ...
 
     @typing.overload
-    @_call_modified
     def __setitem__(self, __key: slice, __value: Iterable[_T]) -> None: ...
 
     @_call_modified
     def __setitem__(self, __key: typing.SupportsIndex | slice, __value: _T | Iterable[_T]) -> None:
-        super().__setitem__(__key, __value)
+        if isinstance(__key, slice):
+            super().__setitem__(__key, typing.cast("Iterable[_T]", __value))
+        else:
+            super().__setitem__(__key, typing.cast("_T", __value))
 
     @_call_modified
     def append(self, __object: _T) -> None:
@@ -164,7 +173,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
 
-    def __init__(self, *args, focus: int = 0, **kwargs) -> None:
+    def __init__(self, *args: typing.Any, focus: int = 0, **kwargs: typing.Any) -> None:
         """
         This is a list that tracks one item as the focus item.  If items
         are inserted or removed it will update the focus.
@@ -348,7 +357,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     # override all the list methods that modify the list
 
-    def __delitem__(self, y: int | slice) -> None:
+    def __delitem__(self, y: typing.SupportsIndex | slice) -> None:
         """
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
         >>> del ml[3]
@@ -387,17 +396,18 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(y, y + 1 or None))
+            idx = int(y)
+            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None))
         super().__delitem__(y)
         self.focus = focus
 
     @typing.overload
-    def __setitem__(self, i: int, y: _T) -> None: ...
+    def __setitem__(self, i: typing.SupportsIndex, y: _T) -> None: ...
 
     @typing.overload
-    def __setitem__(self, i: slice, y: Collection[_T]) -> None: ...
+    def __setitem__(self, i: slice, y: Iterable[_T]) -> None: ...
 
-    def __setitem__(self, i: int | slice, y: _T | Collection[_T]) -> None:
+    def __setitem__(self, i: typing.SupportsIndex | slice, y: _T | Iterable[_T]) -> None:
         """
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {new_items!r}")
@@ -427,10 +437,14 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         MonitoredFocusList([], focus=None)
         """
         if isinstance(i, slice):
-            focus = self._adjust_focus_on_contents_modified(i, y)
+            new_items = list(typing.cast("Iterable[_T]", y))
+            focus = self._adjust_focus_on_contents_modified(i, new_items)
+            super().__setitem__(i, new_items)
         else:
-            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [y])  # type: ignore[list-item]
-        super().__setitem__(i, y)  # type: ignore[index]  # int is SupportsIndex
+            item = typing.cast("_T", y)
+            idx = int(i)
+            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None), [item])
+            super().__setitem__(i, item)
         self.focus = focus
 
     def __imul__(self, n: typing.SupportsIndex) -> Self:
@@ -453,9 +467,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (multiplier - 1))
         else:  # all contents are being removed
             focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
-        rval = super().__imul__(multiplier)
+        super().__imul__(multiplier)
         self.focus = focus
-        return rval
+        return self
 
     def append(self, item: _T) -> None:
         """
@@ -470,7 +484,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         super().append(item)
         self.focus = focus
 
-    def extend(self, items: Collection[_T]) -> None:
+    def extend(self, items: Iterable[_T]) -> None:
         """
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {list(new_items)!r}")
@@ -479,8 +493,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml.extend((6, 7, 8))
         range(3, 3, 1) <- [6, 7, 8]
         """
-        focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), items)
-        super().extend(items)
+        items_list = list(items)
+        focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), items_list)
+        super().extend(items_list)
         self.focus = focus
 
     def insert(self, index: typing.SupportsIndex, item: _T) -> None:
