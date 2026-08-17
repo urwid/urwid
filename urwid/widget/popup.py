@@ -46,7 +46,10 @@ if typing.TYPE_CHECKING:
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
-class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class PopUpLauncher(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
         self._pop_up_widget: AbstractWidget | None = None

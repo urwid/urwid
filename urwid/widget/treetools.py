@@ -101,7 +101,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
         icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
-        self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))
+        self._w.original_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[union-attr]
 
     def get_indent_cols(self) -> int:
         return self.indent_cols * self.get_node().get_depth()
@@ -209,8 +209,8 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
         if self.is_leaf or not self.expanded:
             return None
 
-        if self._node.has_children():
-            first_node = self._node.get_first_child()
+        if typing.cast("ParentNode", self._node).has_children():
+            first_node = typing.cast("ParentNode", self._node).get_first_child()
             return first_node.get_widget()
 
         return None
@@ -220,8 +220,8 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
         if self.is_leaf or not self.expanded:
             return None
 
-        if self._node.has_children():
-            last_child = self._node.get_last_child().get_widget()
+        if typing.cast("ParentNode", self._node).has_children():
+            last_child = typing.cast("ParentNode", self._node).get_last_child().get_widget()
         else:
             return None
         # recursively search down for the last descendant
@@ -267,7 +267,7 @@ class TreeNode(typing.Generic[_T]):
         if self._depth is self._parent is None:
             self._depth = 0
         elif self._depth is None:
-            self._depth = self._parent.get_depth() + 1
+            self._depth = typing.cast("ParentNode", self._parent).get_depth() + 1
         return self._depth
 
     def get_index(self) -> int | None:
@@ -487,7 +487,7 @@ class TreeListBox(ListBox):
 
         _widget, pos = self.body.get_focus()
 
-        parentpos = pos.get_parent()
+        parentpos = typing.cast("TreeNode", pos).get_parent()
 
         if parentpos is None:
             return
@@ -502,7 +502,7 @@ class TreeListBox(ListBox):
                 self.change_focus(size, pos, row_offset)
                 return
 
-        self.change_focus(size, pos.get_parent())
+        self.change_focus(size, typing.cast("TreeNode", pos).get_parent())
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
         self.focus_home(size)
@@ -514,7 +514,7 @@ class TreeListBox(ListBox):
         """Move focus to very top."""
 
         _widget, pos = self.body.get_focus()
-        rootnode = pos.get_root()
+        rootnode = typing.cast("TreeNode", pos).get_root()
         self.change_focus(size, rootnode)
 
     def focus_end(self, size: tuple[int, int]) -> None:
@@ -523,7 +523,7 @@ class TreeListBox(ListBox):
         maxrow, _maxcol = size
         _widget, pos = self.body.get_focus()
 
-        if lastwidget := pos.get_root().get_widget().last_child():
+        if lastwidget := typing.cast("TreeNode", pos).get_root().get_widget().last_child():
             lastnode = lastwidget.get_node()
 
             self.change_focus(size, lastnode, maxrow - 1)

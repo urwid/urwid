@@ -872,7 +872,10 @@ class WidgetWrapError(Exception):
     pass
 
 
-class WidgetWrap(delegate_to_widget_mixin("_wrapped_widget"), typing.Generic[WrappedWidget]):
+class WidgetWrap(
+    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+    typing.Generic[WrappedWidget],
+):
     def __init__(self, w: WrappedWidget) -> None:
         """
         w -- widget to wrap, stored as self._w
