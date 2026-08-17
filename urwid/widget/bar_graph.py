@@ -10,16 +10,16 @@ from .text import Text
 from .widget import Widget, WidgetError, WidgetMeta, nocache_widget_render, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, Sequence
+
     from typing_extensions import Literal
 
 
 class BarGraphMeta(WidgetMeta):
     """
-    Detect subclass get_data() method and dynamic change to
-    get_data() method and disable caching in these cases.
+    Detect subclass get_data() method and dynamic change to get_data() method and disable caching in these cases.
 
-    This is for backwards compatibility only, new programs
-    should use set_data() instead of overriding get_data().
+    This is for backwards compatibility only, new programs should use set_data() instead of overriding get_data().
     """
 
     def __init__(
@@ -34,17 +34,19 @@ class BarGraphMeta(WidgetMeta):
 
         if "get_data" in d:
             cls.render = nocache_widget_render(cls)
-            cls._get_data = cls.get_data
+            cls._get_data = cls.get_data  # type: ignore[has-type]
         cls.get_data = property(lambda self: self._get_data, nocache_bargraph_get_data)
 
 
-def nocache_bargraph_get_data(self, get_data_fn):
+def nocache_bargraph_get_data(
+    self: BarGraph,
+    get_data_fn: Callable[[tuple[int, int]], tuple[Sequence, float, Sequence | None]],
+) -> None:
     """
-    Disable caching on this bargraph because get_data_fn needs
-    to be polled to get the latest data.
+    Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data.
     """
-    self.render = nocache_widget_render_instance(self)
-    self._get_data = get_data_fn  # pylint: disable=protected-access
+    self.render = nocache_widget_render_instance(self)  # type: ignore[assignment]
+    self._get_data = get_data_fn  # type: ignore[assignment]  # pylint: disable=protected-access
 
 
 class BarGraphError(WidgetError):
@@ -59,7 +61,12 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
     eighths = BAR_SYMBOLS.VERTICAL[:8]  # Full height is done by style
     hlines = "_⎺⎻─⎼⎽"
 
-    def __init__(self, attlist, hatt=None, satt=None) -> None:
+    def __init__(
+        self,
+        attlist: Sequence[str | tuple[str, str]],
+        hatt: list[str] | None = None,
+        satt: Mapping[tuple[int, int], str] | None = None,
+    ) -> None:
         """
         Create a bar graph with the passed display characteristics.
         see set_segment_attributes for a description of the parameters.
@@ -69,7 +76,12 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.set_data([], 1, None)
         self.set_bar_width(None)
 
-    def set_segment_attributes(self, attlist, hatt=None, satt=None):
+    def set_segment_attributes(
+        self,
+        attlist: Sequence[str | tuple[str, str]],
+        hatt: list[str] | None = None,
+        satt: Mapping[tuple[int, int], str] | None = None,
+    ) -> None:
         """
         :param attlist: list containing display attribute or
                         (display attribute, character) tuple for background,
@@ -119,12 +131,15 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 self.attr.append(attr)
                 self.char.append(ch)
 
-        self.hatt = []
+        self.hatt: list[str] = []
+        hatt_list: list[str]
         if hatt is None:
-            hatt = [self.attr[0]]
-        elif not isinstance(hatt, list):
-            hatt = [hatt]
-        self.hatt = hatt
+            hatt_list = [self.attr[0]]
+        elif isinstance(hatt, list):
+            hatt_list = hatt
+        else:
+            hatt_list = [hatt]
+        self.hatt = hatt_list
 
         if satt is None:
             satt = {}
@@ -141,7 +156,12 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 raise BarGraphError(f"fg ({fg}) not > bg ({bg})")
         self.satt = satt
 
-    def set_data(self, bardata, top: float, hlines=None) -> None:
+    def set_data(
+        self,
+        bardata: Sequence[Sequence[float | int]],
+        top: float,
+        hlines: Sequence[float | int] | None = None,
+    ) -> None:
         """
         Store bar data, bargraph top and horizontal line positions.
 
@@ -151,9 +171,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
         bar values are [ segment1, segment2, ... ] lists where top is
         the maximal value corresponding to the top of the bar graph and
-        segment1, segment2, ... are the values for the top of each
-        segment of this bar.  Simple bar graphs will only have one
-        segment in each bar value.
+        segment1, segment2, ... are the values for the top of each segment of this bar.
+        Simple bar graphs will only have one segment in each bar value.
 
         Eg: if top is 100 and there is a bar value of [ 80, 30 ] then
         the top of this bar will be at 80% of full height of the graph
@@ -165,15 +184,17 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.data = bardata, top, hlines
         self._invalidate()
 
-    def _get_data(self, size: tuple[int, int]):
+    def _get_data(
+        self,
+        size: tuple[int, int],
+    ) -> tuple[Sequence[Sequence[float | int]], float, Sequence[float | int] | None]:
         """
         Return (bardata, top, hlines)
 
-        This function is called by render to retrieve the data for
-        the graph. It may be overloaded to create a dynamic bar graph.
+        This function is called by render to retrieve the data for the graph.
+        It may be overloaded to create a dynamic bar graph.
 
-        This implementation will truncate the bardata list returned
-        if not all bars will fit within maxcol.
+        This implementation will truncate the bardata list returned if not all bars will fit within maxcol.
         """
         (maxcol, maxrow) = size
         bardata, top, hlines = self.data
@@ -184,7 +205,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
         return bardata, top, hlines
 
-    def set_bar_width(self, width: int | None):
+    def set_bar_width(self, width: int | None) -> None:
         """
         Set a preferred bar width for calculate_bar_widths to use.
 
@@ -195,7 +216,11 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.bar_width = width
         self._invalidate()
 
-    def calculate_bar_widths(self, size: tuple[int, int], bardata):
+    def calculate_bar_widths(
+        self,
+        size: tuple[int, int],
+        bardata: Sequence[Sequence[float | int]],
+    ) -> list[int]:
         """
         Return a list of bar widths, one for each bar in data.
 
@@ -227,39 +252,46 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return False
 
     def use_smoothed(self) -> bool:
-        return self.satt and get_encoding_mode() == "utf8"
+        return bool(self.satt and get_encoding_mode() == "utf8")
 
-    def calculate_display(self, size: tuple[int, int]):
+    def calculate_display(
+        self,
+        size: tuple[int, int],
+    ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
         """
         Calculate display data.
         """
         (maxcol, maxrow) = size
-        bardata, top, hlines = self.get_data((maxcol, maxrow))  # pylint: disable=no-member  # metaclass defined
+        bardata, top, hlines = self._get_data((maxcol, maxrow))
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
 
+        disp_inner: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]
         if self.use_smoothed():
-            disp = calculate_bargraph_display(bardata, top, widths, maxrow * 8)
-            disp = self.smooth_display(disp)
-
+            disp_inner = self.smooth_display(calculate_bargraph_display(bardata, top, widths, maxrow * 8))
         else:
-            disp = calculate_bargraph_display(bardata, top, widths, maxrow)
+            disp_inner = calculate_bargraph_display(bardata, top, widths, maxrow)  # type: ignore[assignment]
 
         if hlines:
-            disp = self.hlines_display(disp, top, hlines, maxrow)
+            disp_inner = self.hlines_display(disp_inner, top, hlines, maxrow)
 
-        return disp
+        return disp_inner
 
-    def hlines_display(self, disp, top: int, hlines, maxrow: int):
+    def hlines_display(
+        self,
+        disp: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]],
+        top: float,
+        hlines: Sequence[float | int],
+        maxrow: int,
+    ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
         """
-        Add hlines to display structure represented as bar_type tuple
-        values:
+        Add hlines to display structure represented as bar_type tuple values:
         (bg, 0-5)
         bg is the segment that has the hline on it
         0-5 is the hline graphic to use where 0 is a regular underscore
         and 1-5 are the UTF-8 horizontal scan line characters.
         """
         if self.use_smoothed():
-            shiftr = 0
+            shiftr = 0.0
             r = [
                 (0.2, 1),
                 (0.4, 2),
@@ -274,7 +306,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             ]
 
         # reverse the hlines to match screen ordering
-        rhl = [rh for h in hlines if (rh := float(top - h) * maxrow / top - shiftr) >= 0]
+        rhl: list[float] = [rh for h in hlines if (rh := float(top - h) * maxrow / top - shiftr) >= 0]
 
         # build a list of rows that will have hlines
         hrows = []
@@ -291,8 +323,11 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             last_i = i
 
         # fill hlines into disp data
-        def fill_row(row, chnum):
-            rout = []
+        def fill_row(
+            row: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]],
+            chnum: int,
+        ) -> list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]:
+            rout: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]] = []
             for bar_type, width in row:
                 if isinstance(bar_type, int) and len(self.hatt) > bar_type:
                     rout.append(((bar_type, chnum), width))
@@ -319,27 +354,35 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 o.append((end_block - rnum, row))
                 rnum = end_block
 
-        # assert 0, o
         return o
 
-    def smooth_display(self, disp):
+    def smooth_display(
+        self,
+        disp: list[tuple[int, list[tuple[int, int]]]],
+    ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
         """
         smooth (col, row*8) display into (col, row) display using
-        UTF vertical eighth characters represented as bar_type
-        tuple values:
+        UTF vertical eighth characters represented as bar_type tuple values:
         ( fg, bg, 1-7 )
-        where fg is the lower segment, bg is the upper segment and
-        1-7 is the vertical eighth character to use.
+        where fg is the lower segment, bg is the upper segment and 1-7 is the vertical eighth character to use.
         """
-        o = []
+        o: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]] = []
         r = 0  # row remainder
 
-        def seg_combine(a, b):
+        def seg_combine(
+            a: tuple[int | tuple[int, int] | tuple[int, int, int], int],
+            b: tuple[int | tuple[int, int] | tuple[int, int, int], int],
+        ) -> tuple[
+            tuple[int | tuple[int, int] | tuple[int, int, int], int],
+            tuple[int | tuple[int, int] | tuple[int, int, int], int] | None,
+            tuple[int | tuple[int, int] | tuple[int, int, int], int] | None,
+        ]:
             (bt1, w1), (bt2, w2) = a, b
             if (bt1, w1) == (bt2, w2):
                 return (bt1, w1), None, None
             wmin = min(w1, w2)
-            l1 = l2 = None
+            l1: tuple[int | tuple[int, int] | tuple[int, int, int], int] | None = None
+            l2: tuple[int | tuple[int, int] | tuple[int, int, int], int] | None = None
             if w1 > w2:
                 l1 = (bt1, w1 - w2)
             elif w2 > w1:
@@ -350,13 +393,16 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 if r < 4:
                     return (bt2, wmin), l1, l2
                 return (bt1, wmin), l1, l2
-            return ((bt2, bt1, 8 - r), wmin), l1, l2
+            return ((bt2, bt1, 8 - r), wmin), l1, l2  # type: ignore[return-value]
 
-        def row_combine_last(count: int, row):
+        def row_combine_last(
+            count: int,
+            row: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]],
+        ) -> None:
             o_count, o_row = o[-1]
             row = row[:]  # shallow copy, so we don't destroy orig.
             o_row = o_row[:]
-            widget_list = []
+            widget_list: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]] = []
             while row:
                 (bt, w), l1, l2 = seg_combine(o_row.pop(0), row.pop(0))
                 if widget_list and widget_list[-1][0] == bt:
@@ -377,7 +423,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         for y_count, row in disp:
             if r:
                 count = min(8 - r, y_count)
-                row_combine_last(count, row)
+                row_combine_last(count, row)  # type: ignore[arg-type]
                 y_count -= count  # noqa: PLW2901
                 r += count
                 r %= 8
@@ -387,15 +433,19 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 raise BarGraphError
             # copy whole blocks
             if y_count > 7:
-                o.append((y_count // 8 * 8, row))
+                o.append((y_count // 8 * 8, row))  # type: ignore[arg-type]
                 y_count %= 8  # noqa: PLW2901
                 if not y_count:
                     continue
-            o.append((y_count, row))
+            o.append((y_count, row))  # type: ignore[arg-type]
             r = y_count
         return [(y // 8, row) for (y, row) in o]
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> CompositeCanvas:
         """
         Render BarGraph.
         """
@@ -421,7 +471,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                     a = self.attr[bar_type]
                     t = self.char[bar_type] * width
                 widget_list.append((a, t))
-            c = Text(widget_list).render((maxcol,))
+            c = Text(widget_list).render((maxcol,))  # type: ignore[arg-type]
             if c.rows() != 1:
                 raise BarGraphError("Invalid characters in BarGraph!")
             combinelist += [(c, None, False)] * y_count
@@ -431,11 +481,11 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
 
 def calculate_bargraph_display(
-    bardata,
+    bardata: Sequence[Sequence[float | int]],
     top: float,
     bar_widths: list[int],
     maxrow: int,
-):
+) -> list[tuple[int, list[tuple[int, int]]]]:
     """
     Calculate a rendering of the bar graph described by data, bar_widths
     and height.
@@ -466,22 +516,31 @@ def calculate_bargraph_display(
     maxcol = sum(bar_widths)
 
     # build intermediate data structure
-    rows = [None] * maxrow
+    rows: list[list[tuple[int, int, int]] | None] = [None] * maxrow
 
-    def add_segment(seg_num: int, col: int, row: int, width: int, rows=rows) -> None:
-        if rows[row]:
-            last_seg, last_col, last_end = rows[row][-1]
+    def add_segment(
+        seg_num: int,
+        col: int,
+        row: int,
+        width: int,
+        rows: list[list[tuple[int, int, int]] | None] = rows,
+    ) -> None:
+        row_data = rows[row]
+        if row_data:
+            last_seg, last_col, last_end = row_data[-1]
             if last_end > col:
                 if last_col >= col:
-                    del rows[row][-1]
+                    del row_data[-1]
                 else:
-                    rows[row][-1] = (last_seg, last_col, col)
+                    row_data[-1] = (last_seg, last_col, col)
             elif last_seg == seg_num and last_end == col:
-                rows[row][-1] = (last_seg, last_col, last_end + width)
+                row_data[-1] = (last_seg, last_col, last_end + width)
                 return
-        elif rows[row] is None:
+        elif row_data is None:
             rows[row] = []
-        rows[row].append((seg_num, col, col + width))
+            row_data = rows[row]
+
+        row_data.append((seg_num, col, col + width))  # type: ignore[union-attr]  # it's initialised
 
     col = 0
     barnum = 0
@@ -580,7 +639,11 @@ def calculate_bargraph_display(
 class GraphVScale(Widget):
     _sizing = frozenset([Sizing.BOX])
 
-    def __init__(self, labels, top: float) -> None:
+    def __init__(
+        self,
+        labels: Sequence[tuple[float | int, str | Sequence]],
+        top: float,
+    ) -> None:
         """
         GraphVScale( [(label1 position, label1 markup),...], top )
         label position -- 0 < position < top for the y position
@@ -593,7 +656,11 @@ class GraphVScale(Widget):
         super().__init__()
         self.set_scale(labels, top)
 
-    def set_scale(self, labels, top: float) -> None:
+    def set_scale(
+        self,
+        labels: Sequence[tuple[float | int, str | Sequence]],
+        top: float,
+    ) -> None:
         """
         set_scale( [(label1 position, label1 markup),...], top )
         label position -- 0 < position < top for the y position
@@ -607,7 +674,7 @@ class GraphVScale(Widget):
         self.txt = []
         for y, markup in labels:
             self.pos.append(y)
-            self.txt.append(Text(markup))
+            self.txt.append(Text(markup))  # type: ignore[arg-type]
         self.top = top
 
     def selectable(self) -> Literal[False]:
@@ -618,7 +685,7 @@ class GraphVScale(Widget):
 
     def render(
         self,
-        size: tuple[int, int],
+        size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> SolidCanvas | CompositeCanvas:
         """
@@ -638,8 +705,9 @@ class GraphVScale(Widget):
             c = t.render((maxcol,))
             if p > rows:
                 run = p - rows
-                c = CompositeCanvas(c)
-                c.pad_trim_top_bottom(run, 0)
+                c_composite = CompositeCanvas(c)
+                c_composite.pad_trim_top_bottom(run, 0)
+                c = c_composite  # type: ignore[assignment]
             rows += c.rows()
             combinelist.append((c, None, False))
         if not combinelist:
@@ -651,7 +719,11 @@ class GraphVScale(Widget):
         return canvas
 
 
-def scale_bar_values(bar, top: float, maxrow: int) -> list[int]:
+def scale_bar_values(
+    bar: Sequence[float | int],
+    top: float,
+    maxrow: int,
+) -> list[int]:
     """
     Return a list of bar values aliased to integer values of maxrow.
     """
