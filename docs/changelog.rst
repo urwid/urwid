@@ -2,6 +2,27 @@
 Changelog
 ---------
 
+Urwid 4.0.10
+===========
+
+2026-08-17
+
+Bug fixes 🕷
+++++++++++++
+* Web display: handle invalid input with "window resize" by @penguinolog in https://github.com/urwid/urwid/pull/1220
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate bar_graph by @penguinolog in https://github.com/urwid/urwid/pull/1221
+* typing: handle internal mypy warnings by @penguinolog in https://github.com/urwid/urwid/pull/1224
+* typing: fix monitored list errors by @penguinolog in https://github.com/urwid/urwid/pull/1225
+* typing: fix part of listbox errors by @penguinolog in https://github.com/urwid/urwid/pull/1226
+Other Changes
++++++++++++++
+* typing: early guard `ListWalker` API in `ListBox` calls by @penguinolog in https://github.com/urwid/urwid/pull/1227
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.9...4.0.10
+
 Urwid 4.0.9
 ===========
 
