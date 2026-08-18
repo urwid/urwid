@@ -208,6 +208,84 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 2, 2, False))
         self.assertEqual(0, scrollable.get_scrollpos())
 
+    def test_mouse_left_click_scrollbar_over_selectable_content(self):
+        """The scrollbar keeps its columns even when the wrapped widget consumes every click."""
+        clicked: list[int] = []
+        buttons = []
+        for index in range(20):
+            button = urwid.Button(f"b{index}")
+            urwid.connect_signal(button, "click", lambda _button, idx=index: clicked.append(idx))
+            buttons.append(button)
+
+        reduced_size = (14, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Pile(buttons)))
+        scrollable = widget.original_widget
+        scrollbar_col = reduced_size[0] - 1
+
+        widget.render(reduced_size, True)
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Button.mouse_event answers any left press without looking at the column,
+        # so delegating first would turn a click on the scrollbar into a button press.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, True))
+        self.assertEqual([], clicked)
+        self.assertEqual(15, scrollable.get_scrollpos())
+
+        # A click on the content columns still reaches the buttons.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 2, 0, True))
+        self.assertEqual([15], clicked)
+
+    def test_mouse_left_click_left_side_scrollbar_over_selectable_content(self):
+        """The same protection applies to a left-aligned scrollbar."""
+        clicked: list[int] = []
+        buttons = []
+        for index in range(20):
+            button = urwid.Button(f"b{index}")
+            urwid.connect_signal(button, "click", lambda _button, idx=index: clicked.append(idx))
+            buttons.append(button)
+
+        reduced_size = (14, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Pile(buttons)), side="left")
+        scrollable = widget.original_widget
+
+        widget.render(reduced_size, True)
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, True))
+        self.assertEqual([], clicked)
+        self.assertEqual(15, scrollable.get_scrollpos())
+
+    def test_mouse_event_translates_column_for_left_side_scrollbar(self):
+        """A left-aligned scrollbar shifts the wrapped widget, so the column has to be shifted back."""
+
+        class ColumnRecorder(urwid.Text):
+            def __init__(self, markup) -> None:
+                super().__init__(markup)
+                self.seen: list[tuple[int, int]] = []
+
+            def selectable(self) -> bool:
+                return True
+
+            def mouse_event(self, size, event, button, col, row, focus) -> bool:
+                self.seen.append((col, row))
+                return False
+
+        content = ColumnRecorder("\n".join(f"line{index}" for index in range(20)))
+        reduced_size = (10, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content), side="left")
+        sb_width = widget.scrollbar_width
+
+        widget.render(reduced_size, True)
+
+        # Screen column ``sb_width`` is the first column the wrapped widget draws into.
+        widget.mouse_event(reduced_size, "mouse press", 1, sb_width, 0, True)
+        self.assertEqual([(0, 0)], content.seen)
+
+        # The last screen column maps to the last column the wrapped widget owns.
+        content.seen.clear()
+        widget.mouse_event(reduced_size, "mouse press", 1, reduced_size[0] - 1, 0, True)
+        self.assertEqual([(reduced_size[0] - 1 - sb_width, 0)], content.seen)
+
     def test_alt_symbols(self):
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
