@@ -277,7 +277,7 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
             return wcwidth.width(text[start_offs:end_offs].decode("utf-8"), control_codes="ignore")
         except UnicodeDecodeError as exc:
             warnings.warn(
-                "`calc_width` with text encoded to bytes can produce incorrect results"
+                "`calc_width` with text encoded to bytes can produce incorrect results "
                 f"due to possible offset in the middle of character: {exc}",
                 UnicodeWarning,
                 stacklevel=2,

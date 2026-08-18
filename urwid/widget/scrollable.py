@@ -37,6 +37,7 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, CompositeCanvas
 
+    from .container import WidgetContainerListContentsMixin
     from .widget import AbstractFixedWidget, AbstractFlowWidget
 
 
@@ -164,7 +165,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             ch = 0
             last_hidden = False
             first_visible = False
-            for pwi, (w, _o) in enumerate(ow.contents):
+            for pwi, (w, _o) in enumerate(typing.cast("WidgetContainerListContentsMixin", ow).contents):
                 wcanv = w.render((maxcol,))
 
                 if wh := wcanv.rows():
@@ -180,14 +181,13 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
                     if not w.selectable():
                         continue
 
-                    ow.focus_position = pwi
+                    typing.cast("WidgetContainerListContentsMixin", ow).focus_position = pwi
 
                     st = None
                     nf = ow.focus
                     if hasattr(nf, "key_timeout"):
                         st = nf
-                    elif hasattr(nf, "original_widget"):
-                        no = nf.original_widget
+                    elif (no := getattr(nf, "original_widget", None)) is not None:
                         if hasattr(no, "original_widget"):
                             st = no.original_widget
                         elif hasattr(no, "key_timeout"):

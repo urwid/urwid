@@ -121,7 +121,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     top=top,
                 )
             else:
-                typing.cast("Overlay", self._current_widget).set_overlay_parameters(
+                typing.cast("Overlay[AbstractWidget, WrappedWidget]", self._current_widget).set_overlay_parameters(
                     align=Align.LEFT,
                     width=overlay_width,
                     valign=VAlign.TOP,
@@ -143,10 +143,18 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
         self._update_overlay(size, True)
+
+        if not hasattr(self._current_widget, "get_cursor_coords"):
+            raise TypeError(f"widget {type(self._current_widget)} has no get_cursor_coords method")
+
         return self._current_widget.get_cursor_coords(size)
 
     def get_pref_col(self, size: tuple[int, int]) -> int:
         self._update_overlay(size, True)
+
+        if not hasattr(self._current_widget, "get_pref_col"):
+            raise TypeError(f"widget {type(self._current_widget)} has no get_pref_col method")
+
         return self._current_widget.get_pref_col(size)
 
     def keypress(
@@ -159,6 +167,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int) -> bool:
         self._update_overlay(size, True)
+
+        if not hasattr(self._current_widget, "move_cursor_to_coords"):
+            raise TypeError(f"widget {type(self._current_widget)} has no move_cursor_to_coords method")
+
         return self._current_widget.move_cursor_to_coords(size, x, y)
 
     def mouse_event(
