@@ -476,11 +476,15 @@ class GridFlow(
         Captures focus changes.
         """
         self.get_display_widget(size)
+        focus_before = self.contents.focus
 
         if (processed := super().keypress(size, key)) is not None:  # type: ignore[safe-super]  # dynamic base
             return processed
 
-        self._set_focus_from_display_widget()
+        # The display widget was built before the keypress was dispatched, so a callback
+        # that set the focus itself is the more recent value and must not be overwritten.
+        if self.contents.focus == focus_before:
+            self._set_focus_from_display_widget()
         return None
 
     def pack(
@@ -530,8 +534,12 @@ class GridFlow(
         focus: bool,
     ) -> Literal[True]:
         self.get_display_widget(size)
+        focus_before = self.contents.focus
         super().mouse_event(size, event, button, col, row, focus)  # type: ignore[safe-super]  # dynamic base
-        self._set_focus_from_display_widget()
+        # Same as in keypress: a callback that set the focus itself wins over the
+        # display widget, which was built before the event was dispatched.
+        if self.contents.focus == focus_before:
+            self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 
     def get_pref_col(self, size: tuple[int] | tuple[()]) -> int:

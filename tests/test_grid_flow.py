@@ -155,6 +155,56 @@ class GridFlowTest(unittest.TestCase):
         self.assertEqual(gf.keypress((20,), "enter"), None)
         call_back.assert_called_with(button)
 
+    def test_keypress_callback_can_set_focus_position(self):
+        """
+        A callback fired by the keypress may set the focus itself.
+        https://github.com/urwid/urwid/issues/194
+        """
+        gf = urwid.GridFlow(
+            [urwid.Button(f"b{idx}", lambda _btn: setattr(gf, "focus_position", 1)) for idx in range(4)],
+            10,
+            1,
+            0,
+            "left",
+        )
+        gf.focus_position = 2
+
+        self.assertEqual(gf.keypress((80,), "enter"), None)
+        self.assertEqual(1, gf.focus_position)
+
+    def test_keypress_without_callback_still_follows_the_display_widget(self):
+        gf = urwid.GridFlow([urwid.Button(f"b{idx}") for idx in range(4)], 10, 1, 0, "left")
+        gf.focus_position = 0
+
+        self.assertEqual(gf.keypress((80,), "right"), None)
+        self.assertEqual(1, gf.focus_position)
+
+    def test_mouse_event_callback_can_set_focus_position(self):
+        """
+        Same as the keypress case, for a callback fired by a click.
+        """
+        gf = urwid.GridFlow(
+            [urwid.Button(f"b{idx}", lambda _btn: setattr(gf, "focus_position", 1)) for idx in range(4)],
+            10,
+            1,
+            0,
+            "left",
+        )
+        gf.focus_position = 0
+        gf.render((80,))
+
+        # column 35 is inside the fourth cell
+        self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 35, 0, True))
+        self.assertEqual(1, gf.focus_position)
+
+    def test_mouse_event_without_callback_still_follows_the_display_widget(self):
+        gf = urwid.GridFlow([urwid.Button(f"b{idx}") for idx in range(4)], 10, 1, 0, "left")
+        gf.focus_position = 0
+        gf.render((80,))
+
+        self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 35, 0, True))
+        self.assertEqual(3, gf.focus_position)
+
     def test_length(self):
         grid = urwid.GridFlow((urwid.Text(c) for c in "ABC"), 1, 0, 0, "left")
         self.assertEqual(3, len(grid))
