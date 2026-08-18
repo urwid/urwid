@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+import weakref
 
 from typing_extensions import Literal
 
@@ -93,6 +94,7 @@ class GridFlow(
         self.h_sep = h_sep
         self.v_sep = v_sep
         self.align = align
+        self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
         self._cache_maxcol: int | None = self._get_maxcol(())
         super().__init__(self.generate_display_widget((typing.cast("int", self._cache_maxcol),)))
 
@@ -407,8 +409,7 @@ class GridFlow(
                 c = Columns([], self.h_sep)
                 column_focused = False
                 pad = Padding(typing.cast("Columns", c), self.align)
-                # extra attribute to reference contents position
-                pad.first_position = i
+                self.first_position[pad] = i
                 p.contents.append((pad, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
 
             # Use width == maxcol in case of maxcol < width amount
@@ -458,13 +459,16 @@ class GridFlow(
         pile_focus = self._w.focus
         if not pile_focus:
             return
+
         c = typing.cast("Columns", pile_focus.base_widget)
         if c.focus:
             col_focus_position = c.focus_position
         else:
             col_focus_position = 0
-        # pad.first_position was set by generate_display_widget() above
-        self.focus_position = pile_focus.first_position + col_focus_position
+
+        first_position = self.first_position[typing.cast("Padding[Columns]", pile_focus)]
+
+        self.focus_position = first_position + col_focus_position
 
     def keypress(
         self,
