@@ -708,7 +708,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
                         newpos = round(row * layout.posmax / thumb_travel)
                     else:
                         newpos = 0
-                    ow.set_scrollpos(max(0, min(layout.posmax, newpos)))
+                    ow.set_scrollpos(max(0, min(layout.posmax, newpos)))  # type: ignore[attr-defined]  # gated
                     return True
 
         handled: bool | None = False
@@ -719,11 +719,11 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             if button == 4:  # scroll wheel up
                 pos = ow.get_scrollpos(ow_size)
                 newpos = max(pos - 1, 0)
-                ow.set_scrollpos(newpos)
+                ow.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
                 return True
             if button == 5:  # scroll wheel down
                 pos = ow.get_scrollpos(ow_size)
-                ow.set_scrollpos(pos + 1)
+                ow.set_scrollpos(pos + 1)  # type: ignore[attr-defined]  # gated
                 return True
 
         return handled
