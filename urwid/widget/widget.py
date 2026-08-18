@@ -862,7 +862,7 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
             return get_delegate(self).sizing
 
         @property
-        def pack(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], tuple[int, int]]:
+        def pack(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], tuple[int, int]]:  # type: ignore[override]
             return get_delegate(self).pack
 
     return DelegateToWidgetMixin

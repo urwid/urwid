@@ -194,7 +194,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
                             st = no
 
                     if st and hasattr(st, "key_timeout") and callable(getattr(st, "keypress", None)):
-                        st.keypress(None, None)
+                        st.keypress(None, None)  # type: ignore[arg-type]  # Do not break legacy API
 
                     break
 

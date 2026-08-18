@@ -353,7 +353,7 @@ exclude_lines = [
   "if typing\\.TYPE_CHECKING:",
   "typing\\.cast\\(",
   "cast\\(",
-  "\\.\\.\\.",
+  "^\\s*\\.\\.\\.\\s*$",
 
   # Protocols
   "@runtime_checkable",
