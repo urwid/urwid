@@ -87,8 +87,29 @@ jobs:
       - name: Lint with pylint
         run: pylint --output-format=github urwid
 
+  Mypy:
+    name: Check with mypy
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r test_requirements.txt
+          pip install --upgrade mypy
+      - name: Install package for test
+        run: pip install -e .
+      - name: Type check with mypy
+        run: mypy urwid
+
   Test:
-    needs: [ Ruff-format, Ruff, PyLint ]
+    needs: [ Ruff-format, Ruff, PyLint, Mypy ]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6
