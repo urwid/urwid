@@ -328,7 +328,7 @@ class Columns(
 
             elif w[0] == WHSettings.WEIGHT:
                 _ignored, width, w = w
-                self.contents.append((w, (WHSettings.WEIGHT, typing.cast("int | float", width), i in box_columns)))
+                self.contents.append((w, (WHSettings.WEIGHT, width, i in box_columns)))
 
             else:
                 raise ColumnsError(f"initial widget list item invalid: {original!r}")

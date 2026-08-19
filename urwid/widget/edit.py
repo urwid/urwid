@@ -20,8 +20,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
-
-    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class EditError(TextError):
@@ -111,7 +110,7 @@ class Edit(WidgetWrap[Text]):
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
-        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
+        self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
         self.highlight: tuple[int, int] | None = None
         self._mask: str | None = None
@@ -269,7 +268,7 @@ class Edit(WidgetWrap[Text]):
 
         return typing.cast("int", pref_col)
 
-    def set_caption(self, caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_caption(self, caption: _TagMarkup) -> None:
         """
         Set the caption markup for this widget.
 
@@ -289,7 +288,7 @@ class Edit(WidgetWrap[Text]):
         Traceback (most recent call last):
         AttributeError: can't set attribute
         """
-        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
+        self._caption, self._attrib = decompose_tagmarkup(caption)
         self._sync_wrapped()
         self._invalidate()
 

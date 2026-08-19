@@ -14,6 +14,8 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
+    from urwid.util import _TagMarkup
+
 
 class BarGraphMeta(WidgetMeta):
     """
@@ -471,7 +473,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                     a = self.attr[bar_type]
                     t = self.char[bar_type] * width
                 widget_list.append((a, t))
-            c = Text(widget_list).render((maxcol,))  # type: ignore[arg-type]
+            c = Text(widget_list).render((maxcol,))
             if c.rows() != 1:
                 raise BarGraphError("Invalid characters in BarGraph!")
             combinelist += [(c, None, False)] * y_count
@@ -641,7 +643,7 @@ class GraphVScale(Widget):
 
     def __init__(
         self,
-        labels: Sequence[tuple[float | int, str | Sequence]],
+        labels: Sequence[tuple[float | int, _TagMarkup]],
         top: float,
     ) -> None:
         """
@@ -658,7 +660,7 @@ class GraphVScale(Widget):
 
     def set_scale(
         self,
-        labels: Sequence[tuple[float | int, str | Sequence]],
+        labels: Sequence[tuple[float | int, _TagMarkup]],
         top: float,
     ) -> None:
         """
@@ -674,7 +676,7 @@ class GraphVScale(Widget):
         self.txt = []
         for y, markup in labels:
             self.pos.append(y)
-            self.txt.append(Text(markup))  # type: ignore[arg-type]
+            self.txt.append(Text(markup))
         self.top = top
 
     def selectable(self) -> Literal[False]:

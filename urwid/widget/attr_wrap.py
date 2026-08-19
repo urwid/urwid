@@ -11,11 +11,13 @@ if typing.TYPE_CHECKING:
     from .constants import Sizing
     from .widget import AbstractWidget
 
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
-class AttrWrap(AttrMap):
+
+class AttrWrap(AttrMap[WrappedWidget]):
     def __init__(
         self,
-        w: AbstractWidget,
+        w: WrappedWidget,
         attr: Hashable | Mapping[Hashable, Hashable],
         focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
     ) -> None:
@@ -58,7 +60,7 @@ class AttrWrap(AttrMap):
         return d
 
     @property
-    def w(self) -> AbstractWidget:
+    def w(self) -> WrappedWidget:
         """backwards compatibility, widget used to be stored as w"""
         warnings.warn(
             "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
@@ -68,7 +70,7 @@ class AttrWrap(AttrMap):
         return self.original_widget
 
     @w.setter
-    def w(self, new_widget: AbstractWidget) -> None:
+    def w(self, new_widget: WrappedWidget) -> None:
         warnings.warn(
             "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
             DeprecationWarning,

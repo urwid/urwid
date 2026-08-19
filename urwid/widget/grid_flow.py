@@ -408,7 +408,7 @@ class GridFlow(
                     p.contents.append((divider, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
                 c = Columns([], self.h_sep)
                 column_focused = False
-                pad = Padding(typing.cast("Columns", c), self.align)
+                pad = Padding(c, self.align)
                 self.first_position[pad] = i
                 p.contents.append((pad, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
 
