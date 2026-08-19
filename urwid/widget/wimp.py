@@ -34,12 +34,13 @@ from .text import Text
 from .widget import WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, MutableSequence
+    from collections.abc import Callable, MutableSequence
 
     from typing_extensions import Literal, Self
 
     from urwid.canvas import TextCanvas
     from urwid.text_layout import TextLayout
+    from urwid.util import _TagMarkup
 
     _T = typing.TypeVar("_T")
 
@@ -50,7 +51,7 @@ class SelectableIcon(Text):
 
     def __init__(
         self,
-        text: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        text: _TagMarkup,
         cursor_position: int = 0,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
@@ -72,7 +73,7 @@ class SelectableIcon(Text):
         displayed at a fixed location in the text when in focus.
         This widget has no special handling of keyboard or mouse input.
         """
-        super().__init__(text, align=align, wrap=wrap, layout=layout)  # type: ignore[arg-type]  # markup
+        super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
 
     def render(  # type: ignore[override]
@@ -158,7 +159,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool = False,
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
@@ -169,7 +170,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: typing.Literal["mixed"] | bool = False,
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
@@ -180,7 +181,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool = False,
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
@@ -191,7 +192,7 @@ class CheckBox(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: typing.Literal["mixed"] | bool = False,
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
@@ -201,7 +202,7 @@ class CheckBox(WidgetWrap[Columns]):
 
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool | Literal["mixed"] = False,
         has_mixed: typing.Literal[False, True] = False,  # MyPy issue: Literal[True, False] is not equal `bool`
         on_state_change: (
@@ -252,7 +253,7 @@ class CheckBox(WidgetWrap[Columns]):
         if state not in self.states:
             raise ValueError(f"{state!r} not in {tuple(self.states.keys())}")
 
-        self._label = Text(label)  # type: ignore[arg-type]  # markup specific
+        self._label = Text(label)
         self.has_mixed = has_mixed
 
         self._state = state
@@ -300,7 +301,7 @@ class CheckBox(WidgetWrap[Columns]):
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {**super()._repr_attrs(), "state": self.state}
 
-    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_label(self, label: _TagMarkup) -> None:
         """
         Change the check box label.
 
@@ -314,7 +315,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> cb
         <CheckBox selectable fixed/flow widget 'bar' state=False>
         """
-        self._label.set_text(label)  # type: ignore[arg-type]  # markup specific
+        self._label.set_text(label)
         # no need to call self._invalidate(). WidgetWrap takes care of
         # that when self.w changes
 
@@ -473,7 +474,7 @@ class RadioButton(CheckBox):
     def __init__(
         self,
         group: MutableSequence[RadioButton],
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
@@ -483,7 +484,7 @@ class RadioButton(CheckBox):
     def __init__(
         self,
         group: MutableSequence[RadioButton],
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
@@ -492,7 +493,7 @@ class RadioButton(CheckBox):
     def __init__(
         self,
         group: MutableSequence[RadioButton],
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         state: bool | Literal["first True"] = "first True",
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
@@ -620,7 +621,7 @@ class Button(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         on_press: Callable[[Self, _T], typing.Any] | None = None,
         user_data: _T = ...,
         *,
@@ -632,7 +633,7 @@ class Button(WidgetWrap[Columns]):
     @typing.overload
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         on_press: Callable[[Self], typing.Any] | None = None,
         user_data: None = None,
         *,
@@ -643,7 +644,7 @@ class Button(WidgetWrap[Columns]):
 
     def __init__(
         self,
-        label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]],
+        label: _TagMarkup,
         on_press: Callable[[Self, _T], typing.Any] | Callable[[Self], typing.Any] | None = None,
         user_data: _T | None = None,
         *,
@@ -726,7 +727,7 @@ class Button(WidgetWrap[Columns]):
         # include button.label in repr(button)
         return [*super()._repr_words(), repr(self.label)]
 
-    def set_label(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_label(self, label: _TagMarkup) -> None:
         """
         Change the button label.
 
@@ -737,7 +738,7 @@ class Button(WidgetWrap[Columns]):
         >>> b
         <Button selectable fixed/flow widget 'Yup yup'>
         """
-        self._label.set_text(label)  # type: ignore[arg-type]  # markup specific
+        self._label.set_text(label)
 
     def get_label(self) -> str | bytes:
         """

@@ -809,7 +809,7 @@ class Overlay(
                 self.align_type,
                 self.align_amount,
                 WHSettings.CLIP,
-                typing.cast("int", width),
+                width,
                 None,
                 self.left,
                 self.right,

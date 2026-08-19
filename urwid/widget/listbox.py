@@ -758,7 +758,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         if middle is None:
             return SolidCanvas(" ", maxcol, maxrow)
 
-        _ignore, focus_widget, focus_pos, focus_rows, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
+        _ignore, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
         trim_top, fill_above = typing.cast("VisibleInfoTopBottom", top)  # pylint: disable=unpacking-non-sequence
         trim_bottom, fill_below = typing.cast("VisibleInfoTopBottom", bottom)  # pylint: disable=unpacking-non-sequence
 
@@ -865,7 +865,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         if middle is None:
             return None
 
-        offset_inset, _ignore1, _ignore2, _ignore3, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
+        offset_inset, _ignore1, _ignore2, _ignore3, cursor = middle  # pylint: disable=unpacking-non-sequence
         if not cursor:
             return None
 
@@ -1513,7 +1513,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         if middle is None:
             return True
 
-        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = typing.cast("VisibleInfoMiddle", middle)  # pylint: disable=unpacking-non-sequence
+        focus_row_offset, focus_widget, focus_pos, focus_rows, cursor = middle  # pylint: disable=unpacking-non-sequence
         _trim_bottom, fill_below = typing.cast("VisibleInfoTopBottom", bottom)  # pylint: disable=unpacking-non-sequence
 
         row_offset = focus_row_offset + focus_rows

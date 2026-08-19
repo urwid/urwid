@@ -37,10 +37,14 @@ _S = typing.TypeVar("_S")
 
 
 def _call_modified(
-    fn: Callable[Concatenate[MonitoredList, ArgSpec], Ret],
-) -> Callable[Concatenate[MonitoredList, ArgSpec], Ret]:
+    fn: Callable[Concatenate[MonitoredList[typing.Any], ArgSpec], Ret],
+) -> Callable[Concatenate[MonitoredList[typing.Any], ArgSpec], Ret]:
     @functools.wraps(fn)
-    def call_modified_wrapper(self: MonitoredList, *args: ArgSpec.args, **kwargs: ArgSpec.kwargs) -> Ret:
+    def call_modified_wrapper(
+        self: MonitoredList[typing.Any],
+        *args: ArgSpec.args,
+        **kwargs: ArgSpec.kwargs,
+    ) -> Ret:
         rval = fn(self, *args, **kwargs)
         self._modified()  # pylint: disable=protected-access
         return rval

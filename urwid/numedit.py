@@ -29,9 +29,9 @@ import warnings
 from urwid import Edit
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Container, Hashable
+    from collections.abc import Container
 
-    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class NumEdit(Edit):

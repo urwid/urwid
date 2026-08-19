@@ -251,7 +251,7 @@ class Pile(
                     w = original[-1]
                     self.contents.append(
                         (
-                            typing.cast("AbstractFlowWidget | AbstractFixedWidget", w),
+                            w,
                             (WHSettings.PACK, None),
                         )
                     )
@@ -281,7 +281,7 @@ class Pile(
                 elif settings == WHSettings.WEIGHT:
                     self.contents.append(
                         (
-                            typing.cast("AbstractBoxWidget | AbstractFlowWidget", w),
+                            w,
                             (
                                 WHSettings.WEIGHT,
                                 typing.cast("int | float", height),

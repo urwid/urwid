@@ -17,8 +17,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
-
-    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class TextError(WidgetError):
@@ -123,7 +122,7 @@ class Text(Widget):
         Traceback (most recent call last):
         AttributeError: can't set attribute
         """
-        self._text, self._attrib = decompose_tagmarkup(markup)  # type: ignore[arg-type]  # discourage `bytes` input
+        self._text, self._attrib = decompose_tagmarkup(markup)
         self._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:

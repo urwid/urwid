@@ -30,7 +30,7 @@ from contextlib import suppress
 from urwid import str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator, Hashable, Iterable, MutableSequence
+    from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence
     from types import TracebackType
 
     from typing_extensions import Literal, Protocol, Self
@@ -38,7 +38,24 @@ if typing.TYPE_CHECKING:
     class CanBeStopped(Protocol):
         def stop(self) -> None: ...
 
-    _TagMarkup = typing.Union[str, bytes, tuple[Hashable, typing.Union[str, bytes]], list["_TagMarkup"]]
+    class _TagMarkupList(Protocol):
+        """List of markup parts joined together by `decompose_tagmarkup`.
+
+        `_tagmarkup_recurse` traverses only `list` instances as containers of parts,
+        while a `tuple` always means a single (display attribute, markup) pair,
+        so `tuple` must not be accepted here.
+        A protocol is used instead of `list["_TagMarkup"]` because `list` is invariant:
+        a plain `list[str | tuple[Hashable, str]]` is not a `list["_TagMarkup"]`.
+        `reverse` is required only to exclude `tuple`, elements are never modified.
+        """
+
+        def __iter__(self) -> Iterator[_TagMarkup]: ...
+
+        def __len__(self) -> int: ...
+
+        def reverse(self) -> None: ...
+
+    _TagMarkup = typing.Union[str, bytes, tuple[Hashable, "_TagMarkup"], "_TagMarkupList"]
 
 
 def __getattr__(name: str) -> typing.Any:

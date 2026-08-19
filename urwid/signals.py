@@ -71,7 +71,7 @@ class Key:
 
 if typing.TYPE_CHECKING:
     # ``weak_args`` (converted to weakrefs) and ``user_args`` as prepared by ``_prepare_user_args``.
-    _UserArgs = tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]
+    _UserArgs = tuple[Collection[weakref.ReferenceType[typing.Any]], Collection[typing.Any]]
     # A single connected handler: (key, callback, deprecated user_arg, prepared args).
     _SignalHandler = tuple[Key, Callable[..., typing.Any], typing.Any, _UserArgs]
     # Per-sender storage attached to ``obj`` under ``Signals._signal_attr``.
@@ -215,10 +215,10 @@ class Signals:
 
     def _prepare_user_args(
         self,
-        weak_args: Iterable[typing.Any] = (),
+        weak_args: Iterable[_T] = (),
         user_args: Iterable[typing.Any] = (),
-        callback: Callable[[weakref.ReferenceType[typing.Any]], typing.Any] | None = None,
-    ) -> tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]:
+        callback: Callable[[weakref.ReferenceType[_T]], typing.Any] | None = None,
+    ) -> tuple[Collection[weakref.ReferenceType[_T]], Collection[typing.Any]]:
         # Turn weak_args into weakrefs and prepend them to user_args
         w_args = tuple(weakref.ref(w_arg, callback) for w_arg in weak_args)
         args = tuple(user_args) or ()
@@ -312,7 +312,7 @@ class Signals:
         self,
         callback: Callable[..., typing.Any],  # we cannot use type signature here due to args decomposition
         user_arg: typing.Any,
-        weak_args: Iterable[weakref.ReferenceType],
+        weak_args: Iterable[weakref.ReferenceType[typing.Any]],
         user_args: Iterable[typing.Any],
         emit_args: Iterable[typing.Any],
     ) -> bool:

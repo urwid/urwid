@@ -43,25 +43,30 @@ from .wimp import SelectableIcon
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
 
+    from typing_extensions import Self
+
+    from urwid.util import _TagMarkup
+
     from .listbox import VisibleInfo
 
 __all__ = ("ParentNode", "TreeListBox", "TreeNode", "TreeWalker", "TreeWidget", "TreeWidgetError")
 
 _T = typing.TypeVar("_T")
+_Node = typing.TypeVar("_Node", bound="TreeNode[typing.Any] | ParentNode[typing.Any]")
 
 
 class TreeWidgetError(RuntimeError):
     pass
 
 
-class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
+class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generic[_Node]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
     unexpanded_icon = SelectableIcon("+", 0)
     expanded_icon = SelectableIcon("-", 0)
 
-    def __init__(self, node: TreeNode | ParentNode) -> None:
+    def __init__(self, node: _Node) -> None:
         self._node = node
         self._innerwidget: Text | None = None
         if not isinstance(node, ParentNode):
@@ -109,18 +114,18 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
     def get_inner_widget(self) -> Text:
         if self._innerwidget is None:
             self._innerwidget = self.load_inner_widget()
-        return typing.cast("Text", self._innerwidget)
+        return self._innerwidget
 
     def load_inner_widget(self) -> Text:
-        return Text(self.get_display_text())  # type: ignore[arg-type]
+        return Text(self.get_display_text())
 
-    def get_node(self) -> TreeNode:
+    def get_node(self) -> _Node:
         return self._node
 
-    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
+    def get_display_text(self) -> _TagMarkup:
         return f"{self.get_node().get_key()}: {self.get_node().get_value()!s}"
 
-    def next_inorder(self) -> TreeWidget | None:
+    def next_inorder(self) -> TreeWidget[TreeNode[typing.Any]] | None:
         """Return the next TreeWidget depth first from this one."""
         # first check if there's a child widget
 
@@ -128,7 +133,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
             return first_child
 
         # now we need to hunt for the next sibling
-        this_node = self.get_node()
+        this_node: TreeNode[typing.Any] = self.get_node()
         next_node = this_node.next_sibling()
         depth = this_node.get_depth()
         while next_node is None and depth > 0:
@@ -144,7 +149,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
 
         return next_node.get_widget()
 
-    def prev_inorder(self) -> TreeWidget | None:
+    def prev_inorder(self) -> TreeWidget[TreeNode[typing.Any]] | None:
         """Return the previous TreeWidget depth first from this one."""
         this_node = self._node
 
@@ -204,24 +209,24 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]]):
 
         return False
 
-    def first_child(self) -> TreeWidget | None:
+    def first_child(self) -> TreeWidget[TreeNode[typing.Any]] | None:
         """Return first child if expanded."""
         if self.is_leaf or not self.expanded:
             return None
 
-        if typing.cast("ParentNode", self._node).has_children():
-            first_node = typing.cast("ParentNode", self._node).get_first_child()
+        if typing.cast("ParentNode[typing.Any]", self._node).has_children():
+            first_node = typing.cast("ParentNode[typing.Any]", self._node).get_first_child()
             return first_node.get_widget()
 
         return None
 
-    def last_child(self) -> TreeWidget | None:
+    def last_child(self) -> TreeWidget[TreeNode[typing.Any]] | None:
         """Return last child if expanded."""
         if self.is_leaf or not self.expanded:
             return None
 
-        if typing.cast("ParentNode", self._node).has_children():
-            last_child = typing.cast("ParentNode", self._node).get_last_child().get_widget()
+        if typing.cast("ParentNode[typing.Any]", self._node).has_children():
+            last_child = typing.cast("ParentNode[typing.Any]", self._node).get_last_child().get_widget()
         else:
             return None
         # recursively search down for the last descendant
@@ -252,22 +257,22 @@ class TreeNode(typing.Generic[_T]):
         self._parent = parent
         self._value = value
         self._depth = depth
-        self._widget: TreeWidget | None = None
+        self._widget: TreeWidget[Self] | None = None
 
-    def get_widget(self, reload: bool = False) -> TreeWidget:
+    def get_widget(self, reload: bool = False) -> TreeWidget[Self]:
         """Return the widget for this node."""
         if self._widget is None or reload:
             self._widget = self.load_widget()
-        return typing.cast("TreeWidget", self._widget)
+        return self._widget
 
-    def load_widget(self) -> TreeWidget:
+    def load_widget(self) -> TreeWidget[Self]:
         return TreeWidget(self)
 
     def get_depth(self) -> int:
         if self._depth is self._parent is None:
             self._depth = 0
         elif self._depth is None:
-            self._depth = typing.cast("ParentNode", self._parent).get_depth() + 1
+            self._depth = typing.cast("ParentNode[typing.Any]", self._parent).get_depth() + 1
         return self._depth
 
     def get_index(self) -> int | None:
@@ -288,7 +293,7 @@ class TreeNode(typing.Generic[_T]):
     def get_parent(self) -> ParentNode[typing.Any]:
         if self._parent is None and self.get_depth() > 0:
             self._parent = self.load_parent()
-        return typing.cast("ParentNode", self._parent)
+        return typing.cast("ParentNode[typing.Any]", self._parent)
 
     def load_parent(self) -> ParentNode[typing.Any]:
         """Provide TreeNode with a parent for the current node.
@@ -304,23 +309,23 @@ class TreeNode(typing.Generic[_T]):
     def is_root(self) -> bool:
         return self.get_depth() == 0
 
-    def next_sibling(self) -> TreeNode | None:
+    def next_sibling(self) -> TreeNode[typing.Any] | None:
         if self.get_depth() > 0:
             return self.get_parent().next_child(self.get_key())
 
         return None
 
-    def prev_sibling(self) -> TreeNode | None:
+    def prev_sibling(self) -> TreeNode[typing.Any] | None:
         if self.get_depth() > 0:
             return self.get_parent().prev_child(self.get_key())
 
         return None
 
-    def get_root(self) -> ParentNode:
+    def get_root(self) -> ParentNode[typing.Any]:
         root = self
         while root.get_parent() is not None:
             root = root.get_parent()
-        return typing.cast("ParentNode", root)
+        return typing.cast("ParentNode[typing.Any]", root)
 
 
 class ParentNode(TreeNode[_T]):
@@ -342,13 +347,13 @@ class ParentNode(TreeNode[_T]):
         """Return a possibly ordered list of child keys"""
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
-        return typing.cast("Sequence[Hashable]", self._child_keys)
+        return self._child_keys
 
     def load_child_keys(self) -> Sequence[Hashable]:
         """Provide ParentNode with an ordered list of child keys (virtual function)"""
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
-    def get_child_widget(self, key: Hashable) -> TreeWidget:
+    def get_child_widget(self, key: Hashable) -> TreeWidget[TreeNode[typing.Any]]:
         """Return the widget for a given key.  Create if necessary."""
 
         return self.get_child_node(key).get_widget()
@@ -416,31 +421,37 @@ class ParentNode(TreeNode[_T]):
         return len(self.get_child_keys()) > 0
 
 
-class TreeWalker(ListWalker[TreeNode, TreeWidget]):
+class TreeWalker(ListWalker[TreeNode[typing.Any], TreeWidget[TreeNode[typing.Any]]]):
     """ListWalker-compatible class for displaying TreeWidgets
 
     positions are TreeNodes."""
 
-    def __init__(self, start_from: TreeNode) -> None:
+    def __init__(self, start_from: TreeNode[typing.Any]) -> None:
         """start_from: TreeNode with the initial focus."""
         self.focus = start_from
 
-    def get_focus(self) -> tuple[TreeWidget, TreeNode]:
+    def get_focus(self) -> tuple[TreeWidget[TreeNode[typing.Any]], TreeNode[typing.Any]]:
         widget = self.focus.get_widget()
         return widget, self.focus
 
-    def set_focus(self, focus: TreeNode) -> None:
+    def set_focus(self, focus: TreeNode[typing.Any]) -> None:
         self.focus = focus
         self._modified()
 
     # pylint: disable=arguments-renamed  # its bad, but we should not change API
-    def get_next(self, start_from: TreeNode) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
+    def get_next(
+        self,
+        start_from: TreeNode[typing.Any],
+    ) -> tuple[TreeWidget[TreeNode[typing.Any]], TreeNode[typing.Any]] | tuple[None, None]:
         if (target := start_from.get_widget().next_inorder()) is not None:
             return target, target.get_node()
 
         return None, None
 
-    def get_prev(self, start_from: TreeNode) -> tuple[TreeWidget, TreeNode] | tuple[None, None]:
+    def get_prev(
+        self,
+        start_from: TreeNode[typing.Any],
+    ) -> tuple[TreeWidget[TreeNode[typing.Any]], TreeNode[typing.Any]] | tuple[None, None]:
         if (target := start_from.get_widget().prev_inorder()) is not None:
             return target, target.get_node()
 
@@ -449,7 +460,7 @@ class TreeWalker(ListWalker[TreeNode, TreeWidget]):
     # pylint: enable=arguments-renamed
 
 
-class TreeListBox(ListBox):
+class TreeListBox(ListBox[TreeNode[typing.Any]]):
     """A ListBox with special handling for navigation and collapsing of TreeWidgets"""
 
     def keypress(
@@ -487,7 +498,7 @@ class TreeListBox(ListBox):
 
         _widget, pos = self.body.get_focus()
 
-        parentpos = typing.cast("TreeNode", pos).get_parent()
+        parentpos = typing.cast("TreeNode[typing.Any]", pos).get_parent()
 
         if parentpos is None:
             return
@@ -502,7 +513,7 @@ class TreeListBox(ListBox):
                 self.change_focus(size, pos, row_offset)
                 return
 
-        self.change_focus(size, typing.cast("TreeNode", pos).get_parent())
+        self.change_focus(size, typing.cast("TreeNode[typing.Any]", pos).get_parent())
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
         self.focus_home(size)
@@ -514,7 +525,7 @@ class TreeListBox(ListBox):
         """Move focus to very top."""
 
         _widget, pos = self.body.get_focus()
-        rootnode = typing.cast("TreeNode", pos).get_root()
+        rootnode = typing.cast("TreeNode[typing.Any]", pos).get_root()
         self.change_focus(size, rootnode)
 
     def focus_end(self, size: tuple[int, int]) -> None:
@@ -523,7 +534,7 @@ class TreeListBox(ListBox):
         maxrow, _maxcol = size
         _widget, pos = self.body.get_focus()
 
-        if lastwidget := typing.cast("TreeNode", pos).get_root().get_widget().last_child():
+        if lastwidget := typing.cast("TreeNode[typing.Any]", pos).get_root().get_widget().last_child():
             lastnode = lastwidget.get_node()
 
             self.change_focus(size, lastnode, maxrow - 1)
