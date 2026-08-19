@@ -2,8 +2,31 @@
 Changelog
 ---------
 
+Urwid 4.0.11
+============
+
+2026-08-19
+
+Bug fixes 🕷
+++++++++++++
+* Raw display: do not crash on a last row of a single wide grapheme by @luantaraschi in https://github.com/urwid/urwid/pull/1229
+* ScrollBar: decide the scrollbar hitbox before the event is passed on by @luantaraschi in https://github.com/urwid/urwid/pull/1234
+* GridFlow: keep the focus a callback set during keypress or mouse event by @luantaraschi in https://github.com/urwid/urwid/pull/1230
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate ListBox by @penguinolog in https://github.com/urwid/urwid/pull/1236
+Refactoring 🛠
+++++++++++++++
+* Refactoring: stop with monkey-patching `Padding` in `GridFlow` by @penguinolog in https://github.com/urwid/urwid/pull/1231
+
+New Contributors
+++++++++++++++++
+* @luantaraschi made their first contribution in https://github.com/urwid/urwid/pull/1229
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.10...4.0.11
+
 Urwid 4.0.10
-===========
+============
 
 2026-08-17
 
