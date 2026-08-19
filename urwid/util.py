@@ -547,7 +547,7 @@ def int_scale(val: int, val_range: int, out_range: int) -> int:
     >>> int_scale(1, 3, 4)
     2
     """
-    num = int(val * (out_range - 1) * 2 + (val_range - 1))
+    num = val * (out_range - 1) * 2 + (val_range - 1)
     dem = (val_range - 1) * 2
     # if num % dem == 0 then we are exactly half-way and have rounded up.
     return num // dem
