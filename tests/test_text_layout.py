@@ -157,6 +157,52 @@ class SubsegTest(unittest.TestCase):
         self.st((6, 2, 8), t, 0, 5, [(4, 2, 6), (1, 6)])
         self.st((6, 2, 8), t, 1, 5, [(1, 3), (2, 4, 6), (1, 6)])
 
+    def test4_range_inside_a_wide_character(self):
+        """A window that lands inside a wide character is padding and nothing else."""
+        t = b"12\xa1\xa156\xa1\xa190"
+        self.st((10, 0, 10), t, 2, 3, [(1, 2)])
+        self.st((10, 0, 10), t, 3, 4, [(1, 3)])
+        self.st((10, 0, 10), t, 7, 8, [(1, 7)])
+        self.st((6, 2, 8), t, 1, 2, [(1, 3)])
+
+
+class NarrowWideCharacterRenderTest(unittest.TestCase):
+    """Rendering wide characters into an area too narrow to hold them."""
+
+    CJK = "你好世界"
+
+    def render(self, widget, size, focus: bool = False) -> list[str]:
+        return [line.decode("utf-8") for line in widget.render(size, focus).text]
+
+    def test_clipped_on_both_edges(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual([" "], self.render(urwid.Text(self.CJK, wrap="clip"), (1,)))
+            self.assertEqual(["你 "], self.render(urwid.Text(self.CJK, wrap="clip"), (3,)))
+            self.assertEqual(["  "], self.render(urwid.Text(self.CJK, align="center", wrap="clip"), (2,)))
+            self.assertEqual([" "], self.render(urwid.Text(self.CJK, align="right", wrap="clip"), (1,)))
+
+    def test_inside_a_line_box(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual(
+                ["┌─┐", "│ │", "└─┘"],
+                self.render(urwid.LineBox(urwid.Text(self.CJK, wrap="clip")), (3,)),
+            )
+
+    def test_shifted_left_by_padding(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual(
+                [" "],
+                self.render(urwid.Padding(urwid.Text(self.CJK, wrap="clip"), left=-1), (1,)),
+            )
+
+    def test_every_narrow_width_renders(self):
+        with set_temporary_encoding("utf-8"):
+            for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                for width in range(1, 10):
+                    with self.subTest(align=align, width=width):
+                        canvas = urwid.Text(self.CJK, align=align, wrap=urwid.WrapMode.CLIP).render((width,))
+                        self.assertEqual(width, canvas.cols())
+
 
 class CalcTranslateTest(unittest.TestCase):
     def setUp(self) -> None:
