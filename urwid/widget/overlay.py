@@ -250,8 +250,8 @@ class Overlay(
         if size:
             return super().pack(size, focus)
 
-        extra_cols = (self.left or 0) + (self.right or 0)
-        extra_rows = (self.top or 0) + (self.bottom or 0)
+        extra_cols = self.left + self.right
+        extra_rows = self.top + self.bottom
 
         if self.width_type == WHSettings.PACK:
             cols, rows = self.top_w.pack((), focus)
@@ -317,14 +317,14 @@ class Overlay(
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Widget rows amount for FLOW sizing."""
-        extra_height = (self.top or 0) + (self.bottom or 0)
+        extra_height = self.top + self.bottom
         if self.height_type == WHSettings.GIVEN:
             return self.height_amount + extra_height
         if self.height_type == WHSettings.RELATIVE and self.min_height:
             return int(self.min_height * 100 / self.height_amount + 0.5)
 
         if self.height_type == WHSettings.PACK:
-            extra_height = (self.top or 0) + (self.bottom or 0)
+            extra_height = self.top + self.bottom
             if self.width_type == WHSettings.GIVEN and self.width_amount:
                 return self.top_w.rows((self.width_amount,), focus) + extra_height
             if self.width_type == WHSettings.RELATIVE:
