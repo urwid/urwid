@@ -504,10 +504,10 @@ class Overlay(
         if isinstance(width, tuple):
             if width[0] == "fixed left":
                 left = width[1]
-                width = RELATIVE_100  # type: ignore[assignment]
+                width = RELATIVE_100
             elif width[0] == "fixed right":
                 right = width[1]
-                width = RELATIVE_100  # type: ignore[assignment]
+                width = RELATIVE_100
 
         normalized_valign: VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(valign, tuple):
@@ -530,10 +530,10 @@ class Overlay(
         if isinstance(height, tuple):
             if height[0] == "fixed bottom":
                 bottom = height[1]
-                height = RELATIVE_100  # type: ignore[assignment]
+                height = RELATIVE_100
             elif height[0] == "fixed top":
                 top = height[1]
-                height = RELATIVE_100  # type: ignore[assignment]
+                height = RELATIVE_100
 
         if width is None:  # more obsolete values accepted
             width = WHSettings.PACK
