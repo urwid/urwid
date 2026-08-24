@@ -286,3 +286,85 @@ class ScreenGetInputTest(unittest.TestCase):
 
         self.assertEqual(result, ["key1"])
         self.assertEqual(self.screen.input_tail, "incompl")
+
+
+class ScreenStartTest(unittest.TestCase):
+    """Tests for the request validation in Screen.start."""
+
+    def setUp(self) -> None:
+        self.screen = web.Screen()
+
+    def test_start_rejects_invalid_resize_request(self) -> None:
+        for client_init in (
+            "",
+            "hello\n",
+            "window resize\n",
+            "window resize 80\n",
+            "window resize 80 24 extra\n",
+            "window resize -80 24\n",
+            "window resize 80.5 24\n",
+            "window resize abc 24\n",
+        ):
+            stdout = io.StringIO()
+
+            with (
+                self.subTest(client_init=client_init),
+                mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
+                mock.patch.object(web.sys, "stdin", io.StringIO(client_init)),
+                mock.patch.object(web.sys, "stdout", stdout),
+            ):
+                with self.assertRaises(SystemExit) as ctx:
+                    self.screen.start()
+
+                self.assertEqual(ctx.exception.code, 0)
+                self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+                self.assertFalse(self.screen.started)
+
+    def test_start_rejects_not_set_update_method(self) -> None:
+        stdout = io.StringIO()
+        stdin = io.StringIO("window resize 80 24\n")
+
+        with (
+            mock.patch.dict(os.environ, {}, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            with self.assertRaises(RuntimeError) as ctx:
+                self.screen.start()
+
+            self.assertEqual("'HTTP_X_URWID_METHOD' environment vairable is not set", str(ctx.exception))
+
+    def test_start_rejects_unsupported_update_method(self) -> None:
+        environ = {"HTTP_X_URWID_METHOD": "polling child"}
+        stdout = io.StringIO()
+        stdin = io.StringIO("window resize 80 24\n")
+
+        with (
+            mock.patch.dict(os.environ, environ, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            with self.assertRaises(SystemExit) as ctx:
+                self.screen.start()
+
+            self.assertEqual(ctx.exception.code, 0)
+            self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+            # the request body is left untouched: validation happens before reading it
+            self.assertEqual(0, stdin.tell())
+
+    def test_start_accepts_valid_resize_request(self) -> None:
+        with (
+            mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),
+            mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
+            mock.patch.object(web.glob, "glob", return_value=[]),
+            mock.patch.object(web.os, "mkfifo"),
+            mock.patch.object(web.os, "open", return_value=42),
+            mock.patch.object(web.signal, "signal"),
+            mock.patch.object(web.signal, "alarm"),
+        ):
+            self.screen.start()
+
+        self.assertTrue(self.screen.started)
+        self.assertEqual(self.screen.screen_size, (80, 24))
+        self.assertEqual(self.screen.last_screen, {})
+        self.assertEqual(self.screen.last_screen_width, 0)
