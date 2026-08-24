@@ -343,7 +343,7 @@ class Columns(
 
         if self.contents and focus_column is not None:
             self.focus_position = typing.cast("int", focus_column)
-        self.pref_col: Literal["left", "right"] | int | None = None
+        self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         self.min_width = min_width
         self._cache_maxcol: int | None = None
 
@@ -1151,7 +1151,7 @@ class Columns(
     def move_cursor_to_coords(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        col: int | Literal["left", "right"],
+        col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
         row: int,
     ) -> bool:
         """
@@ -1188,7 +1188,7 @@ class Columns(
         i, x, end, w = best
         if hasattr(w, "move_cursor_to_coords"):
             if isinstance(col, int):
-                move_x: int | Literal["left", "right"] = min(max(0, col - x), end - x - 1)
+                move_x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = min(max(0, col - x), end - x - 1)
             else:
                 move_x = col
 
@@ -1241,7 +1241,10 @@ class Columns(
             return w.mouse_event(w_size, event, button, col - x, row, focus)  # type: ignore[arg-type]
         return False
 
-    def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> Literal["left", "right"] | int | None:
+    def get_pref_col(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+    ) -> Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None:
         """Return the pref col from the column in focus."""
         widths, _, size_args = self.get_column_sizes(size, focus=True)
 
@@ -1263,7 +1266,7 @@ class Columns(
             col = cwidth // 2
             col += self.focus_position * self.dividechars
             col += sum(widths[: self.focus_position])
-        return col
+        return typing.cast("Literal['left', 'right', Align.LEFT, Align.RIGHT] | int | None", col)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """

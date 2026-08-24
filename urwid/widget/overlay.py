@@ -78,7 +78,7 @@ OverlayContentsItem = tuple[typing.Union[TopWidget, BottomWidget], OverlayOption
 class Overlay(
     Widget,
     WidgetContainerMixin[Literal[0, 1]],
-    WidgetContainerListContentsMixin[OverlayContentsItem],
+    WidgetContainerListContentsMixin[OverlayContentsItem[TopWidget, BottomWidget]],
     typing.Generic[TopWidget, BottomWidget],
 ):
     """Overlay contains two widgets and renders one on top of the other.
@@ -466,13 +466,23 @@ class Overlay(
             | Align
             | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
         ),
-        width: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
+        width: (
+            Literal["pack", WHSettings.PACK]
+            | int
+            | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
+            | None
+        ),
         valign: (
             Literal["top", "middle", "bottom"]
             | VAlign
             | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
         ),
-        height: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
+        height: (
+            Literal["pack", WHSettings.PACK]
+            | int
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
+            | None
+        ),
         min_width: int | None = None,
         min_height: int | None = None,
         left: int = 0,
@@ -541,9 +551,9 @@ class Overlay(
             height = WHSettings.PACK
 
         align_type, align_amount = normalize_align(normalized_align, OverlayError)
-        width_type, width_amount = normalize_width(width, OverlayError)
+        width_type, width_amount = normalize_width(width, OverlayError)  # type: ignore[arg-type]
         valign_type, valign_amount = normalize_valign(normalized_valign, OverlayError)
-        height_type, height_amount = normalize_height(height, OverlayError)
+        height_type, height_amount = normalize_height(height, OverlayError)  # type: ignore[arg-type]
 
         if height_type in {WHSettings.GIVEN, WHSettings.PACK}:
             min_height = None
@@ -612,7 +622,7 @@ class Overlay(
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
     @property
-    def contents(self) -> MutableSequence[OverlayContentsItem]:
+    def contents(self) -> MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]:
         """
         a list-like object similar to::
 
@@ -636,7 +646,7 @@ class Overlay(
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(MutableSequence[OverlayContentsItem]):
+        class OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
@@ -657,14 +667,14 @@ class Overlay(
                 for val in inner_self:
                     yield None, val
 
-            def __iter__(inner_self) -> Iterator[OverlayContentsItem]:
+            def __iter__(inner_self) -> Iterator[OverlayContentsItem[TopWidget, BottomWidget]]:
                 for idx in range(2):
                     yield inner_self[idx]  # type: ignore[arg-type]
 
         return OverlayContents()
 
     @contents.setter
-    def contents(self, new_contents: Sequence[OverlayContentsItem]) -> None:
+    def contents(self, new_contents: Sequence[OverlayContentsItem[TopWidget, BottomWidget]]) -> None:
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]
