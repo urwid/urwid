@@ -453,7 +453,11 @@ class LayoutSegment:
                 lines: list[tuple[int, int, int] | tuple[int, int]] = []
                 if pad_left:
                     lines.append((1, spos - 1))
-                lines.append((end - start - pad_left - pad_right, spos, epos))
+                # A window that both starts and ends inside wide characters has
+                # nothing left between the two padding cells, and a segment of
+                # zero screen columns is not a shape LayoutSegment accepts.
+                if (seg_cols := end - start - pad_left - pad_right) > 0:
+                    lines.append((seg_cols, spos, epos))
                 if pad_right:
                     lines.append((1, epos))
                 return lines  # type: ignore[return-value]  # we're narrowing return type
