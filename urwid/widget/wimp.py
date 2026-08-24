@@ -274,12 +274,12 @@ class CheckBox(WidgetWrap[Columns]):
 
     def pack(
         self,
-        size: tuple[()] | tuple[int] | None = None,
+        size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         """Pack for widget.
 
-        :param size: size data. Special case: None - get minimal widget size to fit
+        :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
 
         >>> cb = CheckBox("test")
@@ -293,7 +293,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> ml_cb.pack((), True)
         (12, 3)
         """
-        return super().pack(size or (), focus)
+        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
 
     def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self.label)]
@@ -705,12 +705,12 @@ class Button(WidgetWrap[Columns]):
 
     def pack(
         self,
-        size: tuple[()] | tuple[int] | None = None,
+        size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         """Pack for widget.
 
-        :param size: size data. Special case: None - get minimal widget size to fit
+        :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
 
         >>> btn = Button("Some button")
@@ -721,7 +721,7 @@ class Button(WidgetWrap[Columns]):
         >>> btn.pack((), True)
         (15, 1)
         """
-        return super().pack(size or (), focus)
+        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
 
     def _repr_words(self) -> list[str]:
         # include button.label in repr(button)

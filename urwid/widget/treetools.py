@@ -186,7 +186,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
             self.update_expanded_icon()
             return None
         if self._w.selectable():
-            return super().keypress(size, key)
+            return typing.cast("str | None", super().keypress(size, key))
 
         return key
 

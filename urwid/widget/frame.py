@@ -65,7 +65,7 @@ class Frame(
         body: BodyWidget,
         header: HeaderWidget | None = None,
         footer: FooterWidget | None = None,
-        focus_part: Literal["header", "footer", "body"] | Widget = "body",
+        focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
     ):
         """
         :param body: a box widget for the body of the frame
@@ -563,7 +563,10 @@ class Frame(
                 self.focus_position = "header"
 
             if (header_mouse_event := getattr(self.header, "mouse_event", None)) is not None:
-                return header_mouse_event((maxcol,), event, button, col, row, focus)
+                return typing.cast(
+                    "bool | None",
+                    header_mouse_event((maxcol,), event, button, col, row, focus),
+                )
 
             return False
 
@@ -573,7 +576,10 @@ class Frame(
                 self.focus_position = "footer"
 
             if (footer_mouse_event := getattr(self.footer, "mouse_event", None)) is not None:
-                return footer_mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
+                return typing.cast(
+                    "bool | None",
+                    footer_mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus),
+                )
 
             return False
 

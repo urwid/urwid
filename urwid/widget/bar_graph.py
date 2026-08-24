@@ -42,7 +42,10 @@ class BarGraphMeta(WidgetMeta):
 
 def nocache_bargraph_get_data(
     self: BarGraph,
-    get_data_fn: Callable[[tuple[int, int]], tuple[Sequence, float, Sequence | None]],
+    get_data_fn: Callable[
+        [tuple[int, int]],
+        tuple[Sequence[Sequence[float | int]], float, Sequence[float | int] | None],
+    ],
 ) -> None:
     """
     Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data.

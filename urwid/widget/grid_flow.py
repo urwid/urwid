@@ -506,7 +506,7 @@ class GridFlow(
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         self.get_display_widget(size)
-        return super().rows(size, focus=focus)
+        return typing.cast("int", super().rows(size, focus=focus))  # int or Never - depends on kind
 
     def render(
         self,
