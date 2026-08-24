@@ -50,7 +50,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             int
             | Literal["pack", "clip", WHSettings.PACK, WHSettings.CLIP]
             | tuple[Literal["relative", WHSettings.RELATIVE, "fixed left", "fixed right"], int]
-        ) = RELATIVE_100,  # type: ignore[assignment]
+            | None
+        ) = RELATIVE_100,
         min_width: int | None = None,
         left: int = 0,
         right: int = 0,
@@ -141,7 +142,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                 left = width[1]
             else:
                 right = width[1]
-            width = RELATIVE_100  # type: ignore[assignment]
+            width = RELATIVE_100
 
         # convert old clipping mode width=None to width='clip'
         if width is None:

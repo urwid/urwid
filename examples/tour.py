@@ -28,9 +28,9 @@ from __future__ import annotations
 import urwid
 
 
-def main():
+def main() -> None:
     text_header = "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."
-    text_intro = [
+    text_intro: list[str | tuple[str, str]] = [
         ("important", "Text"),
         (
             " widgets are the most common in "
@@ -75,12 +75,12 @@ def main():
         "with the alignment set to relative 20% and with its width "
         "fixed at 40."
     )
-    text_divider = [
+    text_divider: list[str | tuple[str, str]] = [
         "The ",
         ("important", "Divider"),
         " widget repeats the same character across the whole line.  It can also add blank lines above and below.",
     ]
-    text_edit = [
+    text_edit: list[str | tuple[str, str]] = [
         "The ",
         ("important", "Edit"),
         (
@@ -105,9 +105,12 @@ def main():
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
     text_edit_right = "right aligned"
-    text_intedit = ("editcp", [("important", "IntEdit"), " allows only numbers: "])
+    text_intedit: tuple[str, list[str | tuple[str, str]]] = (
+        "editcp",
+        [("important", "IntEdit"), " allows only numbers: "],
+    )
     text_edit_padding = ("editcp", "Edit widget within a Padding widget ")
-    text_columns1 = [
+    text_columns1: list[str | tuple[str, str]] = [
         ("important", "Columns"),
         (
             " are used to share horizontal screen space.  "
@@ -116,7 +119,7 @@ def main():
             "contents of each column is a single widget."
         ),
     ]
-    text_columns2 = [
+    text_columns2: list[str | tuple[str, str]] = [
         "When you need to put more than one widget into a column you can use a ",
         ("important", "Pile"),
         " to combine two or more widgets.",
@@ -139,7 +142,7 @@ def main():
     text_edit_col_text2 = "more"
     text_edit_col_cap3 = ("editcp", "another ")
     text_edit_col_text3 = "still more"
-    text_gridflow = [
+    text_gridflow: list[str | tuple[str, str]] = [
         "A ",
         ("important", "GridFlow"),
         (
@@ -159,7 +162,7 @@ def main():
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
     text_rb_list = ["Morning", "Afternoon", "Evening", "Weekend"]
-    text_listbox = [
+    text_listbox: list[str | tuple[str, str]] = [
         "All these widgets have been displayed with the help of a ",
         ("important", "ListBox"),
         " widget.  ListBox widgets handle scrolling and changing focus.  A ",
@@ -170,10 +173,10 @@ def main():
     def button_press(button: urwid.Button) -> None:
         frame.footer = urwid.AttrMap(urwid.Text(["Pressed: ", button.get_label()]), "header")
 
-    radio_button_group = []
+    radio_button_group: list[urwid.RadioButton] = []
 
     blank = urwid.Divider()
-    listbox_content = [
+    listbox_content: list[urwid.widget.AbstractFlowWidget] = [
         blank,
         urwid.Padding(urwid.Text(text_intro), left=2, right=2, min_width=20),
         blank,
@@ -357,9 +360,16 @@ def main():
         listbox,
         trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
     )
-    frame = urwid.Frame(urwid.AttrMap(scrollable, "body"), header=header)
+    frame: urwid.Frame[
+        urwid.AttrMap[urwid.ScrollBar[urwid.ListBox[int]]],
+        urwid.AttrMap[urwid.Text] | None,
+        urwid.AttrMap[urwid.Text] | None,
+    ] = urwid.Frame(
+        urwid.AttrMap(scrollable, "body"),
+        header=header,
+    )
 
-    palette = [
+    palette: list[tuple[str, str, str] | tuple[str, str, str, str]] = [
         ("body", "black", "light gray", "standout"),
         ("reverse", "light gray", "black"),
         ("header", "white", "dark red", "bold"),
@@ -385,7 +395,7 @@ def main():
     urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled).run()
 
 
-def setup():
+def setup() -> None:
     urwid.display.web.set_preferences("Urwid Tour")
     # try to handle short web requests quickly
     if urwid.display.web.handle_short_request():

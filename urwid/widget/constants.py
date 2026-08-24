@@ -56,7 +56,7 @@ class WHSettings(str, enum.Enum):
     FLOW = "flow"  # Used as pack for flow widgets
 
 
-RELATIVE_100 = (WHSettings.RELATIVE, 100)
+RELATIVE_100: tuple[Literal[WHSettings.RELATIVE], int] = (WHSettings.RELATIVE, 100)
 
 
 @typing.overload
