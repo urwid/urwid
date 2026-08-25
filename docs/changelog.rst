@@ -2,6 +2,18 @@
 Changelog
 ---------
 
+Urwid 4.0.12
+============
+
+2026-08-25
+
+Bug fixes 🕷
+++++++++++++
+* Text layout: do not crash when a wide character is clipped on both sides by @luantaraschi in https://github.com/urwid/urwid/pull/1241
+* Fix web display init by @penguinolog in https://github.com/urwid/urwid/pull/1243
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.11...4.0.12
+
 Urwid 4.0.11
 ============
 
