@@ -82,17 +82,23 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     # The next few functions simply tack-on our height and pass through
     # to self._original_widget
-    def get_cursor_coords(self, size: tuple[int]) -> int | None:
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
         (maxcol,) = size
-        if not hasattr(self._original_widget, "get_cursor_coords"):
-            return None
-        return self._original_widget.get_cursor_coords((maxcol, self.height))
+        if (get_cursor_coords := getattr(self._original_widget, "get_cursor_coords", None)) is not None:
+            return typing.cast("tuple[int, int] | None", get_cursor_coords((maxcol, self.height)))
+        return None
+
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        (maxcol,) = size
+        if (move_cursor_to_coords := getattr(self._original_widget, "move_cursor_to_coords", None)) is not None:
+            return typing.cast("bool", move_cursor_to_coords((maxcol, self.height), col, row))
+        return True
 
     def get_pref_col(self, size: tuple[int]) -> int | None:
         (maxcol,) = size
-        if not hasattr(self._original_widget, "get_pref_col"):
-            return None
-        return self._original_widget.get_pref_col((maxcol, self.height))
+        if (get_pref_col := getattr(self._original_widget, "get_pref_col", None)) is not None:
+            return typing.cast("int | None", get_pref_col((maxcol, self.height)))
+        return None
 
     def keypress(
         self,
@@ -101,12 +107,6 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     ) -> str | None:
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
-
-    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
-        (maxcol,) = size
-        if not hasattr(self._original_widget, "move_cursor_to_coords"):
-            return True
-        return self._original_widget.move_cursor_to_coords((maxcol, self.height), col, row)
 
     def mouse_event(
         self,

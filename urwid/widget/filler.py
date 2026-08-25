@@ -281,10 +281,10 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return None
 
         if self.height_type == WHSettings.PACK:
-            x = self._original_widget.get_pref_col((maxcol,))
+            x = typing.cast("int | None", self._original_widget.get_pref_col((maxcol,)))
         else:
             top, bottom = self.filler_values(size, True)
-            x = self._original_widget.get_pref_col((maxcol, maxrow - top - bottom))
+            x = typing.cast("int| None", self._original_widget.get_pref_col((maxcol, maxrow - top - bottom)))
 
         return x
 
@@ -299,8 +299,14 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return False
 
         if self.height_type == WHSettings.PACK:
-            return self._original_widget.move_cursor_to_coords((maxcol,), col, row - top)
-        return self._original_widget.move_cursor_to_coords((maxcol, maxrow - top - bottom), col, row - top)
+            target_size: tuple[int] | tuple[int, int] = (maxcol,)
+        else:
+            target_size = (maxcol, maxrow - top - bottom)
+
+        return typing.cast(
+            "bool",
+            self._original_widget.move_cursor_to_coords(target_size, col, row - top),
+        )
 
     def mouse_event(
         self,
