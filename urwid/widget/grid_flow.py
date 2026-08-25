@@ -95,8 +95,9 @@ class GridFlow(
         self.v_sep = v_sep
         self.align = align
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
-        self._cache_maxcol: int | None = self._get_maxcol(())
-        super().__init__(self.generate_display_widget((typing.cast("int", self._cache_maxcol),)))
+        maxcol = self._get_maxcol(())
+        self._cache_maxcol: int | None = maxcol
+        super().__init__(self.generate_display_widget((maxcol,)))
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:

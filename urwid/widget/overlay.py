@@ -32,6 +32,8 @@ from .widget import AbstractBoxWidget, AbstractWidget, Widget, WidgetError, Widg
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
+    from .widget import AbstractFlowWidget
+
 
 TopWidget = typing.TypeVar("TopWidget", bound=AbstractWidget)
 BottomWidget = typing.TypeVar("BottomWidget", bound=AbstractBoxWidget)
@@ -88,6 +90,15 @@ class Overlay(
     """
 
     _selectable = True
+
+    align_type: Align | Literal[WHSettings.RELATIVE]
+    align_amount: int | None
+    width_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+    width_amount: int | None
+    valign_type: VAlign | Literal[WHSettings.RELATIVE]
+    valign_amount: int | None
+    height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+    height_amount: int | None
 
     _DEFAULT_BOTTOM_OPTIONS = OverlayOptions(
         align=Align.LEFT,
@@ -286,7 +297,7 @@ class Overlay(
             )
 
         if self.height_type == WHSettings.PACK:
-            return cols, self.top_w.rows((w_cols,), focus) + extra_rows
+            return cols, typing.cast("AbstractFlowWidget", self.top_w).rows((w_cols,), focus) + extra_rows
 
         if not self.height_amount:
             raise OverlayError(
@@ -319,17 +330,18 @@ class Overlay(
         """Widget rows amount for FLOW sizing."""
         extra_height = (self.top or 0) + (self.bottom or 0)
         if self.height_type == WHSettings.GIVEN:
-            return self.height_amount + extra_height
+            return typing.cast("int", self.height_amount) + extra_height
         if self.height_type == WHSettings.RELATIVE and self.min_height:
-            return int(self.min_height * 100 / self.height_amount + 0.5)
+            return int(self.min_height * 100 / typing.cast("int", self.height_amount) + 0.5)
 
         if self.height_type == WHSettings.PACK:
+            top_w = typing.cast("AbstractFlowWidget", self.top_w)
             extra_height = (self.top or 0) + (self.bottom or 0)
             if self.width_type == WHSettings.GIVEN and self.width_amount:
-                return self.top_w.rows((self.width_amount,), focus) + extra_height
+                return top_w.rows((self.width_amount,), focus) + extra_height
             if self.width_type == WHSettings.RELATIVE:
-                width = max(int(size[0] * self.width_amount / 100 + 0.5), (self.min_width or 0))
-                return self.top_w.rows((width,), focus) + extra_height
+                width = max(int(size[0] * typing.cast("int", self.width_amount) / 100 + 0.5), (self.min_width or 0))
+                return top_w.rows((width,), focus) + extra_height
 
         raise OverlayError(
             f"Requested rows for {self.top_w} with size {size!r}"
@@ -771,7 +783,11 @@ class Overlay(
             )
             self.align_type = align_type
             self.align_amount = align_amount
-            self.width_type = width_type
+            # normalize_width also allows CLIP, while Overlay supports only PACK, GIVEN and RELATIVE widths
+            self.width_type = typing.cast(
+                "Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]",
+                width_type,
+            )
             self.width_amount = width_amount
             self.valign_type = valign_type
             self.valign_amount = valign_amount
@@ -852,7 +868,7 @@ class Overlay(
                 bottom = maxrow - top - height
         elif self.height_type == WHSettings.PACK:
             # top_w is a flow widget
-            height = self.top_w.rows((maxcol,), focus=focus)
+            height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol,), focus=focus)
             top, bottom = calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -871,7 +887,7 @@ class Overlay(
                 self.valign_type,
                 self.valign_amount,
                 self.height_type,
-                self.height_amount,
+                typing.cast("int", self.height_amount),
                 self.min_height,
                 self.top,
                 self.bottom,
@@ -891,7 +907,7 @@ class Overlay(
             # top_w is a fixed widget
             return ()
         maxcol, maxrow = size
-        if self.width_type != WHSettings.PACK and self.height_type == WHSettings.PACK:
+        if self.height_type == WHSettings.PACK:
             # top_w is a flow widget
             return (maxcol - left - right,)
         return (maxcol - left - right, maxrow - top - bottom)

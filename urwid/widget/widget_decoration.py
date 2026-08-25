@@ -128,7 +128,8 @@ class WidgetDisable(WidgetDecoration[WrappedWidget]):
         return False
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        return self._original_widget.rows(size, False)  # type: ignore[attr-defined]  # AttributeError is a valid case
+        # AttributeError is a valid case
+        return self._original_widget.rows(size, False)  # type: ignore[attr-defined,no-any-return]
 
     def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()
