@@ -550,6 +550,8 @@ class Screen(BaseScreen, RealTerminal):
             attr |= curses.A_UNDERLINE
         if a.blink:
             attr |= curses.A_BLINK
+        if a.faint:
+            attr |= curses.A_DIM
 
         self.s.attrset(attr)
 

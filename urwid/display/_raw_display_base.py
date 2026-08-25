@@ -854,6 +854,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = "39"
         st = (
             "1;" * a.bold
+            + "2;" * a.faint
             + "3;" * a.italics
             + "4;" * a.underline
             + "5;" * a.blink
