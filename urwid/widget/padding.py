@@ -470,7 +470,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                 x = maxcol - right - 1
             x -= left
 
-        return self._original_widget.move_cursor_to_coords(maxvals, x, y)
+        return typing.cast("bool", self._original_widget.move_cursor_to_coords(maxvals, x, y))
 
     def mouse_event(
         self,
@@ -507,7 +507,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         else:
             maxvals = ()
 
-        x = self._original_widget.get_pref_col(maxvals)
+        x = typing.cast("int | None", self._original_widget.get_pref_col(maxvals))
         if isinstance(x, int):
             return x + left
         return x

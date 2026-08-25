@@ -269,7 +269,7 @@ class TreeNode(typing.Generic[_T]):
         return TreeWidget(self)
 
     def get_depth(self) -> int:
-        if self._depth is self._parent is None:
+        if self._depth is self._parent is None:  # type: ignore[comparison-overlap]  # for None is valid
             self._depth = 0
         elif self._depth is None:
             self._depth = typing.cast("ParentNode[typing.Any]", self._parent).get_depth() + 1
