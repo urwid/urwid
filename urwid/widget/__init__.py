@@ -27,7 +27,7 @@ from .constants import (
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .divider import Divider
 from .edit import Edit, EditError, IntEdit
-from .filler import Filler, FillerError, calculate_top_bottom_filler
+from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError, GridFlowWarning
 from .line_box import LineBox
@@ -105,6 +105,7 @@ __all__ = (
     "EditError",
     "Filler",
     "FillerError",
+    "FillerWarning",
     "Frame",
     "FrameError",
     "GraphVScale",

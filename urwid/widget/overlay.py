@@ -867,8 +867,9 @@ class Overlay(
             if maxrow - top - bottom < height:
                 bottom = maxrow - top - height
         elif self.height_type == WHSettings.PACK:
-            # top_w is a flow widget
-            height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol,), focus=focus)
+            # top_w is a flow widget: it will be rendered at the width left over by the horizontal padding,
+            # so the row count has to be measured at that width and not at the full width of the overlay.
+            height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol - left - right,), focus=focus)
             top, bottom = calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -928,7 +929,9 @@ class Overlay(
         if top < 0 or bottom < 0:
             top_c.pad_trim_top_bottom(min(0, top), min(0, bottom))
 
-        return CanvasOverlay(top_c, bottom_c, left, top)
+        # Negative padding clips top_w instead of shifting it: the trimming above already removed the hidden part,
+        # so what is left starts at the edge of the area available for the overlay.
+        return CanvasOverlay(top_c, bottom_c, max(left, 0), max(top, 0))
 
     def mouse_event(
         self,

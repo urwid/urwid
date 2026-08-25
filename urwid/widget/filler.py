@@ -17,7 +17,7 @@ from .constants import (
     simplify_height,
     simplify_valign,
 )
-from .widget_decoration import WidgetDecoration, WidgetError
+from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -29,6 +29,10 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 class FillerError(WidgetError):
     pass
+
+
+class FillerWarning(WidgetWarning):
+    """Filler related warnings."""
 
 
 class Filler(WidgetDecoration[WrappedWidget]):
@@ -154,10 +158,24 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         Sizing BOX is always supported.
         Sizing FLOW is supported if: FLOW widget (a height type is PACK) or BOX widget with height GIVEN
+
+        Rules:
+        * height == PACK: the height is taken from the wrapped widget, which therefore should support FLOW
         """
         sizing: set[Sizing] = {Sizing.BOX}
         if self.height_type in {WHSettings.PACK, WHSettings.GIVEN}:
             sizing.add(Sizing.FLOW)
+
+        if self.height_type == WHSettings.PACK:
+            body = self.original_widget
+            # A body without the "sizing" method is a legacy widget: it is handled by the render path as before.
+            if hasattr(body, "sizing") and Sizing.FLOW not in body.sizing():
+                warnings.warn(
+                    f"WHSettings.PACK height expects a FLOW widget to be used, but received {body!r}",
+                    FillerWarning,
+                    stacklevel=3,
+                )
+
         return frozenset(sizing)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
