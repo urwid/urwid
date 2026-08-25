@@ -191,6 +191,28 @@ class Screen(BaseScreen):
             background = "light gray"
         self.palette[name] = (foreground, background, mono)
 
+    def _handle_resize_request(self, request: str) -> bool:
+        """Apply the screen size from a "window resize <cols> <rows>" request.
+
+        :param request: single input line without the trailing newline.
+        :returns: True if the request was a valid resize command and the screen size was updated.
+        """
+        if not request.startswith("window resize "):
+            return False
+
+        input_resize = request.removeprefix("window resize ").split(" ")
+        if len(input_resize) != 2:
+            self.logger.debug("Invalid resize input format: %r", request)
+            return False
+
+        x, y = input_resize
+        if not x.isdecimal() or not y.isdecimal():
+            self.logger.debug("Invalid resize input format: %r", request)
+            return False
+
+        self._set_screen_size(int(x), int(y))
+        return True
+
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Not yet implemented"""
 
@@ -199,32 +221,34 @@ class Screen(BaseScreen):
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
         """
-        This function reads the initial screen size, generates a
-        unique id and handles cleanup when fn exits.
+        This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.
 
-        web_display.set_preferences(..) must be called before calling
-        this function for the preferences to take effect
+        web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
         """
         if self._started:
             return StoppingContext(self)
 
-        client_init = sys.stdin.read(50)
-        if not client_init.startswith("window resize "):
-            raise ValueError(client_init)
-        _ignore1, _ignore2, x, y = client_init.split(" ", 3)
-        x = int(x)
-        y = int(y)
-        self._set_screen_size(x, y)
-        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
-        self.last_screen_width = 0
+        self.update_method = os.environ.get("HTTP_X_URWID_METHOD", "")
+        if not self.update_method:
+            raise RuntimeError("'HTTP_X_URWID_METHOD' environment vairable is not set")
 
-        self.update_method = os.environ["HTTP_X_URWID_METHOD"]
         if self.update_method not in {"multipart", "polling"}:
-            raise ValueError(self.update_method)
+            self.logger.debug("Unsupported update method requested: %r", self.update_method)
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
 
         if self.update_method == "polling" and not _prefs.allow_polling:
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
+
+        client_init = sys.stdin.read(50)
+        if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
+            self.logger.debug("Invalid initial client request: %r", client_init)
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
+
+        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        self.last_screen_width = 0
 
         clients = glob.glob(os.path.join(_prefs.pipe_dir, "urwid*.in"))
         if len(clients) >= _prefs.max_clients:
@@ -455,21 +479,8 @@ class Screen(BaseScreen):
         self.input_tail = keys[-1]
 
         for k in keys[:-1]:
-            if k.startswith("window resize "):
-                input_resize = k.removeprefix("window resize ").split(" ")
-                if len(input_resize) != 2:
-                    pending_input.append(k)
-                    continue
-
-                x, y = input_resize
-                if not x.isdecimal() or not y.isdecimal():
-                    self.logger.debug("Invalid resize input format: %r", k)
-                    pending_input.append(k)
-                    continue
-
-                self._set_screen_size(int(x), int(y))
+            if self._handle_resize_request(k):
                 resized = True
-
             else:
                 pending_input.append(k)
         if resized:
