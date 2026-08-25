@@ -42,6 +42,7 @@ def _call_modified(
     @functools.wraps(fn)
     def call_modified_wrapper(
         self: MonitoredList[typing.Any],
+        /,
         *args: ArgSpec.args,
         **kwargs: ArgSpec.kwargs,
     ) -> Ret:

@@ -36,10 +36,15 @@ class Filler(WidgetDecoration[WrappedWidget]):
         self,
         body: WrappedWidget,
         valign: (
-            Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
+            Literal["top", "middle", "bottom"]
+            | VAlign
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
         ) = VAlign.MIDDLE,
         height: (
-            int | Literal["pack", WHSettings.PACK] | tuple[Literal["relative", WHSettings.RELATIVE], int] | None
+            int
+            | Literal["pack", WHSettings.PACK]
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
+            | None
         ) = WHSettings.PACK,
         min_height: int | None = None,
         top: int = 0,
@@ -88,18 +93,30 @@ class Filler(WidgetDecoration[WrappedWidget]):
         super().__init__(body)
 
         # convert old parameters to the new top/bottom values
+        normalized_height: int | Literal["pack", WHSettings.PACK] | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(height, tuple):
             if height[0] == "fixed top":
                 if not isinstance(valign, tuple) or valign[0] != "fixed bottom":
                     raise FillerError("fixed top height may only be used with fixed bottom valign")
                 top = height[1]
-                height = RELATIVE_100
+                normalized_height = RELATIVE_100
             elif height[0] == "fixed bottom":
                 if not isinstance(valign, tuple) or valign[0] != "fixed top":
                     raise FillerError("fixed bottom height may only be used with fixed top valign")
                 bottom = height[1]
-                height = RELATIVE_100
+                normalized_height = RELATIVE_100
+            else:
+                # 'fixed top'/'fixed bottom' handled above, so only the relative form remains.
+                normalized_height = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", height)
 
+        # convert old flow mode parameters height=None and height='flow' to height='pack'
+        elif height is None or height in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
+            normalized_height = WHSettings.PACK
+
+        else:
+            normalized_height = height
+
+        normalized_valign: VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
                 top = valign[1]
@@ -108,7 +125,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
                 bottom = valign[1]
                 normalized_valign = VAlign.BOTTOM
             else:
-                normalized_valign = valign  # type: ignore[assignment]
+                # 'fixed top'/'fixed bottom' handled above, so only the relative form remains.
+                normalized_valign = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", valign)
 
         elif not isinstance(valign, (VAlign, str)):
             raise FillerError(f"invalid valign: {valign!r}")
@@ -116,17 +134,15 @@ class Filler(WidgetDecoration[WrappedWidget]):
         else:
             normalized_valign = VAlign(valign)
 
-        # convert old flow mode parameter height=None to height='flow'
-        if height is None or height == Sizing.FLOW:
-            height = WHSettings.PACK
-
         self.top = top
         self.bottom = bottom
         self.valign_type: Literal[WHSettings.RELATIVE] | VAlign
+        self.valign_amount: int | None
         self.height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
         self.height_amount: int | None
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
-        self.height_type, self.height_amount = normalize_height(height, FillerError)  # type: ignore[assignment]
+        # PACK is reported as FLOW|PACK by normalize_height, while FLOW is not a valid Filler height type
+        self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)  # type: ignore[assignment]
 
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
