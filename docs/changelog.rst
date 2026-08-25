@@ -2,6 +2,24 @@
 Changelog
 ---------
 
+Urwid 4.0.13
+============
+
+2026-08-25
+
+New features 🗹
++++++++++++++++
+* Display attributes: add faint text support by @ChrisJr404 in https://github.com/urwid/urwid/pull/1249
+Bug fixes 🕷
+++++++++++++
+* Fix sizing related issues by @penguinolog in https://github.com/urwid/urwid/pull/1250
+
+New Contributors
+++++++++++++++++
+* @ChrisJr404 made their first contribution in https://github.com/urwid/urwid/pull/1249
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.12...4.0.13
+
 Urwid 4.0.12
 ============
 
