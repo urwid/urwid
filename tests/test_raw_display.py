@@ -13,6 +13,18 @@ class TestRawDisplay(unittest.TestCase):
         a2e = s._attrspec_to_escape
         self.assertEqual("\x1b[0;33;42m", a2e(s.AttrSpec("brown", "dark green")))
         self.assertEqual("\x1b[0;38;5;229;4;48;5;164m", a2e(s.AttrSpec("#fea,underline", "#d0d")))
+        self.assertEqual("\x1b[0;33;2;42m", a2e(s.AttrSpec("brown,faint", "dark green")))
+
+    def test_attrspec_faint(self):
+        a = urwid.AttrSpec("dark red,faint", "")
+        self.assertTrue(a.faint)
+        self.assertEqual("dark red,faint", a.foreground)
+        # faint can be combined with other settings and is kept on round-trip
+        self.assertEqual(
+            "AttrSpec('yellow,bold,faint', 'dark blue')",
+            repr(urwid.AttrSpec("yellow,faint,bold", "dark blue")),
+        )
+        self.assertFalse(urwid.AttrSpec("dark red", "").faint)
 
     def test_last_row_without_preceding_segment(self):
         """A last row holding a single grapheme has no character to slide back."""

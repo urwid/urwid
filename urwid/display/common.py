@@ -146,6 +146,7 @@ _BOLD =            0x400000000000000
 _BLINK =           0x800000000000000
 _ITALICS =        0x1000000000000000
 _STRIKETHROUGH =  0x2000000000000000
+_FAINT =          0x4000000000000000
 # fmt: on
 
 _FG_MASK = (
@@ -158,6 +159,7 @@ _FG_MASK = (
     | _BOLD
     | _ITALICS
     | _STRIKETHROUGH
+    | _FAINT
 )
 _BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
 
@@ -205,6 +207,7 @@ _ATTRIBUTES = {
     "blink": _BLINK,
     "standout": _STANDOUT,
     "strikethrough": _STRIKETHROUGH,
+    "faint": _FAINT,
 }
 
 
@@ -558,7 +561,7 @@ class AttrSpec:
 
               Setting:
               'bold', 'italics', 'underline', 'blink', 'standout',
-              'strikethrough'
+              'strikethrough', 'faint'
 
               Some terminals use 'bold' for bright colors.  Most terminals
               ignore the 'blink' setting.  If the color is not given then
@@ -690,6 +693,10 @@ class AttrSpec:
         return self.__value & _STRIKETHROUGH != 0
 
     @property
+    def faint(self) -> bool:
+        return self.__value & _FAINT != 0
+
+    @property
     def colors(self) -> Literal[1, 16, 88, 256, 16777216]:
         """
         Return the maximum colors required for this object.
@@ -739,6 +746,7 @@ class AttrSpec:
             + ",blink" * self.blink
             + ",underline" * self.underline
             + ",strikethrough" * self.strikethrough
+            + ",faint" * self.faint
         )
 
     def __set_foreground(self, foreground: str) -> None:
