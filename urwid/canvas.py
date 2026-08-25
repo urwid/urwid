@@ -348,9 +348,20 @@ class Canvas:
         :type overlay_width: int
         :param overlay_height: height of overlay in screen rows > 0
         :type overlay_height: int
+        :raises CanvasError: the canvas is already finalised, the position is negative
+            or the overlay size is not positive
         """
         if self.widget_info and self.cacheable:
             raise self._finalized_error
+
+        if left < 0 or top < 0:
+            raise CanvasError(f"Pop-up position must not be negative, got left={left!r} and top={top!r}")
+
+        if overlay_width <= 0 or overlay_height <= 0:
+            raise CanvasError(
+                f"Pop-up size must be positive, "
+                f"got overlay_width={overlay_width!r} and overlay_height={overlay_height!r}"
+            )
 
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
 

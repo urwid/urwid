@@ -59,6 +59,11 @@ class PopUpLauncher(
         Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
         the pop-up is opened.
+
+        :class:`PopUpTarget` renders the pop-up with the box size declared by
+        :meth:`get_pop_up_parameters`, so the widget returned here must accept an
+        (*overlay_width*, *overlay_height*) size.  Wrap a flow or fixed widget in a
+        :class:`Filler <urwid.Filler>` (or in another box container) before returning it.
         """
         raise NotImplementedError("Subclass must override this method")
 
@@ -155,7 +160,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         if not hasattr(self._current_widget, "get_pref_col"):
             raise TypeError(f"widget {type(self._current_widget)} has no get_pref_col method")
 
-        return self._current_widget.get_pref_col(size)
+        return typing.cast("int", self._current_widget.get_pref_col(size))
 
     def keypress(
         self,
@@ -171,7 +176,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         if not hasattr(self._current_widget, "move_cursor_to_coords"):
             raise TypeError(f"widget {type(self._current_widget)} has no move_cursor_to_coords method")
 
-        return self._current_widget.move_cursor_to_coords(size, x, y)
+        return typing.cast("bool", self._current_widget.move_cursor_to_coords(size, x, y))
 
     def mouse_event(
         self,

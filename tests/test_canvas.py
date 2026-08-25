@@ -71,6 +71,30 @@ class CanvasTest(unittest.TestCase):
             repr(rendered),
         )
 
+    def test_set_pop_up_argument_validation(self):
+        """Out of contract pop-up parameters are refused instead of mis-placing the pop-up."""
+        widget = urwid.SolidFill("*")
+
+        for description, kwargs, message in (
+            ("negative left", {"left": -1, "top": 0}, "Pop-up position must not be negative"),
+            ("negative top", {"left": 0, "top": -1}, "Pop-up position must not be negative"),
+            ("zero width", {"overlay_width": 0}, "Pop-up size must be positive"),
+            ("zero height", {"overlay_height": 0}, "Pop-up size must be positive"),
+            ("negative width", {"overlay_width": -3}, "Pop-up size must be positive"),
+            ("negative height", {"overlay_height": -3}, "Pop-up size must be positive"),
+        ):
+            with self.subTest(description):
+                params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
+                canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+                with self.assertRaises(urwid.CanvasError) as ctx:
+                    canvas.set_pop_up(widget, **params)
+                self.assertIn(message, str(ctx.exception))
+
+        with self.subTest("in contract parameters are accepted"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertEqual((0, 0, (widget, 4, 2)), canvas.get_pop_up())
+
     def ct(self, text, attr, exp_content):
         with self.subTest(text=text, attr=attr, exp_content=exp_content):
             c = urwid.TextCanvas([t.encode("iso8859-1") for t in text], attr)
