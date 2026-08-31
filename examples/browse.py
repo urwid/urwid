@@ -43,13 +43,15 @@ import urwid
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
 
+_TreeNode = typing.TypeVar("_TreeNode", bound="urwid.TreeNode[typing.Any]")
 
-class FlagFileWidget(urwid.TreeWidget):
+
+class FlagFileWidget(urwid.TreeWidget[_TreeNode]):
     # apply an attribute to the expand/unexpand icons
     unexpanded_icon = urwid.AttrMap(urwid.TreeWidget.unexpanded_icon, "dirmark")
     expanded_icon = urwid.AttrMap(urwid.TreeWidget.expanded_icon, "dirmark")
 
-    def __init__(self, node: urwid.TreeNode) -> None:
+    def __init__(self, node: _TreeNode) -> None:
         super().__init__(node)
         # insert an extra AttrWrap for our own use
         self._w = urwid.AttrMap(self._w, None)
@@ -59,14 +61,15 @@ class FlagFileWidget(urwid.TreeWidget):
     def selectable(self) -> bool:
         return True
 
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:
         """allow subclasses to intercept keystrokes"""
-        key = super().keypress(size, key)
-        if key:
-            key = self.unhandled_keys(size, key)
-        return key
+        if (unhandled := super().keypress(size, key)) is not None:
+            unhandled = self.unhandled_keys(size, unhandled)
+        else:
+            return None
+        return unhandled
 
-    def unhandled_keys(self, size, key: str) -> str | None:
+    def unhandled_keys(self, size: tuple[int] | tuple[()], key: str) -> str | None:
         """
         Override this method to intercept keystrokes in subclasses.
         Default behavior: Toggle flagged on space, ignore other keys.
@@ -88,7 +91,7 @@ class FlagFileWidget(urwid.TreeWidget):
             self._w.focus_map = {None: "focus"}
 
 
-class FileTreeWidget(FlagFileWidget):
+class FileTreeWidget(FlagFileWidget["FileNode"]):
     """Widget for individual files."""
 
     def __init__(self, node: FileNode) -> None:
@@ -96,8 +99,8 @@ class FileTreeWidget(FlagFileWidget):
         path = node.get_value()
         add_widget(path, self)
 
-    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
-        return self.get_node().get_key()
+    def get_display_text(self) -> str:
+        return typing.cast("str", self.get_node().get_key())
 
 
 class EmptyWidget(urwid.TreeWidget):
@@ -114,7 +117,7 @@ class ErrorWidget(urwid.TreeWidget):
         return ("error", "(error/permission denied)")
 
 
-class DirectoryWidget(FlagFileWidget):
+class DirectoryWidget(FlagFileWidget["DirectoryNode"]):
     """Widget for a directory."""
 
     def __init__(self, node: DirectoryNode) -> None:
@@ -124,12 +127,12 @@ class DirectoryWidget(FlagFileWidget):
         self.expanded = starts_expanded(path)
         self.update_expanded_icon()
 
-    def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
+    def get_display_text(self) -> str:
         node = self.get_node()
         if node.get_depth() == 0:
             return "/"
 
-        return node.get_key()
+        return typing.cast("str", node.get_key())
 
 
 class FileNode(urwid.TreeNode[str]):
@@ -160,7 +163,7 @@ class ErrorNode(urwid.TreeNode):
         return ErrorWidget(self)
 
 
-class DirectoryNode(urwid.ParentNode):
+class DirectoryNode(urwid.ParentNode[str]):
     """Metadata storage for directories"""
 
     def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:
@@ -200,14 +203,17 @@ class DirectoryNode(urwid.ParentNode):
         # store where the first file starts
         self.dir_count = len(dirs)
         # collect dirs and files together again
-        keys = dirs + files
+        keys: list[str] | list[None] = dirs + files
         if len(keys) == 0:
             depth = self.get_depth() + 1
             self._children[None] = EmptyNode(self, parent=self, key=None, depth=depth)
             keys = [None]
         return keys
 
-    def load_child_node(self, key: Hashable) -> EmptyNode | DirectoryNode | FileNode:
+    def load_child_node(
+        self,
+        key: str | None,  # type: ignore[override]  # We have explicit type
+    ) -> EmptyNode | DirectoryNode | FileNode:
         """Return either a FileNode or DirectoryNode"""
         index = self.get_child_index(key)
         if key is None:
@@ -225,7 +231,7 @@ class DirectoryNode(urwid.ParentNode):
 
 
 class DirectoryBrowser:
-    palette: typing.ClassVar[list[tuple[str, ...] | tuple[str, str, str, str]]] = [
+    palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray"),
         ("flagged", "black", "dark green", "bold,underline"),
         ("focus", "light gray", "dark blue", "standout"),
@@ -301,16 +307,16 @@ class DirectoryBrowser:
             raise urwid.ExitMainLoop()
 
 
-def main():
+def main() -> None:
     DirectoryBrowser().main()
 
 
 #######
 # global cache of widgets
-_widget_cache = {}
+_widget_cache: dict[str, DirectoryWidget | FileTreeWidget] = {}
 
 
-def add_widget(path, widget):
+def add_widget(path: str, widget: DirectoryWidget | FileTreeWidget) -> None:
     """Add the widget for a given path"""
 
     _widget_cache[path] = widget
@@ -325,7 +331,7 @@ def get_flagged_names() -> list[str]:
 
 ######
 # store path components of initial current working directory
-_initial_cwd = []
+_initial_cwd: list[str] = []
 
 
 def store_initial_cwd(name: str) -> None:
@@ -382,14 +388,14 @@ def escape_filename_sh_ansic(name: str) -> str:
 SPLIT_RE = re.compile(r"[a-zA-Z]+|\d+")
 
 
-def alphabetize(s: str) -> list[str]:
-    L = []
+def alphabetize(s: str) -> list[tuple[str, int]]:
+    listing: list[tuple[str, int]] = []
     for isdigit, group in itertools.groupby(SPLIT_RE.findall(s), key=str.isdigit):
         if isdigit:
-            L.extend(("", int(n)) for n in group)
+            listing.extend(("", int(n)) for n in group)
         else:
-            L.append(("".join(group).lower(), 0))
-    return L
+            listing.append(("".join(group).lower(), 0))
+    return listing
 
 
 def dir_sep() -> str:

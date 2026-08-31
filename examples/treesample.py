@@ -55,7 +55,7 @@ class ExampleTreeWidget(urwid.TreeWidget):
         return self.get_node().get_value()["name"]
 
 
-class ExampleNode(urwid.TreeNode[str | None]):
+class ExampleNode(urwid.TreeNode[SampleTree]):
     """Data storage object for leaf nodes"""
 
     def load_widget(self) -> ExampleTreeWidget:
@@ -72,15 +72,14 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
         data = self.get_value()
         return tuple(range(len(data["children"])))
 
-    def load_child_node(self, key: int) -> ExampleParentNode | ExampleNode:
+    def load_child_node(self, key: int) -> ExampleParentNode | ExampleNode:  # type: ignore[override]
         """Return either an ExampleNode or ExampleParentNode"""
         childdata = self.get_value()["children"][key]
         childdepth = self.get_depth() + 1
         if "children" in childdata:
-            childclass = ExampleParentNode
-        else:
-            childclass = ExampleNode
-        return childclass(childdata, parent=self, key=key, depth=childdepth)
+            return ExampleParentNode(childdata, parent=self, key=key, depth=childdepth)
+
+        return ExampleNode(childdata, parent=self, key=key, depth=childdepth)
 
 
 class ExampleTreeBrowser:
