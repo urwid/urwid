@@ -49,7 +49,7 @@ if typing.TYPE_CHECKING:
     _K_contra = typing.TypeVar("_K_contra", contravariant=True)
     _V_co = typing.TypeVar("_V_co", covariant=True)
 
-    class ListWalkerProto(typing.Protocol[_K, _V_co]):
+    class ListWalkerContainer(typing.Protocol[_K, _V_co]):
         def __getitem__(self, key: _K) -> _V_co: ...
 
         def next_position(self, position: _K) -> _K: ...
@@ -67,9 +67,6 @@ else:
     _T = typing.TypeVar("_T")
     _K = typing.TypeVar("_K")
     _V_co = typing.TypeVar("_V_co", covariant=True)
-
-    class ListWalkerProto(typing.Generic[_K, _V_co]): ...
-
 
 __all__ = (
     "ListBox",
@@ -115,7 +112,7 @@ class EstimatedSized(typing.Protocol):
 
 
 class ListWalker(
-    ListWalkerProto[_K, _V_co],
+    typing.Generic[_K, _V_co],
     metaclass=signals.MetaSignals,
 ):
     # mixin not named as mixin
@@ -131,8 +128,9 @@ class ListWalker(
         Override and don't call this method if these are not defined.
         """
         try:
+            # pylint: disable=no-member,unsubscriptable-object
             focus = self.focus  # type: ignore[attr-defined]  # we're OK with fail
-            return self[focus], focus
+            return typing.cast("ListWalkerContainer[_K, _V_co]", self)[focus], focus
         except (IndexError, KeyError, TypeError):
             return None, None
 
@@ -146,8 +144,9 @@ class ListWalker(
         Override and don't call this method if these are not defined.
         """
         try:
-            position = self.next_position(position)  # pylint: disable=assignment-from-no-return
-            return self[position], position
+            # pylint: disable=no-member,unsubscriptable-object
+            position = typing.cast("ListWalkerContainer[_K, _V_co]", self).next_position(position)
+            return typing.cast("ListWalkerContainer[_K, _V_co]", self)[position], position
         except (IndexError, KeyError):
             return None, None
 
@@ -161,8 +160,9 @@ class ListWalker(
         Override and don't call this method if these are not defined.
         """
         try:
-            position = self.prev_position(position)  # pylint: disable=assignment-from-no-return
-            return self[position], position
+            # pylint: disable=no-member,unsubscriptable-object
+            position = typing.cast("ListWalkerContainer[_K, _V_co]", self).prev_position(position)
+            return typing.cast("ListWalkerContainer[_K, _V_co]", self)[position], position
         except (IndexError, KeyError):
             return None, None
 
