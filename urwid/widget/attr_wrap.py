@@ -79,7 +79,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         self.original_widget = new_widget
 
     def get_attr(self) -> Hashable:
-        return self.attr_map[None]
+        return typing.cast("Hashable", self.attr_map[None])
 
     def set_attr(self, attr: Hashable) -> None:
         """
@@ -96,7 +96,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
     def get_focus_attr(self) -> Hashable | None:
         if focus_map := self.focus_map:
-            return focus_map[None]
+            return typing.cast("Hashable", focus_map[None])
         return None
 
     def set_focus_attr(self, focus_attr: Hashable) -> None:
