@@ -125,6 +125,40 @@ class EventLoopTestMixin:
             evl.alarm(0, step1)
             evl.run()
 
+    def test_remove_enter_idle(self):
+        evl: urwid.EventLoop = self.evl
+        out: list[str] = []
+
+        handle = evl.enter_idle(lambda: out.append("idle"))
+        self.assertTrue(evl.remove_enter_idle(handle))
+        self.assertFalse(evl.remove_enter_idle(handle))
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0.01, exit_clean)
+        evl.run()
+        self.assertEqual([], out)
+
+    def test_alarm_reschedule(self):
+        """Reschedule a short alarm until work completes, then exit the loop."""
+        evl: urwid.EventLoop = self.evl
+        ticks: list[int] = []
+        remaining = 3
+
+        def tick() -> None:
+            nonlocal remaining
+            remaining -= 1
+            ticks.append(remaining)
+            if remaining:
+                evl.alarm(0.01, tick)
+            else:
+                raise urwid.ExitMainLoop
+
+        evl.alarm(0.01, tick)
+        evl.run()
+        self.assertEqual([2, 1, 0], ticks)
+
     _expected_idle_handle = 1
 
     def test_run(self):
@@ -290,6 +324,12 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         pass
 
     def test_remove_watch_file(self):
+        pass
+
+    def test_remove_enter_idle(self):
+        pass
+
+    def test_alarm_reschedule(self):
         pass
 
     def test_run(self):
