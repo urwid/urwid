@@ -645,6 +645,76 @@ class CanvasOverlayTest(unittest.TestCase):
         )
 
 
+class CompositeCanvasWrapTest(unittest.TestCase):
+    def test_wrap_preserves_dimensions_text_and_cursor(self) -> None:
+        """Wrapping a rendered canvas keeps its size and allows cursor updates."""
+        base = urwid.Edit("x").render((10,), focus=True)
+        wrapped = urwid.CompositeCanvas(canv=base)
+
+        self.assertEqual((10, 1), (wrapped.cols(), wrapped.rows()))
+        self.assertEqual([b"x         "], wrapped.text)
+        self.assertEqual((1, 0), wrapped.cursor)
+
+        wrapped.cursor = (3, 0)
+        self.assertEqual((3, 0), wrapped.cursor)
+
+    def test_wrap_accepts_pop_up_metadata(self) -> None:
+        """Pop-up placement is recorded on a wrapped canvas."""
+        inner = urwid.SolidFill(" ").render((20, 10))
+        popup = urwid.Text("hi")
+        wrapped = urwid.CompositeCanvas(canv=inner)
+        wrapped.set_pop_up(popup, 5, 3, 8, 4)
+
+        self.assertEqual((20, 10), (wrapped.cols(), wrapped.rows()))
+        self.assertEqual((5, 3, (popup, 8, 4)), wrapped.get_pop_up())
+
+
+class CanvasPadTrimTopBottomTest(unittest.TestCase):
+    def test_pad_top_and_bottom(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 1))
+
+        canvas.pad_trim_top_bottom(1, 2)
+
+        self.assertEqual(4, canvas.rows())
+        self.assertEqual(3, canvas.cols())
+        self.assertEqual([b"   ", b"   ", b"   ", b"   "], canvas.text)
+
+    def test_trim_bottom(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.TextCanvas([b"a", b"b", b"c", b"d", b"e"]))
+
+        canvas.pad_trim_top_bottom(0, -2)
+
+        self.assertEqual(3, canvas.rows())
+        self.assertEqual([b"a", b"b", b"c"], canvas.text)
+
+    def test_trim_top(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.TextCanvas([b"a", b"b", b"c"]))
+
+        canvas.pad_trim_top_bottom(-1, 0)
+
+        self.assertEqual(2, canvas.rows())
+        self.assertEqual([b"b", b"c"], canvas.text)
+
+
+class CanvasCombineTest(unittest.TestCase):
+    def test_stacks_canvases_vertically(self) -> None:
+        top = urwid.Text("top").render(())
+        middle = urwid.Text("mid").render(())
+        bottom = urwid.Text("bot").render(())
+
+        combined = urwid.CanvasCombine(
+            [
+                (top, None, False),
+                (middle, None, True),
+                (bottom, None, False),
+            ]
+        )
+
+        self.assertEqual(3, combined.rows())
+        self.assertEqual(3, combined.cols())
+        self.assertEqual([b"top", b"mid", b"bot"], combined.text)
+
+
 class CanvasPadTrimTest(unittest.TestCase):
     def cptest(self, desc, ct, ca, l, r, et):
         with self.subTest(desc):
