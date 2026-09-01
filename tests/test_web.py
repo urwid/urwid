@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import io
 import os
+import sys
 import unittest
 from unittest import mock
 
 from urwid.display import web
+
+IS_WINDOWS = sys.platform == "win32"
 
 
 class HandleShortRequestTest(unittest.TestCase):
@@ -53,6 +56,7 @@ class HandleShortRequestTest(unittest.TestCase):
         close.assert_called_once_with(42)
         self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
 
+    @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_decodes_after_receiving_complete_utf8_payload(self) -> None:
         stdout = io.StringIO()
         environ = {**self.environ, "HTTP_X_URWID_METHOD": "polling"}
@@ -70,6 +74,7 @@ class HandleShortRequestTest(unittest.TestCase):
         sock.__exit__.assert_called_once()
         self.assertEqual("Content-type: text/plain; charset=utf-8\r\n\r\né", stdout.getvalue())
 
+    @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_invalid_utf8_closes_socket(self) -> None:
         stdout = io.StringIO()
         environ = {**self.environ, "HTTP_X_URWID_METHOD": "polling"}
@@ -88,6 +93,7 @@ class HandleShortRequestTest(unittest.TestCase):
         self.assertEqual("Status: 502 Bad Gateway\r\n\r\n", stdout.getvalue())
 
 
+@unittest.skipIf(IS_WINDOWS, "Reading the client pipe requires the POSIX-only os.O_NONBLOCK flag")
 class ScreenGetInputTest(unittest.TestCase):
     """Tests for Screen.get_input method with improved validation."""
 
@@ -352,6 +358,7 @@ class ScreenStartTest(unittest.TestCase):
             # the request body is left untouched: validation happens before reading it
             self.assertEqual(0, stdin.tell())
 
+    @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
     def test_start_accepts_valid_resize_request(self) -> None:
         with (
             mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),

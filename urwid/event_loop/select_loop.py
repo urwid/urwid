@@ -204,7 +204,13 @@ class SelectEventLoop(EventLoop):
                     tm = "idle"
 
                 self.logger.debug(f"Waiting for input: timeout={timeout!r}")
-                ready = [event for event, _ in selector.select(timeout)]
+                if self._watch_files:
+                    ready = [event for event, _ in selector.select(timeout)]
+                else:
+                    # Windows `select()` requires at least one socket and fails with WSAEINVAL on an empty set,
+                    # while on POSIX it is just a sleep.
+                    time.sleep(timeout)
+                    ready = []
 
             elif self._watch_files:
                 self.logger.debug("Waiting for input: timeout")
