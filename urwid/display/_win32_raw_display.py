@@ -52,6 +52,8 @@ if typing.TYPE_CHECKING:
 
 class Screen(_raw_display_base.Screen):
     _term_input_file: socket.socket
+    # Only set for the socket pair created here: an input given by the caller is fed by the caller.
+    _send_input: socket.socket | None = None
 
     def __init__(
         self,
@@ -66,8 +68,8 @@ class Screen(_raw_display_base.Screen):
 
         super().__init__(input, output)
 
-    _dwOriginalOutMode = None
-    _dwOriginalInMode = None
+    _dwOriginalOutMode: DWORD | None = None
+    _dwOriginalInMode: DWORD | None = None
 
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -91,26 +93,30 @@ class Screen(_raw_display_base.Screen):
 
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
-        self._dwOriginalOutMode = DWORD()
-        self._dwOriginalInMode = DWORD()
-        _win32.GetConsoleMode(handle_out, byref(self._dwOriginalOutMode))
-        _win32.GetConsoleMode(handle_in, byref(self._dwOriginalInMode))
-        # TODO: Restore on exit
+        original_out_mode = DWORD()
+        original_in_mode = DWORD()
 
-        dword_out_mode = DWORD(
-            self._dwOriginalOutMode.value
-            | _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING
-            | _win32.DISABLE_NEWLINE_AUTO_RETURN
-        )
-        dword_in_mode = DWORD(
-            self._dwOriginalInMode.value | _win32.ENABLE_WINDOW_INPUT | _win32.ENABLE_VIRTUAL_TERMINAL_INPUT
-        )
+        # The standard handles are not consoles when the process runs detached or with redirected streams.
+        # In that case there is no console mode to negotiate, same as a POSIX terminal which is not a tty.
+        if _win32.GetConsoleMode(handle_out, byref(original_out_mode)) and _win32.GetConsoleMode(
+            handle_in, byref(original_in_mode)
+        ):
+            dword_out_mode = DWORD(
+                original_out_mode.value | _win32.ENABLE_VIRTUAL_TERMINAL_PROCESSING | _win32.DISABLE_NEWLINE_AUTO_RETURN
+            )
+            dword_in_mode = DWORD(
+                original_in_mode.value | _win32.ENABLE_WINDOW_INPUT | _win32.ENABLE_VIRTUAL_TERMINAL_INPUT
+            )
 
-        if not (ok := _win32.SetConsoleMode(handle_out, dword_out_mode)):
-            raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
+            if not (ok := _win32.SetConsoleMode(handle_out, dword_out_mode)):
+                raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
 
-        if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
-            raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
+            if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
+                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
+
+            self._dwOriginalOutMode = original_out_mode
+            self._dwOriginalInMode = original_in_mode
+
         self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
@@ -130,14 +136,18 @@ class Screen(_raw_display_base.Screen):
 
         self._stop_mouse_restore_buffer()
 
-        handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
-        handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
+        if self._dwOriginalOutMode is not None and self._dwOriginalInMode is not None:
+            handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
+            handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
 
-        if not (ok := _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)):
-            raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
+            if not (ok := _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)):
+                raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
 
-        if not (ok := _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)):
-            raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
+            if not (ok := _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)):
+                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
+
+            self._dwOriginalOutMode = None
+            self._dwOriginalInMode = None
 
         super()._stop()  # type: ignore[safe-super]
 
@@ -172,8 +182,11 @@ class Screen(_raw_display_base.Screen):
 
         Subclasses may wish to use parse_input to wrap the callback.
         """
-        self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(28))
-        self._input_thread.start()
+        if self._send_input is not None:
+            # Console events are only translated for the input socket owned by this screen.
+            self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(28))
+            self._input_thread.start()
+
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
         else:
@@ -208,16 +221,14 @@ class Screen(_raw_display_base.Screen):
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
         y, x = super().get_cols_rows()
-        with contextlib.suppress(OSError):  # Term size could not be determined
-            if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
-                if self._term_output_file != sys.stdout:
-                    raise RuntimeError("Unexpected terminal output file")
-                handle = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
-                info = _win32.CONSOLE_SCREEN_BUFFER_INFO()
+        # The console buffer describes the standard output only: any other stream keeps the fallback size.
+        if self._term_output_file is sys.stdout:
+            handle = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
+            info = _win32.CONSOLE_SCREEN_BUFFER_INFO()
 
-                if _win32.GetConsoleScreenBufferInfo(handle, byref(info)):
-                    # Fallback will be used in case of term size could not be determined
-                    y, x = info.dwSize.Y, info.dwSize.X
+            if _win32.GetConsoleScreenBufferInfo(handle, byref(info)):
+                # Fallback will be used in case of term size could not be determined
+                y, x = info.dwSize.Y, info.dwSize.X
 
         self.maxrow = y
         return x, y
