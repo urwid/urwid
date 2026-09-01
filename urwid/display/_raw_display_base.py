@@ -1029,6 +1029,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         Convert AttrSpec instance a to an escape sequence for the terminal
 
+        >>> from urwid.display.raw import Screen  # this class is abstract
         >>> s = Screen()
         >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape

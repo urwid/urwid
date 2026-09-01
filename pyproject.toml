@@ -47,14 +47,15 @@ dev = [
 ]
 build = [
   "build",
+  "twine",
 ]
 documentation = [
   "sphinx",
 ]
 lint = [
   "pyproject-fmt",
-  "ruff",
   "yamllint",
+  { include-group = "ruff" },
 ]
 mypy = [
   "mypy[faster-cache,reports]",
@@ -69,6 +70,9 @@ pytest = [
   "pytest",
   "pytest-asyncio",
   "pytest-cov",
+]
+ruff = [
+  "ruff",
 ]
 
 [tool.setuptools]
@@ -312,10 +316,12 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-vvvv --doctest-modules -s --cov=urwid"
-doctest_optionflags = [ "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
-testpaths = [ "tests" ]
+addopts = "-vvvv --doctest-modules -s --cov --cov-report=term"
+doctest_optionflags = [ "DONT_ACCEPT_TRUE_FOR_1", "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
+testpaths = [ "tests", "urwid" ]
 
+[tool.coverage.json]
+pretty_print = true
 [tool.coverage.report]
 exclude_lines = [
   # Have to re-enable the standard pragma
@@ -378,7 +384,8 @@ exclude_lines = [
   "def \\wtest():"
 ]
 [tool.coverage.run]
-omit = [ "tests/*", ".tox/*", "setup.py" ]
+source_pkgs = [ "urwid" ]
+omit = [ "tests/*", ".tox/*", "setup.py", "urwid/version.py" ]
 branch = true
 
 [tool.refurb]
