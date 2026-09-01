@@ -41,7 +41,7 @@ from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from types import FrameType
 
     from typing_extensions import Literal
@@ -54,6 +54,209 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
+
+_ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
+
+# Terminals that implement SGR 90-97 / 100-107 bright colors without needing bold/blink.
+_INDEPENDENT_BRIGHT_FAMILIES = frozenset(
+    {
+        "alacritty",
+        "cygwin",
+        "eterm",
+        "foot",
+        "ghostty",
+        "gnome",
+        "iterm",
+        "iterm2",
+        "kitty",
+        "konsole",
+        "mintty",
+        "mlterm",
+        "putty",
+        "rxvt",
+        "st",
+        "terminator",
+        "tmux",
+        "vte",
+        "wezterm",
+        "xfce",
+        "xterm",
+    }
+)
+_TRUECOLOR_FAMILIES = frozenset(
+    {
+        "alacritty",
+        "contour",
+        "foot",
+        "ghostty",
+        "iterm",
+        "iterm2",
+        "kitty",
+        "wezterm",
+    }
+)
+_NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
+# Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
+_WINDOWS_256COLOR_BUILD = 10586
+_WINDOWS_TRUECOLOR_BUILD = 14931
+_TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
+
+
+class TerminalProperties(typing.NamedTuple):
+    """Capabilities inferred from TERM and standard color environment variables."""
+
+    colors: _ColorCount
+    has_underline: bool
+    fg_bright_is_bold: bool
+    bg_bright_is_blink: bool
+    back_color_erase: bool
+
+
+def _term_families(term: str) -> frozenset[str]:
+    """Name tokens from a TERM value.
+
+    ``screen.xterm-256color`` yields ``screen``, ``xterm`` and ``256color``.
+    ``rxvt-unicode-256color`` yields ``rxvt``, ``unicode`` and ``256color``.
+    ``xterm-kitty`` yields ``xterm`` and ``kitty``.
+    """
+    families: set[str] = set()
+    for part in term.lower().split("."):
+        if part:
+            families.update(token for token in part.split("-") if token)
+    return frozenset(families)
+
+
+def _primary_family(term: str) -> str:
+    if not term:
+        return ""
+    return term.lower().split(".", 1)[0].split("-", 1)[0]
+
+
+def _env_nonempty(environ: Mapping[str, str], name: str) -> str | None:
+    value = environ.get(name)
+    if value:
+        return value
+    return None
+
+
+def _parse_force_color(value: str) -> _ColorCount:
+    """Map FORCE_COLOR / CLICOLOR_FORCE to a color count (chalk / supports-color convention)."""
+    normalized = value.strip().lower()
+    if normalized in {"0", "false", "no"}:
+        return 1
+    if normalized in {"", "1", "true", "yes"}:
+        return 16
+    if normalized == "2":
+        return 256
+    if normalized == "3":
+        return 16777216
+    return 16
+
+
+def _windows_version() -> tuple[int, int, int] | None:
+    if sys.platform != "win32":
+        return None
+    version = sys.getwindowsversion()  # pylint: disable=no-member
+    return (version.major, version.minor, version.build)
+
+
+def _windows_console_colors(version: tuple[int, int, int] | None) -> _ColorCount | None:
+    """Color depth of the Windows console VT host, if any."""
+    if version is None or version < (10, 0, 0):
+        return None
+    if version >= (10, 0, _WINDOWS_TRUECOLOR_BUILD):
+        return 16777216
+    if version >= (10, 0, _WINDOWS_256COLOR_BUILD):
+        return 256
+    return 16
+
+
+def _truecolor_host(environ: Mapping[str, str]) -> bool:
+    """Hosts that speak 24-bit SGR even when TERM still says xterm-256color."""
+    if (colorterm := _env_nonempty(environ, "COLORTERM")) and colorterm.lower() in {"truecolor", "24bit"}:
+        return True
+    if _env_nonempty(environ, "WT_SESSION") or _env_nonempty(environ, "WT_PROFILE_ID"):
+        return True
+    if environ.get("ConEmuANSI", "").lower() in {"on", "1"} or _env_nonempty(environ, "ConEmuPID"):
+        return True
+    return environ.get("TERM_PROGRAM", "").lower() in _TRUECOLOR_TERM_PROGRAMS
+
+
+def _colors_from_term(term: str, families: frozenset[str]) -> _ColorCount:
+    term_l = term.lower()
+    if not term_l:
+        return 16
+    if families & _NO_UNDERLINE_FAMILIES or term_l in _NO_UNDERLINE_FAMILIES:
+        return 1
+    if "direct" in term_l or families & _TRUECOLOR_FAMILIES:
+        return 16777216
+    if "256color" in term_l:
+        return 256
+    if "88color" in term_l:
+        return 88
+    return 16
+
+
+def detect_terminal_properties(
+    term: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    *,
+    windows_version: tuple[int, int, int] | None = None,
+) -> TerminalProperties:
+    """Detect raw-display capabilities from TERM and standard color environment variables.
+
+    Environment handling follows the NO_COLOR spec and common COLORTERM / FORCE_COLOR / CLICOLOR_FORCE /
+    CLICOLOR conventions.
+    TERM names are matched by family so ``gnome-256color``, ``konsole-direct``
+    and ``rxvt-unicode-256color`` are recognized.
+
+    On Windows 10 and later the console VT host is used when TERM is empty or generic:
+    256 colors from build 10586, 24-bit color from build 14931. Windows Terminal
+    (``WT_SESSION``), ConEmu and VS Code's terminal are treated as 24-bit hosts even
+    when TERM still reports ``xterm-256color``.
+    """
+    env = os.environ if environ is None else environ
+    term_value = env.get("TERM", "") if term is None else term
+    families = _term_families(term_value)
+    term_l = term_value.lower()
+    term_colors = _colors_from_term(term_value, families)
+    if windows_version is None:
+        windows_version = _windows_version()
+    win_colors = _windows_console_colors(windows_version)
+    vt_truecolor = _truecolor_host(env) or win_colors == 16777216
+    vt_host = vt_truecolor or win_colors in {256, 16777216}
+
+    if _env_nonempty(env, "NO_COLOR"):
+        colors: _ColorCount = 1
+    elif force := _env_nonempty(env, "FORCE_COLOR") or _env_nonempty(env, "CLICOLOR_FORCE"):
+        colors = _parse_force_color(force)
+    elif env.get("CLICOLOR") == "0" or term_colors == 1:
+        colors = 1
+    elif vt_truecolor:
+        colors = 16777216
+    elif _env_nonempty(env, "COLORTERM") and term_colors < 256:
+        colors = 256
+    elif win_colors is not None and term_colors < win_colors:
+        colors = win_colors
+    else:
+        colors = term_colors
+
+    has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
+    linux_console = _primary_family(term_value) == "linux"
+    fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
+    if vt_host and not linux_console:
+        fg_bright_is_bold = False
+        has_underline = True
+    bg_bright_is_blink = linux_console
+    back_color_erase = "bce" in term_l or not families & {"screen", "dumb", "unknown"}
+
+    return TerminalProperties(
+        colors=colors,
+        has_underline=has_underline,
+        fg_bright_is_bold=fg_bright_is_bold,
+        bg_bright_is_blink=bg_bright_is_blink,
+        back_color_erase=back_color_erase,
+    )
 
 
 @typing.runtime_checkable
@@ -90,8 +293,13 @@ class Screen(BaseScreen, RealTerminal):
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
         self._alternate_buffer: bool = False
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
-        self.colors: Literal[1, 16, 88, 256, 16777216] = 16  # FIXME: detect this
-        self.has_underline = True  # FIXME: detect this
+        self.term = os.environ.get("TERM", "")
+        properties = detect_terminal_properties(self.term, os.environ)
+        self.colors = properties.colors
+        self.has_underline = properties.has_underline
+        self.fg_bright_is_bold = properties.fg_bright_is_bold
+        self.bg_bright_is_blink = properties.bg_bright_is_blink
+        self.back_color_erase = properties.back_color_erase
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] | None = None
@@ -103,10 +311,6 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used: int | None = None
         self._cy = 0
-        self.term = os.environ.get("TERM", "")
-        self.fg_bright_is_bold = not self.term.startswith("xterm")
-        self.bg_bright_is_blink = self.term == "linux"
-        self.back_color_erase = not self.term.startswith("screen")
         self.register_palette_entry(None, "default", "default")
         self._next_timeout: float | None = None
         self.signal_handler_setter = signal.signal
