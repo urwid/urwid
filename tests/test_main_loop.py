@@ -17,25 +17,25 @@ if typing.TYPE_CHECKING:
 IS_WINDOWS = sys.platform == "win32"
 
 
-class ClosingTemporaryFilesPair(typing.ContextManager[tuple[typing.TextIO, typing.TextIO]]):
-    """File pair context manager that closes temporary files on exit.
+class ClosingScreenIO(typing.ContextManager[tuple[socket.socket, typing.TextIO]]):
+    """Socket backed input/output for a raw `Screen` detached from any real terminal.
 
-    Since `sys.stdout` is TextIO, tests have to use compatible api for the proper behavior imitation.
+    The raw display reads bytes from its input socket and writes text to its output stream,
+    so the input end is handed over as a socket and the output end as a text stream.
+    Both ends are sockets since a socket descriptor can not be wrapped by `os.fdopen` on Windows.
     """
 
-    __slots__ = ("rd_f", "rd_s", "wr_f", "wr_s")
+    __slots__ = ("_closing",)
 
     def __init__(self) -> None:
-        self.rd_s: socket.socket | None = None
-        self.wr_s: socket.socket | None = None
-        self.rd_f: typing.TextIO | None = None
-        self.wr_f: typing.TextIO | None = None
+        self._closing: list[typing.IO[typing.Any] | socket.socket] = []
 
-    def __enter__(self) -> tuple[typing.TextIO, typing.TextIO]:
-        self.rd_s, self.wr_s = socket.socketpair()
-        self.rd_f = os.fdopen(self.rd_s.fileno(), "r", encoding="utf-8", closefd=False)
-        self.wr_f = os.fdopen(self.wr_s.fileno(), "w", encoding="utf-8", closefd=False)
-        return self.rd_f, self.wr_f
+    def __enter__(self) -> tuple[socket.socket, typing.TextIO]:
+        screen_input, feed_input = socket.socketpair()
+        collect_output, screen_output = socket.socketpair()
+        output_stream = screen_output.makefile("w", encoding="utf-8")
+        self._closing = [output_stream, screen_input, feed_input, collect_output, screen_output]
+        return screen_input, output_stream
 
     def __exit__(
         self,
@@ -44,14 +44,10 @@ class ClosingTemporaryFilesPair(typing.ContextManager[tuple[typing.TextIO, typin
         exc_tb: TracebackType | None,
     ) -> None:
         """Close everything explicit without waiting for garbage collected."""
-        if self.rd_f is not None and not self.rd_f.closed:
-            self.rd_f.close()
-        if self.rd_s is not None:
-            self.rd_s.close()
-        if self.wr_f is not None and not self.wr_f.closed:
-            self.wr_f.close()
-        if self.wr_s is not None:
-            self.wr_s.close()
+        for closing in self._closing:
+            with contextlib.suppress(OSError):
+                closing.close()
+        self._closing = []
 
 
 def stop_screen_cb(*_args, **_kwargs) -> typing.NoReturn:
@@ -64,13 +60,10 @@ def dummy_raw_main_loop(
     **kwargs: typing.Any,
 ) -> typing.Iterator[urwid.MainLoop]:
     """MainLoop bound to socket-backed raw Screen IO (no real TTY)."""
-    with (
-        ClosingTemporaryFilesPair() as (rd_r, _wr_r),
-        ClosingTemporaryFilesPair() as (_rd_w, wr_w),
-    ):
+    with ClosingScreenIO() as (screen_input, screen_output):
         yield urwid.MainLoop(
             widget if widget is not None else urwid.SolidFill(),
-            screen=urwid.display.raw.Screen(input=rd_r, output=wr_w),
+            screen=urwid.display.raw.Screen(input=screen_input, output=screen_output),
             handle_mouse=False,
             **kwargs,
         )
@@ -110,14 +103,7 @@ class TestMainLoop(unittest.TestCase):
                 os.write(fd, b"false")
 
         with (
-            ClosingTemporaryFilesPair() as (
-                rd_r,
-                wr_r,
-            ),
-            ClosingTemporaryFilesPair() as (
-                rd_w,
-                wr_w,
-            ),
+            ClosingScreenIO() as (screen_input, screen_output),
             concurrent.futures.ThreadPoolExecutor(
                 max_workers=1,
             ) as executor,
@@ -128,7 +114,8 @@ class TestMainLoop(unittest.TestCase):
         ):
             evl = urwid.MainLoop(
                 urwid.SolidFill(),
-                screen=urwid.display.raw.Screen(input=rd_r, output=wr_w),  # We need screen which support mocked IO
+                # We need screen which support mocked IO
+                screen=urwid.display.raw.Screen(input=screen_input, output=screen_output),
                 handle_mouse=False,  # Less external calls - better
             )
             evl.set_alarm_in(1, stop_screen_cb)
