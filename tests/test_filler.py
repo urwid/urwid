@@ -225,3 +225,10 @@ class FillerTest(unittest.TestCase):
             ],
             canvas.text,
         )
+
+    def test_valign_top_around_text(self) -> None:
+        """Body filler used by dialog windows."""
+        filler = urwid.Filler(urwid.Text("body"), valign=urwid.TOP)
+
+        self.assertEqual((4, 3), filler.pack((4, 3)))
+        self.assertEqual([b"body", b"    ", b"    "], filler.render((4, 3)).text)

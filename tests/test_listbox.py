@@ -2004,3 +2004,26 @@ class TestListWalkerFromIterable(unittest.TestCase):
     def test_02_simple_focus_list_walker(self):
         walker = urwid.SimpleFocusListWalker(str(num) for num in range(5))
         self.assertEqual(5, len(walker))
+
+
+class ListBoxConsumerApiTest(unittest.TestCase):
+    def test_simple_list_walker_clear_and_append(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Text("old")])
+        listbox = urwid.ListBox(walker)
+
+        walker.clear()
+        walker.append(urwid.AttrMap(urwid.Text("new"), None))
+
+        self.assertEqual(1, len(listbox))
+        self.assertEqual(0, listbox.focus_position)
+        self.assertEqual("new", listbox.focus.original_widget.text)
+
+    def test_set_focus_and_len(self) -> None:
+        items = [urwid.Text(str(idx)) for idx in range(3)]
+        listbox = urwid.ListBox(urwid.SimpleListWalker(items))
+
+        listbox.set_focus(2)
+        self.assertEqual(2, listbox.focus_position)
+        self.assertIs(items[2], listbox.focus)
+        self.assertEqual(3, len(listbox))
+        self.assertEqual([items[2]], listbox.get_focus_widgets())

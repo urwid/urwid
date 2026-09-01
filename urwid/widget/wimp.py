@@ -258,7 +258,11 @@ class CheckBox(WidgetWrap[Columns]):
 
         self._state = state
         if checked_symbol:
-            self.states[True] = SelectableIcon(f"[{checked_symbol}]", 1)
+            # Copy the class-level table so a custom mark does not leak into other CheckBox instances.
+            self.states = {  # type: ignore[misc]
+                **self.states,
+                True: SelectableIcon(f"[{checked_symbol}]", 1),
+            }
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -610,6 +614,9 @@ class RadioButton(CheckBox):
         (False, True)
         """
         self.set_state(True)
+
+    # Re-bind so ``radio.state = True`` uses this class's exclusive setter, not CheckBox.state.
+    state = property(CheckBox.get_state, set_state)
 
 
 class Button(WidgetWrap[Columns]):

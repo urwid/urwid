@@ -1023,3 +1023,45 @@ class ColumnsTest(unittest.TestCase):
                 ),
                 widget.render(size, False).decoded_text,
             )
+
+    def test_focus_changed_callback_replacement(self) -> None:
+        """Replace the contents focus callback and read the new index before it is applied."""
+        first = urwid.Button("first")
+        second = urwid.Button("second")
+        columns = urwid.Columns((first, second))
+        seen: list[tuple[int, int, urwid.Widget]] = []
+
+        def on_focus_change(new_focus: int) -> None:
+            seen.append((new_focus, columns.focus_position, columns.contents[new_focus][0]))
+            columns._invalidate()
+
+        columns.contents.set_focus_changed_callback(on_focus_change)
+        columns.focus_position = 1
+
+        self.assertEqual([(1, 0, second)], seen)
+        self.assertIs(second, columns.focus)
+        self.assertEqual(1, columns.focus_position)
+
+    def test_pack_given_and_weight_footer_row(self) -> None:
+        """Footer-style row: weighted SolidFill spacers around given-width buttons."""
+        ok_button = urwid.Button("OK", align=urwid.CENTER)
+        cancel_button = urwid.Button("Cancel", align=urwid.CENTER)
+        columns = urwid.Columns(
+            (
+                (urwid.WHSettings.WEIGHT, 16, urwid.SolidFill()),
+                (10, ok_button),
+                urwid.SolidFill(),
+                (10, cancel_button),
+                (urwid.WHSettings.WEIGHT, 16, urwid.SolidFill()),
+            ),
+            box_columns=(0, 2, 4),
+            focus_column=ok_button,
+        )
+
+        self.assertIs(ok_button, columns.focus)
+        self.assertEqual(1, columns.focus_position)
+        canvas = columns.render((53, 1))
+        self.assertEqual(53, canvas.cols())
+        self.assertEqual(1, canvas.rows())
+        self.assertIn(b"<   OK   >", canvas.text[0])
+        self.assertIn(b"< Cancel >", canvas.text[0])
