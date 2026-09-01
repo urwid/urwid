@@ -42,6 +42,26 @@ class CanvasCacheTest(unittest.TestCase):
         self.cct(a, (15, 1), False, None)
         self.cct(b, (20, 2), True, bloo)
 
+    def test_deps_does_not_grow_unbounded_on_repeated_store(self):
+        # A widget that is re-rendered many times (e.g. one screen refresh
+        # per store() call) used to add itself to CanvasCache._deps[w] every
+        # single time, so the list kept growing for as long as the program
+        # ran, even though it only ever depends on `w` once.
+        dependency = urwid.Text("")
+        dependent = urwid.Text("")
+
+        dependency_canv = urwid.TextCanvas()
+        dependency_canv.finalize(dependency, (10, 1), False)
+        urwid.CanvasCache.store(urwid.Widget, dependency_canv)
+
+        for _ in range(50):
+            canv = urwid.TextCanvas()
+            canv.finalize(dependent, (10, 1), False)
+            canv.depends_on = [dependency]
+            urwid.CanvasCache.store(urwid.Widget, canv)
+
+        self.assertEqual({dependent}, urwid.CanvasCache._deps[dependency])
+
 
 class CanvasTest(unittest.TestCase):
     def test_basic_info(self):
