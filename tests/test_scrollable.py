@@ -469,6 +469,25 @@ class TestScrollBarListBox(unittest.TestCase):
         widget.keypress(reduced_size, "down")
         self.assertEqual(("[ ] C █",), widget.render(reduced_size).decoded_text)
 
+    def test_shade_symbols_around_listbox(self) -> None:
+        """Thumb/trough characters used by list windows."""
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleListWalker([urwid.Text(f"item {idx}") for idx in range(6)])),
+            thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+            trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        )
+
+        self.assertEqual("▓", urwid.ScrollBar.Symbols.DARK_SHADE)
+        self.assertEqual("░", urwid.ScrollBar.Symbols.LITE_SHADE)
+        self.assertEqual(
+            (
+                "item 0 ▓",
+                "item 1 ▓",
+                "item 2 ░",
+            ),
+            widget.render((8, 3)).decoded_text,
+        )
+
 
 def trivial_AttrMap(widget):
     return urwid.AttrMap(widget, {})

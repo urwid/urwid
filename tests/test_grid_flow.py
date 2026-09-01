@@ -278,3 +278,21 @@ class GridFlowTest(unittest.TestCase):
             self.assertEqual((maxcol, rows), grid.pack(()))
             with self.assertRaises(ValueError):
                 grid.render(())
+
+    def test_focus_changed_callback_replacement(self) -> None:
+        """Replace the contents focus callback and read the new index before it is applied."""
+        first = urwid.Button("first")
+        second = urwid.Button("second")
+        grid = urwid.GridFlow((first, second), cell_width=10, h_sep=1, v_sep=0, align=urwid.LEFT)
+        seen: list[tuple[int, int, urwid.Widget]] = []
+
+        def on_focus_change(new_focus: int) -> None:
+            seen.append((new_focus, grid.focus_position, grid.contents[new_focus][0]))
+            grid._invalidate()
+
+        grid.contents.set_focus_changed_callback(on_focus_change)
+        grid.focus_position = 1
+
+        self.assertEqual([(1, 0, second)], seen)
+        self.assertIs(second, grid.focus)
+        self.assertEqual(1, grid.focus_position)

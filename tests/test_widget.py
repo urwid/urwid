@@ -91,6 +91,16 @@ class TextTest(unittest.TestCase):
         self.assertIn("a", attrs)
         self.assertIn("c", attrs)
 
+    def test_markup_tuple_and_set_text(self) -> None:
+        widget = urwid.Text(("title", "Hello"))
+
+        self.assertEqual(("Hello", [("title", 5)]), widget.get_text())
+        self.assertEqual("Hello", widget.text)
+        self.assertEqual((5, 1), widget.pack(()))
+
+        widget.set_text([("a", "AB"), ("b", "CD")])
+        self.assertEqual(("ABCD", [("a", 2), ("b", 2)]), widget.get_text())
+
 
 class EditTest(unittest.TestCase):
     def setUp(self):

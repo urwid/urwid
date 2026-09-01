@@ -671,3 +671,43 @@ class PileTest(unittest.TestCase):
                 ),
                 canvas.decoded_text,
             )
+
+    def test_focus_changed_callback_replacement(self) -> None:
+        """Replace the contents focus callback and read the new index before it is applied."""
+        first = urwid.Button("first")
+        second = urwid.Button("second")
+        pile = urwid.Pile((first, second))
+        seen: list[tuple[int, int, urwid.Widget]] = []
+
+        def on_focus_change(new_focus: int) -> None:
+            seen.append((new_focus, pile.focus_position, pile.contents[new_focus][0]))
+            pile._invalidate()
+
+        pile.contents.set_focus_changed_callback(on_focus_change)
+        pile.focus_position = 1
+
+        self.assertEqual([(1, 0, second)], seen)
+        self.assertIs(second, pile.focus)
+        self.assertEqual(1, pile.focus_position)
+
+    def test_pack_rows_with_weight_body(self) -> None:
+        """Dialog-style pile: PACK description, weighted body, PACK footer."""
+        pile = urwid.Pile(
+            (
+                (urwid.WHSettings.PACK, urwid.Text("Describe")),
+                urwid.SolidFill("."),
+                (urwid.WHSettings.PACK, urwid.Button("OK")),
+            )
+        )
+
+        self.assertEqual((8, 5), pile.pack((8, 5)))
+        self.assertEqual(
+            (
+                "Describe",
+                "........",
+                "........",
+                "........",
+                "< OK   >",
+            ),
+            pile.render((8, 5)).decoded_text,
+        )

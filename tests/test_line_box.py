@@ -227,3 +227,29 @@ class LineBoxTest(unittest.TestCase):
             [line.decode("utf-8") for line in canvas.text],
         )
         self.assertIs(new_widget, lb_widget.original_widget)
+
+    def test_title_attr_and_unicode_corners(self) -> None:
+        box = urwid.LineBox(
+            urwid.Text("body"),
+            title="Title",
+            title_align=urwid.CENTER,
+            title_attr="title",
+            tlcorner="┌",
+            tline="─",
+            lline="│",
+            trcorner="┐",
+            blcorner="└",
+            rline="│",
+            bline="─",
+            brcorner="┘",
+        )
+
+        self.assertEqual((6, 3), box.pack(()))
+        self.assertEqual(
+            ["┌────┐", "│body│", "└────┘"],
+            [line.decode("utf-8") for line in box.render(()).text],
+        )
+        self.assertEqual(
+            ["┌─ Title ─┐", "│body     │", "└─────────┘"],
+            [line.decode("utf-8") for line in box.render((11,)).text],
+        )
