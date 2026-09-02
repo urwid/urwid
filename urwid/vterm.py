@@ -41,12 +41,11 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from urwid import event_loop, util
+from urwid.ansi_parser import led_state, resolve_osc_title, sgi_params_to_attrspec
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec, RealTerminal
 from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
 from urwid.widget import Sizing, Widget
-
-from .display.common import _BASIC_COLORS, _color_desc_256, _color_desc_true
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
@@ -570,12 +569,16 @@ class TermCanvas(Canvas):
             self.restore_cursor(with_attrs=True)
 
     def parse_osc(self, buf: bytes) -> None:
+        """Parse operating system command.
+
+        OSC-title-prefix recognition (``;``/``0;``/``2;``) is delegated to the shared
+        :func:`urwid.ansi_parser.resolve_osc_title`, so the rule is maintained in exactly one place.
+
+        :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
         """
-        Parse operating system command.
-        """
-        if buf.startswith((b";", b"0;", b"2;")):
-            # set window title
-            self.widget.set_title(buf.decode().partition(";")[2])
+        title = resolve_osc_title(buf.decode())
+        if title is not None:
+            self.widget.set_title(title)
 
     def parse_escape(self, char: bytes) -> None:
         if self.parsestate == 1:
@@ -1061,160 +1064,25 @@ class TermCanvas(Canvas):
 
             y += 1
 
-    def sgi_to_attrspec(
-        self,
-        attrs: Sequence[int],
-        fg: int | None,
-        bg: int | None,
-        attributes: set[str],
-        prev_colors: Literal[1, 16, 88, 256, 16777216],
-    ) -> AttrSpec | None:
-        """
-        Parse SGI sequence and return an AttrSpec representing the sequence
-        including all earlier sequences specified as 'fg', 'bg' and
-        'attributes'.
-        """
+    def csi_set_attr(self, attrs: Sequence[int]) -> None:
+        """Set graphics rendition.
 
-        idx = 0
-        colors = prev_colors
+        The colour/attribute-flag computation itself is delegated to the shared, platform-independent
+        :func:`urwid.ansi_parser.sgi_params_to_attrspec`; SGR 10/11/12 toggle vterm's own charset/display-control
+        state rather than colour/attributes, so that side effect is applied separately, here, since
+        ``sgi_params_to_attrspec`` deliberately ignores it (see its docstring).
 
-        while idx < len(attrs):
-            attr = attrs[idx]
-            if 30 <= attr <= 37:
-                fg = attr - 30
-                colors = max(16, colors)
-            elif 40 <= attr <= 47:
-                bg = attr - 40
-                colors = max(16, colors)
-            # AIXTERM bright color spec
-            # https://en.wikipedia.org/wiki/ANSI_escape_code
-            elif 90 <= attr <= 97:
-                fg = attr - 90 + 8
-                colors = max(16, colors)
-            elif 100 <= attr <= 107:
-                bg = attr - 100 + 8
-                colors = max(16, colors)
-            elif attr in {38, 48}:
-                if idx + 2 < len(attrs) and attrs[idx + 1] == 5:
-                    # 8 bit color specification
-                    color = attrs[idx + 2]
-                    colors = max(256, colors)
-                    if attr == 38:
-                        fg = color
-                    else:
-                        bg = color
-                    idx += 2
-                elif idx + 4 < len(attrs) and attrs[idx + 1] == 2:
-                    # 24 bit color specification
-                    color = (attrs[idx + 2] << 16) + (attrs[idx + 3] << 8) + attrs[idx + 4]
-                    colors = 16777216  # 2 ** 24
-                    if attr == 38:
-                        fg = color
-                    else:
-                        bg = color
-                    idx += 4
-            elif attr == 39:
-                # set default foreground color
-                fg = None
-            elif attr == 49:
-                # set default background color
-                bg = None
-            elif attr == 10:
+        :param attrs: the SGR numeric parameters to apply, in encounter order.
+        """
+        for attr in attrs:
+            if attr == 10:
                 self.charset.reset_sgr_ibmpc()
                 self.modes.display_ctrl = False
-            elif attr in {11, 12}:
+            elif attr in (11, 12):
                 self.charset.set_sgr_ibmpc()
                 self.modes.display_ctrl = True
 
-            # set attributes
-            elif attr == 1:
-                attributes.add("bold")
-            elif attr == 2:
-                attributes.add("faint")
-            elif attr == 4:
-                attributes.add("underline")
-            elif attr == 5:
-                attributes.add("blink")
-            elif attr == 7:
-                attributes.add("standout")
-
-            # unset attributes
-            elif attr == 22:
-                attributes.discard("bold")
-                attributes.discard("faint")
-            elif attr == 24:
-                attributes.discard("underline")
-            elif attr == 25:
-                attributes.discard("blink")
-            elif attr == 27:
-                attributes.discard("standout")
-            elif attr == 0:
-                # clear all attributes
-                fg = bg = None
-                attributes.clear()
-
-            idx += 1
-
-        if "bold" in attributes and colors == 16 and fg is not None and fg < 8:
-            fg += 8
-
-        def _defaulter(req_color: int | None) -> str:
-            if req_color is None:
-                return "default"
-            # Note: we can't detect 88 color mode
-            if req_color > 255 or colors == 2**24:
-                return _color_desc_true(req_color)
-            if req_color > 15 or colors == 256:
-                return _color_desc_256(req_color)
-            return _BASIC_COLORS[req_color]
-
-        decoded_fg = _defaulter(fg)
-        decoded_bg = _defaulter(bg)
-
-        if attributes:
-            decoded_fg = ",".join((decoded_fg, *list(attributes)))
-
-        if decoded_fg == decoded_bg == "default":
-            return None
-
-        if colors:
-            return AttrSpec(decoded_fg, decoded_bg, colors=colors)
-
-        return AttrSpec(decoded_fg, decoded_bg)
-
-    def csi_set_attr(self, attrs: Sequence[int]) -> None:
-        """
-        Set graphics rendition.
-        """
-        if attrs[-1] == 0:
-            self.attrspec = None
-
-        attributes = set()
-        if self.attrspec is None:
-            fg = bg = None
-        else:
-            # set default values from previous attrspec
-            if "default" in self.attrspec.foreground:
-                fg = None
-            else:
-                fg = self.attrspec.foreground_number
-                if fg >= 8 and self.attrspec.colors == 16:
-                    fg -= 8
-
-            if "default" in self.attrspec.background:
-                bg = None
-            else:
-                bg = self.attrspec.background_number
-                if bg >= 8 and self.attrspec.colors == 16:
-                    bg -= 8
-
-            for attr in ("bold", "faint", "underline", "blink", "standout"):
-                if not getattr(self.attrspec, attr):
-                    continue
-
-                attributes.add(attr)
-
-        attrspec = self.sgi_to_attrspec(attrs, fg, bg, attributes, self.attrspec.colors if self.attrspec else 1)
+        attrspec = sgi_params_to_attrspec(attrs, self.attrspec)
 
         if self.modes.reverse_video:
             self.attrspec = self.reverse_attrspec(attrspec)
@@ -1382,25 +1250,20 @@ class TermCanvas(Canvas):
             self.clear(cursor=self.term_cursor)
 
     def csi_set_keyboard_leds(self, mode: int = 0) -> None:
-        """
-        Set keyboard LEDs, modes are:
-            0 -> clear all LEDs
-            1 -> set scroll lock LED
-            2 -> set num lock LED
-            3 -> set caps lock LED
+        """Set keyboard LEDs.
 
-        This currently just emits a signal, so it can be processed by another
-        widget or the main application.
-        """
-        states = {
-            0: "clear",
-            1: "scroll_lock",
-            2: "num_lock",
-            3: "caps_lock",
-        }
+        This currently just emits a signal, so it can be processed by another widget or the main application.
 
-        if mode in states:
-            self.widget.leds(states[mode])  # type: ignore[arg-type]
+        The mode-to-state-name mapping is delegated to the shared :func:`urwid.ansi_parser.led_state`, so it is
+        maintained in exactly one place.
+
+        :param mode: one of ``0`` (clear all LEDs), ``1`` (set scroll lock LED), ``2`` (set num lock LED) or
+            ``3`` (set caps lock LED).
+        """
+        state = led_state(mode)
+
+        if state is not None:
+            self.widget.leds(state)  # type: ignore[arg-type]
 
     def clear(self, cursor: tuple[int, int] | None = None) -> None:
         """
