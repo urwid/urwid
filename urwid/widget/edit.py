@@ -682,6 +682,15 @@ class Edit(WidgetWrap[Text]):
 
         text, _ignore = self.get_text()
         x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
+        if (
+            self._wrap_mode in {WrapMode.SPACE, WrapMode.ANY}
+            and self._align_mode == Align.LEFT
+            and self.edit_pos == len(self.edit_text)
+            and y == len(trans) - 1
+            and x == maxcol
+        ):
+            return [*trans[:y], trans[y][:-1], [(0, self.edit_pos + len(self.caption))]]
+
         if x < 0:
             return [
                 *trans[:y],
