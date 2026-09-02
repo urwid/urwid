@@ -43,7 +43,7 @@ from email.message import Message
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import StoppingContext, get_encoding
 
-from .common import BaseScreen
+from .common import AttrSpec, BaseScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -52,7 +52,6 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid.canvas import Canvas
-    from urwid.display import AttrSpec
 
 TEMP_DIR = tempfile.gettempdir()
 CURRENT_DIR = pathlib.Path(__file__).parent
@@ -376,19 +375,26 @@ class Screen(BaseScreen):
             col = 0
             for a, run in l_row:
                 t_run = run.translate(_trans_table)
+                faint = False
                 if a is None:
                     fg, bg, _mono = "black", "light gray", None
+                # Check if a is an AttrSpec with faint attribute
+                elif isinstance(a, AttrSpec):
+                    faint = a.faint
+                    fg = a.foreground
+                    bg = a.background
+                    _mono = None
                 else:
                     fg, bg, _mono = self.palette[typing.cast("str | None", a)]
                 if y == cy and col <= cx:
                     run_width = calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
-                        line.append(code_span(t_run, fg, bg, cx - col))
+                        line.append(code_span(t_run, fg, bg, cx - col, faint))
                     else:
-                        line.append(code_span(t_run, fg, bg))
+                        line.append(code_span(t_run, fg, bg, faint=faint))
                     col += run_width
                 else:
-                    line.append(code_span(t_run, fg, bg))
+                    line.append(code_span(t_run, fg, bg, faint=faint))
 
             send(f"{''.join(line)}\n")
         self.last_screen = new_screen
@@ -491,9 +497,11 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s: str, fg: str, bg: str, cursor: int = -1) -> str:
+def code_span(s: str, fg: str, bg: str, cursor: int = -1, faint: bool = False) -> str:
     code_fg = _code_colours[fg]
     code_bg = _code_colours[bg]
+    # Use 'f' for faint, '0' for no attributes
+    attr_code = "f" if faint else "0"
 
     if cursor >= 0:
         c_off, _ign = calc_text_pos(s, 0, len(s), cursor)
@@ -502,19 +510,22 @@ def code_span(s: str, fg: str, bg: str, cursor: int = -1) -> str:
         return (
             code_fg
             + code_bg
+            + attr_code
             + s[:c_off]
             + "\n"
             + code_bg
             + code_fg
+            + attr_code
             + s[c_off:c2_off]
             + "\n"
             + code_fg
             + code_bg
+            + attr_code
             + s[c2_off:]
             + "\n"
         )
 
-    return f"{code_fg + code_bg + s}\n"
+    return f"{code_fg + code_bg + attr_code + s}\n"
 
 
 def is_web_request() -> bool:

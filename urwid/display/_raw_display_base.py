@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import functools
 import os
 import platform
@@ -102,7 +103,8 @@ _WINDOWS_TRUECOLOR_BUILD = 14931
 _TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
 
 
-class TerminalProperties(typing.NamedTuple):
+@dataclasses.dataclass(frozen=True)
+class TerminalProperties:
     """Capabilities inferred from TERM and standard color environment variables."""
 
     colors: _ColorCount
