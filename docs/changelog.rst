@@ -2,6 +2,36 @@
 Changelog
 ---------
 
+Urwid 4.1.0
+============
+
+2026-09-02
+
+New features 🗹
++++++++++++++++
+* Feat: detect terminal properties not only for basic xterm by @penguinolog in https://github.com/urwid/urwid/pull/1258
+* feat: extend faint text support to vterm and displays by @penguinolog in https://github.com/urwid/urwid/pull/1263
+* Feat: implement deque support for ListBox and `ANSIText` widget by @penguinolog in https://github.com/urwid/urwid/pull/1265
+  `ANSIText` is a `Text` like widget containing parsed `ANSI` text including color/style information and basic flags
+  as `bel`/`leds`/`title`.
+Bug fixes 🕷
+++++++++++++
+* Count the real ellipsis width in trimmed layout segments by @dylanpulver in https://github.com/urwid/urwid/pull/1261
+Documentation 🕮
+++++++++++++++++
+* Typing: fix ListBox typing protocol by @penguinolog in https://github.com/urwid/urwid/pull/1253
+Other Changes
++++++++++++++
+* Tests: add missing tests for common use-cases by @penguinolog in https://github.com/urwid/urwid/pull/1257
+* Tests: extend canvas and event loop tests coverage by @penguinolog in https://github.com/urwid/urwid/pull/1259
+* Tests: fix windows side by @penguinolog in https://github.com/urwid/urwid/pull/1260
+
+New Contributors
+++++++++++++++++
+* @dylanpulver made their first contribution in https://github.com/urwid/urwid/pull/1261
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.13...4.1.0
+
 Urwid 4.0.13
 ============
 
