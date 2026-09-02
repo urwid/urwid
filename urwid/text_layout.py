@@ -216,7 +216,7 @@ class StandardTextLayout(TextLayout):
                     raise ValueError(f"Invalid padding for start column==0: {pad_left!r}")
                 if start_off != idx:
                     raise ValueError(f"Invalid start offset for  start column==0 and position={idx!r}: {start_off!r}")
-                screen_columns = width - 1 - pad_right
+                screen_columns = width - ellipsis_width - pad_right
 
             else:
                 trimmed = False

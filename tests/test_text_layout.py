@@ -475,6 +475,27 @@ class TestEllipsis(unittest.TestCase):
             canvas = widget.render((1,))
             self.assertEqual("T", str(canvas))
 
+    def test_ellipsis_multichar_alignment(self):
+        """A multi-character ellipsis has to be counted at its real width.
+
+        The trimmed text plus the ellipsis fills all the available columns, so
+        `align` has nothing left to distribute and every alignment renders alike.
+        """
+        for encoding, expected in (("utf-8", "Test…"), ("ascii", "Te...")):
+            for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                with self.subTest(encoding=encoding, align=align), set_temporary_encoding(encoding):
+                    widget = urwid.Text("Test label", align=align, wrap=urwid.WrapMode.ELLIPSIS)
+                    self.assertEqual(expected, str(widget.render((5,))))
+
+    def test_ellipsis_line_declares_available_columns(self):
+        """A trimmed line and its ellipsis together declare exactly `width` columns."""
+        layout = urwid.StandardTextLayout()
+        for encoding in ("utf-8", "ascii"):
+            for width in range(3, 10):
+                with self.subTest(encoding=encoding, width=width), set_temporary_encoding(encoding):
+                    segments = layout.layout("Test label", width, urwid.Align.LEFT, urwid.WrapMode.ELLIPSIS)
+                    self.assertEqual(width, sum(segment[0] for segment in segments[0]))
+
 
 class NumericLayout(urwid.TextLayout):
     """
