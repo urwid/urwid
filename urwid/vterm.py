@@ -1129,6 +1129,8 @@ class TermCanvas(Canvas):
             # set attributes
             elif attr == 1:
                 attributes.add("bold")
+            elif attr == 2:
+                attributes.add("faint")
             elif attr == 4:
                 attributes.add("underline")
             elif attr == 5:
@@ -1137,6 +1139,9 @@ class TermCanvas(Canvas):
                 attributes.add("standout")
 
             # unset attributes
+            elif attr == 22:
+                attributes.discard("bold")
+                attributes.discard("faint")
             elif attr == 24:
                 attributes.discard("underline")
             elif attr == 25:
@@ -1203,7 +1208,7 @@ class TermCanvas(Canvas):
                 if bg >= 8 and self.attrspec.colors == 16:
                     bg -= 8
 
-            for attr in ("bold", "underline", "blink", "standout"):
+            for attr in ("bold", "faint", "underline", "blink", "standout"):
                 if not getattr(self.attrspec, attr):
                     continue
 

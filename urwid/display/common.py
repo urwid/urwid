@@ -93,7 +93,7 @@ _GRAY_STEPS_256 = [
 _CUBE_STEPS_88 = [0x00, 0x8B, 0xCD, 0xFF]
 _GRAY_STEPS_88 = [0x2E, 0x5C, 0x73, 0x8B, 0xA2, 0xB9, 0xD0, 0xE7]
 # values copied from X11/rgb.txt and XTerm-col.ad:
-_BASIC_COLOR_VALUES = [
+_BASIC_COLOR_VALUES = (
     (0, 0, 0),
     (205, 0, 0),
     (0, 205, 0),
@@ -110,17 +110,17 @@ _BASIC_COLOR_VALUES = [
     (255, 0, 255),
     (0, 255, 255),
     (255, 255, 255),
-]
-
-_COLOR_VALUES_256: list[tuple[int, int, int]] = (
-    _BASIC_COLOR_VALUES
-    + [(r, g, b) for r in _CUBE_STEPS_256 for g in _CUBE_STEPS_256 for b in _CUBE_STEPS_256]
-    + [(gr, gr, gr) for gr in _GRAY_STEPS_256]
 )
-_COLOR_VALUES_88: list[tuple[int, int, int]] = (
-    _BASIC_COLOR_VALUES
-    + [(r, g, b) for r in _CUBE_STEPS_88 for g in _CUBE_STEPS_88 for b in _CUBE_STEPS_88]
-    + [(gr, gr, gr) for gr in _GRAY_STEPS_88]
+
+_COLOR_VALUES_256: tuple[tuple[int, int, int], ...] = (
+    *_BASIC_COLOR_VALUES,
+    *[(r, g, b) for r in _CUBE_STEPS_256 for g in _CUBE_STEPS_256 for b in _CUBE_STEPS_256],
+    *[(gr, gr, gr) for gr in _GRAY_STEPS_256],
+)
+_COLOR_VALUES_88: tuple[tuple[int, int, int], ...] = (
+    *_BASIC_COLOR_VALUES,
+    *[(r, g, b) for r in _CUBE_STEPS_88 for g in _CUBE_STEPS_88 for b in _CUBE_STEPS_88],
+    *[(gr, gr, gr) for gr in _GRAY_STEPS_88],
 )
 
 if len(_COLOR_VALUES_256) != 256:
@@ -538,10 +538,14 @@ class AttrSpecError(Exception):
 class AttrSpec:
     __slots__ = ("__value",)
 
-    def __init__(self, fg: str, bg: str, colors: Literal[1, 16, 88, 256, 16777216] = 256) -> None:
+    def __init__(
+        self,
+        fg: str,
+        bg: str,
+        colors: Literal[1, 16, 88, 256, 16777216] = 256,
+    ) -> None:
         """
-        fg -- a string containing a comma-separated foreground color
-              and settings
+        fg -- a string containing a comma-separated foreground color and settings
 
               Color values:
               'default' (use the terminal's default foreground),
@@ -560,12 +564,11 @@ class AttrSpec:
               'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
-              'bold', 'italics', 'underline', 'blink', 'standout',
-              'strikethrough', 'faint'
+              'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint'
 
-              Some terminals use 'bold' for bright colors.  Most terminals
-              ignore the 'blink' setting.  If the color is not given then
-              'default' will be assumed.
+              Some terminals use 'bold' for bright colors.
+              Most terminals ignore the 'blink' setting.
+              If the color is not given then 'default' will be assumed.
 
         bg -- a string containing the background color
 

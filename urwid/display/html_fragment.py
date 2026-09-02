@@ -168,7 +168,9 @@ def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
     if aspec.standout:
         html_fg, html_bg = html_bg, html_fg
-    extra = ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold
+    extra = (
+        ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold + ";opacity:0.5" * aspec.faint
+    )
 
     def _span(fg: str, bg: str, string: str) -> str:
         if not s:
