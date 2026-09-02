@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import typing
 
 import urwid
 
@@ -13,7 +14,7 @@ run_me = os.path.join(os.path.dirname(sys.argv[0]), "subproc2.py")
 
 output_widget = urwid.Text(f"Factors of {factor_me:d}:\n")
 edit_widget = urwid.Edit("Type anything or press enter to exit:")
-frame_widget = urwid.Frame(
+frame_widget = urwid.Frame[urwid.Filler[urwid.Text], urwid.Edit, None](
     header=edit_widget,
     body=urwid.Filler(output_widget, valign=urwid.BOTTOM),
     focus_part="header",
@@ -29,7 +30,7 @@ loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)
 
 
 def received_output(data: bytes) -> bool:
-    output_widget.set_text(output_widget.text + data.decode("utf8"))
+    output_widget.set_text(typing.cast("str", output_widget.text) + data.decode("utf8"))
     return True
 
 

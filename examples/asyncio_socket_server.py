@@ -6,11 +6,15 @@ from __future__ import annotations
 import asyncio
 import logging
 import sys
+import typing
 import weakref
 from datetime import datetime
 
 import urwid
 from urwid.display.raw import Screen
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 logging.basicConfig()
 
@@ -21,13 +25,13 @@ loop = asyncio.get_event_loop()
 # General-purpose setup code
 
 
-def build_widgets():
+def build_widgets() -> urwid.Filler:
     input1 = urwid.Edit("What is your name? ")
     input2 = urwid.Edit("What is your quest? ")
     input3 = urwid.Edit("What is the capital of Assyria? ")
     inputs = [input1, input2, input3]
 
-    def update_clock(widget_ref):
+    def update_clock(widget_ref: weakref.ReferenceType[urwid.Text]) -> None:
         widget = widget_ref()
         if not widget:
             # widget is dead; the main loop must've been destroyed
@@ -44,7 +48,7 @@ def build_widgets():
     return urwid.Filler(urwid.Pile([clock, *inputs]), urwid.TOP)
 
 
-def unhandled(key):
+def unhandled(key: str) -> None:
     if key == "ctrl c":
         raise urwid.ExitMainLoop
 
@@ -53,7 +57,7 @@ def unhandled(key):
 # Demo 1
 
 
-def demo1():
+def demo1() -> None:
     """Plain old urwid app.  Just happens to be run atop asyncio as the event
     loop.
 
@@ -82,14 +86,14 @@ class AsyncScreen(Screen):
     remote screen.  Fixing that depends on the nature of the stream.
     """
 
-    def __init__(self, reader, writer, encoding="utf-8"):
+    _pending_task: asyncio.Task[bytes] | None
+
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, encoding: str = "utf-8") -> None:
         self.reader = reader
         self.writer = writer
         self.encoding = encoding
 
         super().__init__(None, None)
-
-    _pending_task = None
 
     def write(self, data: str) -> None:
         self.writer.write(data.encode(self.encoding))
@@ -97,10 +101,14 @@ class AsyncScreen(Screen):
     def flush(self) -> None:
         pass
 
-    def hook_event_loop(self, event_loop: urwid.AsyncioEventLoop, callback) -> None:
+    def hook_event_loop(
+        self,
+        event_loop: urwid.AsyncioEventLoop,
+        callback: Callable[[list[str], list[int]], object],
+    ) -> None:  # type: ignore[override]
         # Wait on the reader's read coro, and when there's data to read, call
         # the callback and then wait again
-        def pump_reader(fut=None):
+        def pump_reader(fut: asyncio.Future[bytes] | None = None) -> None:
             if fut is None:
                 # First call, do nothing
                 pass
@@ -126,14 +134,14 @@ class AsyncScreen(Screen):
 
         pump_reader()
 
-    def unhook_event_loop(self, event_loop) -> None:
+    def unhook_event_loop(self, event_loop: urwid.EventLoop) -> None:
         if self._pending_task:
             self._pending_task.cancel()
-            del self._pending_task
+            self._pending_task = None
 
 
 class UrwidProtocol(asyncio.Protocol):
-    def connection_made(self, transport) -> None:
+    def connection_made(self, transport: asyncio.Transport) -> None:
         print("Got a client!")
         self.transport = transport
 
@@ -164,7 +172,7 @@ class UrwidProtocol(asyncio.Protocol):
         self.urwid_loop.stop()
 
 
-def demo2():
+def demo2() -> None:
     """Urwid app served over the network to multiple clients at once, using an
     asyncio Protocol.
     """
@@ -179,7 +187,7 @@ def demo2():
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
-        which = sys.argv[1]
+        which: str | None = sys.argv[1]
     else:
         which = None
 

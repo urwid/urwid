@@ -39,7 +39,7 @@ if typing.TYPE_CHECKING:
 UPDATE_INTERVAL = 0.2
 
 
-def sin100(x):
+def sin100(x: int) -> float:
     """
     A sin function that returns values between 0 and 100 and repeats
     after x == 100.
@@ -126,7 +126,7 @@ class GraphView(urwid.WidgetWrap):
         self.started = True
         self.start_time = None
         self.offset = 0
-        self.last_offset = None
+        self.last_offset: int | None = None
         super().__init__(self.main_window())
 
     def get_offset_now(self) -> int:
@@ -342,7 +342,7 @@ class GraphController:
     the application.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.animate_alarm = None
         self.model = GraphModel()
         self.view = GraphView(self)
@@ -366,23 +366,23 @@ class GraphController:
         """Provide data to our view for the graph."""
         return self.model.get_data(offset, data_range)
 
-    def main(self):
+    def main(self) -> None:
         self.loop = urwid.MainLoop(self.view, self.view.palette)
         self.loop.run()
 
-    def animate_graph(self, loop=None, user_data=None):
+    def animate_graph(self, loop=None, user_data=None) -> None:
         """update the graph and schedule the next update"""
         self.view.update_graph()
         self.animate_alarm = self.loop.set_alarm_in(UPDATE_INTERVAL, self.animate_graph)
 
-    def stop_animation(self):
+    def stop_animation(self) -> None:
         """stop animating the graph"""
         if self.animate_alarm:
             self.loop.remove_alarm(self.animate_alarm)
         self.animate_alarm = None
 
 
-def main():
+def main() -> None:
     GraphController().main()
 
 
