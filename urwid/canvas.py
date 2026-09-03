@@ -73,7 +73,7 @@ class CanvasCache:
 
     _widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), ...}
     _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
-    _deps[widget} = [dependent_widget, ...]
+    _deps[widget} = {dependent_widget, ...}
     """
 
     _widgets: typing.ClassVar[
@@ -91,7 +91,7 @@ class CanvasCache:
             tuple[AbstractWidget, type[AbstractWidget], tuple[int, int] | tuple[int] | tuple[()], bool],
         ]
     ] = {}
-    _deps: typing.ClassVar[dict[AbstractWidget, list[AbstractWidget]]] = {}
+    _deps: typing.ClassVar[dict[AbstractWidget, set[AbstractWidget]]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
@@ -134,7 +134,7 @@ class CanvasCache:
                 if w not in cls._widgets:
                     return
             for w in depends_on:
-                cls._deps.setdefault(w, []).append(widget)
+                cls._deps.setdefault(w, set()).add(widget)
 
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
@@ -181,7 +181,7 @@ class CanvasCache:
 
         if widget not in cls._deps:
             return
-        dependants = cls._deps.get(widget, [])
+        dependants = cls._deps.get(widget, set())
         with suppress(KeyError):
             del cls._deps[widget]
         for w in dependants:
