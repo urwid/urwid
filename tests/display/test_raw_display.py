@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import os
 import unittest
 
 import urwid
-from urwid import escape
+from urwid import escape, signals
 from urwid.display._raw_display_base import detect_terminal_properties
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import set_temporary_encoding
 
 
@@ -85,6 +87,49 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual((1, 0), canvas.cursor)
         self.assertIn(escape.SHOW_CURSOR, output)
         self.assertIn(escape.HIDE_CURSOR, output)
+
+    def test_restart_after_stop_reconnects_input(self):
+        """stop() followed by start() must leave the screen's input descriptors
+        watchable again (regression test for urwid/urwid#285).
+
+        MainLoop reacts to INPUT_DESCRIPTORS_CHANGED by re-hooking the event loop
+        with whatever ``get_input_descriptors()`` currently returns, so that list
+        must be non-empty again once ``start()`` finishes -- otherwise stopping the
+        screen to run an external program and then restarting it silently stops
+        delivering keypresses.
+        """
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = urwid.display.raw.Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+
+        watched = {}
+
+        class FakeEventLoop:
+            def watch_file(self, fd, callback):
+                fd = fd if isinstance(fd, int) else fd.fileno()
+                watched[fd] = callback
+                return fd
+
+            def remove_watch_file(self, handle):
+                watched.pop(handle, None)
+                return True
+
+        event_loop = FakeEventLoop()
+
+        def reset_input_descriptors():
+            s.unhook_event_loop(event_loop)
+            s.hook_event_loop(event_loop, lambda keys, raw: None)
+
+        s.start()
+        signals.connect_signal(s, INPUT_DESCRIPTORS_CHANGED, reset_input_descriptors)
+        reset_input_descriptors()
+        self.assertTrue(watched, "expected watched descriptors after the initial start()")
+
+        s.stop()
+        s.start()
+
+        self.assertTrue(watched, "no descriptors are watched after restart -- regression of urwid/urwid#285")
+        s.stop()
 
 
 class TestTerminalProperties(unittest.TestCase):
