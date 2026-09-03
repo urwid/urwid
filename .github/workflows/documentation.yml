@@ -30,7 +30,8 @@ jobs:
         uses: actions/setup-python@v7
         with:
           python-version: '3.x'
-          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.0.1
       - name: Install Ubuntu dependencies
         run: |
           sudo apt-get -qq update
@@ -38,10 +39,10 @@ jobs:
           sudo apt-get install -y gobject-introspection libgirepository-2.0-dev libcairo2-dev
       - name: Install python dependencies
         run: |
-          pip install -U -r test_requirements.txt PyGObject
-          pip install -U sphinx
+          uv pip install --system -U -r test_requirements.txt PyGObject
+          uv pip install --system -U --group pyproject.toml:documentation
       - name: Install main package
-        run: pip install -e .
+        run: uv pip install --system -e .
       - name: Build documentation
         run: sphinx-build docs build/documentation
       - uses: actions/upload-artifact@v7
