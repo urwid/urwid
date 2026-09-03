@@ -149,7 +149,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
 
     @_call_modified
     def __iadd__(self, __value: Iterable[_T]) -> MonitoredDeque[_T]:
-        return super().__iadd__(__value)  # type: ignore[return-value]
+        return super().__iadd__(__value)
 
     @_call_modified
     def append(self, __object: _T) -> None:

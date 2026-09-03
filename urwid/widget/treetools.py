@@ -106,7 +106,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         """Update display widget text for parent widgets"""
         # icon is first element in columns indented widget
         icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
-        self._w.original_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[union-attr]
+        self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
 
     def get_indent_cols(self) -> int:
         return self.indent_cols * self.get_node().get_depth()

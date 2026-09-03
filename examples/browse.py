@@ -84,11 +84,11 @@ class FlagFileWidget(urwid.TreeWidget[_TreeNode]):
     def update_w(self) -> None:
         """Update the attributes of self.widget based on self.flagged."""
         if self.flagged:
-            self._w.attr_map = {None: "flagged"}
-            self._w.focus_map = {None: "flagged focus"}
+            self._w.attr_map = {None: "flagged"}  # type: ignore[attr-defined]
+            self._w.focus_map = {None: "flagged focus"}  # type: ignore[attr-defined]
         else:
-            self._w.attr_map = {None: "body"}
-            self._w.focus_map = {None: "focus"}
+            self._w.attr_map = {None: "body"}  # type: ignore[attr-defined]
+            self._w.focus_map = {None: "focus"}  # type: ignore[attr-defined]
 
 
 class FileTreeWidget(FlagFileWidget["FileNode"]):
