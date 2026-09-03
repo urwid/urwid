@@ -15,6 +15,13 @@ List-like List Walkers
 
 .. autoclass:: SimpleListWalker
 
+Deque-like List Walkers
+-----------------------
+
+.. autoclass:: SimpleFocusDequeWalker
+
+.. autoclass:: SimpleDequeWalker
+
 TreeWalker and Nodes
 --------------------
 

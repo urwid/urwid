@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 4.1.0</title>
+    <title>Widget Classes &#8212; Urwid 4.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
+    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -1958,6 +1958,9 @@ decimal_separator – use ‘.’ as separator by default, optionally a ‘,’<
 </dd></dl>
 
 </section>
+<section id="special-cases-test-widgets">
+<h3>Special cases test widgets<a class="headerlink" href="#special-cases-test-widgets" title="Link to this heading">¶</a></h3>
+</section>
 <section id="selectableicon">
 <h3>SelectableIcon<a class="headerlink" href="#selectableicon" title="Link to this heading">¶</a></h3>
 <dl class="py class">
@@ -2015,6 +2018,155 @@ in focus.</p>
 <span class="go">(2, 0)</span>
 </pre></div>
 </div>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="ansitext">
+<h3>ANSIText<a class="headerlink" href="#ansitext" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.ANSIText">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ANSIText</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ansi_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">one_line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'space'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'any'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'clip'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ellipsis'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">WrapMode</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">WrapMode.SPACE</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'center'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Align</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">Align.LEFT</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ANSIText" title="Link to this definition">¶</a></dt>
+<dd><p>A read-only widget interpreting ANSI/VT100 colour, horizontal and (optionally) vertical movement escapes.</p>
+<p>It acts almost exactly like a read-only <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget for the resolved, escape-free content.</p>
+<p>Parsing is delegated to <code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.ansi_parser.AnsiParser</span></code>, and layout (wrapping, alignment, packing and
+rendering) is delegated to an internal <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> instance that this widget wraps via
+<a class="reference internal" href="#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetWrap</span></code></a>, so this widget’s <code class="docutils literal notranslate"><span class="pre">pack</span></code>/<code class="docutils literal notranslate"><span class="pre">render</span></code>/<code class="docutils literal notranslate"><span class="pre">rows</span></code> behaviour is identical to
+<a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for the same resolved characters, without needing to forward those calls by hand.</p>
+<p>By default (<code class="docutils literal notranslate"><span class="pre">one_line=False</span></code>), a newline genuinely starts a new row, <code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">n</span> <span class="pre">A</span></code>/<code class="docutils literal notranslate"><span class="pre">B</span></code> genuinely moves the
+cursor up/down between rows, and a bare <code class="docutils literal notranslate"><span class="pre">\r</span></code> genuinely overwrites the current row in place (letting
+progress-bar-style redraw sequences resolve correctly) – <code class="docutils literal notranslate"><span class="pre">ansi_text</span></code> is treated as a single, complete block,
+meant to render one already-complete captured screen/block.</p>
+<p>Pass <code class="docutils literal notranslate"><span class="pre">one_line=True</span></code> to restrict this widget to a single physical line of resolved text; see
+<code class="xref py py-class docutils literal notranslate"><span class="pre">AnsiParser</span></code>’s <code class="docutils literal notranslate"><span class="pre">one_line</span></code> flag for the underlying parsing semantics. In this mode,
+line ends and vertical cursor movement are treated as meaningless outside a single line (stripped/split rather
+than resolved into rows): since the underlying parser always
+returns a <code class="docutils literal notranslate"><span class="pre">tuple[ParsedLine,</span> <span class="pre">...]</span></code> in this mode (line-end characters are structural split points, never
+silently discarded), constructing an <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> directly from text containing an embedded line end only
+surfaces the <em>first</em> resulting line – no data is lost (the full split is always computed), but only the first
+line is exposed by this widget instance. Use <a class="reference internal" href="#urwid.ANSIText.from_lines" title="urwid.ANSIText.from_lines"><code class="xref py py-meth docutils literal notranslate"><span class="pre">from_lines()</span></code></a> to turn arbitrary multi-line (or arbitrarily
+chunked) raw text into a complete sequence of <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> instances, in either mode.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ANSIText</span><span class="p">(</span><span class="s2">"hello"</span><span class="p">)</span>
+<span class="go">&lt;ANSIText fixed/flow widget 'hello'&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ANSIText</span><span class="p">(</span><span class="s2">"a</span><span class="se">\n</span><span class="s2">b"</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="go">'a\nb'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ANSIText</span><span class="p">(</span><span class="s2">"a</span><span class="se">\n</span><span class="s2">b"</span><span class="p">,</span> <span class="n">one_line</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>
+<span class="go">'a'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ansi_text</strong> – a block of text, optionally spanning several lines and containing ANSI/VT100 escape
+sequences. If <code class="docutils literal notranslate"><span class="pre">one_line</span></code> is true, only its first physical line is surfaced by this widget instance.</p></li>
+<li><p><strong>previous_attr</strong> – SGR/colour state to carry in from previously parsed text (see <a class="reference internal" href="#urwid.ANSIText.last_attr" title="urwid.ANSIText.last_attr"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_attr</span></code></a>).</p></li>
+<li><p><strong>one_line</strong> – restrict this widget to a single physical line of resolved text rather than resolving the
+whole block into multi-row output.</p></li>
+<li><p><strong>wrap</strong> – forwarded to the internal <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>.</p></li>
+<li><p><strong>align</strong> – forwarded to the internal <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.attrib">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">attrib</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.ANSIText.attrib" title="Link to this definition">¶</a></dt>
+<dd><p>Read-only property returning the run-length encoded display attributes of this widget’s text.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.bel">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">bel</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#urwid.ANSIText.bel" title="Link to this definition">¶</a></dt>
+<dd><p>The number of BEL characters seen (aggregated over the whole block unless <code class="docutils literal notranslate"><span class="pre">one_line</span></code> is true).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ANSIText.from_lines">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_lines</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">chunks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">one_line</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><span class="pre">ANSIText</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ANSIText.from_lines" title="Link to this definition">¶</a></dt>
+<dd><p>Consume raw ANSI text chunks and yield the resulting <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> widget(s).</p>
+<p><code class="docutils literal notranslate"><span class="pre">chunks</span></code> (e.g. successive <code class="docutils literal notranslate"><span class="pre">os.read()</span></code> results from a subprocess) are <strong>not</strong> required to be pre-split
+on line boundaries, and each chunk may contain zero, one, or several line ends. Internally accumulates a
+single <code class="xref py py-class docutils literal notranslate"><span class="pre">AnsiParser</span></code> across all chunks, so a line split across two chunk
+boundaries – or an escape sequence split across two chunk boundaries – is still resolved correctly, and
+calls <code class="xref py py-meth docutils literal notranslate"><span class="pre">finalize()</span></code> only once the iterable is exhausted.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">one_line</span></code> is true, one <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> is yielded per line the shared parser completes, in order,
+with SGR colour state carried forward continuously: each produced <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>’s <code class="docutils literal notranslate"><span class="pre">previous_attr</span></code> is
+the previous one’s <a class="reference internal" href="#urwid.ANSIText.last_attr" title="urwid.ANSIText.last_attr"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_attr</span></code></a>, whether that previous line came from the same chunk or an earlier
+one.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">one_line</span></code> is false (the default), this naturally reduces to yielding exactly <em>one</em> <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>
+once every chunk has been consumed, representing the entire accumulated multi-chunk block resolved into
+real multi-row output – the “normal multiline” case, reached through the same code path as the
+<code class="docutils literal notranslate"><span class="pre">one_line=True</span></code> case rather than a separate one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chunks</strong> – an iterable of raw text chunks, not required to be aligned on line or escape-sequence
+boundaries.</p></li>
+<li><p><strong>previous_attr</strong> – SGR/colour state to seed the shared parser with, as if it were carried over from
+previously parsed text.</p></li>
+<li><p><strong>one_line</strong> – parse in single-line-splitting mode (see the class docstring) rather than resolving the
+whole accumulated input into one multi-row block.</p></li>
+<li><p><strong>kwargs</strong> – forwarded to <code class="xref py py-meth docutils literal notranslate"><span class="pre">_from_parsed()</span></code> (i.e. <code class="docutils literal notranslate"><span class="pre">wrap</span></code>/<code class="docutils literal notranslate"><span class="pre">align</span></code> for the internal
+<a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>an iterator yielding one or more <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> instances, in order, depending on <code class="docutils literal notranslate"><span class="pre">one_line</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ANSIText.get_text">
+<span class="sig-name descname"><span class="pre">get_text</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ANSIText.get_text" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(<em>text</em>, <em>display attributes</em>), see <a class="reference internal" href="#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">urwid.Text.get_text()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.last_attr">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">last_attr</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.ANSIText.last_attr" title="Link to this definition">¶</a></dt>
+<dd><p>The SGR/colour state in effect at the very end of this widget’s text.</p>
+<p>Feed this in as <code class="docutils literal notranslate"><span class="pre">previous_attr</span></code> to a subsequently constructed <a class="reference internal" href="#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> to continue the same
+colour state.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.leds">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">leds</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.ANSIText.leds" title="Link to this definition">¶</a></dt>
+<dd><p>The last keyboard-LED state requested, if any.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.ANSIText.set_ansi_text">
+<span class="sig-name descname"><span class="pre">set_ansi_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ansi_text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">previous_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ANSIText.set_ansi_text" title="Link to this definition">¶</a></dt>
+<dd><p>Re-parse <code class="docutils literal notranslate"><span class="pre">ansi_text</span></code> and invalidate this widget.</p>
+<p>Parsing uses the mode (<code class="docutils literal notranslate"><span class="pre">one_line</span></code>) this widget was constructed with; if <code class="docutils literal notranslate"><span class="pre">one_line</span></code> is true, only the
+first resulting line is used, see the class docstring.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ansi_text</strong> – a block of text, optionally spanning several lines and containing ANSI/VT100 escape
+sequences.</p></li>
+<li><p><strong>previous_attr</strong> – SGR/colour state to carry in from previously parsed text (see <a class="reference internal" href="#urwid.ANSIText.last_attr" title="urwid.ANSIText.last_attr"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_attr</span></code></a>).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.text">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">text</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span><a class="headerlink" href="#urwid.ANSIText.text" title="Link to this definition">¶</a></dt>
+<dd><p>Read-only property returning the resolved, escape-free text of this widget (may contain <code class="docutils literal notranslate"><span class="pre">\n</span></code>).</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.ANSIText.title">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">title</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.ANSIText.title" title="Link to this definition">¶</a></dt>
+<dd><p>The last OSC window-title string seen, if any.</p>
 </dd></dl>
 
 </dd></dl>
@@ -5665,11 +5817,27 @@ be defined.</p>
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#special-cases-test-widgets">Special cases test widgets</a></li>
 <li><a class="reference internal" href="#selectableicon">SelectableIcon</a><ul>
 <li><a class="reference internal" href="#urwid.SelectableIcon"><code class="docutils literal notranslate"><span class="pre">SelectableIcon</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.SelectableIcon.get_cursor_coords"><code class="docutils literal notranslate"><span class="pre">SelectableIcon.get_cursor_coords()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SelectableIcon.keypress"><code class="docutils literal notranslate"><span class="pre">SelectableIcon.keypress()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SelectableIcon.render"><code class="docutils literal notranslate"><span class="pre">SelectableIcon.render()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#ansitext">ANSIText</a><ul>
+<li><a class="reference internal" href="#urwid.ANSIText"><code class="docutils literal notranslate"><span class="pre">ANSIText</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.ANSIText.attrib"><code class="docutils literal notranslate"><span class="pre">ANSIText.attrib</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.bel"><code class="docutils literal notranslate"><span class="pre">ANSIText.bel</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.from_lines"><code class="docutils literal notranslate"><span class="pre">ANSIText.from_lines()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.get_text"><code class="docutils literal notranslate"><span class="pre">ANSIText.get_text()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.last_attr"><code class="docutils literal notranslate"><span class="pre">ANSIText.last_attr</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.leds"><code class="docutils literal notranslate"><span class="pre">ANSIText.leds</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.set_ansi_text"><code class="docutils literal notranslate"><span class="pre">ANSIText.set_ansi_text()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.text"><code class="docutils literal notranslate"><span class="pre">ANSIText.text</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ANSIText.title"><code class="docutils literal notranslate"><span class="pre">ANSIText.title</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -6084,7 +6252,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>

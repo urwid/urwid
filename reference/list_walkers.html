@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>List Walker Classes &#8212; Urwid 4.1.0</title>
+    <title>List Walker Classes &#8212; Urwid 4.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
+    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
@@ -271,6 +271,200 @@ and will cause ListBox objects using this list walker to be updated.</p>
 </dd></dl>
 
 </section>
+<section id="deque-like-list-walkers">
+<h2>Deque-like List Walkers<a class="headerlink" href="#deque-like-list-walkers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusDequeWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker" title="Link to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a> backed by a <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredFocusDeque</span></code>.</p>
+<p>Mirrors <a class="reference internal" href="#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a> method-for-method, adapted to
+<code class="docutils literal notranslate"><span class="pre">deque</span></code>’s narrower API. See the performance caveat documented on
+<a class="reference internal" href="#urwid.SimpleDequeWalker" title="urwid.SimpleDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleDequeWalker</span></code></a> – it applies equally here.</p>
+<p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredFocusDeque</span></code> which means it can be treated as a
+deque.</p>
+<p>Changes made to this object (when it is treated as a deque) are detected automatically
+and will cause ListBox objects using this list walker to be updated.</p>
+<p>Also, items added or removed before the widget in focus with normal deque methods –
+including eviction caused by <code class="docutils literal notranslate"><span class="pre">maxlen</span></code> – will cause the focus to be updated
+intelligently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>contents</strong> – iterable to copy into this object</p></li>
+<li><p><strong>wrap_around</strong> – if true, jumps to beginning/end of deque on move</p></li>
+<li><p><strong>maxlen</strong> – if set, bounds the deque’s length; the oldest items are silently evicted
+from the opposite end once full, and focus is adjusted to keep tracking a sensible
+item (see <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredFocusDeque</span></code>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.next_position">
+<span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsIndex</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.next_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return position after <code class="docutils literal notranslate"><span class="pre">position</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to start from</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – if there is no next position and <code class="docutils literal notranslate"><span class="pre">wrap_around</span></code> is false</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<dd><p>Optional method for returning an iterable of positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.prev_position">
+<span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsIndex</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.prev_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return position before <code class="docutils literal notranslate"><span class="pre">position</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to start from</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – if there is no previous position and <code class="docutils literal notranslate"><span class="pre">wrap_around</span></code> is false</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.set_focus">
+<span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.set_focus" title="Link to this definition">¶</a></dt>
+<dd><p>Set focus position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to focus</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.set_modified_callback">
+<span class="sig-name descname"><span class="pre">set_modified_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.set_modified_callback" title="Link to this definition">¶</a></dt>
+<dd><p>This function inherited from MonitoredFocusDeque is not implemented in SimpleFocusDequeWalker.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">connect_signal(list_walker,</span> <span class="pre">&quot;modified&quot;,</span> <span class="pre">...)</span></code> instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – always</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleDequeWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleDequeWalker" title="Link to this definition">¶</a></dt>
+<dd><p>A <a class="reference internal" href="#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a> backed by a <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredDeque</span></code>.</p>
+<p>Mirrors <a class="reference internal" href="#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> method-for-method,
+adapted to <code class="docutils literal notranslate"><span class="pre">deque</span></code>’s narrower API (in particular, <code class="docutils literal notranslate"><span class="pre">maxlen</span></code>-bounded eviction).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#urwid.ListWalker.get_focus" title="urwid.ListWalker.get_focus"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker.get_focus()</span></code></a>/<a class="reference internal" href="#urwid.ListWalker.get_next" title="urwid.ListWalker.get_next"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker.get_next()</span></code></a>/<a class="reference internal" href="#urwid.ListWalker.get_prev" title="urwid.ListWalker.get_prev"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListWalker.get_prev()</span></code></a>
+(inherited, unmodified) index via <code class="docutils literal notranslate"><span class="pre">self[position]</span></code>, and <code class="docutils literal notranslate"><span class="pre">deque.__getitem__</span></code>
+is O(n) (linked-block structure) rather than a list’s O(1)
+– worth bearing in mind for a very large unbounded deque,
+though the bounded/<code class="docutils literal notranslate"><span class="pre">maxlen</span></code> scrollback use case this class targets is small enough
+that it does not matter in practice. No caching layer is provided.</p>
+</div>
+<p>This class inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredDeque</span></code> which means it can be treated as a deque.</p>
+<p>Changes made to this object (when it is treated as a deque) are detected automatically
+and will cause ListBox objects using this list walker to be updated.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>contents</strong> – iterable to copy into this object</p></li>
+<li><p><strong>wrap_around</strong> – if true, jumps to beginning/end of deque on move</p></li>
+<li><p><strong>maxlen</strong> – if set, bounds the deque’s length; the oldest items are silently evicted
+from the opposite end once full</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.contents">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">contents</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#urwid.SimpleDequeWalker" title="urwid.widget.deque_walker.SimpleDequeWalker"><span class="pre">SimpleDequeWalker</span></a><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.contents" title="Link to this definition">¶</a></dt>
+<dd><p>Return self.</p>
+<p>Provides compatibility with old SimpleListWalker class.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.next_position">
+<span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.next_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return position after <code class="docutils literal notranslate"><span class="pre">position</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to start from</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – if there is no next position and <code class="docutils literal notranslate"><span class="pre">wrap_around</span></code> is false</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<dd><p>Optional method for returning an iterable of positions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.prev_position">
+<span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.prev_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return position before <code class="docutils literal notranslate"><span class="pre">position</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to start from</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – if there is no previous position and <code class="docutils literal notranslate"><span class="pre">wrap_around</span></code> is false</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.set_focus">
+<span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.set_focus" title="Link to this definition">¶</a></dt>
+<dd><p>Set focus position.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>position</strong> – position to focus</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – if there is no widget at <code class="docutils literal notranslate"><span class="pre">position</span></code></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleDequeWalker.set_modified_callback">
+<span class="sig-name descname"><span class="pre">set_modified_callback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.set_modified_callback" title="Link to this definition">¶</a></dt>
+<dd><p>This function inherited from MonitoredDeque is not implemented in SimpleDequeWalker.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">connect_signal(list_walker,</span> <span class="pre">&quot;modified&quot;,</span> <span class="pre">...)</span></code> instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – always</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="treewalker-and-nodes">
 <h2>TreeWalker and Nodes<a class="headerlink" href="#treewalker-and-nodes" title="Link to this heading">¶</a></h2>
 <dl class="py class">
@@ -471,6 +665,26 @@ A TreeNode consists of the following elements:
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#deque-like-list-walkers">Deque-like List Walkers</a><ul>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.next_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.next_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.positions"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.positions()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.set_modified_callback"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.set_modified_callback()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.contents"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.contents</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.next_position"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.next_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.positions"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.positions()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.SimpleDequeWalker.set_modified_callback"><code class="docutils literal notranslate"><span class="pre">SimpleDequeWalker.set_modified_callback()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a class="reference internal" href="#treewalker-and-nodes">TreeWalker and Nodes</a><ul>
 <li><a class="reference internal" href="#urwid.TreeWalker"><code class="docutils literal notranslate"><span class="pre">TreeWalker</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.TreeWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_focus()</span></code></a></li>
@@ -547,7 +761,7 @@ A TreeNode consists of the following elements:
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>

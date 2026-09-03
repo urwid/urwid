@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 4.1.0</title>
+    <title>Display Modules &#8212; Urwid 4.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
+    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -176,6 +176,23 @@ and <cite>end paste</cite> keystrokes when the user pastes text.</p>
 and <cite>focus out</cite> keystrokes when the application gains and loses focus.</p>
 </dd>
 </dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>on terminal-generated signals: putting the terminal into cbreak mode (see <cite>start()</cite>)
+does not clear the tty’s <code class="docutils literal notranslate"><span class="pre">ISIG</span></code> flag,
+so the line discipline still turns Ctrl+C and Ctrl+Z into <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code> and <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code>
+and delivers them to this process (urwid/urwid#1268).
+<code class="docutils literal notranslate"><span class="pre">SIGINT</span></code> is left for the application or its event loop to handle as it sees fit.
+<code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code> is handled by this class:
+<cite>signal_init()</cite> installs a handler that restores the terminal before actually suspending the process,
+and the paired <cite>SIGCONT</cite> handler puts the terminal back into cbreak/alternate-buffer mode
+and forces a redraw on resume, so a stray Ctrl+Z does not leave a stale,
+unresponsive frame painted on screen.
+Applications that install their own <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGCONT</span></code> handlers on top of this one
+should chain to the previous handler (as this class does) rather than replacing it outright,
+and multithreaded applications must call <cite>signal_init()</cite> and <cite>signal_restore()</cite> from the main thread,
+since only the main thread can receive process signals.</p>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.get_cols_rows">
 <span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
@@ -774,7 +791,7 @@ timer will be reset for the next event</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

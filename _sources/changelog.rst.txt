@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 4.1.1
+============
+
+2026-09-03
+
+Bug fixes 🕷
+++++++++++++
+* Fix `SIGTSTP` handler for POSIX RAW display and explain behaviour by @penguinolog in https://github.com/urwid/urwid/pull/1271
+* Fix regression in treetools: handle wrapped widgets inside TreeWidget by @penguinolog in https://github.com/urwid/urwid/pull/1274
+* Stop CanvasCache._deps growing without bound by @afonsojanu in https://github.com/urwid/urwid/pull/1255
+
+New Contributors
+++++++++++++++++
+* @afonsojanu made their first contribution in https://github.com/urwid/urwid/pull/1255
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.0...4.1.1
+
 Urwid 4.1.0
 ============
 
