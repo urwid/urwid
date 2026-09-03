@@ -128,19 +128,6 @@ def _term_families(term: str) -> frozenset[str]:
     return frozenset(families)
 
 
-def _primary_family(term: str) -> str:
-    if not term:
-        return ""
-    return term.lower().split(".", 1)[0].split("-", 1)[0]
-
-
-def _env_nonempty(environ: Mapping[str, str], name: str) -> str | None:
-    value = environ.get(name)
-    if value:
-        return value
-    return None
-
-
 def _parse_force_color(value: str) -> _ColorCount:
     """Map FORCE_COLOR / CLICOLOR_FORCE to a color count (chalk / supports-color convention)."""
     normalized = value.strip().lower()
@@ -175,11 +162,11 @@ def _windows_console_colors(version: tuple[int, int, int] | None) -> _ColorCount
 
 def _truecolor_host(environ: Mapping[str, str]) -> bool:
     """Hosts that speak 24-bit SGR even when TERM still says xterm-256color."""
-    if (colorterm := _env_nonempty(environ, "COLORTERM")) and colorterm.lower() in {"truecolor", "24bit"}:
+    if (colorterm := environ.get("COLORTERM")) and colorterm.lower() in {"truecolor", "24bit"}:
         return True
-    if _env_nonempty(environ, "WT_SESSION") or _env_nonempty(environ, "WT_PROFILE_ID"):
+    if environ.get("WT_SESSION") or environ.get("WT_PROFILE_ID"):
         return True
-    if environ.get("ConEmuANSI", "").lower() in {"on", "1"} or _env_nonempty(environ, "ConEmuPID"):
+    if environ.get("ConEmuANSI", "").lower() in {"on", "1"} or environ.get("ConEmuPID"):
         return True
     return environ.get("TERM_PROGRAM", "").lower() in _TRUECOLOR_TERM_PROGRAMS
 
@@ -228,15 +215,15 @@ def detect_terminal_properties(
     vt_truecolor = _truecolor_host(env) or win_colors == 16777216
     vt_host = vt_truecolor or win_colors in {256, 16777216}
 
-    if _env_nonempty(env, "NO_COLOR"):
+    if env.get("NO_COLOR"):
         colors: _ColorCount = 1
-    elif force := _env_nonempty(env, "FORCE_COLOR") or _env_nonempty(env, "CLICOLOR_FORCE"):
+    elif force := env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE"):
         colors = _parse_force_color(force)
     elif env.get("CLICOLOR") == "0" or term_colors == 1:
         colors = 1
     elif vt_truecolor:
         colors = 16777216
-    elif _env_nonempty(env, "COLORTERM") and term_colors < 256:
+    elif env.get("COLORTERM") and term_colors < 256:
         colors = 256
     elif win_colors is not None and term_colors < win_colors:
         colors = win_colors
@@ -244,7 +231,7 @@ def detect_terminal_properties(
         colors = term_colors
 
     has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
-    linux_console = _primary_family(term_value) == "linux"
+    linux_console = bool(term_value) and term_value.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
     fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
     if vt_host and not linux_console:
         fg_bright_is_bold = False
