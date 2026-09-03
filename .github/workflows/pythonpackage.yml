@@ -30,36 +30,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      - name: Install dependencies
-        run: |
-          uv pip install --system --upgrade -r ruff-requirements.txt
       - name: Check code style with ruff
-        run: |
-          ruff format --check .
+        uses: astral-sh/ruff-action@v4.1.0
+        with:
+          args: "format --check"
 
   Ruff:
     name: Check with Ruff
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-      - name: Install dependencies
-        run: |
-          uv pip install --system --upgrade -r ruff-requirements.txt
       - name: Lint with ruff
-        run: |
-          ruff check --output-format github .
+        uses: astral-sh/ruff-action@v4.1.0
+        with:
+          args: "check --output-format github"
 
   PyLint:
     name: Check with pylint
@@ -76,7 +60,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
       - name: Install dependencies
         run: |
           uv pip install --system -r test_requirements.txt PyGObject
@@ -96,7 +80,7 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
       - name: Install dependencies
         run: |
           uv pip install --system -r test_requirements.txt
@@ -130,7 +114,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
         run: |
@@ -184,7 +168,7 @@ jobs:
           python-version: "3.x"
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
 
       - name: Install dependencies
         run: uv pip install --system -U build
@@ -215,10 +199,9 @@ jobs:
         with:
           python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v4
+        uses: astral-sh/setup-uv@v10.0.1
       - name: Install dependencies
         run: |
-          uv pip install --system --upgrade pip
           uv pip install --system --upgrade twine
       - uses: actions/download-artifact@v8
         with:
