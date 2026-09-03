@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Encodings Supported &#8212; Urwid 4.0.8</title>
+    <title>Encodings Supported &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
@@ -47,14 +47,14 @@
 <p>Urwid has a single global setting for text encoding that is set on start-up
 based on the configured locale. You may change that setting with the
 <a class="reference internal" href="../reference/global_settings.html#urwid.set_encoding" title="urwid.set_encoding"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_encoding()</span></code></a> method. eg.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">set_encoding</span><span class="p">(</span><span class="s2">&quot;UTF-8&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">set_encoding</span><span class="p">(</span><span class="s2">"UTF-8"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>There are two distinct modes of handling encodings with Urwid: Unicode or
 Pass-through. The mode corresponds to using Unicode strings or normal strings
 in your widgets.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;El Niño&quot;</span><span class="p">)</span>
-<span class="n">txt_b</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;El Niño&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">"El Niño"</span><span class="p">)</span>
+<span class="n">txt_b</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"El Niño"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><code class="docutils literal notranslate"><span class="pre">txt_a</span></code> will be automatically encoded when it is displayed (Unicode mode).</p>
@@ -181,7 +181,7 @@ Unicode text to display the characters it supports.</p>
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 4.0.8</title>
+    <title>Urwid Tutorial &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -52,8 +52,8 @@ screen and will run until interrupted with <em>CTRL+C</em> (<em>^C</em>).</p>
 <span class="linenos">2</span>
 <span class="linenos">3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos">4</span>
-<span class="linenos">5</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
-<span class="linenos">6</span><span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">)</span>
+<span class="linenos">5</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Hello World"</span><span class="p">)</span>
+<span class="linenos">6</span><span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">"top"</span><span class="p">)</span>
 <span class="linenos">7</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">)</span>
 <span class="linenos">8</span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
@@ -93,13 +93,13 @@ each key pressed, exiting when the user presses <em>Q</em>.</p>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">show_or_exit</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>    <span class="n">txt</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span>
-<span class="linenos">12</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;Hello World&quot;</span><span class="p">)</span>
-<span class="linenos">13</span><span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">&quot;top&quot;</span><span class="p">)</span>
+<span class="linenos">12</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Hello World"</span><span class="p">)</span>
+<span class="linenos">13</span><span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">"top"</span><span class="p">)</span>
 <span class="linenos">14</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">show_or_exit</span><span class="p">)</span>
 <span class="linenos">15</span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
@@ -132,20 +132,20 @@ and the space above and below the text. It waits for a keypress before exiting.<
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-<span class="linenos">12</span>    <span class="p">(</span><span class="s2">&quot;banner&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">),</span>
-<span class="linenos">13</span>    <span class="p">(</span><span class="s2">&quot;streak&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;dark red&quot;</span><span class="p">),</span>
-<span class="linenos">14</span>    <span class="p">(</span><span class="s2">&quot;bg&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;dark blue&quot;</span><span class="p">),</span>
+<span class="linenos">12</span>    <span class="p">(</span><span class="s2">"banner"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">),</span>
+<span class="linenos">13</span>    <span class="p">(</span><span class="s2">"streak"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"dark red"</span><span class="p">),</span>
+<span class="linenos">14</span>    <span class="p">(</span><span class="s2">"bg"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">),</span>
 <span class="linenos">15</span><span class="p">]</span>
 <span class="linenos">16</span>
-<span class="linenos">17</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">&quot;banner&quot;</span><span class="p">,</span> <span class="s2">&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-<span class="linenos">18</span><span class="n">map1</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">&quot;streak&quot;</span><span class="p">)</span>
+<span class="linenos">17</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">"banner"</span><span class="p">,</span> <span class="s2">" Hello World "</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s2">"center"</span><span class="p">)</span>
+<span class="linenos">18</span><span class="n">map1</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">"streak"</span><span class="p">)</span>
 <span class="linenos">19</span><span class="n">fill</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">map1</span><span class="p">)</span>
-<span class="linenos">20</span><span class="n">map2</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="s2">&quot;bg&quot;</span><span class="p">)</span>
+<span class="linenos">20</span><span class="n">map2</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="s2">"bg"</span><span class="p">)</span>
 <span class="linenos">21</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">map2</span><span class="p">,</span> <span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="linenos">22</span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
@@ -201,29 +201,29 @@ and will work in any terminal that supports 256-color mode. It will exit when
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-<span class="linenos">12</span>    <span class="p">(</span><span class="s2">&quot;banner&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;#ffa&quot;</span><span class="p">,</span> <span class="s2">&quot;#60d&quot;</span><span class="p">),</span>
-<span class="linenos">13</span>    <span class="p">(</span><span class="s2">&quot;streak&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;g50&quot;</span><span class="p">,</span> <span class="s2">&quot;#60a&quot;</span><span class="p">),</span>
-<span class="linenos">14</span>    <span class="p">(</span><span class="s2">&quot;inside&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;g38&quot;</span><span class="p">,</span> <span class="s2">&quot;#808&quot;</span><span class="p">),</span>
-<span class="linenos">15</span>    <span class="p">(</span><span class="s2">&quot;outside&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;g27&quot;</span><span class="p">,</span> <span class="s2">&quot;#a06&quot;</span><span class="p">),</span>
-<span class="linenos">16</span>    <span class="p">(</span><span class="s2">&quot;bg&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;g7&quot;</span><span class="p">,</span> <span class="s2">&quot;#d06&quot;</span><span class="p">),</span>
+<span class="linenos">12</span>    <span class="p">(</span><span class="s2">"banner"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"#ffa"</span><span class="p">,</span> <span class="s2">"#60d"</span><span class="p">),</span>
+<span class="linenos">13</span>    <span class="p">(</span><span class="s2">"streak"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"g50"</span><span class="p">,</span> <span class="s2">"#60a"</span><span class="p">),</span>
+<span class="linenos">14</span>    <span class="p">(</span><span class="s2">"inside"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"g38"</span><span class="p">,</span> <span class="s2">"#808"</span><span class="p">),</span>
+<span class="linenos">15</span>    <span class="p">(</span><span class="s2">"outside"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"g27"</span><span class="p">,</span> <span class="s2">"#a06"</span><span class="p">),</span>
+<span class="linenos">16</span>    <span class="p">(</span><span class="s2">"bg"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"g7"</span><span class="p">,</span> <span class="s2">"#d06"</span><span class="p">),</span>
 <span class="linenos">17</span><span class="p">]</span>
 <span class="linenos">18</span>
 <span class="linenos">19</span><span class="n">placeholder</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">()</span>
 <span class="linenos">20</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="linenos">21</span><span class="n">loop</span><span class="o">.</span><span class="n">screen</span><span class="o">.</span><span class="n">set_terminal_properties</span><span class="p">(</span><span class="n">colors</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
-<span class="linenos">22</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="s2">&quot;bg&quot;</span><span class="p">)</span>
+<span class="linenos">22</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">placeholder</span><span class="p">,</span> <span class="s2">"bg"</span><span class="p">)</span>
 <span class="linenos">23</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([]))</span>
 <span class="linenos">24</span>
 <span class="linenos">25</span><span class="n">div</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()</span>
-<span class="linenos">26</span><span class="n">outside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s2">&quot;outside&quot;</span><span class="p">)</span>
-<span class="linenos">27</span><span class="n">inside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s2">&quot;inside&quot;</span><span class="p">)</span>
-<span class="linenos">28</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">&quot;banner&quot;</span><span class="p">,</span> <span class="s2">&quot; Hello World &quot;</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">)</span>
-<span class="linenos">29</span><span class="n">streak</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">&quot;streak&quot;</span><span class="p">)</span>
+<span class="linenos">26</span><span class="n">outside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s2">"outside"</span><span class="p">)</span>
+<span class="linenos">27</span><span class="n">inside</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">div</span><span class="p">,</span> <span class="s2">"inside"</span><span class="p">)</span>
+<span class="linenos">28</span><span class="n">txt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">"banner"</span><span class="p">,</span> <span class="s2">" Hello World "</span><span class="p">),</span> <span class="n">align</span><span class="o">=</span><span class="s2">"center"</span><span class="p">)</span>
+<span class="linenos">29</span><span class="n">streak</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="s2">"streak"</span><span class="p">)</span>
 <span class="linenos">30</span><span class="n">pile</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">base_widget</span>  <span class="c1"># .base_widget skips the decorations</span>
 <span class="linenos">31</span><span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="p">(</span><span class="n">outside</span><span class="p">,</span> <span class="n">inside</span><span class="p">,</span> <span class="n">streak</span><span class="p">,</span> <span class="n">inside</span><span class="p">,</span> <span class="n">outside</span><span class="p">):</span>
 <span class="linenos">32</span>    <span class="n">pile</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">item</span><span class="p">,</span> <span class="n">pile</span><span class="o">.</span><span class="n">options</span><span class="p">()))</span>
@@ -273,21 +273,21 @@ for the new child widgets.</p></li>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">&quot;q&quot;</span><span class="p">,</span> <span class="s2">&quot;Q&quot;</span><span class="p">}:</span>
+<span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="k">class</span><span class="w"> </span><span class="nc">QuestionBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">):</span>
 <span class="linenos">12</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">13</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">&quot;enter&quot;</span><span class="p">:</span>
+<span class="linenos">13</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">"enter"</span><span class="p">:</span>
 <span class="linenos">14</span>            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 <span class="linenos">15</span>        <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span>
-<span class="linenos">16</span>            <span class="sa">f</span><span class="s2">&quot;Nice to meet you,</span><span class="se">\n</span><span class="si">{</span><span class="n">edit</span><span class="o">.</span><span class="n">edit_text</span><span class="si">}</span><span class="s2">.</span><span class="se">\n\n</span><span class="s2">Press Q to exit.&quot;</span><span class="p">,</span>
+<span class="linenos">16</span>            <span class="sa">f</span><span class="s2">"Nice to meet you,</span><span class="se">\n</span><span class="si">{</span><span class="n">edit</span><span class="o">.</span><span class="n">edit_text</span><span class="si">}</span><span class="s2">.</span><span class="se">\n\n</span><span class="s2">Press Q to exit."</span><span class="p">,</span>
 <span class="linenos">17</span>        <span class="p">)</span>
 <span class="linenos">18</span>        <span class="k">return</span> <span class="kc">None</span>
 <span class="linenos">19</span>
 <span class="linenos">20</span>
-<span class="linenos">21</span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos">21</span><span class="n">edit</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"What is your name?</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
 <span class="linenos">22</span><span class="n">fill</span> <span class="o">=</span> <span class="n">QuestionBox</span><span class="p">(</span><span class="n">edit</span><span class="p">)</span>
 <span class="linenos">23</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">fill</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_q</span><span class="p">)</span>
 <span class="linenos">24</span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
@@ -330,25 +330,25 @@ user to exit the program.</p></li>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 6</span>
-<span class="linenos"> 7</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="s2">&quot;default,bold&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;bold&quot;</span><span class="p">)]</span>
-<span class="linenos"> 8</span><span class="n">ask</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
-<span class="linenos"> 9</span><span class="n">reply</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
-<span class="linenos">10</span><span class="n">button_inst</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Exit&quot;</span><span class="p">)</span>
+<span class="linenos"> 7</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"I say"</span><span class="p">,</span> <span class="s2">"default,bold"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">,</span> <span class="s2">"bold"</span><span class="p">)]</span>
+<span class="linenos"> 8</span><span class="n">ask</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="s2">"What is your name?</span><span class="se">\n</span><span class="s2">"</span><span class="p">))</span>
+<span class="linenos"> 9</span><span class="n">reply</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<span class="linenos">10</span><span class="n">button_inst</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">"Exit"</span><span class="p">)</span>
 <span class="linenos">11</span><span class="n">div</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()</span>
 <span class="linenos">12</span><span class="n">pile</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">ask</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="n">reply</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="n">button_inst</span><span class="p">])</span>
-<span class="linenos">13</span><span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">&quot;top&quot;</span><span class="p">)</span>
+<span class="linenos">13</span><span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="s2">"top"</span><span class="p">)</span>
 <span class="linenos">14</span>
 <span class="linenos">15</span>
 <span class="linenos">16</span><span class="k">def</span><span class="w"> </span><span class="nf">on_ask_change</span><span class="p">(</span><span class="n">_edit</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">,</span> <span class="n">new_edit_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">17</span>    <span class="n">reply</span><span class="o">.</span><span class="n">set_text</span><span class="p">((</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Nice to meet you, </span><span class="si">{</span><span class="n">new_edit_text</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="linenos">17</span>    <span class="n">reply</span><span class="o">.</span><span class="n">set_text</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Nice to meet you, </span><span class="si">{</span><span class="n">new_edit_text</span><span class="si">}</span><span class="s2">"</span><span class="p">))</span>
 <span class="linenos">18</span>
 <span class="linenos">19</span>
 <span class="linenos">20</span><span class="k">def</span><span class="w"> </span><span class="nf">on_exit_clicked</span><span class="p">(</span><span class="n">_button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
 <span class="linenos">21</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos">22</span>
 <span class="linenos">23</span>
-<span class="linenos">24</span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">ask</span><span class="p">,</span> <span class="s2">&quot;change&quot;</span><span class="p">,</span> <span class="n">on_ask_change</span><span class="p">)</span>
-<span class="linenos">25</span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button_inst</span><span class="p">,</span> <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">on_exit_clicked</span><span class="p">)</span>
+<span class="linenos">24</span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">ask</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">on_ask_change</span><span class="p">)</span>
+<span class="linenos">25</span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button_inst</span><span class="p">,</span> <span class="s2">"click"</span><span class="p">,</span> <span class="n">on_exit_clicked</span><span class="p">)</span>
 <span class="linenos">26</span>
 <span class="linenos">27</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
@@ -382,11 +382,11 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">question</span><span class="p">():</span>
-<span class="linenos"> 7</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="s2">&quot;What is your name?</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))])</span>
+<span class="linenos"> 7</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="s2">"What is your name?</span><span class="se">\n</span><span class="s2">"</span><span class="p">))])</span>
 <span class="linenos"> 8</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span><span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
-<span class="linenos">11</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;Nice to meet you, </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">))</span>
+<span class="linenos">11</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Nice to meet you, </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">))</span>
 <span class="linenos">12</span>
 <span class="linenos">13</span>
 <span class="linenos">14</span><span class="k">class</span><span class="w"> </span><span class="nc">ConversationListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">):</span>
@@ -396,7 +396,7 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 <span class="linenos">18</span>
 <span class="linenos">19</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">20</span>        <span class="n">key</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-<span class="linenos">21</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">&quot;enter&quot;</span><span class="p">:</span>
+<span class="linenos">21</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">"enter"</span><span class="p">:</span>
 <span class="linenos">22</span>            <span class="k">return</span> <span class="n">key</span>
 <span class="linenos">23</span>        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">edit_text</span>
 <span class="linenos">24</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
@@ -410,7 +410,7 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 <span class="linenos">32</span>        <span class="k">return</span> <span class="kc">None</span>
 <span class="linenos">33</span>
 <span class="linenos">34</span>
-<span class="linenos">35</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot;I say&quot;</span><span class="p">,</span> <span class="s2">&quot;default,bold&quot;</span><span class="p">,</span> <span class="s2">&quot;default&quot;</span><span class="p">)]</span>
+<span class="linenos">35</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"I say"</span><span class="p">,</span> <span class="s2">"default,bold"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)]</span>
 <span class="linenos">36</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">ConversationListBox</span><span class="p">(),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -459,27 +459,27 @@ This program lets you choose an option then repeats what you chose.</p>
 <span class="linenos"> 7</span><span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
 <span class="linenos"> 8</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Iterable</span>
 <span class="linenos"> 9</span>
-<span class="linenos">10</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Chapman&quot;</span><span class="p">,</span> <span class="s2">&quot;Cleese&quot;</span><span class="p">,</span> <span class="s2">&quot;Gilliam&quot;</span><span class="p">,</span> <span class="s2">&quot;Idle&quot;</span><span class="p">,</span> <span class="s2">&quot;Jones&quot;</span><span class="p">,</span> <span class="s2">&quot;Palin&quot;</span><span class="p">]</span>
+<span class="linenos">10</span><span class="n">choices</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"Chapman"</span><span class="p">,</span> <span class="s2">"Cleese"</span><span class="p">,</span> <span class="s2">"Gilliam"</span><span class="p">,</span> <span class="s2">"Idle"</span><span class="p">,</span> <span class="s2">"Jones"</span><span class="p">,</span> <span class="s2">"Palin"</span><span class="p">]</span>
 <span class="linenos">11</span>
 <span class="linenos">12</span>
 <span class="linenos">13</span><span class="k">def</span><span class="w"> </span><span class="nf">menu</span><span class="p">(</span><span class="n">title</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">choices_</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">:</span>
 <span class="linenos">14</span>    <span class="n">body</span> <span class="o">=</span> <span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()]</span>
 <span class="linenos">15</span>    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">choices_</span><span class="p">:</span>
 <span class="linenos">16</span>        <span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
-<span class="linenos">17</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
-<span class="linenos">18</span>        <span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">&quot;reversed&quot;</span><span class="p">))</span>
+<span class="linenos">17</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="s2">"click"</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+<span class="linenos">18</span>        <span class="n">body</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">"reversed"</span><span class="p">))</span>
 <span class="linenos">19</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">(</span><span class="n">body</span><span class="p">))</span>
 <span class="linenos">20</span>
 <span class="linenos">21</span>
 <span class="linenos">22</span><span class="k">def</span><span class="w"> </span><span class="nf">item_chosen</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">,</span> <span class="n">choice</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">23</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">&quot;You chose &quot;</span><span class="p">,</span> <span class="n">choice</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">])</span>
-<span class="linenos">24</span>    <span class="n">done</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">&quot;Ok&quot;</span><span class="p">)</span>
-<span class="linenos">25</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="s2">&quot;click&quot;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+<span class="linenos">23</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"You chose "</span><span class="p">,</span> <span class="n">choice</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">])</span>
+<span class="linenos">24</span>    <span class="n">done</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">"Ok"</span><span class="p">)</span>
+<span class="linenos">25</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="s2">"click"</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
 <span class="linenos">26</span>    <span class="n">main</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span>
 <span class="linenos">27</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">(</span>
 <span class="linenos">28</span>            <span class="p">[</span>
 <span class="linenos">29</span>                <span class="n">response</span><span class="p">,</span>
-<span class="linenos">30</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">&quot;reversed&quot;</span><span class="p">),</span>
+<span class="linenos">30</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">done</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">"reversed"</span><span class="p">),</span>
 <span class="linenos">31</span>            <span class="p">]</span>
 <span class="linenos">32</span>        <span class="p">)</span>
 <span class="linenos">33</span>    <span class="p">)</span>
@@ -489,10 +489,10 @@ This program lets you choose an option then repeats what you chose.</p>
 <span class="linenos">37</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos">38</span>
 <span class="linenos">39</span>
-<span class="linenos">40</span><span class="n">main</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">(</span><span class="n">menu</span><span class="p">(</span><span class="s2">&quot;Pythons&quot;</span><span class="p">,</span> <span class="n">choices</span><span class="p">),</span> <span class="n">left</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="linenos">40</span><span class="n">main</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">(</span><span class="n">menu</span><span class="p">(</span><span class="s2">"Pythons"</span><span class="p">,</span> <span class="n">choices</span><span class="p">),</span> <span class="n">left</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 <span class="linenos">41</span><span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span>
 <span class="linenos">42</span>    <span class="n">main</span><span class="p">,</span>
-<span class="linenos">43</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\N{MEDIUM SHADE}</span><span class="s2">&quot;</span><span class="p">),</span>
+<span class="linenos">43</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">"</span><span class="se">\N{MEDIUM SHADE}</span><span class="s2">"</span><span class="p">),</span>
 <span class="linenos">44</span>    <span class="n">align</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span>
 <span class="linenos">45</span>    <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RELATIVE</span><span class="p">,</span> <span class="mi">60</span><span class="p">),</span>
 <span class="linenos">46</span>    <span class="n">valign</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">MIDDLE</span><span class="p">,</span>
@@ -500,7 +500,7 @@ This program lets you choose an option then repeats what you chose.</p>
 <span class="linenos">48</span>    <span class="n">min_width</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
 <span class="linenos">49</span>    <span class="n">min_height</span><span class="o">=</span><span class="mi">9</span><span class="p">,</span>
 <span class="linenos">50</span><span class="p">)</span>
-<span class="linenos">51</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;reversed&quot;</span><span class="p">,</span> <span class="s2">&quot;standout&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">51</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">"reversed"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -542,7 +542,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 13</span>    <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
 <span class="linenos"> 14</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">:</span>
 <span class="linenos"> 15</span>    <span class="n">button</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
-<span class="linenos"> 16</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">&quot;reversed&quot;</span><span class="p">)</span>
+<span class="linenos"> 16</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">"reversed"</span><span class="p">)</span>
 <span class="linenos"> 17</span>
 <span class="linenos"> 18</span>
 <span class="linenos"> 19</span><span class="k">def</span><span class="w"> </span><span class="nf">sub_menu</span><span class="p">(</span>
@@ -554,7 +554,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 25</span>    <span class="k">def</span><span class="w"> </span><span class="nf">open_menu</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 26</span>        <span class="k">return</span> <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
 <span class="linenos"> 27</span>
-<span class="linenos"> 28</span>    <span class="k">return</span> <span class="n">menu_button</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s2">&quot;...&quot;</span><span class="p">],</span> <span class="n">open_menu</span><span class="p">)</span>
+<span class="linenos"> 28</span>    <span class="k">return</span> <span class="n">menu_button</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s2">"..."</span><span class="p">],</span> <span class="n">open_menu</span><span class="p">)</span>
 <span class="linenos"> 29</span>
 <span class="linenos"> 30</span>
 <span class="linenos"> 31</span><span class="k">def</span><span class="w"> </span><span class="nf">menu</span><span class="p">(</span>
@@ -566,8 +566,8 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 37</span>
 <span class="linenos"> 38</span>
 <span class="linenos"> 39</span><span class="k">def</span><span class="w"> </span><span class="nf">item_chosen</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 40</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">&quot;You chose &quot;</span><span class="p">,</span> <span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">])</span>
-<span class="linenos"> 41</span>    <span class="n">done</span> <span class="o">=</span> <span class="n">menu_button</span><span class="p">(</span><span class="s2">&quot;Ok&quot;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+<span class="linenos"> 40</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"You chose "</span><span class="p">,</span> <span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">])</span>
+<span class="linenos"> 41</span>    <span class="n">done</span> <span class="o">=</span> <span class="n">menu_button</span><span class="p">(</span><span class="s2">"Ok"</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
 <span class="linenos"> 42</span>    <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">])))</span>
 <span class="linenos"> 43</span>
 <span class="linenos"> 44</span>
@@ -576,28 +576,28 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 47</span>
 <span class="linenos"> 48</span>
 <span class="linenos"> 49</span><span class="n">menu_top</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span>
-<span class="linenos"> 50</span>    <span class="s2">&quot;Main Menu&quot;</span><span class="p">,</span>
+<span class="linenos"> 50</span>    <span class="s2">"Main Menu"</span><span class="p">,</span>
 <span class="linenos"> 51</span>    <span class="p">[</span>
 <span class="linenos"> 52</span>        <span class="n">sub_menu</span><span class="p">(</span>
-<span class="linenos"> 53</span>            <span class="s2">&quot;Applications&quot;</span><span class="p">,</span>
+<span class="linenos"> 53</span>            <span class="s2">"Applications"</span><span class="p">,</span>
 <span class="linenos"> 54</span>            <span class="p">[</span>
 <span class="linenos"> 55</span>                <span class="n">sub_menu</span><span class="p">(</span>
-<span class="linenos"> 56</span>                    <span class="s2">&quot;Accessories&quot;</span><span class="p">,</span>
+<span class="linenos"> 56</span>                    <span class="s2">"Accessories"</span><span class="p">,</span>
 <span class="linenos"> 57</span>                    <span class="p">[</span>
-<span class="linenos"> 58</span>                        <span class="n">menu_button</span><span class="p">(</span><span class="s2">&quot;Text Editor&quot;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
-<span class="linenos"> 59</span>                        <span class="n">menu_button</span><span class="p">(</span><span class="s2">&quot;Terminal&quot;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+<span class="linenos"> 58</span>                        <span class="n">menu_button</span><span class="p">(</span><span class="s2">"Text Editor"</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+<span class="linenos"> 59</span>                        <span class="n">menu_button</span><span class="p">(</span><span class="s2">"Terminal"</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
 <span class="linenos"> 60</span>                    <span class="p">],</span>
 <span class="linenos"> 61</span>                <span class="p">),</span>
 <span class="linenos"> 62</span>            <span class="p">],</span>
 <span class="linenos"> 63</span>        <span class="p">),</span>
 <span class="linenos"> 64</span>        <span class="n">sub_menu</span><span class="p">(</span>
-<span class="linenos"> 65</span>            <span class="s2">&quot;System&quot;</span><span class="p">,</span>
+<span class="linenos"> 65</span>            <span class="s2">"System"</span><span class="p">,</span>
 <span class="linenos"> 66</span>            <span class="p">[</span>
 <span class="linenos"> 67</span>                <span class="n">sub_menu</span><span class="p">(</span>
-<span class="linenos"> 68</span>                    <span class="s2">&quot;Preferences&quot;</span><span class="p">,</span>
-<span class="linenos"> 69</span>                    <span class="p">[</span><span class="n">menu_button</span><span class="p">(</span><span class="s2">&quot;Appearance&quot;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">)],</span>
+<span class="linenos"> 68</span>                    <span class="s2">"Preferences"</span><span class="p">,</span>
+<span class="linenos"> 69</span>                    <span class="p">[</span><span class="n">menu_button</span><span class="p">(</span><span class="s2">"Appearance"</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">)],</span>
 <span class="linenos"> 70</span>                <span class="p">),</span>
-<span class="linenos"> 71</span>                <span class="n">menu_button</span><span class="p">(</span><span class="s2">&quot;Lock Screen&quot;</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
+<span class="linenos"> 71</span>                <span class="n">menu_button</span><span class="p">(</span><span class="s2">"Lock Screen"</span><span class="p">,</span> <span class="n">item_chosen</span><span class="p">),</span>
 <span class="linenos"> 72</span>            <span class="p">],</span>
 <span class="linenos"> 73</span>        <span class="p">),</span>
 <span class="linenos"> 74</span>    <span class="p">],</span>
@@ -608,7 +608,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 79</span>    <span class="n">max_box_levels</span> <span class="o">=</span> <span class="mi">4</span>
 <span class="linenos"> 80</span>
 <span class="linenos"> 81</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 82</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">))</span>
+<span class="linenos"> 82</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">"/"</span><span class="p">))</span>
 <span class="linenos"> 83</span>        <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">=</span> <span class="mi">0</span>
 <span class="linenos"> 84</span>        <span class="bp">self</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
 <span class="linenos"> 85</span>
@@ -630,7 +630,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos">101</span>        <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">+=</span> <span class="mi">1</span>
 <span class="linenos">102</span>
 <span class="linenos">103</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">104</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">&quot;esc&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+<span class="linenos">104</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"esc"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
 <span class="linenos">105</span>            <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="linenos">106</span>            <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-=</span> <span class="mi">1</span>
 <span class="linenos">107</span>            <span class="k">return</span> <span class="kc">None</span>
@@ -639,7 +639,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos">110</span>
 <span class="linenos">111</span>
 <span class="linenos">112</span><span class="n">top</span> <span class="o">=</span> <span class="n">CascadingBoxes</span><span class="p">(</span><span class="n">menu_top</span><span class="p">)</span>
-<span class="linenos">113</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;reversed&quot;</span><span class="p">,</span> <span class="s2">&quot;standout&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">113</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">"reversed"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -697,11 +697,11 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 14</span>        <span class="n">caption</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
 <span class="linenos"> 15</span>        <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">MenuButton</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
 <span class="linenos"> 16</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 17</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
+<span class="linenos"> 17</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
 <span class="linenos"> 18</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span>
-<span class="linenos"> 19</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">([</span><span class="s2">&quot;  </span><span class="se">\N{BULLET}</span><span class="s2"> &quot;</span><span class="p">,</span> <span class="n">caption</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span>
+<span class="linenos"> 19</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">([</span><span class="s2">"  </span><span class="se">\N{BULLET}</span><span class="s2"> "</span><span class="p">,</span> <span class="n">caption</span><span class="p">],</span> <span class="mi">2</span><span class="p">),</span>
 <span class="linenos"> 20</span>            <span class="kc">None</span><span class="p">,</span>
-<span class="linenos"> 21</span>            <span class="s2">&quot;selected&quot;</span><span class="p">,</span>
+<span class="linenos"> 21</span>            <span class="s2">"selected"</span><span class="p">,</span>
 <span class="linenos"> 22</span>        <span class="p">)</span>
 <span class="linenos"> 23</span>
 <span class="linenos"> 24</span>
@@ -711,20 +711,20 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 28</span>        <span class="n">caption</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
 <span class="linenos"> 29</span>        <span class="n">choices</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">],</span>
 <span class="linenos"> 30</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 31</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\N{HORIZONTAL ELLIPSIS}</span><span class="s2">&quot;</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_menu</span><span class="p">))</span>
-<span class="linenos"> 32</span>        <span class="n">line</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\N{LOWER ONE QUARTER BLOCK}</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="linenos"> 31</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">MenuButton</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s2">"</span><span class="se">\N{HORIZONTAL ELLIPSIS}</span><span class="s2">"</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_menu</span><span class="p">))</span>
+<span class="linenos"> 32</span>        <span class="n">line</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(</span><span class="s2">"</span><span class="se">\N{LOWER ONE QUARTER BLOCK}</span><span class="s2">"</span><span class="p">)</span>
 <span class="linenos"> 33</span>        <span class="n">listbox</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span>
 <span class="linenos"> 34</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">(</span>
 <span class="linenos"> 35</span>                <span class="p">[</span>
-<span class="linenos"> 36</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  &quot;</span><span class="p">,</span> <span class="n">caption</span><span class="p">]),</span> <span class="s2">&quot;heading&quot;</span><span class="p">),</span>
-<span class="linenos"> 37</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s2">&quot;line&quot;</span><span class="p">),</span>
+<span class="linenos"> 36</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"</span><span class="se">\n</span><span class="s2">  "</span><span class="p">,</span> <span class="n">caption</span><span class="p">]),</span> <span class="s2">"heading"</span><span class="p">),</span>
+<span class="linenos"> 37</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">line</span><span class="p">,</span> <span class="s2">"line"</span><span class="p">),</span>
 <span class="linenos"> 38</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(),</span>
 <span class="linenos"> 39</span>                    <span class="o">*</span><span class="n">choices</span><span class="p">,</span>
 <span class="linenos"> 40</span>                    <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(),</span>
 <span class="linenos"> 41</span>                <span class="p">]</span>
 <span class="linenos"> 42</span>            <span class="p">)</span>
 <span class="linenos"> 43</span>        <span class="p">)</span>
-<span class="linenos"> 44</span>        <span class="bp">self</span><span class="o">.</span><span class="n">menu</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">listbox</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">)</span>
+<span class="linenos"> 44</span>        <span class="bp">self</span><span class="o">.</span><span class="n">menu</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">listbox</span><span class="p">,</span> <span class="s2">"options"</span><span class="p">)</span>
 <span class="linenos"> 45</span>
 <span class="linenos"> 46</span>    <span class="k">def</span><span class="w"> </span><span class="nf">open_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">:</span> <span class="n">MenuButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 47</span>        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">menu</span><span class="p">)</span>
@@ -739,10 +739,10 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 56</span>        <span class="bp">self</span><span class="o">.</span><span class="n">caption</span> <span class="o">=</span> <span class="n">caption</span>
 <span class="linenos"> 57</span>
 <span class="linenos"> 58</span>    <span class="k">def</span><span class="w"> </span><span class="nf">item_chosen</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">:</span> <span class="n">MenuButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 59</span>        <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">&quot;  You chose &quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">])</span>
-<span class="linenos"> 60</span>        <span class="n">done</span> <span class="o">=</span> <span class="n">MenuButton</span><span class="p">(</span><span class="s2">&quot;Ok&quot;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+<span class="linenos"> 59</span>        <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"  You chose "</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">caption</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">])</span>
+<span class="linenos"> 60</span>        <span class="n">done</span> <span class="o">=</span> <span class="n">MenuButton</span><span class="p">(</span><span class="s2">"Ok"</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
 <span class="linenos"> 61</span>        <span class="n">response_box</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">]))</span>
-<span class="linenos"> 62</span>        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">response_box</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">))</span>
+<span class="linenos"> 62</span>        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">response_box</span><span class="p">,</span> <span class="s2">"options"</span><span class="p">))</span>
 <span class="linenos"> 63</span>
 <span class="linenos"> 64</span>
 <span class="linenos"> 65</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
@@ -750,41 +750,41 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 67</span>
 <span class="linenos"> 68</span>
 <span class="linenos"> 69</span><span class="n">menu_top</span> <span class="o">=</span> <span class="n">SubMenu</span><span class="p">(</span>
-<span class="linenos"> 70</span>    <span class="s2">&quot;Main Menu&quot;</span><span class="p">,</span>
+<span class="linenos"> 70</span>    <span class="s2">"Main Menu"</span><span class="p">,</span>
 <span class="linenos"> 71</span>    <span class="p">[</span>
 <span class="linenos"> 72</span>        <span class="n">SubMenu</span><span class="p">(</span>
-<span class="linenos"> 73</span>            <span class="s2">&quot;Applications&quot;</span><span class="p">,</span>
+<span class="linenos"> 73</span>            <span class="s2">"Applications"</span><span class="p">,</span>
 <span class="linenos"> 74</span>            <span class="p">[</span>
 <span class="linenos"> 75</span>                <span class="n">SubMenu</span><span class="p">(</span>
-<span class="linenos"> 76</span>                    <span class="s2">&quot;Accessories&quot;</span><span class="p">,</span>
+<span class="linenos"> 76</span>                    <span class="s2">"Accessories"</span><span class="p">,</span>
 <span class="linenos"> 77</span>                    <span class="p">[</span>
-<span class="linenos"> 78</span>                        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Text Editor&quot;</span><span class="p">),</span>
-<span class="linenos"> 79</span>                        <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Terminal&quot;</span><span class="p">),</span>
+<span class="linenos"> 78</span>                        <span class="n">Choice</span><span class="p">(</span><span class="s2">"Text Editor"</span><span class="p">),</span>
+<span class="linenos"> 79</span>                        <span class="n">Choice</span><span class="p">(</span><span class="s2">"Terminal"</span><span class="p">),</span>
 <span class="linenos"> 80</span>                    <span class="p">],</span>
 <span class="linenos"> 81</span>                <span class="p">)</span>
 <span class="linenos"> 82</span>            <span class="p">],</span>
 <span class="linenos"> 83</span>        <span class="p">),</span>
 <span class="linenos"> 84</span>        <span class="n">SubMenu</span><span class="p">(</span>
-<span class="linenos"> 85</span>            <span class="s2">&quot;System&quot;</span><span class="p">,</span>
+<span class="linenos"> 85</span>            <span class="s2">"System"</span><span class="p">,</span>
 <span class="linenos"> 86</span>            <span class="p">[</span>
-<span class="linenos"> 87</span>                <span class="n">SubMenu</span><span class="p">(</span><span class="s2">&quot;Preferences&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Appearance&quot;</span><span class="p">)]),</span>
-<span class="linenos"> 88</span>                <span class="n">Choice</span><span class="p">(</span><span class="s2">&quot;Lock Screen&quot;</span><span class="p">),</span>
+<span class="linenos"> 87</span>                <span class="n">SubMenu</span><span class="p">(</span><span class="s2">"Preferences"</span><span class="p">,</span> <span class="p">[</span><span class="n">Choice</span><span class="p">(</span><span class="s2">"Appearance"</span><span class="p">)]),</span>
+<span class="linenos"> 88</span>                <span class="n">Choice</span><span class="p">(</span><span class="s2">"Lock Screen"</span><span class="p">),</span>
 <span class="linenos"> 89</span>            <span class="p">],</span>
 <span class="linenos"> 90</span>        <span class="p">),</span>
 <span class="linenos"> 91</span>    <span class="p">],</span>
 <span class="linenos"> 92</span><span class="p">)</span>
 <span class="linenos"> 93</span>
 <span class="linenos"> 94</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
-<span class="linenos"> 95</span>    <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">),</span>
-<span class="linenos"> 96</span>    <span class="p">(</span><span class="s2">&quot;heading&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">),</span>
-<span class="linenos"> 97</span>    <span class="p">(</span><span class="s2">&quot;line&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">),</span>
-<span class="linenos"> 98</span>    <span class="p">(</span><span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="s2">&quot;dark gray&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">),</span>
-<span class="linenos"> 99</span>    <span class="p">(</span><span class="s2">&quot;focus heading&quot;</span><span class="p">,</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;dark red&quot;</span><span class="p">),</span>
-<span class="linenos">100</span>    <span class="p">(</span><span class="s2">&quot;focus line&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;dark red&quot;</span><span class="p">),</span>
-<span class="linenos">101</span>    <span class="p">(</span><span class="s2">&quot;focus options&quot;</span><span class="p">,</span> <span class="s2">&quot;black&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">),</span>
-<span class="linenos">102</span>    <span class="p">(</span><span class="s2">&quot;selected&quot;</span><span class="p">,</span> <span class="s2">&quot;white&quot;</span><span class="p">,</span> <span class="s2">&quot;dark blue&quot;</span><span class="p">),</span>
+<span class="linenos"> 95</span>    <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">),</span>
+<span class="linenos"> 96</span>    <span class="p">(</span><span class="s2">"heading"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">),</span>
+<span class="linenos"> 97</span>    <span class="p">(</span><span class="s2">"line"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">),</span>
+<span class="linenos"> 98</span>    <span class="p">(</span><span class="s2">"options"</span><span class="p">,</span> <span class="s2">"dark gray"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">),</span>
+<span class="linenos"> 99</span>    <span class="p">(</span><span class="s2">"focus heading"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark red"</span><span class="p">),</span>
+<span class="linenos">100</span>    <span class="p">(</span><span class="s2">"focus line"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"dark red"</span><span class="p">),</span>
+<span class="linenos">101</span>    <span class="p">(</span><span class="s2">"focus options"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">),</span>
+<span class="linenos">102</span>    <span class="p">(</span><span class="s2">"selected"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">),</span>
 <span class="linenos">103</span><span class="p">]</span>
-<span class="linenos">104</span><span class="n">focus_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;heading&quot;</span><span class="p">:</span> <span class="s2">&quot;focus heading&quot;</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="s2">&quot;focus options&quot;</span><span class="p">,</span> <span class="s2">&quot;line&quot;</span><span class="p">:</span> <span class="s2">&quot;focus line&quot;</span><span class="p">}</span>
+<span class="linenos">104</span><span class="n">focus_map</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"heading"</span><span class="p">:</span> <span class="s2">"focus heading"</span><span class="p">,</span> <span class="s2">"options"</span><span class="p">:</span> <span class="s2">"focus options"</span><span class="p">,</span> <span class="s2">"line"</span><span class="p">:</span> <span class="s2">"focus line"</span><span class="p">}</span>
 <span class="linenos">105</span>
 <span class="linenos">106</span>
 <span class="linenos">107</span><span class="k">class</span><span class="w"> </span><span class="nc">HorizontalBoxes</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Columns</span><span class="p">):</span>
@@ -796,7 +796,7 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos">113</span>            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
 <span class="linenos">114</span>        <span class="bp">self</span><span class="o">.</span><span class="n">contents</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
 <span class="linenos">115</span>            <span class="p">(</span>
-<span class="linenos">116</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">,</span> <span class="n">focus_map</span><span class="p">),</span>
+<span class="linenos">116</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">box</span><span class="p">,</span> <span class="s2">"options"</span><span class="p">,</span> <span class="n">focus_map</span><span class="p">),</span>
 <span class="linenos">117</span>                <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">GIVEN</span><span class="p">,</span> <span class="mi">24</span><span class="p">),</span>
 <span class="linenos">118</span>            <span class="p">)</span>
 <span class="linenos">119</span>        <span class="p">)</span>
@@ -805,7 +805,7 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos">122</span>
 <span class="linenos">123</span><span class="n">top</span> <span class="o">=</span> <span class="n">HorizontalBoxes</span><span class="p">()</span>
 <span class="linenos">124</span><span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">menu_top</span><span class="o">.</span><span class="n">menu</span><span class="p">)</span>
-<span class="linenos">125</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s2">&quot;middle&quot;</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">125</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="s2">"middle"</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">palette</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -859,18 +859,18 @@ places.</p>
 <span class="linenos"> 14</span>        <span class="n">caption</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Hashable</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
 <span class="linenos"> 15</span>        <span class="n">callback</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">ActionButton</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
 <span class="linenos"> 16</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 17</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
-<span class="linenos"> 18</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">&quot;reversed&quot;</span><span class="p">)</span>
+<span class="linenos"> 17</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">on_press</span><span class="o">=</span><span class="n">callback</span><span class="p">)</span>
+<span class="linenos"> 18</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">"reversed"</span><span class="p">)</span>
 <span class="linenos"> 19</span>
 <span class="linenos"> 20</span>
 <span class="linenos"> 21</span><span class="k">class</span><span class="w"> </span><span class="nc">Place</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">[</span><span class="n">ActionButton</span><span class="p">]):</span>
 <span class="linenos"> 22</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">choices</span><span class="p">:</span> <span class="n">MutableSequence</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 23</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">([</span><span class="s2">&quot; &gt; go to &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_place</span><span class="p">))</span>
-<span class="linenos"> 24</span>        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Location: &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">])</span>
+<span class="linenos"> 23</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">([</span><span class="s2">" &gt; go to "</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">enter_place</span><span class="p">))</span>
+<span class="linenos"> 24</span>        <span class="bp">self</span><span class="o">.</span><span class="n">heading</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"</span><span class="se">\n</span><span class="s2">Location: "</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">])</span>
 <span class="linenos"> 25</span>        <span class="bp">self</span><span class="o">.</span><span class="n">choices</span> <span class="o">=</span> <span class="n">choices</span>
 <span class="linenos"> 26</span>        <span class="c1"># create links back to ourself</span>
 <span class="linenos"> 27</span>        <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">choices</span><span class="p">:</span>
-<span class="linenos"> 28</span>            <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">&quot;choices&quot;</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+<span class="linenos"> 28</span>            <span class="nb">getattr</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="s2">"choices"</span><span class="p">,</span> <span class="p">[])</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
 <span class="linenos"> 29</span>
 <span class="linenos"> 30</span>    <span class="k">def</span><span class="w"> </span><span class="nf">enter_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">:</span> <span class="n">ActionButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 31</span>        <span class="n">game</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -878,11 +878,11 @@ places.</p>
 <span class="linenos"> 33</span>
 <span class="linenos"> 34</span><span class="k">class</span><span class="w"> </span><span class="nc">Thing</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetWrap</span><span class="p">[</span><span class="n">ActionButton</span><span class="p">]):</span>
 <span class="linenos"> 35</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 36</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">([</span><span class="s2">&quot; * take &quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">take_thing</span><span class="p">))</span>
+<span class="linenos"> 36</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">ActionButton</span><span class="p">([</span><span class="s2">" * take "</span><span class="p">,</span> <span class="n">name</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">take_thing</span><span class="p">))</span>
 <span class="linenos"> 37</span>        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
 <span class="linenos"> 38</span>
 <span class="linenos"> 39</span>    <span class="k">def</span><span class="w"> </span><span class="nf">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">button</span><span class="p">:</span> <span class="n">ActionButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 40</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot; - </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (taken)&quot;</span><span class="p">)</span>
+<span class="linenos"> 40</span>        <span class="bp">self</span><span class="o">.</span><span class="n">_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">f</span><span class="s2">" - </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> (taken)"</span><span class="p">)</span>
 <span class="linenos"> 41</span>        <span class="n">game</span><span class="o">.</span><span class="n">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
 <span class="linenos"> 42</span>
 <span class="linenos"> 43</span>
@@ -891,34 +891,34 @@ places.</p>
 <span class="linenos"> 46</span>
 <span class="linenos"> 47</span>
 <span class="linenos"> 48</span><span class="n">map_top</span> <span class="o">=</span> <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 49</span>    <span class="s2">&quot;porch&quot;</span><span class="p">,</span>
+<span class="linenos"> 49</span>    <span class="s2">"porch"</span><span class="p">,</span>
 <span class="linenos"> 50</span>    <span class="p">[</span>
 <span class="linenos"> 51</span>        <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 52</span>            <span class="s2">&quot;kitchen&quot;</span><span class="p">,</span>
+<span class="linenos"> 52</span>            <span class="s2">"kitchen"</span><span class="p">,</span>
 <span class="linenos"> 53</span>            <span class="p">[</span>
-<span class="linenos"> 54</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">&quot;refrigerator&quot;</span><span class="p">,</span> <span class="p">[]),</span>
-<span class="linenos"> 55</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">&quot;cupboard&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">Thing</span><span class="p">(</span><span class="s2">&quot;jug&quot;</span><span class="p">)]),</span>
+<span class="linenos"> 54</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">"refrigerator"</span><span class="p">,</span> <span class="p">[]),</span>
+<span class="linenos"> 55</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">"cupboard"</span><span class="p">,</span> <span class="p">[</span><span class="n">Thing</span><span class="p">(</span><span class="s2">"jug"</span><span class="p">)]),</span>
 <span class="linenos"> 56</span>            <span class="p">],</span>
 <span class="linenos"> 57</span>        <span class="p">),</span>
 <span class="linenos"> 58</span>        <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 59</span>            <span class="s2">&quot;garden&quot;</span><span class="p">,</span>
+<span class="linenos"> 59</span>            <span class="s2">"garden"</span><span class="p">,</span>
 <span class="linenos"> 60</span>            <span class="p">[</span>
 <span class="linenos"> 61</span>                <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 62</span>                    <span class="s2">&quot;tree&quot;</span><span class="p">,</span>
+<span class="linenos"> 62</span>                    <span class="s2">"tree"</span><span class="p">,</span>
 <span class="linenos"> 63</span>                    <span class="p">[</span>
-<span class="linenos"> 64</span>                        <span class="n">Thing</span><span class="p">(</span><span class="s2">&quot;lemon&quot;</span><span class="p">),</span>
-<span class="linenos"> 65</span>                        <span class="n">Thing</span><span class="p">(</span><span class="s2">&quot;bird&quot;</span><span class="p">),</span>
+<span class="linenos"> 64</span>                        <span class="n">Thing</span><span class="p">(</span><span class="s2">"lemon"</span><span class="p">),</span>
+<span class="linenos"> 65</span>                        <span class="n">Thing</span><span class="p">(</span><span class="s2">"bird"</span><span class="p">),</span>
 <span class="linenos"> 66</span>                    <span class="p">],</span>
 <span class="linenos"> 67</span>                <span class="p">),</span>
 <span class="linenos"> 68</span>            <span class="p">],</span>
 <span class="linenos"> 69</span>        <span class="p">),</span>
 <span class="linenos"> 70</span>        <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 71</span>            <span class="s2">&quot;street&quot;</span><span class="p">,</span>
+<span class="linenos"> 71</span>            <span class="s2">"street"</span><span class="p">,</span>
 <span class="linenos"> 72</span>            <span class="p">[</span>
-<span class="linenos"> 73</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">&quot;store&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">Thing</span><span class="p">(</span><span class="s2">&quot;sugar&quot;</span><span class="p">)]),</span>
+<span class="linenos"> 73</span>                <span class="n">Place</span><span class="p">(</span><span class="s2">"store"</span><span class="p">,</span> <span class="p">[</span><span class="n">Thing</span><span class="p">(</span><span class="s2">"sugar"</span><span class="p">)]),</span>
 <span class="linenos"> 74</span>                <span class="n">Place</span><span class="p">(</span>
-<span class="linenos"> 75</span>                    <span class="s2">&quot;lake&quot;</span><span class="p">,</span>
-<span class="linenos"> 76</span>                    <span class="p">[</span><span class="n">Place</span><span class="p">(</span><span class="s2">&quot;beach&quot;</span><span class="p">,</span> <span class="p">[])],</span>
+<span class="linenos"> 75</span>                    <span class="s2">"lake"</span><span class="p">,</span>
+<span class="linenos"> 76</span>                    <span class="p">[</span><span class="n">Place</span><span class="p">(</span><span class="s2">"beach"</span><span class="p">,</span> <span class="p">[])],</span>
 <span class="linenos"> 77</span>                <span class="p">),</span>
 <span class="linenos"> 78</span>            <span class="p">],</span>
 <span class="linenos"> 79</span>        <span class="p">),</span>
@@ -942,16 +942,16 @@ places.</p>
 <span class="linenos"> 97</span>
 <span class="linenos"> 98</span>    <span class="k">def</span><span class="w"> </span><span class="nf">take_thing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">thing</span><span class="p">:</span> <span class="n">Thing</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 99</span>        <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">thing</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-<span class="linenos">100</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span> <span class="o">&gt;=</span> <span class="p">{</span><span class="s2">&quot;sugar&quot;</span><span class="p">,</span> <span class="s2">&quot;lemon&quot;</span><span class="p">,</span> <span class="s2">&quot;jug&quot;</span><span class="p">}:</span>
-<span class="linenos">101</span>            <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;You can make lemonade!</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="linenos">102</span>            <span class="n">done</span> <span class="o">=</span> <span class="n">ActionButton</span><span class="p">(</span><span class="s2">&quot; - Joy&quot;</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
+<span class="linenos">100</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span> <span class="o">&gt;=</span> <span class="p">{</span><span class="s2">"sugar"</span><span class="p">,</span> <span class="s2">"lemon"</span><span class="p">,</span> <span class="s2">"jug"</span><span class="p">}:</span>
+<span class="linenos">101</span>            <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"You can make lemonade!</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">102</span>            <span class="n">done</span> <span class="o">=</span> <span class="n">ActionButton</span><span class="p">(</span><span class="s2">" - Joy"</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
 <span class="linenos">103</span>            <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">]</span>
 <span class="linenos">104</span>        <span class="k">else</span><span class="p">:</span>
 <span class="linenos">105</span>            <span class="bp">self</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">place</span><span class="p">)</span>
 <span class="linenos">106</span>
 <span class="linenos">107</span>
 <span class="linenos">108</span><span class="n">game</span> <span class="o">=</span> <span class="n">AdventureGame</span><span class="p">()</span>
-<span class="linenos">109</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">&quot;reversed&quot;</span><span class="p">,</span> <span class="s2">&quot;standout&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">109</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">game</span><span class="o">.</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">"reversed"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
 <p>This example starts to show some separation between the application logic
@@ -1033,7 +1033,7 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>

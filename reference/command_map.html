@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Command Map &#8212; Urwid 4.0.8</title>
+    <title>Command Map &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
@@ -49,22 +49,22 @@
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CommandMap</span></span><a class="headerlink" href="#urwid.CommandMap" title="Link to this definition">¶</a></dt>
 <dd><p>dict-like object for looking up commands from keystrokes</p>
 <p>Default values (key: command):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">&#39;tab&#39;</span><span class="p">:</span>       <span class="s1">&#39;next selectable&#39;</span><span class="p">,</span>
-<span class="s1">&#39;ctrl n&#39;</span><span class="p">:</span>    <span class="s1">&#39;next selectable&#39;</span><span class="p">,</span>
-<span class="s1">&#39;shift tab&#39;</span><span class="p">:</span> <span class="s1">&#39;prev selectable&#39;</span><span class="p">,</span>
-<span class="s1">&#39;ctrl p&#39;</span><span class="p">:</span>    <span class="s1">&#39;prev selectable&#39;</span><span class="p">,</span>
-<span class="s1">&#39;ctrl l&#39;</span><span class="p">:</span>    <span class="s1">&#39;redraw screen&#39;</span><span class="p">,</span>
-<span class="s1">&#39;esc&#39;</span><span class="p">:</span>       <span class="s1">&#39;menu&#39;</span><span class="p">,</span>
-<span class="s1">&#39;up&#39;</span><span class="p">:</span>        <span class="s1">&#39;cursor up&#39;</span><span class="p">,</span>
-<span class="s1">&#39;down&#39;</span><span class="p">:</span>      <span class="s1">&#39;cursor down&#39;</span><span class="p">,</span>
-<span class="s1">&#39;left&#39;</span><span class="p">:</span>      <span class="s1">&#39;cursor left&#39;</span><span class="p">,</span>
-<span class="s1">&#39;right&#39;</span><span class="p">:</span>     <span class="s1">&#39;cursor right&#39;</span><span class="p">,</span>
-<span class="s1">&#39;page up&#39;</span><span class="p">:</span>   <span class="s1">&#39;cursor page up&#39;</span><span class="p">,</span>
-<span class="s1">&#39;page down&#39;</span><span class="p">:</span> <span class="s1">&#39;cursor page down&#39;</span><span class="p">,</span>
-<span class="s1">&#39;home&#39;</span><span class="p">:</span>      <span class="s1">&#39;cursor max left&#39;</span><span class="p">,</span>
-<span class="s1">&#39;end&#39;</span><span class="p">:</span>       <span class="s1">&#39;cursor max right&#39;</span><span class="p">,</span>
-<span class="s1">&#39; &#39;</span><span class="p">:</span>         <span class="s1">&#39;activate&#39;</span><span class="p">,</span>
-<span class="s1">&#39;enter&#39;</span><span class="p">:</span>     <span class="s1">&#39;activate&#39;</span><span class="p">,</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">'tab'</span><span class="p">:</span>       <span class="s1">'next selectable'</span><span class="p">,</span>
+<span class="s1">'ctrl n'</span><span class="p">:</span>    <span class="s1">'next selectable'</span><span class="p">,</span>
+<span class="s1">'shift tab'</span><span class="p">:</span> <span class="s1">'prev selectable'</span><span class="p">,</span>
+<span class="s1">'ctrl p'</span><span class="p">:</span>    <span class="s1">'prev selectable'</span><span class="p">,</span>
+<span class="s1">'ctrl l'</span><span class="p">:</span>    <span class="s1">'redraw screen'</span><span class="p">,</span>
+<span class="s1">'esc'</span><span class="p">:</span>       <span class="s1">'menu'</span><span class="p">,</span>
+<span class="s1">'up'</span><span class="p">:</span>        <span class="s1">'cursor up'</span><span class="p">,</span>
+<span class="s1">'down'</span><span class="p">:</span>      <span class="s1">'cursor down'</span><span class="p">,</span>
+<span class="s1">'left'</span><span class="p">:</span>      <span class="s1">'cursor left'</span><span class="p">,</span>
+<span class="s1">'right'</span><span class="p">:</span>     <span class="s1">'cursor right'</span><span class="p">,</span>
+<span class="s1">'page up'</span><span class="p">:</span>   <span class="s1">'cursor page up'</span><span class="p">,</span>
+<span class="s1">'page down'</span><span class="p">:</span> <span class="s1">'cursor page down'</span><span class="p">,</span>
+<span class="s1">'home'</span><span class="p">:</span>      <span class="s1">'cursor max left'</span><span class="p">,</span>
+<span class="s1">'end'</span><span class="p">:</span>       <span class="s1">'cursor max right'</span><span class="p">,</span>
+<span class="s1">' '</span><span class="p">:</span>         <span class="s1">'activate'</span><span class="p">,</span>
+<span class="s1">'enter'</span><span class="p">:</span>     <span class="s1">'activate'</span><span class="p">,</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -142,7 +142,7 @@ it separate from a shared one.</p>
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>

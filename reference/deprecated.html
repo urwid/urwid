@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Deprecated Classes &#8212; Urwid 4.0.8</title>
+    <title>Deprecated Classes &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
@@ -46,7 +46,7 @@
 <h1>Deprecated Classes<a class="headerlink" href="#deprecated-classes" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrWrap">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">WrappedWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
 <dd><p>w – widget to wrap (stored as self.original_widget)
 attr – attribute to apply to w
 focus_attr – attribute to apply when in focus, if None use attr</p>
@@ -55,16 +55,16 @@ will pass all function calls and variable references to the wrapped
 widget.  This class is maintained for backwards compatibility only,
 new code should use AttrMap instead.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Divider</span><span class="p">,</span> <span class="n">Edit</span><span class="p">,</span> <span class="n">Text</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="s2">&quot;!&quot;</span><span class="p">),</span> <span class="s2">&quot;bright&quot;</span><span class="p">)</span>
-<span class="go">&lt;AttrWrap flow widget &lt;Divider flow widget &#39;!&#39;&gt; attr=&#39;bright&#39;&gt;</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Edit</span><span class="p">(),</span> <span class="s2">&quot;notfocus&quot;</span><span class="p">,</span> <span class="s2">&quot;focus&quot;</span><span class="p">)</span>
-<span class="go">&lt;AttrWrap selectable flow widget &lt;Edit selectable flow widget &#39;&#39; edit_pos=0&gt; attr=&#39;notfocus&#39; focus_attr=&#39;focus&#39;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="s2">"!"</span><span class="p">),</span> <span class="s2">"bright"</span><span class="p">)</span>
+<span class="go">&lt;AttrWrap flow widget &lt;Divider flow widget '!'&gt; attr='bright'&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Edit</span><span class="p">(),</span> <span class="s2">"notfocus"</span><span class="p">,</span> <span class="s2">"focus"</span><span class="p">)</span>
+<span class="go">&lt;AttrWrap selectable flow widget &lt;Edit selectable flow widget '' edit_pos=0&gt; attr='notfocus' focus_attr='focus'&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">size</span> <span class="o">=</span> <span class="p">(</span><span class="mi">5</span><span class="p">,)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">aw</span> <span class="o">=</span> <span class="n">AttrWrap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">&quot;hi&quot;</span><span class="p">),</span> <span class="s2">&quot;greeting&quot;</span><span class="p">,</span> <span class="s2">&quot;fgreet&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">aw</span> <span class="o">=</span> <span class="n">AttrWrap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"hi"</span><span class="p">),</span> <span class="s2">"greeting"</span><span class="p">,</span> <span class="s2">"fgreet"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">next</span><span class="p">(</span><span class="n">aw</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">())</span>
-<span class="go">[(&#39;greeting&#39;, None, ...&#39;hi   &#39;)]</span>
+<span class="go">[('greeting', None, ...'hi   ')]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">next</span><span class="p">(</span><span class="n">aw</span><span class="o">.</span><span class="n">render</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">content</span><span class="p">())</span>
-<span class="go">[(&#39;fgreet&#39;, None, ...&#39;hi   &#39;)]</span>
+<span class="go">[('fgreet', None, ...'hi   ')]</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -126,7 +126,7 @@ be defined.</p>
 
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrWrap.w">
-<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">AbstractWidget</span></span><a class="headerlink" href="#urwid.AttrWrap.w" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">WrappedWidget</span></span><a class="headerlink" href="#urwid.AttrWrap.w" title="Link to this definition">¶</a></dt>
 <dd><p>backwards compatibility, widget used to be stored as w</p>
 </dd></dl>
 
@@ -210,7 +210,7 @@ Please move to the last position in the class bases to allow future changes.</p>
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>

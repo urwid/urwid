@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Attributes &#8212; Urwid 4.0.8</title>
+    <title>Display Attributes &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
@@ -74,28 +74,28 @@ screen’s palette because you must know which mode (number of colors) the scree
 <p>A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget can specify which display attributes each part of the
 text will use with the format defined in <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span> <span class="pre">class</span> <span class="pre">reference</span></code></a>.
 Some examples:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;a simple string with default attribute&quot;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">"a simple string with default attribute"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The string and space around will use the <code class="docutils literal notranslate"><span class="pre">None</span></code> default display attribute
 which usually appears in the terminal’s default foreground and background.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;a string in display attribute attr1&quot;</span><span class="p">))</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"a string in display attribute attr1"</span><span class="p">))</span>
 </pre></div>
 </div>
 <p>The string will appear with foreground and backgrounds specified in the display
 module’s palette for <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>, but the space around (before/after) the text
 will appear with the default display attribute.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s2">&quot;a simple string &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;ending with attr1&quot;</span><span class="p">)])</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([</span><span class="sa">u</span><span class="s2">"a simple string "</span><span class="p">,</span> <span class="p">(</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"ending with attr1"</span><span class="p">)])</span>
 </pre></div>
 </div>
 <p>The first three words have the default display attribute and the last three words have
 display attribute <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;start in attr1 &quot;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;attr2&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;end in attr2&quot;</span><span class="p">)])</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([(</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"start in attr1 "</span><span class="p">),</span> <span class="p">(</span><span class="s1">'attr2'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"end in attr2"</span><span class="p">)])</span>
 </pre></div>
 </div>
 <p>The first three words have display attribute <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code> and the last three words have
 display attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="p">[</span><span class="sa">u</span><span class="s2">&quot;nesting example &quot;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;attr2&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;inside&quot;</span><span class="p">),</span> <span class="sa">u</span><span class="s2">&quot; outside&quot;</span><span class="p">]))</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="p">[</span><span class="sa">u</span><span class="s2">"nesting example "</span><span class="p">,</span> <span class="p">(</span><span class="s1">'attr2'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"inside"</span><span class="p">),</span> <span class="sa">u</span><span class="s2">" outside"</span><span class="p">]))</span>
 </pre></div>
 </div>
 <p>When markup is nested only the innermost attribute applies. Here <code class="docutils literal notranslate"><span class="pre">&quot;inside&quot;</span></code>
@@ -109,17 +109,17 @@ one or more display attributes to other display attributes, you can wrap your wi
 in an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget.  <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets have no way to specify
 a display attribute for the whitespace around the text caused by alignment and wrapping
 so <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> may be used. Some examples:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">),</span> <span class="s1">&#39;attr1&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">"hello"</span><span class="p">),</span> <span class="s1">'attr1'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The whole <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget will have display attribute <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code> including
 whitespace around the <code class="docutils literal notranslate"><span class="pre">&quot;hello&quot;</span></code> text.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">((</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">)),</span> <span class="s1">&#39;attr2&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">((</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"hello"</span><span class="p">)),</span> <span class="s1">'attr2'</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">u&quot;hello&quot;</span></code> text will appear with display attribute <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code> and all surrounding
 whitespace will appear with display attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code>.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s1">&#39;attr1&#39;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;hello&quot;</span><span class="p">),</span> <span class="sa">u</span><span class="s2">&quot; world&quot;</span><span class="p">]),</span> <span class="p">{</span><span class="s1">&#39;attr1&#39;</span><span class="p">:</span> <span class="s1">&#39;attr2&#39;</span><span class="p">})</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"hello"</span><span class="p">),</span> <span class="sa">u</span><span class="s2">" world"</span><span class="p">]),</span> <span class="p">{</span><span class="s1">'attr1'</span><span class="p">:</span> <span class="s1">'attr2'</span><span class="p">})</span>
 </pre></div>
 </div>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget will apply display attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code> to all parts of
@@ -193,25 +193,31 @@ user friendly.  To use this feature set the <code class="docutils literal notran
 <td><p>NO</p></td>
 <td><p>some supported</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#bright-background"><span class="std std-ref">“bright” background colors</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#bold-underline-standout"><span class="std std-ref">faint</span></a></p></td>
+<td><p>YES</p></td>
+<td><p>NO</p></td>
+<td><p>NO</p></td>
+<td><p>some support</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#bright-background"><span class="std std-ref">“bright” background colors</span></a></p></td>
 <td><p>YES</p></td>
 <td><p>urxvt</p></td>
 <td></td>
 <td><p>some support</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#id5"><span class="std std-ref">256-color foreground/background</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id5"><span class="std std-ref">256-color foreground/background</span></a></p></td>
 <td><p>YES</p></td>
 <td></td>
 <td></td>
 <td><p>some support</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#id7"><span class="std std-ref">88-color foreground/background</span></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id7"><span class="std std-ref">88-color foreground/background</span></a></p></td>
 <td><p>w/palette setting</p></td>
 <td><p>urxvt</p></td>
 <td></td>
 <td><p>limited support</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#rgb-palette-setting"><span class="std std-ref">RGB palette setting</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#rgb-palette-setting"><span class="std std-ref">RGB palette setting</span></a></p></td>
 <td><p>YES</p></td>
 <td></td>
 <td></td>
@@ -274,6 +280,7 @@ contrast.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">'blink'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'italics'</span></code></p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">'strikethrough'</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'faint'</span></code></p></li>
 </ul>
 <p>These settings may be tagged on to foreground colors using commas, eg: <code class="docutils literal notranslate"><span class="pre">'light</span>
 <span class="pre">gray,underline,bold,strikethrough'</span></code></p>
@@ -463,7 +470,7 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>

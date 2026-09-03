@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Raw Display Attributes &#8212; Urwid 4.0.8</title>
+    <title>Raw Display Attributes &#8212; Urwid 4.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=1097caeb"></script>
+    <script src="../_static/documentation_options.js?v=42d1b3bd"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
@@ -47,9 +47,9 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrSpec">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Link to this definition">¶</a></dt>
-<dd><dl>
-<dt>fg – a string containing a comma-separated foreground color</dt><dd><p>and settings</p>
-<p>Color values:
+<dd><p>fg – a string containing a comma-separated foreground color and settings</p>
+<blockquote>
+<div><p>Color values:
 ‘default’ (use the terminal’s default foreground),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
 ‘dark magenta’, ‘dark cyan’, ‘light gray’, ‘dark gray’,
@@ -64,13 +64,11 @@
 ‘#fff’, ‘g100’, ‘g#ff’ (white)
 ‘h8’ (color number 8), ‘h255’ (color number 255)</p>
 <p>Setting:
-‘bold’, ‘italics’, ‘underline’, ‘blink’, ‘standout’,
-‘strikethrough’</p>
-<p>Some terminals use ‘bold’ for bright colors.  Most terminals
-ignore the ‘blink’ setting.  If the color is not given then
-‘default’ will be assumed.</p>
-</dd>
-</dl>
+‘bold’, ‘italics’, ‘underline’, ‘blink’, ‘standout’, ‘strikethrough’, ‘faint’</p>
+<p>Some terminals use ‘bold’ for bright colors.
+Most terminals ignore the ‘blink’ setting.
+If the color is not given then ‘default’ will be assumed.</p>
+</div></blockquote>
 <p>bg – a string containing the background color</p>
 <blockquote>
 <div><p>Color values:
@@ -87,14 +85,14 @@ see fg examples above</p>
 values are only usable with 88, 256, or 2**24 colors.  With
 1 color only the foreground settings may be used.</p>
 </div></blockquote>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;dark red&quot;</span><span class="p">,</span> <span class="s2">&quot;light gray&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
-<span class="go">AttrSpec(&#39;dark red&#39;, &#39;light gray&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;yellow, underline, bold&quot;</span><span class="p">,</span> <span class="s2">&quot;dark blue&quot;</span><span class="p">)</span>
-<span class="go">AttrSpec(&#39;yellow,bold,underline&#39;, &#39;dark blue&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;#ddb&quot;</span><span class="p">,</span> <span class="s2">&quot;#004&quot;</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>  <span class="c1"># closest colors will be found</span>
-<span class="go">AttrSpec(&#39;#dda&#39;, &#39;#006&#39;)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;#ddb&quot;</span><span class="p">,</span> <span class="s2">&quot;#004&quot;</span><span class="p">,</span> <span class="mi">88</span><span class="p">)</span>
-<span class="go">AttrSpec(&#39;#ccc&#39;, &#39;#000&#39;, colors=88)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"dark red"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="go">AttrSpec('dark red', 'light gray')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow, underline, bold"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">)</span>
+<span class="go">AttrSpec('yellow,bold,underline', 'dark blue')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"#ddb"</span><span class="p">,</span> <span class="s2">"#004"</span><span class="p">,</span> <span class="mi">256</span><span class="p">)</span>  <span class="c1"># closest colors will be found</span>
+<span class="go">AttrSpec('#dda', '#006')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"#ddb"</span><span class="p">,</span> <span class="s2">"#004"</span><span class="p">,</span> <span class="mi">88</span><span class="p">)</span>
+<span class="go">AttrSpec('#ccc', '#000', colors=88)</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -117,9 +115,9 @@ values are only usable with 88, 256, or 2**24 colors.  With
 Each component is in the range 0-255.
 Values are taken from the XTerm defaults and may not exactly match the user’s terminal.</p>
 <p>If the foreground or background is ‘default’ then all their compenents will be returned as None.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;yellow&quot;</span><span class="p">,</span> <span class="s2">&quot;#ccf&quot;</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow"</span><span class="p">,</span> <span class="s2">"#ccf"</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(255, 255, 0, 205, 205, 255)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">&quot;default&quot;</span><span class="p">,</span> <span class="s2">&quot;g92&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"g92"</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(None, None, None, 238, 238, 238)</span>
 </pre></div>
 </div>
@@ -195,7 +193,7 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.0.8</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
