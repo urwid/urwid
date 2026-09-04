@@ -242,6 +242,24 @@ class ShardBodyTest(unittest.TestCase):
             ],
         )
 
+    def test_underfilled_gap_is_padded(self):
+        # cviews are short 4 columns of what the shard tail's gap expects: rather than
+        # raising or silently truncating the row, the missing width is padded with a
+        # blank filler cview so the resulting shard stays rectangular.
+        # Regression test for https://github.com/urwid/urwid/issues/340
+        cviews = [(0, 0, 6, 5, None, "foo")]
+        result = canvas.shard_body(
+            cviews,
+            [(10, 3, None, (0, 0, 5, 8, None, "baz"))],
+            False,
+            num_rows=5,
+        )
+        assert result == [
+            (0, None, (0, 0, 6, 5, None, "foo")),
+            (0, None, (0, 0, 4, 5, None, canvas.blank_canvas)),
+            (3, None, (0, 0, 5, 8, None, "baz")),
+        ]
+
     def test2(self):
         sbody = [
             (0, None, (0, 0, 10, 5, None, "foo")),

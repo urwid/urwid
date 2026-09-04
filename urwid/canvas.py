@@ -751,7 +751,7 @@ class CompositeCanvas(Canvas):
         shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
         for num_rows, cviews in self.shards:
             # combine shard and shard tail
-            sbody = shard_body(cviews, shard_tail)
+            sbody = shard_body(cviews, shard_tail, num_rows=num_rows)
 
             # output rows
             for _ in range(num_rows):
@@ -1080,6 +1080,7 @@ def shard_body(
     shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]],
     create_iter: bool = True,
     iter_default: Iterator[_ContentLine] | None = None,
+    num_rows: int | None = None,
 ) -> list[tuple[int, Iterator[_ContentLine] | None, _CView]]:
     """
     Return a list of (done_rows, content_iter, cview) tuples for this shard and shard tail.
@@ -1089,6 +1090,10 @@ def shard_body(
     then no iterator is created for content_iter.
 
     iter_default is the value used for content_iter when no iterator is created.
+
+    num_rows is the row count of the shard being processed. It is used to bound a blank
+    filler cview if cviews run out before a shard_tail gap is filled (see below); pass it
+    whenever the caller knows how many rows this shard spans.
     """
     col = 0
     body: list[tuple[int, Iterator[_ContentLine] | None, _CView]] = []  # build the next shard tail
@@ -1099,6 +1104,18 @@ def shard_body(
             try:
                 cview = next(cviews_iter)
             except StopIteration:
+                # The shard calculation is inconsistent: this shard's cviews don't add up
+                # to the width the previous shard's tail expects to continue into. This is
+                # a known open issue (https://github.com/urwid/urwid/issues/340) that we
+                # haven't been able to root-cause; rather than raising (crashing the whole
+                # app) or silently leaving the row short (a corrupted-looking canvas), pad
+                # the unmet gap with blank filler so the canvas stays rectangular.
+                fill_rows = num_rows if num_rows is not None else done_rows + 1
+                filler_cview = (0, 0, col_gap, fill_rows, None, blank_canvas)
+                new_iter = blank_canvas.content(0, 0, col_gap, fill_rows, None) if create_iter else iter_default
+                body.append((0, new_iter, filler_cview))
+                col += col_gap
+                col_gap = 0  # noqa: PLW2901
                 break
             (trim_left, trim_top, cols, rows, attr_map, canv) = cview[:6]
             col += cols
@@ -1137,13 +1154,13 @@ def shards_trim_top(
     for num_rows, cviews in shard_iter:
         if top < num_rows:
             break
-        sbody = shard_body(cviews, shard_tail, False)
+        sbody = shard_body(cviews, shard_tail, False, num_rows=num_rows)
         shard_tail = shard_body_tail(num_rows, sbody)
         top -= num_rows
     else:
         raise CanvasError("tried to trim shards out of existence")
 
-    sbody = shard_body(cviews, shard_tail, False)
+    sbody = shard_body(cviews, shard_tail, False, num_rows=num_rows)
     shard_tail = shard_body_tail(num_rows, sbody)
     # trim the top of this shard
     new_sbody = [(0, content_iter, cview_trim_top(cv, done_rows + top)) for done_rows, content_iter, cv in sbody]
@@ -1205,7 +1222,7 @@ def shards_trim_sides(
     new_shards: list[tuple[int, list[_CView]]] = []
     right = left + cols
     for num_rows, cviews in shards:
-        sbody = shard_body(cviews, shard_tail, False)
+        sbody = shard_body(cviews, shard_tail, False, num_rows=num_rows)
         shard_tail = shard_body_tail(num_rows, sbody)
         new_cviews = []
         col = 0
