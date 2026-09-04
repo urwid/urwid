@@ -274,6 +274,7 @@ class Screen(_raw_display_base.Screen):
         self.signal_restore()
 
         self._stop_mouse_restore_buffer()
+        self._stop_restore_palette()
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
