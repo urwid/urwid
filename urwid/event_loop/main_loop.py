@@ -680,10 +680,14 @@ class MainLoop:
     def draw_screen(self) -> None:
         """
         Render the widgets and paint the screen. This method is called
-        automatically from :meth:`entering_idle`.
+        automatically from :meth:`entering_idle`, which runs whenever the
+        event loop is about to go idle -- including after handling input
+        and after an alarm callback fires. So screen updates made from
+        input handlers or alarm callbacks are redrawn automatically.
 
-        If you modify the widgets displayed outside of handling input or
-        responding to an alarm you will need to call this method yourself
+        If you modify the widgets displayed from somewhere else, such as
+        another thread or a callback that does not go through the event
+        loop's idle handling, you will need to call this method yourself
         to repaint the screen.
         """
         if not self.screen_size:
