@@ -281,6 +281,7 @@ class Screen(BaseScreen, RealTerminal):
         self._pal_escape: dict[str | None, str] = {}
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
         self._alternate_buffer: bool = False
+        self._modified_palette_entries: set[int] = set()
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.term = os.environ.get("TERM", "")
         properties = detect_terminal_properties(self.term, os.environ)
@@ -428,6 +429,21 @@ class Screen(BaseScreen, RealTerminal):
             move_cursor = escape.set_cursor_position(0, self.maxrow)
         self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+
+    def _stop_restore_palette(self) -> None:
+        """Reset (OSC 104) any palette entries modify_terminal_palette() changed this session."""
+        if not self._modified_palette_entries:
+            return
+        if self.term == "fbterm":
+            # fbterm's palette-modification escape (used in modify_terminal_palette) has no
+            # known reset counterpart, so there is nothing safe to send here.
+            self._modified_palette_entries.clear()
+            return
+
+        indexes = ";".join(str(index) for index in sorted(self._modified_palette_entries))
+        self.write(f"\x1b]104;{indexes}\x1b\\")
+        self.flush()
+        self._modified_palette_entries.clear()
 
     @abc.abstractmethod
     def _stop(self) -> None:
@@ -1148,6 +1164,7 @@ class Screen(BaseScreen, RealTerminal):
             modify = [f"{index:d};rgb:{red:02x}/{green:02x}/{blue:02x}" for index, red, green, blue in entries]
             self.write(f"\x1b]4;{';'.join(modify)}\x1b\\")
         self.flush()
+        self._modified_palette_entries.update(index for index, _red, _green, _blue in entries)
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors

@@ -135,6 +135,7 @@ class Screen(_raw_display_base.Screen):
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
         self._stop_mouse_restore_buffer()
+        self._stop_restore_palette()
 
         if self._dwOriginalOutMode is not None and self._dwOriginalInMode is not None:
             handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)

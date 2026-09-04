@@ -131,6 +131,37 @@ class TestRawDisplay(unittest.TestCase):
         self.assertTrue(watched, "no descriptors are watched after restart -- regression of urwid/urwid#285")
         s.stop()
 
+    def test_modify_terminal_palette_restored_on_stop(self):
+        """Palette entries modified with modify_terminal_palette() must be reset when the
+        screen stops, so urwid doesn't leave the user's terminal with a custom palette after
+        the process exits (urwid/urwid#458).
+        """
+        s = urwid.display.raw.Screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s._started = True
+
+        s.modify_terminal_palette([(1, 255, 0, 0), (2, 0, 255, 0)])
+        self.assertEqual({1, 2}, s._modified_palette_entries)
+
+        s._stop_restore_palette()
+
+        self.assertIn("\x1b]104;1;2\x1b\\", "".join(written))
+        self.assertEqual(set(), s._modified_palette_entries)
+
+    def test_stop_restore_palette_noop_when_untouched(self):
+        """No reset escape should be sent if the palette was never modified."""
+        s = urwid.display.raw.Screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s._started = True
+
+        s._stop_restore_palette()
+
+        self.assertEqual([], written)
+
 
 class TestTerminalProperties(unittest.TestCase):
     def test_term_families(self) -> None:
