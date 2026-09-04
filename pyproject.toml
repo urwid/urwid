@@ -22,10 +22,15 @@ email = "ian@excess.org"
 [project.optional-dependencies]
 curses = [ "windows-curses; sys_platform=='win32'" ]
 glib = [ "pygobject" ]
-tornado = [ "tornado>=5.0" ]
+# Floors below are the oldest releases without known CVEs (only the IOLoop/reactor APIs are used by urwid,
+# but the extras pull the whole distribution into the user environment).
+tornado = [ "tornado>=6.5.8" ]
 trio = [ "exceptiongroup; python_version<'3.11'", "trio>=0.24.0" ]
-twisted = [ "twisted" ]
-zmq = [ "zmq" ]
+# 26.4.0 requires CPython 3.9.12+, so the unconditional floor stays at 24.7.0.
+twisted = [ "twisted>=24.7.0", "twisted>=26.4.0; python_full_version>='3.9.12'" ]
+# `zmq` on PyPI is an abandoned 2015 placeholder ("You are probably looking for pyzmq") with no dependencies:
+# it does not provide the `zmq` module that urwid.event_loop.zmq_loop imports.
+zmq = [ "pyzmq>=26.0.0" ]
 # for lcd_display
 serial = [ "pyserial" ]
 lcd = [ "pyserial" ]

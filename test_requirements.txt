@@ -1,8 +1,0 @@
-tornado>=5
-twisted
-trio
-zmq
-exceptiongroup;python_version<'3.11'
-windows-curses;sys_platform=="win32"
-pyserial
-coverage[toml]

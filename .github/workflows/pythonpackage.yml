@@ -61,14 +61,14 @@ jobs:
           python-version: '3.x'
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,glib,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
-        run: |
-          uv pip install --system -r test_requirements.txt PyGObject
-          uv pip install --system --upgrade -r pylint-requirements.txt
-      - name: Install package for test
-        run: uv pip install --system -e .
+        run: uv pip install --upgrade -r pylint-requirements.txt
       - name: Lint with pylint
-        run: pylint --output-format=github urwid
+        run: uv run --no-project pylint --output-format=github urwid
 
   Mypy:
     name: Check with mypy
@@ -81,14 +81,14 @@ jobs:
           python-version: '3.x'
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
-        run: |
-          uv pip install --system -r test_requirements.txt
-          uv pip install --system --upgrade mypy
-      - name: Install package for test
-        run: uv pip install --system -e .
+        run: uv pip install --upgrade mypy
       - name: Type check with mypy
-        run: mypy urwid
+        run: uv run --no-project mypy urwid
 
   Test:
     needs: [ Ruff-format, Ruff, PyLint, Mypy ]
@@ -125,17 +125,17 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install gtk+3 gobject-introspection gtk-mac-integration
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system --python ${{ matrix.python-version }}
       - name: Install dependencies
-        run: |
-          uv pip install --system -r test_requirements.txt -r pytest_requirements.txt
+        run: uv pip install -r pytest_requirements.txt
       - name: Install PyGObject
         if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: uv pip install --system PyGObject
-      - name: Install package for test
-        run: uv pip install --system -e .
+        run: uv pip install PyGObject
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Test
-        run: |
-          python -m pytest --cov-report=term --cov-report=xml
+        run: uv run --no-project python -m pytest --cov-report=term --cov-report=xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
         with:
