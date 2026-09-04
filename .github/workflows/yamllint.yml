@@ -11,14 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
-      - name: Install dependencies
-        run: |
-          uv pip install --system --upgrade yamllint
       - name: Lint YAML files
-        run: yamllint . -f github
+        run: uvx yamllint . -f github
