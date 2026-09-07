@@ -261,16 +261,15 @@ def calc_trim_text(
 ) -> tuple[int, int, int, int]:
     """
     Calculate the result of trimming text.
-    start_offs -- offset into text to treat as screen column 0
-    end_offs -- offset into text to treat as the end of the line
-    start_col -- screen column to trim at the left
-    end_col -- screen column to trim at the right
 
-    Returns (start, end, pad_left, pad_right), where:
-    start -- resulting start offset
-    end -- resulting end offset
-    pad_left -- 0 for no pad or 1 for one space to be added
-    pad_right -- 0 for no pad or 1 for one space to be added
+    :param start_offs: offset into text to treat as screen column 0
+    :param end_offs: offset into text to treat as the end of the line
+    :param start_col: screen column to trim at the left
+    :param end_col: screen column to trim at the right
+
+    :returns: a ``(start, end, pad_left, pad_right)`` tuple, where ``start`` is the resulting start offset,
+        ``end`` the resulting end offset, and ``pad_left``/``pad_right`` are ``0`` for no pad
+        or ``1`` for one space to be added.
     """
     spos = start_offs
     pad_left = pad_right = 0
@@ -496,8 +495,8 @@ def _tagmarkup_recurse(
 ) -> tuple[list[str | bytes], list[tuple[Hashable, int]]]:
     """Return (text list, attribute list) for tagmarkup passed.
 
-    tm -- tagmarkup
-    attr -- current attribute or None"""
+    :param tm: tagmarkup
+    :param attr: current attribute or None"""
 
     if isinstance(tm, list):
         # for lists recurse to process each subelement
@@ -540,10 +539,13 @@ def is_mouse_press(ev: str) -> bool:
 
 
 class MetaSuper(type):
-    """Deprecated metaclass.
+    """Metaclass kept only so that existing class definitions keep importing.
 
-    Present only for code compatibility, all logic has been removed.
-    Please move to the last position in the class bases to allow future changes.
+    All logic has been removed; it is a plain :class:`type` subclass.
+
+    .. deprecated:: 3.0.0
+        Drop it from the class bases. While it is still listed, move it to the last position,
+        so that future changes to the other bases are not blocked by it.
     """
 
     __slots__ = ()

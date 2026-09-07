@@ -149,8 +149,7 @@ class Screen(BaseScreen):
     ) -> None:
         """Register a list of palette entries.
 
-        palette -- list of (name, foreground, background) or
-                   (name, same_as_other_name) palette entries.
+        :param palette: list of (name, foreground, background) or (name, same_as_other_name) palette entries.
 
         calls self.register_palette_entry for each item in l
         """
@@ -177,10 +176,10 @@ class Screen(BaseScreen):
     ) -> None:
         """Register a single palette entry.
 
-        name -- new entry/attribute name
-        foreground -- foreground colour
-        background -- background colour
-        mono -- monochrome terminal attribute
+        :param name: new entry/attribute name
+        :param foreground: foreground colour
+        :param background: background colour
+        :param mono: monochrome terminal attribute
 
         See curses_display.register_palette_entry for more info.
         """
@@ -643,14 +642,11 @@ def set_preferences(
     """
     Set web_display preferences.
 
-    app_name -- application name to appear in html interface
-    pipe_dir -- directory for input pipes, daemon update sockets
-                and daemon error logs
-    allow_polling -- allow creation of daemon processes for
-                     browsers without multipart support
-    max_clients -- maximum concurrent client connections. This
-               pool is shared by all urwid applications
-               using the same pipe_dir
+    :param app_name: application name to appear in html interface
+    :param pipe_dir: directory for input pipes, daemon update sockets and daemon error logs
+    :param allow_polling: allow creation of daemon processes for browsers without multipart support
+    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications using the
+        same pipe_dir
     """
     _prefs.app_name = app_name
     _prefs.pipe_dir = pipe_dir

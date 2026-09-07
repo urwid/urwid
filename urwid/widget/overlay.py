@@ -149,6 +149,7 @@ class Overlay(
             (``'relative'``, *percentage* 0=left 100=right)
         :type align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]
         :param width: width type, one of:
+
             ``'pack'``
               if *top_w* is a fixed widget
             *given width*
@@ -160,6 +161,7 @@ class Overlay(
             (``'relative'``, *percentage* 0=top 100=bottom)
         :type valign: Literal["top", "middle", "bottom"] | tuple[Literal["relative"], int]
         :param height: one of:
+
             ``'pack'``
               if *top_w* is a flow or fixed widget
             *given height*
@@ -628,7 +630,7 @@ class Overlay(
         """
         Set the widget in focus.  Currently only position 1 is accepted.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")

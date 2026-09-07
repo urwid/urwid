@@ -75,7 +75,7 @@ class ProgressBar(Widget):
 
     def set_completion(self, current: int) -> None:
         """
-        current -- current progress
+        :param current: current progress
         """
         self._current = current
         self._invalidate()
@@ -89,7 +89,7 @@ class ProgressBar(Widget):
     @done.setter
     def done(self, done: int) -> None:
         """
-        done -- progress amount at 100%
+        :param done: progress amount at 100%
         """
         self._done = done
         self._invalidate()

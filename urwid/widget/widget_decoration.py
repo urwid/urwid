@@ -27,22 +27,22 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method
     """
-    original_widget -- the widget being decorated
+    Base class for decoration widgets: widgets that contain one or more widgets and only ever have a single focus.
 
-    This is a base class for decoration widgets,
-    widgets that contain one or more widgets and only ever have a single focus.
     This type of widget will affect the display or behaviour of the original_widget,
     but it is not part of determining a chain of focus.
 
-    Don't actually do this -- use a WidgetDecoration subclass instead, these are not real widgets:
+    :param original_widget: the widget being decorated
+
+    Don't actually do this - use a WidgetDecoration subclass instead, these are not real widgets:
 
     >>> from urwid import Text
     >>> WidgetDecoration(Text("hi"))
     <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
 
-    .. Warning:
-        WidgetDecoration do not implement ``render`` method.
-        Implement it or forward to the widget in the subclass.
+    .. warning::
+        WidgetDecoration does not implement the ``render`` method.
+        Implement it, or forward to the wrapped widget, in the subclass.
     """
 
     def __init__(self, original_widget: WrappedWidget) -> None:

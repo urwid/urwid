@@ -15,6 +15,14 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrWrap(AttrMap[WrappedWidget]):
+    """
+    A special case of the :class:`AttrMap` widget that passes all function calls
+    and variable references on to the wrapped widget.
+
+    .. deprecated:: 0.9.9
+        Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
+    """
+
     def __init__(
         self,
         w: WrappedWidget,
@@ -22,14 +30,12 @@ class AttrWrap(AttrMap[WrappedWidget]):
         focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
     ) -> None:
         """
-        w -- widget to wrap (stored as self.original_widget)
-        attr -- attribute to apply to w
-        focus_attr -- attribute to apply when in focus, if None use attr
+        :param w: widget to wrap (stored as self.original_widget)
+        :param attr: attribute to apply to w
+        :param focus_attr: attribute to apply when in focus, if None use attr
 
-        This widget is a special case of the new AttrMap widget, and it
-        will pass all function calls and variable references to the wrapped
-        widget.  This class is maintained for backwards compatibility only,
-        new code should use AttrMap instead.
+        .. deprecated:: 0.9.9
+            Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
 
         >>> from urwid import Divider, Edit, Text
         >>> AttrWrap(Divider("!"), "bright")
@@ -61,7 +67,13 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
     @property
     def w(self) -> WrappedWidget:
-        """backwards compatibility, widget used to be stored as w"""
+        """
+        The wrapped widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -71,6 +83,13 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
     @w.setter
     def w(self, new_widget: WrappedWidget) -> None:
+        """
+        Replace the wrapped widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
             DeprecationWarning,

@@ -114,16 +114,14 @@ class TrioEventLoop(EventLoop):
     def remove_alarm(self, handle: trio.CancelScope) -> bool:
         """Removes an alarm.
 
-        Parameters:
-            handle: the handle of the alarm to remove
+        :param handle: the handle of the alarm to remove
         """
         return self._cancel_scope(handle)
 
     def remove_enter_idle(self, handle: int) -> bool:
         """Removes an idle callback.
 
-        Parameters:
-            handle: the handle of the idle callback to remove
+        :param handle: the handle of the idle callback to remove
         """
         try:
             del self._idle_callbacks[handle]
@@ -134,20 +132,16 @@ class TrioEventLoop(EventLoop):
     def remove_watch_file(self, handle: trio.CancelScope) -> bool:
         """Removes a file descriptor being watched for input.
 
-        Parameters:
-            handle: the handle of the file descriptor callback to remove
-
-        Returns:
-            True if the file descriptor was watched, False otherwise
+        :param handle: the handle of the file descriptor callback to remove
+        :returns: True if the file descriptor was watched, False otherwise
         """
         return self._cancel_scope(handle)
 
     def _cancel_scope(self, scope: trio.CancelScope) -> bool:
         """Cancels the given Trio cancellation scope.
 
-        Returns:
-            True if the scope was cancelled, False if it was cancelled already
-            before invoking this function
+        :param scope: the Trio cancellation scope to cancel
+        :returns: True if the scope was cancelled, False if it was cancelled already before invoking this function
         """
         existed = not scope.cancel_called
         scope.cancel()
@@ -202,12 +196,9 @@ class TrioEventLoop(EventLoop):
         """Calls `callback()` when the given file descriptor has some data
         to read. No parameters are passed to the callback.
 
-        Parameters:
-            fd: file descriptor to watch for input
-            callback: function to call when some input is available
-
-        Returns:
-            a handle that may be passed to `remove_watch_file()`
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when some input is available
+        :returns: a handle that may be passed to `remove_watch_file()`
         """
         return self._start_task(self._watch_task, fd, callback)
 
@@ -220,10 +211,9 @@ class TrioEventLoop(EventLoop):
         """Asynchronous task that sleeps for a given number of seconds and then
         calls the given callback.
 
-        Parameters:
-            scope: the cancellation scope that can be used to cancel the task
-            seconds: the number of seconds to wait
-            callback: the callback to call
+        :param scope: the cancellation scope that can be used to cancel the task
+        :param seconds: the number of seconds to wait
+        :param callback: the callback to call
         """
         with scope:
             await self._sleep(seconds)
@@ -276,11 +266,9 @@ class TrioEventLoop(EventLoop):
         the task and the arguments so we can start the task when the nursery
         is open.
 
-        Parameters:
-            task: a Trio task to run
-
-        Returns:
-            a cancellation scope for the Trio task
+        :param task: a Trio task to run
+        :param args: extra positional arguments passed to the task after its cancellation scope
+        :returns: a cancellation scope for the Trio task
         """
         scope = trio.CancelScope()
         if self._nursery:
@@ -298,10 +286,9 @@ class TrioEventLoop(EventLoop):
         """Asynchronous task that watches the given file descriptor and calls
         the given callback whenever the file descriptor becomes readable.
 
-        Parameters:
-            scope: the cancellation scope that can be used to cancel the task
-            fd: the file descriptor to watch
-            callback: the callback to call
+        :param scope: the cancellation scope that can be used to cancel the task
+        :param fd: the file descriptor to watch
+        :param callback: the callback to call
         """
         with scope:
             # We check for the scope being cancelled before calling

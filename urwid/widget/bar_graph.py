@@ -21,7 +21,9 @@ class BarGraphMeta(WidgetMeta):
     """
     Detect subclass get_data() method and dynamic change to get_data() method and disable caching in these cases.
 
-    This is for backwards compatibility only, new programs should use set_data() instead of overriding get_data().
+    .. deprecated:: 4.0.10
+        Overriding ``get_data()`` in a :class:`BarGraph` subclass is supported for backwards compatibility only.
+        Call :meth:`BarGraph.set_data` instead, so that the rendered canvas can be cached.
     """
 
     def __init__(
@@ -170,9 +172,9 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         """
         Store bar data, bargraph top and horizontal line positions.
 
-        bardata -- a list of bar values.
-        top -- maximum value for segments within bardata
-        hlines -- None or a bar value marking horizontal line positions
+        :param bardata: a list of bar values.
+        :param top: maximum value for segments within bardata
+        :param hlines: None or a bar value marking horizontal line positions
 
         bar values are [ segment1, segment2, ... ] lists where top is
         the maximal value corresponding to the top of the bar graph and
@@ -214,7 +216,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         """
         Set a preferred bar width for calculate_bar_widths to use.
 
-        width -- width of bar or None for automatic width adjustment
+        :param width: width of bar or None for automatic width adjustment
         """
         if width is not None and width <= 0:
             raise ValueError(width)
@@ -495,10 +497,10 @@ def calculate_bargraph_display(
     Calculate a rendering of the bar graph described by data, bar_widths
     and height.
 
-    bardata -- bar information with same structure as BarGraph.data
-    top -- maximal value for bardata segments
-    bar_widths -- list of integer column widths for each bar
-    maxrow -- rows for display of bargraph
+    :param bardata: bar information with same structure as BarGraph.data
+    :param top: maximal value for bardata segments
+    :param bar_widths: list of integer column widths for each bar
+    :param maxrow: rows for display of bargraph
 
     Returns a structure as follows:
       [ ( y_count, [ ( bar_type, width), ... ] ), ... ]
@@ -650,13 +652,12 @@ class GraphVScale(Widget):
         top: float,
     ) -> None:
         """
-        GraphVScale( [(label1 position, label1 markup),...], top )
-        label position -- 0 < position < top for the y position
-        label markup -- text markup for this label
-        top -- top y position
+        Build a vertical scale for the BarGraph widget, which can correspond to the BarGraph's horizontal lines.
 
-        This widget is a vertical scale for the BarGraph widget that
-        can correspond to the BarGraph's horizontal lines
+        :param labels: a sequence of ``(label position, label markup)`` pairs, where the position satisfies
+            ``0 < position < top`` and gives the y position of the label, and the markup is the text markup
+            for that label
+        :param top: top y position
         """
         super().__init__()
         self.set_scale(labels, top)
@@ -667,10 +668,12 @@ class GraphVScale(Widget):
         top: float,
     ) -> None:
         """
-        set_scale( [(label1 position, label1 markup),...], top )
-        label position -- 0 < position < top for the y position
-        label markup -- text markup for this label
-        top -- top y position
+        Replace the labels and the top y position of the scale.
+
+        :param labels: a sequence of ``(label position, label markup)`` pairs, where the position satisfies
+            ``0 < position < top`` and gives the y position of the label, and the markup is the text markup
+            for that label
+        :param top: top y position
         """
 
         labels = sorted(labels[:], reverse=True)  # shallow copy

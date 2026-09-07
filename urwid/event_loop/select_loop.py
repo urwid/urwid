@@ -94,8 +94,8 @@ class SelectEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
         tm = time.time() + seconds
         handle = (tm, next(self._tie_break), callback)
@@ -124,8 +124,8 @@ class SelectEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
         self._watch_files[fd] = callback
         return fd

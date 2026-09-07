@@ -228,9 +228,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     @focus.setter
     def focus(self, index: int) -> None:
         """
-        index -- index into this list, any index out of range will
-            raise an IndexError, except when the list is empty and
-            the index passed is ignored.
+        :param index: index into this list, any index out of range will raise an IndexError, except when the list is
+            empty and the index passed is ignored.
 
         This function may call self._focus_changed when the focus
         is modified, passing the new focus position to the
@@ -267,11 +266,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
         """
-        Assign a callback to be called when the focus index changes
-        for any reason.  The callback is in the form:
+        Assign a callback to be called when the focus index changes for any reason.
 
-        callback(new_focus)
-        new_focus -- new focus index
+        :param callback: a callable in the form ``callback(new_focus)``, where ``new_focus`` is the new focus index.
 
         >>> import sys
         >>> ml = MonitoredFocusList([1, 2, 3], focus=1)
@@ -313,14 +310,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         It may also return an integer position to be the new focus after the
         list is modified, or None to use the default behaviour.
 
-        The callback is in the form:
-
-        callback(indices, new_items)
-        indices -- a (start, stop, step) tuple whose range covers the
-            items being modified
-        new_items -- an iterable of items replacing those at range(*indices),
-            empty if items are being removed, if step==1 this list may
-            contain any number of items
+        :param callback: a callable in the form ``callback(indices, new_items)``, where ``indices`` is a
+            ``(start, stop, step)`` tuple whose range covers the items being modified, and ``new_items`` is an
+            iterable of items replacing those at ``range(*indices)`` - empty if items are being removed, and, if
+            ``step == 1``, of any length.
         """
         self._validate_contents_modified_callback = callback
 

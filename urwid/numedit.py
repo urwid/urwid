@@ -57,6 +57,18 @@ class NumEdit(Edit):
         trim_leading_zeros: bool = True,
         allow_negative: bool = False,
     ):
+        """
+        :param allowed: characters accepted by this widget
+        :param caption: caption markup
+        :param default: default edit value
+        :param trimLeadingZeros: legacy spelling of ``trim_leading_zeros``
+        :param trim_leading_zeros: strip leading zeros from the edit value
+        :param allow_negative: accept a leading minus sign
+
+        .. deprecated:: 2.2.3
+            The ``trimLeadingZeros`` argument is deprecated, use the ``trim_leading_zeros``
+            keyword argument instead.
+        """
         super().__init__(caption, default)
         self._allowed = allowed
         self._trim_leading_zeros = trim_leading_zeros
@@ -140,8 +152,8 @@ class IntegerEdit(NumEdit):
         allow_negative: bool = False,
     ) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
+        :param caption: caption markup
+        :param default: default edit value
 
         >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
@@ -267,10 +279,14 @@ class FloatEdit(NumEdit):
         allow_negative: bool = False,
     ) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
-        preserve_significance -- return value has the same signif. as default
-        decimal_separator -- use '.' as separator by default, optionally a ','
+        :param caption: caption markup
+        :param default: default edit value
+        :param preserve_significance: return value has the same signif. as default
+        :param decimal_separator: use '.' as separator by default, optionally a ','
+
+        .. deprecated:: 2.2.3
+            The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,
+            use the ``preserve_significance`` and ``decimal_separator`` keyword arguments instead.
 
         >>> FloatEdit("", "1.065434")
         <FloatEdit selectable flow widget '1.065434' edit_pos=8>

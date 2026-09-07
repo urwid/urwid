@@ -143,8 +143,8 @@ class TwistedEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
         handle = self.reactor.callLater(seconds, self.handle_exit(callback))
         return handle
@@ -170,8 +170,8 @@ class TwistedEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
         ind = _TwistedInputDescriptor(self.reactor, fd, self.handle_exit(callback))
         self._watch_files[fd] = ind

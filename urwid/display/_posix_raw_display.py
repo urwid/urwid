@@ -65,12 +65,10 @@ class Screen(_raw_display_base.Screen):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        bracketed_paste_mode -- enable bracketed paste mode in the host terminal.
-            If the host terminal supports it, the application will receive `begin paste`
-            and `end paste` keystrokes when the user pastes text.
-        focus_reporting -- enable focus reporting in the host terminal.
-            If the host terminal supports it, the application will receive `focus in`
-            and `focus out` keystrokes when the application gains and loses focus.
+        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal. If the host terminal supports it,
+            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
+        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
+            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -110,7 +108,7 @@ class Screen(_raw_display_base.Screen):
 
     def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         super()._sigwinch_handler(signum, frame)
 
@@ -146,7 +144,7 @@ class Screen(_raw_display_base.Screen):
 
     def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         self.signal_restore()
 
@@ -222,7 +220,7 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use an alternate screen buffer
+        :param alternate_buffer: use an alternate screen buffer
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
