@@ -5,6 +5,11 @@ on:
     paths:
       - "**.yml"
       - "**.yaml"
+      - "yamllint-requirements.txt"
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
+  cancel-in-progress: true
 
 jobs:
   check:
@@ -14,4 +19,4 @@ jobs:
       - name: Install uv
         uses: astral-sh/setup-uv@v10.0.1
       - name: Lint YAML files
-        run: uvx yamllint . -f github
+        run: uv run --no-project --with-requirements yamllint-requirements.txt yamllint . -f github
