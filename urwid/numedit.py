@@ -154,6 +154,8 @@ class IntegerEdit(NumEdit):
         """
         :param caption: caption markup
         :param default: default edit value
+        :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
+            consist of digits valid for *base*.
 
         >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
@@ -283,6 +285,8 @@ class FloatEdit(NumEdit):
         :param default: default edit value
         :param preserve_significance: return value has the same signif. as default
         :param decimal_separator: use '.' as separator by default, optionally a ','
+        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`, or *decimal_separator* is
+            neither ``'.'`` nor ``','``.
 
         .. deprecated:: 2.2.3
             The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,

@@ -154,6 +154,11 @@ class MainLoop:
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
     ):
+        """
+        Set up the main loop around a top-level widget, a screen and an event loop.
+
+        :raises NotImplementedError: an *event_loop* is given but *screen* does not support external event loops.
+        """
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
         self._topmost_widget = widget
@@ -407,6 +412,8 @@ class MainLoop:
         specially if you manage the event loop yourself.  In particular, the
         Twisted and asyncio loops won't stop automatically when
         :exc:`ExitMainLoop` (or anything else) is raised.
+
+        :raises CantUseExternalLoop: the screen does not support external event loops.
         """
 
         self.logger.debug(f"Starting event loop {self.event_loop.__class__.__name__!r} to manage display.")
@@ -572,6 +579,8 @@ class MainLoop:
 
         Returns ``True`` if any key was handled by a widget or the
         :meth:`unhandled_input` method.
+
+        :raises TypeError: an item of *keys* is neither a key name nor a mouse event tuple.
         """
         self.logger.debug(f"Processing input: keys={keys!r}")
         if not self.screen_size:
@@ -721,6 +730,11 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
             self._rval = rval
 
         def __call__(self, *argl: typing.Any, **argd: typing.Any) -> _T | None:
+            """
+            Record the call and return the configured return value.
+
+            :raises ExitMainLoop: this call was set up to leave the main loop.
+            """
             args = ", ".join([repr(a) for a in argl])
             if args and argd:
                 args = f"{args}, "
@@ -731,6 +745,11 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
             return self._rval
 
         def __getattr__(self, attr: str) -> Reflect:  # pylint: disable=undefined-variable
+            """
+            Return a nested :class:`Reflect` that records access to *attr*.
+
+            :raises AttributeError: *attr* names a return-value slot rather than a call.
+            """
             if attr.endswith("_rval"):
                 raise AttributeError()
             # print(self._name+"."+attr)

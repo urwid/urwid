@@ -81,6 +81,8 @@ class Screen(_raw_display_base.Screen):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use alternate screen buffer
+        :raises TypeError: unexpected positional or keyword arguments were given.
+        :raises RuntimeError: the console mode could not be set.
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
@@ -129,6 +131,8 @@ class Screen(_raw_display_base.Screen):
     def _stop(self) -> None:
         """
         Restore the screen.
+
+        :raises RuntimeError: the original console mode could not be restored.
         """
         self.clear()
 

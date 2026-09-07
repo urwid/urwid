@@ -85,6 +85,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
         :type top: int
         :param bottom: a fixed number of rows to fill at the bottom
         :type bottom: int
+        :raises FillerError: *valign* is not a vertical alignment value, or a fixed height is combined with a valign it
+            cannot be used with.
 
         If body is a flow widget, then height must be ``'pack'`` and *min_height* will be ignored.
         Sizing of the filler will be BOX/FLOW in this case.
@@ -179,7 +181,10 @@ class Filler(WidgetDecoration[WrappedWidget]):
         return frozenset(sizing)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """Flow pack support if FLOW sizing supported."""
+        """Flow pack support if FLOW sizing supported.
+
+        :raises FillerError: this Filler wraps a BOX widget, so it has no flow row count.
+        """
         if self.height_type == WHSettings.PACK:
             return typing.cast("AbstractFlowWidget", self._original_widget).rows(size, focus) + self.top + self.bottom
         if self.height_type == WHSettings.GIVEN:
@@ -413,6 +418,7 @@ def calculate_top_bottom_filler(
     :param min_height: a desired minimum width for the widget or None
     :param top: a fixed number of rows to fill on the top
     :param bottom: a fixed number of rows to fill on the bottom
+    :raises TypeError: *valign_type* is relative but no *valign_amount* was given.
 
     >>> ctbf = calculate_top_bottom_filler
     >>> ctbf(15, "top", 0, "given", 10, None, 2, 0)

@@ -64,6 +64,8 @@ class PopUpLauncher(
         :meth:`get_pop_up_parameters`, so the widget returned here must accept an
         (*overlay_width*, *overlay_height*) size.  Wrap a flow or fixed widget in a
         :class:`Filler <urwid.Filler>` (or in another box container) before returning it.
+
+        :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
 
@@ -74,6 +76,8 @@ class PopUpLauncher(
         {'left':0, 'top':1, 'overlay_width':30, 'overlay_height':4}
 
         This method is called each time this widget is rendered.
+
+        :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
 
@@ -147,6 +151,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         return self._current_widget.render(size, focus=focus)
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
+        """
+        Return the cursor coordinates of the current widget.
+
+        :raises TypeError: the current widget has no ``get_cursor_coords`` method.
+        """
         self._update_overlay(size, True)
 
         if not hasattr(self._current_widget, "get_cursor_coords"):
@@ -155,6 +164,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         return self._current_widget.get_cursor_coords(size)
 
     def get_pref_col(self, size: tuple[int, int]) -> int:
+        """
+        Return the preferred cursor column of the current widget.
+
+        :raises TypeError: the current widget has no ``get_pref_col`` method.
+        """
         self._update_overlay(size, True)
 
         if not hasattr(self._current_widget, "get_pref_col"):
@@ -171,6 +185,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         return self._current_widget.keypress(size, key)
 
     def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int) -> bool:
+        """
+        Move the cursor of the current widget to ``(x, y)``.
+
+        :raises TypeError: the current widget has no ``move_cursor_to_coords`` method.
+        """
         self._update_overlay(size, True)
 
         if not hasattr(self._current_widget, "move_cursor_to_coords"):

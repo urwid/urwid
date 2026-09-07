@@ -128,6 +128,8 @@ class Screen(BaseScreen, RealTerminal):
 
         After calling this function get_input will include mouse
         click events along with keystrokes.
+
+        :raises NotImplementedError: *enable* is false; tracking cannot be turned off.
         """
         enable = bool(enable)
         if enable == self._mouse_tracking_enabled:
@@ -308,6 +310,7 @@ class Screen(BaseScreen, RealTerminal):
         """Return pending input as a list.
 
         :param raw_keys: return raw keycodes as well as translated versions
+        :raises RuntimeError: the screen has not been started.
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -320,11 +323,11 @@ class Screen(BaseScreen, RealTerminal):
 
         Examples of keys returned:
 
-        * ASCII printable characters:  " ", "a", "0", "A", "-", "/"
-        * ASCII control characters:  "tab", "enter"
-        * Escape sequences:  "up", "page up", "home", "insert", "f1"
-        * Key combinations:  "shift f1", "meta a", "ctrl b"
-        * Window events:  "window resize"
+        * ASCII printable characters:  :kbd:`space`, :kbd:`a`, :kbd:`0`, :kbd:`A`, :kbd:`-`, :kbd:`/`
+        * ASCII control characters:  :kbd:`tab`, :kbd:`enter`
+        * Escape sequences:  :kbd:`up`, :kbd:`page up`, :kbd:`home`, :kbd:`insert`, :kbd:`f1`
+        * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
+        * Window events:  ``"window resize"``
 
         When a narrow encoding is not enabled:
 
@@ -553,7 +556,12 @@ class Screen(BaseScreen, RealTerminal):
         self.s.attrset(attr)
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        """Paint screen with rendered canvas."""
+        """Paint screen with rendered canvas.
+
+        :raises RuntimeError: the screen has not been started.
+        :raises ValueError: *canvas* does not match *size*, or a run carries an unknown character set.
+        :raises TypeError: a text run is not a byte string.
+        """
 
         logger = self.logger.getChild("draw_screen")
 

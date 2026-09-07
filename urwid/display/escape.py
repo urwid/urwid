@@ -196,6 +196,11 @@ class KeyqueueTrie:
     __slots__ = ("data",)
 
     def __init__(self, sequences: Iterable[tuple[str, str]]) -> None:
+        """
+        Build a trie of the given ``(escape sequence, key name)`` pairs.
+
+        :raises TypeError: two sequences collide in the trie.
+        """
         self.data: _KeyQueueData = {}
         for s, result in sequences:
             if isinstance(result, dict):
@@ -208,6 +213,12 @@ class KeyqueueTrie:
         s: str,
         result: str,
     ) -> None:
+        """
+        Add one ``(escape sequence, key name)`` pair to the trie.
+
+        :raises RuntimeError: the sequence collides with a shorter one already in the trie.
+        :raises ValueError: the sequence collides with a longer one already in the trie.
+        """
         if not isinstance(root, MutableMapping) or not s:
             raise RuntimeError("trie conflict detected")
 
@@ -242,6 +253,11 @@ class KeyqueueTrie:
         keys: list[int],
         more_available: bool,
     ) -> tuple[str | _MouseInput, list[int]] | None:
+        """
+        Walk the trie for the next key, consuming codes as it goes.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
         if not isinstance(root, MutableMapping):
             if root == "mouse":
                 return self.read_mouse_info(keys, more_available)
@@ -267,6 +283,11 @@ class KeyqueueTrie:
         keys: list[int],
         more_available: bool,
     ) -> tuple[_MouseInput, list[int]] | None:
+        """
+        Read an X10 mouse report from the codes and return the resulting input.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired()
@@ -314,6 +335,12 @@ class KeyqueueTrie:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
 
+        """
+        Read an SGR mouse report from the codes and return the resulting input.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        :raises ValueError: the report ends with an unknown mouse action.
+        """
         if not keys:
             if more_available:
                 raise MoreInputRequired()
@@ -377,6 +404,8 @@ class KeyqueueTrie:
         Interpret cursor position information being sent by the
         user's terminal.  Returned as ('cursor position', x, y)
         where (x, y) == (0, 0) is the top left of the screen.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
         if not keys:
             if more_available:
@@ -503,6 +532,7 @@ def process_keyqueue(
     :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
         (escape/utf8/wide) and caller will attempt to send more key codes on the next call.
     :returns: a ``(list of input, list of remaining key codes)`` tuple.
+    :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
     """
     code = codes[0]
     if 32 <= code <= 126:
@@ -616,6 +646,11 @@ INSERT_OFF = f"{ESC}[4l"
 
 
 def set_cursor_position(x: int, y: int) -> str:
+    """
+    Return the escape sequence that moves the cursor to column *x*, row *y*.
+
+    :raises TypeError: *x* or *y* is not an integer.
+    """
     if not isinstance(x, int):
         raise TypeError(x)
     if not isinstance(y, int):

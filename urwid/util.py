@@ -59,6 +59,11 @@ if typing.TYPE_CHECKING:
 
 
 def __getattr__(name: str) -> typing.Any:
+    """
+    Resolve module attributes that moved to another module, warning about the move.
+
+    :raises AttributeError: *name* is not defined in this module.
+    """
     if hasattr(str_util, name):
         warnings.warn(
             f"Do not import {name!r} from {__package__}.{__name__}, import it from 'urwid'.",
@@ -187,6 +192,8 @@ def get_encoding_mode() -> Literal["wide", "narrow", "utf8"]:
 def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U", "0"] | None, int]]]:
     """
     Return (encoded byte string, character set rle).
+
+    :raises TypeError: *s* could not be encoded to the target encoding.
     """
     # Import locally to warranty no circular imports
     from urwid.display import escape
@@ -359,6 +366,8 @@ def rle_len(
     """
     Return the number of characters covered by a run length
     encoded attribute list.
+
+    :raises TypeError: an item of *rle* is not a ``(value, run length)`` tuple.
     """
 
     run = 0
@@ -496,7 +505,9 @@ def _tagmarkup_recurse(
     """Return (text list, attribute list) for tagmarkup passed.
 
     :param tm: tagmarkup
-    :param attr: current attribute or None"""
+    :param attr: current attribute or None
+    :raises TagMarkupException: an element is neither text nor an ``(attribute, tagmarkup)`` pair.
+    """
 
     if isinstance(tm, list):
         # for lists recurse to process each subelement

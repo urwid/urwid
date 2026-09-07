@@ -142,6 +142,7 @@ class ZMQEventLoop(EventLoop):
 
         :param int flags:
             The condition to monitor on the queue (defaults to ``POLLIN``).
+        :raises ValueError: *queue* is already being watched.
         """
         if queue in self._queue_callbacks:
             raise ValueError(f"already watching {queue!r}")

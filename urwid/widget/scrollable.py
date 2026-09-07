@@ -140,6 +140,8 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
 
             It would be better to scroll until the next focusable widget is in sight first.
             But for that to work we must somehow obtain a list of focusable rows in the original canvas.
+
+        :raises ValueError: *widget* is neither a FIXED nor a FLOW widget.
         """
         if not widget.sizing() & frozenset((Sizing.FIXED, Sizing.FLOW)):
             raise ValueError(f"Not a fixed or flow widget: {widget!r}")
@@ -397,6 +399,11 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         self,
         size: tuple[int, int],
     ) -> tuple[int] | tuple[()]:
+        """
+        Return the size to render the wrapped widget with.
+
+        :raises ScrollableError: the wrapped widget supports neither FLOW nor FIXED sizing.
+        """
         ow = self._original_widget
         sizing = ow.sizing()
         if Sizing.FLOW in sizing:
@@ -431,6 +438,8 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         """Return the number of rows for `size`
 
         If `size` is not given, the currently rendered number of rows is returned.
+
+        :raises ScrollableError: the wrapped widget is neither a FLOW nor a FIXED widget.
         """
         if size is not None:
             ow = self._original_widget
@@ -493,6 +502,9 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         `trough_char` is used for the space above and below the handle.
         `side` must be 'left' or 'right'.
         `width` specifies the number of columns the scrollbar uses.
+
+        :raises ValueError: *widget* is not a BOX widget.
+        :raises TypeError: *widget* does not wrap anything that supports the scrolling protocol.
         """
         if Sizing.BOX not in widget.sizing():
             raise ValueError(f"Not a box widget: {widget!r}")
@@ -526,6 +538,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             and therefore no scrollbar is drawn.
             Otherwise, the thumb and trough placement is returned,
             so :meth:`render` and :meth:`mouse_event` can share the same geometry without duplicating the maths.
+        :raises TypeError: the wrapped widget does not support the scrolling protocol.
         """
         maxcol, maxrow = size
 
@@ -657,6 +670,11 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @scrollbar_side.setter
     def scrollbar_side(self, side: Literal["left", "right"]) -> None:
+        """
+        Set the side of the widget the scrollbar is drawn on.
+
+        :raises ValueError: *side* is neither ``'left'`` nor ``'right'``.
+        """
         if side not in {SCROLLBAR_LEFT, SCROLLBAR_RIGHT}:
             raise ValueError(f'scrollbar_side must be "left" or "right", not {side!r}')
         self._scrollbar_side = side
@@ -664,7 +682,10 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @property
     def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
-        """Nearest `original_widget` that is compatible with the scrolling API"""
+        """Nearest `original_widget` that is compatible with the scrolling API
+
+        :raises ScrollableError: no wrapped widget supports the scrolling protocol.
+        """
 
         w = self
 

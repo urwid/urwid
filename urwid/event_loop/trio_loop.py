@@ -225,6 +225,8 @@ class TrioEventLoop(EventLoop):
 
         Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup,
         we cannot simply use a try..catch clause, we need a helper function like this.
+
+        :raises BaseException: *exc* itself, unless it is :exc:`ExitMainLoop`.
         """
         self._idle_callbacks.clear()
         if isinstance(exc, BaseExceptionGroup) and len(exc.exceptions) == 1:

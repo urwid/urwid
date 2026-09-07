@@ -61,24 +61,24 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     """
     dict-like object for looking up commands from keystrokes
 
-    Default values (key: command)::
+    Default values:
 
-        'tab':       'next selectable',
-        'ctrl n':    'next selectable',
-        'shift tab': 'prev selectable',
-        'ctrl p':    'prev selectable',
-        'ctrl l':    'redraw screen',
-        'esc':       'menu',
-        'up':        'cursor up',
-        'down':      'cursor down',
-        'left':      'cursor left',
-        'right':     'cursor right',
-        'page up':   'cursor page up',
-        'page down': 'cursor page down',
-        'home':      'cursor max left',
-        'end':       'cursor max right',
-        ' ':         'activate',
-        'enter':     'activate',
+    :kbd:`tab`, :kbd:`ctrl n`
+        ``'next selectable'``
+    :kbd:`shift tab`, :kbd:`ctrl p`
+        ``'prev selectable'``
+    :kbd:`ctrl l`
+        ``'redraw screen'``
+    :kbd:`esc`
+        ``'menu'``
+    :kbd:`up`, :kbd:`down`, :kbd:`left`, :kbd:`right`
+        ``'cursor up'``, ``'cursor down'``, ``'cursor left'``, ``'cursor right'``
+    :kbd:`page up`, :kbd:`page down`
+        ``'cursor page up'``, ``'cursor page down'``
+    :kbd:`home`, :kbd:`end`
+        ``'cursor max left'``, ``'cursor max right'``
+    :kbd:`space`, :kbd:`enter`
+        ``'activate'``
     """
 
     def __iter__(self) -> Iterator[str]:

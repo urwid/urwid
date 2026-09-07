@@ -62,6 +62,7 @@ class SimpleDequeWalker(
         :param wrap_around: if true, jumps to beginning/end of deque on move
         :param maxlen: if set, bounds the deque's length; the oldest items are silently evicted
             from the opposite end once full
+        :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleDequeWalker expecting iterable object, got: {contents!r}")
@@ -165,6 +166,7 @@ class SimpleFocusDequeWalker(
         :param maxlen: if set, bounds the deque's length; the oldest items are silently evicted
             from the opposite end once full, and focus is adjusted to keep tracking a sensible
             item (see :class:`MonitoredFocusDeque`)
+        :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusDequeWalker expecting iterable object, got: {contents!r}")

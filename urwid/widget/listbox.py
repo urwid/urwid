@@ -239,12 +239,22 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
     @property
     def __len__(self) -> Callable[[], int]:
+        """
+        Return the length of the body, when the body reports one.
+
+        :raises AttributeError: the body is not :class:`Sized`.
+        """
         if isinstance(self._body, Sized):
             return self._body.__len__
         raise AttributeError(f"{self._body.__class__.__name__} is not Sized")
 
     @property
     def __length_hint__(self) -> Callable[[], int]:  # pylint: disable=invalid-length-hint-returned
+        """
+        Return an estimated length of the body, when the body can provide one.
+
+        :raises AttributeError: the body is neither :class:`Sized` nor implements ``__length_hint__``.
+        """
         if isinstance(self._body, (Sized, EstimatedSized)):
             return lambda: operator.length_hint(self._body)
         raise AttributeError(f'{self._body.__class__.__name__} is not Sized and do not implement "__length_hint__"')
@@ -385,6 +395,12 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         )
 
     def _check_support_scrolling(self) -> None:
+        """
+        Reject the body if it cannot support the scrolling protocol.
+
+        :raises ListBoxError: the body does not implement the scrolling protocol, its size cannot be estimated, or it
+            wraps around, which leaves the scroll position undefined.
+        """
         from .treetools import TreeWalker
 
         if not isinstance(self._body, ScrollSupportingBody):
@@ -497,6 +513,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         Render ListBox and return canvas.
 
         see :meth:`Widget.render` for details
+
+        :raises ListBoxError: the rendered contents do not fit the reported rows, a child widget renders a different
+            number of rows or cursor coordinates than it calculated, or the list walker returns a next position pointing
+            at itself.
         """
         (maxcol, maxrow) = size
 
@@ -642,6 +662,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         :param coming_from: set to 'above' or 'below' if you know that
                             old position is above or below the new position.
         :type coming_from: str
+        :raises ListBoxError: *coming_from* is not ``'above'``, ``'below'`` or ``None``.
+        :raises TypeError: the body does not implement ``set_focus``.
+        :raises IndexError: the ListBox is empty.
         """
         if coming_from not in {"above", "below", None}:
             raise ListBoxError(f"coming_from value invalid: {coming_from!r}")
@@ -687,6 +710,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """
         Return the list walker position of the widget in focus. The type
         of value returned depends on the :obj:`list walker <ListWalker>`.
+
+        :raises IndexError: the ListBox is empty.
 
         """
         w, pos = self._body.get_focus()
@@ -738,6 +763,12 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
     def _contents__getitem__(self, key: _K) -> tuple[AbstractFlowWidget, None]:
         # try list walker protocol v2 first
+        """
+        Return the ``(widget, options)`` pair at *key*, for the container contents protocol.
+
+        :raises TypeError: the body does not implement ``set_focus``.
+        :raises KeyError: *key* is not a position in the body.
+        """
         if hasattr(self._body, "__getitem__"):
             try:
                 return (self._body[key], None)
@@ -810,7 +841,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         self.shift_focus((maxcol, maxrow), rtop)
 
     def _set_focus_first_selectable(self, size: tuple[int, int], focus: bool) -> None:
-        """Choose the first visible, selectable widget below the current focus as the focus widget."""
+        """Choose the first visible, selectable widget below the current focus as the focus widget.
+
+        :raises TypeError: the body does not implement ``set_focus``.
+        """
         (maxcol, maxrow) = size
         self.set_focus_valign_pending = None
         self.set_focus_pending = None
@@ -839,7 +873,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             new_row_offset += rows
 
     def _set_focus_complete(self, size: tuple[int, int], focus: bool) -> None:
-        """Finish setting the position now that we have maxcol & maxrow."""
+        """Finish setting the position now that we have maxcol & maxrow.
+
+        :raises TypeError: the body does not implement ``set_focus``.
+        """
         (maxcol, maxrow) = size
         self._invalidate()
         if self.set_focus_pending == "first selectable":
@@ -916,6 +953,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             of the focus widget is aligned with the top edge of the
             listbox.
         :type offset_inset: int
+        :raises ListBoxError: *offset_inset* falls outside the listbox rows or the rows of the focus widget.
         """
         (maxcol, maxrow) = size
 
@@ -984,6 +1022,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         :param snap_rows: the maximum number of extra rows to scroll
             when trying to "snap" a selectable focus into the view
         :type snap_rows: int
+        :raises TypeError: the body does not implement ``set_focus``.
+        :raises ListBoxError: *offset_inset* leaves no row of the target visible, or *cursor_coords* names a row outside
+            the target widget.
+        :raises ValueError: the cursor row is unspecified and *coming_from* is neither ``'above'`` nor ``'below'``.
         """
         (maxcol, maxrow) = size
 
@@ -1077,7 +1119,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
                 break
 
     def get_focus_offset_inset(self, size: tuple[int, int]) -> tuple[int, int]:
-        """Return (offset rows, inset rows) for focus widget."""
+        """Return (offset rows, inset rows) for focus widget.
+
+        :raises ListBoxError: the stored inset fraction is invalid or exceeds the rows of the focus widget.
+        """
         (maxcol, _maxrow) = size
         focus_widget, _pos = self._body.get_focus()
         focus_rows = typing.cast("AbstractFlowWidget", focus_widget).rows((maxcol,), True)
@@ -1127,10 +1172,15 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         in case that widget can handle them.
 
         Keystrokes handled by this widget are:
-         'up'        up one line (or widget)
-         'down'      down one line (or widget)
-         'page up'   move cursor up one listbox length (or widget)
-         'page down' move cursor down one listbox length (or widget)
+
+        :kbd:`up`
+            up one line (or widget)
+        :kbd:`down`
+            down one line (or widget)
+        :kbd:`page up`
+            move cursor up one listbox length (or widget)
+        :kbd:`page down`
+            move cursor down one listbox length (or widget)
         """
         from urwid.command_map import Command
 
@@ -1177,6 +1227,11 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         return key
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
+        """
+        Move the focus to the first position of the body.
+
+        :raises TypeError: the body does not implement ``positions``.
+        """
         if not hasattr(self.body, "positions"):
             raise TypeError(f"{type(self.body)}.positions is not implemented.")
 
@@ -1184,6 +1239,11 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         self.set_focus_valign(VAlign.TOP)
 
     def _keypress_max_right(self, size: tuple[int, int]) -> None:
+        """
+        Move the focus to the last position of the body.
+
+        :raises TypeError: the body does not implement ``positions``.
+        """
         if not hasattr(self.body, "positions"):
             raise TypeError(f"{type(self.body)}.positions is not implemented.")
 

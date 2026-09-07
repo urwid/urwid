@@ -126,7 +126,10 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         return f"{self.get_node().get_key()}: {self.get_node().get_value()!s}"
 
     def next_inorder(self) -> TreeWidget[TreeNode[typing.Any]] | None:
-        """Return the next TreeWidget depth first from this one."""
+        """Return the next TreeWidget depth first from this one.
+
+        :raises ValueError: the tree walker returned a node at an unexpected depth.
+        """
         # first check if there's a child widget
 
         if (first_child := self.first_child()) is not None:
@@ -300,6 +303,8 @@ class TreeNode(typing.Generic[_T]):
 
         This function is only required if the tree was instantiated from a child node
         (virtual function)
+
+        :raises TreeWidgetError: the subclass does not override this method.
         """
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
@@ -350,7 +355,10 @@ class ParentNode(TreeNode[_T]):
         return self._child_keys
 
     def load_child_keys(self) -> Sequence[Hashable]:
-        """Provide ParentNode with an ordered list of child keys (virtual function)"""
+        """Provide ParentNode with an ordered list of child keys (virtual function)
+
+        :raises TreeWidgetError: the subclass does not override this method.
+        """
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
     def get_child_widget(self, key: Hashable) -> TreeWidget[TreeNode[typing.Any]]:
@@ -365,7 +373,10 @@ class ParentNode(TreeNode[_T]):
         return self._children[key]
 
     def load_child_node(self, key: Hashable) -> TreeNode[typing.Any]:
-        """Load the child node for a given key (virtual function)"""
+        """Load the child node for a given key (virtual function)
+
+        :raises TreeWidgetError: the subclass does not override this method.
+        """
         raise TreeWidgetError("virtual function.  Implement in subclass")
 
     def set_child_node(self, key: Hashable, node: TreeNode[typing.Any]) -> None:
@@ -376,12 +387,22 @@ class ParentNode(TreeNode[_T]):
         self._children[key] = node
 
     def change_child_key(self, oldkey: Hashable, newkey: Hashable) -> None:
+        """
+        Rename a child, moving it from *oldkey* to *newkey*.
+
+        :raises TreeWidgetError: *newkey* is already used by another child.
+        """
         if newkey in self._children:
             raise TreeWidgetError(f"{newkey} is already in use")
         self._children[newkey] = self._children.pop(oldkey)
         self._children[newkey].set_key(newkey)
 
     def get_child_index(self, key: Hashable) -> int:
+        """
+        Return the position of the child *key* among the child keys.
+
+        :raises TreeWidgetError: *key* is not a child of this node.
+        """
         try:
             return self.get_child_keys().index(key)
         except ValueError as exc:

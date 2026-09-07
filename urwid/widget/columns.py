@@ -251,6 +251,7 @@ class Columns(
         :param box_columns: a list of column indexes containing box widgets
             whose height is set to the maximum of the rows
             required by columns not listed in *box_columns*.
+        :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
 
         *widget_list* may also contain tuples such as:
 
@@ -417,6 +418,11 @@ class Columns(
             ]
         ],
     ) -> None:
+        """
+        Reject contents changes that would put an invalid item into the Columns.
+
+        :raises ColumnsError: an added item is not a valid ``(widget, options)`` pair.
+        """
         invalid_items: list[tuple[AbstractWidget, tuple[typing.Any, typing.Any, typing.Any]]] = []
         try:
             for item in new_items:
@@ -678,6 +684,7 @@ class Columns(
         :param box_widget: set to `True` if this widget is to be treated as a box
             widget when the Columns widget itself is treated as a flow widget.
         :type box_widget: bool
+        :raises ColumnsError: *width_type* and *width_amount* are not a valid combination.
         """
         if width_type == WHSettings.PACK:
             return (WHSettings.PACK, None, box_widget)
@@ -729,6 +736,7 @@ class Columns(
         Set the item in focus.
 
         :param item: widget or integer index
+        :raises ValueError: *item* is a widget that is not in the contents.
 
         .. deprecated:: 1.1.0
             Use the standard container property :attr:`focus_position` instead.
@@ -781,6 +789,8 @@ class Columns(
         """
         index of child widget in focus.
         Raises :exc:`IndexError` if read when Columns is empty, or when set to an invalid index.
+
+        :raises IndexError: the Columns is empty.
         """
         if (focus := self.contents.focus) is not None:
             return focus
@@ -793,6 +803,7 @@ class Columns(
         Set the widget in focus.
 
         :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not an index of a child widget.
         """
         try:
             if position < 0 or position >= len(self.contents):
@@ -946,7 +957,11 @@ class Columns(
         self,
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get column widths, heights and render size parameters"""
+        """Get column widths, heights and render size parameters
+
+        :raises ColumnsError: a child widget does not support a sizing mode this Columns needs, or no child can provide
+            a height.
+        """
         widths: dict[int, int] = {}
         heights: dict[int, int] = {}
         w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
@@ -1128,6 +1143,7 @@ class Columns(
         :param size: see :meth:`Widget.render` for details
         :param focus: ``True`` if this widget is in focus
         :type focus: bool
+        :raises ColumnsError: the Columns has no visible column to render.
         """
         widths, _, size_args = self.get_column_sizes(size, focus)
 
@@ -1189,6 +1205,8 @@ class Columns(
         Choose a selectable column to focus based on the coords.
 
         see :meth:`Widget.move_cursor_coords` for details
+
+        :raises ValueError: no column accepts the cursor at the given coordinates.
         """
         try:
             widths, _, size_args = self.get_column_sizes(size, focus=True)

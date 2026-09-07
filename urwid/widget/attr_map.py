@@ -105,6 +105,8 @@ class AttrMap(
         >>> w.set_attr_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
+
+        :raises AttrMapError: a key or value of the mapping is not hashable.
         """
         for from_attr, to_attr in attr_map.items():
             if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
@@ -143,6 +145,8 @@ class AttrMap(
         >>> w.set_focus_map(None)
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={}>
+
+        :raises AttrMapError: a key or value of the mapping is not hashable.
         """
         if focus_map is not None:
             for from_attr, to_attr in focus_map.items():

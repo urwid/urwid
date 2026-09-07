@@ -297,6 +297,8 @@ def validate_size(
 ) -> None:
     """
     Raise a WidgetError if a canv does not match size.
+
+    :raises WidgetError: *canv* does not have the size the widget was rendered with.
     """
     if (size and size[1:] != (0,) and size[0] != canv.cols()) or (len(size) > 1 and size[1] != canv.rows()):
         raise WidgetError(
@@ -595,6 +597,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         See :meth:`Widget.render` for parameter details.
 
         :returns: A "packed" size (*maxcol*, *maxrow*) for this widget
+        :raises NotImplementedError: the widget supports FIXED sizing but does not override this method.
+        :raises WidgetError: *size* does not match any sizing mode the widget supports.
 
         Calculate and return a minimum
         size where all content could still be displayed. Fixed widgets must
@@ -654,11 +658,18 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         Property for reading and setting the focus position for container widgets.
         This default implementation raises :exc:`IndexError`,
         making normal widgets fail the same way accessing :attr:`.focus_position` on an empty container widget would.
+
+        :raises IndexError: this widget is not a container widget.
         """
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     @focus_position.setter
     def focus_position(self, val: typing.Any) -> None:
+        """
+        Reject setting a focus position: this widget is not a container widget.
+
+        :raises IndexError: this widget is not a container widget.
+        """
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     def __repr__(self) -> str:
@@ -771,6 +782,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         :type focus: bool
 
         :returns: A :class:`Canvas` subclass instance containing the rendered content of this widget
+        :raises NotImplementedError: the subclass does not implement rendering.
 
         :class:`Text` widgets return a :class:`TextCanvas` (arbitrary text and display attributes),
         :class:`SolidFill` widgets return a :class:`SolidCanvas` (a single character repeated across the whole surface)
@@ -798,6 +810,8 @@ def fixed_size(size: tuple[()]) -> None:
     raise ValueError if size != ().
 
     Used by FixedWidgets to test size parameter.
+
+    :raises ValueError: *size* is not the empty tuple a FIXED widget expects.
     """
     if size:
         raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")

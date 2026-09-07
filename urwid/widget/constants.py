@@ -80,6 +80,8 @@ def normalize_align(
     """
     Split align into (align_type, align_amount).  Raise exception err
     if align doesn't match a valid alignment.
+
+    :raises err: *align* is not a valid alignment; the class to raise is supplied by the caller.
     """
     if align in {Align.LEFT, Align.CENTER, Align.RIGHT}:
         return (Align(align), None)
@@ -121,6 +123,8 @@ def simplify_align(
     """
     Recombine (align_type, align_amount) into an align value.
     Inverse of normalize_align.
+
+    :raises TypeError: *align_amount* is not an integer.
     """
     if align_type == WHSettings.RELATIVE:
         if not isinstance(align_amount, int):
@@ -151,6 +155,8 @@ def normalize_valign(
     """
     Split align into (valign_type, valign_amount).  Raise exception err
     if align doesn't match a valid alignment.
+
+    :raises err: *valign* is not a valid vertical alignment; the class to raise is supplied by the caller.
     """
     if valign in {VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM}:
         return (VAlign(valign), None)
@@ -192,6 +198,8 @@ def simplify_valign(
     """
     Recombine (valign_type, valign_amount) into an valign value.
     Inverse of normalize_valign.
+
+    :raises TypeError: *valign_amount* is not an integer.
     """
     if valign_type == WHSettings.RELATIVE:
         if not isinstance(valign_amount, int):
@@ -244,6 +252,8 @@ def normalize_width(
     """
     Split width into (width_type, width_amount).  Raise exception err
     if width doesn't match a valid alignment.
+
+    :raises err: *width* is not a valid width; the class to raise is supplied by the caller.
     """
     if width in {WHSettings.CLIP, WHSettings.PACK}:
         return (typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width)), None)
@@ -311,6 +321,8 @@ def simplify_width(
     """
     Recombine (width_type, width_amount) into an width value.
     Inverse of normalize_width.
+
+    :raises TypeError: *width_amount* is not an integer.
     """
     if width_type in {WHSettings.CLIP, WHSettings.PACK}:
         return typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width_type))
@@ -371,6 +383,8 @@ def normalize_height(
     """
     Split height into (height_type, height_amount).  Raise exception err
     if height isn't valid.
+
+    :raises err: *height* is not a valid height; the class to raise is supplied by the caller.
     """
     if height == WHSettings.FLOW:
         return (WHSettings.FLOW, None)
@@ -451,6 +465,8 @@ def simplify_height(
     """
     Recombine (height_type, height_amount) into a height value.
     Inverse of normalize_height.
+
+    :raises TypeError: *height_amount* is not an integer.
     """
     if height_type in {WHSettings.FLOW, WHSettings.PACK}:
         return typing.cast("Literal[WHSettings.FLOW, WHSettings.PACK]", WHSettings(height_type))
