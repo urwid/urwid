@@ -1,0 +1,88 @@
+/*
+ * Fixes for the "classic" Sphinx theme as customized via html_theme_options
+ * in conf.py. Loaded after the theme's own classic.css, so rules here win.
+ */
+
+/* --- Fix the sidebar/table-of-contents overlapping the page text --------
+ *
+ * classic.css positions div.sphinxsidebar with `float: left` and
+ * `margin-left: -100%`, relying on it sitting inside a plain block-level
+ * div.document so the negative margin pulls it back over to the left of
+ * div.documentwrapper. Sphinx's classic theme now sets
+ * `div.document { display: flex; }` (for the sidebar background color to
+ * reach the full height of the page), which turns the sidebar and the
+ * document wrapper into flex items instead. Floats no longer apply and the
+ * negative margin just shifts the sidebar left by its own width, so it
+ * overlaps the body text. Making both explicit flex items with a fixed
+ * order restores the intended side-by-side layout.
+ */
+div.documentwrapper {
+    float: none;
+    width: auto;
+    min-width: 0;
+    flex: 1 1 auto;
+    order: 2;
+}
+
+div.sphinxsidebar {
+    float: none;
+    width: 230px;
+    margin-left: 0;
+    flex: 0 0 230px;
+    order: 1;
+}
+
+div.bodywrapper {
+    margin-left: 0;
+}
+
+/* --- Let the body text use the available width on wide screens ---------
+ *
+ * The basic theme caps div.body at 800px so a line of text isn't
+ * uncomfortably long. Combined with our sidebar being pinned to the left,
+ * that just leaves a large blank gutter on wide windows instead of using
+ * the space, and it only gets worse as the window gets wider. Drop the
+ * cap entirely so the text area always fills the room next to the
+ * sidebar.
+ */
+div.body {
+    max-width: none;
+}
+
+/* --- Highlight ".. deprecated::" notices --------------------------------
+ *
+ * classic.css styles div.note, div.warning and div.seealso but never
+ * added a rule for div.deprecated (the block Sphinx generates for
+ * ".. deprecated::"), so deprecation notices render as plain paragraphs
+ * and are easy to miss.
+ */
+div.deprecated {
+    background-color: #ffe4e4;
+    border: 1px solid #f66;
+    padding: 6px 10px;
+    margin-bottom: 10px;
+}
+
+div.deprecated p {
+    margin-bottom: 5px;
+}
+
+/* --- Fill the viewport even when a page's content is short --------------
+ *
+ * div.document only grows to the height of its content, so on short pages
+ * the sidebar/body background stops partway down and the rest of the
+ * window shows the browser's default white background below the footer.
+ */
+html {
+    height: 100%;
+}
+
+body {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+div.document {
+    flex: 1 0 auto;
+}
