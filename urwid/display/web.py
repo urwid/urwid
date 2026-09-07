@@ -150,6 +150,8 @@ class Screen(BaseScreen):
         """Register a list of palette entries.
 
         :param palette: list of (name, foreground, background) or (name, same_as_other_name) palette entries.
+        :raises ValueError: an entry is neither a 2- nor a 3-tuple.
+        :raises KeyError: an entry copies a name that is not registered yet.
 
         calls self.register_palette_entry for each item in l
         """
@@ -222,6 +224,8 @@ class Screen(BaseScreen):
         This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.
 
         web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
+
+        :raises RuntimeError: the ``HTTP_X_URWID_METHOD`` environment variable is not set.
         """
         if self._started:
             return StoppingContext(self)
@@ -316,7 +320,10 @@ class Screen(BaseScreen):
         self.screen_size = cols, rows
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        """Send a screen update to the client."""
+        """Send a screen update to the client.
+
+        :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        """
 
         (cols, rows) = size
         encoding = get_encoding()
@@ -436,6 +443,11 @@ class Screen(BaseScreen):
         self.server_socket = s
 
     def _handle_alarm(self, sig: int, frame: FrameType | None) -> None:
+        """
+        Handle the periodic alarm that keeps the browser connection alive.
+
+        :raises ValueError: the update method is neither multipart nor a polling child.
+        """
         if self.update_method not in {"multipart", "polling child"}:
             raise ValueError(self.update_method)
         if self.update_method == "polling child":

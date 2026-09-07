@@ -210,6 +210,11 @@ class TornadoEventLoop(EventLoop):
         return wrapper
 
     def run(self) -> None:
+        """
+        Start the event loop and run it until :exc:`ExitMainLoop` is raised.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
+        """
         self._loop.start()
         if self._exc:
             exc, self._exc = self._exc, None

@@ -103,6 +103,7 @@ class CanvasCache:
 
         :param wcls: widget class that contains render() function
         :param canvas: rendered canvas with widget_info (widget, size, focus)
+        :raises TypeError: *canvas* has not been finalized, so it carries no widget_info.
         """
         if not canvas.cacheable:
             return
@@ -254,6 +255,7 @@ class Canvas:
         :param widget: widget that rendered this canvas
         :param size: size parameter passed to widget's render method
         :param focus: focus parameter passed to widget's render method
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
             raise self._finalized_error
@@ -284,18 +286,34 @@ class Canvas:
         rows: int = 0,
         attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
+        """
+        Return the canvas content as a list of rows of ``(attr, cs, text)`` tuples.
+
+        :raises NotImplementedError: the subclass does not implement the canvas content protocol.
+        """
         raise NotImplementedError()
 
     def cols(self) -> int:
+        """
+        Return the screen column width of this canvas.
+
+        :raises NotImplementedError: the subclass does not report its own width.
+        """
         raise NotImplementedError()
 
     def rows(self) -> int:
+        """
+        Return the screen row height of this canvas.
+
+        :raises NotImplementedError: the subclass does not report its own height.
+        """
         raise NotImplementedError()
 
     def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
         """Delta between two canvases.
 
         :returns: a list of row deltas if other is None, otherwise an iterator of row deltas.
+        :raises NotImplementedError: the subclass does not implement the canvas content protocol.
 
         .. deprecated:: 4.0.3
             Not used by the code base; there is no replacement. It will be removed in a future release.
@@ -314,6 +332,11 @@ class Canvas:
         return None
 
     def set_cursor(self, c: tuple[int, int] | None) -> None:
+        """
+        Set the cursor position to ``(x, y)``, or remove it when *c* is ``None``.
+
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
+        """
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
@@ -419,6 +442,9 @@ class TextCanvas(Canvas):
         :param cursor: (x,y) of cursor or None
         :param maxcol: screen columns taken by this canvas
         :param check_width: check and fix width of all lines in text
+        :raises CanvasError: a line of *text* is not a plain string in the screen encoding, is wider than *maxcol*, or
+            has an attribute or character set run extending beyond its text.
+        :raises TypeError: *maxcol* is not an integer.
         """
         super().__init__()
         if text is None:
@@ -514,6 +540,9 @@ class TextCanvas(Canvas):
         trim_left, trim_top, cols, rows may be set by
         CompositeCanvas when rendering a partially obscured
         canvas.
+
+        :raises ValueError: *trim_left* or *trim_top*, together with *cols* or *rows*, selects a region outside this
+            canvas.
         """
         maxcol, maxrow = self.cols(), self.rows()
         if not cols:
@@ -603,9 +632,19 @@ class BlankCanvas(Canvas):
             yield line  # type: ignore[misc]  # Yes, list is invariant, but we return it
 
     def cols(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: a BlankCanvas does not know its own size.
+
+        :raises NotImplementedError: a BlankCanvas does not know its own size.
+        """
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
     def rows(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: a BlankCanvas does not know its own size.
+
+        :raises NotImplementedError: a BlankCanvas does not know its own size.
+        """
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
     def content_delta(self, other: Canvas) -> typing.NoReturn:
@@ -614,6 +653,8 @@ class BlankCanvas(Canvas):
 
         .. deprecated:: 4.0.3
             Not used by the code base; there is no replacement. It will be removed in a future release.
+
+        :raises NotImplementedError: a BlankCanvas does not know its own size.
         """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
@@ -632,6 +673,11 @@ class SolidCanvas(Canvas):
     """
 
     def __init__(self, fill_char: str | bytes, cols: int, rows: int) -> None:
+        """
+        Build a canvas of *cols* by *rows* screen cells, every one holding *fill_char*.
+
+        :raises ValueError: *fill_char* is not exactly one screen column wide.
+        """
         super().__init__()
         end, col = calc_text_pos(fill_char, 0, len(fill_char), 1)
         if col != 1:
@@ -736,6 +782,11 @@ class CompositeCanvas(Canvas):
         return f"<{self.__class__.__name__} finalized={bool(self.widget_info)}{' '.join(extra)} at 0x{id(self):X}>"
 
     def rows(self) -> int:
+        """
+        Return the screen row height of this canvas.
+
+        :raises TypeError: a shard carries a non-integer row count.
+        """
         for r, cv in self.shards:
             if not isinstance(r, int):
                 raise TypeError(r, cv)
@@ -743,6 +794,11 @@ class CompositeCanvas(Canvas):
         return sum(r for r, cv in self.shards)
 
     def cols(self) -> int:
+        """
+        Return the screen column width of this canvas.
+
+        :raises TypeError: the shards add up to a non-integer column count.
+        """
         if not self.shards:
             return 0
         cols = sum(cv[2] for cv in self.shards[0][1])
@@ -814,6 +870,8 @@ class CompositeCanvas(Canvas):
 
         :param top: number of lines to remove from top
         :param count: number of lines to keep, or None for all the rest
+        :raises ValueError: *top* is negative, or is at least the number of rows in this canvas.
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if top < 0:
             raise ValueError(f"invalid trim amount {top:d}!")
@@ -836,6 +894,8 @@ class CompositeCanvas(Canvas):
         """Trim lines from the bottom of the canvas.
 
         :param end: number of lines to remove from the end
+        :raises ValueError: *end* is not positive, or is greater than the number of rows in this canvas.
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if end <= 0:
             raise ValueError(f"invalid trim amount {end:d}!")
@@ -852,6 +912,8 @@ class CompositeCanvas(Canvas):
 
         values > 0 indicate screen columns to pad
         values < 0 indicate screen columns to trim
+
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
             raise self._finalized_error
@@ -879,6 +941,8 @@ class CompositeCanvas(Canvas):
     def pad_trim_top_bottom(self, top: int, bottom: int) -> None:
         """
         Pad or trim this canvas on the top and bottom.
+
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
             raise self._finalized_error
@@ -900,7 +964,11 @@ class CompositeCanvas(Canvas):
             self.shards.append((bottom, [(0, 0, cols, bottom, None, blank_canvas)]))
 
     def overlay(self, other: CompositeCanvas, left: int, top: int) -> None:
-        """Overlay other onto this canvas."""
+        """Overlay other onto this canvas.
+
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
+        :raises ValueError: *other* does not fit within this canvas at the given *left* and *top* offsets.
+        """
         if self.widget_info:
             raise self._finalized_error
 
@@ -955,6 +1023,7 @@ class CompositeCanvas(Canvas):
         Apply an attribute-mapping dictionary to the canvas.
 
         :param mapping: dictionary of original-attribute:new-attribute items
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
             raise self._finalized_error
@@ -978,6 +1047,8 @@ class CompositeCanvas(Canvas):
         Explicitly specify the list of widgets that this canvas
         depends on.  If any of these widgets change this canvas
         will have to be updated.
+
+        :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
             raise self._finalized_error
@@ -990,6 +1061,8 @@ def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]
     Return one row, advancing the iterators in sbody.
 
     ** MODIFIES sbody by calling next() on its iterators **
+
+    :raises ValueError: a shard body entry has no content iterator.
     """
     row = []
     for _done_rows, content_iter, _cview in sbody:
@@ -1118,6 +1191,8 @@ def shard_body(
     num_rows is the row count of the shard being processed. It is used to bound a blank
     filler cview if cviews run out before a shard_tail gap is filled (see below); pass it
     whenever the caller knows how many rows this shard spans.
+
+    :raises CanvasError: the cviews overflow the gaps left by *shard_tail*.
     """
     col = 0
     body: list[tuple[int, Iterator[_ContentLine] | None, _CView]] = []  # build the next shard tail
@@ -1168,6 +1243,9 @@ def shards_trim_top(
 ) -> list[tuple[int, list[_CView]]]:
     """
     Return shards with top rows removed.
+
+    :raises ValueError: *top* is not positive.
+    :raises CanvasError: *top* is at least the number of rows in *shards*, so nothing would be left.
     """
     if top <= 0:
         raise ValueError(top)
@@ -1205,6 +1283,8 @@ def shards_trim_rows(
 ) -> list[tuple[int, list[_CView]]]:
     """
     Return the topmost keep_rows rows from shards.
+
+    :raises ValueError: *keep_rows* is negative.
     """
     if keep_rows < 0:
         raise ValueError(keep_rows)
@@ -1237,6 +1317,8 @@ def shards_trim_sides(
 ) -> list[tuple[int, list[_CView]]]:
     """
     Return shards with starting from column left and cols total width.
+
+    :raises ValueError: *left* is negative, or *cols* is not positive.
     """
     if left < 0:
         raise ValueError(left)

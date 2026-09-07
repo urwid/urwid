@@ -93,6 +93,8 @@ class HtmlGenerator(BaseScreen):
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Create an html fragment from the render object.
         Append it to HtmlGenerator.fragments list.
+
+        :raises ValueError: *canvas* does not have the number of rows given by *size*.
         """
         # collect output in l
         lines = []
@@ -133,7 +135,10 @@ class HtmlGenerator(BaseScreen):
         self.fragments.append(f"<pre>{''.join(lines)}</pre>")
 
     def get_cols_rows(self) -> tuple[int, int]:
-        """Return the next screen size in HtmlGenerator.sizes."""
+        """Return the next screen size in HtmlGenerator.sizes.
+
+        :raises HtmlGeneratorSimulationError: the list of simulated sizes is exhausted.
+        """
         if not self.sizes:
             raise HtmlGeneratorSimulationError("Ran out of screen sizes to return!")
         return self.sizes.pop(0)
@@ -145,7 +150,10 @@ class HtmlGenerator(BaseScreen):
     def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
-        """Return the next list of keypresses in HtmlGenerator.keys."""
+        """Return the next list of keypresses in HtmlGenerator.keys.
+
+        :raises ExitMainLoop: the list of simulated key presses is exhausted.
+        """
         if not self.keys:
             raise ExitMainLoop()
         if raw_keys:
@@ -202,6 +210,8 @@ def screenshot_init(
 
     :param sizes: list of ( columns, rows ) tuples to be returned by each call to HtmlGenerator.get_cols_rows()
     :param keys: list of lists of keys to be returned by each call to HtmlGenerator.get_input()
+    :raises TypeError: *sizes* is not a list of integer pairs, or *keys* is not a list of lists of strings.
+    :raises ValueError: a size has a non-positive number of columns or rows.
 
     Lists of keys may include "window resize" to force the application to
     call get_cols_rows and read a new screen size.
@@ -209,9 +219,9 @@ def screenshot_init(
     For example, the following call will prepare an application to:
      1. start in 80x25 with its first call to get_cols_rows()
      2. take a screenshot when it calls draw_screen(..)
-     3. simulate 5 "down" keys from get_input()
+     3. simulate 5 :kbd:`down` keys from get_input()
      4. take a screenshot when it calls draw_screen(..)
-     5. simulate keys "a", "b", "c" and a "window resize"
+     5. simulate keys :kbd:`a`, :kbd:`b`, :kbd:`c` and a ``"window resize"`` event
      6. resize to 20x10 on its second call to get_cols_rows()
      7. take a screenshot when it calls draw_screen(..)
      8. simulate a "Q" keypress to quit the application

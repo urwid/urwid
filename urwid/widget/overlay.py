@@ -260,6 +260,11 @@ class Overlay(
         size: tuple[()] | tuple[int] | tuple[int, int] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
+        """
+        Return the size the widget would render as, for FIXED sizing.
+
+        :raises OverlayError: a FIXED render is requested but the overlay parameters do not resolve to a fixed size.
+        """
         if size:
             return super().pack(size, focus)
 
@@ -329,7 +334,10 @@ class Overlay(
         )
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """Widget rows amount for FLOW sizing."""
+        """Widget rows amount for FLOW sizing.
+
+        :raises OverlayError: the overlay parameters do not resolve to a row count for the given size.
+        """
         extra_height = (self.top or 0) + (self.bottom or 0)
         if self.height_type == WHSettings.GIVEN:
             return typing.cast("int", self.height_amount) + extra_height
@@ -441,6 +449,8 @@ class Overlay(
         top widget of this Overlay.  It is provided for completeness
         but is not necessarily the easiest way to change the overlay parameters.
         See also :meth:`.set_overlay_parameters`
+
+        :raises ValueError: *align* or *valign* names an unknown alignment type.
         """
         if align_type in {Align.LEFT, Align.CENTER, Align.RIGHT}:
             align: Align | Literal[WHSettings.RELATIVE] = Align(align_type)
@@ -508,6 +518,8 @@ class Overlay(
         Adjust the overlay size and position parameters.
 
         See :class:`__init__() <Overlay>` for a description of the parameters.
+
+        :raises OverlayError: *valign* is not a vertical alignment value.
         """
 
         # convert obsolete parameters 'fixed ...':
@@ -631,6 +643,7 @@ class Overlay(
         Set the widget in focus.  Currently only position 1 is accepted.
 
         :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not ``1``.
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
@@ -669,9 +682,19 @@ class Overlay(
             __setitem__ = self._contents__setitem__  # type: ignore[assignment]
 
             def __delitem__(self, index: int | slice) -> typing.NoReturn:
+                """
+                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
+
+                :raises TypeError: the contents are a fixed-size sequence.
+                """
                 raise TypeError("OverlayContents is fixed-sized sequence")
 
             def insert(self, index: int | slice, value: typing.Any) -> typing.NoReturn:
+                """
+                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
+
+                :raises TypeError: the contents are a fixed-size sequence.
+                """
                 raise TypeError("OverlayContents is fixed-sized sequence")
 
             def __repr__(inner_self) -> str:
@@ -689,6 +712,11 @@ class Overlay(
 
     @contents.setter
     def contents(self, new_contents: Sequence[OverlayContentsItem[TopWidget, BottomWidget]]) -> None:
+        """
+        Replace both children of this Overlay at once.
+
+        :raises ValueError: *new_contents* does not hold exactly two items.
+        """
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]
@@ -698,6 +726,11 @@ class Overlay(
         self,
         index: Literal[0, 1],
     ) -> tuple[TopWidget | BottomWidget, OverlayOptions]:
+        """
+        Return the ``(widget, options)`` pair at *index*, for the container contents protocol.
+
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        """
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
 
@@ -742,6 +775,13 @@ class Overlay(
         index: Literal[0, 1],
         value: tuple[TopWidget | BottomWidget, OverlayOptions],
     ) -> None:
+        """
+        Replace the ``(widget, options)`` pair at *index*, for the container contents protocol.
+
+        :raises OverlayError: *value* is not a ``(widget, options)`` pair, or the options are not valid for that
+            position.
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        """
         try:
             value_w, value_options = value
         except (ValueError, TypeError) as exc:
@@ -825,7 +865,10 @@ class Overlay(
         size: tuple[int, int],
         focus: bool,
     ) -> tuple[int, int, int, int]:
-        """Return (padding left, right, filler top, bottom)."""
+        """Return (padding left, right, filler top, bottom).
+
+        :raises OverlayError: the top widget is FIXED but reports no height.
+        """
         (maxcol, maxrow) = size
         height = None
         if self.width_type == WHSettings.PACK:

@@ -103,6 +103,8 @@ class LineBox(
 
         To make Table constructions, some lineboxes need to be drawn without sides
         and T or CROSS symbols used for corners of cells.
+
+        :raises ValueError: a *title* is given while *tline* is empty, or *title_align* is not a supported alignment.
         """
 
         w_lline = SolidFill(lline)
@@ -199,6 +201,11 @@ class LineBox(
         return ""
 
     def set_title(self, text: str) -> None:
+        """
+        Set the title shown in the top line of the box.
+
+        :raises ValueError: this LineBox has no top line to put a title on.
+        """
         if not self.tline_widget:
             raise ValueError("Cannot set title when tline is unset")
         self.title_widget.set_text(self.format_title(text))

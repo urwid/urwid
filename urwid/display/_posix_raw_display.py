@@ -187,6 +187,11 @@ class Screen(_raw_display_base.Screen):
             self._stop_gpm_tracking()
 
     def _start_gpm_tracking(self) -> None:
+        """
+        Start the gpm helper that reports mouse events on the Linux console.
+
+        :raises RuntimeError: the gpm helper process provides no standard output.
+        """
         if not os.path.isfile("/usr/bin/mev"):
             return
         if not os.environ.get("TERM", "").lower().startswith("linux"):
@@ -221,6 +226,7 @@ class Screen(_raw_display_base.Screen):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use an alternate screen buffer
+        :raises TypeError: unexpected positional or keyword arguments were given.
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
@@ -353,6 +359,11 @@ class Screen(_raw_display_base.Screen):
         return codes
 
     def _read_raw_input(self, timeout: int) -> bytearray:
+        """
+        Read whatever raw input is available, waiting at most *timeout* seconds.
+
+        :raises RuntimeError: the input file has been closed.
+        """
         ready = self._wait_for_input_ready(timeout)
         gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
         if gpm_stdout is not None and gpm_stdout.fileno() in ready:

@@ -474,6 +474,7 @@ class Screen(BaseScreen, RealTerminal):
         """Return pending input as a list.
 
         :param raw_keys: return raw keycodes as well as translated versions
+        :raises RuntimeError: the screen has not been started.
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -486,11 +487,11 @@ class Screen(BaseScreen, RealTerminal):
 
         Examples of keys returned:
 
-        * ASCII printable characters:  " ", "a", "0", "A", "-", "/"
-        * ASCII control characters:  "tab", "enter"
-        * Escape sequences:  "up", "page up", "home", "insert", "f1"
-        * Key combinations:  "shift f1", "meta a", "ctrl b"
-        * Window events:  "window resize"
+        * ASCII printable characters:  :kbd:`space`, :kbd:`a`, :kbd:`0`, :kbd:`A`, :kbd:`-`, :kbd:`/`
+        * ASCII control characters:  :kbd:`tab`, :kbd:`enter`
+        * Escape sequences:  :kbd:`up`, :kbd:`page up`, :kbd:`home`, :kbd:`insert`, :kbd:`f1`
+        * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
+        * Window events:  ``"window resize"``
 
         When a narrow encoding is not enabled:
 
@@ -760,7 +761,11 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = True
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        """Paint screen with rendered canvas."""
+        """Paint screen with rendered canvas.
+
+        :raises RuntimeError: the screen has not been started.
+        :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        """
 
         def set_cursor_home() -> str:
             if not partial_display():
@@ -793,6 +798,11 @@ class Screen(BaseScreen, RealTerminal):
             run: bytes,
             last: bool,
         ) -> None:
+            """Append the escape sequences and text of one canvas run to the output.
+
+            :raises TypeError: *run* is not a byte string.
+            :raises ValueError: *charset* is not a known character set flag.
+            """
             nonlocal last_charset_flag, last_attributes, first  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes

@@ -113,7 +113,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
     def __init__(self, device_path: str, baud: int) -> None:
         """
-        :param device_path: eg. '/dev/ttyUSB0'
+        :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         """
         super().__init__()
@@ -204,6 +204,9 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         Try to read a packet from the start of data, returning
         (command/report code, packet_data, remaining_data)
         or raising InvalidPacket or MoreDataRequired
+
+        :raises MoreDataRequired: *data* does not yet hold a complete packet.
+        :raises InvalidPacket: the packet is longer than the protocol allows, or its CRC does not match.
         """
         if len(data) < 2:
             raise cls.MoreDataRequired
@@ -332,7 +335,7 @@ class CF635Screen(CFLCDScreen):
         key_map: Iterable[str] = ("up", "down", "left", "right", "enter", "esc"),
     ):
         """
-        :param device_path: eg. '/dev/ttyUSB0'
+        :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         :param repeat_delay: seconds to wait before starting to repeat keys
         :param repeat_next: time between each repeated key
@@ -428,6 +431,11 @@ class CF635Screen(CFLCDScreen):
             self._send_next_command()
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
+        """
+        Send *canvas* to the display.
+
+        :raises ValueError: *size* is not the fixed size of this display.
+        """
         if size != self.DISPLAY_SIZE:
             raise ValueError(size)
 
@@ -473,6 +481,7 @@ class CF635Screen(CFLCDScreen):
         :param index: 0 to 7 index of character to program
 
         :param data: list of 8, 6-bit integer values top to bottom with MSB on the left side of the character.
+        :raises ValueError: *index* is outside 0-7, or *data* is not 8 rows.
         """
         if not 0 <= index <= 7:
             raise ValueError(index)
@@ -484,6 +493,7 @@ class CF635Screen(CFLCDScreen):
         """
         :param style: CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE, CURSOR_BLINKING_BLOCK_UNDERSCORE or
             CURSOR_INVERTING_BLINKING_BLOCK
+        :raises ValueError: *style* is not one of the four cursor styles.
         """
         if not 1 <= style <= 4:
             raise ValueError(style)
@@ -495,6 +505,7 @@ class CF635Screen(CFLCDScreen):
         Set backlight brightness
 
         :param value: 0 to 100
+        :raises ValueError: *value* is outside 0-100.
         """
         if not 0 <= value <= 100:
             raise ValueError(value)
@@ -503,6 +514,7 @@ class CF635Screen(CFLCDScreen):
     def set_lcd_contrast(self, value: int) -> None:
         """
         :param value: 0 to 255
+        :raises ValueError: *value* is outside 0-255.
         """
         if not 0 <= value <= 255:
             raise ValueError(value)
@@ -513,6 +525,7 @@ class CF635Screen(CFLCDScreen):
         :param led: 0 to 3
         :param rg: 0 for red, 1 for green
         :param value: 0 to 100
+        :raises ValueError: *led* is outside 0-3, *rg* is not ``0`` or ``1``, or *value* is outside 0-100.
         """
         if not 0 <= led <= 3:
             raise ValueError(led)

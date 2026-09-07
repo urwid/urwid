@@ -102,6 +102,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         :param satt: dictionary containing attributes for smoothed
                      transitions of bars in UTF-8 display mode. The values
                      are in the form:
+        :raises BarGraphError: *attlist* has fewer than two entries, or *satt* is not a mapping of valid ``(fg, bg)``
+            index pairs with ``fg`` above ``bg``.
 
                        (fg,bg) : attr
 
@@ -217,6 +219,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         Set a preferred bar width for calculate_bar_widths to use.
 
         :param width: width of bar or None for automatic width adjustment
+        :raises ValueError: *width* is not positive.
         """
         if width is not None and width <= 0:
             raise ValueError(width)
@@ -372,6 +375,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         UTF vertical eighth characters represented as bar_type tuple values:
         ( fg, bg, 1-7 )
         where fg is the lower segment, bg is the upper segment and 1-7 is the vertical eighth character to use.
+
+        :raises BarGraphError: the smoothed rows do not add up to the graph height.
         """
         o: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]] = []
         r = 0  # row remainder
@@ -406,6 +411,10 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             count: int,
             row: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]],
         ) -> None:
+            """Merge *row* into the last row of the output, joining runs that share a bar type.
+
+            :raises BarGraphError: *row* is shorter than the row it is merged into.
+            """
             o_count, o_row = o[-1]
             row = row[:]  # shallow copy, so we don't destroy orig.
             o_row = o_row[:]
@@ -455,6 +464,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
     ) -> CompositeCanvas:
         """
         Render BarGraph.
+
+        :raises BarGraphError: a graph character does not render as a single row.
         """
         (maxcol, maxrow) = size
         disp = self.calculate_display((maxcol, maxrow))
@@ -501,6 +512,8 @@ def calculate_bargraph_display(
     :param top: maximal value for bardata segments
     :param bar_widths: list of integer column widths for each bar
     :param maxrow: rows for display of bargraph
+    :raises BarGraphError: *bardata* and *bar_widths* have different lengths.
+    :raises ValueError: a bar segment falls outside the rendered columns.
 
     Returns a structure as follows:
       [ ( y_count, [ ( bar_type, width), ... ] ), ... ]

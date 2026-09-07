@@ -230,6 +230,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         :param index: index into this list, any index out of range will raise an IndexError, except when the list is
             empty and the index passed is ignored.
+        :raises TypeError: *index* is not an integer.
+        :raises IndexError: *index* is outside the range of this sequence.
 
         This function may call self._focus_changed when the focus
         is modified, passing the new focus position to the

@@ -138,6 +138,7 @@ class Signals:
                           Use this argument only as a keyword argument,
                           since user_arg might be removed in the future.
         :type user_args: iterable
+        :raises NameError: *obj* does not support a signal called *name*.
 
         When a matching signal is sent, callback will be called. The
         arguments it receives will be the user_args passed at connect

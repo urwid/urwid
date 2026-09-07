@@ -317,6 +317,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
 
         :param index: index into this deque; any index out of range raises an ``IndexError``,
             except when the deque is empty, in which case the index passed is ignored
+        :raises TypeError: *index* is not an integer.
+        :raises IndexError: *index* is outside the range of this sequence.
 
         >>> mfd = MonitoredFocusDeque([9, 10, 11])
         >>> mfd.focus = 2

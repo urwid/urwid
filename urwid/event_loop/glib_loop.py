@@ -257,6 +257,8 @@ class GLibEventLoop(EventLoop):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         try:
             self._loop.run()

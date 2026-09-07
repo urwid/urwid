@@ -82,13 +82,13 @@ class Edit(WidgetWrap[Text]):
         :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or str) must match the text in the caption
         :type edit_text: bytes or str
-        :param multiline: True: 'enter' inserts newline  False: return it
+        :param multiline: ``True``: :kbd:`enter` inserts a newline, ``False``: return it
         :type multiline: bool
         :param align: typically 'left', 'center' or 'right'
         :type align: text alignment mode
         :param wrap: typically 'space', 'any' or 'clip'
         :type wrap: text wrapping mode
-        :param allow_tab: True: 'tab' inserts 1-8 spaces  False: return it
+        :param allow_tab: ``True``: :kbd:`tab` inserts 1-8 spaces, ``False``: return it
         :type allow_tab: bool
         :param edit_pos: initial position for cursor, None:end of edit_text
         :type edit_pos: int
@@ -438,6 +438,7 @@ class Edit(WidgetWrap[Text]):
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
         :type text: bytes or unicode
+        :raises ValueError: *text* cannot be inserted at the current edit position.
         """
 
         # if there's highlighted text, it'll get replaced by the new text
@@ -480,6 +481,8 @@ class Edit(WidgetWrap[Text]):
         x2
         >>> e.keypress(size, "shift f1")
         'shift f1'
+
+        :raises ValueError: the preferred cursor column could not be determined.
         """
         pos = self.edit_pos
         if self.valid_char(key):

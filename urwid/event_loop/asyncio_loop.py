@@ -246,6 +246,8 @@ class AsyncioEventLoop(EventLoop):
 
         Exit the loop when any callback raises an exception.
         If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()

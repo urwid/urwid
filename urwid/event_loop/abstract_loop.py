@@ -86,6 +86,7 @@ class EventLoop(abc.ABC):
         :return: future object for the function call outcome.
                  (exact future type depends on the event loop type)
         :rtype: concurrent.futures.Future | asyncio.Future
+        :raises NotImplementedError: this event loop cannot run callables in an executor.
         """
         raise NotImplementedError
 

@@ -222,6 +222,7 @@ class CheckBox(WidgetWrap[Columns]):
         :param on_state_change: shorthand for connect_signal()
                                 function call for a single callback
         :param user_data: user_data for on_state_change
+        :raises ValueError: *state* is not one of the states of this check box.
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 
@@ -350,6 +351,7 @@ class CheckBox(WidgetWrap[Columns]):
 
         :param state: True, False or "mixed"
         :param do_callback: False to suppress signal from this change
+        :raises CheckBoxError: *state* is not one of the states of this check box.
 
         >>> from urwid import disconnect_signal
         >>> changes = []

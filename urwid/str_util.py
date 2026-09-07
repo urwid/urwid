@@ -89,6 +89,8 @@ def _decode_grapheme_at(text: bytes, start: int, end: int) -> tuple[str, int]:
 def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
+
+    :raises ValueError: *pos* is not a valid position in *text*.
     """
     lt = len(text) - pos
 
@@ -164,6 +166,8 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
     """
     Return (ordinal at pos, next position) for UTF-8 encoded text.
     pos is assumed to be on the trailing byte of a utf-8 sequence.
+
+    :raises TypeError: *text* is not a byte string.
     """
     if not isinstance(text, bytes):
         raise TypeError(text)
@@ -180,6 +184,11 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
 
 
 def set_byte_encoding(enc: Literal["utf8", "narrow", "wide"]) -> None:
+    """
+    Select the byte encoding used to interpret byte strings.
+
+    :raises ValueError: *enc* is not one of the supported encodings.
+    """
     if enc not in {"utf8", "narrow", "wide"}:
         raise ValueError(enc)
     global _byte_encoding  # noqa: PLW0603  # pylint: disable=global-statement
@@ -204,6 +213,7 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
     :param end_offs: ending text position
     :param pref_col: target column
     :returns: (position, actual_col)
+    :raises ValueError: *start_offs* is past *end_offs*.
     """
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
@@ -229,6 +239,9 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
     text may be unicode or a byte string in the target _byte_encoding
 
     Returns (position, actual_col).
+
+    :raises ValueError: *start_offs* is past *end_offs*.
+    :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     """
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
@@ -263,6 +276,8 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     Some characters are wide (take two columns) and others affect the
     previous character (take zero columns), while others are grouped
     in sequence by "grapheme boundaries" (Emoji, Skin tones, flags, etc).
+
+    :raises ValueError: *start_offs* is past *end_offs*.
     """
 
     if start_offs > end_offs:
@@ -303,6 +318,8 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     graphemes like emoji ZWJ sequences and flags.
 
     text may be unicode or a byte string in the target _byte_encoding
+
+    :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     """
     if isinstance(text, str):
         grapheme = next(wcwidth.iter_graphemes(text[offs:]))
@@ -323,6 +340,9 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
 
     For Unicode strings, handle multi-codepoint, "grapheme clusters",
     to better measure emoji ZWJ, flags, combining characters, skin tones.
+
+    :raises ValueError: *start_offs* is not before *end_offs*.
+    :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     """
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
@@ -347,6 +367,9 @@ def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
 
     For Unicode strings, handle multi-codepoint, "grapheme clusters",
     to better measure emoji ZWJ, flags, combining characters, skin tones.
+
+    :raises ValueError: *start_offs* is not before *end_offs*.
+    :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     """
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
@@ -372,6 +395,7 @@ def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 
     :returns: ``0`` if not within a double-byte character, or the byte encoding is not double-byte,
         ``1`` if pos is on the first half of a double-byte character,
         ``2`` if pos is on the second half of a double-byte character.
+    :raises TypeError: *text* is not a byte string.
     """
     if not isinstance(text, bytes):
         raise TypeError(text)

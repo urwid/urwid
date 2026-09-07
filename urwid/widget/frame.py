@@ -76,6 +76,7 @@ class Frame(
         :type footer: Widget
         :param focus_part:  'header', 'footer' or 'body'
         :type focus_part: str | Widget
+        :raises ValueError: *focus_part* is not one of the three frame parts.
         """
         super().__init__()
 
@@ -273,6 +274,7 @@ class Frame(
 
         :param part: 'header', 'footer' or 'body'
         :type part: str
+        :raises IndexError: *part* is not one of the three frame parts, or names a part this Frame does not have.
         """
         if part not in {"header", "footer", "body"}:
             raise IndexError(f"Invalid position for Frame: {part}")
@@ -409,6 +411,11 @@ class Frame(
     def _contents__getitem__(
         self, key: Literal["body", "header", "footer"]
     ) -> tuple[BodyWidget | HeaderWidget | FooterWidget, None]:
+        """
+        Return the ``(widget, options)`` pair for *key*, for the container contents protocol.
+
+        :raises KeyError: *key* is not one of the three frame parts.
+        """
         if key == "body":
             return (self._body, None)
         if key == "header" and self._header:
@@ -431,6 +438,12 @@ class Frame(
         key: Literal["body", "header", "footer"],
         value: tuple[BodyWidget | HeaderWidget | FooterWidget, None],
     ) -> None:
+        """
+        Replace the ``(widget, options)`` pair for *key*, for the container contents protocol.
+
+        :raises KeyError: *key* is not one of the three frame parts.
+        :raises FrameError: *value* is not a ``(widget, None)`` pair.
+        """
         if key not in {"body", "header", "footer"}:
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
@@ -447,6 +460,11 @@ class Frame(
             self.header = value_w  # type: ignore[assignment]
 
     def _contents__delitem__(self, key: Literal["header", "footer"]) -> None:
+        """
+        Remove the header or footer, for the container contents protocol.
+
+        :raises KeyError: *key* is not a removable part, or names a part this Frame does not have.
+        """
         if key not in {"header", "footer"}:
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == "header" and self._header is None) or (key == "footer" and self._footer is None):
@@ -519,6 +537,11 @@ class Frame(
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
+        """
+        Render the Frame and return the resulting canvas.
+
+        :raises RuntimeError: the header or footer renders a different number of rows than it reported.
+        """
         (maxcol, maxrow) = size
         (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 

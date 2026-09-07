@@ -179,6 +179,7 @@ class SimpleListWalker(
 
         :param contents: list to copy into this object
         :param wrap_around: if true, jumps to beginning/end of list on move
+        :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleListWalker expecting list like object, got: {contents!r}")
@@ -270,6 +271,7 @@ class SimpleFocusListWalker(
 
         :param contents: list to copy into this object
         :param wrap_around: if true, jumps to beginning/end of list on move
+        :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusListWalker expecting iterable object, got: {contents!r}")

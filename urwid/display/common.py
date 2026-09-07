@@ -316,6 +316,8 @@ def _color_desc_256(num: int) -> str:
     >>> _color_desc_256(234)
     'g11'
 
+    :raises ValueError: *num* is outside the 256-colour range.
+
     """
     if not 0 <= num < 256:
         raise ValueError(num)
@@ -349,6 +351,8 @@ def _color_desc_88(num: int) -> str:
     'g36'
     >>> _color_desc_88(82)
     'g45'
+
+    :raises ValueError: *num* is outside the 88-colour range.
 
     """
     if not 0 < num < 88:
@@ -583,6 +587,7 @@ class AttrSpec:
               An empty string will be treated the same as 'default'.
 
         :param colors: the maximum colors available for the specification
+        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*/*bg* need more colours than *colors*.
 
                    Valid values include: 1, 16, 88, 256, and 2**24.  High-color
                    values are only usable with 88, 256, or 2**24 colors.  With
@@ -753,6 +758,12 @@ class AttrSpec:
         )
 
     def __set_foreground(self, foreground: str) -> None:
+        """
+        Parse and store the foreground colour and settings.
+
+        :raises AttrSpecError: *foreground* names an unrecognised colour, repeats a setting, or gives more than one
+            colour.
+        """
         color = None
         scolor: int | None
         flags = 0
@@ -804,6 +815,11 @@ class AttrSpec:
         return _color_desc_256(self.background_number)
 
     def __set_background(self, background: str) -> None:
+        """
+        Parse and store the background colour.
+
+        :raises AttrSpecError: *background* names an unrecognised colour.
+        """
         flags = 0
         color: int | None
         if background in {"", "default"}:
@@ -836,6 +852,8 @@ class AttrSpec:
         (255, 255, 0, 205, 205, 255)
         >>> AttrSpec("default", "g92").get_rgb_values()
         (None, None, None, 238, 238, 238)
+
+        :raises ValueError: this AttrSpec holds a colour number outside the 88-colour range.
         """
         vals: tuple[int | None, int | None, int | None]
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):
@@ -1079,6 +1097,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         :param palette: a list of (name, like_other_name) or
             (name, foreground, background, mono, foreground_high, background_high) tuples
+        :raises ScreenError: an entry is neither a 2-, 3-, 4- nor 6-tuple, or copies a name that is not registered yet.
 
             The (name, like_other_name) format will copy the settings
             from the palette entry like_other_name, which must appear

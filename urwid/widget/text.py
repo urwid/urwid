@@ -168,6 +168,7 @@ class Text(Widget):
 
         :param mode: typically ``'left'``, ``'center'`` or ``'right'``
         :type mode: text alignment mode
+        :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("word")
         >>> t.set_align_mode("right")
@@ -194,6 +195,7 @@ class Text(Widget):
 
         :param mode: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :type mode: text wrapping mode
+        :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("some words")
         >>> t.render((6,)).text  # ... = b in Python 3

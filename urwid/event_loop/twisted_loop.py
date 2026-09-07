@@ -71,12 +71,27 @@ class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
         return self.cb()
 
     def getHost(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor is not a network transport.
+
+        :raises NotImplementedError: this descriptor never takes part in network operations.
+        """
         raise NotImplementedError("No network operation expected")
 
     def getPeer(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor is not a network transport.
+
+        :raises NotImplementedError: this descriptor never takes part in network operations.
+        """
         raise NotImplementedError("No network operation expected")
 
     def writeSomeData(self, data: bytes) -> int | BaseException:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor only reads.
+
+        :raises NotImplementedError: this descriptor is read-only.
+        """
         raise NotImplementedError("Reduced functionality: read-only")
 
 
@@ -129,6 +144,11 @@ class TwistedEventLoop(EventLoop):
         *args: _Spec.args,
         **kwargs: _Spec.kwargs,
     ) -> Future[_T] | asyncio.Future[_T]:
+        """
+        Raise :exc:`NotImplementedError`: use Twisted's own thread pool API.
+
+        :raises NotImplementedError: Twisted has its own thread pool; use ``threads.deferToThread`` instead.
+        """
         raise NotImplementedError(
             "Twisted implement it's own ThreadPool executor. Please use native API for call:\n"
             "'threads.deferToThread(Callable[..., Any], *args, **kwargs)'\n"
@@ -239,6 +259,8 @@ class TwistedEventLoop(EventLoop):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         if not self.manage_reactor:
             return

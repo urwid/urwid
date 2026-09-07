@@ -205,6 +205,7 @@ class Pile(
         :param focus_item: child widget that gets the focus initially.
             Chooses the first selectable widget if unset.
         :type focus_item: Widget or int
+        :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
 
         *widget_list* may also contain tuples such as:
 
@@ -357,6 +358,11 @@ class Pile(
             ]
         ],
     ) -> None:
+        """
+        Reject contents changes that would put an invalid item into the Pile.
+
+        :raises PileError: an added item is not a valid ``(widget, options)`` pair.
+        """
         invalid_items: list[tuple[AbstractWidget, tuple[typing.Any, typing.Any]]] = []
         try:
             for item in new_items:
@@ -570,6 +576,7 @@ class Pile(
         :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
         :param height_amount: ``None`` for ``'pack'``, a number of rows for
             ``'fixed'`` or a weight value (number) for ``'weight'``
+        :raises PileError: *height_type* and *height_amount* are not a valid combination.
         """
 
         if height_type == WHSettings.PACK:
@@ -596,6 +603,7 @@ class Pile(
 
         :param item: element to focus
         :type item: Widget or int
+        :raises ValueError: *item* is a widget that is not in the contents.
         """
         if isinstance(item, int):
             self.focus_position = item
@@ -630,6 +638,7 @@ class Pile(
         Set the child widget in focus.
 
         :param item: widget or integer index
+        :raises ValueError: *item* is a widget that is not in the contents.
 
         .. deprecated:: 1.1.0
             Use the standard container property :attr:`focus_position` instead.
@@ -656,6 +665,8 @@ class Pile(
         """
         index of child widget in focus.
         Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
+
+        :raises IndexError: the Pile is empty.
         """
         if (focus := self.contents.focus) is not None:
             return focus
@@ -668,6 +679,7 @@ class Pile(
         Set the widget in focus.
 
         :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not an index of a child widget.
         """
         try:
             if position < 0 or position >= len(self.contents):
@@ -697,6 +709,9 @@ class Pile(
     ) -> tuple[()] | tuple[int] | tuple[int, int]:
         """
         Return a size appropriate for passing to self.contents[i][0].render
+
+        :raises PileError: the item uses a height rule that needs size information the caller did not provide, or a
+            height rule that is not supported.
         """
         warnings.warn(
             "get_item_size is going to be deprecated and can be removed soon."
@@ -735,6 +750,9 @@ class Pile(
         """Get rows widths, heights and render size parameters
 
         Fixed case expect widget sizes calculation with several cycles for unknown height cases.
+
+        :raises PileError: a child widget does not support a sizing mode this Pile needs, or no child can provide a
+            width.
         """
         if not self.contents:
             return (), (), ()
@@ -1016,6 +1034,11 @@ class Pile(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> SolidCanvas | CompositeCanvas:
+        """
+        Render the Pile and return the resulting canvas.
+
+        :raises ValueError: the Pile is empty and no *size* was given.
+        """
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
@@ -1066,7 +1089,7 @@ class Pile(
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
 
-        Unhandled 'up' and 'down' keys may cause a focus change.
+        Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
         """
         if not self.contents:
             return key
