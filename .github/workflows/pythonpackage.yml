@@ -11,13 +11,15 @@ on:
   pull_request:
     paths:
       - "urwid/**"
-      - "source/**"
       - "pyproject.toml"
       - "MANIFEST.in"
       - "README.rst"
       - "COPYING"
+      - "classifiers.txt"
+      - "requirements.txt"
       - "tests/**"
       - "examples/**"
+      - "pytest_requirements.txt"
       - ".github/workflows/pythonpackage.yml"
 
 concurrency:
@@ -86,7 +88,7 @@ jobs:
       - name: Install package with all extras
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
-        run: uv pip install --upgrade mypy
+        run: uv pip install --upgrade -r mypy-requirements.txt
       - name: Type check with mypy
         run: uv run --no-project mypy urwid
 
