@@ -2,6 +2,24 @@
 Changelog
 ---------
 
+Urwid 4.1.2
+============
+
+2026-09-07
+
+Bug fixes 🕷
+++++++++++++
+* Restore terminal palette if was modified by @penguinolog in https://github.com/urwid/urwid/pull/1278
+* Handle issue with shard calculation inconsistency with shard_tail by @penguinolog in https://github.com/urwid/urwid/pull/1280
+Documentation 🕮
+++++++++++++++++
+* Documentation: fix typo in widget classes doc by @penguinolog in https://github.com/urwid/urwid/pull/1277
+* Fix docstring for "draw_string" by @penguinolog in https://github.com/urwid/urwid/pull/1279
+* Documentation: fix docstrings to follow PEP257 by @penguinolog in https://github.com/urwid/urwid/pull/1285
+* Documentation: mass-add `raises` to docstrings by @penguinolog in https://github.com/urwid/urwid/pull/1286
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.1...4.1.2
+
 Urwid 4.1.1
 ============
 
