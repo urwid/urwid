@@ -1,2 +1,2 @@
-wcwidth>=0.4
+wcwidth>=0.8.3
 typing-extensions
