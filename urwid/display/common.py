@@ -216,8 +216,8 @@ def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
     Generate a lookup table for finding the closest item in values.
     Lookup returns (index into values)+1
 
-    values -- list of values in ascending order, all < size
-    size -- size of lookup table and maximum value
+    :param values: list of values in ascending order, all < size
+    :param size: size of lookup table and maximum value
 
     >>> _value_lookup_table([0, 7, 9], 10)
     [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
@@ -545,7 +545,7 @@ class AttrSpec:
         colors: Literal[1, 16, 88, 256, 16777216] = 256,
     ) -> None:
         """
-        fg -- a string containing a comma-separated foreground color and settings
+        :param fg: a string containing a comma-separated foreground color and settings
 
               Color values:
               'default' (use the terminal's default foreground),
@@ -570,7 +570,7 @@ class AttrSpec:
               Most terminals ignore the 'blink' setting.
               If the color is not given then 'default' will be assumed.
 
-        bg -- a string containing the background color
+        :param bg: a string containing the background color
 
               Color values:
               'default' (use the terminal's default background),
@@ -582,7 +582,7 @@ class AttrSpec:
 
               An empty string will be treated the same as 'default'.
 
-        colors -- the maximum colors available for the specification
+        :param colors: the maximum colors available for the specification
 
                    Valid values include: 1, 16, 88, 256, and 2**24.  High-color
                    values are only usable with 88, 256, or 2**24 colors.  With
@@ -1037,7 +1037,8 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         Extra arguments are passed to `start`.
 
-        Deprecated in favor of calling `start` as a context manager.
+        .. deprecated:: 1.3.0
+            Call `start` as a context manager instead. This API will be removed in version 5.0.
         """
         warnings.warn(
             "run_wrapper is deprecated in favor of calling `start` as a context manager."
@@ -1076,8 +1077,8 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     ) -> None:
         """Register a set of palette entries.
 
-        palette -- a list of (name, like_other_name) or
-        (name, foreground, background, mono, foreground_high, background_high) tuples
+        :param palette: a list of (name, like_other_name) or
+            (name, foreground, background, mono, foreground_high, background_high) tuples
 
             The (name, like_other_name) format will copy the settings
             from the palette entry like_other_name, which must appear
@@ -1111,10 +1112,10 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     ) -> None:
         """Register a single palette entry.
 
-        name -- new entry/attribute name
+        :param name: new entry/attribute name
 
-        foreground -- a string containing a comma-separated foreground
-        color and settings
+        :param foreground: a string containing a comma-separated foreground
+            color and settings
 
             Color values:
             'default' (use the terminal's default foreground),
@@ -1130,22 +1131,22 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             ignore the 'blink' setting.  If the color is not given then
             'default' will be assumed.
 
-        background -- a string containing the background color
+        :param background: a string containing the background color
 
             Background color values:
             'default' (use the terminal's default background),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray'
 
-        mono -- a comma-separated string containing monochrome terminal
-        settings (see "Settings" above.)
+        :param mono: a comma-separated string containing monochrome terminal
+            settings (see "Settings" above.)
 
             None = no terminal settings (same as 'default')
 
-        foreground_high -- a string containing a comma-separated
-        foreground color and settings, standard foreground
-        colors (see "Color values" above) or high-colors may
-        be used
+        :param foreground_high: a string containing a comma-separated
+            foreground color and settings, standard foreground
+            colors (see "Color values" above) or high-colors may
+            be used
 
             High-color example values:
             '#009' (0% red, 0% green, 60% red, like HTML colors)
@@ -1157,10 +1158,10 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
             None = use foreground parameter value
 
-        background_high -- a string containing the background color,
-        standard background colors (see "Background colors" above)
-        or high-colors (see "High-color example values" above)
-        may be used
+        :param background_high: a string containing the background color,
+            standard background colors (see "Background colors" above)
+            or high-colors (see "High-color example values" above)
+            may be used
 
             None = use background parameter value
         """

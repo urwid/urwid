@@ -309,8 +309,8 @@ class CheckBox(WidgetWrap[Columns]):
         """
         Change the check box label.
 
-        label -- markup for label.  See Text widget for description
-        of text markup.
+        :param label: markup for label.  See Text widget for description
+            of text markup.
 
         >>> cb = CheckBox("foo")
         >>> cb
@@ -348,8 +348,8 @@ class CheckBox(WidgetWrap[Columns]):
         """
         Set the CheckBox state.
 
-        state -- True, False or "mixed"
-        do_callback -- False to suppress signal from this change
+        :param state: True, False or "mixed"
+        :param do_callback: False to suppress signal from this change
 
         >>> from urwid import disconnect_signal
         >>> changes = []
@@ -555,9 +555,9 @@ class RadioButton(CheckBox):
         """
         Set the RadioButton state.
 
-        state -- True, False or "mixed"
+        :param state: True, False or "mixed"
 
-        do_callback -- False to suppress signal from this change
+        :param do_callback: False to suppress signal from this change
 
         If state is True all other radio buttons in the same button
         group will be set to False.
@@ -738,7 +738,7 @@ class Button(WidgetWrap[Columns]):
         """
         Change the button label.
 
-        label -- markup for button label
+        :param label: markup for button label
 
         >>> b = Button("Ok")
         >>> b.set_label("Yup yup")

@@ -101,8 +101,8 @@ class CanvasCache:
         """
         Store a weakref to canvas in the cache.
 
-        wcls -- widget class that contains render() function
-        canvas -- rendered canvas with widget_info (widget, size, focus)
+        :param wcls: widget class that contains render() function
+        :param canvas: rendered canvas with widget_info (widget, size, focus)
         """
         if not canvas.cacheable:
             return
@@ -151,9 +151,10 @@ class CanvasCache:
         """
         Return the cached canvas or None.
 
-        widget -- widget object requested
-        wcls -- widget class that contains render() function
-        size, focus -- render() parameters
+        :param widget: widget object requested
+        :param wcls: widget class that contains render() function
+        :param size: size parameter passed to the widget's render method
+        :param focus: focus parameter passed to the widget's render method
         """
         cls.fetches += 1  # collect stats
 
@@ -250,9 +251,9 @@ class Canvas:
         'render call returns the canvas thanks to some metaclass
         magic.
 
-        widget -- widget that rendered this canvas
-        size -- size parameter passed to widget's render method
-        focus -- focus parameter passed to widget's render method
+        :param widget: widget that rendered this canvas
+        :param size: size parameter passed to widget's render method
+        :param focus: focus parameter passed to widget's render method
         """
         if self.widget_info:
             raise self._finalized_error
@@ -292,10 +293,12 @@ class Canvas:
         raise NotImplementedError()
 
     def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
-        """Delta between two canvases
+        """Delta between two canvases.
 
-        Returns list of row deltas if other is None, otherwise returns iterator of row deltas.
-        Not used by code base and will be removed in the future releases.
+        :returns: a list of row deltas if other is None, otherwise an iterator of row deltas.
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
         """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
@@ -410,12 +413,12 @@ class TextCanvas(Canvas):
         check_width: bool = True,
     ) -> None:
         """
-        text -- list of strings, one for each line
-        attr -- list of run length encoded attributes for text
-        cs -- list of run length encoded character set for text
-        cursor -- (x,y) of cursor or None
-        maxcol -- screen columns taken by this canvas
-        check_width -- check and fix width of all lines in text
+        :param text: list of strings, one for each line
+        :param attr: list of run length encoded attributes for text
+        :param cs: list of run length encoded character set for text
+        :param cursor: (x,y) of cursor or None
+        :param maxcol: screen columns taken by this canvas
+        :param check_width: check and fix width of all lines in text
         """
         super().__init__()
         if text is None:
@@ -561,6 +564,9 @@ class TextCanvas(Canvas):
 
         If other is the same object as self this will return no differences,
         otherwise this is the same as calling content().
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
         """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
@@ -603,6 +609,12 @@ class BlankCanvas(Canvas):
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
     def content_delta(self, other: Canvas) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: a BlankCanvas does not know its own size.
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
+        """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
             DeprecationWarning,
@@ -658,6 +670,9 @@ class SolidCanvas(Canvas):
     def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
         """
         Return the differences between other and this canvas.
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
         """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
@@ -676,7 +691,7 @@ class CompositeCanvas(Canvas):
 
     def __init__(self, canv: Canvas | None = None) -> None:
         """
-        canv -- a Canvas object to wrap this CompositeCanvas around.
+        :param canv: a Canvas object to wrap this CompositeCanvas around.
 
         if canv is a CompositeCanvas, make a copy of its contents
         """
@@ -763,6 +778,9 @@ class CompositeCanvas(Canvas):
     def content_delta(self, other: Canvas) -> Iterator[_ContentLine]:
         """
         Return the differences between other and this canvas.
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
         """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
@@ -794,8 +812,8 @@ class CompositeCanvas(Canvas):
     def trim(self, top: int, count: int | None = None) -> None:
         """Trim lines from the top and/or bottom of canvas.
 
-        top -- number of lines to remove from top
-        count -- number of lines to keep, or None for all the rest
+        :param top: number of lines to remove from top
+        :param count: number of lines to keep, or None for all the rest
         """
         if top < 0:
             raise ValueError(f"invalid trim amount {top:d}!")
@@ -817,7 +835,7 @@ class CompositeCanvas(Canvas):
     def trim_end(self, end: int) -> None:
         """Trim lines from the bottom of the canvas.
 
-        end -- number of lines to remove from the end
+        :param end: number of lines to remove from the end
         """
         if end <= 0:
             raise ValueError(f"invalid trim amount {end:d}!")
@@ -936,7 +954,7 @@ class CompositeCanvas(Canvas):
         """
         Apply an attribute-mapping dictionary to the canvas.
 
-        mapping -- dictionary of original-attribute:new-attribute items
+        :param mapping: dictionary of original-attribute:new-attribute items
         """
         if self.widget_info:
             raise self._finalized_error
@@ -1011,6 +1029,9 @@ def shards_delta(
 ) -> Iterator[tuple[int, Iterable[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]]]:
     """
     Yield shards1 with cviews that are the same as shards2 having canv = None.
+
+    .. deprecated:: 4.0.3
+        Not used by the code base; there is no replacement. It will be removed in a future release.
     """
     warnings.warn(
         "shards_delta is deprecated and will be removed in a future version",
@@ -1042,9 +1063,12 @@ def shard_cviews_delta(
     cviews: Iterable[_CView],
     other_cviews: Iterable[_CView],
 ) -> Iterator[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]:
-    """Return iterator of cviews with differences between shards
+    """Return iterator of cviews with differences between shards.
 
     If Canvas and shard tail are equal between shards, return None instead of canvas.
+
+    .. deprecated:: 4.0.3
+        Not used by the code base; there is no replacement. It will be removed in a future release.
     """
     warnings.warn(
         "shard_cviews_delta is deprecated and will be removed in a future version",

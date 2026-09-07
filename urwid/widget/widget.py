@@ -115,8 +115,11 @@ class AbstractWidget(typing.Protocol):
     In this case `isinstance` will fail to compare with :class:`Widget`,
     but if all required interfaces present - we can use it as valid widget implementation.
 
-    .. note: sizing specific arguments left `typing.Any` to prevent static type checking errors.
-    .. note: focus_position is not listed since it's raising `IndexError` on attribute access check
+    .. note::
+        Sizing specific arguments are left as `typing.Any` to prevent static type checking errors.
+
+    .. note::
+        `focus_position` is not listed, since it raises `IndexError` on an attribute access check.
     """
 
     # Base widget methods (from Widget)
@@ -537,17 +540,16 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
 
     def selectable(self) -> bool:
         """
-        :returns: ``True`` if this is a widget that is designed to take the
-                  focus, i.e. it contains something the user might want to
-                  interact with, ``False`` otherwise,
+        Return whether this widget is designed to take the focus.
 
-        This default implementation returns :attr:`._selectable`.
-        Subclasses may leave these is if the are not selectable,
-        or if they are always selectable they may
-        set the :attr:`_selectable` class variable to ``True``.
+        :returns: ``True`` if this widget contains something the user might want to interact with,
+            ``False`` otherwise.
 
-        If this method returns ``True`` then the :meth:`.keypress` method
-        must be implemented.
+        This default implementation returns :attr:`_selectable`.
+        Subclasses may leave it as is if they are not selectable, or,
+        if they are always selectable, set the :attr:`_selectable` class variable to ``True``.
+
+        If this method returns ``True`` then the :meth:`Widget.keypress` method must be implemented.
 
         Returning ``False`` does not guarantee that this widget will never be in
         focus, only that this widget will usually be skipped over when changing
@@ -878,7 +880,7 @@ class WidgetWrap(
 ):
     def __init__(self, w: WrappedWidget) -> None:
         """
-        w -- widget to wrap, stored as self._w
+        :param w: widget to wrap, stored as self._w
 
         This object will pass the functions defined in Widget interface
         definition to self._w.
@@ -927,8 +929,12 @@ class WidgetWrap(
 
     def _set_w(self, w: WrappedWidget) -> None:
         """
-        Change the wrapped widget.  This is meant to be called
-        only by subclasses.
+        Change the wrapped widget.  This is meant to be called only by subclasses.
+
+        .. deprecated:: 2.2.0
+            Assign to the :attr:`WidgetWrap._w` property directly instead.
+            This API will be removed in version 5.0.
+
         >>> from urwid import Edit, Text
         >>> size = (10,)
         >>> ww = WidgetWrap(Edit("hello? ", "hi"))

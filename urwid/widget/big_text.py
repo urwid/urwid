@@ -20,8 +20,8 @@ class BigText(Widget):
 
     def __init__(self, markup: _TagMarkup, font: Font) -> None:
         """
-        markup -- same as Text widget markup
-        font -- instance of a Font class
+        :param markup: same as Text widget markup
+        :param font: instance of a Font class
         """
         super().__init__()
         self.text: str = ""

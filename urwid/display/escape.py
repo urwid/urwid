@@ -499,12 +499,10 @@ def process_keyqueue(
     more_available: bool,
 ) -> tuple[list[str | _MouseInput | _CursorPosition], list[int]]:
     """
-    codes -- list of key codes
-    more_available -- if True then raise MoreInputRequired when in the
-        middle of a character sequence (escape/utf8/wide) and caller
-        will attempt to send more key codes on the next call.
-
-    returns (list of input, list of remaining key codes).
+    :param codes: list of key codes
+    :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
+        (escape/utf8/wide) and caller will attempt to send more key codes on the next call.
+    :returns: a ``(list of input, list of remaining key codes)`` tuple.
     """
     code = codes[0]
     if 32 <= code <= 126:

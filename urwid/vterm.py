@@ -636,7 +636,7 @@ class TermCanvas(Canvas):
         Process startbyte and return the number of bytes following it to get a
         valid UTF-8 multibyte sequence.
 
-        bytenum -- an integer ordinal
+        :param bytenum: an integer ordinal
         """
         length = 0
 
@@ -651,7 +651,7 @@ class TermCanvas(Canvas):
         Parse main charset and add the processed byte(s) to the terminal state
         machine.
 
-        byte -- an integer ordinal
+        :param byte: an integer ordinal
         """
         if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding() == "utf8":
             if byte >= 0xC0:
@@ -687,7 +687,7 @@ class TermCanvas(Canvas):
         """
         Process a single character (single- and multi-byte).
 
-        char -- a byte string
+        :param char: a byte string
         """
         x, y = self.term_cursor
 
@@ -1305,6 +1305,12 @@ class TermCanvas(Canvas):
         self,
         other: Canvas,
     ) -> list[int] | Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
+        """
+        Return the differences between other and this canvas.
+
+        .. deprecated:: 4.0.3
+            Not used by the code base; there is no replacement. It will be removed in a future release.
+        """
         warnings.warn(
             "content_delta is not used by code base and will be removed in the future releases",
             DeprecationWarning,

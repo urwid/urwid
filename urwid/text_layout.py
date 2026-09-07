@@ -487,8 +487,9 @@ def shift_line(
 ) -> _LayoutLine:
     """
     Return a shifted line from a layout structure to the left or right.
-    segs -- line of a layout structure
-    amount -- screen columns to shift right (+ve) or left (-ve)
+
+    :param segs: line of a layout structure
+    :param amount: screen columns to shift right (+ve) or left (-ve)
     """
     if not isinstance(amount, int):
         raise TypeError(amount)
@@ -513,9 +514,10 @@ def trim_line(
 ) -> _LayoutLine:
     """
     Return a trimmed line of a text layout structure.
-    text -- text to which this layout structure applies
-    start -- starting screen column
-    end -- ending screen column
+
+    :param text: text to which this layout structure applies
+    :param start: starting screen column
+    :param end: ending screen column
     """
     result = []
     x = 0
@@ -668,10 +670,10 @@ def calc_coords(
     """
     Calculate the coordinates closest to position pos in text with layout.
 
-    text -- raw string or unicode string
-    layout -- layout structure applied to text
-    pos -- integer position into text
-    clamp -- ignored right now
+    :param text: raw string or unicode string
+    :param layout: layout structure applied to text
+    :param pos: integer position into text
+    :param clamp: ignored right now
     """
     closest: tuple[int, tuple[int, int]] | None = None
     y = 0

@@ -199,7 +199,13 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     @property
     def body(self) -> WrappedWidget:
-        """backwards compatibility, widget used to be stored as body"""
+        """
+        The wrapped widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -209,6 +215,13 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     @body.setter
     def body(self, new_body: WrappedWidget) -> None:
+        """
+        Replace the wrapped widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -393,14 +406,13 @@ def calculate_top_bottom_filler(
     Return the amount of filler (or clipping) on the top and
     bottom part of maxrow rows to satisfy the following:
 
-    valign_type -- 'top', 'middle', 'bottom', 'relative'
-    valign_amount -- a percentage when align_type=='relative'
-    height_type -- 'given', 'relative', 'clip'
-    height_amount -- a percentage when width_type=='relative'
-        otherwise equal to the height of the widget
-    min_height -- a desired minimum width for the widget or None
-    top -- a fixed number of rows to fill on the top
-    bottom -- a fixed number of rows to fill on the bottom
+    :param valign_type: 'top', 'middle', 'bottom', 'relative'
+    :param valign_amount: a percentage when align_type=='relative'
+    :param height_type: 'given', 'relative', 'clip'
+    :param height_amount: a percentage when width_type=='relative' otherwise equal to the height of the widget
+    :param min_height: a desired minimum width for the widget or None
+    :param top: a fixed number of rows to fill on the top
+    :param bottom: a fixed number of rows to fill on the bottom
 
     >>> ctbf = calculate_top_bottom_filler
     >>> ctbf(15, "top", 0, "given", 10, None, 2, 0)

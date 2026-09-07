@@ -566,13 +566,13 @@ def calculate_left_right_padding(
     Return the amount of padding (or clipping) on the left and
     right part of maxcol columns to satisfy the following:
 
-    align_type -- 'left', 'center', 'right', 'relative'
-    align_amount -- a percentage when align_type=='relative'
-    width_type -- 'fixed', 'relative', 'clip'
-    width_amount -- a percentage when width_type=='relative' otherwise equal to the width of the widget
-    min_width -- a desired minimum width for the widget or None
-    left -- a fixed number of columns to pad on the left
-    right -- a fixed number of columns to pad on the right
+    :param align_type: 'left', 'center', 'right', 'relative'
+    :param align_amount: a percentage when align_type=='relative'
+    :param width_type: 'fixed', 'relative', 'clip'
+    :param width_amount: a percentage when width_type=='relative' otherwise equal to the width of the widget
+    :param min_width: a desired minimum width for the widget or None
+    :param left: a fixed number of columns to pad on the left
+    :param right: a fixed number of columns to pad on the right
 
     >>> clrp = calculate_left_right_padding
     >>> clrp(15, "left", 0, "given", 10, None, 2, 0)

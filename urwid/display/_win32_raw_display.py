@@ -80,7 +80,7 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use alternate screen buffer
+        :param alternate_buffer: use alternate screen buffer
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")

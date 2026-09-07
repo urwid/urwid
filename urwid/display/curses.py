@@ -281,15 +281,12 @@ class Screen(BaseScreen, RealTerminal):
         0.1 and any value less than 0.05 will be treated as 0.  The
         maximum timeout value for this module is 25.5 seconds.
 
-        max_wait -- amount of time in seconds to wait for input when
-            there is no input pending, wait forever if None
-        complete_wait -- amount of time in seconds to wait when
-            get_input detects an incomplete escape sequence at the
-            end of the available input
-        resize_wait -- amount of time in seconds to wait for more input
-            after receiving two screen resize requests in a row to
-            stop urwid from consuming 100% cpu during a gradual
-            window resize operation
+        :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
+            None
+        :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
+            the end of the available input
+        :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
+            in a row to stop urwid from consuming 100% cpu during a gradual window resize operation
         """
 
         def convert_to_tenths(s: float | None) -> int | None:
@@ -310,7 +307,7 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return pending input as a list.
 
-        raw_keys -- return raw keycodes as well as translated versions
+        :param raw_keys: return raw keycodes as well as translated versions
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will

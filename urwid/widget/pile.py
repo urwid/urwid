@@ -378,10 +378,11 @@ class Pile(
     @property
     def widget_list(self) -> MonitoredList[AbstractWidget]:
         """
-        A list of the widgets in this Pile
+        A list of the widgets in this Pile.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
@@ -422,8 +423,9 @@ class Pile(
         """
         A list of the options values for widgets in this Pile.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
@@ -458,6 +460,13 @@ class Pile(
             | tuple[Literal[WHSettings.WEIGHT], int | float]
         ],
     ) -> None:
+        """
+        Replace the height settings of the widgets in this Pile.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
             "API will be removed in version 5.0.",
@@ -599,9 +608,11 @@ class Pile(
 
     def get_focus(self) -> AbstractWidget | None:
         """
-        Return the widget in focus, for backwards compatibility.  You may
-        also use the new standard container property .focus to get the
-        child widget in focus.
+        Return the widget in focus.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "for backwards compatibility."
@@ -615,6 +626,15 @@ class Pile(
         return self.contents[self.focus_position][0]
 
     def set_focus(self, item: AbstractWidget | int) -> None:
+        """
+        Set the child widget in focus.
+
+        :param item: widget or integer index
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "for backwards compatibility."
             "You may also use the new standard container property .focus to get the child widget in focus."
@@ -647,7 +667,7 @@ class Pile(
         """
         Set the widget in focus.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
         """
         try:
             if position < 0 or position >= len(self.contents):

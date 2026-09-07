@@ -438,10 +438,11 @@ class Columns(
     @property
     def widget_list(self) -> MonitoredList[AbstractWidget]:
         """
-        A list of the widgets in this Columns
+        A list of the widgets in this Columns.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container `contents`."
@@ -459,6 +460,13 @@ class Columns(
 
     @widget_list.setter
     def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
+        """
+        Replace the widgets in this Columns, keeping the old options where possible.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container `contents`."
             "API will be removed in version 5.0.",
@@ -486,9 +494,11 @@ class Columns(
         | tuple[Literal[WHSettings.WEIGHT], int | float],
     ]:
         """
-        A list of the old partial options values for widgets in this Pile,
-        for backwards compatibility only.  You should use the new standard
-        container property .contents to modify Pile contents.
+        A list of the old partial options values for the widgets in this Columns.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "for backwards compatibility only."
@@ -524,6 +534,13 @@ class Columns(
             | tuple[Literal[WHSettings.WEIGHT], int | float],
         ],
     ) -> None:
+        """
+        Replace the width settings of the widgets in this Columns.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "for backwards compatibility only."
             "You should use the new standard container property .contents to modify Pile contents."
@@ -552,11 +569,12 @@ class Columns(
     @property
     def box_columns(self) -> MonitoredList[int]:
         """
-        A list of the indexes of the columns that are to be treated as
-        box widgets when the Columns is treated as a flow widget.
+        A list of the indexes of the columns that are to be treated as box widgets
+        when the Columns is treated as a flow widget.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility.You should use the new standard container property `contents`."
@@ -574,6 +592,13 @@ class Columns(
 
     @box_columns.setter
     def box_columns(self, box_columns: MonitoredList[int]) -> None:
+        """
+        Mark the columns at the given indexes as box widgets.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility.You should use the new standard container property `contents`."
             "API will be removed in version 5.0.",
@@ -671,8 +696,9 @@ class Columns(
         :param num: index of focus-to-be entry
         :type num: int
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus_position` to set the focus.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility.You may also use the new standard container property `focus_position`."
@@ -686,8 +712,9 @@ class Columns(
         """
         Return the focus column index.
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus_position` to get the focus.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility.You may also use the new standard container property `focus_position`."
@@ -699,12 +726,14 @@ class Columns(
 
     def set_focus(self, item: AbstractWidget | int) -> None:
         """
-        Set the item in focus
+        Set the item in focus.
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus_position` to get the focus.
+        :param item: widget or integer index
 
-        :param item: widget or integer index"""
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property `focus_position` to get the focus."
@@ -723,23 +752,18 @@ class Columns(
 
     @property
     def focus(self) -> AbstractWidget | None:
-        """
-        the child widget in focus or None when Columns is empty
-
-        Return the widget in focus, for backwards compatibility.  You may
-        also use the new standard container property .focus to get the
-        child widget in focus.
-        """
+        """the child widget in focus or None when Columns is empty"""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
 
     def get_focus(self) -> AbstractWidget | None:
         """
-        Return the widget in focus, for backwards compatibility.
+        Return the widget in focus.
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus` to get the focus.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility."
@@ -768,7 +792,7 @@ class Columns(
         """
         Set the widget in focus.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
         """
         try:
             if position < 0 or position >= len(self.contents):
@@ -782,11 +806,11 @@ class Columns(
     @property
     def focus_col(self) -> int:
         """
-        A property for reading and setting the index of the column in
-        focus.
+        A property for reading and setting the index of the column in focus.
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus_position` to get the focus.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility."
@@ -799,6 +823,13 @@ class Columns(
 
     @focus_col.setter
     def focus_col(self, new_position: int) -> None:
+        """
+        Set the index of the column in focus.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property `focus_position` to get the focus."

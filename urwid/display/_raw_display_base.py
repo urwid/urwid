@@ -322,7 +322,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         logger = self.logger.getChild("signal_handlers")
 
@@ -366,15 +366,12 @@ class Screen(BaseScreen, RealTerminal):
         Set the get_input timeout values.  All values are in floating
         point numbers of seconds.
 
-        max_wait -- amount of time in seconds to wait for input when
-            there is no input pending, wait forever if None
-        complete_wait -- amount of time in seconds to wait when
-            get_input detects an incomplete escape sequence at the
-            end of the available input
-        resize_wait -- amount of time in seconds to wait for more input
-            after receiving two screen resize requests in a row to
-            stop Urwid from consuming 100% cpu during a gradual
-            window resize operation
+        :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
+            None
+        :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
+            the end of the available input
+        :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
+            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation
         """
         self.max_wait = max_wait
         if max_wait is not None:
@@ -415,7 +412,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use alternate screen buffer
+        :param alternate_buffer: use alternate screen buffer
         """
 
     def _stop_mouse_restore_buffer(self) -> None:
@@ -476,7 +473,7 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return pending input as a list.
 
-        raw_keys -- return raw keycodes as well as translated versions
+        :param raw_keys: return raw keycodes as well as translated versions
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -1095,15 +1092,11 @@ class Screen(BaseScreen, RealTerminal):
         has_underline: bool | None = None,
     ) -> None:
         """
-        colors -- number of colors terminal supports (1, 16, 88, 256, or 2**24)
-            or None to leave unchanged
-        bright_is_bold -- set to True if this terminal uses the bold
-            setting to create bright colors (numbers 8-15), set to False
-            if this Terminal can create bright colors without bold or
-            None to leave unchanged
-        has_underline -- set to True if this terminal can use the
-            underline setting, False if it cannot or None to leave
-            unchanged
+        :param colors: number of colors terminal supports (1, 16, 88, 256, or 2**24) or None to leave unchanged
+        :param bright_is_bold: set to True if this terminal uses the bold setting to create bright colors (numbers
+            8-15), set to False if this Terminal can create bright colors without bold or None to leave unchanged
+        :param has_underline: set to True if this terminal can use the underline setting, False if it cannot or None to
+            leave unchanged
         """
         if colors is None:
             colors = self.colors

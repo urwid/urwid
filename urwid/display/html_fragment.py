@@ -200,10 +200,8 @@ def screenshot_init(
     Call this function before executing an application that uses
     curses_display.Screen to have that code use HtmlGenerator instead.
 
-    sizes -- list of ( columns, rows ) tuples to be returned by each call
-             to HtmlGenerator.get_cols_rows()
-    keys -- list of lists of keys to be returned by each call to
-            HtmlGenerator.get_input()
+    :param sizes: list of ( columns, rows ) tuples to be returned by each call to HtmlGenerator.get_cols_rows()
+    :param keys: list of lists of keys to be returned by each call to HtmlGenerator.get_input()
 
     Lists of keys may include "window resize" to force the application to
     call get_cols_rows and read a new screen size.

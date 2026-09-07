@@ -48,9 +48,15 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {**super()._repr_attrs(), "height": self.height}
 
-    # originally stored as box_widget, keep for compatibility
     @property
     def box_widget(self) -> WrappedWidget:
+        """
+        The wrapped box widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -60,6 +66,13 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     @box_widget.setter
     def box_widget(self, widget: WrappedWidget) -> None:
+        """
+        Replace the wrapped box widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
             DeprecationWarning,

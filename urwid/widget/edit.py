@@ -732,8 +732,8 @@ class IntEdit(Edit):
 
     def __init__(self, caption: _TagMarkup = "", default: int | str | None = None) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
+        :param caption: caption markup
+        :param default: default edit value
 
         >>> IntEdit("", 42)
         <IntEdit selectable flow widget '42' edit_pos=2>

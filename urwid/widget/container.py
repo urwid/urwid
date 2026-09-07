@@ -38,11 +38,15 @@ else:
 _ContentsItem = typing.TypeVar("_ContentsItem", bound=tuple[AbstractWidget, typing.Any])
 
 
-# Ideally, we would like to use an IntFlag coupled with enum.auto().
-# However, doing many bitwise operations (which happens when nesting too many
-# widgets ...) on IntFlag is orders of magnitude slower than doing the same
-# operations on IntEnum.
 class _ContainerElementSizingFlag(enum.IntEnum):
+    """Bitfield describing the sizing modes and the width/height setting a container element supports.
+
+    .. note::
+        Ideally this would be an :class:`enum.IntFlag` coupled with :func:`enum.auto`, but doing many bitwise
+        operations on an ``IntFlag`` - which happens when widgets are deeply nested - is orders of magnitude
+        slower than doing the same operations on an :class:`enum.IntEnum`.
+    """
+
     # fmt: off
     NONE      = 0b000000
     BOX       = 0b000001
@@ -125,7 +129,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         focus by passing in the value returned from an earlier call to
         get_focus_path().
 
-        positions -- sequence of positions
+        :param positions: sequence of positions
         """
         w: WidgetContainerMixin[typing.Any] | AbstractWidget = self
         for p in positions:
