@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Metaclasses &#8212; Urwid 4.1.1</title>
+    <title>Metaclasses &#8212; Urwid 4.1.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
+    <script src="../_static/documentation_options.js?v=d151bdce"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Metaclasses</a></li> 
       </ul>
@@ -58,9 +58,12 @@ that the canvas this widget renders is not affected by the focus parameter, so i
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.MetaSuper">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MetaSuper</span></span><a class="headerlink" href="#urwid.MetaSuper" title="Link to this definition">¶</a></dt>
-<dd><p>Deprecated metaclass.</p>
-<p>Present only for code compatibility, all logic has been removed.
-Please move to the last position in the class bases to allow future changes.</p>
+<dd><p>Metaclass kept only so that existing class definitions keep importing.</p>
+<p>All logic has been removed; it is a plain <code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code> subclass.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.0.0: </span>Drop it from the class bases. While it is still listed, move it to the last position,
+so that future changes to the other bases are not blocked by it.</p>
+</div>
 </dd></dl>
 
 <dl class="py class">
@@ -135,7 +138,7 @@ including signals in superclasses.</p>
         <li class="right" >
           <a href="exceptions.html" title="Exceptions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Metaclasses</a></li> 
       </ul>

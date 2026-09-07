@@ -85,8 +85,8 @@ FloatEdit
 .. autoclass:: FloatEdit
 
 
-Special cases test widgets
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+Special cases text widgets
+--------------------------
 
 .. currentmodule:: urwid
 

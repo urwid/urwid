@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Deprecated Classes &#8212; Urwid 4.1.1</title>
+    <title>Deprecated Classes &#8212; Urwid 4.1.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
+    <script src="../_static/documentation_options.js?v=d151bdce"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
@@ -47,13 +47,23 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrWrap">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">WrappedWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
-<dd><p>w – widget to wrap (stored as self.original_widget)
-attr – attribute to apply to w
-focus_attr – attribute to apply when in focus, if None use attr</p>
-<p>This widget is a special case of the new AttrMap widget, and it
-will pass all function calls and variable references to the wrapped
-widget.  This class is maintained for backwards compatibility only,
-new code should use AttrMap instead.</p>
+<dd><p>A special case of the <a class="reference internal" href="widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget that passes all function calls
+and variable references on to the wrapped widget.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 0.9.9: </span>Maintained for backwards compatibility only, new code should use <a class="reference internal" href="widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> instead.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>w</strong> – widget to wrap (stored as self.original_widget)</p></li>
+<li><p><strong>attr</strong> – attribute to apply to w</p></li>
+<li><p><strong>focus_attr</strong> – attribute to apply when in focus, if None use attr</p></li>
+</ul>
+</dd>
+</dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 0.9.9: </span>Maintained for backwards compatibility only, new code should use <a class="reference internal" href="widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> instead.</p>
+</div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Divider</span><span class="p">,</span> <span class="n">Edit</span><span class="p">,</span> <span class="n">Text</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrWrap</span><span class="p">(</span><span class="n">Divider</span><span class="p">(</span><span class="s2">"!"</span><span class="p">),</span> <span class="s2">"bright"</span><span class="p">)</span>
 <span class="go">&lt;AttrWrap flow widget &lt;Divider flow widget '!'&gt; attr='bright'&gt;</span>
@@ -127,7 +137,11 @@ be defined.</p>
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrWrap.w">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">w</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">WrappedWidget</span></span><a class="headerlink" href="#urwid.AttrWrap.w" title="Link to this definition">¶</a></dt>
-<dd><p>backwards compatibility, widget used to be stored as w</p>
+<dd><p>The wrapped widget.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 0.9.9: </span>The widget used to be stored as <code class="docutils literal notranslate"><span class="pre">w</span></code>. Use <code class="xref py py-attr docutils literal notranslate"><span class="pre">original_widget</span></code> instead.
+This API will be removed in version 5.0.</p>
+</div>
 </dd></dl>
 
 </dd></dl>
@@ -135,9 +149,12 @@ be defined.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.MetaSuper">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MetaSuper</span></span><a class="headerlink" href="#urwid.MetaSuper" title="Link to this definition">¶</a></dt>
-<dd><p>Deprecated metaclass.</p>
-<p>Present only for code compatibility, all logic has been removed.
-Please move to the last position in the class bases to allow future changes.</p>
+<dd><p>Metaclass kept only so that existing class definitions keep importing.</p>
+<p>All logic has been removed; it is a plain <code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code> subclass.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.0.0: </span>Drop it from the class bases. While it is still listed, move it to the last position,
+so that future changes to the other bases are not blocked by it.</p>
+</div>
 </dd></dl>
 
 </section>
@@ -210,7 +227,7 @@ Please move to the last position in the class bases to allow future changes.</p>
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>

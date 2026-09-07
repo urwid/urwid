@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Command Map &#8212; Urwid 4.1.1</title>
+    <title>Command Map &#8212; Urwid 4.1.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     
-    <script src="../_static/documentation_options.js?v=e6a937a4"></script>
+    <script src="../_static/documentation_options.js?v=d151bdce"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -31,7 +31,7 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
@@ -48,25 +48,25 @@
 <dt class="sig sig-object py" id="urwid.CommandMap">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CommandMap</span></span><a class="headerlink" href="#urwid.CommandMap" title="Link to this definition">¶</a></dt>
 <dd><p>dict-like object for looking up commands from keystrokes</p>
-<p>Default values (key: command):</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="s1">'tab'</span><span class="p">:</span>       <span class="s1">'next selectable'</span><span class="p">,</span>
-<span class="s1">'ctrl n'</span><span class="p">:</span>    <span class="s1">'next selectable'</span><span class="p">,</span>
-<span class="s1">'shift tab'</span><span class="p">:</span> <span class="s1">'prev selectable'</span><span class="p">,</span>
-<span class="s1">'ctrl p'</span><span class="p">:</span>    <span class="s1">'prev selectable'</span><span class="p">,</span>
-<span class="s1">'ctrl l'</span><span class="p">:</span>    <span class="s1">'redraw screen'</span><span class="p">,</span>
-<span class="s1">'esc'</span><span class="p">:</span>       <span class="s1">'menu'</span><span class="p">,</span>
-<span class="s1">'up'</span><span class="p">:</span>        <span class="s1">'cursor up'</span><span class="p">,</span>
-<span class="s1">'down'</span><span class="p">:</span>      <span class="s1">'cursor down'</span><span class="p">,</span>
-<span class="s1">'left'</span><span class="p">:</span>      <span class="s1">'cursor left'</span><span class="p">,</span>
-<span class="s1">'right'</span><span class="p">:</span>     <span class="s1">'cursor right'</span><span class="p">,</span>
-<span class="s1">'page up'</span><span class="p">:</span>   <span class="s1">'cursor page up'</span><span class="p">,</span>
-<span class="s1">'page down'</span><span class="p">:</span> <span class="s1">'cursor page down'</span><span class="p">,</span>
-<span class="s1">'home'</span><span class="p">:</span>      <span class="s1">'cursor max left'</span><span class="p">,</span>
-<span class="s1">'end'</span><span class="p">:</span>       <span class="s1">'cursor max right'</span><span class="p">,</span>
-<span class="s1">' '</span><span class="p">:</span>         <span class="s1">'activate'</span><span class="p">,</span>
-<span class="s1">'enter'</span><span class="p">:</span>     <span class="s1">'activate'</span><span class="p">,</span>
-</pre></div>
-</div>
+<p>Default values:</p>
+<dl class="simple">
+<dt><kbd class="kbd docutils literal notranslate">tab</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">n</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">shift</kbd> <kbd class="kbd docutils literal notranslate">tab</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">p</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">l</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'redraw</span> <span class="pre">screen'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">esc</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'menu'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">up</kbd>, <kbd class="kbd docutils literal notranslate">down</kbd>, <kbd class="kbd docutils literal notranslate">left</kbd>, <kbd class="kbd docutils literal notranslate">right</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">up'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">down'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">right'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">page up</kbd>, <kbd class="kbd docutils literal notranslate">page down</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">page</span> <span class="pre">up'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">page</span> <span class="pre">down'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">home</kbd>, <kbd class="kbd docutils literal notranslate">end</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">right'</span></code></p>
+</dd>
+<dt><kbd class="kbd docutils literal notranslate">space</kbd>, <kbd class="kbd docutils literal notranslate">enter</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'activate'</span></code></p>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CommandMap.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#urwid.CommandMap.copy" title="Link to this definition">¶</a></dt>
@@ -142,7 +142,7 @@ it separate from a shared one.</p>
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
