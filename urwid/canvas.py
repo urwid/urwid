@@ -25,7 +25,6 @@ import dataclasses
 import typing
 import warnings
 import weakref
-from contextlib import suppress
 
 from urwid.str_util import calc_text_pos, calc_width
 from urwid.text_layout import LayoutSegment, trim_line
@@ -57,6 +56,18 @@ if typing.TYPE_CHECKING:
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
+
+
+def _walk_depends(canv: Canvas) -> list[AbstractWidget]:
+    """Collect all child widgets of *canv* for determining who a cached canvas depends on."""
+    # FIXME: is this recursion necessary?  The cache invalidating might work with only one level.
+    depends = []
+    for _x, _y, c, _pos in canv.children:  # type: ignore[attr-defined]  # we made `hasattr` check
+        if c.widget_info:
+            depends.append(c.widget_info[0])
+        elif hasattr(c, "children"):
+            depends.extend(_walk_depends(c))
+    return depends
 
 
 class CanvasCache:
@@ -108,38 +119,32 @@ class CanvasCache:
         if not canvas.cacheable:
             return
 
-        if not canvas.widget_info:
+        info = canvas.widget_info
+        if not info:
             raise TypeError("Can't store canvas without widget_info")
-        widget, size, focus = canvas.widget_info
-
-        def walk_depends(canv: Canvas) -> list[AbstractWidget]:
-            """
-            Collect all child widgets for determining who we
-            depend on.
-            """
-            # FIXME: is this recursion necessary?  The cache invalidating might work with only one level.
-            depends = []
-            for _x, _y, c, _pos in canv.children:  # type: ignore[attr-defined]  # we made `hasattr` check
-                if c.widget_info:
-                    depends.append(c.widget_info[0])
-                elif hasattr(c, "children"):
-                    depends.extend(walk_depends(c))
-            return depends
+        widget, size, focus = info
 
         # use explicit depends_on if available from the canvas
         depends_on = getattr(canvas, "depends_on", None)
         if depends_on is None and hasattr(canvas, "children"):
-            depends_on = walk_depends(canvas)
+            depends_on = _walk_depends(canvas)
         if depends_on:
+            widgets = cls._widgets
             for w in depends_on:
-                if w not in cls._widgets:
+                if w not in widgets:
                     return
+            deps = cls._deps
             for w in depends_on:
-                cls._deps.setdefault(w, set()).add(widget)
+                deps.setdefault(w, set()).add(widget)
 
+        key = (wcls, size, focus)
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
-        cls._widgets.setdefault(widget, {})[wcls, size, focus] = ref
+        sizes = cls._widgets.get(widget)
+        if sizes is None:
+            cls._widgets[widget] = {key: ref}
+        else:
+            sizes[key] = ref
 
     @classmethod
     def fetch(
@@ -175,17 +180,15 @@ class CanvasCache:
         """
         Remove all canvases cached for widget.
         """
-        with contextlib.suppress(KeyError):
-            for ref in cls._widgets[widget].values():
-                with suppress(KeyError):
-                    del cls._refs[ref]
-            del cls._widgets[widget]
+        sizes = cls._widgets.pop(widget, None)
+        if sizes:
+            refs = cls._refs
+            for ref in sizes.values():
+                refs.pop(ref, None)
 
-        if widget not in cls._deps:
+        dependants = cls._deps.pop(widget, None)
+        if not dependants:
             return
-        dependants = cls._deps.get(widget, set())
-        with suppress(KeyError):
-            del cls._deps[widget]
         for w in dependants:
             cls.invalidate(w)
 
@@ -201,12 +204,10 @@ class CanvasCache:
         sizes = cls._widgets.get(widget, None)
         if not sizes:
             return
-        with suppress(KeyError):
-            del sizes[wcls, size, focus]
+        sizes.pop((wcls, size, focus), None)
         if not sizes:
-            with contextlib.suppress(KeyError):
-                del cls._widgets[widget]
-                del cls._deps[widget]
+            cls._widgets.pop(widget, None)
+            cls._deps.pop(widget, None)
 
     @classmethod
     def clear(cls) -> None:
@@ -340,8 +341,7 @@ class Canvas:
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
-            with suppress(KeyError):
-                del self.coords["cursor"]
+            self.coords.pop("cursor", None)  # type: ignore[misc]  # TypedDict key is a literal
             return
         self.coords["cursor"] = (*c, None)  # data part
 
@@ -757,10 +757,12 @@ class CompositeCanvas(Canvas):
             self.shards: list[tuple[int, list[_CView]]] = []
             self.children: list[tuple[int, int, Canvas, typing.Any]] = []
         else:
-            if hasattr(canv, "shards"):
-                self.shards = canv.shards
+            shards = getattr(canv, "shards", None)
+            if shards is not None:
+                self.shards = shards
             else:
-                self.shards = [(canv.rows(), [(0, 0, canv.cols(), canv.rows(), None, canv)])]
+                rows = canv.rows()
+                self.shards = [(rows, [(0, 0, canv.cols(), rows, None, canv)])]
             self.children = [(0, 0, canv, None)]
             self.coords.update(canv.coords)
             for shortcut in canv.shortcuts:
@@ -787,11 +789,13 @@ class CompositeCanvas(Canvas):
 
         :raises TypeError: a shard carries a non-integer row count.
         """
+        rows = 0
         for r, cv in self.shards:
             if not isinstance(r, int):
                 raise TypeError(r, cv)
+            rows += r
 
-        return sum(r for r, cv in self.shards)
+        return rows
 
     def cols(self) -> int:
         """
@@ -801,7 +805,9 @@ class CompositeCanvas(Canvas):
         """
         if not self.shards:
             return 0
-        cols = sum(cv[2] for cv in self.shards[0][1])
+        cols = 0
+        for cv in self.shards[0][1]:
+            cols += cv[2]
         if not isinstance(cols, int):
             raise TypeError(cols)
         return cols

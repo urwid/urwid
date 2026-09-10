@@ -29,6 +29,13 @@ if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
 
 
+# Flag combinations tested on every element of every ``Pile.sizing()`` call, hoisted out of the loop
+# so that the enum member lookups and the OR-ing happen once per import instead of once per element.
+_BOX_FLOW_FIXED = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_FLOW_FIXED = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_BOX_OR_FLOW = frozenset((Sizing.BOX, Sizing.FLOW))
+
+
 class PileError(WidgetError):
     """Pile related errors."""
 
@@ -129,11 +136,6 @@ class Pile(
         has_fixed = False
         supported: set[Sizing] = set()
 
-        box_flow_fixed = (
-            _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-        )
-        flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-
         for idx, (widget, (size_kind, _size_weight)) in enumerate(self.contents):
             w_sizing = widget.sizing()
 
@@ -145,7 +147,7 @@ class Pile(
                     flag |= _ContainerElementSizingFlag.BOX
                 if Sizing.FLOW in w_sizing:
                     flag |= _ContainerElementSizingFlag.FLOW
-                if Sizing.FIXED in w_sizing and w_sizing & {Sizing.BOX, Sizing.FLOW}:
+                if Sizing.FIXED in w_sizing and w_sizing & _BOX_OR_FLOW:
                     flag |= _ContainerElementSizingFlag.FIXED
 
             elif size_kind == WHSettings.GIVEN:
@@ -161,7 +163,7 @@ class Pile(
                 if Sizing.FIXED in w_sizing:
                     flag |= _ContainerElementSizingFlag.FIXED
 
-            if not flag & box_flow_fixed:
+            if not flag & _BOX_FLOW_FIXED:
                 warnings.warn(
                     f"Sizing combination of widget {idx} not supported: {size_kind.name} {'|'.join(w_sizing).upper()}",
                     PileWarning,
@@ -171,7 +173,7 @@ class Pile(
 
             if flag & _ContainerElementSizingFlag.BOX:
                 supported.add(Sizing.BOX)
-                if not flag & flow_fixed:
+                if not flag & _FLOW_FIXED:
                     strict_box = True
                     break
 

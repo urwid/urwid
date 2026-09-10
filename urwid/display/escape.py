@@ -50,6 +50,10 @@ within_double_byte = str_util.within_double_byte
 
 SO = "\x0e"
 SI = "\x0f"
+# Encoded once here, because `urwid.util.apply_target_encoding` splits on them for every rendered text segment.
+_SO_BYTES = SO.encode("ascii")
+_SI_BYTES = SI.encode("ascii")
+_SI_SO = SI + SO
 IBMPC_ON = "\x1b[11m"
 IBMPC_OFF = "\x1b[10m"
 
