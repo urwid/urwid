@@ -4,10 +4,10 @@ import typing
 
 from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
 from .text import Text
-from .widget import Widget
+from .widget import Widget, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Callable, Hashable
 
     from urwid.canvas import TextCanvas
 
@@ -72,6 +72,10 @@ class ProgressBar(Widget):
         self._current = current
         self._done = done
         self.satt = satt
+        # The label widget is built on first render rather than here, so that an unsupported
+        # `text_align` keeps raising from `render` as it did when the widget was built per call.
+        self._label: Text | None = None
+        self._render_label: Callable[..., TextCanvas] | None = None
 
     def set_completion(self, current: int) -> None:
         """
@@ -115,7 +119,19 @@ class ProgressBar(Widget):
         """
         # pylint: disable=protected-access
         (maxcol,) = size
-        c = Text(self.get_text(), self.text_align, WrapMode.CLIP).render((maxcol,))
+        label, render_label = self._label, self._render_label
+        if label is None or render_label is None:
+            label = self._label = Text("", self.text_align, WrapMode.CLIP)
+            # The label canvas is thrown away once its attributes are rewritten below, so it is
+            # rendered outside `CanvasCache`: caching it only costs a weakref, a store and a cleanup.
+            render_label = self._render_label = typing.cast(
+                "Callable[..., TextCanvas]",
+                nocache_widget_render_instance(label),
+            )
+        label.set_text(self.get_text())
+        if label.align != self.text_align:
+            label.set_align_mode(self.text_align)
+        c = render_label((maxcol,))
 
         cf = float(self.current) * maxcol / self.done
         ccol_dirty = int(cf)

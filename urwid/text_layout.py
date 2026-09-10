@@ -398,20 +398,17 @@ class LayoutSegment:
 
         if not isinstance(seg, tuple):
             raise TypeError(seg)
-        if len(seg) not in {2, 3}:
-            raise ValueError(seg)
 
-        self.sc, self.offs = seg[:2]
-
-        if not isinstance(self.sc, int):
-            raise TypeError(self.sc)
-
+        # Unpacking in one step instead of slicing and re-indexing: this runs once per layout segment
+        # of every rendered line.
         if len(seg) == 3:
+            self.sc, self.offs, t = seg
+            if not isinstance(self.sc, int):
+                raise TypeError(self.sc)
             if not isinstance(self.offs, int):
                 raise TypeError(self.offs)
             if self.sc <= 0:
                 raise ValueError(seg)
-            t = seg[2]
             if isinstance(t, bytes):
                 self.text = t
                 self.end = None
@@ -420,15 +417,18 @@ class LayoutSegment:
                     raise TypeError(t)
                 self.text = None
                 self.end = t
-        else:
-            if len(seg) != 2:
-                raise ValueError(seg)
+        elif len(seg) == 2:
+            self.sc, self.offs = seg
+            if not isinstance(self.sc, int):
+                raise TypeError(self.sc)
             if self.offs is not None:
                 if self.sc < 0:
                     raise ValueError(seg)
                 if not isinstance(self.offs, int):
                     raise TypeError(self.offs)
             self.text = self.end = None
+        else:
+            raise ValueError(seg)
 
     def subseg(
         self,

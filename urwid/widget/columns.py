@@ -29,6 +29,14 @@ if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
 
 
+# Flag combinations tested on every element of every ``Columns.sizing()`` call, hoisted out of the loop
+# so that the enum member lookups and the OR-ing happen once per import instead of once per element.
+_BOX_FLOW_FIXED = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_FLOW_FIXED = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_GIVEN_BOX = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
+_BOX_OR_FLOW = frozenset((Sizing.BOX, Sizing.FLOW))
+
+
 class ColumnsError(WidgetError):
     """Columns related errors."""
 
@@ -141,12 +149,6 @@ class Columns(
         has_fixed = False
         supported: set[Sizing] = set()
 
-        box_flow_fixed = (
-            _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-        )
-        flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-        given_box = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GIVEN
-
         # This is a set of _ContainerElementSizingFlag ORed together.
         flags: set[int] = set()
 
@@ -161,7 +163,7 @@ class Columns(
                     flag |= _ContainerElementSizingFlag.BOX
                 if Sizing.FLOW in w_sizing:
                     flag |= _ContainerElementSizingFlag.FLOW
-                if Sizing.FIXED in w_sizing and w_sizing & {Sizing.BOX, Sizing.FLOW}:
+                if Sizing.FIXED in w_sizing and w_sizing & _BOX_OR_FLOW:
                     flag |= _ContainerElementSizingFlag.FIXED
 
             elif size_kind == WHSettings.GIVEN:
@@ -179,7 +181,7 @@ class Columns(
                 if Sizing.FLOW in w_sizing:
                     flag |= _ContainerElementSizingFlag.FLOW
 
-            if not flag & box_flow_fixed:
+            if not flag & _BOX_FLOW_FIXED:
                 warnings.warn(
                     f"Sizing combination of widget {widget} (position={idx}) not supported: "
                     f"{size_kind.name} box={is_box}",
@@ -190,14 +192,14 @@ class Columns(
 
             flags.add(flag)
 
-            if flag & _ContainerElementSizingFlag.BOX and not (is_box or flag & flow_fixed):
+            if flag & _ContainerElementSizingFlag.BOX and not (is_box or flag & _FLOW_FIXED):
                 strict_box = True
 
             if flag & _ContainerElementSizingFlag.FLOW:
                 has_flow = True
             if flag & _ContainerElementSizingFlag.FIXED:
                 has_fixed = True
-            elif flag & given_box != given_box:
+            elif flag & _GIVEN_BOX != _GIVEN_BOX:
                 block_fixed = True
 
         if all(flag & _ContainerElementSizingFlag.BOX for flag in flags):
@@ -1052,10 +1054,16 @@ class Columns(
             return self._get_fixed_column_sizes(focus=focus)
 
         widths = tuple(self.column_widths(size=size, focus=focus))
-        heights: dict[int, int] = {}
-        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        # Every index gets a height and a render size argument before returning, either in the loop below
+        # or in the box fixup after it, so plain lists are used instead of index-keyed dicts.
+        heights: list[int] = [0] * len(widths)
+        w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = [()] * len(widths)
         box: list[int] = []
         box_need_height: list[int] = []
+        # -1 marks "no height was calculated in the loop", which a plain 0 cannot: a zero-width column
+        # stores a real height of 0.
+        max_height = -1
+        focus_position = self.focus_position if focus and self.contents else -1
 
         for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
             if isinstance(widget, AbstractWidget):
@@ -1066,60 +1074,52 @@ class Columns(
                 w_sizing = frozenset((Sizing.FLOW, Sizing.BOX))
 
             if len(size) == 2 and Sizing.BOX in w_sizing:
-                heights[i] = size[1]
-                w_h_args[i] = (width, size[1])
+                height = size[1]
+                w_h_args[i] = (width, height)
 
             elif is_box:
                 box.append(i)
+                continue
 
             elif Sizing.FLOW in w_sizing:
                 if width > 0:
-                    heights[i] = typing.cast("AbstractFlowWidget", widget).rows(
-                        (width,),
-                        focus and i == self.focus_position,
-                    )
+                    height = typing.cast("AbstractFlowWidget", widget).rows((width,), i == focus_position)
                 else:
-                    heights[i] = 0
+                    height = 0
                 w_h_args[i] = (width,)
 
             elif size_kind == WHSettings.PACK:
                 if width > 0:
-                    heights[i] = typing.cast("AbstractFixedWidget", widget).pack(
-                        (),
-                        focus and i == self.focus_position,
-                    )[1]
+                    height = typing.cast("AbstractFixedWidget", widget).pack((), i == focus_position)[1]
                 else:
-                    heights[i] = 0
+                    height = 0
                 w_h_args[i] = ()
 
             else:
                 box_need_height.append(i)
+                continue
 
-        if len(size) == 1:
-            if heights:
-                max_height = max(heights.values())
-                if box_need_height:
-                    warnings.warn(
-                        f"Widgets in columns {box_need_height} "
-                        f"({[self.contents[i][0] for i in box_need_height]}) "
-                        f'are BOX widgets not marked "box_columns" while FLOW render is requested (size={size!r})',
-                        ColumnsWarning,
-                        stacklevel=3,
-                    )
-            else:
-                max_height = 1
-        else:
+            heights[i] = height
+            max_height = max(max_height, height)
+
+        if len(size) == 2:
             max_height = size[1]
+        elif max_height < 0:
+            max_height = 1
+        elif box_need_height:
+            warnings.warn(
+                f"Widgets in columns {box_need_height} "
+                f"({[self.contents[i][0] for i in box_need_height]}) "
+                f'are BOX widgets not marked "box_columns" while FLOW render is requested (size={size!r})',
+                ColumnsWarning,
+                stacklevel=3,
+            )
 
         for idx in (*box, *box_need_height):
             heights[idx] = max_height
             w_h_args[idx] = (widths[idx], max_height)
 
-        return (
-            widths,
-            tuple(heights[idx] for idx in range(len(heights))),
-            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
-        )
+        return (widths, tuple(heights), tuple(w_h_args))
 
     def pack(
         self,

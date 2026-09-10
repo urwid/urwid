@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import codecs
 import contextlib
 import sys
 import typing
@@ -203,13 +202,18 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
         s = s.translate(escape.DEC_SPECIAL_CHARMAP)
 
     if isinstance(s, str):
-        s = s.replace(escape.SI + escape.SO, "")  # remove redundant shifts
-        s = codecs.encode(s, _target_encoding, "replace")
+        # remove redundant shifts
+        s = s.replace(escape._SI_SO, "")  # pylint: disable=protected-access
+        # `str.encode` over `codecs.encode`: the latter re-looks-up the codec on every call.
+        s = s.encode(_target_encoding, "replace")
 
     if not isinstance(s, bytes):
         raise TypeError(s)
-    SO = escape.SO.encode("ascii")
-    SI = escape.SI.encode("ascii")
+    # Pre-encoded forms of `escape.SO`/`escape.SI`. They live next to the originals so the two cannot
+    # drift apart, and are read here rather than encoded per call because this function runs for every
+    # rendered text segment.
+    SO = escape._SO_BYTES  # pylint: disable=protected-access
+    SI = escape._SI_BYTES  # pylint: disable=protected-access
 
     sis = s.split(SO)
 
