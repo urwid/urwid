@@ -139,6 +139,35 @@ sends them under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as
 ENTER. It returns the other new keys, such as ``'super a'``.
 
 
+.. _flow-control-keys:
+
+Flow Control Keys
+-----------------
+
+By default the tty treats CTRL+S and CTRL+Q as XOFF and XON: CTRL+S stops the
+terminal output until CTRL+Q resumes it, and the application never receives
+either key. To receive them as ``'ctrl s'`` and ``'ctrl q'``, unmap them from
+flow control with the screen's ``tty_signal_keys()`` method before the
+main loop starts, and put the old settings back once it ends::
+
+    screen = urwid.display.raw.Screen()
+    loop = urwid.MainLoop(widget, screen=screen)
+    old_keys = screen.tty_signal_keys(start="undefined", stop="undefined")
+    try:
+        loop.run()
+    finally:
+        if old_keys:
+            screen.tty_signal_keys(*old_keys)
+
+The screen does not undo the change when it stops, which is what the
+``finally`` block is for. A shell such as bash puts its own tty settings back
+when CTRL+Z suspends the program, so after a resume CTRL+S and CTRL+Q are flow
+control again.
+``tty_signal_keys()`` returns ``None`` when the input is not a tty. Passing
+``intr``, ``quit`` and ``susp`` as ``"undefined"`` too stops CTRL+C, CTRL+\\
+and CTRL+Z from raising signals, as ``examples/input_test.py`` does.
+
+
 .. _mouse-input:
 
 Mouse Input
