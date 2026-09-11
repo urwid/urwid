@@ -85,6 +85,13 @@ class Screen(_raw_display_base.Screen):
             should chain to the previous handler (as this class does) rather than replacing it outright,
             and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
             since only the main thread can receive process signals.
+
+        .. note::
+            on Ctrl+S/Ctrl+Q: cbreak mode also leaves the tty's ``IXON``/``IXOFF`` flags set, so without
+            further action the line discipline treats Ctrl+S/Ctrl+Q as XOFF/XON flow control and consumes
+            them before urwid ever sees the bytes, which looks like Ctrl+S producing no key event and
+            freezing terminal output (urwid/urwid#140). `start()` clears ``IXON``/``IXOFF`` so both keys
+            reach the application as ordinary ``ctrl s``/``ctrl q`` key events instead.
         """
         super().__init__(input, output)
         self.gpm_mev: Popen[str] | None = None
@@ -247,6 +254,11 @@ class Screen(_raw_display_base.Screen):
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
+            # setcbreak() does not clear IXON/IXOFF, so the tty driver still intercepts
+            # Ctrl+S/Ctrl+Q as XOFF/XON flow control before urwid ever sees them (urwid/urwid#140).
+            attrs = termios.tcgetattr(fd)
+            attrs[tty.IFLAG] &= ~(termios.IXON | termios.IXOFF)
+            termios.tcsetattr(fd, termios.TCSANOW, attrs)
 
         self.signal_init()
         self._alternate_buffer = alternate_buffer
