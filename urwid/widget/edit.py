@@ -109,7 +109,7 @@ class Edit(WidgetWrap[Text]):
         super().__init__(Text("", align, wrap, layout))
         self.multiline = multiline
         self.allow_tab = allow_tab
-        self._edit_pos = 0
+        self.__edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
         self.highlight: tuple[int, int] | None = None
@@ -149,7 +149,7 @@ class Edit(WidgetWrap[Text]):
             **super()._repr_attrs(),
             "align": self._w.align,
             "wrap": self._w.wrap,
-            "edit_pos": self._edit_pos,
+            "edit_pos": self.__edit_pos,
         }
         return remove_defaults(attrs, Edit.__init__)
 
@@ -323,11 +323,11 @@ class Edit(WidgetWrap[Text]):
         pos = min(max(pos, 0), len(self._edit_text))
         self.highlight = None
         self.pref_col_maxcol = None, None
-        self._edit_pos = pos
+        self.__edit_pos = pos
         self._invalidate()
 
     edit_pos = property(
-        lambda self: self._edit_pos,
+        lambda self: self.__edit_pos,
         set_edit_pos,
         doc="""
         Property controlling the edit position for this widget.
