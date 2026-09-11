@@ -196,6 +196,37 @@ class Overlay(
         _check_widget_subclass(top_w)
         _check_widget_subclass(bottom_w)
 
+    @property
+    def top_w(self) -> TopWidget:
+        """Widget overlaid "on top" of `bottom_w`."""
+        return self._top_w
+
+    @top_w.setter
+    def top_w(self, widget: TopWidget) -> None:
+        """Replace the widget overlaid "on top" and invalidate the canvas rendered from the old one.
+
+        Without the invalidation :class:`CanvasCache` keeps serving the canvas of the previous
+        widget - together with every parent canvas built from it - so the replacement stays
+        invisible until something else invalidates the overlay.
+        """
+        self._top_w = widget
+        self._invalidate()
+
+    @property
+    def bottom_w(self) -> BottomWidget:
+        """Widget appearing "below" `top_w`."""
+        return self._bottom_w
+
+    @bottom_w.setter
+    def bottom_w(self, widget: BottomWidget) -> None:
+        """Replace the widget appearing "below" and invalidate the canvas rendered from the old one.
+
+        The counterpart of the `top_w` setter, and invalidating for the same reason: a plain
+        assignment would leave :class:`CanvasCache` serving the canvas of the previous widget.
+        """
+        self._bottom_w = widget
+        self._invalidate()
+
     def sizing(self) -> frozenset[Sizing]:
         """Actual widget sizing.
 
