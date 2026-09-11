@@ -425,6 +425,51 @@ class OverlayTest(unittest.TestCase):
             (1, 1),
         )
 
+    def test_replaced_top_w_is_rendered(self):
+        """Replacing the top widget invalidates the canvas rendered from the previous one.
+
+        Regression test: `top_w` used to be a plain attribute, so the canvas cached for the
+        overlay survived the replacement and the old widget kept being rendered until something
+        else invalidated the overlay. The first canvas is kept referenced on purpose:
+        :class:`urwid.CanvasCache` holds weak references, so a canvas dropped by the test takes
+        the stale cache entry with it and the replacement would render correctly either way.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.top_w = urwid.SolidFill("O")
+
+        self.assertEqual(("........", "..OOOO..", "..OOOO..", "........"), ovl.render((8, 4)).decoded_text)
+
+    def test_replaced_bottom_w_is_rendered(self):
+        """Replacing the bottom widget invalidates the canvas rendered from the previous one.
+
+        The counterpart of `test_replaced_top_w_is_rendered`, keeping the first canvas referenced
+        for the same reason.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.bottom_w = urwid.SolidFill(",")
+
+        self.assertEqual((",,,,,,,,", ",,XXXX,,", ",,XXXX,,", ",,,,,,,,"), ovl.render((8, 4)).decoded_text)
+
     def test_length(self):
         ovl = urwid.Overlay(
             urwid.SolidFill("X"),
