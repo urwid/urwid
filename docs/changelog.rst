@@ -2,6 +2,23 @@
 Changelog
 ---------
 
+Urwid 4.1.3
+============
+
+2026-09-11
+
+Bug fixes 🕷
+++++++++++++
+* Fix: Overlay top widget or bottom widget replace should trigger invalidation by @penguinolog in https://github.com/urwid/urwid/pull/1294
+Documentation 🕮
+++++++++++++++++
+* Documentation: force theme override to fix readability on wide screen by @penguinolog in https://github.com/urwid/urwid/pull/1288
+Refactoring 🛠
+++++++++++++++
+* Speed up the widget render hot paths by @penguinolog in https://github.com/urwid/urwid/pull/1290
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.2...4.1.3
+
 Urwid 4.1.2
 ============
 
