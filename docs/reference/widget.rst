@@ -63,6 +63,17 @@ RadioButton
 
 .. autoclass:: RadioButton
 
+   Signal Order
+~~~~~~~~~~~~
+
+When the state of a ``RadioButton`` changes, it emits two signals in the following order:
+
+1. ``"change"``: Emitted when the state has changed. The callback receives the new state value.
+2. ``"postchange"``: Emitted immediately after the ``"change"`` signal is fully processed.
+
+Use ``"change"`` to react to the new value (e.g., updating other widgets).
+Use ``"postchange"`` if you need to perform actions after the radio button group has fully settled.  
+
 TreeWidget
 ~~~~~~~~~~
 
