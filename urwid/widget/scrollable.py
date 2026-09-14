@@ -363,18 +363,15 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             self._trim_top = 0  # Reset scroll position
             return
 
-        def ensure_bounds(new_trim_top: int) -> int:
-            return max(0, min(canv_rows - maxrow, new_trim_top))
-
         if action == SCROLL_LINE_UP:
-            self._trim_top = ensure_bounds(trim_top - 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top - 1))
         elif action == SCROLL_LINE_DOWN:
-            self._trim_top = ensure_bounds(trim_top + 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top + 1))
 
         elif action == SCROLL_PAGE_UP:
-            self._trim_top = ensure_bounds(trim_top - maxrow + 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top - maxrow + 1))
         elif action == SCROLL_PAGE_DOWN:
-            self._trim_top = ensure_bounds(trim_top + maxrow - 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top + maxrow - 1))
 
         elif action == SCROLL_TO_TOP:
             self._trim_top = 0
@@ -382,7 +379,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             self._trim_top = canv_rows - maxrow
 
         else:
-            self._trim_top = ensure_bounds(trim_top)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top))
 
         # If the cursor was moved by the most recent keypress, adjust trim_top
         # so that the new cursor position is within the displayed canvas part.

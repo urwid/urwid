@@ -767,30 +767,12 @@ class Screen(BaseScreen, RealTerminal):
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         """
 
-        def set_cursor_home() -> str:
-            if not partial_display():
-                return escape.set_cursor_position(0, 0)
-            return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
-
         def set_cursor_position(x: int, y: int) -> str:
-            if not partial_display():
+            if self._rows_used is None:
                 return escape.set_cursor_position(x, y)
             if cy > y:
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
-
-        def is_blank_row(row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]) -> bool:
-            if len(row) > 1:
-                return False
-            return not row[0][2].strip()
-
-        def using_standout_or_underline(a: AttrSpec | str | None) -> bool:
-            a = self._pal_attrspec.get(a, a)  # type: ignore[arg-type]
-            return isinstance(a, AttrSpec) and (a.standout or a.underline)
-
-        def partial_display() -> bool:
-            """Returns True if the screen is in partial display mode ie. only some rows belong to the display"""
-            return self._rows_used is not None
 
         def handle_row(
             attr: AttrSpec | str | None,
@@ -879,7 +861,7 @@ class Screen(BaseScreen, RealTerminal):
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
 
-        if not partial_display():
+        if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
 
         osb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]
@@ -892,7 +874,10 @@ class Screen(BaseScreen, RealTerminal):
         y = -1
 
         ins = None
-        output.append(set_cursor_home())
+        if self._rows_used is None:
+            output.append(escape.set_cursor_position(0, 0))
+        else:
+            output.append(escape.CURSOR_HOME_COL + escape.move_cursor_up(cy))
         cy = 0
 
         first = True
@@ -910,12 +895,12 @@ class Screen(BaseScreen, RealTerminal):
 
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
-            if partial_display() and y > typing.cast("int", self._rows_used):
-                if is_blank_row(row):
+            if self._rows_used is not None and y > self._rows_used:
+                if len(row) == 1 and not row[0][2].strip():
                     continue
                 self._rows_used = y
 
-            if y or partial_display():
+            if y or self._rows_used is not None:
                 output.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
@@ -927,7 +912,14 @@ class Screen(BaseScreen, RealTerminal):
 
             if row:
                 a, cs, run = row[-1]
-                if run[-1:] == b" " and self.back_color_erase and not using_standout_or_underline(a):
+                if (
+                    run[-1:] == b" "
+                    and self.back_color_erase
+                    and not (
+                        isinstance(pal_a := self._pal_attrspec.get(a, a), AttrSpec)  # type: ignore[arg-type]
+                        and (pal_a.standout or pal_a.underline)
+                    )
+                ):
                     whitespace_at_end = True
                     row = [*row[:-1], (a, cs, run.rstrip(b" "))]  # noqa: PLW2901
                 elif y == maxrow - 1 and maxcol > 1:
