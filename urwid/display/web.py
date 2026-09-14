@@ -287,6 +287,8 @@ class Screen(BaseScreen):
         with suppress(Exception):
             self._close_connection()
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        with suppress(Exception):
+            os.close(self.input_fd)
         self._cleanup_pipe()
         self._started = False
 

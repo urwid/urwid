@@ -205,6 +205,8 @@ class Screen(_raw_display_base.Screen):
             encoding="ascii",
         )
         if m.stdout is None:
+            m.kill()
+            m.wait(1)
             raise RuntimeError("gpm mouse tracking stdout was not created")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
