@@ -381,7 +381,7 @@ def nocache_widget_render_instance(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        canv = fn(self, size, focus=focus)
+        canv = typing.cast("Canvas", fn(self, size, focus=focus))
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)

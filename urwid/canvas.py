@@ -341,7 +341,7 @@ class Canvas:
         if self.widget_info and self.cacheable:
             raise self._finalized_error
         if c is None:
-            self.coords.pop("cursor", None)  # type: ignore[misc]  # TypedDict key is a literal
+            self.coords.pop("cursor", None)
             return
         self.coords["cursor"] = (*c, None)  # data part
 
