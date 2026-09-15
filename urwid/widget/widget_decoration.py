@@ -5,7 +5,7 @@ import warnings
 
 from urwid.canvas import CompositeCanvas
 
-from .widget import Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
+from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -22,35 +22,35 @@ __all__ = (
     "delegate_to_widget_mixin",
 )
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disable=abstract-method
     """
-    original_widget -- the widget being decorated
+    Base class for decoration widgets: widgets that contain one or more widgets and only ever have a single focus.
 
-    This is a base class for decoration widgets,
-    widgets that contain one or more widgets and only ever have a single focus.
     This type of widget will affect the display or behaviour of the original_widget,
     but it is not part of determining a chain of focus.
 
-    Don't actually do this -- use a WidgetDecoration subclass instead, these are not real widgets:
+    :param original_widget: the widget being decorated
+
+    Don't actually do this - use a WidgetDecoration subclass instead, these are not real widgets:
 
     >>> from urwid import Text
     >>> WidgetDecoration(Text("hi"))
     <WidgetDecoration fixed/flow widget <Text fixed/flow widget 'hi'>>
 
-    .. Warning:
-        WidgetDecoration do not implement ``render`` method.
-        Implement it or forward to the widget in the subclass.
+    .. warning::
+        WidgetDecoration does not implement the ``render`` method.
+        Implement it, or forward to the wrapped widget, in the subclass.
     """
 
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__()
-        if not isinstance(original_widget, Widget):
+        if not isinstance(original_widget, AbstractWidget):
             obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"
             warnings.warn(
-                f"{obj_class_path} is not subclass of Widget",
+                f"{obj_class_path} is not implementing Widget API",
                 DeprecationWarning,
                 stacklevel=2,
             )
@@ -69,7 +69,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         self._invalidate()
 
     @property
-    def base_widget(self) -> Widget:
+    def base_widget(self) -> AbstractWidget:
         """
         Return the widget without decorations.
 
@@ -98,7 +98,10 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         return self._original_widget.sizing()
 
 
-class WidgetPlaceholder(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class WidgetPlaceholder(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     """
     This is a do-nothing decoration widget that can be used for swapping
     between widgets without modifying the container of this widget.
@@ -125,7 +128,8 @@ class WidgetDisable(WidgetDecoration[WrappedWidget]):
         return False
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        return self._original_widget.rows(size, False)
+        # AttributeError is a valid case
+        return self._original_widget.rows(size, False)  # type: ignore[attr-defined,no-any-return]
 
     def sizing(self) -> frozenset[Sizing]:
         return self._original_widget.sizing()

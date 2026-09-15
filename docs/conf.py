@@ -171,6 +171,11 @@ html_logo = "urwid-logo.png"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["tools/static"]
 
+# Custom stylesheet, loaded after the theme's own CSS so it can patch layout
+# and admonition styling issues in the "classic" theme (see the comments in
+# the file itself for details).
+html_css_files = ["urwid_theme.css"]
+
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
 # html_last_updated_fmt = '%b %d, %Y'

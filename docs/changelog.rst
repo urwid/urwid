@@ -2,6 +2,259 @@
 Changelog
 ---------
 
+Urwid 4.1.3
+============
+
+2026-09-11
+
+Bug fixes 🕷
+++++++++++++
+* Fix: Overlay top widget or bottom widget replace should trigger invalidation by @penguinolog in https://github.com/urwid/urwid/pull/1294
+Documentation 🕮
+++++++++++++++++
+* Documentation: force theme override to fix readability on wide screen by @penguinolog in https://github.com/urwid/urwid/pull/1288
+Refactoring 🛠
+++++++++++++++
+* Speed up the widget render hot paths by @penguinolog in https://github.com/urwid/urwid/pull/1290
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.2...4.1.3
+
+Urwid 4.1.2
+============
+
+2026-09-07
+
+Bug fixes 🕷
+++++++++++++
+* Restore terminal palette if was modified by @penguinolog in https://github.com/urwid/urwid/pull/1278
+* Handle issue with shard calculation inconsistency with shard_tail by @penguinolog in https://github.com/urwid/urwid/pull/1280
+Documentation 🕮
+++++++++++++++++
+* Documentation: fix typo in widget classes doc by @penguinolog in https://github.com/urwid/urwid/pull/1277
+* Fix docstring for "draw_string" by @penguinolog in https://github.com/urwid/urwid/pull/1279
+* Documentation: fix docstrings to follow PEP257 by @penguinolog in https://github.com/urwid/urwid/pull/1285
+* Documentation: mass-add `raises` to docstrings by @penguinolog in https://github.com/urwid/urwid/pull/1286
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.1...4.1.2
+
+Urwid 4.1.1
+============
+
+2026-09-03
+
+Bug fixes 🕷
+++++++++++++
+* Fix `SIGTSTP` handler for POSIX RAW display and explain behaviour by @penguinolog in https://github.com/urwid/urwid/pull/1271
+* Fix regression in treetools: handle wrapped widgets inside TreeWidget by @penguinolog in https://github.com/urwid/urwid/pull/1274
+* Stop CanvasCache._deps growing without bound by @afonsojanu in https://github.com/urwid/urwid/pull/1255
+
+New Contributors
+++++++++++++++++
+* @afonsojanu made their first contribution in https://github.com/urwid/urwid/pull/1255
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.0...4.1.1
+
+Urwid 4.1.0
+============
+
+2026-09-02
+
+New features 🗹
++++++++++++++++
+* Feat: detect terminal properties not only for basic xterm by @penguinolog in https://github.com/urwid/urwid/pull/1258
+* feat: extend faint text support to vterm and displays by @penguinolog in https://github.com/urwid/urwid/pull/1263
+* Feat: implement deque support for ListBox and `ANSIText` widget by @penguinolog in https://github.com/urwid/urwid/pull/1265
+  `ANSIText` is a `Text` like widget containing parsed `ANSI` text including color/style information and basic flags
+  as `bel`/`leds`/`title`.
+Bug fixes 🕷
+++++++++++++
+* Count the real ellipsis width in trimmed layout segments by @dylanpulver in https://github.com/urwid/urwid/pull/1261
+Documentation 🕮
+++++++++++++++++
+* Typing: fix ListBox typing protocol by @penguinolog in https://github.com/urwid/urwid/pull/1253
+Other Changes
++++++++++++++
+* Tests: add missing tests for common use-cases by @penguinolog in https://github.com/urwid/urwid/pull/1257
+* Tests: extend canvas and event loop tests coverage by @penguinolog in https://github.com/urwid/urwid/pull/1259
+* Tests: fix windows side by @penguinolog in https://github.com/urwid/urwid/pull/1260
+
+New Contributors
+++++++++++++++++
+* @dylanpulver made their first contribution in https://github.com/urwid/urwid/pull/1261
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.13...4.1.0
+
+Urwid 4.0.13
+============
+
+2026-08-25
+
+New features 🗹
++++++++++++++++
+* Display attributes: add faint text support by @ChrisJr404 in https://github.com/urwid/urwid/pull/1249
+Bug fixes 🕷
+++++++++++++
+* Fix sizing related issues by @penguinolog in https://github.com/urwid/urwid/pull/1250
+
+New Contributors
+++++++++++++++++
+* @ChrisJr404 made their first contribution in https://github.com/urwid/urwid/pull/1249
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.12...4.0.13
+
+Urwid 4.0.12
+============
+
+2026-08-25
+
+Bug fixes 🕷
+++++++++++++
+* Text layout: do not crash when a wide character is clipped on both sides by @luantaraschi in https://github.com/urwid/urwid/pull/1241
+* Fix web display init by @penguinolog in https://github.com/urwid/urwid/pull/1243
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.11...4.0.12
+
+Urwid 4.0.11
+============
+
+2026-08-19
+
+Bug fixes 🕷
+++++++++++++
+* Raw display: do not crash on a last row of a single wide grapheme by @luantaraschi in https://github.com/urwid/urwid/pull/1229
+* ScrollBar: decide the scrollbar hitbox before the event is passed on by @luantaraschi in https://github.com/urwid/urwid/pull/1234
+* GridFlow: keep the focus a callback set during keypress or mouse event by @luantaraschi in https://github.com/urwid/urwid/pull/1230
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate ListBox by @penguinolog in https://github.com/urwid/urwid/pull/1236
+Refactoring 🛠
+++++++++++++++
+* Refactoring: stop with monkey-patching `Padding` in `GridFlow` by @penguinolog in https://github.com/urwid/urwid/pull/1231
+
+New Contributors
+++++++++++++++++
+* @luantaraschi made their first contribution in https://github.com/urwid/urwid/pull/1229
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.10...4.0.11
+
+Urwid 4.0.10
+============
+
+2026-08-17
+
+Bug fixes 🕷
+++++++++++++
+* Web display: handle invalid input with "window resize" by @penguinolog in https://github.com/urwid/urwid/pull/1220
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate bar_graph by @penguinolog in https://github.com/urwid/urwid/pull/1221
+* typing: handle internal mypy warnings by @penguinolog in https://github.com/urwid/urwid/pull/1224
+* typing: fix monitored list errors by @penguinolog in https://github.com/urwid/urwid/pull/1225
+* typing: fix part of listbox errors by @penguinolog in https://github.com/urwid/urwid/pull/1226
+Other Changes
++++++++++++++
+* typing: early guard `ListWalker` API in `ListBox` calls by @penguinolog in https://github.com/urwid/urwid/pull/1227
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.9...4.0.10
+
+Urwid 4.0.9
+===========
+
+2026-08-14
+
+Documentation 🕮
+++++++++++++++++
+* Typing: fix `WidgetContainerListContentsMixin` typing by @penguinolog in https://github.com/urwid/urwid/pull/1210
+* Typing: simplify internal annotations by @penguinolog in https://github.com/urwid/urwid/pull/1211
+* Typing: explicit annotate enum literals for widget constants by @penguinolog in https://github.com/urwid/urwid/pull/1218
+Refactoring 🛠
+++++++++++++++
+* Refactoring: get rid of monkeypatching in monitored_list by @penguinolog in https://github.com/urwid/urwid/pull/1213
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.8...4.0.9
+
+Urwid 4.0.8
+===========
+
+2026-07-26
+
+Bug fixes 🕷
+++++++++++++
+* Fix MRO for SimpleFocusListWalker: wrong order causes delayed invalidate by @penguinolog in https://github.com/urwid/urwid/pull/1204
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.7...4.0.8
+
+Urwid 4.0.7
+===========
+
+2026-07-24
+
+Bug fixes 🕷
+++++++++++++
+* Fix encoding handling by web display by @penguinolog in https://github.com/urwid/urwid/pull/1201
+Documentation 🕮
+++++++++++++++++
+* Typing: annotate `MainLoop` and `signals` by @penguinolog in https://github.com/urwid/urwid/pull/1199
+* Typing: fix `ListBox` expected widget API by @penguinolog in https://github.com/urwid/urwid/pull/1200
+* Typing: partial annotation for `treetools` by @penguinolog in https://github.com/urwid/urwid/pull/1197
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.6...4.0.7
+
+Urwid 4.0.6
+===========
+
+2026-07-23
+
+Implemented protocol base classes `AbstractWidget` and internal `AbstractBoxWidget`, `AbstractFlowWidget` and `AbstractFixedWidget` for protocol based typing.
+All classes implementing `AbstractWidget` are considered valid widget (as all required APIs available).
+Container widgets as `Columns`, `Pile`, `GridFlow`, `Frame`, `Overlay` and `Padding` now declare expected APIs from widgets depends on sizing parameter in `__init__`.
+
+Bug fixes 🕷
+++++++++++++
+* Fix web display broken by token_urlsafe session ids by @2018302345 in https://github.com/urwid/urwid/pull/1195
+Documentation 🕮
+++++++++++++++++
+* Typing: fix scrollable module annotations by @penguinolog in https://github.com/urwid/urwid/pull/1194
+* Typing: introduce `AbstractWidget` abstract base class/protocol by @penguinolog in https://github.com/urwid/urwid/pull/1196
+
+
+New Contributors
+++++++++++++++++
+* @2018302345 made their first contribution in https://github.com/urwid/urwid/pull/1195
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.5...4.0.6
+
+Urwid 4.0.5
+===========
+
+2026-07-20
+
+New features 🗹
++++++++++++++++
+* Copy signal handlers before emission by @Sanjays2402 in https://github.com/urwid/urwid/pull/1187
+* Implement `_scrollbar_layout` and left click handling for `Scrollable` by @penguinolog in https://github.com/urwid/urwid/pull/1192
+Bug fixes 🕷
+++++++++++++
+* Fix rle_product for zero-len elements by @penguinolog in https://github.com/urwid/urwid/pull/1191
+Documentation 🕮
+++++++++++++++++
+* typing: fix `Filler` typing annotations by @penguinolog in https://github.com/urwid/urwid/pull/1183
+* typing: extend widget_decoration module typing coverage by @penguinolog in https://github.com/urwid/urwid/pull/1184
+* Typing: annotate and fix attr_map by @penguinolog in https://github.com/urwid/urwid/pull/1186
+Refactoring 🛠
+++++++++++++++
+* Migrate `Edit` widget to use `WidgetWrap` as base class and update methods by @penguinolog in https://github.com/urwid/urwid/pull/1180
+
+New Contributors
+++++++++++++++++
+* @Sanjays2402 made their first contribution in https://github.com/urwid/urwid/pull/1187
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.0.4...4.0.5
+
 Urwid 4.0.4
 ===========
 

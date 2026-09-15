@@ -45,40 +45,40 @@ class Command(str, enum.Enum):
     SELECT_PREVIOUS = "prev selectable"
 
 
-REDRAW_SCREEN = Command.REDRAW_SCREEN
-CURSOR_UP = Command.UP
-CURSOR_DOWN = Command.DOWN
-CURSOR_LEFT = Command.LEFT
-CURSOR_RIGHT = Command.RIGHT
-CURSOR_PAGE_UP = Command.PAGE_UP
-CURSOR_PAGE_DOWN = Command.PAGE_DOWN
-CURSOR_MAX_LEFT = Command.MAX_LEFT
-CURSOR_MAX_RIGHT = Command.MAX_RIGHT
-ACTIVATE = Command.ACTIVATE
+REDRAW_SCREEN: typing.Literal[Command.REDRAW_SCREEN] = Command.REDRAW_SCREEN
+CURSOR_UP: typing.Literal[Command.UP] = Command.UP
+CURSOR_DOWN: typing.Literal[Command.DOWN] = Command.DOWN
+CURSOR_LEFT: typing.Literal[Command.LEFT] = Command.LEFT
+CURSOR_RIGHT: typing.Literal[Command.RIGHT] = Command.RIGHT
+CURSOR_PAGE_UP: typing.Literal[Command.PAGE_UP] = Command.PAGE_UP
+CURSOR_PAGE_DOWN: typing.Literal[Command.PAGE_DOWN] = Command.PAGE_DOWN
+CURSOR_MAX_LEFT: typing.Literal[Command.MAX_LEFT] = Command.MAX_LEFT
+CURSOR_MAX_RIGHT: typing.Literal[Command.MAX_RIGHT] = Command.MAX_RIGHT
+ACTIVATE: typing.Literal[Command.ACTIVATE] = Command.ACTIVATE
 
 
 class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     """
     dict-like object for looking up commands from keystrokes
 
-    Default values (key: command)::
+    Default values:
 
-        'tab':       'next selectable',
-        'ctrl n':    'next selectable',
-        'shift tab': 'prev selectable',
-        'ctrl p':    'prev selectable',
-        'ctrl l':    'redraw screen',
-        'esc':       'menu',
-        'up':        'cursor up',
-        'down':      'cursor down',
-        'left':      'cursor left',
-        'right':     'cursor right',
-        'page up':   'cursor page up',
-        'page down': 'cursor page down',
-        'home':      'cursor max left',
-        'end':       'cursor max right',
-        ' ':         'activate',
-        'enter':     'activate',
+    :kbd:`tab`, :kbd:`ctrl n`
+        ``'next selectable'``
+    :kbd:`shift tab`, :kbd:`ctrl p`
+        ``'prev selectable'``
+    :kbd:`ctrl l`
+        ``'redraw screen'``
+    :kbd:`esc`
+        ``'menu'``
+    :kbd:`up`, :kbd:`down`, :kbd:`left`, :kbd:`right`
+        ``'cursor up'``, ``'cursor down'``, ``'cursor left'``, ``'cursor right'``
+    :kbd:`page up`, :kbd:`page down`
+        ``'cursor page up'``, ``'cursor page down'``
+    :kbd:`home`, :kbd:`end`
+        ``'cursor max left'``, ``'cursor max right'``
+    :kbd:`space`, :kbd:`enter`
+        ``'activate'``
     """
 
     def __iter__(self) -> Iterator[str]:

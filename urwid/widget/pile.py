@@ -15,10 +15,25 @@ from urwid.util import is_mouse_press
 from .constants import Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
 from .monitored_list import MonitoredFocusList, MonitoredList
-from .widget import Widget, WidgetError, WidgetWarning
+from .widget import (
+    AbstractBoxWidget,
+    AbstractFixedWidget,
+    AbstractFlowWidget,
+    AbstractWidget,
+    Widget,
+    WidgetError,
+    WidgetWarning,
+)
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
+
+
+# Flag combinations tested on every element of every ``Pile.sizing()`` call, hoisted out of the loop
+# so that the enum member lookups and the OR-ing happen once per import instead of once per element.
+_BOX_FLOW_FIXED = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_FLOW_FIXED = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
+_BOX_OR_FLOW = frozenset((Sizing.BOX, Sizing.FLOW))
 
 
 class PileError(WidgetError):
@@ -34,9 +49,18 @@ class Pile(
     WidgetContainerMixin[int],
     WidgetContainerListContentsMixin[
         typing.Union[
-            tuple[Literal[WHSettings.PACK], None],
-            tuple[Literal[WHSettings.GIVEN], int],
-            tuple[Literal[WHSettings.WEIGHT], typing.Union[int, float]],
+            tuple[
+                typing.Union[AbstractFlowWidget, AbstractFixedWidget],
+                tuple[Literal[WHSettings.PACK], None],
+            ],
+            tuple[
+                AbstractBoxWidget,
+                tuple[Literal[WHSettings.GIVEN], int],
+            ],
+            tuple[
+                typing.Union[AbstractBoxWidget, AbstractFlowWidget],
+                tuple[Literal[WHSettings.WEIGHT], typing.Union[int, float]],
+            ],
         ]
     ],
 ):
@@ -112,11 +136,6 @@ class Pile(
         has_fixed = False
         supported: set[Sizing] = set()
 
-        box_flow_fixed = (
-            _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-        )
-        flow_fixed = _ContainerElementSizingFlag.FLOW | _ContainerElementSizingFlag.FIXED
-
         for idx, (widget, (size_kind, _size_weight)) in enumerate(self.contents):
             w_sizing = widget.sizing()
 
@@ -128,7 +147,7 @@ class Pile(
                     flag |= _ContainerElementSizingFlag.BOX
                 if Sizing.FLOW in w_sizing:
                     flag |= _ContainerElementSizingFlag.FLOW
-                if Sizing.FIXED in w_sizing and w_sizing & {Sizing.BOX, Sizing.FLOW}:
+                if Sizing.FIXED in w_sizing and w_sizing & _BOX_OR_FLOW:
                     flag |= _ContainerElementSizingFlag.FIXED
 
             elif size_kind == WHSettings.GIVEN:
@@ -144,7 +163,7 @@ class Pile(
                 if Sizing.FIXED in w_sizing:
                     flag |= _ContainerElementSizingFlag.FIXED
 
-            if not flag & box_flow_fixed:
+            if not flag & _BOX_FLOW_FIXED:
                 warnings.warn(
                     f"Sizing combination of widget {idx} not supported: {size_kind.name} {'|'.join(w_sizing).upper()}",
                     PileWarning,
@@ -154,7 +173,7 @@ class Pile(
 
             if flag & _ContainerElementSizingFlag.BOX:
                 supported.add(Sizing.BOX)
-                if not flag & flow_fixed:
+                if not flag & _FLOW_FIXED:
                     strict_box = True
                     break
 
@@ -174,12 +193,13 @@ class Pile(
     def __init__(
         self,
         widget_list: Iterable[
-            Widget
-            | tuple[Literal["pack", WHSettings.PACK] | int, Widget]
-            | tuple[Literal["given", WHSettings.GIVEN], int, Widget]
-            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, Widget]
+            AbstractWidget
+            | tuple[Literal["pack", WHSettings.PACK], AbstractFlowWidget | AbstractFixedWidget]
+            | tuple[int, AbstractBoxWidget]
+            | tuple[Literal["given", WHSettings.GIVEN], int, AbstractBoxWidget]
+            | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
-        focus_item: Widget | int | None = None,
+        focus_item: AbstractWidget | int | None = None,
     ) -> None:
         """
         :param widget_list: child widgets
@@ -187,6 +207,7 @@ class Pile(
         :param focus_item: child widget that gets the focus initially.
             Chooses the first selectable widget if unset.
         :type focus_item: Widget or int
+        :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
 
         *widget_list* may also contain tuples such as:
 
@@ -208,10 +229,16 @@ class Pile(
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
-                Widget,
-                tuple[Literal[WHSettings.PACK], None]
-                | tuple[Literal[WHSettings.GIVEN], int]
-                | tuple[Literal[WHSettings.WEIGHT], int | float],
+                AbstractFlowWidget | AbstractFixedWidget,
+                tuple[Literal[WHSettings.PACK], None],
+            ]
+            | tuple[
+                AbstractBoxWidget,
+                tuple[Literal[WHSettings.GIVEN], int],
+            ]
+            | tuple[
+                AbstractBoxWidget | AbstractFlowWidget,
+                tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ] = MonitoredFocusList()
         self._contents.set_modified_callback(self._contents_modified)
@@ -225,16 +252,45 @@ class Pile(
             elif len(original) == 2:
                 if original[0] in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
                     w = original[-1]
-                    self.contents.append((w, (WHSettings.PACK, None)))
+                    self.contents.append(
+                        (
+                            w,
+                            (WHSettings.PACK, None),
+                        )
+                    )
                 else:
                     height, w = original
-                    self.contents.append((w, (WHSettings.GIVEN, typing.cast("int", height))))
+                    self.contents.append(
+                        (
+                            typing.cast("AbstractBoxWidget", w),
+                            (
+                                WHSettings.GIVEN,
+                                typing.cast("int", height),
+                            ),
+                        )
+                    )
             elif len(original) == 3:
                 settings, height, w = original  # type: ignore[assignment]
                 if settings in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility
-                    self.contents.append((w, (WHSettings.GIVEN, typing.cast("int", height))))
+                    self.contents.append(
+                        (
+                            typing.cast("AbstractBoxWidget", w),
+                            (
+                                WHSettings.GIVEN,
+                                typing.cast("int", height),
+                            ),
+                        )
+                    )
                 elif settings == WHSettings.WEIGHT:
-                    self.contents.append((w, (WHSettings.WEIGHT, typing.cast("int | float", height))))
+                    self.contents.append(
+                        (
+                            w,
+                            (
+                                WHSettings.WEIGHT,
+                                typing.cast("int | float", height),
+                            ),
+                        )
+                    )
                 else:
                     raise PileError(f"initial widget list item invalid {original!r}")
             else:
@@ -242,7 +298,7 @@ class Pile(
             if focus_item is None and w.selectable():
                 focus_item = i
 
-            if not isinstance(w, Widget):
+            if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
 
         if self.contents and focus_item is not None:
@@ -265,9 +321,9 @@ class Pile(
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
         widget_list: list[
-            Widget
-            | tuple[Literal[WHSettings.PACK] | int, Widget]
-            | tuple[Literal[WHSettings.WEIGHT], int | float, Widget]
+            AbstractWidget
+            | tuple[Literal[WHSettings.PACK] | int, AbstractWidget]
+            | tuple[Literal[WHSettings.WEIGHT], int | float, AbstractWidget]
         ] = []
 
         for w_instance, (sizing, amount) in self._contents:
@@ -297,14 +353,19 @@ class Pile(
         slc: tuple[int, int, int],
         new_items: Collection[
             tuple[
-                Widget,
+                AbstractWidget,
                 tuple[Literal[WHSettings.PACK], None]
                 | tuple[Literal[WHSettings.GIVEN], int]
                 | tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ],
     ) -> None:
-        invalid_items: list[tuple[Widget, tuple[typing.Any, typing.Any]]] = []
+        """
+        Reject contents changes that would put an invalid item into the Pile.
+
+        :raises PileError: an added item is not a valid ``(widget, options)`` pair.
+        """
+        invalid_items: list[tuple[AbstractWidget, tuple[typing.Any, typing.Any]]] = []
         try:
             for item in new_items:
                 _w, (t, n) = item
@@ -323,12 +384,13 @@ class Pile(
             raise PileError(f"added content invalid: {invalid_items!r}")
 
     @property
-    def widget_list(self) -> MonitoredList[Widget]:
+    def widget_list(self) -> MonitoredList[AbstractWidget]:
         """
-        A list of the widgets in this Pile
+        A list of the widgets in this Pile.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
@@ -345,10 +407,10 @@ class Pile(
         return ml
 
     @widget_list.setter
-    def widget_list(self, widgets: MonitoredList[Widget]) -> None:
+    def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
         focus_position = self.focus_position
         self.contents = [
-            (new, options)
+            (new, options)  # type: ignore[misc]  # deprecated API, historic code lack support of FIXED
             for (new, (w, options)) in zip(
                 widgets,
                 # need to grow contents list if widgets is longer
@@ -369,8 +431,9 @@ class Pile(
         """
         A list of the options values for widgets in this Pile.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents`.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
@@ -405,6 +468,13 @@ class Pile(
             | tuple[Literal[WHSettings.WEIGHT], int | float]
         ],
     ) -> None:
+        """
+        Replace the height settings of the widgets in this Pile.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility. You should use the new standard container property `contents`."
             "API will be removed in version 5.0.",
@@ -433,10 +503,16 @@ class Pile(
         self,
     ) -> MonitoredFocusList[
         tuple[
-            Widget,
-            tuple[Literal[WHSettings.PACK], None]
-            | tuple[Literal[WHSettings.GIVEN], int]
-            | tuple[Literal[WHSettings.WEIGHT], int | float],
+            AbstractFlowWidget | AbstractFixedWidget,
+            tuple[Literal[WHSettings.PACK], None],
+        ]
+        | tuple[
+            AbstractBoxWidget,
+            tuple[Literal[WHSettings.GIVEN], int],
+        ]
+        | tuple[
+            AbstractBoxWidget | AbstractFlowWidget,
+            tuple[Literal[WHSettings.WEIGHT], int | float],
         ]
     ]:
         """
@@ -472,10 +548,16 @@ class Pile(
         self,
         c: Sequence[
             tuple[
-                Widget,
-                tuple[Literal[WHSettings.PACK], None]
-                | tuple[Literal[WHSettings.GIVEN], int]
-                | tuple[Literal[WHSettings.WEIGHT], int | float],
+                AbstractFlowWidget | AbstractFixedWidget,
+                tuple[Literal[WHSettings.PACK], None],
+            ]
+            | tuple[
+                AbstractBoxWidget,
+                tuple[Literal[WHSettings.GIVEN], int],
+            ]
+            | tuple[
+                AbstractBoxWidget | AbstractFlowWidget,
+                tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ],
     ) -> None:
@@ -496,6 +578,7 @@ class Pile(
         :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
         :param height_amount: ``None`` for ``'pack'``, a number of rows for
             ``'fixed'`` or a weight value (number) for ``'weight'``
+        :raises PileError: *height_type* and *height_amount* are not a valid combination.
         """
 
         if height_type == WHSettings.PACK:
@@ -505,14 +588,14 @@ class Pile(
         raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """the child widget in focus or None when Pile is empty"""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
 
     @focus.setter
-    def focus(self, item: Widget | int) -> None:
+    def focus(self, item: AbstractWidget | int) -> None:
         """
         Set the item in focus, for backwards compatibility.
 
@@ -522,6 +605,7 @@ class Pile(
 
         :param item: element to focus
         :type item: Widget or int
+        :raises ValueError: *item* is a widget that is not in the contents.
         """
         if isinstance(item, int):
             self.focus_position = item
@@ -532,11 +616,13 @@ class Pile(
                 return
         raise ValueError(f"Widget not found in Pile contents: {item!r}")
 
-    def get_focus(self) -> Widget | None:
+    def get_focus(self) -> AbstractWidget | None:
         """
-        Return the widget in focus, for backwards compatibility.  You may
-        also use the new standard container property .focus to get the
-        child widget in focus.
+        Return the widget in focus.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "for backwards compatibility."
@@ -549,7 +635,17 @@ class Pile(
             return None
         return self.contents[self.focus_position][0]
 
-    def set_focus(self, item: Widget | int) -> None:
+    def set_focus(self, item: AbstractWidget | int) -> None:
+        """
+        Set the child widget in focus.
+
+        :param item: widget or integer index
+        :raises ValueError: *item* is a widget that is not in the contents.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "for backwards compatibility."
             "You may also use the new standard container property .focus to get the child widget in focus."
@@ -571,6 +667,8 @@ class Pile(
         """
         index of child widget in focus.
         Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
+
+        :raises IndexError: the Pile is empty.
         """
         if (focus := self.contents.focus) is not None:
             return focus
@@ -582,7 +680,8 @@ class Pile(
         """
         Set the widget in focus.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not an index of a child widget.
         """
         try:
             if position < 0 or position >= len(self.contents):
@@ -612,6 +711,9 @@ class Pile(
     ) -> tuple[()] | tuple[int] | tuple[int, int]:
         """
         Return a size appropriate for passing to self.contents[i][0].render
+
+        :raises PileError: the item uses a height rule that needs size information the caller did not provide, or a
+            height rule that is not supported.
         """
         warnings.warn(
             "get_item_size is going to be deprecated and can be removed soon."
@@ -650,6 +752,9 @@ class Pile(
         """Get rows widths, heights and render size parameters
 
         Fixed case expect widget sizes calculation with several cycles for unknown height cases.
+
+        :raises PileError: a child widget does not support a sizing mode this Pile needs, or no child can provide a
+            width.
         """
         if not self.contents:
             return (), (), ()
@@ -658,7 +763,7 @@ class Pile(
         heights: dict[int, int] = {}
         w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
 
-        flow: list[tuple[Widget, int, bool]] = []
+        flow: list[tuple[AbstractWidget, int, bool]] = []
         box: list[int] = []
         weighted: dict[int | float, list[int]] = {}
         weights: list[int | float] = []
@@ -669,7 +774,7 @@ class Pile(
             focused = focus and self.focus == widget
             if size_kind == WHSettings.PACK:
                 if Sizing.FIXED in w_sizing:
-                    widths[idx], heights[idx] = widget.pack((), focused)
+                    widths[idx], heights[idx] = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                     w_h_args[idx] = ()
                 if Sizing.FLOW in w_sizing:
                     # re-calculate height at the end
@@ -693,7 +798,7 @@ class Pile(
                     w_h_args[idx] = (0, 0)
 
             elif Sizing.FIXED in w_sizing and w_sizing & {Sizing.BOX, Sizing.FLOW}:
-                width, height = widget.pack((), focused)
+                width, height = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                 widths[idx] = width  # We're fitting everything in case of FIXED
 
                 if Sizing.BOX in w_sizing:
@@ -721,7 +826,7 @@ class Pile(
 
         for widget, idx, focused in flow:
             widths[idx] = max_width
-            heights[idx] = widget.rows((max_width,), focused)  # type: ignore[attr-defined]  # or flow or fail
+            heights[idx] = typing.cast("AbstractFlowWidget", widget).rows((max_width,), focused)
             w_h_args[idx] = (max_width,)
 
         if weight_max_sizes:
@@ -763,7 +868,7 @@ class Pile(
         focus_position = self.focus_position
 
         for i, (w, (f, height)) in enumerate(self.contents):
-            if isinstance(w, Widget):
+            if isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -776,10 +881,10 @@ class Pile(
                 heights.append(height)
                 w_h_args.append((maxcol, height))
             elif Sizing.FLOW in w_sizing:
-                heights.append(w.rows((maxcol,), focus=focused))  # type: ignore[attr-defined]  # flow
+                heights.append(typing.cast("AbstractFlowWidget", w).rows((maxcol,), focus=focused))
                 w_h_args.append((maxcol,))
             elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
-                heights.append(w.pack((), focused)[1])
+                heights.append(typing.cast("AbstractFixedWidget", w).pack((), focused)[1])
                 w_h_args.append(())
             else:
                 warnings.warn(
@@ -788,7 +893,7 @@ class Pile(
                     PileWarning,
                     stacklevel=3,
                 )
-                heights.append(w.rows((maxcol,), focus=focused))  # type: ignore[attr-defined]  # or flow or fail
+                heights.append(typing.cast("AbstractFlowWidget", w).rows((maxcol,), focus=focused))
                 w_h_args.append((maxcol,))
 
         return (widths, tuple(heights), tuple(w_h_args))
@@ -817,7 +922,7 @@ class Pile(
         focus_position = self.focus_position
 
         for i, (w, (f, height)) in enumerate(self.contents):
-            if isinstance(w, Widget):
+            if isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -844,7 +949,8 @@ class Pile(
                     )
                     w_h_arg = (maxcol,)
 
-                item_height = w.pack(w_h_arg, focused)[1]
+                # widget kind and size arguments matched separately
+                item_height = w.pack(w_h_arg, focused)[1]  # type: ignore[arg-type]
                 heights[i] = item_height
                 w_h_args[i] = w_h_arg
                 remaining -= item_height
@@ -930,6 +1036,11 @@ class Pile(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> SolidCanvas | CompositeCanvas:
+        """
+        Render the Pile and return the resulting canvas.
+
+        :raises ValueError: the Pile is empty and no *size* was given.
+        """
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
@@ -937,7 +1048,8 @@ class Pile(
             item_focus = self.focus == w
             canv = None
             if height > 0:
-                canv = w.render(w_size, focus=focus and item_focus)
+                # widget kind and size arguments matched separately
+                canv = w.render(w_size, focus=focus and item_focus)  # type: ignore[arg-type]
 
             if canv:
                 combinelist.append((canv, i, item_focus))
@@ -979,7 +1091,7 @@ class Pile(
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
 
-        Unhandled 'up' and 'down' keys may cause a focus change.
+        Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
         """
         if not self.contents:
             return key
@@ -987,7 +1099,7 @@ class Pile(
         i = self.focus_position
         _widths, heights, size_args = self.get_rows_sizes(size, focus=self.selectable())
         if self.selectable():
-            if (processed := self.focus.keypress(size_args[i], key)) is not None:
+            if (processed := self.focus.keypress(size_args[i], key)) is not None:  # type: ignore[union-attr]
                 key = processed
             else:
                 return None
@@ -1014,7 +1126,11 @@ class Pile(
             else:  # self._command_map[key] == 'cursor down'
                 rowlist = tuple(range(rows))
             for row in rowlist:
-                if self.focus.move_cursor_to_coords(size_args[self.focus_position], self.pref_col, row):
+                if self.focus.move_cursor_to_coords(  # type: ignore[union-attr]
+                    size_args[self.focus_position],
+                    self.pref_col,
+                    row,
+                ):
                     break
             return None
 
@@ -1086,10 +1202,18 @@ class Pile(
 
         if not hasattr(w, "mouse_event"):
             warnings.warn(
-                f"{w.__class__.__module__}.{w.__class__.__name__} is not subclass of Widget",
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API",
                 DeprecationWarning,
                 stacklevel=2,
             )
             return False
 
-        return w.mouse_event(w_size, event, button, col, target_row, focus and self.focus == w)
+        # widget kind and size arguments matched separately
+        return w.mouse_event(
+            w_size,  # type: ignore[arg-type]
+            event,
+            button,
+            col,
+            target_row,
+            focus and self.focus == w,
+        )

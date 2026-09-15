@@ -154,7 +154,7 @@ class OverlayTest(unittest.TestCase):
             self.assertEqual(rows, canvas.rows())
 
             self.assertEqual(
-                "##########################\n" "#Flow and Fixed widget  ##\n" "##########################",
+                "##########################\n#Flow and Fixed widget  ##\n##########################",
                 str(canvas),
             )
 
@@ -182,7 +182,7 @@ class OverlayTest(unittest.TestCase):
             self.assertEqual(rows, canvas.rows())
 
             self.assertEqual(
-                "#########################\n" "#Flow and Fixed widget  #\n" "#########################",
+                "#########################\n#Flow and Fixed widget  #\n#########################",
                 str(canvas),
             )
 
@@ -308,6 +308,84 @@ class OverlayTest(unittest.TestCase):
             ovl.render((20, 10)).decoded_text,
         )
 
+    def test_pack_width_not_fitting_is_clipped(self):
+        """An oversized PACK width is clipped into the available columns instead of raising.
+
+        Regression test: negative padding used to be passed to the canvas overlay as a position,
+        producing a canvas wider than the size requested.
+        """
+        top_w = urwid.Text("Some long text")
+        self.assertEqual((14, 1), top_w.pack(()))
+
+        ovl = urwid.Overlay(
+            top_w,
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            urwid.PACK,
+            urwid.MIDDLE,
+            urwid.PACK,
+        )
+        self.assertEqual((-2, -2, 1, 1), ovl.calculate_padding_filler((10, 3), False))
+
+        canvas = ovl.render((10, 3))
+        self.assertEqual(10, canvas.cols())
+        self.assertEqual(3, canvas.rows())
+        self.assertEqual(("##########", "me long te", "##########"), canvas.decoded_text)
+
+        with self.subTest("clipped on both axes"):
+            top_w = urwid.LineBox(urwid.Text("Some long text"))
+            self.assertEqual((16, 3), top_w.pack(()))
+
+            ovl = urwid.Overlay(
+                top_w,
+                urwid.SolidFill("#"),
+                urwid.CENTER,
+                urwid.PACK,
+                urwid.MIDDLE,
+                urwid.PACK,
+            )
+            self.assertEqual((-3, -3, 0, -1), ovl.calculate_padding_filler((10, 2), False))
+
+            canvas = ovl.render((10, 2))
+            self.assertEqual(10, canvas.cols())
+            self.assertEqual(2, canvas.rows())
+            self.assertEqual(("──────────", "me long te"), canvas.decoded_text)
+
+    def test_pack_height_measured_at_top_widget_width(self):
+        """A PACK height is measured at the width top_w is given, not at the full width.
+
+        Regression test for https://github.com/urwid/urwid/issues/471: the row count was measured
+        at the full width of the overlay, so a wrapping flow widget was placed too low
+        and mouse events below the wrapped text were dropped.
+        """
+        check_box = urwid.CheckBox("x")
+        top_w = urwid.Pile([urwid.Text("one two three"), check_box])
+        self.assertEqual(4, top_w.rows((5,)))
+        self.assertEqual(2, top_w.rows((20,)))
+
+        ovl = urwid.Overlay(top_w, urwid.SolidFill("#"), urwid.CENTER, 5, urwid.MIDDLE, urwid.PACK)
+        self.assertEqual((7, 8, 3, 3), ovl.calculate_padding_filler((20, 10), False))
+
+        self.assertEqual(
+            (
+                "####################",
+                "####################",
+                "####################",
+                "#######one  ########",
+                "#######two  ########",
+                "#######three########",
+                "#######[ ] x########",
+                "####################",
+                "####################",
+                "####################",
+            ),
+            ovl.render((20, 10)).decoded_text,
+        )
+
+        # the check box is rendered on the last row of top_w, so a click there must reach it
+        self.assertTrue(ovl.mouse_event((20, 10), "mouse press", 1, 8, 6, True))
+        self.assertTrue(check_box.state)
+
     def test_old_params(self):
         o1 = urwid.Overlay(
             urwid.SolidFill("X"),
@@ -346,6 +424,51 @@ class OverlayTest(unittest.TestCase):
             ).get_cursor_coords((2, 2)),
             (1, 1),
         )
+
+    def test_replaced_top_w_is_rendered(self):
+        """Replacing the top widget invalidates the canvas rendered from the previous one.
+
+        Regression test: `top_w` used to be a plain attribute, so the canvas cached for the
+        overlay survived the replacement and the old widget kept being rendered until something
+        else invalidated the overlay. The first canvas is kept referenced on purpose:
+        :class:`urwid.CanvasCache` holds weak references, so a canvas dropped by the test takes
+        the stale cache entry with it and the replacement would render correctly either way.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.top_w = urwid.SolidFill("O")
+
+        self.assertEqual(("........", "..OOOO..", "..OOOO..", "........"), ovl.render((8, 4)).decoded_text)
+
+    def test_replaced_bottom_w_is_rendered(self):
+        """Replacing the bottom widget invalidates the canvas rendered from the previous one.
+
+        The counterpart of `test_replaced_top_w_is_rendered`, keeping the first canvas referenced
+        for the same reason.
+        """
+        ovl = urwid.Overlay(
+            urwid.SolidFill("X"),
+            urwid.SolidFill("."),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            2,
+        )
+        cached = ovl.render((8, 4))
+        self.assertEqual(("........", "..XXXX..", "..XXXX..", "........"), cached.decoded_text)
+
+        ovl.bottom_w = urwid.SolidFill(",")
+
+        self.assertEqual((",,,,,,,,", ",,XXXX,,", ",,XXXX,,", ",,,,,,,,"), ovl.render((8, 4)).decoded_text)
 
     def test_length(self):
         ovl = urwid.Overlay(

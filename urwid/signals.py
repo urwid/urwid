@@ -55,7 +55,7 @@ class MetaSignals(abc.ABCMeta):
 def setdefaultattr(obj: typing.Any, name: str, value: _T) -> _T:
     # like dict.setdefault() for object attributes
     if hasattr(obj, name):
-        return getattr(obj, name)  # type: ignore[no-any-return]
+        return typing.cast("_T", getattr(obj, name))
     setattr(obj, name, value)
     return value
 
@@ -67,6 +67,15 @@ class Key:
     """
 
     __slots__ = ()
+
+
+if typing.TYPE_CHECKING:
+    # ``weak_args`` (converted to weakrefs) and ``user_args`` as prepared by ``_prepare_user_args``.
+    _UserArgs = tuple[Collection[weakref.ReferenceType[typing.Any]], Collection[typing.Any]]
+    # A single connected handler: (key, callback, deprecated user_arg, prepared args).
+    _SignalHandler = tuple[Key, Callable[..., typing.Any], typing.Any, _UserArgs]
+    # Per-sender storage attached to ``obj`` under ``Signals._signal_attr``.
+    _SignalStore = dict[Hashable, list[_SignalHandler]]
 
 
 class Signals:
@@ -89,7 +98,7 @@ class Signals:
 
     def connect(
         self,
-        obj,
+        obj: typing.Any,
         name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
@@ -129,6 +138,7 @@ class Signals:
                           Use this argument only as a keyword argument,
                           since user_arg might be removed in the future.
         :type user_args: iterable
+        :raises NameError: *obj* does not support a signal called *name*.
 
         When a matching signal is sent, callback will be called. The
         arguments it receives will be the user_args passed at connect
@@ -180,7 +190,8 @@ class Signals:
         # Just generate an arbitrary (but unique) key
         key = Key()
 
-        handlers = setdefaultattr(obj, self._signal_attr, {}).setdefault(name, [])
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
+        handlers = signals.setdefault(name, [])
 
         # Remove the signal handler when any of the weakref'd arguments
         # are garbage collected. Note that this means that the handlers
@@ -205,10 +216,10 @@ class Signals:
 
     def _prepare_user_args(
         self,
-        weak_args: Iterable[typing.Any] = (),
+        weak_args: Iterable[_T] = (),
         user_args: Iterable[typing.Any] = (),
-        callback: Callable[[weakref.ReferenceType[typing.Any]], typing.Any] | None = None,
-    ) -> tuple[Collection[weakref.ReferenceType], Collection[typing.Any]]:
+        callback: Callable[[weakref.ReferenceType[_T]], typing.Any] | None = None,
+    ) -> tuple[Collection[weakref.ReferenceType[_T]], Collection[typing.Any]]:
         # Turn weak_args into weakrefs and prepend them to user_args
         w_args = tuple(weakref.ref(w_arg, callback) for w_arg in weak_args)
         args = tuple(user_args)
@@ -216,7 +227,7 @@ class Signals:
 
     def disconnect(
         self,
-        obj,
+        obj: typing.Any,
         name: Hashable,
         callback: Callable[..., typing.Any],
         user_arg: typing.Any = None,
@@ -242,7 +253,7 @@ class Signals:
         If the callback is not connected or already disconnected, this
         function will simply do nothing.
         """
-        signals = setdefaultattr(obj, self._signal_attr, {})
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
         if name not in signals:
             return None
 
@@ -258,7 +269,7 @@ class Signals:
                 return self.disconnect_by_key(obj, name, h[0])
         return None
 
-    def disconnect_by_key(self, obj, name: Hashable, key: Key) -> None:
+    def disconnect_by_key(self, obj: typing.Any, name: Hashable, key: Key) -> None:
         """
         :param obj: the object to disconnect the signal from
         :type obj: object
@@ -275,10 +286,11 @@ class Signals:
         If the callback is not connected or already disconnected, this
         function will simply do nothing.
         """
-        handlers = setdefaultattr(obj, self._signal_attr, {}).get(name, [])
+        signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
+        handlers = signals.get(name, [])
         handlers[:] = [h for h in handlers if h[0] is not key]
 
-    def emit(self, obj, name: Hashable, *args: typing.Any) -> bool:
+    def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """
         :param obj: the object sending a signal
         :type obj: object
@@ -301,7 +313,7 @@ class Signals:
         self,
         callback: Callable[..., typing.Any],  # we cannot use type signature here due to args decomposition
         user_arg: typing.Any,
-        weak_args: Iterable[weakref.ReferenceType],
+        weak_args: Iterable[weakref.ReferenceType[typing.Any]],
         user_args: Iterable[typing.Any],
         emit_args: Iterable[typing.Any],
     ) -> bool:

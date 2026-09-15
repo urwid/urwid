@@ -20,7 +20,6 @@
 
 from __future__ import annotations
 
-import codecs
 import contextlib
 import sys
 import typing
@@ -30,7 +29,7 @@ from contextlib import suppress
 from urwid import str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator, Hashable, Iterable, MutableSequence
+    from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence
     from types import TracebackType
 
     from typing_extensions import Literal, Protocol, Self
@@ -38,10 +37,32 @@ if typing.TYPE_CHECKING:
     class CanBeStopped(Protocol):
         def stop(self) -> None: ...
 
-    _TagMarkup = typing.Union[str, bytes, tuple[Hashable, typing.Union[str, bytes]], list["_TagMarkup"]]
+    class _TagMarkupList(Protocol):
+        """List of markup parts joined together by `decompose_tagmarkup`.
+
+        `_tagmarkup_recurse` traverses only `list` instances as containers of parts,
+        while a `tuple` always means a single (display attribute, markup) pair,
+        so `tuple` must not be accepted here.
+        A protocol is used instead of `list["_TagMarkup"]` because `list` is invariant:
+        a plain `list[str | tuple[Hashable, str]]` is not a `list["_TagMarkup"]`.
+        `reverse` is required only to exclude `tuple`, elements are never modified.
+        """
+
+        def __iter__(self) -> Iterator[_TagMarkup]: ...
+
+        def __len__(self) -> int: ...
+
+        def reverse(self) -> None: ...
+
+    _TagMarkup = typing.Union[str, bytes, tuple[Hashable, "_TagMarkup"], "_TagMarkupList"]
 
 
 def __getattr__(name: str) -> typing.Any:
+    """
+    Resolve module attributes that moved to another module, warning about the move.
+
+    :raises AttributeError: *name* is not defined in this module.
+    """
     if hasattr(str_util, name):
         warnings.warn(
             f"Do not import {name!r} from {__package__}.{__name__}, import it from 'urwid'.",
@@ -170,6 +191,8 @@ def get_encoding_mode() -> Literal["wide", "narrow", "utf8"]:
 def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U", "0"] | None, int]]]:
     """
     Return (encoded byte string, character set rle).
+
+    :raises TypeError: *s* could not be encoded to the target encoding.
     """
     # Import locally to warranty no circular imports
     from urwid.display import escape
@@ -179,13 +202,18 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
         s = s.translate(escape.DEC_SPECIAL_CHARMAP)
 
     if isinstance(s, str):
-        s = s.replace(escape.SI + escape.SO, "")  # remove redundant shifts
-        s = codecs.encode(s, _target_encoding, "replace")
+        # remove redundant shifts
+        s = s.replace(escape._SI_SO, "")  # pylint: disable=protected-access
+        # `str.encode` over `codecs.encode`: the latter re-looks-up the codec on every call.
+        s = s.encode(_target_encoding, "replace")
 
     if not isinstance(s, bytes):
         raise TypeError(s)
-    SO = escape.SO.encode("ascii")
-    SI = escape.SI.encode("ascii")
+    # Pre-encoded forms of `escape.SO`/`escape.SI`. They live next to the originals so the two cannot
+    # drift apart, and are read here rather than encoded per call because this function runs for every
+    # rendered text segment.
+    SO = escape._SO_BYTES  # pylint: disable=protected-access
+    SI = escape._SI_BYTES  # pylint: disable=protected-access
 
     sis = s.split(SO)
 
@@ -244,16 +272,15 @@ def calc_trim_text(
 ) -> tuple[int, int, int, int]:
     """
     Calculate the result of trimming text.
-    start_offs -- offset into text to treat as screen column 0
-    end_offs -- offset into text to treat as the end of the line
-    start_col -- screen column to trim at the left
-    end_col -- screen column to trim at the right
 
-    Returns (start, end, pad_left, pad_right), where:
-    start -- resulting start offset
-    end -- resulting end offset
-    pad_left -- 0 for no pad or 1 for one space to be added
-    pad_right -- 0 for no pad or 1 for one space to be added
+    :param start_offs: offset into text to treat as screen column 0
+    :param end_offs: offset into text to treat as the end of the line
+    :param start_col: screen column to trim at the left
+    :param end_col: screen column to trim at the right
+
+    :returns: a ``(start, end, pad_left, pad_right)`` tuple, where ``start`` is the resulting start offset,
+        ``end`` the resulting end offset, and ``pad_left``/``pad_right`` are ``0`` for no pad
+        or ``1`` for one space to be added.
     """
     spos = start_offs
     pad_left = pad_right = 0
@@ -343,6 +370,8 @@ def rle_len(
     """
     Return the number of characters covered by a run length
     encoded attribute list.
+
+    :raises TypeError: an item of *rle* is not a ``(value, run length)`` tuple.
     """
 
     run = 0
@@ -429,17 +458,22 @@ def rle_product(
     a2, r2 = rle2[0]
 
     result: list[tuple[tuple[Hashable, Hashable], int]] = []
-    while r1 and r2:
+    while True:
+        # Skip zero-length runs (e.g. produced by empty markup segments): they carry no
+        # columns but must not stop the merge early, otherwise following runs are dropped.
+        while r1 == 0 and i1 < len(rle1):
+            a1, r1 = rle1[i1]
+            i1 += 1
+        while r2 == 0 and i2 < len(rle2):
+            a2, r2 = rle2[i2]
+            i2 += 1
+        if r1 == 0 or r2 == 0:
+            break
+
         r = min(r1, r2)
         rle_append_modify(result, ((a1, a2), r))  # type: ignore[arg-type]
         r1 -= r
-        if r1 == 0 and i1 < len(rle1):
-            a1, r1 = rle1[i1]
-            i1 += 1
         r2 -= r
-        if r2 == 0 and i2 < len(rle2):
-            a2, r2 = rle2[i2]
-            i2 += 1
     return result
 
 
@@ -474,8 +508,10 @@ def _tagmarkup_recurse(
 ) -> tuple[list[str | bytes], list[tuple[Hashable, int]]]:
     """Return (text list, attribute list) for tagmarkup passed.
 
-    tm -- tagmarkup
-    attr -- current attribute or None"""
+    :param tm: tagmarkup
+    :param attr: current attribute or None
+    :raises TagMarkupException: an element is neither text nor an ``(attribute, tagmarkup)`` pair.
+    """
 
     if isinstance(tm, list):
         # for lists recurse to process each subelement
@@ -518,10 +554,13 @@ def is_mouse_press(ev: str) -> bool:
 
 
 class MetaSuper(type):
-    """Deprecated metaclass.
+    """Metaclass kept only so that existing class definitions keep importing.
 
-    Present only for code compatibility, all logic has been removed.
-    Please move to the last position in the class bases to allow future changes.
+    All logic has been removed; it is a plain :class:`type` subclass.
+
+    .. deprecated:: 3.0.0
+        Drop it from the class bases. While it is still listed, move it to the last position,
+        so that future changes to the other bases are not blocked by it.
     """
 
     __slots__ = ()

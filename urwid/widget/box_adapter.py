@@ -9,9 +9,10 @@ from .constants import Sizing
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
-    from urwid import Widget
+    from .widget import AbstractBoxWidget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
 class BoxAdapterError(WidgetError):
@@ -33,6 +34,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         :type box_widget: Widget
         :param height: number of rows for box widget
         :type height: int
+        :raises BoxAdapterError: *box_widget* is not a BOX widget.
 
         >>> from urwid import SolidFill
         >>> BoxAdapter(SolidFill("x"), 5)  # 5-rows of x's
@@ -47,9 +49,15 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {**super()._repr_attrs(), "height": self.height}
 
-    # originally stored as box_widget, keep for compatibility
     @property
     def box_widget(self) -> WrappedWidget:
+        """
+        The wrapped box widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -59,6 +67,13 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     @box_widget.setter
     def box_widget(self, widget: WrappedWidget) -> None:
+        """
+        Replace the wrapped box widget.
+
+        .. deprecated:: 0.9.9
+            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
             DeprecationWarning,
@@ -81,17 +96,23 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     # The next few functions simply tack-on our height and pass through
     # to self._original_widget
-    def get_cursor_coords(self, size: tuple[int]) -> int | None:
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
         (maxcol,) = size
-        if not hasattr(self._original_widget, "get_cursor_coords"):
-            return None
-        return self._original_widget.get_cursor_coords((maxcol, self.height))
+        if (get_cursor_coords := getattr(self._original_widget, "get_cursor_coords", None)) is not None:
+            return typing.cast("tuple[int, int] | None", get_cursor_coords((maxcol, self.height)))
+        return None
+
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        (maxcol,) = size
+        if (move_cursor_to_coords := getattr(self._original_widget, "move_cursor_to_coords", None)) is not None:
+            return typing.cast("bool", move_cursor_to_coords((maxcol, self.height), col, row))
+        return True
 
     def get_pref_col(self, size: tuple[int]) -> int | None:
         (maxcol,) = size
-        if not hasattr(self._original_widget, "get_pref_col"):
-            return None
-        return self._original_widget.get_pref_col((maxcol, self.height))
+        if (get_pref_col := getattr(self._original_widget, "get_pref_col", None)) is not None:
+            return typing.cast("int | None", get_pref_col((maxcol, self.height)))
+        return None
 
     def keypress(
         self,
@@ -100,12 +121,6 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     ) -> str | None:
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
-
-    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
-        (maxcol,) = size
-        if not hasattr(self._original_widget, "move_cursor_to_coords"):
-            return True
-        return self._original_widget.move_cursor_to_coords((maxcol, self.height), col, row)
 
     def mouse_event(
         self,

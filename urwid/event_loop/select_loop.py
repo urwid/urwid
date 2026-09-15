@@ -94,8 +94,8 @@ class SelectEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
         tm = time.time() + seconds
         handle = (tm, next(self._tie_break), callback)
@@ -124,8 +124,8 @@ class SelectEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
         self._watch_files[fd] = callback
         return fd
@@ -204,7 +204,13 @@ class SelectEventLoop(EventLoop):
                     tm = "idle"
 
                 self.logger.debug(f"Waiting for input: timeout={timeout!r}")
-                ready = [event for event, _ in selector.select(timeout)]
+                if self._watch_files:
+                    ready = [event for event, _ in selector.select(timeout)]
+                else:
+                    # Windows `select()` requires at least one socket and fails with WSAEINVAL on an empty set,
+                    # while on POSIX it is just a sleep.
+                    time.sleep(timeout)
+                    ready = []
 
             elif self._watch_files:
                 self.logger.debug("Waiting for input: timeout")

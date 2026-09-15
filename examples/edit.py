@@ -38,7 +38,7 @@ import typing
 import urwid
 
 
-class LineWalker(urwid.ListWalker):
+class LineWalker(urwid.ListWalker[int, urwid.Edit]):
     """ListWalker-compatible class for lazily reading file contents."""
 
     def __init__(self, name: str) -> None:

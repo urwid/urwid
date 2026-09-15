@@ -56,7 +56,7 @@ class WHSettings(str, enum.Enum):
     FLOW = "flow"  # Used as pack for flow widgets
 
 
-RELATIVE_100 = (WHSettings.RELATIVE, 100)
+RELATIVE_100: tuple[Literal[WHSettings.RELATIVE], int] = (WHSettings.RELATIVE, 100)
 
 
 @typing.overload
@@ -80,6 +80,8 @@ def normalize_align(
     """
     Split align into (align_type, align_amount).  Raise exception err
     if align doesn't match a valid alignment.
+
+    :raises err: *align* is not a valid alignment; the class to raise is supplied by the caller.
     """
     if align in {Align.LEFT, Align.CENTER, Align.RIGHT}:
         return (Align(align), None)
@@ -121,6 +123,8 @@ def simplify_align(
     """
     Recombine (align_type, align_amount) into an align value.
     Inverse of normalize_align.
+
+    :raises TypeError: *align_amount* is not an integer.
     """
     if align_type == WHSettings.RELATIVE:
         if not isinstance(align_amount, int):
@@ -151,6 +155,8 @@ def normalize_valign(
     """
     Split align into (valign_type, valign_amount).  Raise exception err
     if align doesn't match a valid alignment.
+
+    :raises err: *valign* is not a valid vertical alignment; the class to raise is supplied by the caller.
     """
     if valign in {VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM}:
         return (VAlign(valign), None)
@@ -192,6 +198,8 @@ def simplify_valign(
     """
     Recombine (valign_type, valign_amount) into an valign value.
     Inverse of normalize_valign.
+
+    :raises TypeError: *valign_amount* is not an integer.
     """
     if valign_type == WHSettings.RELATIVE:
         if not isinstance(valign_amount, int):
@@ -244,16 +252,21 @@ def normalize_width(
     """
     Split width into (width_type, width_amount).  Raise exception err
     if width doesn't match a valid alignment.
+
+    :raises err: *width* is not a valid width; the class to raise is supplied by the caller.
     """
     if width in {WHSettings.CLIP, WHSettings.PACK}:
-        return (WHSettings(width), None)
+        return (typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width)), None)
 
     if isinstance(width, int):
         return (WHSettings.GIVEN, width)
 
     if isinstance(width, tuple) and len(width) == 2 and width[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
         width_type, width_amount = width
-        return (WHSettings(width_type), width_amount)
+        return typing.cast(
+            "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+            (WHSettings(width_type), width_amount),
+        )
 
     raise err(
         f"width value {width!r} is not one of"
@@ -308,9 +321,11 @@ def simplify_width(
     """
     Recombine (width_type, width_amount) into an width value.
     Inverse of normalize_width.
+
+    :raises TypeError: *width_amount* is not an integer.
     """
     if width_type in {WHSettings.CLIP, WHSettings.PACK}:
-        return WHSettings(width_type)
+        return typing.cast("Literal[WHSettings.CLIP, WHSettings.PACK]", WHSettings(width_type))
 
     if not isinstance(width_amount, int):
         raise TypeError(width_amount)
@@ -318,7 +333,10 @@ def simplify_width(
     if width_type == WHSettings.GIVEN:
         return width_amount
 
-    return (WHSettings(width_type), width_amount)
+    return typing.cast(
+        "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+        (WHSettings(width_type), width_amount),
+    )
 
 
 @typing.overload
@@ -365,6 +383,8 @@ def normalize_height(
     """
     Split height into (height_type, height_amount).  Raise exception err
     if height isn't valid.
+
+    :raises err: *height* is not a valid height; the class to raise is supplied by the caller.
     """
     if height == WHSettings.FLOW:
         return (WHSettings.FLOW, None)
@@ -373,7 +393,10 @@ def normalize_height(
         return (WHSettings.PACK, None)
 
     if isinstance(height, tuple) and len(height) == 2 and height[0] in {WHSettings.RELATIVE, WHSettings.WEIGHT}:
-        return (WHSettings(height[0]), height[1])
+        return typing.cast(
+            "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+            (WHSettings(height[0]), height[1]),
+        )
 
     if isinstance(height, int):
         return (WHSettings.GIVEN, height)
@@ -442,9 +465,11 @@ def simplify_height(
     """
     Recombine (height_type, height_amount) into a height value.
     Inverse of normalize_height.
+
+    :raises TypeError: *height_amount* is not an integer.
     """
     if height_type in {WHSettings.FLOW, WHSettings.PACK}:
-        return WHSettings(height_type)
+        return typing.cast("Literal[WHSettings.FLOW, WHSettings.PACK]", WHSettings(height_type))
 
     if not isinstance(height_amount, int):
         raise TypeError(height_amount)
@@ -452,7 +477,10 @@ def simplify_height(
     if height_type == WHSettings.GIVEN:
         return height_amount
 
-    return (WHSettings(height_type), height_amount)
+    return typing.cast(
+        "tuple[Literal[WHSettings.RELATIVE], int] | tuple[Literal[WHSettings.WEIGHT], int | float]",
+        (WHSettings(height_type), height_amount),
+    )
 
 
 @dataclasses.dataclass(frozen=True)

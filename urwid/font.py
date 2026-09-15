@@ -35,7 +35,11 @@ if typing.TYPE_CHECKING:
 
 
 def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
-    """return (dictionary of glyphs, utf8 required)"""
+    """return (dictionary of glyphs, utf8 required)
+
+    :raises ValueError: *gdata* contains tabs, does not have *height* plus one lines per glyph, or has a glyph whose
+        columns do not line up.
+    """
     gl: list[str] = gdata.split("\n")[1:-1]
 
     if any("\t" in elem for elem in gl):
@@ -95,6 +99,16 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
 
 
 def add_font(name: str, cls: FontRegistry) -> None:
+    """
+    Register a font class under the given name.
+
+    :param name: name to register the font class under
+    :param cls: the font class to register
+
+    .. deprecated:: 2.2.0
+        Set the ``name`` attribute on the font class, pass the ``font_name`` metaclass keyword argument,
+        or call ``Font.register(<name>)`` instead. This API will be removed in version 5.0.
+    """
     warnings.warn(
         "`add_font` is deprecated, please set 'name' attribute to the font class,"
         " use metaclass keyword argument 'font_name'"
@@ -179,6 +193,7 @@ class FontRegistry(type):
         """Register font explicit.
 
         :param font_name: Font name to use in registration.
+        :raises ValueError: *font_name* is empty.
         """
         if not font_name:
             raise ValueError('"font_name" is not set.')
@@ -198,6 +213,11 @@ class Font(metaclass=FontRegistry):
     name: str  # pylint: disable=declare-non-slot
 
     def __init__(self) -> None:
+        """
+        Decode the glyph data of this font class.
+
+        :raises ValueError: the font class sets no height or no glyph data.
+        """
         if not self.height:
             raise ValueError(f'"height" is invalid: {self.height!r}')
         if not self.data:
@@ -237,6 +257,11 @@ class Font(metaclass=FontRegistry):
         return self.char[character][1]
 
     def render(self, character: str) -> TextCanvas:
+        """
+        Return a canvas with *character* drawn in this font.
+
+        :raises CanvasError: the glyph data for *character* cannot be rendered.
+        """
         if character in self.canvas:
             return self.canvas[character]
         width, line = self.char[character]

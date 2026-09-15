@@ -11,21 +11,16 @@
         "com.intellij:app:Vcs-Log-App-Settings.show_changes_from_parents": true
       }
     },
-    // Configure properties specific to VS Code.
     "vscode": {
-      // Set *default* container specific settings.json values on container create.
       "settings": {
-        "python.venvPath": "~/.virtualenvs",
         "python.terminal.activateEnvInCurrentTerminal": true,
-        "python.defaultInterpreterPath": "~/.virtualenvs/urwid/bin/python",
+        "python.defaultInterpreterPath": "/home/ubuntu/.venv-urwid/bin/python",
         "python.testing.unittestEnabled": true
       },
       "extensions": [
         "ms-python.python",
         "ms-python.debugpy",
         "ms-python.vscode-pylance",
-        "ms-python.isort",
-        "ms-python.black-formatter",
         "charliermarsh.ruff",
         "ms-azuretools.vscode-docker",
         "GitHub.vscode-github-actions"
@@ -33,8 +28,11 @@
     }
   },
   "name": "urwid-dev",
-  "containerUser": "root",
+  "containerUser": "ubuntu",
   "init": true,
-  "postCreateCommand": "~/.virtualenvs/urwid/bin/pip3 install isort black ruff pylint refurb mypy",
-  "postStartCommand": "~/.virtualenvs/urwid/bin/pip3 install -r test_requirements.txt PyGObject && ~/.virtualenvs/urwid/bin/pip3 install -U -e ."
+  "postCreateCommand": "uv venv /home/ubuntu/.venv-urwid && uv sync --all-groups",
+  "postStartCommand": "uv sync --all-groups --all-extras",
+  "mounts": [
+    "source=${localEnv:HOME}/.ssh,target=/home/ubuntu/.ssh,type=bind,readonly"
+  ]
 }

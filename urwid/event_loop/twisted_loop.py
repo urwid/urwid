@@ -71,12 +71,27 @@ class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
         return self.cb()
 
     def getHost(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor is not a network transport.
+
+        :raises NotImplementedError: this descriptor never takes part in network operations.
+        """
         raise NotImplementedError("No network operation expected")
 
     def getPeer(self) -> typing.NoReturn:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor is not a network transport.
+
+        :raises NotImplementedError: this descriptor never takes part in network operations.
+        """
         raise NotImplementedError("No network operation expected")
 
     def writeSomeData(self, data: bytes) -> int | BaseException:
+        """
+        Raise :exc:`NotImplementedError`: this descriptor only reads.
+
+        :raises NotImplementedError: this descriptor is read-only.
+        """
         raise NotImplementedError("Reduced functionality: read-only")
 
 
@@ -129,6 +144,11 @@ class TwistedEventLoop(EventLoop):
         *args: _Spec.args,
         **kwargs: _Spec.kwargs,
     ) -> Future[_T] | asyncio.Future[_T]:
+        """
+        Raise :exc:`NotImplementedError`: use Twisted's own thread pool API.
+
+        :raises NotImplementedError: Twisted has its own thread pool; use ``threads.deferToThread`` instead.
+        """
         raise NotImplementedError(
             "Twisted implement it's own ThreadPool executor. Please use native API for call:\n"
             "'threads.deferToThread(Callable[..., Any], *args, **kwargs)'\n"
@@ -143,8 +163,8 @@ class TwistedEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
         handle = self.reactor.callLater(seconds, self.handle_exit(callback))
         return handle
@@ -170,8 +190,8 @@ class TwistedEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
         ind = _TwistedInputDescriptor(self.reactor, fd, self.handle_exit(callback))
         self._watch_files[fd] = ind
@@ -239,6 +259,8 @@ class TwistedEventLoop(EventLoop):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         if not self.manage_reactor:
             return
@@ -267,7 +289,7 @@ class TwistedEventLoop(EventLoop):
             except ExitMainLoop:
                 if self.manage_reactor:
                     self.reactor.stop()
-            except BaseException as exc:
+            except BaseException as exc:  # noqa: BLE001  # we will crash if needed
                 print(sys.exc_info())
                 self._exc = exc
                 if self.manage_reactor:

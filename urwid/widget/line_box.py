@@ -15,12 +15,15 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
-    from .widget import Widget
+    from .widget import AbstractWidget, Widget
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
-class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrapped_widget")):
+class LineBox(
+    WidgetDecoration[WrappedWidget],
+    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+):
     Symbols = BOX_SYMBOLS
 
     def __init__(
@@ -100,6 +103,8 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
 
         To make Table constructions, some lineboxes need to be drawn without sides
         and T or CROSS symbols used for corners of cells.
+
+        :raises ValueError: a *title* is given while *tline* is empty, or *title_align* is not a supported alignment.
         """
 
         w_lline = SolidFill(lline)
@@ -180,10 +185,10 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
     def original_widget(self, original_widget: WrappedWidget) -> None:
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
-        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])  # type: ignore[misc]
+        middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
-        middle.contents[h_index] = (original_widget, options)
-        WidgetDecoration.original_widget.fset(self, original_widget)  # pylint: disable=no-member
+        middle.contents[h_index] = (original_widget, options)  # type: ignore[assignment]
+        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]  # pylint: disable=no-member
 
     @property
     def _w(self) -> Pile:
@@ -196,13 +201,18 @@ class LineBox(WidgetDecoration[WrappedWidget], delegate_to_widget_mixin("_wrappe
         return ""
 
     def set_title(self, text: str) -> None:
+        """
+        Set the title shown in the top line of the box.
+
+        :raises ValueError: this LineBox has no top line to put a title on.
+        """
         if not self.tline_widget:
             raise ValueError("Cannot set title when tline is unset")
         self.title_widget.set_text(self.format_title(text))
         self.tline_widget._invalidate()
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """LineBox is partially container.
 
         While focus position is a bit hacky

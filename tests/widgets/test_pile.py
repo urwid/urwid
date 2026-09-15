@@ -1,9 +1,94 @@
 from __future__ import annotations
 
 import unittest
+import warnings
 
 import urwid
 from tests.util import SelectableText
+
+
+class NotAWidget:
+    __slots__ = ("name", "symbol")
+
+    def __init__(self, name: str, symbol: bytes) -> None:
+        self.name = name
+        self.symbol = symbol
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+    def selectable(self) -> bool:
+        return False
+
+    def pack(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> int:
+        if len(max_col_row) == 2:
+            return max_col_row
+        return max_col_row[0], self.rows(max_col_row)
+
+    def rows(self, max_col_row: tuple[int], focus=False) -> int:
+        return 1
+
+    def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = max_col_row[0]
+        line = self.symbol * maxcol
+        if len(max_col_row) == 1:
+            return urwid.TextCanvas((line,), maxcol=maxcol)
+        return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+
+class ImplementWidget:
+    __slots__ = ("name", "symbol")
+
+    def sizing(self) -> frozenset[urwid.Sizing]:
+        return frozenset((urwid.BOX, urwid.FLOW))
+
+    @property
+    def base_widget(self) -> urwid.AbstractWidget:
+        return self
+
+    def __init__(self, name: str, symbol: bytes) -> None:
+        self.name = name
+        self.symbol = symbol
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
+
+    def selectable(self) -> bool:
+        return False
+
+    @property
+    def focus(self) -> None:
+        return None
+
+    def _invalidate(self) -> None:
+        pass
+
+    def rows(self, max_col_row: tuple[int], focus: bool = False) -> int:
+        return 1
+
+    def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
+        return self.rows(size, focus)
+
+    def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = max_col_row[0]
+        line = self.symbol * maxcol
+        if len(max_col_row) == 1:
+            return urwid.TextCanvas((line,), maxcol=maxcol)
+        return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
+
+    def keypress(self, size: tuple[int, int] | tuple[int], key: str) -> str | None:
+        return key
+
+    def mouse_event(
+        self,
+        size: tuple[int, int] | tuple[int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        return False
 
 
 class PileTest(unittest.TestCase):
@@ -247,34 +332,6 @@ class PileTest(unittest.TestCase):
         self.assertEqual("Cancel", widget.focus.focus.label)
 
     def test_not_a_widget(self):
-        class NotAWidget:
-            __slots__ = ("name", "symbol")
-
-            def __init__(self, name: str, symbol: bytes) -> None:
-                self.name = name
-                self.symbol = symbol
-
-            def __repr__(self) -> str:
-                return f"{self.__class__.__name__}(name={self.name!r}, symbol={self.symbol!r})"
-
-            def selectable(self) -> bool:
-                return False
-
-            def pack(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> int:
-                if len(max_col_row) == 2:
-                    return max_col_row
-                return max_col_row[0], self.rows(max_col_row)
-
-            def rows(self, max_col_row: tuple[int], focus=False) -> int:
-                return 1
-
-            def render(self, max_col_row: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
-                maxcol = max_col_row[0]
-                line = self.symbol * maxcol
-                if len(max_col_row) == 1:
-                    return urwid.TextCanvas((line,), maxcol=maxcol)
-                return urwid.TextCanvas((line,) * max_col_row[1], maxcol=maxcol)
-
         with self.subTest("Box"), self.assertWarns(urwid.widget.PileWarning) as ctx:
             items = (NotAWidget("First", b"*"), NotAWidget("Second", b"^"))
             widget = urwid.Pile(items)
@@ -290,6 +347,35 @@ class PileTest(unittest.TestCase):
             self.assertEqual(("******", "^^^^^^"), widget.render((6,)).decoded_text)
             self.assertEqual(f"{items[0]!r} is not a Widget", str(ctx.warnings[0].message))
             self.assertEqual(f"{items[1]!r} is not a Widget", str(ctx.warnings[1].message))
+
+    def test_implement_widget_interface(self):
+        with (
+            warnings.catch_warnings(record=True) as collected_w,
+            self.subTest("Box"),
+        ):
+            items = (ImplementWidget("First", b"*"), ImplementWidget("Second", b"^"))
+            widget = urwid.Pile(items)
+
+            self.assertEqual(("****", "^^^^"), widget.render((4, 2)).decoded_text)
+
+            pile_warnings = tuple(
+                warning.message for warning in collected_w if warning.category == urwid.widget.PileWarning
+            )
+            self.assertTrue(len(pile_warnings) == 0, "No warnings expected")
+
+        with (
+            warnings.catch_warnings(record=True) as collected_w,
+            self.subTest("Flow"),
+        ):
+            items = (ImplementWidget("First", b"*"), ImplementWidget("Second", b"^"))
+            widget = urwid.Pile(items)
+
+            self.assertEqual(("******", "^^^^^^"), widget.render((6,)).decoded_text)
+
+            pile_warnings = tuple(
+                warning.message for warning in collected_w if warning.category == urwid.widget.PileWarning
+            )
+            self.assertTrue(len(pile_warnings) == 0, "No warnings expected")
 
     def ktest(self, desc, contents, focus_item, key, rkey, rfocus, rpref_col):
         p = urwid.Pile(contents, focus_item)
@@ -585,3 +671,43 @@ class PileTest(unittest.TestCase):
                 ),
                 canvas.decoded_text,
             )
+
+    def test_focus_changed_callback_replacement(self) -> None:
+        """Replace the contents focus callback and read the new index before it is applied."""
+        first = urwid.Button("first")
+        second = urwid.Button("second")
+        pile = urwid.Pile((first, second))
+        seen: list[tuple[int, int, urwid.Widget]] = []
+
+        def on_focus_change(new_focus: int) -> None:
+            seen.append((new_focus, pile.focus_position, pile.contents[new_focus][0]))
+            pile._invalidate()
+
+        pile.contents.set_focus_changed_callback(on_focus_change)
+        pile.focus_position = 1
+
+        self.assertEqual([(1, 0, second)], seen)
+        self.assertIs(second, pile.focus)
+        self.assertEqual(1, pile.focus_position)
+
+    def test_pack_rows_with_weight_body(self) -> None:
+        """Dialog-style pile: PACK description, weighted body, PACK footer."""
+        pile = urwid.Pile(
+            (
+                (urwid.WHSettings.PACK, urwid.Text("Describe")),
+                urwid.SolidFill("."),
+                (urwid.WHSettings.PACK, urwid.Button("OK")),
+            )
+        )
+
+        self.assertEqual((8, 5), pile.pack((8, 5)))
+        self.assertEqual(
+            (
+                "Describe",
+                "........",
+                "........",
+                "........",
+                "< OK   >",
+            ),
+            pile.render((8, 5)).decoded_text,
+        )

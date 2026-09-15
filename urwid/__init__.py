@@ -140,7 +140,9 @@ from .widget import (
     SPACE,
     TOP,
     WEIGHT,
+    AbstractWidget,
     Align,
+    ANSIText,
     AttrMap,
     AttrMapError,
     AttrWrap,
@@ -171,6 +173,8 @@ from .widget import (
     ListBoxError,
     ListWalker,
     ListWalkerError,
+    MonitoredDeque,
+    MonitoredFocusDeque,
     MonitoredFocusList,
     MonitoredList,
     Overlay,
@@ -187,6 +191,8 @@ from .widget import (
     Scrollable,
     ScrollBar,
     SelectableIcon,
+    SimpleDequeWalker,
+    SimpleFocusDequeWalker,
     SimpleFocusListWalker,
     SimpleListWalker,
     Sizing,
@@ -262,6 +268,8 @@ __all__: tuple[str, ...] = (
     "WEIGHT",
     "WHITE",
     "YELLOW",
+    "ANSIText",
+    "AbstractWidget",
     "Align",
     "AsyncioEventLoop",
     "AttrMap",
@@ -318,6 +326,8 @@ __all__: tuple[str, ...] = (
     "MainLoop",
     "MetaSignals",
     "MetaSuper",
+    "MonitoredDeque",
+    "MonitoredFocusDeque",
     "MonitoredFocusList",
     "MonitoredList",
     "Overlay",
@@ -340,6 +350,8 @@ __all__: tuple[str, ...] = (
     "Sextant2x2Font",
     "Sextant3x3Font",
     "Signals",
+    "SimpleDequeWalker",
+    "SimpleFocusDequeWalker",
     "SimpleFocusListWalker",
     "SimpleListWalker",
     "Sizing",
@@ -465,6 +477,8 @@ def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
     """Lazy import implementation from Python documentation.
 
     Useful for cases where no warnings expected for moved modules.
+
+    :raises ImportError: *name* does not resolve to a loadable module.
     """
     spec = importlib.util.find_spec(name, package)
     if not spec:

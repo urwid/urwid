@@ -79,6 +79,8 @@ def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
     """Lazy import implementation from Python documentation.
 
     Useful for cases where no warnings expected for moved modules.
+
+    :raises ImportError: *name* does not resolve to a loadable module.
     """
     spec = importlib.util.find_spec(name, package)
     if not spec:

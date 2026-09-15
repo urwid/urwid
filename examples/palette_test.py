@@ -32,6 +32,8 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import Literal
 
 CHART_TRUE = """
@@ -257,7 +259,10 @@ SHORT_ATTR = 4  # length of short high-colour descriptions which may
 # be packed one after the next
 
 
-def parse_chart(chart: str, convert):
+def parse_chart(
+    chart: str,
+    convert: Callable[[str], tuple[urwid.AttrSpec, str] | None],
+) -> list[str | tuple[urwid.AttrSpec, str]]:
     """
     Convert string chart into text markup with the correct attributes.
 
@@ -294,7 +299,11 @@ def parse_chart(chart: str, convert):
     return out
 
 
-def foreground_chart(chart: str, background, colors: Literal[1, 16, 88, 256, 16777216]):
+def foreground_chart(
+    chart: str,
+    background: str,
+    colors: Literal[1, 16, 88, 256, 16777216],
+) -> list[str | tuple[urwid.AttrSpec, str]]:
     """
     Create text markup for a foreground colour chart
 
@@ -303,7 +312,7 @@ def foreground_chart(chart: str, background, colors: Literal[1, 16, 88, 256, 167
     colors -- number of colors (88 or 256)
     """
 
-    def convert_foreground(entry):
+    def convert_foreground(entry: str) -> tuple[urwid.AttrSpec, str] | None:
         try:
             attr = urwid.AttrSpec(entry, background, colors)
         except urwid.AttrSpecError:
@@ -313,7 +322,11 @@ def foreground_chart(chart: str, background, colors: Literal[1, 16, 88, 256, 167
     return parse_chart(chart, convert_foreground)
 
 
-def background_chart(chart: str, foreground, colors: Literal[1, 16, 88, 256, 16777216]):
+def background_chart(
+    chart: str,
+    foreground: str,
+    colors: Literal[1, 16, 88, 256, 16777216],
+) -> list[str | tuple[urwid.AttrSpec, str]]:
     """
     Create text markup for a background colour chart
 
@@ -321,11 +334,10 @@ def background_chart(chart: str, foreground, colors: Literal[1, 16, 88, 256, 167
     foreground -- colour to use for foreground of chart
     colors -- number of colors (88 or 256)
 
-    This will remap 8 <= colour < 16 to high-colour versions
-    in the hopes of greater compatibility
+    This will remap 8 <= colour < 16 to high-colour versions in the hopes of greater compatibility
     """
 
-    def convert_background(entry):
+    def convert_background(entry: str) -> tuple[urwid.AttrSpec, str] | None:
         try:
             attr = urwid.AttrSpec(foreground, entry, colors)
         except urwid.AttrSpecError:
@@ -350,17 +362,17 @@ def main() -> None:
     screen = urwid.display.raw.Screen()
     screen.register_palette(palette)
 
-    lb = urwid.SimpleListWalker([])
-    chart_offset = None  # offset of chart in lb list
+    lb: urwid.SimpleListWalker[urwid.widget.AbstractFlowWidget] = urwid.SimpleListWalker([])
+    chart_offset = 0  # offset of chart in lb list
 
-    mode_radio_buttons = []
-    chart_radio_buttons = []
+    mode_radio_buttons: list[urwid.RadioButton] = []
+    chart_radio_buttons: list[urwid.RadioButton] = []
 
-    def fcs(widget) -> urwid.AttrMap:
+    def fcs(widget: urwid.AbstractWidget) -> urwid.AttrMap:
         # wrap widgets that can take focus
         return urwid.AttrMap(widget, None, "focus")
 
-    def set_mode(colors: int, is_foreground_chart: bool) -> None:
+    def set_mode(colors: Literal[1, 16, 88, 256, 16777216], is_foreground_chart: bool) -> None:
         # set terminal mode and redraw chart
         screen.set_terminal_properties(colors)
         screen.reset_default_terminal_palette()
@@ -373,11 +385,11 @@ def main() -> None:
             txt = chart_fn(chart, "default", colors)
             lb[chart_offset] = urwid.Text(txt, wrap=urwid.CLIP)
 
-    def on_mode_change(colors: int, rb: urwid.RadioButton, state: bool) -> None:
+    def on_mode_change(colors: Literal[1, 16, 88, 256, 16777216], rb: urwid.RadioButton, state: bool) -> None:
         # if this radio button is checked
         if state:
             is_foreground_chart = chart_radio_buttons[0].state
-            set_mode(colors, is_foreground_chart)
+            set_mode(colors, typing.cast("bool", is_foreground_chart))
 
     def mode_rb(text: str, colors: int, state: bool = False) -> urwid.AttrMap:
         # mode radio buttons
@@ -389,7 +401,7 @@ def main() -> None:
         # handle foreground check box state change
         set_mode(screen.colors, state)
 
-    def click_exit(button) -> typing.NoReturn:
+    def click_exit(button: urwid.Button) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
     lb.extend(

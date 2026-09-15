@@ -86,6 +86,7 @@ class EventLoop(abc.ABC):
         :return: future object for the function call outcome.
                  (exact future type depends on the event loop type)
         :rtype: concurrent.futures.Future | asyncio.Future
+        :raises NotImplementedError: this event loop cannot run callables in an executor.
         """
         raise NotImplementedError
 
@@ -99,8 +100,8 @@ class EventLoop(abc.ABC):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
 
     @abc.abstractmethod
@@ -162,8 +163,8 @@ class EventLoop(abc.ABC):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
 
     def set_signal_handler(
@@ -178,8 +179,8 @@ class EventLoop(abc.ABC):
         is simply a proxy function that calls :func:`signal.signal()`
         and returns the resulting value.
 
-        signum -- signal number
-        handler -- function (taking signum as its single argument),
-        or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        :param signum: signal number
+        :param handler: function (taking signum as its single argument),
+            or `signal.SIG_IGN`, or `signal.SIG_DFL`
         """
         return signal.signal(signum, handler)

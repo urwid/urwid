@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+import weakref
 
 from typing_extensions import Literal
 
@@ -14,7 +15,7 @@ from .divider import Divider
 from .monitored_list import MonitoredFocusList, MonitoredList
 from .padding import Padding
 from .pile import Pile
-from .widget import Widget, WidgetError, WidgetWarning, WidgetWrap
+from .widget import AbstractFlowWidget, WidgetError, WidgetWarning, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
@@ -30,10 +31,14 @@ class GridFlowWarning(WidgetWarning):
     """GridFlow specific warning."""
 
 
+GridFlowOptions = tuple[Literal[WHSettings.GIVEN], int]
+GridFlowContentsItem = tuple[AbstractFlowWidget, GridFlowOptions]
+
+
 class GridFlow(
     WidgetWrap[typing.Union[Pile, Divider]],
     WidgetContainerMixin[int],
-    WidgetContainerListContentsMixin[tuple[Literal[WHSettings.GIVEN], int]],
+    WidgetContainerListContentsMixin[GridFlowContentsItem],
 ):
     """
     The GridFlow widget is a flow widget that renders all the widgets it contains the same width,
@@ -51,12 +56,12 @@ class GridFlow(
 
     def __init__(
         self,
-        cells: Iterable[Widget],
+        cells: Iterable[AbstractFlowWidget],
         cell_width: int,
         h_sep: int,
         v_sep: int,
         align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
-        focus: int | Widget | None = None,
+        focus: int | AbstractFlowWidget | None = None,
     ) -> None:
         """
         :param cells: iterable of flow widgets to display
@@ -68,7 +73,7 @@ class GridFlow(
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         :param focus: widget index or widget instance to focus on
         """
-        prepared_contents: list[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = []
+        prepared_contents: list[GridFlowContentsItem] = []
         focus_position: int = -1
 
         for idx, widget in enumerate(cells):
@@ -78,7 +83,7 @@ class GridFlow(
 
         focus_position = max(focus_position, 0)
 
-        self._contents: MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]] = MonitoredFocusList(
+        self._contents: MonitoredFocusList[GridFlowContentsItem] = MonitoredFocusList(
             prepared_contents,
             focus=focus_position,
         )
@@ -89,8 +94,10 @@ class GridFlow(
         self.h_sep = h_sep
         self.v_sep = v_sep
         self.align = align
-        self._cache_maxcol: int | None = self._get_maxcol(())
-        super().__init__(self.generate_display_widget((typing.cast("int", self._cache_maxcol),)))
+        self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
+        maxcol = self._get_maxcol(())
+        self._cache_maxcol: int | None = maxcol
+        super().__init__(self.generate_display_widget((maxcol,)))
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
@@ -125,13 +132,18 @@ class GridFlow(
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
-        super()._invalidate()
+        super()._invalidate()  # type: ignore[safe-super]  # dynamic base
 
     def _contents_modified(
         self,
         _slc: tuple[int, int, int],
-        new_items: Iterable[tuple[Widget, tuple[Literal["given", WHSettings.GIVEN], int]]],
+        new_items: Iterable[GridFlowContentsItem],
     ) -> None:
+        """
+        Reject contents changes that would put an invalid item into the GridFlow.
+
+        :raises GridFlowError: an added item is not a valid ``(widget, options)`` pair.
+        """
         for item in new_items:
             try:
                 _w, (t, _n) = item
@@ -141,13 +153,13 @@ class GridFlow(
                 raise GridFlowError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
 
     @property
-    def cells(self) -> MonitoredList[Widget]:
+    def cells(self) -> MonitoredList[AbstractFlowWidget]:
         """
-        A list of the widgets in this GridFlow
+        A list of the widgets in this GridFlow.
 
-        .. note:: only for backwards compatibility. You should use the new
-            standard container property :attr:`contents` to modify GridFlow
-            contents.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility."
@@ -165,7 +177,14 @@ class GridFlow(
         return ml
 
     @cells.setter
-    def cells(self, widgets: MonitoredList[Widget]) -> None:
+    def cells(self, widgets: MonitoredList[AbstractFlowWidget]) -> None:
+        """
+        Replace the widgets in this GridFlow, giving each of them the current cell width.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`contents` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility."
             "You should use the new standard container property `contents` to modify GridFlow."
@@ -194,7 +213,7 @@ class GridFlow(
         self._cell_width = width
 
     @property
-    def contents(self) -> MonitoredFocusList[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]:
+    def contents(self) -> MonitoredFocusList[GridFlowContentsItem]:
         """
         The contents of this GridFlow as a list of (widget, options)
         tuples.
@@ -211,19 +230,20 @@ class GridFlow(
         return self._contents
 
     @contents.setter
-    def contents(self, c: Sequence[tuple[Widget, tuple[Literal[WHSettings.GIVEN], int]]]) -> None:
+    def contents(self, c: Sequence[GridFlowContentsItem]) -> None:
         self._contents[:] = c
 
     def options(
         self,
         width_type: Literal["given", WHSettings.GIVEN] = WHSettings.GIVEN,
         width_amount: int | None = None,
-    ) -> tuple[Literal[WHSettings.GIVEN], int]:
+    ) -> GridFlowOptions:
         """
         Return a new options tuple for use in a GridFlow's .contents list.
 
-        width_type -- 'given' is the only value accepted
-        width_amount -- None to use the default cell_width for this GridFlow
+        :param width_type: 'given' is the only value accepted
+        :param width_amount: None to use the default cell_width for this GridFlow
+        :raises GridFlowError: *width_type* is not ``GIVEN``.
         """
         if width_type != WHSettings.GIVEN:
             raise GridFlowError(f"invalid width_type: {width_type!r}")
@@ -231,15 +251,18 @@ class GridFlow(
             width_amount = self._cell_width
         return (WHSettings.GIVEN, width_amount)
 
-    def set_focus(self, cell: Widget | int) -> None:
+    def set_focus(self, cell: AbstractFlowWidget | int) -> None:
         """
-        Set the cell in focus, for backwards compatibility.
-
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus_position` to get the focus.
+        Set the cell in focus.
 
         :param cell: contained element to focus
         :type cell: Widget or int
+        :raises IndexError: *cell* is an index with no child widget at it.
+        :raises ValueError: *cell* is a widget that is not in the contents.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility."
@@ -266,18 +289,19 @@ class GridFlow(
         raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractFlowWidget | None:
         """the child widget in focus or None when GridFlow is empty"""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
 
-    def get_focus(self) -> Widget | None:
+    def get_focus(self) -> AbstractFlowWidget | None:
         """
-        Return the widget in focus, for backwards compatibility.
+        Return the widget in focus.
 
-        .. note:: only for backwards compatibility. You may also use the new
-            standard container property :attr:`focus` to get the focus.
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "only for backwards compatibility."
@@ -291,7 +315,15 @@ class GridFlow(
         return self.contents[self.focus_position][0]
 
     @property
-    def focus_cell(self) -> Widget | None:
+    def focus_cell(self) -> AbstractFlowWidget | None:
+        """
+        The cell in focus.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` to read the cell in focus,
+            and :attr:`focus_position` to read or set it by index.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
@@ -303,7 +335,17 @@ class GridFlow(
         return self.focus
 
     @focus_cell.setter
-    def focus_cell(self, cell: Widget) -> None:
+    def focus_cell(self, cell: AbstractFlowWidget) -> None:
+        """
+        Set the cell in focus.
+
+        .. deprecated:: 1.1.0
+            Use the standard container property :attr:`focus` to read the cell in focus,
+            and :attr:`focus_position` to read or set it by index.
+            This API will be removed in version 5.0.
+
+        :raises ValueError: *cell* is a widget that is not in the contents.
+        """
         warnings.warn(
             "only for backwards compatibility."
             "You may also use the new standard container property"
@@ -323,6 +365,8 @@ class GridFlow(
         """
         index of child widget in focus.
         Raises :exc:`IndexError` if read when GridFlow is empty, or when set to an invalid index.
+
+        :raises IndexError: the GridFlow is empty.
         """
         if (focus := self.contents.focus) is not None:
             return focus
@@ -334,7 +378,8 @@ class GridFlow(
         """
         Set the widget in focus.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not an index of a child widget.
         """
         try:
             if position < 0 or position >= len(self.contents):
@@ -391,7 +436,7 @@ class GridFlow(
             # increase size of divider
             divider.top = self.v_sep - 1
 
-        c = None
+        c: Columns | None = None
         p = Pile([])
         used_space = 0
 
@@ -399,23 +444,33 @@ class GridFlow(
             if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
-                    p.contents.append((divider, p.options()))
+                    p.contents.append((divider, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
                 c = Columns([], self.h_sep)
                 column_focused = False
                 pad = Padding(c, self.align)
-                # extra attribute to reference contents position
-                pad.first_position = i
-                p.contents.append((pad, p.options()))
+                self.first_position[pad] = i
+                p.contents.append((pad, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
 
             # Use width == maxcol in case of maxcol < width amount
             # Columns will use empty widget in case of GIVEN width > maxcol
-            c.contents.append((w, c.options(WHSettings.GIVEN, min(width_amount, maxcol))))
+            c.contents.append(
+                (
+                    w,
+                    typing.cast(
+                        "tuple[Literal[WHSettings.GIVEN], int, Literal[False]]",
+                        c.options(
+                            WHSettings.GIVEN,
+                            min(width_amount, maxcol),
+                        ),
+                    ),
+                )
+            )
             if (i == self.focus_position) or (not column_focused and w.selectable()):
                 c.focus_position = len(c.contents) - 1
                 column_focused = True
             if i == self.focus_position:
                 p.focus_position = len(p.contents) - 1
-            used_space = sum(x[1][1] for x in c.contents) + self.h_sep * len(c.contents)
+            used_space = sum(typing.cast("int", x[1][1]) for x in c.contents) + self.h_sep * len(c.contents)
             pad.width = used_space - self.h_sep
 
         if self.v_sep:
@@ -443,17 +498,20 @@ class GridFlow(
         pile_focus = self._w.focus
         if not pile_focus:
             return
-        c = pile_focus.base_widget
+
+        c = typing.cast("Columns", pile_focus.base_widget)
         if c.focus:
             col_focus_position = c.focus_position
         else:
             col_focus_position = 0
-        # pad.first_position was set by generate_display_widget() above
-        self.focus_position = pile_focus.first_position + col_focus_position
+
+        first_position = self.first_position[typing.cast("Padding[Columns]", pile_focus)]
+
+        self.focus_position = first_position + col_focus_position
 
     def keypress(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         key: str,
     ) -> str | None:
         """
@@ -461,20 +519,24 @@ class GridFlow(
         Captures focus changes.
         """
         self.get_display_widget(size)
+        focus_before = self.contents.focus
 
-        if (key := super().keypress(size, key)) is not None:
-            return key
+        if (processed := super().keypress(size, key)) is not None:  # type: ignore[safe-super]  # dynamic base
+            return processed
 
-        self._set_focus_from_display_widget()
+        # The display widget was built before the keypress was dispatched, so a callback
+        # that set the focus itself is the more recent value and must not be overwritten.
+        if self.contents.focus == focus_before:
+            self._set_focus_from_display_widget()
         return None
 
     def pack(
         self,
-        size: tuple[int] | tuple[()] = (),  # type: ignore[override]
+        size: tuple[int] | tuple[()] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         if size:
-            return super().pack(size, focus)
+            return super().pack(size, focus)  # type: ignore[safe-super]  # dynamic base
         if self:
             cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
         else:
@@ -483,31 +545,31 @@ class GridFlow(
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         self.get_display_widget(size)
-        return super().rows(size, focus=focus)
+        return typing.cast("int", super().rows(size, focus=focus))  # int or Never - depends on kind
 
     def render(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         focus: bool = False,
     ) -> Canvas:
         self.get_display_widget(size)
-        return super().render(size, focus)
+        return super().render(size, focus)  # type: ignore[safe-super]  # dynamic base
 
     def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int]:
         """Get cursor from display widget."""
         self.get_display_widget(size)
-        return super().get_cursor_coords(size)
+        return typing.cast("tuple[int, int]", super().get_cursor_coords(size))
 
     def move_cursor_to_coords(self, size: tuple[int] | tuple[()], col: int, row: int) -> bool:
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
-        rval = super().move_cursor_to_coords(size, col, row)
+        rval = typing.cast("bool", super().move_cursor_to_coords(size, col, row))
         self._set_focus_from_display_widget()
         return rval
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],
         event: str,
         button: int,
         col: int,
@@ -515,11 +577,15 @@ class GridFlow(
         focus: bool,
     ) -> Literal[True]:
         self.get_display_widget(size)
-        super().mouse_event(size, event, button, col, row, focus)
-        self._set_focus_from_display_widget()
+        focus_before = self.contents.focus
+        super().mouse_event(size, event, button, col, row, focus)  # type: ignore[safe-super]  # dynamic base
+        # Same as in keypress: a callback that set the focus itself wins over the
+        # display widget, which was built before the event was dispatched.
+        if self.contents.focus == focus_before:
+            self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 
     def get_pref_col(self, size: tuple[int] | tuple[()]) -> int:
         """Return pref col from display widget."""
         self.get_display_widget(size)
-        return super().get_pref_col(size)
+        return typing.cast("int", super().get_pref_col(size))

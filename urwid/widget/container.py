@@ -5,11 +5,10 @@ import enum
 import typing
 
 from .constants import Sizing, WHSettings
+from .widget import AbstractWidget
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, MutableSequence, Sequence
-
-    from .widget import Widget
 
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
@@ -17,38 +16,37 @@ if typing.TYPE_CHECKING:
         def __getitem__(
             self,
             index: _KT_contra,
-        ) -> tuple[Widget, typing.Unpack[tuple[typing.Any, ...]] | None]: ...
+        ) -> tuple[AbstractWidget, typing.Any]: ...
 
-    class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
+    class WidgetContainerMixinProto(AbstractWidget, typing.Protocol[_KT_contra]):
         @property
         def contents(self) -> WidgetContainerProto[_KT_contra]: ...
-
-        @property
-        def focus(self) -> Widget: ...
 
         @property
         def focus_position(self) -> int | str: ...
 
         @focus_position.setter
-        def focus_position(self, value: int | str) -> None: ...
+        def focus_position(self, position: int | str) -> None: ...
 
-        @property
-        def base_widget(self) -> Widget: ...
 else:
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
-    class WidgetContainerMixinProto(typing.Generic[_KT_contra]):
+    class WidgetContainerMixinProto(typing.Protocol[_KT_contra]):
         """Generic protocol support."""
 
 
-_WidgetParams = typing.TypeVar("_WidgetParams", bound=tuple[typing.Any, ...])
+_ContentsItem = typing.TypeVar("_ContentsItem", bound=tuple[AbstractWidget, typing.Any])
 
 
-# Ideally, we would like to use an IntFlag coupled with enum.auto().
-# However, doing many bitwise operations (which happens when nesting too many
-# widgets ...) on IntFlag is orders of magnitude slower than doing the same
-# operations on IntEnum.
 class _ContainerElementSizingFlag(enum.IntEnum):
+    """Bitfield describing the sizing modes and the width/height setting a container element supports.
+
+    .. note::
+        Ideally this would be an :class:`enum.IntFlag` coupled with :func:`enum.auto`, but doing many bitwise
+        operations on an ``IntFlag`` - which happens when widgets are deeply nested - is orders of magnitude
+        slower than doing the same operations on an :class:`enum.IntEnum`.
+    """
+
     # fmt: off
     NONE      = 0b000000
     BOX       = 0b000001
@@ -92,7 +90,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     Mixin class for widget containers implementing common container methods
     """
 
-    def __getitem__(self, position: _KT_contra) -> Widget:
+    def __getitem__(self, position: _KT_contra) -> AbstractWidget:
         """
         Container short-cut for self.contents[position][0].base_widget
         which means "give me the child widget at position without any
@@ -119,7 +117,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
             except IndexError:
                 return out
             out.append(p)
-            w = w.focus.base_widget  # type: ignore[assignment]
+            w = w.focus.base_widget  # type: ignore[union-attr,assignment]
 
     def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """
@@ -131,15 +129,15 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         focus by passing in the value returned from an earlier call to
         get_focus_path().
 
-        positions -- sequence of positions
+        :param positions: sequence of positions
         """
-        w: Widget = self  # type: ignore[assignment]
+        w: WidgetContainerMixin[typing.Any] | AbstractWidget = self
         for p in positions:
-            if p != w.focus_position:
-                w.focus_position = p  # modifies w.focus
+            if p != w.focus_position:  # type: ignore[union-attr]
+                w.focus_position = p  # type: ignore[union-attr]  # modifies w.focus
             w = w.focus.base_widget  # type: ignore[union-attr]
 
-    def get_focus_widgets(self) -> list[Widget]:
+    def get_focus_widgets(self) -> list[WidgetContainerMixin[typing.Any] | AbstractWidget]:
         """
         Return the .focus values starting from this container
         and proceeding along each child widget until reaching a leaf
@@ -154,11 +152,11 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         while (w := w.base_widget.focus) is not None:  # type: ignore[assignment]
             out.append(w)
 
-        return out
+        return out  # type: ignore[return-value]
 
     @property
     @abc.abstractmethod
-    def focus(self) -> Widget | None:
+    def focus(self) -> AbstractWidget | None:
         """
         Read-only property returning the child widget in focus for
         container widgets.  This default implementation
@@ -166,7 +164,7 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         """
 
 
-class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
+class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     """
     Mixin class for widget containers whose positions are indexes into
     a list available as self.contents.
@@ -191,11 +189,11 @@ class WidgetContainerListContentsMixin(typing.Generic[_WidgetParams]):
 
     @property
     @abc.abstractmethod
-    def contents(self) -> MutableSequence[tuple[Widget, _WidgetParams]]:
+    def contents(self) -> MutableSequence[_ContentsItem]:
         """The contents of container as a list of (widget, options)"""
 
     @contents.setter
-    def contents(self, new_contents: Sequence[tuple[Widget, _WidgetParams]]) -> None:
+    def contents(self, new_contents: Sequence[_ContentsItem]) -> None:
         """The contents of container as a list of (widget, options)"""
 
     @property

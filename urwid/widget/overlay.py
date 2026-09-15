@@ -15,7 +15,6 @@ from .constants import (
     Sizing,
     VAlign,
     WHSettings,
-    WrapMode,
     normalize_align,
     normalize_height,
     normalize_valign,
@@ -28,14 +27,16 @@ from .constants import (
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .filler import calculate_top_bottom_filler
 from .padding import calculate_left_right_padding
-from .widget import Widget, WidgetError, WidgetWarning
+from .widget import AbstractBoxWidget, AbstractWidget, Widget, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
+    from .widget import AbstractFlowWidget
 
-TopWidget = typing.TypeVar("TopWidget", bound=Widget)
-BottomWidget = typing.TypeVar("BottomWidget", bound=Widget)
+
+TopWidget = typing.TypeVar("TopWidget", bound=AbstractWidget)
+BottomWidget = typing.TypeVar("BottomWidget", bound=AbstractBoxWidget)
 
 
 class OverlayError(WidgetError):
@@ -46,11 +47,11 @@ class OverlayWarning(WidgetWarning):
     """Overlay specific warnings."""
 
 
-def _check_widget_subclass(widget: Widget) -> None:
-    if not isinstance(widget, Widget):
+def _check_widget_subclass(widget: AbstractWidget) -> None:
+    if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
         warnings.warn(
-            f"{obj_class_path} is not subclass of Widget",
+            f"{obj_class_path} is not implementing Widget API",
             DeprecationWarning,
             stacklevel=3,
         )
@@ -73,10 +74,13 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
+OverlayContentsItem = tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]
+
+
 class Overlay(
     Widget,
     WidgetContainerMixin[Literal[0, 1]],
-    WidgetContainerListContentsMixin[OverlayOptions],
+    WidgetContainerListContentsMixin[OverlayContentsItem[TopWidget, BottomWidget]],
     typing.Generic[TopWidget, BottomWidget],
 ):
     """Overlay contains two widgets and renders one on top of the other.
@@ -86,6 +90,15 @@ class Overlay(
     """
 
     _selectable = True
+
+    align_type: Align | Literal[WHSettings.RELATIVE]
+    align_amount: int | None
+    width_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+    width_amount: int | None
+    valign_type: VAlign | Literal[WHSettings.RELATIVE]
+    valign_amount: int | None
+    height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
+    height_amount: int | None
 
     _DEFAULT_BOTTOM_OPTIONS = OverlayOptions(
         align=Align.LEFT,
@@ -136,6 +149,7 @@ class Overlay(
             (``'relative'``, *percentage* 0=left 100=right)
         :type align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]
         :param width: width type, one of:
+
             ``'pack'``
               if *top_w* is a fixed widget
             *given width*
@@ -147,6 +161,7 @@ class Overlay(
             (``'relative'``, *percentage* 0=top 100=bottom)
         :type valign: Literal["top", "middle", "bottom"] | tuple[Literal["relative"], int]
         :param height: one of:
+
             ``'pack'``
               if *top_w* is a flow or fixed widget
             *given height*
@@ -180,6 +195,37 @@ class Overlay(
 
         _check_widget_subclass(top_w)
         _check_widget_subclass(bottom_w)
+
+    @property
+    def top_w(self) -> TopWidget:
+        """Widget overlaid "on top" of `bottom_w`."""
+        return self._top_w
+
+    @top_w.setter
+    def top_w(self, widget: TopWidget) -> None:
+        """Replace the widget overlaid "on top" and invalidate the canvas rendered from the old one.
+
+        Without the invalidation :class:`CanvasCache` keeps serving the canvas of the previous
+        widget - together with every parent canvas built from it - so the replacement stays
+        invisible until something else invalidates the overlay.
+        """
+        self._top_w = widget
+        self._invalidate()
+
+    @property
+    def bottom_w(self) -> BottomWidget:
+        """Widget appearing "below" `top_w`."""
+        return self._bottom_w
+
+    @bottom_w.setter
+    def bottom_w(self, widget: BottomWidget) -> None:
+        """Replace the widget appearing "below" and invalidate the canvas rendered from the old one.
+
+        The counterpart of the `top_w` setter, and invalidating for the same reason: a plain
+        assignment would leave :class:`CanvasCache` serving the canvas of the previous widget.
+        """
+        self._bottom_w = widget
+        self._invalidate()
 
     def sizing(self) -> frozenset[Sizing]:
         """Actual widget sizing.
@@ -245,6 +291,11 @@ class Overlay(
         size: tuple[()] | tuple[int] | tuple[int, int] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
+        """
+        Return the size the widget would render as, for FIXED sizing.
+
+        :raises OverlayError: a FIXED render is requested but the overlay parameters do not resolve to a fixed size.
+        """
         if size:
             return super().pack(size, focus)
 
@@ -284,7 +335,7 @@ class Overlay(
             )
 
         if self.height_type == WHSettings.PACK:
-            return cols, self.top_w.rows((w_cols,), focus) + extra_rows
+            return cols, typing.cast("AbstractFlowWidget", self.top_w).rows((w_cols,), focus) + extra_rows
 
         if not self.height_amount:
             raise OverlayError(
@@ -314,20 +365,25 @@ class Overlay(
         )
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """Widget rows amount for FLOW sizing."""
+        """Widget rows amount for FLOW sizing.
+
+        :raises OverlayError: the overlay parameters do not resolve to a row count for the given size.
+        """
         extra_height = self.top + self.bottom
+
         if self.height_type == WHSettings.GIVEN:
-            return self.height_amount + extra_height
+            return typing.cast("int", self.height_amount) + extra_height
         if self.height_type == WHSettings.RELATIVE and self.min_height:
-            return int(self.min_height * 100 / self.height_amount + 0.5)
+            return int(self.min_height * 100 / typing.cast("int", self.height_amount) + 0.5)
 
         if self.height_type == WHSettings.PACK:
+            top_w = typing.cast("AbstractFlowWidget", self.top_w)
             extra_height = self.top + self.bottom
             if self.width_type == WHSettings.GIVEN and self.width_amount:
-                return self.top_w.rows((self.width_amount,), focus) + extra_height
+                return top_w.rows((self.width_amount,), focus) + extra_height
             if self.width_type == WHSettings.RELATIVE:
-                width = max(int(size[0] * self.width_amount / 100 + 0.5), (self.min_width or 0))
-                return self.top_w.rows((width,), focus) + extra_height
+                width = max(int(size[0] * typing.cast("int", self.width_amount) / 100 + 0.5), (self.min_width or 0))
+                return top_w.rows((width,), focus) + extra_height
 
         raise OverlayError(
             f"Requested rows for {self.top_w} with size {size!r}"
@@ -425,6 +481,8 @@ class Overlay(
         top widget of this Overlay.  It is provided for completeness
         but is not necessarily the easiest way to change the overlay parameters.
         See also :meth:`.set_overlay_parameters`
+
+        :raises ValueError: *align* or *valign* names an unknown alignment type.
         """
         if align_type in {Align.LEFT, Align.CENTER, Align.RIGHT}:
             align: Align | Literal[WHSettings.RELATIVE] = Align(align_type)
@@ -464,13 +522,23 @@ class Overlay(
             | Align
             | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
         ),
-        width: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
+        width: (
+            Literal["pack", WHSettings.PACK]
+            | int
+            | tuple[Literal["relative", "fixed left", "fixed right", WHSettings.RELATIVE], int]
+            | None
+        ),
         valign: (
             Literal["top", "middle", "bottom"]
             | VAlign
             | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
         ),
-        height: Literal["pack", WHSettings.PACK] | int | tuple[Literal["relative", WHSettings.RELATIVE], int] | None,
+        height: (
+            Literal["pack", WHSettings.PACK]
+            | int
+            | tuple[Literal["relative", "fixed top", "fixed bottom", WHSettings.RELATIVE], int]
+            | None
+        ),
         min_width: int | None = None,
         min_height: int | None = None,
         left: int = 0,
@@ -482,9 +550,12 @@ class Overlay(
         Adjust the overlay size and position parameters.
 
         See :class:`__init__() <Overlay>` for a description of the parameters.
+
+        :raises OverlayError: *valign* is not a vertical alignment value.
         """
 
         # convert obsolete parameters 'fixed ...':
+        normalized_align: Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(align, tuple):
             if align[0] == "fixed left":
                 left = align[1]
@@ -493,18 +564,20 @@ class Overlay(
                 right = align[1]
                 normalized_align = Align.RIGHT
             else:
-                normalized_align = align
+                # 'fixed left'/'fixed right' handled above, so only the relative form remains.
+                normalized_align = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", align)
         else:
             normalized_align = Align(align)
 
         if isinstance(width, tuple):
             if width[0] == "fixed left":
                 left = width[1]
-                width = RELATIVE_100  # type: ignore[assignment]
+                width = RELATIVE_100
             elif width[0] == "fixed right":
                 right = width[1]
-                width = RELATIVE_100  # type: ignore[assignment]
+                width = RELATIVE_100
 
+        normalized_valign: VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(valign, tuple):
             if valign[0] == "fixed top":
                 top = valign[1]
@@ -513,7 +586,8 @@ class Overlay(
                 bottom = valign[1]
                 normalized_valign = VAlign.BOTTOM
             else:
-                normalized_valign = valign
+                # 'fixed top'/'fixed bottom' handled above, so only the relative form remains.
+                normalized_valign = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", valign)
 
         elif not isinstance(valign, (VAlign, str)):
             raise OverlayError(f"invalid valign: {valign!r}")
@@ -524,10 +598,10 @@ class Overlay(
         if isinstance(height, tuple):
             if height[0] == "fixed bottom":
                 bottom = height[1]
-                height = RELATIVE_100  # type: ignore[assignment]
+                height = RELATIVE_100
             elif height[0] == "fixed top":
                 top = height[1]
-                height = RELATIVE_100  # type: ignore[assignment]
+                height = RELATIVE_100
 
         if width is None:  # more obsolete values accepted
             width = WHSettings.PACK
@@ -535,9 +609,9 @@ class Overlay(
             height = WHSettings.PACK
 
         align_type, align_amount = normalize_align(normalized_align, OverlayError)
-        width_type, width_amount = normalize_width(width, OverlayError)
+        width_type, width_amount = normalize_width(width, OverlayError)  # type: ignore[arg-type]
         valign_type, valign_amount = normalize_valign(normalized_valign, OverlayError)
-        height_type, height_amount = normalize_height(height, OverlayError)
+        height_type, height_amount = normalize_height(height, OverlayError)  # type: ignore[arg-type]
 
         if height_type in {WHSettings.GIVEN, WHSettings.PACK}:
             min_height = None
@@ -600,13 +674,14 @@ class Overlay(
         """
         Set the widget in focus.  Currently only position 1 is accepted.
 
-        position -- index of child widget to be made focus
+        :param position: index of child widget to be made focus
+        :raises IndexError: *position* is not ``1``.
         """
         if position != 1:
             raise IndexError(f"Overlay widget focus_position currently must always be set to 1, not {position}")
 
-    @property  # type: ignore[override]
-    def contents(self) -> MutableSequence[tuple[TopWidget | BottomWidget, OverlayOptions]]:
+    @property
+    def contents(self) -> MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]:
         """
         a list-like object similar to::
 
@@ -630,14 +705,7 @@ class Overlay(
         """
 
         # noinspection PyMethodParameters
-        class OverlayContents(
-            MutableSequence[
-                tuple[
-                    typing.Union[TopWidget, BottomWidget],
-                    OverlayOptions,
-                ]
-            ]
-        ):
+        class OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2
@@ -646,9 +714,19 @@ class Overlay(
             __setitem__ = self._contents__setitem__  # type: ignore[assignment]
 
             def __delitem__(self, index: int | slice) -> typing.NoReturn:
+                """
+                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
+
+                :raises TypeError: the contents are a fixed-size sequence.
+                """
                 raise TypeError("OverlayContents is fixed-sized sequence")
 
             def insert(self, index: int | slice, value: typing.Any) -> typing.NoReturn:
+                """
+                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
+
+                :raises TypeError: the contents are a fixed-size sequence.
+                """
                 raise TypeError("OverlayContents is fixed-sized sequence")
 
             def __repr__(inner_self) -> str:
@@ -658,14 +736,19 @@ class Overlay(
                 for val in inner_self:
                     yield None, val
 
-            def __iter__(inner_self) -> Iterator[tuple[TopWidget | BottomWidget, OverlayOptions]]:
+            def __iter__(inner_self) -> Iterator[OverlayContentsItem[TopWidget, BottomWidget]]:
                 for idx in range(2):
                     yield inner_self[idx]  # type: ignore[arg-type]
 
         return OverlayContents()
 
-    @contents.setter  # type: ignore[override]
-    def contents(self, new_contents: Sequence[tuple[TopWidget | BottomWidget, OverlayOptions]]) -> None:
+    @contents.setter
+    def contents(self, new_contents: Sequence[OverlayContentsItem[TopWidget, BottomWidget]]) -> None:
+        """
+        Replace both children of this Overlay at once.
+
+        :raises ValueError: *new_contents* does not hold exactly two items.
+        """
         if len(new_contents) != 2:
             raise ValueError("Contents length for overlay should be only 2")
         self.contents[0] = new_contents[0]
@@ -675,6 +758,11 @@ class Overlay(
         self,
         index: Literal[0, 1],
     ) -> tuple[TopWidget | BottomWidget, OverlayOptions]:
+        """
+        Return the ``(widget, options)`` pair at *index*, for the container contents protocol.
+
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        """
         if index == 0:
             return (self.bottom_w, self._DEFAULT_BOTTOM_OPTIONS)
 
@@ -719,6 +807,13 @@ class Overlay(
         index: Literal[0, 1],
         value: tuple[TopWidget | BottomWidget, OverlayOptions],
     ) -> None:
+        """
+        Replace the ``(widget, options)`` pair at *index*, for the container contents protocol.
+
+        :raises OverlayError: *value* is not a ``(widget, options)`` pair, or the options are not valid for that
+            position.
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        """
         try:
             value_w, value_options = value
         except (ValueError, TypeError) as exc:
@@ -751,12 +846,22 @@ class Overlay(
                 ) from exc
             # normalize first, this is where errors are raised
             align_type, align_amount = normalize_align(simplify_align(align_type, align_amount), OverlayError)
-            width_type, width_amount = normalize_width(simplify_width(width_type, width_amount), OverlayError)
+            width_type, width_amount = normalize_width(
+                simplify_width(width_type, width_amount),  # type: ignore[call-overload]  # broad WHSettings
+                OverlayError,
+            )
             valign_type, valign_amount = normalize_valign(simplify_valign(valign_type, valign_amount), OverlayError)
-            height_type, height_amount = normalize_height(simplify_height(height_type, height_amount), OverlayError)
+            height_type, height_amount = normalize_height(
+                simplify_height(height_type, height_amount),  # type: ignore[call-overload]  # broad WHSettings
+                OverlayError,
+            )
             self.align_type = align_type
             self.align_amount = align_amount
-            self.width_type = width_type
+            # normalize_width also allows CLIP, while Overlay supports only PACK, GIVEN and RELATIVE widths
+            self.width_type = typing.cast(
+                "Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]",
+                width_type,
+            )
             self.width_amount = width_amount
             self.valign_type = valign_type
             self.valign_amount = valign_amount
@@ -792,7 +897,10 @@ class Overlay(
         size: tuple[int, int],
         focus: bool,
     ) -> tuple[int, int, int, int]:
-        """Return (padding left, right, filler top, bottom)."""
+        """Return (padding left, right, filler top, bottom).
+
+        :raises OverlayError: the top widget is FIXED but reports no height.
+        """
         (maxcol, maxrow) = size
         height = None
         if self.width_type == WHSettings.PACK:
@@ -803,7 +911,7 @@ class Overlay(
                 maxcol,
                 self.align_type,
                 self.align_amount,
-                WrapMode.CLIP,
+                WHSettings.CLIP,
                 width,
                 None,
                 self.left,
@@ -815,7 +923,7 @@ class Overlay(
                 self.align_type,
                 self.align_amount,
                 self.width_type,
-                self.width_amount,
+                typing.cast("int", self.width_amount),
                 self.min_width,
                 self.left,
                 self.right,
@@ -836,8 +944,9 @@ class Overlay(
             if maxrow - top - bottom < height:
                 bottom = maxrow - top - height
         elif self.height_type == WHSettings.PACK:
-            # top_w is a flow widget
-            height = self.top_w.rows((maxcol,), focus=focus)
+            # top_w is a flow widget: it will be rendered at the width left over by the horizontal padding,
+            # so the row count has to be measured at that width and not at the full width of the overlay.
+            height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol - left - right,), focus=focus)
             top, bottom = calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -856,7 +965,7 @@ class Overlay(
                 self.valign_type,
                 self.valign_amount,
                 self.height_type,
-                self.height_amount,
+                typing.cast("int", self.height_amount),
                 self.min_height,
                 self.top,
                 self.bottom,
@@ -876,7 +985,7 @@ class Overlay(
             # top_w is a fixed widget
             return ()
         maxcol, maxrow = size
-        if self.width_type != WHSettings.PACK and self.height_type == WHSettings.PACK:
+        if self.height_type == WHSettings.PACK:
             # top_w is a flow widget
             return (maxcol - left - right,)
         return (maxcol - left - right, maxrow - top - bottom)
@@ -897,7 +1006,9 @@ class Overlay(
         if top < 0 or bottom < 0:
             top_c.pad_trim_top_bottom(min(0, top), min(0, bottom))
 
-        return CanvasOverlay(top_c, bottom_c, left, top)
+        # Negative padding clips top_w instead of shifting it: the trimming above already removed the hidden part,
+        # so what is left starts at the edge of the area available for the overlay.
+        return CanvasOverlay(top_c, bottom_c, max(left, 0), max(top, 0))
 
     def mouse_event(
         self,

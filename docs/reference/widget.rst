@@ -85,12 +85,20 @@ FloatEdit
 .. autoclass:: FloatEdit
 
 
+Special cases text widgets
+--------------------------
+
 .. currentmodule:: urwid
 
 SelectableIcon
 ~~~~~~~~~~~~~~
 
 .. autoclass:: SelectableIcon
+
+ANSIText
+~~~~~~~~
+
+.. autoclass:: ANSIText
 
 
 Decoration Widget Classes

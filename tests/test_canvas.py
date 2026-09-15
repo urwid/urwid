@@ -42,6 +42,26 @@ class CanvasCacheTest(unittest.TestCase):
         self.cct(a, (15, 1), False, None)
         self.cct(b, (20, 2), True, bloo)
 
+    def test_deps_does_not_grow_unbounded_on_repeated_store(self):
+        # A widget that is re-rendered many times (e.g. one screen refresh
+        # per store() call) used to add itself to CanvasCache._deps[w] every
+        # single time, so the list kept growing for as long as the program
+        # ran, even though it only ever depends on `w` once.
+        dependency = urwid.Text("")
+        dependent = urwid.Text("")
+
+        dependency_canv = urwid.TextCanvas()
+        dependency_canv.finalize(dependency, (10, 1), False)
+        urwid.CanvasCache.store(urwid.Widget, dependency_canv)
+
+        for _ in range(50):
+            canv = urwid.TextCanvas()
+            canv.finalize(dependent, (10, 1), False)
+            canv.depends_on = [dependency]
+            urwid.CanvasCache.store(urwid.Widget, canv)
+
+        self.assertEqual({dependent}, urwid.CanvasCache._deps[dependency])
+
 
 class CanvasTest(unittest.TestCase):
     def test_basic_info(self):
@@ -70,6 +90,30 @@ class CanvasTest(unittest.TestCase):
             f"children=({rendered_widget!r}) at 0x{id(rendered):X}>",
             repr(rendered),
         )
+
+    def test_set_pop_up_argument_validation(self):
+        """Out of contract pop-up parameters are refused instead of mis-placing the pop-up."""
+        widget = urwid.SolidFill("*")
+
+        for description, kwargs, message in (
+            ("negative left", {"left": -1, "top": 0}, "Pop-up position must not be negative"),
+            ("negative top", {"left": 0, "top": -1}, "Pop-up position must not be negative"),
+            ("zero width", {"overlay_width": 0}, "Pop-up size must be positive"),
+            ("zero height", {"overlay_height": 0}, "Pop-up size must be positive"),
+            ("negative width", {"overlay_width": -3}, "Pop-up size must be positive"),
+            ("negative height", {"overlay_height": -3}, "Pop-up size must be positive"),
+        ):
+            with self.subTest(description):
+                params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
+                canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+                with self.assertRaises(urwid.CanvasError) as ctx:
+                    canvas.set_pop_up(widget, **params)
+                self.assertIn(message, str(ctx.exception))
+
+        with self.subTest("in contract parameters are accepted"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertEqual((0, 0, (widget, 4, 2)), canvas.get_pop_up())
 
     def ct(self, text, attr, exp_content):
         with self.subTest(text=text, attr=attr, exp_content=exp_content):
@@ -197,6 +241,24 @@ class ShardBodyTest(unittest.TestCase):
                 (3, None, (0, 0, 5, 8, None, "baz")),
             ],
         )
+
+    def test_underfilled_gap_is_padded(self):
+        # cviews are short 4 columns of what the shard tail's gap expects: rather than
+        # raising or silently truncating the row, the missing width is padded with a
+        # blank filler cview so the resulting shard stays rectangular.
+        # Regression test for https://github.com/urwid/urwid/issues/340
+        cviews = [(0, 0, 6, 5, None, "foo")]
+        result = canvas.shard_body(
+            cviews,
+            [(10, 3, None, (0, 0, 5, 8, None, "baz"))],
+            False,
+            num_rows=5,
+        )
+        assert result == [
+            (0, None, (0, 0, 6, 5, None, "foo")),
+            (0, None, (0, 0, 4, 5, None, canvas.blank_canvas)),
+            (3, None, (0, 0, 5, 8, None, "baz")),
+        ]
 
     def test2(self):
         sbody = [
@@ -619,6 +681,76 @@ class CanvasOverlayTest(unittest.TestCase):
             1,
             [[(None, None, b" "), (None, None, b"OHIO"), (None, None, b" ")]],
         )
+
+
+class CompositeCanvasWrapTest(unittest.TestCase):
+    def test_wrap_preserves_dimensions_text_and_cursor(self) -> None:
+        """Wrapping a rendered canvas keeps its size and allows cursor updates."""
+        base = urwid.Edit("x").render((10,), focus=True)
+        wrapped = urwid.CompositeCanvas(canv=base)
+
+        self.assertEqual((10, 1), (wrapped.cols(), wrapped.rows()))
+        self.assertEqual([b"x         "], wrapped.text)
+        self.assertEqual((1, 0), wrapped.cursor)
+
+        wrapped.cursor = (3, 0)
+        self.assertEqual((3, 0), wrapped.cursor)
+
+    def test_wrap_accepts_pop_up_metadata(self) -> None:
+        """Pop-up placement is recorded on a wrapped canvas."""
+        inner = urwid.SolidFill(" ").render((20, 10))
+        popup = urwid.Text("hi")
+        wrapped = urwid.CompositeCanvas(canv=inner)
+        wrapped.set_pop_up(popup, 5, 3, 8, 4)
+
+        self.assertEqual((20, 10), (wrapped.cols(), wrapped.rows()))
+        self.assertEqual((5, 3, (popup, 8, 4)), wrapped.get_pop_up())
+
+
+class CanvasPadTrimTopBottomTest(unittest.TestCase):
+    def test_pad_top_and_bottom(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 1))
+
+        canvas.pad_trim_top_bottom(1, 2)
+
+        self.assertEqual(4, canvas.rows())
+        self.assertEqual(3, canvas.cols())
+        self.assertEqual([b"   ", b"   ", b"   ", b"   "], canvas.text)
+
+    def test_trim_bottom(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.TextCanvas([b"a", b"b", b"c", b"d", b"e"]))
+
+        canvas.pad_trim_top_bottom(0, -2)
+
+        self.assertEqual(3, canvas.rows())
+        self.assertEqual([b"a", b"b", b"c"], canvas.text)
+
+    def test_trim_top(self) -> None:
+        canvas = urwid.CompositeCanvas(urwid.TextCanvas([b"a", b"b", b"c"]))
+
+        canvas.pad_trim_top_bottom(-1, 0)
+
+        self.assertEqual(2, canvas.rows())
+        self.assertEqual([b"b", b"c"], canvas.text)
+
+
+class CanvasCombineTest(unittest.TestCase):
+    def test_stacks_canvases_vertically(self) -> None:
+        top = urwid.Text("top").render(())
+        middle = urwid.Text("mid").render(())
+        bottom = urwid.Text("bot").render(())
+
+        combined = urwid.CanvasCombine(
+            [
+                (top, None, False),
+                (middle, None, True),
+                (bottom, None, False),
+            ]
+        )
+
+        self.assertEqual(3, combined.rows())
+        self.assertEqual(3, combined.cols())
+        self.assertEqual([b"top", b"mid", b"bot"], combined.text)
 
 
 class CanvasPadTrimTest(unittest.TestCase):

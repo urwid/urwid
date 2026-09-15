@@ -11,14 +11,15 @@ on:
   pull_request:
     paths:
       - "urwid/**"
-      - "source/**"
       - "pyproject.toml"
       - "MANIFEST.in"
       - "README.rst"
       - "COPYING"
+      - "classifiers.txt"
+      - "requirements.txt"
       - "tests/**"
       - "examples/**"
-      - ".coveralls.yml"
+      - "pytest_requirements.txt"
       - ".github/workflows/pythonpackage.yml"
 
 concurrency:
@@ -31,36 +32,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-          cache: 'pip'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade -r ruff-requirements.txt
       - name: Check code style with ruff
-        run: |
-          ruff format --check .
+        uses: astral-sh/ruff-action@v4.1.0
+        with:
+          args: "format --check"
 
   Ruff:
     name: Check with Ruff
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-          cache: 'pip'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade -r ruff-requirements.txt
       - name: Lint with ruff
-        run: |
-          ruff check --output-format github .
+        uses: astral-sh/ruff-action@v4.1.0
+        with:
+          args: "check --output-format github"
 
   PyLint:
     name: Check with pylint
@@ -73,22 +58,42 @@ jobs:
           sudo apt-get install -y python3-dev python3-gi python3-gi-cairo
           sudo apt-get install -y gobject-introspection libgirepository-2.0-dev libcairo2-dev
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
-          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,glib,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r test_requirements.txt PyGObject
-          pip install --upgrade -r pylint-requirements.txt
-      - name: Install package for test
-        run: pip install -e .
+        run: uv pip install --upgrade -r pylint-requirements.txt
       - name: Lint with pylint
-        run: pylint --output-format=github urwid
+        run: uv run --no-project pylint --output-format=github urwid
+
+  Mypy:
+    name: Check with mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
+      - name: Install dependencies
+        run: uv pip install --upgrade -r mypy-requirements.txt
+      - name: Type check with mypy
+        run: uv run --no-project mypy urwid
 
   Test:
-    needs: [ Ruff-format, Ruff, PyLint ]
+    needs: [ Ruff-format, Ruff, PyLint, Mypy ]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6
@@ -106,11 +111,12 @@ jobs:
         with:
           fetch-depth: 0  # need for setuptools_scm
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
-          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
       - name: Install Ubuntu dependencies
         if: runner.os == 'Linux'
         run: |
@@ -121,24 +127,21 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install gtk+3 gobject-introspection gtk-mac-integration
+      - name: Create virtual environment
+        run: uv venv --python-preference only-system --python ${{ matrix.python-version }}
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip wheel
-          pip install -r test_requirements.txt
+        run: uv pip install -r pytest_requirements.txt
       - name: Install PyGObject
         if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: pip install PyGObject
-      - name: Install package for test
-        run: pip install -e .
+        run: uv pip install PyGObject
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Test
-        run: |
-          coverage run -m unittest discover -s tests -v
-          coverage report
-          coverage xml
+        run: uv run --no-project python -m pytest --cov-report=term --cov-report=xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
         with:
-          flag-name: run-${{ matrix.python-version }}-${{ matrix.os }}"
+          flag-name: run-${{ matrix.python-version }}-${{ matrix.os }}
           parallel: true
           file: coverage.xml
 
@@ -162,12 +165,15 @@ jobs:
         with:
           fetch-depth: 0  # need for setuptools_scm
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
 
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
+
       - name: Install dependencies
-        run: pip install -U build
+        run: uv pip install --system -U build
 
       - name: Build dist
         run: python -m build
@@ -191,14 +197,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.x'
-          cache: 'pip'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.1.0
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade twine
+          uv pip install --system --upgrade twine
       - uses: actions/download-artifact@v8
         with:
           # unpacks default artifact into dist/

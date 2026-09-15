@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import warnings
 
 import urwid
 
@@ -174,6 +175,33 @@ class FillerTest(unittest.TestCase):
                 str(ctx.exception),
             )
 
+    def test_sizing_pack_height_requires_flow_body(self):
+        """A PACK height is only meaningful for a FLOW body: warn instead of failing obscurely later.
+
+        With a BOX-only body and the default PACK height the filler declares BOX and FLOW support,
+        yet every render raises ``AttributeError`` from the missing ``rows`` method,
+        so the mismatch has to be announced while the sizing is calculated.
+        """
+        widget = urwid.Filler(urwid.SolidFill("#"))
+
+        with self.assertWarns(urwid.widget.FillerWarning) as ctx:
+            sizing = widget.sizing()
+
+        self.assertEqual(
+            f"WHSettings.PACK height expects a FLOW widget to be used, but received {widget.original_widget!r}",
+            str(ctx.warning),
+        )
+        # The declared sizing is deliberately left untouched: containers branch on it while laying out.
+        self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), sizing)
+
+    def test_sizing_pack_height_flow_body_does_not_warn(self):
+        """A FLOW body with a PACK height is the supported combination and must stay silent."""
+        widget = urwid.Filler(urwid.Text("Some text"))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), widget.sizing())
+
     def test_render_focused_not_fit(self):
         """Test that a focused widget will be shown and top trimmed if not enough height."""
         widget = urwid.Filler(
@@ -197,3 +225,10 @@ class FillerTest(unittest.TestCase):
             ],
             canvas.text,
         )
+
+    def test_valign_top_around_text(self) -> None:
+        """Body filler used by dialog windows."""
+        filler = urwid.Filler(urwid.Text("body"), valign=urwid.TOP)
+
+        self.assertEqual((4, 3), filler.pack((4, 3)))
+        self.assertEqual([b"body", b"    ", b"    "], filler.render((4, 3)).text)

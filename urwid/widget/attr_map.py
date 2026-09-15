@@ -9,17 +9,20 @@ from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from .widget import Widget
+    from .widget import AbstractWidget
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrMapError(WidgetError):
     pass
 
 
-class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class AttrMap(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     """
     AttrMap is a decoration that maps one set of attributes to another.
     This object will pass all function calls and variable references to the
@@ -102,6 +105,8 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         >>> w.set_attr_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
+
+        :raises AttrMapError: a key or value of the mapping is not hashable.
         """
         for from_attr, to_attr in attr_map.items():
             if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
@@ -140,6 +145,8 @@ class AttrMap(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[Wra
         >>> w.set_focus_map(None)
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={}>
+
+        :raises AttrMapError: a key or value of the mapping is not hashable.
         """
         if focus_map is not None:
             for from_attr, to_attr in focus_map.items():

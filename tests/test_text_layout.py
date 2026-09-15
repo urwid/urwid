@@ -157,6 +157,52 @@ class SubsegTest(unittest.TestCase):
         self.st((6, 2, 8), t, 0, 5, [(4, 2, 6), (1, 6)])
         self.st((6, 2, 8), t, 1, 5, [(1, 3), (2, 4, 6), (1, 6)])
 
+    def test4_range_inside_a_wide_character(self):
+        """A window that lands inside a wide character is padding and nothing else."""
+        t = b"12\xa1\xa156\xa1\xa190"
+        self.st((10, 0, 10), t, 2, 3, [(1, 2)])
+        self.st((10, 0, 10), t, 3, 4, [(1, 3)])
+        self.st((10, 0, 10), t, 7, 8, [(1, 7)])
+        self.st((6, 2, 8), t, 1, 2, [(1, 3)])
+
+
+class NarrowWideCharacterRenderTest(unittest.TestCase):
+    """Rendering wide characters into an area too narrow to hold them."""
+
+    CJK = "你好世界"
+
+    def render(self, widget, size, focus: bool = False) -> list[str]:
+        return [line.decode("utf-8") for line in widget.render(size, focus).text]
+
+    def test_clipped_on_both_edges(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual([" "], self.render(urwid.Text(self.CJK, wrap="clip"), (1,)))
+            self.assertEqual(["你 "], self.render(urwid.Text(self.CJK, wrap="clip"), (3,)))
+            self.assertEqual(["  "], self.render(urwid.Text(self.CJK, align="center", wrap="clip"), (2,)))
+            self.assertEqual([" "], self.render(urwid.Text(self.CJK, align="right", wrap="clip"), (1,)))
+
+    def test_inside_a_line_box(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual(
+                ["┌─┐", "│ │", "└─┘"],
+                self.render(urwid.LineBox(urwid.Text(self.CJK, wrap="clip")), (3,)),
+            )
+
+    def test_shifted_left_by_padding(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual(
+                [" "],
+                self.render(urwid.Padding(urwid.Text(self.CJK, wrap="clip"), left=-1), (1,)),
+            )
+
+    def test_every_narrow_width_renders(self):
+        with set_temporary_encoding("utf-8"):
+            for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                for width in range(1, 10):
+                    with self.subTest(align=align, width=width):
+                        canvas = urwid.Text(self.CJK, align=align, wrap=urwid.WrapMode.CLIP).render((width,))
+                        self.assertEqual(width, canvas.cols())
+
 
 class CalcTranslateTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -428,6 +474,27 @@ class TestEllipsis(unittest.TestCase):
             widget._invalidate()
             canvas = widget.render((1,))
             self.assertEqual("T", str(canvas))
+
+    def test_ellipsis_multichar_alignment(self):
+        """A multi-character ellipsis has to be counted at its real width.
+
+        The trimmed text plus the ellipsis fills all the available columns, so
+        `align` has nothing left to distribute and every alignment renders alike.
+        """
+        for encoding, expected in (("utf-8", "Test…"), ("ascii", "Te...")):
+            for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                with self.subTest(encoding=encoding, align=align), set_temporary_encoding(encoding):
+                    widget = urwid.Text("Test label", align=align, wrap=urwid.WrapMode.ELLIPSIS)
+                    self.assertEqual(expected, str(widget.render((5,))))
+
+    def test_ellipsis_line_declares_available_columns(self):
+        """A trimmed line and its ellipsis together declare exactly `width` columns."""
+        layout = urwid.StandardTextLayout()
+        for encoding in ("utf-8", "ascii"):
+            for width in range(3, 10):
+                with self.subTest(encoding=encoding, width=width), set_temporary_encoding(encoding):
+                    segments = layout.layout("Test label", width, urwid.Align.LEFT, urwid.WrapMode.ELLIPSIS)
+                    self.assertEqual(width, sum(segment[0] for segment in segments[0]))
 
 
 class NumericLayout(urwid.TextLayout):

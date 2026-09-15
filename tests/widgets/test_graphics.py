@@ -13,7 +13,7 @@ class BarGraphTest(unittest.TestCase):
         assert rval == exp, f"{desc} expected {exp!r}, got {rval!r}"
 
     def test1(self):
-        self.bgtest("simplest", [[0]], 5, [1], 1, [(1, [(0, 1)])]),
+        self.bgtest("simplest", [[0]], 5, [1], 1, [(1, [(0, 1)])])
         self.bgtest(
             "simpler",
             [[0], [0]],

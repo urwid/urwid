@@ -32,7 +32,7 @@ import logging
 import typing
 from contextlib import suppress
 
-from tornado import ioloop  # type: ignore[attr-defined]
+from tornado import ioloop
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -195,7 +195,7 @@ class TornadoEventLoop(EventLoop):
                 return f(*args, **kwargs)
             except ExitMainLoop:
                 pass  # handled later
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001  # special case
                 self._exc = exc
 
             if self._idle_asyncio_handle:
@@ -210,6 +210,11 @@ class TornadoEventLoop(EventLoop):
         return wrapper
 
     def run(self) -> None:
+        """
+        Start the event loop and run it until :exc:`ExitMainLoop` is raised.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
+        """
         self._loop.start()
         if self._exc:
             exc, self._exc = self._exc, None

@@ -22,10 +22,15 @@ email = "ian@excess.org"
 [project.optional-dependencies]
 curses = [ "windows-curses; sys_platform=='win32'" ]
 glib = [ "pygobject" ]
-tornado = [ "tornado>=5.0" ]
+# Floors below are the oldest releases without known CVEs (only the IOLoop/reactor APIs are used by urwid,
+# but the extras pull the whole distribution into the user environment).
+tornado = [ "tornado>=6.5.8" ]
 trio = [ "exceptiongroup; python_version<'3.11'", "trio>=0.24.0" ]
-twisted = [ "twisted" ]
-zmq = [ "zmq" ]
+# 26.4.0 requires CPython 3.9.12+, so the unconditional floor stays at 24.7.0.
+twisted = [ "twisted>=24.7.0", "twisted>=26.4.0; python_full_version>='3.9.12'" ]
+# `zmq` on PyPI is an abandoned 2015 placeholder ("You are probably looking for pyzmq") with no dependencies:
+# it does not provide the `zmq` module that urwid.event_loop.zmq_loop imports.
+zmq = [ "pyzmq>=26.0.0" ]
 # for lcd_display
 serial = [ "pyserial" ]
 lcd = [ "pyserial" ]
@@ -47,14 +52,15 @@ dev = [
 ]
 build = [
   "build",
+  "twine",
 ]
 documentation = [
   "sphinx",
 ]
 lint = [
   "pyproject-fmt",
-  "ruff",
   "yamllint",
+  { include-group = "ruff" },
 ]
 mypy = [
   "mypy[faster-cache,reports]",
@@ -67,8 +73,11 @@ pylint = [
 ]
 pytest = [
   "pytest",
+  "pytest-asyncio",
   "pytest-cov",
-  "pytest-asyncio"
+]
+ruff = [
+  "ruff",
 ]
 
 [tool.setuptools]
@@ -288,16 +297,36 @@ module = "urwid.display.curses"
 disable_error_code = [
   "union-attr", # chacking for started state before each operation if too expensive
 ]
+
+[[tool.mypy.overrides]]
+module = "urwid.display._win32"
+disable_error_code = [
+  # `ctypes.windll` and friends exist only on Windows in typeshed, while this module is Windows-only by design:
+  # checking it from a non-Windows host produces platform-specific noise instead of real issues.
+  "attr-defined",
+]
+
+[[tool.mypy.overrides]]
+module = "urwid.widget.constants"
+disable_error_code = [
+  # False positive: plain-string `Literal`s (e.g. "relative") are reported as overlapping
+  # sibling `str`-based enums (`Align`/`VAlign`) in the size/alignment overloads, even though
+  # the underlying values are disjoint. The public API must accept both string and enum forms.
+  "overload-overlap",
+]
+
 [[tool.mypy.overrides]]
 module = [ "gi.*", "serial.*", "trio.*" ]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "-vvvv --doctest-modules -s --cov=urwid"
-doctest_optionflags = [ "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
-testpaths = [ "tests" ]
+addopts = "-vvvv --doctest-modules -s --cov --cov-report=term"
+doctest_optionflags = [ "DONT_ACCEPT_TRUE_FOR_1", "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
+testpaths = [ "tests", "urwid" ]
 
+[tool.coverage.json]
+pretty_print = true
 [tool.coverage.report]
 exclude_lines = [
   # Have to re-enable the standard pragma
@@ -312,10 +341,16 @@ exclude_lines = [
 
   # Don't complain if tests don't hit defensive assertion code:
   "raise NotImplementedError",
+  "raise AssertionError",
+  "assert False",
+  "typing\\.assert_never",
+  "assert_never\\(",
 
-  # Exclude methods marked as abstract
+  # Exclude methods marked as abstract / overload stubs
   "@abstractmethod",
   "@abc.abstractmethod",
+  "@typing\\.overload",
+  "@overload",
 
   # Exclude import statements
   "^from\\b",
@@ -324,10 +359,12 @@ exclude_lines = [
   # Exclude variable declarations that are executed when file is loaded
   "^[a-zA-Z_]+\\b\\s=",
 
-  # Code for static analysis is never covered:
-  "if typing.TYPE_CHECKING:",
-  "@typing.overload",
-  "@overload",
+  # Code for static analysis / type narrowing is never covered at runtime:
+  "if TYPE_CHECKING:",
+  "if typing\\.TYPE_CHECKING:",
+  "typing\\.cast\\(",
+  "cast\\(",
+  "^\\s*\\.\\.\\.\\s*$",
 
   # Protocols
   "@runtime_checkable",
@@ -352,7 +389,8 @@ exclude_lines = [
   "def \\wtest():"
 ]
 [tool.coverage.run]
-omit = [ "tests/*", ".tox/*", "setup.py" ]
+source_pkgs = [ "urwid" ]
+omit = [ "tests/*", ".tox/*", "setup.py", "urwid/version.py" ]
 branch = true
 
 [tool.refurb]
@@ -361,9 +399,11 @@ ignore = [ "FURB104", "FURB144", "FURB146" ]
 [[tool.refurb.amend]]
 path = "urwid/__init__.py"
 ignore = [ "FURB107" ]
+
 [[tool.refurb.amend]]
 path = "urwid/display/__init__.py"
 ignore = [ "FURB107" ]
+
 [[tool.refurb.amend]]
 path = "urwid/event_loop/__init__.py"
 ignore = [ "FURB107" ]

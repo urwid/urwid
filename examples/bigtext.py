@@ -33,13 +33,14 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
 
-_Wrapped = typing.TypeVar("_Wrapped")
-
-
-class SwitchingPadding(urwid.Padding[_Wrapped]):
-    def padding_values(self, size, focus: bool) -> tuple[int, int]:
+class SwitchingPadding(urwid.Padding[urwid.BigText]):
+    def padding_values(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        focus: bool,
+    ) -> tuple[int, int]:
         maxcol = size[0]
-        width, _height = self.original_widget.pack(size, focus=focus)
+        width, _height = self.original_widget.pack((), focus=focus)  # urwid.BigText is FIXED size widget
         if maxcol > width:
             self.align = urwid.LEFT
         else:
@@ -89,12 +90,12 @@ class BigTextDisplay:
         w = urwid.AttrMap(w, "edit")
         return w
 
-    def set_font_event(self, w, state: bool) -> None:
+    def set_font_event(self, w: urwid.RadioButton, state: bool) -> None:
         if state:
             self.bigtext.set_font(w.font)
             self.chars_avail.set_text(w.font.characters())
 
-    def edit_change_event(self, widget, text: str) -> None:
+    def edit_change_event(self, widget: urwid.Edit, text: str) -> None:
         self.bigtext.set_text(text)
 
     def setup_view(
@@ -106,7 +107,7 @@ class BigTextDisplay:
         fonts = urwid.get_all_fonts()
         # setup mode radio buttons
         self.font_buttons = []
-        group = []
+        group: list[urwid.RadioButton] = []
         utf8 = urwid.get_encoding_mode() == "utf8"
         for name, fontcls in fonts:
             font = fontcls()
@@ -120,7 +121,7 @@ class BigTextDisplay:
             self.font_buttons.append(rb)
 
         # Create BigText
-        self.bigtext = urwid.BigText("", None)
+        self.bigtext = urwid.BigText("", None)  # type: ignore[arg-type]  # font assigned before render
         bt = urwid.BoxAdapter(
             urwid.Filler(
                 urwid.AttrMap(
@@ -146,14 +147,18 @@ class BigTextDisplay:
 
         # ListBox
         chars = urwid.Pile([cah, ca])
-        fonts = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
-        col = urwid.Columns([(16, chars), fonts], 3, focus_column=1)
-        bt = urwid.Pile([bt, edit], focus_item=1)
-        lines = [bt, urwid.Divider(), col]
+        fonts_pile = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
+        col = urwid.Columns([(16, chars), fonts_pile], 3, focus_column=1)
+        bt_pile = urwid.Pile([bt, edit], focus_item=1)
+        lines: list[urwid.widget.AbstractFlowWidget] = [bt_pile, urwid.Divider(), col]
         listbox = urwid.ListBox(urwid.SimpleListWalker(lines))
 
         # Frame
-        w = urwid.Frame(
+        w: urwid.Frame[
+            urwid.AttrMap[urwid.ListBox[int]],
+            urwid.AttrMap[urwid.Text],
+            None,
+        ] = urwid.Frame(
             body=urwid.AttrMap(listbox, "body"),
             header=urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header"),
         )
@@ -169,7 +174,7 @@ class BigTextDisplay:
         )
         return w, exit_w
 
-    def main(self):
+    def main(self) -> None:
         self.view, self.exit_view = self.setup_view()
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
@@ -188,7 +193,7 @@ class BigTextDisplay:
         return None
 
 
-def main():
+def main() -> None:
     BigTextDisplay().main()
 
 

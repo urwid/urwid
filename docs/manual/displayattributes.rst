@@ -174,6 +174,11 @@ Foreground and Background Settings
      - NO
      - NO
      - some supported
+   * - :ref:`faint <bold-underline-standout>`
+     - YES
+     - NO
+     - NO
+     - some support
    * - :ref:`"bright" background colors <bright-background>`
      - YES
      - urxvt
@@ -257,6 +262,7 @@ Bold, Underline, Standout
 * ``'blink'``
 * ``'italics'``
 * ``'strikethrough'``
+* ``'faint'``
 
 These settings may be tagged on to foreground colors using commas, eg: ``'light
 gray,underline,bold,strikethrough'``

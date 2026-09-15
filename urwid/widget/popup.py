@@ -34,7 +34,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas
 
-    from .widget import Widget
+    from .widget import AbstractBoxWidget, AbstractWidget
 
     class PopUpParametersModel(TypedDict):
         left: int
@@ -43,19 +43,29 @@ if typing.TYPE_CHECKING:
         overlay_height: int
 
 
-WrappedWidget = typing.TypeVar("WrappedWidget", bound="Widget")
+WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
-class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecoration[WrappedWidget]):
+class PopUpLauncher(
+    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    WidgetDecoration[WrappedWidget],
+):
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
-        self._pop_up_widget = None
+        self._pop_up_widget: AbstractWidget | None = None
 
-    def create_pop_up(self) -> Widget:
+    def create_pop_up(self) -> AbstractWidget:
         """
         Subclass must override this method and return a widget
         to be used for the pop-up.  This method is called once each time
         the pop-up is opened.
+
+        :class:`PopUpTarget` renders the pop-up with the box size declared by
+        :meth:`get_pop_up_parameters`, so the widget returned here must accept an
+        (*overlay_width*, *overlay_height*) size.  Wrap a flow or fixed widget in a
+        :class:`Filler <urwid.Filler>` (or in another box container) before returning it.
+
+        :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
 
@@ -66,6 +76,8 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         {'left':0, 'top':1, 'overlay_width':30, 'overlay_height':4}
 
         This method is called each time this widget is rendered.
+
+        :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
 
@@ -77,7 +89,11 @@ class PopUpLauncher(delegate_to_widget_mixin("_original_widget"), WidgetDecorati
         self._pop_up_widget = None
         self._invalidate()
 
-    def render(self, size, focus: bool = False) -> CompositeCanvas | Canvas:
+    def render(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        focus: bool = False,
+    ) -> CompositeCanvas | Canvas:
         canv = super().render(size, focus)
         if self._pop_up_widget:
             canv = CompositeCanvas(canv)
@@ -92,8 +108,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
-        self._pop_up = None
-        self._current_widget = self._original_widget
+        self._pop_up: AbstractWidget | None = None
+        self._current_widget: WrappedWidget | Overlay[AbstractWidget, WrappedWidget] = self._original_widget
 
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         canv = self._original_widget.render(size, focus=focus)
@@ -114,7 +130,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     top=top,
                 )
             else:
-                self._current_widget.set_overlay_parameters(
+                typing.cast("Overlay[AbstractWidget, WrappedWidget]", self._current_widget).set_overlay_parameters(
                     align=Align.LEFT,
                     width=overlay_width,
                     valign=VAlign.TOP,
@@ -126,25 +142,60 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             self._pop_up = None
             self._current_widget = self._original_widget
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> Canvas:
+    def render(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        focus: bool = False,
+    ) -> Canvas:
         self._update_overlay(size, focus)
         return self._current_widget.render(size, focus=focus)
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
+        """
+        Return the cursor coordinates of the current widget.
+
+        :raises TypeError: the current widget has no ``get_cursor_coords`` method.
+        """
         self._update_overlay(size, True)
+
+        if not hasattr(self._current_widget, "get_cursor_coords"):
+            raise TypeError(f"widget {type(self._current_widget)} has no get_cursor_coords method")
+
         return self._current_widget.get_cursor_coords(size)
 
     def get_pref_col(self, size: tuple[int, int]) -> int:
-        self._update_overlay(size, True)
-        return self._current_widget.get_pref_col(size)
+        """
+        Return the preferred cursor column of the current widget.
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+        :raises TypeError: the current widget has no ``get_pref_col`` method.
+        """
+        self._update_overlay(size, True)
+
+        if not hasattr(self._current_widget, "get_pref_col"):
+            raise TypeError(f"widget {type(self._current_widget)} has no get_pref_col method")
+
+        return typing.cast("int", self._current_widget.get_pref_col(size))
+
+    def keypress(
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        key: str,
+    ) -> str | None:
         self._update_overlay(size, True)
         return self._current_widget.keypress(size, key)
 
     def move_cursor_to_coords(self, size: tuple[int, int], x: int, y: int) -> bool:
+        """
+        Move the cursor of the current widget to ``(x, y)``.
+
+        :raises TypeError: the current widget has no ``move_cursor_to_coords`` method.
+        """
         self._update_overlay(size, True)
-        return self._current_widget.move_cursor_to_coords(size, x, y)
+
+        if not hasattr(self._current_widget, "move_cursor_to_coords"):
+            raise TypeError(f"widget {type(self._current_widget)} has no move_cursor_to_coords method")
+
+        return typing.cast("bool", self._current_widget.move_cursor_to_coords(size, x, y))
 
     def mouse_event(
         self,
@@ -158,13 +209,13 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._update_overlay(size, focus)
         return self._current_widget.mouse_event(size, event, button, col, row, focus)
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
-        size: tuple[int, int] | None = None,  # type: ignore[override]
+        size: tuple[int, int] | tuple[()] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
-        self._update_overlay(size, focus)
-        return self._current_widget.pack(size)
+        self._update_overlay(size, focus)  # type: ignore[arg-type]
+        return self._current_widget.pack(size)  # type: ignore[arg-type]
 
 
 def _test() -> None:

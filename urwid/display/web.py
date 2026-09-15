@@ -38,11 +38,12 @@ import sys
 import tempfile
 import typing
 from contextlib import suppress
+from email.message import Message
 
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import StoppingContext, get_encoding
 
-from .common import BaseScreen
+from .common import AttrSpec, BaseScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -51,7 +52,6 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid.canvas import Canvas
-    from urwid.display import AttrSpec
 
 TEMP_DIR = tempfile.gettempdir()
 CURRENT_DIR = pathlib.Path(__file__).parent
@@ -64,6 +64,12 @@ MAX_COLS = 200
 MAX_ROWS = 100
 MAX_READ = 4096
 BUF_SZ = 16384
+
+# Characters that may appear in an id produced by secrets.token_urlsafe():
+# the URL-safe base64 alphabet. Used to validate client-supplied ids before
+# they are interpolated into pipe file names.
+_URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
+_URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
 
 _code_colours = {
     "black": "0",
@@ -143,8 +149,9 @@ class Screen(BaseScreen):
     ) -> None:
         """Register a list of palette entries.
 
-        palette -- list of (name, foreground, background) or
-                   (name, same_as_other_name) palette entries.
+        :param palette: list of (name, foreground, background) or (name, same_as_other_name) palette entries.
+        :raises ValueError: an entry is neither a 2- nor a 3-tuple.
+        :raises KeyError: an entry copies a name that is not registered yet.
 
         calls self.register_palette_entry for each item in l
         """
@@ -171,10 +178,10 @@ class Screen(BaseScreen):
     ) -> None:
         """Register a single palette entry.
 
-        name -- new entry/attribute name
-        foreground -- foreground colour
-        background -- background colour
-        mono -- monochrome terminal attribute
+        :param name: new entry/attribute name
+        :param foreground: foreground colour
+        :param background: background colour
+        :param mono: monochrome terminal attribute
 
         See curses_display.register_palette_entry for more info.
         """
@@ -184,6 +191,28 @@ class Screen(BaseScreen):
             background = "light gray"
         self.palette[name] = (foreground, background, mono)
 
+    def _handle_resize_request(self, request: str) -> bool:
+        """Apply the screen size from a "window resize <cols> <rows>" request.
+
+        :param request: single input line without the trailing newline.
+        :returns: True if the request was a valid resize command and the screen size was updated.
+        """
+        if not request.startswith("window resize "):
+            return False
+
+        input_resize = request.removeprefix("window resize ").split(" ")
+        if len(input_resize) != 2:
+            self.logger.debug("Invalid resize input format: %r", request)
+            return False
+
+        x, y = input_resize
+        if not x.isdecimal() or not y.isdecimal():
+            self.logger.debug("Invalid resize input format: %r", request)
+            return False
+
+        self._set_screen_size(int(x), int(y))
+        return True
+
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Not yet implemented"""
 
@@ -192,32 +221,36 @@ class Screen(BaseScreen):
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
         """
-        This function reads the initial screen size, generates a
-        unique id and handles cleanup when fn exits.
+        This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.
 
-        web_display.set_preferences(..) must be called before calling
-        this function for the preferences to take effect
+        web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
+
+        :raises RuntimeError: the ``HTTP_X_URWID_METHOD`` environment variable is not set.
         """
         if self._started:
             return StoppingContext(self)
 
-        client_init = sys.stdin.read(50)
-        if not client_init.startswith("window resize "):
-            raise ValueError(client_init)
-        _ignore1, _ignore2, x, y = client_init.split(" ", 3)
-        x = int(x)
-        y = int(y)
-        self._set_screen_size(x, y)
-        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
-        self.last_screen_width = 0
+        self.update_method = os.environ.get("HTTP_X_URWID_METHOD", "")
+        if not self.update_method:
+            raise RuntimeError("'HTTP_X_URWID_METHOD' environment vairable is not set")
 
-        self.update_method = os.environ["HTTP_X_URWID_METHOD"]
         if self.update_method not in {"multipart", "polling"}:
-            raise ValueError(self.update_method)
+            self.logger.debug("Unsupported update method requested: %r", self.update_method)
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
 
         if self.update_method == "polling" and not _prefs.allow_polling:
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
+
+        client_init = sys.stdin.read(50)
+        if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
+            self.logger.debug("Invalid initial client request: %r", client_init)
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
+
+        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        self.last_screen_width = 0
 
         clients = glob.glob(os.path.join(_prefs.pipe_dir, "urwid*.in"))
         if len(clients) >= _prefs.max_clients:
@@ -254,11 +287,13 @@ class Screen(BaseScreen):
         with suppress(Exception):
             self._close_connection()
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
+        with suppress(Exception):
+            os.close(self.input_fd)
         self._cleanup_pipe()
         self._started = False
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Not supported for web display."""
 
     def _close_connection(self) -> None:
         if self.update_method == "polling child":
@@ -287,7 +322,10 @@ class Screen(BaseScreen):
         self.screen_size = cols, rows
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        """Send a screen update to the client."""
+        """Send a screen update to the client.
+
+        :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        """
 
         (cols, rows) = size
         encoding = get_encoding()
@@ -345,19 +383,26 @@ class Screen(BaseScreen):
             col = 0
             for a, run in l_row:
                 t_run = run.translate(_trans_table)
+                faint = False
                 if a is None:
                     fg, bg, _mono = "black", "light gray", None
+                # Check if a is an AttrSpec with faint attribute
+                elif isinstance(a, AttrSpec):
+                    faint = a.faint
+                    fg = a.foreground
+                    bg = a.background
+                    _mono = None
                 else:
                     fg, bg, _mono = self.palette[typing.cast("str | None", a)]
                 if y == cy and col <= cx:
                     run_width = calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
-                        line.append(code_span(t_run, fg, bg, cx - col))
+                        line.append(code_span(t_run, fg, bg, cx - col, faint))
                     else:
-                        line.append(code_span(t_run, fg, bg))
+                        line.append(code_span(t_run, fg, bg, faint=faint))
                     col += run_width
                 else:
-                    line.append(code_span(t_run, fg, bg))
+                    line.append(code_span(t_run, fg, bg, faint=faint))
 
             send(f"{''.join(line)}\n")
         self.last_screen = new_screen
@@ -400,6 +445,11 @@ class Screen(BaseScreen):
         self.server_socket = s
 
     def _handle_alarm(self, sig: int, frame: FrameType | None) -> None:
+        """
+        Handle the periodic alarm that keeps the browser connection alive.
+
+        :raises ValueError: the update method is neither multipart nor a polling child.
+        """
         if self.update_method not in {"multipart", "polling child"}:
             raise ValueError(self.update_method)
         if self.update_method == "polling child":
@@ -448,9 +498,7 @@ class Screen(BaseScreen):
         self.input_tail = keys[-1]
 
         for k in keys[:-1]:
-            if k.startswith("window resize "):
-                _ign1, _ign2, x, y = k.split(" ", 3)
-                self._set_screen_size(int(x), int(y))
+            if self._handle_resize_request(k):
                 resized = True
             else:
                 pending_input.append(k)
@@ -462,9 +510,11 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s: str, fg: str, bg: str, cursor: int = -1) -> str:
+def code_span(s: str, fg: str, bg: str, cursor: int = -1, faint: bool = False) -> str:
     code_fg = _code_colours[fg]
     code_bg = _code_colours[bg]
+    # Use 'f' for faint, '0' for no attributes
+    attr_code = "f" if faint else "0"
 
     if cursor >= 0:
         c_off, _ign = calc_text_pos(s, 0, len(s), cursor)
@@ -473,19 +523,22 @@ def code_span(s: str, fg: str, bg: str, cursor: int = -1) -> str:
         return (
             code_fg
             + code_bg
+            + attr_code
             + s[:c_off]
             + "\n"
             + code_bg
             + code_fg
+            + attr_code
             + s[c_off:c2_off]
             + "\n"
             + code_fg
             + code_bg
+            + attr_code
             + s[c2_off:]
             + "\n"
         )
 
-    return f"{code_fg + code_bg + s}\n"
+    return f"{code_fg + code_bg + attr_code + s}\n"
 
 
 def is_web_request() -> bool:
@@ -493,6 +546,12 @@ def is_web_request() -> bool:
     Return True if this is a CGI web request.
     """
     return "REQUEST_METHOD" in os.environ
+
+
+def _request_charset() -> str:
+    content_type = Message()
+    content_type["content-type"] = os.environ.get("CONTENT_TYPE", "")
+    return content_type.get_content_charset() or "utf-8"
 
 
 def handle_short_request() -> bool:
@@ -522,43 +581,56 @@ def handle_short_request() -> bool:
         return False
 
     urwid_id = os.environ["HTTP_X_URWID_ID"]
-    if len(urwid_id) > 20:
+    if len(urwid_id) > _URWID_ID_MAX_LEN:
         # invalid. handle by ignoring
         # assert 0, "urwid id too long!"
         sys.stdout.write("Status: 414 URI Too Long\r\n\r\n")
         return True
-    for c in urwid_id:
-        if c not in string.digits:
-            # invald. handle by ignoring
-            # assert 0, "invalid chars in id!"
-            sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
-            return True
+    if any(c not in _URWID_ID_CHARS for c in urwid_id):
+        # invalid. handle by ignoring
+        # assert 0, "invalid chars in id!"
+        sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
+        return True
 
     if os.environ.get("HTTP_X_URWID_METHOD", None) == "polling":
         # this is a screen update request
-        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         try:
-            s.connect(os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}.update"))
-            data = f"Content-type: text/plain\r\n\r\n{s.recv(BUF_SZ).decode('utf-8')}"
-            while data:
-                sys.stdout.write(data)
-                data = s.recv(BUF_SZ).decode("utf-8")
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+                s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
+                chunks = []
+                while data := s.recv(BUF_SZ):
+                    chunks.append(data)
         except OSError:
             sys.stdout.write("Status: 404 Not Found\r\n\r\n")
             return True
+
+        try:
+            decoded = b"".join(chunks).decode("utf-8")
+        except UnicodeDecodeError:
+            sys.stdout.write("Status: 502 Bad Gateway\r\n\r\n")
+            return True
+
+        sys.stdout.write(f"Content-type: text/plain; charset=utf-8\r\n\r\n{decoded}")
         return True
 
     # this is a keyboard input request
     try:
-        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid{urwid_id}.in")), os.O_WRONLY)
+        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.in")), os.O_WRONLY)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
 
-    # FIXME: use the correct encoding based on the request
-    keydata = sys.stdin.read(MAX_READ)
-    os.write(fd, keydata.encode("ascii"))
-    os.close(fd)
+    try:
+        try:
+            keydata = sys.stdin.read(MAX_READ)
+            encoded_keydata = keydata.encode(_request_charset())
+        except (LookupError, UnicodeError):
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            return True
+        os.write(fd, encoded_keydata)
+    finally:
+        with suppress(OSError):
+            os.close(fd)
     sys.stdout.write("Content-type: text/plain\r\n\r\n")
 
     return True
@@ -584,14 +656,11 @@ def set_preferences(
     """
     Set web_display preferences.
 
-    app_name -- application name to appear in html interface
-    pipe_dir -- directory for input pipes, daemon update sockets
-                and daemon error logs
-    allow_polling -- allow creation of daemon processes for
-                     browsers without multipart support
-    max_clients -- maximum concurrent client connections. This
-               pool is shared by all urwid applications
-               using the same pipe_dir
+    :param app_name: application name to appear in html interface
+    :param pipe_dir: directory for input pipes, daemon update sockets and daemon error logs
+    :param allow_polling: allow creation of daemon processes for browsers without multipart support
+    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications using the
+        same pipe_dir
     """
     _prefs.app_name = app_name
     _prefs.pipe_dir = pipe_dir

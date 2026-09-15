@@ -103,8 +103,8 @@ class GLibEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- floating point time to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: floating point time to wait before calling callback
+        :param callback: function to call from event loop
         """
 
         @self.handle_exit
@@ -136,9 +136,9 @@ class GLibEventLoop(EventLoop):
             Returns None in all cases (unlike :func:`signal.signal()`).
         ..
 
-        signum -- signal number
-        handler -- function (taking signum as its single argument),
-        or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        :param signum: signal number
+        :param handler: function (taking signum as its single argument),
+            or `signal.SIG_IGN`, or `signal.SIG_DFL`
         """
         glib_signals = [
             signal.SIGHUP,
@@ -194,8 +194,8 @@ class GLibEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
 
         @self.handle_exit
@@ -257,6 +257,8 @@ class GLibEventLoop(EventLoop):
         """
         Start the event loop.  Exit the loop when any callback raises
         an exception.  If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         try:
             self._loop.run()
@@ -284,7 +286,7 @@ class GLibEventLoop(EventLoop):
                 return f(*args, **kwargs)
             except ExitMainLoop:
                 self._loop.quit()
-            except BaseException as exc:
+            except BaseException as exc:  # noqa: BLE001  # special case
                 self._exc = exc
                 if self._loop.is_running():
                     self._loop.quit()

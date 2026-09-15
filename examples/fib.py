@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
 
-class FibonacciWalker(urwid.ListWalker):
+class FibonacciWalker(urwid.ListWalker[tuple[int, int], urwid.Text]):
     """ListWalker-compatible class for browsing fibonacci set.
 
     positions returned are (value at position-1, value at position) tuples.

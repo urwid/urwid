@@ -12,8 +12,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Hashable
 
     from urwid import Font
-
-    _TagMarkup = typing.Union[str, tuple["Hashable", str], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class BigText(Widget):
@@ -21,8 +20,8 @@ class BigText(Widget):
 
     def __init__(self, markup: _TagMarkup, font: Font) -> None:
         """
-        markup -- same as Text widget markup
-        font -- instance of a Font class
+        :param markup: same as Text widget markup
+        :param font: instance of a Font class
         """
         super().__init__()
         self.text: str = ""
@@ -31,7 +30,7 @@ class BigText(Widget):
         self.set_text(markup)
 
     def set_text(self, markup: _TagMarkup) -> None:
-        self.text, self.attrib = decompose_tagmarkup(markup)  # type: ignore[assignment,arg-type]
+        self.text, self.attrib = decompose_tagmarkup(markup)  # type: ignore[assignment]
         self._invalidate()
 
     def get_text(self) -> tuple[str, list[tuple[Hashable, int]]]:

@@ -13,28 +13,31 @@ from urwid.util import is_mouse_press
 from .constants import Sizing, VAlign
 from .container import WidgetContainerMixin
 from .filler import Filler
-from .widget import Widget, WidgetError
+from .widget import AbstractBoxWidget, AbstractFlowWidget, AbstractWidget, Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
 
-BodyWidget = typing.TypeVar("BodyWidget", bound=Widget)
-HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[Widget, None])
-FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[Widget, None])
+    from urwid.canvas import Canvas
+
+
+BodyWidget = typing.TypeVar("BodyWidget", bound=AbstractBoxWidget)
+HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[AbstractFlowWidget, None])
+FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[AbstractFlowWidget, None])
 
 
 class FrameError(WidgetError):
     pass
 
 
-def _check_widget_subclass(widget: Widget | None) -> None:
+def _check_widget_subclass(widget: AbstractWidget | None) -> None:
     if widget is None:
         return
 
-    if not isinstance(widget, Widget):
+    if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
         warnings.warn(
-            f"{obj_class_path} is not subclass of Widget",
+            f"{obj_class_path} is not implementing Widget API",
             DeprecationWarning,
             stacklevel=3,
         )
@@ -62,7 +65,7 @@ class Frame(
         body: BodyWidget,
         header: HeaderWidget | None = None,
         footer: FooterWidget | None = None,
-        focus_part: Literal["header", "footer", "body"] | Widget = "body",
+        focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
     ):
         """
         :param body: a box widget for the body of the frame
@@ -73,6 +76,7 @@ class Frame(
         :type footer: Widget
         :param focus_part:  'header', 'footer' or 'body'
         :type focus_part: str | Widget
+        :raises ValueError: *focus_part* is not one of the three frame parts.
         """
         super().__init__()
 
@@ -123,6 +127,13 @@ class Frame(
         self._invalidate()
 
     def get_header(self) -> HeaderWidget | None:
+        """
+        Return the header widget.
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`header` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_header` is deprecated, "
             f"standard property `{self.__class__.__name__}.header` should be used instead."
@@ -133,6 +144,15 @@ class Frame(
         return self.header
 
     def set_header(self, header: HeaderWidget | None) -> None:
+        """
+        Set the header widget.
+
+        :param header: the new header widget
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`header` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_header` is deprecated, "
             f"standard property `{self.__class__.__name__}.header` should be used instead."
@@ -153,6 +173,13 @@ class Frame(
         self._invalidate()
 
     def get_body(self) -> BodyWidget:
+        """
+        Return the body widget.
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`body` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_body` is deprecated, "
             f"standard property {self.__class__.__name__}.body should be used instead."
@@ -163,6 +190,15 @@ class Frame(
         return self.body
 
     def set_body(self, body: BodyWidget) -> None:
+        """
+        Set the body widget.
+
+        :param body: the new body widget
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`body` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_body` is deprecated, "
             f"standard property `{self.__class__.__name__}.body` should be used instead."
@@ -185,6 +221,13 @@ class Frame(
         self._invalidate()
 
     def get_footer(self) -> FooterWidget | None:
+        """
+        Return the footer widget.
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`footer` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_footer` is deprecated, "
             f"standard property `{self.__class__.__name__}.footer` should be used instead."
@@ -195,6 +238,15 @@ class Frame(
         return self.footer
 
     def set_footer(self, footer: FooterWidget | None) -> None:
+        """
+        Set the footer widget.
+
+        :param footer: the new footer widget
+
+        .. deprecated:: 2.2.0
+            Use the standard property :attr:`footer` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_footer` is deprecated, "
             f"standard property `{self.__class__.__name__}.footer` should be used instead."
@@ -222,6 +274,7 @@ class Frame(
 
         :param part: 'header', 'footer' or 'body'
         :type part: str
+        :raises IndexError: *part* is not one of the three frame parts, or names a part this Frame does not have.
         """
         if part not in {"header", "footer", "body"}:
             raise IndexError(f"Invalid position for Frame: {part}")
@@ -235,11 +288,12 @@ class Frame(
         writeable property containing an indicator which part of the frame
         that is in focus: `'body', 'header'` or `'footer'`.
 
-        .. note:: included for backwards compatibility. You should rather use
-            the container property :attr:`.focus_position` to get this value.
-
         :returns: one of 'header', 'footer' or 'body'.
         :rtype: str
+
+        .. deprecated:: 1.1.0
+            Use the container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
         """
         warnings.warn(
             "included for backwards compatibility."
@@ -251,6 +305,15 @@ class Frame(
         return self.focus_position
 
     def set_focus(self, part: Literal["header", "footer", "body"]) -> None:
+        """
+        Set the part of the frame that is in focus.
+
+        :param part: one of 'header', 'footer' or 'body'
+
+        .. deprecated:: 1.1.0
+            Use the container property :attr:`focus_position` instead.
+            This API will be removed in version 5.0.
+        """
         warnings.warn(
             "included for backwards compatibility."
             "You should rather use the container property `.focus_position` to set this value."
@@ -265,10 +328,14 @@ class Frame(
         """
         child :class:`Widget` in focus: the body, header or footer widget.
         This is a read-only property."""
-        return {"header": self._header, "footer": self._footer, "body": self._body}[self.focus_part]
+        return {  # type: ignore[return-value]
+            "header": self._header,
+            "footer": self._footer,
+            "body": self._body,
+        }[self.focus_part]
 
     @property
-    def contents(
+    def contents(  # type: ignore[override]
         self,
     ) -> MutableMapping[
         Literal["header", "footer", "body"],
@@ -322,7 +389,7 @@ class Frame(
             def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
                 yield from inner_self.items()
 
-        return FrameContents()
+        return FrameContents()  # type: ignore[return-value]
 
     def _contents_keys(self) -> list[Literal["header", "footer", "body"]]:
         keys = ["body"]
@@ -344,6 +411,11 @@ class Frame(
     def _contents__getitem__(
         self, key: Literal["body", "header", "footer"]
     ) -> tuple[BodyWidget | HeaderWidget | FooterWidget, None]:
+        """
+        Return the ``(widget, options)`` pair for *key*, for the container contents protocol.
+
+        :raises KeyError: *key* is not one of the three frame parts.
+        """
         if key == "body":
             return (self._body, None)
         if key == "header" and self._header:
@@ -366,6 +438,12 @@ class Frame(
         key: Literal["body", "header", "footer"],
         value: tuple[BodyWidget | HeaderWidget | FooterWidget, None],
     ) -> None:
+        """
+        Replace the ``(widget, options)`` pair for *key*, for the container contents protocol.
+
+        :raises KeyError: *key* is not one of the three frame parts.
+        :raises FrameError: *value* is not a ``(widget, None)`` pair.
+        """
         if key not in {"body", "header", "footer"}:
             raise KeyError(f"Frame.contents has no key: {key!r}")
         try:
@@ -382,6 +460,11 @@ class Frame(
             self.header = value_w  # type: ignore[assignment]
 
     def _contents__delitem__(self, key: Literal["header", "footer"]) -> None:
+        """
+        Remove the header or footer, for the container contents protocol.
+
+        :raises KeyError: *key* is not a removable part, or names a part this Frame does not have.
+        """
         if key not in {"header", "footer"}:
             raise KeyError(f"Frame.contents can't remove key: {key!r}")
         if (key == "header" and self._header is None) or (key == "footer" and self._footer is None):
@@ -454,38 +537,58 @@ class Frame(
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
+        """
+        Render the Frame and return the resulting canvas.
+
+        :raises RuntimeError: the header or footer renders a different number of rows than it reported.
+        """
         (maxcol, maxrow) = size
         (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
         combinelist = []
-        depends_on = []
+        depends_on: list[BodyWidget | HeaderWidget | FooterWidget] = []
 
-        head = None
+        head: Canvas | CompositeCanvas | None = None
         if htrim and htrim < hrows:
-            head = Filler(self.header, VAlign.TOP).render((maxcol, htrim), focus and self.focus_part == "header")
+            head = Filler(self.header, VAlign.TOP).render(  # type: ignore[type-var]
+                (maxcol, htrim),
+                focus and self.focus_part == "header",
+            )
         elif htrim:
-            head = self.header.render((maxcol,), focus and self.focus_part == "header")
-            if head.rows() != hrows:  # type: ignore[union-attr]
+            head = self.header.render(  # type: ignore[union-attr]
+                (maxcol,),
+                focus and self.focus_part == "header",
+            )
+            if head.rows() != hrows:
                 raise RuntimeError("rows, render mismatch")
         if head:
             combinelist.append((head, "header", self.focus_part == "header"))
-            depends_on.append(self.header)
+            depends_on.append(self.header)  # type: ignore[arg-type]
 
         if ftrim + htrim < maxrow:
-            body = self.body.render((maxcol, maxrow - ftrim - htrim), focus and self.focus_part == "body")
+            body = self.body.render(
+                (maxcol, maxrow - ftrim - htrim),
+                focus and self.focus_part == "body",
+            )
             combinelist.append((body, "body", self.focus_part == "body"))
             depends_on.append(self.body)
 
-        foot = None
+        foot: Canvas | CompositeCanvas | None = None
         if ftrim and ftrim < frows:
-            foot = Filler(self.footer, VAlign.BOTTOM).render((maxcol, ftrim), focus and self.focus_part == "footer")
+            foot = Filler(self.footer, VAlign.BOTTOM).render(  # type: ignore[type-var]
+                (maxcol, ftrim),
+                focus and self.focus_part == "footer",
+            )
         elif ftrim:
-            foot = self.footer.render((maxcol,), focus and self.focus_part == "footer")
-            if foot.rows() != frows:  # type: ignore[union-attr]
+            foot = self.footer.render(  # type: ignore[union-attr]
+                (maxcol,),
+                focus and self.focus_part == "footer",
+            )
+            if foot.rows() != frows:
                 raise RuntimeError("rows, render mismatch")
         if foot:
             combinelist.append((foot, "footer", self.focus_part == "footer"))
-            depends_on.append(self.footer)
+            depends_on.append(self.footer)  # type: ignore[arg-type]
 
         return CanvasCombine(combinelist)
 
@@ -509,9 +612,9 @@ class Frame(
             return key
         remaining = maxrow
         if self.header is not None:
-            remaining -= self.header.rows((maxcol,))  # type: ignore[attr-defined]
+            remaining -= self.header.rows((maxcol,))
         if self.footer is not None:
-            remaining -= self.footer.rows((maxcol,))  # type: ignore[attr-defined]
+            remaining -= self.footer.rows((maxcol,))
         if remaining <= 0:
             return key
 
@@ -541,7 +644,10 @@ class Frame(
                 self.focus_position = "header"
 
             if (header_mouse_event := getattr(self.header, "mouse_event", None)) is not None:
-                return header_mouse_event((maxcol,), event, button, col, row, focus)
+                return typing.cast(
+                    "bool | None",
+                    header_mouse_event((maxcol,), event, button, col, row, focus),
+                )
 
             return False
 
@@ -551,7 +657,10 @@ class Frame(
                 self.focus_position = "footer"
 
             if (footer_mouse_event := getattr(self.footer, "mouse_event", None)) is not None:
-                return footer_mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
+                return typing.cast(
+                    "bool | None",
+                    footer_mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus),
+                )
 
             return False
 
@@ -580,7 +689,7 @@ class Frame(
             coords = self.header.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None
         elif fp == "body":
             row_adjust = hrows
-            coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))
+            coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))  # type: ignore[attr-defined]
         else:
             row_adjust = maxrow - frows
             coords = self.footer.get_cursor_coords((maxcol,))  # type: ignore[union-attr]  # expect not None

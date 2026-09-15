@@ -65,12 +65,26 @@ class Screen(_raw_display_base.Screen):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        bracketed_paste_mode -- enable bracketed paste mode in the host terminal.
-            If the host terminal supports it, the application will receive `begin paste`
-            and `end paste` keystrokes when the user pastes text.
-        focus_reporting -- enable focus reporting in the host terminal.
-            If the host terminal supports it, the application will receive `focus in`
-            and `focus out` keystrokes when the application gains and loses focus.
+        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal. If the host terminal supports it,
+            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
+        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
+            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
+
+        .. note::
+            on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
+            does not clear the tty's ``ISIG`` flag,
+            so the line discipline still turns Ctrl+C and Ctrl+Z into ``SIGINT`` and ``SIGTSTP``
+            and delivers them to this process (urwid/urwid#1268).
+            ``SIGINT`` is left for the application or its event loop to handle as it sees fit.
+            ``SIGTSTP`` is handled by this class:
+            `signal_init()` installs a handler that restores the terminal before actually suspending the process,
+            and the paired `SIGCONT` handler puts the terminal back into cbreak/alternate-buffer mode
+            and forces a redraw on resume, so a stray Ctrl+Z does not leave a stale,
+            unresponsive frame painted on screen.
+            Applications that install their own ``SIGTSTP``/``SIGCONT`` handlers on top of this one
+            should chain to the previous handler (as this class does) rather than replacing it outright,
+            and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
+            since only the main thread can receive process signals.
         """
         super().__init__(input, output)
         self.gpm_mev: Popen[str] | None = None
@@ -94,7 +108,7 @@ class Screen(_raw_display_base.Screen):
 
     def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         super()._sigwinch_handler(signum, frame)
 
@@ -102,15 +116,35 @@ class Screen(_raw_display_base.Screen):
             self._prev_sigwinch_handler(signum, frame)
 
     def _sigtstp_handler(self, signum: int, frame: FrameType | None = None) -> None:
-        self.stop()  # Restores the previous signal handlers
-        self._prev_sigcont_handler = self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
-        # Handled by the previous handler.
-        # If non-default, it may set its own SIGCONT handler which should hopefully call our own.
-        os.kill(os.getpid(), signal.SIGTSTP)
+        """Tear the screen down, then re-raise ``SIGTSTP`` with its default disposition so the process actually stops.
+
+        ``SIGCONT`` is blocked for the duration of this handler.
+        Without that guard, a ``fg`` issued by an enclosing shell (for example a wrapper script)
+        while this handler is still restoring the terminal can interrupt it
+        and run :meth:`_sigcont_handler` before the process has actually stopped:
+        CPython checks for pending signals
+        -- and will invoke a newly-arrived handler -- at the next bytecode boundary,
+        even while another handler is already executing.
+        That leaves the redraw logic believing it has resumed while the trailing `os.kill()` call below
+        still suspends the process a moment later,
+        so the first ``fg`` appears to do nothing and a second ``^Z``/``fg`` cycle
+        is needed to actually resume (see urwid/urwid#889).
+        Blocking ``SIGCONT`` here defers its delivery until we unblock it immediately after the process has genuinely
+        stopped and resumed, which removes the race.
+        """
+        previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGCONT})
+        try:
+            self.stop()  # Restores the previous signal handlers
+            self._prev_sigcont_handler = self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
+            # Handled by the previous handler.
+            # If non-default, it may set its own SIGCONT handler which should hopefully call our own.
+            os.kill(os.getpid(), signal.SIGTSTP)
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
 
     def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         self.signal_restore()
 
@@ -153,6 +187,11 @@ class Screen(_raw_display_base.Screen):
             self._stop_gpm_tracking()
 
     def _start_gpm_tracking(self) -> None:
+        """
+        Start the gpm helper that reports mouse events on the Linux console.
+
+        :raises RuntimeError: the gpm helper process provides no standard output.
+        """
         if not os.path.isfile("/usr/bin/mev"):
             return
         if not os.environ.get("TERM", "").lower().startswith("linux"):
@@ -166,6 +205,8 @@ class Screen(_raw_display_base.Screen):
             encoding="ascii",
         )
         if m.stdout is None:
+            m.kill()
+            m.wait(1)
             raise RuntimeError("gpm mouse tracking stdout was not created")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
@@ -186,7 +227,8 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use an alternate screen buffer
+        :param alternate_buffer: use an alternate screen buffer
+        :raises TypeError: unexpected positional or keyword arguments were given.
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
@@ -238,6 +280,7 @@ class Screen(_raw_display_base.Screen):
         self.signal_restore()
 
         self._stop_mouse_restore_buffer()
+        self._stop_restore_palette()
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
@@ -318,6 +361,11 @@ class Screen(_raw_display_base.Screen):
         return codes
 
     def _read_raw_input(self, timeout: int) -> bytearray:
+        """
+        Read whatever raw input is available, waiting at most *timeout* seconds.
+
+        :raises RuntimeError: the input file has been closed.
+        """
         ready = self._wait_for_input_ready(timeout)
         gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
         if gpm_stdout is not None and gpm_stdout.fileno() in ready:

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import abc
 import contextlib
+import dataclasses
 import functools
 import os
 import platform
@@ -41,7 +42,7 @@ from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Iterable, Mapping, Sequence
     from types import FrameType
 
     from typing_extensions import Literal
@@ -54,6 +55,197 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
+
+_ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
+
+# Terminals that implement SGR 90-97 / 100-107 bright colors without needing bold/blink.
+_INDEPENDENT_BRIGHT_FAMILIES = frozenset(
+    {
+        "alacritty",
+        "cygwin",
+        "eterm",
+        "foot",
+        "ghostty",
+        "gnome",
+        "iterm",
+        "iterm2",
+        "kitty",
+        "konsole",
+        "mintty",
+        "mlterm",
+        "putty",
+        "rxvt",
+        "st",
+        "terminator",
+        "tmux",
+        "vte",
+        "wezterm",
+        "xfce",
+        "xterm",
+    }
+)
+_TRUECOLOR_FAMILIES = frozenset(
+    {
+        "alacritty",
+        "contour",
+        "foot",
+        "ghostty",
+        "iterm",
+        "iterm2",
+        "kitty",
+        "wezterm",
+    }
+)
+_NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
+# Windows 10 TH2 (1511) gained 256-color VT; 1703-era build 14931 gained 24-bit color.
+_WINDOWS_256COLOR_BUILD = 10586
+_WINDOWS_TRUECOLOR_BUILD = 14931
+_TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
+
+
+@dataclasses.dataclass(frozen=True)
+class TerminalProperties:
+    """Capabilities inferred from TERM and standard color environment variables."""
+
+    colors: _ColorCount
+    has_underline: bool
+    fg_bright_is_bold: bool
+    bg_bright_is_blink: bool
+    back_color_erase: bool
+
+
+def _term_families(term: str) -> frozenset[str]:
+    """Name tokens from a TERM value.
+
+    ``screen.xterm-256color`` yields ``screen``, ``xterm`` and ``256color``.
+    ``rxvt-unicode-256color`` yields ``rxvt``, ``unicode`` and ``256color``.
+    ``xterm-kitty`` yields ``xterm`` and ``kitty``.
+    """
+    families: set[str] = set()
+    for part in term.lower().split("."):
+        if part:
+            families.update(token for token in part.split("-") if token)
+    return frozenset(families)
+
+
+def _parse_force_color(value: str) -> _ColorCount:
+    """Map FORCE_COLOR / CLICOLOR_FORCE to a color count (chalk / supports-color convention)."""
+    normalized = value.strip().lower()
+    if normalized in {"0", "false", "no"}:
+        return 1
+    if normalized in {"", "1", "true", "yes"}:
+        return 16
+    if normalized == "2":
+        return 256
+    if normalized == "3":
+        return 16777216
+    return 16
+
+
+def _windows_version() -> tuple[int, int, int] | None:
+    if sys.platform != "win32":
+        return None
+    version = sys.getwindowsversion()  # pylint: disable=no-member
+    return (version.major, version.minor, version.build)
+
+
+def _windows_console_colors(version: tuple[int, int, int] | None) -> _ColorCount | None:
+    """Color depth of the Windows console VT host, if any."""
+    if version is None or version < (10, 0, 0):
+        return None
+    if version >= (10, 0, _WINDOWS_TRUECOLOR_BUILD):
+        return 16777216
+    if version >= (10, 0, _WINDOWS_256COLOR_BUILD):
+        return 256
+    return 16
+
+
+def _truecolor_host(environ: Mapping[str, str]) -> bool:
+    """Hosts that speak 24-bit SGR even when TERM still says xterm-256color."""
+    if (colorterm := environ.get("COLORTERM")) and colorterm.lower() in {"truecolor", "24bit"}:
+        return True
+    if environ.get("WT_SESSION") or environ.get("WT_PROFILE_ID"):
+        return True
+    if environ.get("ConEmuANSI", "").lower() in {"on", "1"} or environ.get("ConEmuPID"):
+        return True
+    return environ.get("TERM_PROGRAM", "").lower() in _TRUECOLOR_TERM_PROGRAMS
+
+
+def _colors_from_term(term: str, families: frozenset[str]) -> _ColorCount:
+    term_l = term.lower()
+    if not term_l:
+        return 16
+    if families & _NO_UNDERLINE_FAMILIES or term_l in _NO_UNDERLINE_FAMILIES:
+        return 1
+    if "direct" in term_l or families & _TRUECOLOR_FAMILIES:
+        return 16777216
+    if "256color" in term_l:
+        return 256
+    if "88color" in term_l:
+        return 88
+    return 16
+
+
+def detect_terminal_properties(
+    term: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    *,
+    windows_version: tuple[int, int, int] | None = None,
+) -> TerminalProperties:
+    """Detect raw-display capabilities from TERM and standard color environment variables.
+
+    Environment handling follows the NO_COLOR spec and common COLORTERM / FORCE_COLOR / CLICOLOR_FORCE /
+    CLICOLOR conventions.
+    TERM names are matched by family so ``gnome-256color``, ``konsole-direct``
+    and ``rxvt-unicode-256color`` are recognized.
+
+    On Windows 10 and later the console VT host is used when TERM is empty or generic:
+    256 colors from build 10586, 24-bit color from build 14931. Windows Terminal
+    (``WT_SESSION``), ConEmu and VS Code's terminal are treated as 24-bit hosts even
+    when TERM still reports ``xterm-256color``.
+    """
+    env = os.environ if environ is None else environ
+    term_value = env.get("TERM", "") if term is None else term
+    families = _term_families(term_value)
+    term_l = term_value.lower()
+    term_colors = _colors_from_term(term_value, families)
+    if windows_version is None:
+        windows_version = _windows_version()
+    win_colors = _windows_console_colors(windows_version)
+    vt_truecolor = _truecolor_host(env) or win_colors == 16777216
+    vt_host = vt_truecolor or win_colors in {256, 16777216}
+
+    if env.get("NO_COLOR"):
+        colors: _ColorCount = 1
+    elif force := env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE"):
+        colors = _parse_force_color(force)
+    elif env.get("CLICOLOR") == "0" or term_colors == 1:
+        colors = 1
+    elif vt_truecolor:
+        colors = 16777216
+    elif env.get("COLORTERM") and term_colors < 256:
+        colors = 256
+    elif win_colors is not None and term_colors < win_colors:
+        colors = win_colors
+    else:
+        colors = term_colors
+
+    has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
+    linux_console = bool(term_value) and term_value.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
+    fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
+    if vt_host and not linux_console:
+        fg_bright_is_bold = False
+        has_underline = True
+    bg_bright_is_blink = linux_console
+    back_color_erase = "bce" in term_l or not families & {"screen", "dumb", "unknown"}
+
+    return TerminalProperties(
+        colors=colors,
+        has_underline=has_underline,
+        fg_bright_is_bold=fg_bright_is_bold,
+        bg_bright_is_blink=bg_bright_is_blink,
+        back_color_erase=back_color_erase,
+    )
 
 
 @typing.runtime_checkable
@@ -89,9 +281,15 @@ class Screen(BaseScreen, RealTerminal):
         self._pal_escape: dict[str | None, str] = {}
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
         self._alternate_buffer: bool = False
+        self._modified_palette_entries: set[int] = set()
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
-        self.colors: Literal[1, 16, 88, 256, 16777216] = 16  # FIXME: detect this
-        self.has_underline = True  # FIXME: detect this
+        self.term = os.environ.get("TERM", "")
+        properties = detect_terminal_properties(self.term, os.environ)
+        self.colors = properties.colors
+        self.has_underline = properties.has_underline
+        self.fg_bright_is_bold = properties.fg_bright_is_bold
+        self.bg_bright_is_blink = properties.bg_bright_is_blink
+        self.back_color_erase = properties.back_color_erase
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] | None = None
@@ -103,10 +301,6 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = False
         self._rows_used: int | None = None
         self._cy = 0
-        self.term = os.environ.get("TERM", "")
-        self.fg_bright_is_bold = not self.term.startswith("xterm")
-        self.bg_bright_is_blink = self.term == "linux"
-        self.back_color_erase = not self.term.startswith("screen")
         self.register_palette_entry(None, "default", "default")
         self._next_timeout: float | None = None
         self.signal_handler_setter = signal.signal
@@ -128,7 +322,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
         """
-        frame -- will always be None when the GLib event loop is being used.
+        :param frame: will always be None when the GLib event loop is being used.
         """
         logger = self.logger.getChild("signal_handlers")
 
@@ -172,15 +366,12 @@ class Screen(BaseScreen, RealTerminal):
         Set the get_input timeout values.  All values are in floating
         point numbers of seconds.
 
-        max_wait -- amount of time in seconds to wait for input when
-            there is no input pending, wait forever if None
-        complete_wait -- amount of time in seconds to wait when
-            get_input detects an incomplete escape sequence at the
-            end of the available input
-        resize_wait -- amount of time in seconds to wait for more input
-            after receiving two screen resize requests in a row to
-            stop Urwid from consuming 100% cpu during a gradual
-            window resize operation
+        :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
+            None
+        :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
+            the end of the available input
+        :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
+            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation
         """
         self.max_wait = max_wait
         if max_wait is not None:
@@ -220,7 +411,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         Initialize the screen and input mode.
 
-        alternate_buffer -- use alternate screen buffer
+        :param alternate_buffer: use alternate screen buffer
         """
 
     def _stop_mouse_restore_buffer(self) -> None:
@@ -234,6 +425,21 @@ class Screen(BaseScreen, RealTerminal):
             move_cursor = escape.set_cursor_position(0, self.maxrow)
         self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+
+    def _stop_restore_palette(self) -> None:
+        """Reset (OSC 104) any palette entries modify_terminal_palette() changed this session."""
+        if not self._modified_palette_entries:
+            return
+        if self.term == "fbterm":
+            # fbterm's palette-modification escape (used in modify_terminal_palette) has no
+            # known reset counterpart, so there is nothing safe to send here.
+            self._modified_palette_entries.clear()
+            return
+
+        indexes = ";".join(str(index) for index in sorted(self._modified_palette_entries))
+        self.write(f"\x1b]104;{indexes}\x1b\\")
+        self.flush()
+        self._modified_palette_entries.clear()
 
     @abc.abstractmethod
     def _stop(self) -> None:
@@ -266,7 +472,8 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
         """Return pending input as a list.
 
-        raw_keys -- return raw keycodes as well as translated versions
+        :param raw_keys: return raw keycodes as well as translated versions
+        :raises RuntimeError: the screen has not been started.
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -279,11 +486,11 @@ class Screen(BaseScreen, RealTerminal):
 
         Examples of keys returned:
 
-        * ASCII printable characters:  " ", "a", "0", "A", "-", "/"
-        * ASCII control characters:  "tab", "enter"
-        * Escape sequences:  "up", "page up", "home", "insert", "f1"
-        * Key combinations:  "shift f1", "meta a", "ctrl b"
-        * Window events:  "window resize"
+        * ASCII printable characters:  :kbd:`space`, :kbd:`a`, :kbd:`0`, :kbd:`A`, :kbd:`-`, :kbd:`/`
+        * ASCII control characters:  :kbd:`tab`, :kbd:`enter`
+        * Escape sequences:  :kbd:`up`, :kbd:`page up`, :kbd:`home`, :kbd:`insert`, :kbd:`f1`
+        * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
+        * Window events:  ``"window resize"``
 
         When a narrow encoding is not enabled:
 
@@ -553,32 +760,18 @@ class Screen(BaseScreen, RealTerminal):
         self._setup_G1_done = True
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        """Paint screen with rendered canvas."""
+        """Paint screen with rendered canvas.
 
-        def set_cursor_home() -> str:
-            if not partial_display():
-                return escape.set_cursor_position(0, 0)
-            return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
+        :raises RuntimeError: the screen has not been started.
+        :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        """
 
         def set_cursor_position(x: int, y: int) -> str:
-            if not partial_display():
+            if self._rows_used is None:
                 return escape.set_cursor_position(x, y)
             if cy > y:
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
-
-        def is_blank_row(row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]) -> bool:
-            if len(row) > 1:
-                return False
-            return not row[0][2].strip()
-
-        def using_standout_or_underline(a: AttrSpec | str | None) -> bool:
-            a = self._pal_attrspec.get(a, a)  # type: ignore[arg-type]
-            return isinstance(a, AttrSpec) and (a.standout or a.underline)
-
-        def partial_display() -> bool:
-            """Returns True if the screen is in partial display mode ie. only some rows belong to the display"""
-            return self._rows_used is not None
 
         def handle_row(
             attr: AttrSpec | str | None,
@@ -586,6 +779,11 @@ class Screen(BaseScreen, RealTerminal):
             run: bytes,
             last: bool,
         ) -> None:
+            """Append the escape sequences and text of one canvas run to the output.
+
+            :raises TypeError: *run* is not a byte string.
+            :raises ValueError: *charset* is not a known character set flag.
+            """
             nonlocal last_charset_flag, last_attributes, first  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes
@@ -662,7 +860,7 @@ class Screen(BaseScreen, RealTerminal):
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
 
-        if not partial_display():
+        if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
 
         osb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]
@@ -675,7 +873,10 @@ class Screen(BaseScreen, RealTerminal):
         y = -1
 
         ins = None
-        output.append(set_cursor_home())
+        if self._rows_used is None:
+            output.append(escape.set_cursor_position(0, 0))
+        else:
+            output.append(escape.CURSOR_HOME_COL + escape.move_cursor_up(cy))
         cy = 0
 
         first = True
@@ -693,12 +894,12 @@ class Screen(BaseScreen, RealTerminal):
 
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
-            if partial_display() and y > typing.cast("int", self._rows_used):
-                if is_blank_row(row):
+            if self._rows_used is not None and y > self._rows_used:
+                if len(row) == 1 and not row[0][2].strip():
                     continue
                 self._rows_used = y
 
-            if y or partial_display():
+            if y or self._rows_used is not None:
                 output.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
@@ -710,7 +911,14 @@ class Screen(BaseScreen, RealTerminal):
 
             if row:
                 a, cs, run = row[-1]
-                if run[-1:] == b" " and self.back_color_erase and not using_standout_or_underline(a):
+                if (
+                    run[-1:] == b" "
+                    and self.back_color_erase
+                    and not (
+                        isinstance(pal_a := self._pal_attrspec.get(a, a), AttrSpec)  # type: ignore[arg-type]
+                        and (pal_a.standout or pal_a.underline)
+                    )
+                ):
                     whitespace_at_end = True
                     row = [*row[:-1], (a, cs, run.rstrip(b" "))]  # noqa: PLW2901
                 elif y == maxrow - 1 and maxcol > 1:
@@ -756,7 +964,7 @@ class Screen(BaseScreen, RealTerminal):
     ) -> tuple[
         list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes],
+        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes] | None,
     ]:
         """On the last row we need to slide the bottom right character into place.
 
@@ -766,6 +974,10 @@ class Screen(BaseScreen, RealTerminal):
         XXXXXXXXXXXXXXXXXXXXYZ
 
         Y will be drawn after Z, shifting Z into position.
+
+        When the whole row is a single grapheme, as happens with a double width
+        character on a two column screen, there is no Y to draw after Z.
+        The row is then returned untouched and no insert sequence is produced.
         """
 
         new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
@@ -773,6 +985,8 @@ class Screen(BaseScreen, RealTerminal):
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
         last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
         if last_offs == 0:
+            if not new_row:
+                return row, 0, None
             z_text = last_text
             del new_row[-1]
             # we need another segment
@@ -818,6 +1032,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         Convert AttrSpec instance a to an escape sequence for the terminal
 
+        >>> from urwid.display.raw import Screen  # this class is abstract
         >>> s = Screen()
         >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape
@@ -847,6 +1062,7 @@ class Screen(BaseScreen, RealTerminal):
             fg = "39"
         st = (
             "1;" * a.bold
+            + "2;" * a.faint
             + "3;" * a.italics
             + "4;" * a.underline
             + "5;" * a.blink
@@ -877,15 +1093,11 @@ class Screen(BaseScreen, RealTerminal):
         has_underline: bool | None = None,
     ) -> None:
         """
-        colors -- number of colors terminal supports (1, 16, 88, 256, or 2**24)
-            or None to leave unchanged
-        bright_is_bold -- set to True if this terminal uses the bold
-            setting to create bright colors (numbers 8-15), set to False
-            if this Terminal can create bright colors without bold or
-            None to leave unchanged
-        has_underline -- set to True if this terminal can use the
-            underline setting, False if it cannot or None to leave
-            unchanged
+        :param colors: number of colors terminal supports (1, 16, 88, 256, or 2**24) or None to leave unchanged
+        :param bright_is_bold: set to True if this terminal uses the bold setting to create bright colors (numbers
+            8-15), set to False if this Terminal can create bright colors without bold or None to leave unchanged
+        :param has_underline: set to True if this terminal can use the underline setting, False if it cannot or None to
+            leave unchanged
         """
         if colors is None:
             colors = self.colors
@@ -946,6 +1158,7 @@ class Screen(BaseScreen, RealTerminal):
             modify = [f"{index:d};rgb:{red:02x}/{green:02x}/{blue:02x}" for index, red, green, blue in entries]
             self.write(f"\x1b]4;{';'.join(modify)}\x1b\\")
         self.flush()
+        self._modified_palette_entries.update(index for index, _red, _green, _blue in entries)
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors

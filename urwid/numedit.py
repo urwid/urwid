@@ -29,9 +29,9 @@ import warnings
 from urwid import Edit
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Container, Hashable
+    from collections.abc import Container
 
-    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class NumEdit(Edit):
@@ -57,6 +57,18 @@ class NumEdit(Edit):
         trim_leading_zeros: bool = True,
         allow_negative: bool = False,
     ):
+        """
+        :param allowed: characters accepted by this widget
+        :param caption: caption markup
+        :param default: default edit value
+        :param trimLeadingZeros: legacy spelling of ``trim_leading_zeros``
+        :param trim_leading_zeros: strip leading zeros from the edit value
+        :param allow_negative: accept a leading minus sign
+
+        .. deprecated:: 2.2.3
+            The ``trimLeadingZeros`` argument is deprecated, use the ``trim_leading_zeros``
+            keyword argument instead.
+        """
         super().__init__(caption, default)
         self._allowed = allowed
         self._trim_leading_zeros = trim_leading_zeros
@@ -83,7 +95,7 @@ class NumEdit(Edit):
 
     def keypress(
         self,
-        size: tuple[int],  # type: ignore[override]
+        size: tuple[int],
         key: str,
     ) -> str | None:
         """
@@ -140,8 +152,10 @@ class IntegerEdit(NumEdit):
         allow_negative: bool = False,
     ) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
+        :param caption: caption markup
+        :param default: default edit value
+        :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
+            consist of digits valid for *base*.
 
         >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
@@ -267,10 +281,16 @@ class FloatEdit(NumEdit):
         allow_negative: bool = False,
     ) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
-        preserve_significance -- return value has the same signif. as default
-        decimal_separator -- use '.' as separator by default, optionally a ','
+        :param caption: caption markup
+        :param default: default edit value
+        :param preserve_significance: return value has the same signif. as default
+        :param decimal_separator: use '.' as separator by default, optionally a ','
+        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`, or *decimal_separator* is
+            neither ``'.'`` nor ``','``.
+
+        .. deprecated:: 2.2.3
+            The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,
+            use the ``preserve_significance`` and ``decimal_separator`` keyword arguments instead.
 
         >>> FloatEdit("", "1.065434")
         <FloatEdit selectable flow widget '1.065434' edit_pos=8>

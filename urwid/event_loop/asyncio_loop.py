@@ -165,8 +165,8 @@ class AsyncioEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_alarm()
 
-        seconds -- time in seconds to wait before calling callback
-        callback -- function to call from event loop
+        :param seconds: time in seconds to wait before calling callback
+        :param callback: function to call from event loop
         """
         return self._loop.call_later(seconds, self._also_call_idle(callback))
 
@@ -187,8 +187,8 @@ class AsyncioEventLoop(EventLoop):
 
         Returns a handle that may be passed to remove_watch_file()
 
-        fd -- file descriptor to watch for input
-        callback -- function to call when input is available
+        :param fd: file descriptor to watch for input
+        :param callback: function to call when input is available
         """
         self._loop.add_reader(fd, self._also_call_idle(callback))
         return fd
@@ -246,6 +246,8 @@ class AsyncioEventLoop(EventLoop):
 
         Exit the loop when any callback raises an exception.
         If ExitMainLoop is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
         self._loop.set_exception_handler(self._exception_handler)
         self._loop.run_forever()

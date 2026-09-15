@@ -58,7 +58,7 @@ def split_repr(self: Widget) -> str:
     if not words and not alist:
         # if we're just going to print the classname fall back
         # to the previous __repr__ implementation instead
-        return typing.cast("str", super(self.__class__, self).__repr__())
+        return super(self.__class__, self).__repr__()
     if words and alist:
         words.append("")
     return f"<{self.__class__.__name__} {' '.join(words) + ' '.join([f'{k}={v}' for k, v in alist])}>"

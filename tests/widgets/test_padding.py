@@ -244,3 +244,11 @@ class PaddingTest(unittest.TestCase):
         self.assertEqual(p.get_cursor_coords((10,)), (4, 0))
         self.assertEqual(p.render((4,), True).cursor, None)
         self.assertEqual(p.get_cursor_coords((4,)), None)
+
+    def test_left_right_padding_around_text(self) -> None:
+        """Inner padding."""
+        padded = urwid.Padding(urwid.Text("OK"), left=1, right=1)
+
+        self.assertEqual((4, 1), padded.pack(()))
+        self.assertEqual([b" OK "], padded.render(()).text)
+        self.assertEqual([b" OK   "], padded.render((6,)).text)

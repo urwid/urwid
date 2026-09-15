@@ -20,8 +20,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal
 
     from urwid.canvas import TextCanvas
-
-    _TagMarkup = typing.Union[str, tuple[Hashable, typing.Union[str]], list["_TagMarkup"]]
+    from urwid.util import _TagMarkup
 
 
 class EditError(TextError):
@@ -83,13 +82,13 @@ class Edit(WidgetWrap[Text]):
         :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or str) must match the text in the caption
         :type edit_text: bytes or str
-        :param multiline: True: 'enter' inserts newline  False: return it
+        :param multiline: ``True``: :kbd:`enter` inserts a newline, ``False``: return it
         :type multiline: bool
         :param align: typically 'left', 'center' or 'right'
         :type align: text alignment mode
         :param wrap: typically 'space', 'any' or 'clip'
         :type wrap: text wrapping mode
-        :param allow_tab: True: 'tab' inserts 1-8 spaces  False: return it
+        :param allow_tab: ``True``: :kbd:`tab` inserts 1-8 spaces, ``False``: return it
         :type allow_tab: bool
         :param edit_pos: initial position for cursor, None:end of edit_text
         :type edit_pos: int
@@ -111,12 +110,12 @@ class Edit(WidgetWrap[Text]):
         self.multiline = multiline
         self.allow_tab = allow_tab
         self._edit_pos = 0
-        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
+        self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
         self.highlight: tuple[int, int] | None = None
         self._mask: str | None = None
         self._shift_view_to_cursor = False
-        self.pref_col_maxcol: tuple[int | None, int | None] = (None, None)
+        self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -269,7 +268,7 @@ class Edit(WidgetWrap[Text]):
 
         return typing.cast("int", pref_col)
 
-    def set_caption(self, caption: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+    def set_caption(self, caption: _TagMarkup) -> None:
         """
         Set the caption markup for this widget.
 
@@ -289,7 +288,7 @@ class Edit(WidgetWrap[Text]):
         Traceback (most recent call last):
         AttributeError: can't set attribute
         """
-        self._caption, self._attrib = decompose_tagmarkup(caption)  # type: ignore[arg-type]
+        self._caption, self._attrib = decompose_tagmarkup(caption)
         self._sync_wrapped()
         self._invalidate()
 
@@ -365,7 +364,7 @@ class Edit(WidgetWrap[Text]):
         >>> print(e.edit_text)
         no
         """
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -415,9 +414,9 @@ class Edit(WidgetWrap[Text]):
         >>> print(e.edit_text)
         42a.5
         """
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         result_text, result_pos = self.insert_text_result(text)
-        self.set_edit_text(result_text)
+        self.set_edit_text(result_text)  # type: ignore[arg-type]  # normalisation happen
         self.set_edit_pos(result_pos)
         self.highlight = None
 
@@ -439,10 +438,11 @@ class Edit(WidgetWrap[Text]):
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
         :type text: bytes or unicode
+        :raises ValueError: *text* cannot be inserted at the current edit position.
         """
 
         # if there's highlighted text, it'll get replaced by the new text
-        text = self._normalize_to_caption(text)
+        text = self._normalize_to_caption(text)  # type: ignore[assignment]
         if self.highlight:
             start, stop = self.highlight
             btext, etext = self.edit_text[:start], self.edit_text[stop:]
@@ -481,11 +481,13 @@ class Edit(WidgetWrap[Text]):
         x2
         >>> e.keypress(size, "shift f1")
         'shift f1'
+
+        :raises ValueError: the preferred cursor column could not be determined.
         """
         pos = self.edit_pos
         if self.valid_char(key):
             if isinstance(key, str) and not isinstance(self._caption, str):
-                key = key.encode("utf-8")
+                key = key.encode("utf-8")  # type: ignore[assignment]
             self.insert_text(key)
             return None
 
@@ -733,8 +735,8 @@ class IntEdit(Edit):
 
     def __init__(self, caption: _TagMarkup = "", default: int | str | None = None) -> None:
         """
-        caption -- caption markup
-        default -- default edit value
+        :param caption: caption markup
+        :param default: default edit value
 
         >>> IntEdit("", 42)
         <IntEdit selectable flow widget '42' edit_pos=2>

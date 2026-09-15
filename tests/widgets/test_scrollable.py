@@ -142,6 +142,150 @@ class TestScrollBarScrollable(unittest.TestCase):
 
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
+    def test_mouse_left_click_scrollbar(self):
+        """Left click on the rendered scrollbar jumps to the clicked position."""
+        content = urwid.Text("\n".join(string.ascii_letters))  # 52 single-char lines
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+        scrollbar_col = reduced_size[0] - 1  # right side scrollbar
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # posmax == 52 - 5 == 47, thumb_height == 1, thumb travel == 5 - 1 == 4.
+        # Clicking the bottom row moves past the end and is clamped to posmax.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+        # Clicking the top row scrolls back to the top.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 0, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Intermediate rows map proportionally: round(row * posmax / travel).
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 1, False))
+        self.assertEqual(12, scrollable.get_scrollpos())
+
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 3, False))
+        self.assertEqual(35, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_content_ignored(self):
+        """Left click outside of the scrollbar columns does not scroll."""
+        content = urwid.Text("\n".join(string.ascii_letters))
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Column 0 belongs to the wrapped content, not the scrollbar.
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_left_side_scrollbar(self):
+        """Left click detection honours a left-aligned scrollbar."""
+        content = urwid.Text("\n".join(string.ascii_letters))
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content), side="left")
+        scrollable = widget.original_widget
+
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # The scrollbar occupies column 0 when aligned to the left.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+        # A click on the content columns is ignored.
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 1, 0, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_without_scrollbar(self):
+        """Without a rendered scrollbar a left click is not handled."""
+        content = urwid.Text("a\nb")  # fits into the available height
+        reduced_size = (3, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content))
+        scrollable = widget.original_widget
+
+        self.assertFalse(widget.mouse_event(reduced_size, "mouse press", 1, 2, 2, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+    def test_mouse_left_click_scrollbar_over_selectable_content(self):
+        """The scrollbar keeps its columns even when the wrapped widget consumes every click."""
+        clicked: list[int] = []
+        buttons = []
+        for index in range(20):
+            button = urwid.Button(f"b{index}")
+            urwid.connect_signal(button, "click", lambda _button, idx=index: clicked.append(idx))
+            buttons.append(button)
+
+        reduced_size = (14, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Pile(buttons)))
+        scrollable = widget.original_widget
+        scrollbar_col = reduced_size[0] - 1
+
+        widget.render(reduced_size, True)
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        # Button.mouse_event answers any left press without looking at the column,
+        # so delegating first would turn a click on the scrollbar into a button press.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, True))
+        self.assertEqual([], clicked)
+        self.assertEqual(15, scrollable.get_scrollpos())
+
+        # A click on the content columns still reaches the buttons.
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 2, 0, True))
+        self.assertEqual([15], clicked)
+
+    def test_mouse_left_click_left_side_scrollbar_over_selectable_content(self):
+        """The same protection applies to a left-aligned scrollbar."""
+        clicked: list[int] = []
+        buttons = []
+        for index in range(20):
+            button = urwid.Button(f"b{index}")
+            urwid.connect_signal(button, "click", lambda _button, idx=index: clicked.append(idx))
+            buttons.append(button)
+
+        reduced_size = (14, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Pile(buttons)), side="left")
+        scrollable = widget.original_widget
+
+        widget.render(reduced_size, True)
+        self.assertEqual(0, scrollable.get_scrollpos())
+
+        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, 0, 4, True))
+        self.assertEqual([], clicked)
+        self.assertEqual(15, scrollable.get_scrollpos())
+
+    def test_mouse_event_translates_column_for_left_side_scrollbar(self):
+        """A left-aligned scrollbar shifts the wrapped widget, so the column has to be shifted back."""
+
+        class ColumnRecorder(urwid.Text):
+            def __init__(self, markup) -> None:
+                super().__init__(markup)
+                self.seen: list[tuple[int, int]] = []
+
+            def selectable(self) -> bool:
+                return True
+
+            def mouse_event(self, size, event, button, col, row, focus) -> bool:
+                self.seen.append((col, row))
+                return False
+
+        content = ColumnRecorder("\n".join(f"line{index}" for index in range(20)))
+        reduced_size = (10, 5)
+        widget = urwid.ScrollBar(urwid.Scrollable(content), side="left")
+        sb_width = widget.scrollbar_width
+
+        widget.render(reduced_size, True)
+
+        # Screen column ``sb_width`` is the first column the wrapped widget draws into.
+        widget.mouse_event(reduced_size, "mouse press", 1, sb_width, 0, True)
+        self.assertEqual([(0, 0)], content.seen)
+
+        # The last screen column maps to the last column the wrapped widget owns.
+        content.seen.clear()
+        widget.mouse_event(reduced_size, "mouse press", 1, reduced_size[0] - 1, 0, True)
+        self.assertEqual([(reduced_size[0] - 1 - sb_width, 0)], content.seen)
+
     def test_alt_symbols(self):
         long_content = urwid.Text(LGPL_HEADER)
         reduced_size = (40, 5)
@@ -324,6 +468,25 @@ class TestScrollBarListBox(unittest.TestCase):
         self.assertEqual(("[ ] B █",), widget.render(reduced_size).decoded_text)
         widget.keypress(reduced_size, "down")
         self.assertEqual(("[ ] C █",), widget.render(reduced_size).decoded_text)
+
+    def test_shade_symbols_around_listbox(self) -> None:
+        """Thumb/trough characters used by list windows."""
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleListWalker([urwid.Text(f"item {idx}") for idx in range(6)])),
+            thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+            trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        )
+
+        self.assertEqual("▓", urwid.ScrollBar.Symbols.DARK_SHADE)
+        self.assertEqual("░", urwid.ScrollBar.Symbols.LITE_SHADE)
+        self.assertEqual(
+            (
+                "item 0 ▓",
+                "item 1 ▓",
+                "item 2 ░",
+            ),
+            widget.render((8, 3)).decoded_text,
+        )
 
 
 def trivial_AttrMap(widget):
