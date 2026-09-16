@@ -377,6 +377,76 @@ class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
     _expected_idle_handle = None
 
+    def test_error(self):
+        evl = self.evl
+        evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
+        self.assertRaises(ZeroDivisionError, evl.run)
+
+    def test_async_alarm_callback(self):
+        evl = self.evl
+        out: list[str] = []
+
+        async def step1() -> typing.NoReturn:
+            out.append("async alarm")
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0, step1)
+        evl.run()
+        self.assertEqual(["async alarm"], out)
+
+    def test_async_watch_file_callback(self):
+        evl = self.evl
+        out: list[str] = []
+
+        with ClosingSocketPair() as (rd, wr):
+            # Non-blocking: the fd stays readable for one extra event loop
+            # tick after the async callback is scheduled, so it may fire
+            # again with no data left to read.
+            rd.setblocking(False)
+
+            async def step2() -> None:
+                try:
+                    data = rd.recv(2)
+                except BlockingIOError:
+                    return
+                out.append(data.decode("ascii"))
+                raise urwid.ExitMainLoop
+
+            evl.watch_file(rd.fileno(), step2)
+            wr.send(b"hi")
+            evl.run()
+            evl.remove_watch_file(rd.fileno())
+
+        self.assertEqual(["hi"], out)
+
+    def test_async_enter_idle_callback(self):
+        evl = self.evl
+        out: list[str] = []
+
+        async def say_waiting() -> None:
+            out.append("waiting")
+
+        def say_hello() -> None:
+            out.append("hello")
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(say_waiting)
+        evl.alarm(0.005, say_hello)
+        evl.alarm(0.01, exit_clean)
+        evl.run()
+        self.assertIn("waiting", out)
+
+    def test_async_alarm_callback_error(self):
+        evl = self.evl
+
+        async def error_coro() -> typing.NoReturn:
+            1 / 0  # Simulate error in coroutine
+
+        evl.alarm(0, error_coro)
+        self.assertRaises(ZeroDivisionError, evl.run)
+
 
 @unittest.skipUnless(TWISTED_AVAILABLE, "Twisted is not available")
 @unittest.skipIf(
