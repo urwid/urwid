@@ -137,13 +137,9 @@ class AsyncioEventLoop(EventLoop):
         """Call callback, scheduling it as a task instead if it is a coroutine function.
 
         :param callback: function or coroutine function to call
-        :type callback: Callable
         :param args: positional arguments to pass to callback
-        :type args: object
         :param kwargs: keyword arguments to pass to callback
-        :type kwargs: object
         :return: callback return value, or None if it was scheduled as a background task
-        :rtype: object | None
         """
         if inspect.iscoroutinefunction(callback):
             task = self._loop.create_task(callback(*args, **kwargs))
@@ -172,15 +168,10 @@ class AsyncioEventLoop(EventLoop):
         """Run callable in executor.
 
         :param executor: Executor to use for running the function. Default asyncio executor is used if None.
-        :type executor: concurrent.futures.Executor | None
         :param func: function to call
-        :type func: Callable
         :param args: arguments to function (positional only)
-        :type args: object
         :param kwargs: keyword arguments to function (keyword only)
-        :type kwargs: object
         :return: future object for the function call outcome.
-        :rtype: asyncio.Future
         """
         return self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs))
 

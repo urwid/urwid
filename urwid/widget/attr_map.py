@@ -37,16 +37,13 @@ class AttrMap(
     ) -> None:
         """
         :param w: widget to wrap (stored as self.original_widget)
-        :type w: widget
 
         :param attr_map: attribute to apply to *w*, or dict of old display
             attribute: new display attribute mappings
-        :type attr_map: display attribute or dict
 
         :param focus_map: attribute to apply when in focus or dict of
             old display attribute: new display attribute mappings;
             if ``None`` use *attr*
-        :type focus_map: display attribute or dict
 
         >>> from urwid import Divider, Edit, Text
         >>> AttrMap(Divider("!"), "bright")

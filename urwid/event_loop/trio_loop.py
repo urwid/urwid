@@ -91,11 +91,8 @@ class TrioEventLoop(EventLoop):
         """Calls `callback()` a given time from now.
 
         :param seconds: time in seconds to wait before calling the callback
-        :type seconds: float
         :param callback: function to call from the event loop
-        :type callback: Callable[[], typing.Any]
         :return: a handle that may be passed to `remove_alarm()`
-        :rtype: trio.CancelScope
 
         No parameters are passed to the callback.
         """

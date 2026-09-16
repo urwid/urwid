@@ -142,12 +142,9 @@ class Overlay(
     ) -> None:
         """
         :param top_w: a flow, box or fixed widget to overlay "on top".
-        :type top_w: Widget
         :param bottom_w: a box widget to appear "below" previous widget.
-        :type bottom_w: Widget
         :param align: alignment, one of ``'left'``, ``'center'``, ``'right'`` or
             (``'relative'``, *percentage* 0=left 100=right)
-        :type align: Literal["left", "center", "right"] | tuple[Literal["relative"], int]
         :param width: width type, one of:
 
             ``'pack'``
@@ -156,10 +153,8 @@ class Overlay(
               integer number of columns wide
             (``'relative'``, *percentage of total width*)
               make *top_w* width related to container width
-        :type width: Literal["pack"] | int | tuple[Literal["relative"], int]
         :param valign: alignment mode, one of ``'top'``, ``'middle'``, ``'bottom'`` or
             (``'relative'``, *percentage* 0=top 100=bottom)
-        :type valign: Literal["top", "middle", "bottom"] | tuple[Literal["relative"], int]
         :param height: one of:
 
             ``'pack'``
@@ -168,19 +163,12 @@ class Overlay(
               integer number of rows high
             (``'relative'``, *percentage of total height*)
               make *top_w* height related to container height
-        :type height: Literal["pack"] | int | tuple[Literal["relative"], int]
         :param min_width: the minimum number of columns for *top_w* when width is not fixed.
-        :type min_width: int
         :param min_height: minimum number of rows for *top_w* when height is not fixed.
-        :type min_height: int
         :param left: a fixed number of columns to add on the left.
-        :type left: int
         :param right: a fixed number of columns to add on the right.
-        :type right: int
         :param top: a fixed number of rows to add on the top.
-        :type top: int
         :param bottom: a fixed number of rows to add on the bottom.
-        :type bottom: int
 
         Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
         widgets when determining the size and position of *top_w*. *bottom_w* is
@@ -231,7 +219,6 @@ class Overlay(
         """Actual widget sizing.
 
         :returns: Sizing information depends on the top widget sizing and sizing parameters.
-        :rtype: frozenset[Sizing]
 
         Rules:
         * BOX sizing is always supported provided by the bottom widget

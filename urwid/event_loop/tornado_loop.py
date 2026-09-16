@@ -101,13 +101,9 @@ class TornadoEventLoop(EventLoop):
         """Call callback, scheduling it as a task instead if it is a coroutine function.
 
         :param callback: function or coroutine function to call
-        :type callback: Callable
         :param args: positional arguments to pass to callback
-        :type args: Any
         :param kwargs: keyword arguments to pass to callback
-        :type kwargs: Any
         :return: callback return value, or None if it was scheduled as a background task
-        :rtype: Any
         """
         if inspect.iscoroutinefunction(callback):
             task = asyncio.get_running_loop().create_task(callback(*args, **kwargs))
@@ -137,15 +133,10 @@ class TornadoEventLoop(EventLoop):
         """Run callable in executor.
 
         :param executor: Executor to use for running the function
-        :type executor: concurrent.futures.Executor
         :param func: function to call
-        :type func: Callable
         :param args: arguments to function (positional only)
-        :type args: object
         :param kwargs: keyword arguments to function (keyword only)
-        :type kwargs: object
         :return: future object for the function call outcome.
-        :rtype: asyncio.Future
         """
         return typing.cast(
             "asyncio.Future[_T]",
@@ -221,7 +212,6 @@ class TornadoEventLoop(EventLoop):
 
         :param exc: exception the callback raised; recorded unless it is an :exc:`ExitMainLoop`,
             or ``None`` for a clean :exc:`ExitMainLoop`
-        :type exc: BaseException | None
         """
         if exc is not None and not isinstance(exc, ExitMainLoop):
             self._exc = exc
@@ -238,7 +228,6 @@ class TornadoEventLoop(EventLoop):
         """Stop the loop if a background task scheduled from an ``async def`` callback failed.
 
         :param task: finished background task scheduled by :meth:`_run_callback`
-        :type task: asyncio.Task
         """
         if task.cancelled():
             return

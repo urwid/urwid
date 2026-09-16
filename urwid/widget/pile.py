@@ -72,7 +72,6 @@ class Pile(
         """Sizing supported by widget.
 
         :return: Calculated widget sizing
-        :rtype: frozenset[Sizing]
 
         Due to the nature of container with mutable contents, this method cannot be cached.
 
@@ -203,10 +202,8 @@ class Pile(
     ) -> None:
         """
         :param widget_list: child widgets
-        :type widget_list: iterable
         :param focus_item: child widget that gets the focus initially.
             Chooses the first selectable widget if unset.
-        :type focus_item: Widget or int
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
 
         *widget_list* may also contain tuples such as:
@@ -604,7 +601,6 @@ class Pile(
             to set the position by integer index instead.
 
         :param item: element to focus
-        :type item: Widget or int
         :raises ValueError: *item* is a widget that is not in the contents.
         """
         if isinstance(item, int):

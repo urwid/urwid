@@ -105,10 +105,8 @@ class TwistedEventLoop(EventLoop):
     def __init__(self, reactor: ReactorBase | None = None, manage_reactor: bool = True) -> None:
         """
         :param reactor: reactor to use
-        :type reactor: :class:`twisted.internet.reactor`.
         :param: manage_reactor: `True` if you want this event loop to run
                                 and stop the reactor.
-        :type manage_reactor: boolean
 
         .. WARNING::
            Twisted's reactor doesn't like to be stopped and run again.  If you

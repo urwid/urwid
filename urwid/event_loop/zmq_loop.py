@@ -81,15 +81,10 @@ class ZMQEventLoop(EventLoop):
         """Run callable in executor.
 
         :param executor: Executor to use for running the function
-        :type executor: concurrent.futures.Executor
         :param func: function to call
-        :type func: Callable
         :param args: positional arguments to function
-        :type args: object
         :param kwargs: keyword arguments to function
-        :type kwargs: object
         :return: future object for the function call outcome.
-        :rtype: concurrent.futures.Future
         """
         return executor.submit(func, *args, **kwargs)
 

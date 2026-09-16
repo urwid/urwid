@@ -365,15 +365,10 @@ class Canvas:
         current canvas.
 
         :param w: widget to use for the pop-up
-        :type w: widget
         :param left: x position for left edge of pop-up >= 0
-        :type left: int
         :param top: y position for top edge of pop-up >= 0
-        :type top: int
         :param overlay_width: width of overlay in screen columns > 0
-        :type overlay_width: int
         :param overlay_height: height of overlay in screen rows > 0
-        :type overlay_height: int
         :raises CanvasError: the canvas is already finalised, the position is negative
             or the overlay size is not positive
         """

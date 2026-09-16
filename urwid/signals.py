@@ -87,9 +87,7 @@ class Signals:
     def register(self, sig_cls: MetaSignals, signals: Container[Hashable]) -> None:
         """
         :param sig_cls: the class of an object that will be sending signals
-        :type sig_cls: class
         :param signals: a list of signals that may be sent, typically each signal is represented by a string
-        :type signals: signal names
 
         This function must be called for a class before connecting any
         signal callbacks or emitting any signals from that class' objects
@@ -108,11 +106,8 @@ class Signals:
     ) -> Key:
         """
         :param obj: the object sending a signal
-        :type obj: object
         :param name: the signal to listen for, typically a string
-        :type name: signal name
         :param callback: the function to call when that signal is sent
-        :type callback: function
         :param user_arg: additional argument to callback
                          (appended  after the arguments passed when the signal is emitted).
                          If None no arguments will be added.
@@ -130,14 +125,12 @@ class Signals:
 
                           Use this argument only as a keyword argument,
                           since user_arg might be removed in the future.
-        :type weak_args: iterable
         :param user_args: additional arguments to pass to the callback,
                           (before any arguments passed when the signal
                           is emitted but after any weak_args).
 
                           Use this argument only as a keyword argument,
                           since user_arg might be removed in the future.
-        :type user_args: iterable
         :raises NameError: *obj* does not support a signal called *name*.
 
         When a matching signal is sent, callback will be called. The
@@ -237,11 +230,8 @@ class Signals:
     ) -> None:
         """
         :param obj: the object to disconnect the signal from
-        :type obj: object
         :param name: the signal to disconnect, typically a string
-        :type name: signal name
         :param callback: the callback function passed to connect_signal
-        :type callback: function
         :param user_arg: the user_arg parameter passed to connect_signal
         :param weak_args: the weak_args parameter passed to connect_signal
         :param user_args: the weak_args parameter passed to connect_signal
@@ -272,12 +262,9 @@ class Signals:
     def disconnect_by_key(self, obj: typing.Any, name: Hashable, key: Key) -> None:
         """
         :param obj: the object to disconnect the signal from
-        :type obj: object
         :param name: the signal to disconnect, typically a string
-        :type name: signal name
         :param key: the key for this signal handler, as returned by
                     connect_signal().
-        :type key: Key
 
         This function will remove a callback from the list connected
         to a signal with connect_signal(). The key passed should be the
@@ -293,9 +280,7 @@ class Signals:
     def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """
         :param obj: the object sending a signal
-        :type obj: object
         :param name: the signal to send, typically a string
-        :type name: signal name
         :param args: zero or more positional arguments to pass to the signal callback functions
 
         This function calls each of the callbacks connected to this signal

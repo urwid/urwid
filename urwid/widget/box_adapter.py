@@ -31,9 +31,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         Create a flow widget that contains a box widget
 
         :param box_widget: box widget to wrap
-        :type box_widget: Widget
         :param height: number of rows for box widget
-        :type height: int
         :raises BoxAdapterError: *box_widget* is not a BOX widget.
 
         >>> from urwid import SolidFill

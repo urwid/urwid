@@ -54,13 +54,9 @@ class Text(Widget):
             [*text markup*, *text markup*, ... ]
               all *text markup* in the list joined together
 
-        :type markup: :ref:`text-markup`
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
 
         >>> Text("Hello")
         <Text fixed/flow widget 'Hello'>
@@ -110,7 +106,6 @@ class Text(Widget):
         Set content of text widget.
 
         :param markup: see :class:`Text` for description.
-        :type markup: text markup
 
         >>> t = Text("foo")
         >>> print(t.text)
@@ -167,7 +162,6 @@ class Text(Widget):
         object in use but defaults to a :class:`StandardTextLayout` instance
 
         :param mode: typically ``'left'``, ``'center'`` or ``'right'``
-        :type mode: text alignment mode
         :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("word")
@@ -194,7 +188,6 @@ class Text(Widget):
         object in use but defaults to a :class:`StandardTextLayout` instance
 
         :param mode: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type mode: text wrapping mode
         :raises TextError: *mode* is not supported by the layout in use.
 
         >>> t = Text("some words")
@@ -227,11 +220,8 @@ class Text(Widget):
         Set the text layout object, alignment and wrapping modes at
         the same time.
 
-        :type align: text alignment mode
         :param wrap: typically 'space', 'any', 'clip' or 'ellipsis'
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
 
         >>> t = Text("hi")
         >>> t.set_layout("right", "clip")
@@ -301,10 +291,8 @@ class Text(Widget):
         This method is used internally, but may be useful for debugging custom layout classes.
 
         :param maxcol: columns available for display
-        :type maxcol: int
         :param ta: ``None`` or the (*text*, *display attributes*) tuple
                    returned from :meth:`.get_text`
-        :type ta: text and display attributes
         """
         if not self._cache_maxcol or self._cache_maxcol != maxcol:
             self._update_cache_translation(maxcol, ta)
@@ -334,9 +322,7 @@ class Text(Widget):
 
         :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
                      or (*maxcol*,) to specify a maximum column size
-        :type size: widget size
         :param focus: widget is focused on
-        :type focus: bool
 
         >>> Text("important things").pack()
         (16, 1)

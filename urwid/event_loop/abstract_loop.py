@@ -76,16 +76,11 @@ class EventLoop(abc.ABC):
         """Run callable in executor if supported.
 
         :param executor: Executor to use for running the function
-        :type executor: concurrent.futures.Executor
         :param func: function to call
-        :type func: Callable
         :param args: arguments to function (positional only)
-        :type args: object
         :param kwargs: keyword arguments to function (keyword only)
-        :type kwargs: object
         :return: future object for the function call outcome.
                  (exact future type depends on the event loop type)
-        :rtype: concurrent.futures.Future | asyncio.Future
         :raises NotImplementedError: this event loop cannot run callables in an executor.
         """
         raise NotImplementedError

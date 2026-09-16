@@ -56,7 +56,6 @@ class Filler(WidgetDecoration[WrappedWidget]):
     ) -> None:
         """
         :param body: a flow widget or box widget to be filled around (stored as self.original_widget)
-        :type body: Widget
 
         :param valign: one of:
             ``'top'``, ``'middle'``, ``'bottom'``,
@@ -82,9 +81,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
               integer number of rows for the widget when height not fixed
 
         :param top: a fixed number of rows to fill at the top
-        :type top: int
         :param bottom: a fixed number of rows to fill at the bottom
-        :type bottom: int
         :raises FillerError: *valign* is not a vertical alignment value, or a fixed height is combined with a valign it
             cannot be used with.
 
