@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import inspect
 import logging
 import typing
 from contextlib import suppress
@@ -52,6 +53,12 @@ class TornadoEventLoop(EventLoop):
     """This is an Urwid-specific event loop to plug into its MainLoop.
     It acts as an adaptor for Tornado's IOLoop which does all
     heavy lifting except idle-callbacks.
+
+    .. note::
+        :meth:`alarm`, :meth:`watch_file` and :meth:`enter_idle` accept an ``async def``
+        callback in addition to a plain callable. A coroutine function is scheduled as
+        an ``asyncio.Task`` on the IOLoop's underlying asyncio loop instead of being
+        called directly.
     """
 
     def __init__(self, loop: ioloop.IOLoop | None = None) -> None:
@@ -75,19 +82,40 @@ class TornadoEventLoop(EventLoop):
         self._idle_asyncio_handle: object | None = None
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+        self._background_tasks: set[asyncio.Task[typing.Any]] = set()
 
-    def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T]:
+    def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T | None]:
         """
         Wrap the callback to also call _entering_idle.
         """
 
         @functools.wraps(callback)
-        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T:
+        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
             if not self._idle_asyncio_handle:
                 self._idle_asyncio_handle = self._loop.call_later(0, self._entering_idle)
-            return callback(*args, **kwargs)
+            return self._run_callback(callback, *args, **kwargs)
 
         return wrapper
+
+    def _run_callback(self, callback: Callable[_Spec, _T], *args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
+        """Call callback, scheduling it as a task instead if it is a coroutine function.
+
+        :param callback: function or coroutine function to call
+        :type callback: Callable
+        :param args: positional arguments to pass to callback
+        :type args: Any
+        :param kwargs: keyword arguments to pass to callback
+        :type kwargs: Any
+        :return: callback return value, or None if it was scheduled as a background task
+        :rtype: Any
+        """
+        if inspect.iscoroutinefunction(callback):
+            task = asyncio.get_running_loop().create_task(callback(*args, **kwargs))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
+            task.add_done_callback(self._handle_task_exception)
+            return None
+        return callback(*args, **kwargs)
 
     def _entering_idle(self) -> None:
         """
@@ -95,7 +123,7 @@ class TornadoEventLoop(EventLoop):
         """
         try:
             for callback in self._idle_callbacks.values():
-                callback()
+                self._run_callback(callback)
         finally:
             self._idle_asyncio_handle = None
 
@@ -188,23 +216,45 @@ class TornadoEventLoop(EventLoop):
             return False
         return True
 
-    def handle_exit(self, f: Callable[_Spec, _T]) -> Callable[_Spec, _T | Literal[False]]:
+    def _stop_after_error(self, exc: BaseException | None) -> None:
+        """Stop the IOLoop after a callback failed, the same way a synchronous callback's would.
+
+        :param exc: exception the callback raised; recorded unless it is an :exc:`ExitMainLoop`,
+            or ``None`` for a clean :exc:`ExitMainLoop`
+        :type exc: BaseException | None
+        """
+        if exc is not None and not isinstance(exc, ExitMainLoop):
+            self._exc = exc
+
+        if self._idle_asyncio_handle:
+            # clean it up to prevent old callbacks
+            # from messing things up if loop is restarted
+            self._loop.remove_timeout(self._idle_asyncio_handle)
+            self._idle_asyncio_handle = None
+
+        self._loop.stop()
+
+    def _handle_task_exception(self, task: asyncio.Task[typing.Any]) -> None:
+        """Stop the loop if a background task scheduled from an ``async def`` callback failed.
+
+        :param task: finished background task scheduled by :meth:`_run_callback`
+        :type task: asyncio.Task
+        """
+        if task.cancelled():
+            return
+        if (exc := task.exception()) is not None:
+            self._stop_after_error(exc)
+
+    def handle_exit(self, f: Callable[_Spec, _T]) -> Callable[_Spec, _T | Literal[False] | None]:
         @functools.wraps(f)
-        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | Literal[False]:
+        def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | Literal[False] | None:
             try:
-                return f(*args, **kwargs)
-            except ExitMainLoop:
-                pass  # handled later
+                return self._run_callback(f, *args, **kwargs)
+            except ExitMainLoop as exc:
+                self._stop_after_error(exc)
             except Exception as exc:  # noqa: BLE001  # special case
-                self._exc = exc
+                self._stop_after_error(exc)
 
-            if self._idle_asyncio_handle:
-                # clean it up to prevent old callbacks
-                # from messing things up if loop is restarted
-                self._loop.remove_timeout(self._idle_asyncio_handle)
-                self._idle_asyncio_handle = None
-
-            self._loop.stop()
             return False
 
         return wrapper
