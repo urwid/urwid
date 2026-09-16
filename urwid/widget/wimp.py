@@ -63,11 +63,8 @@ class SelectableIcon(Text):
         :param cursor_position: position the cursor will appear in the
                                 text when this widget is in focus
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
 
         This is a text widget that is selectable.  A cursor
         displayed at a fixed location in the text when in focus.
@@ -667,11 +664,8 @@ class Button(WidgetWrap[Columns]):
                          function call for a single callback
         :param user_data: user_data for on_press
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: label alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: label wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 

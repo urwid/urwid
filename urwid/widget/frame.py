@@ -69,13 +69,9 @@ class Frame(
     ):
         """
         :param body: a box widget for the body of the frame
-        :type body: Widget
         :param header: a flow widget for above the body (or None)
-        :type header: Widget
         :param footer: a flow widget for below the body (or None)
-        :type footer: Widget
         :param focus_part:  'header', 'footer' or 'body'
-        :type focus_part: str | Widget
         :raises ValueError: *focus_part* is not one of the three frame parts.
         """
         super().__init__()
@@ -263,7 +259,6 @@ class Frame(
         that is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
-        :rtype: str
         """
         return self.focus_part
 
@@ -273,7 +268,6 @@ class Frame(
         Determine which part of the frame is in focus.
 
         :param part: 'header', 'footer' or 'body'
-        :type part: str
         :raises IndexError: *part* is not one of the three frame parts, or names a part this Frame does not have.
         """
         if part not in {"header", "footer", "body"}:
@@ -289,7 +283,6 @@ class Frame(
         that is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
-        :rtype: str
 
         .. deprecated:: 1.1.0
             Use the container property :attr:`focus_position` instead.
@@ -486,12 +479,9 @@ class Frame(
         Calculate the number of rows for the header and footer.
 
         :param size: See :meth:`Widget.render` for details
-        :type size: widget size
         :param focus: ``True`` if this widget is in focus
-        :type focus: bool
         :returns: `(head rows, foot rows),(orig head, orig foot)`
                   orig head/foot are from rows() calls.
-        :rtype: (int, int), (int, int)
         """
         (maxcol, maxrow) = size
         frows = hrows = 0

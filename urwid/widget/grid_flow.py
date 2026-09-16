@@ -256,7 +256,6 @@ class GridFlow(
         Set the cell in focus.
 
         :param cell: contained element to focus
-        :type cell: Widget or int
         :raises IndexError: *cell* is an index with no child widget at it.
         :raises ValueError: *cell* is a widget that is not in the contents.
 

@@ -100,34 +100,26 @@ class MainLoop:
 
     :param widget: the topmost widget used for painting the screen, stored as
                    :attr:`widget` and may be modified. Must be a box widget.
-    :type widget: widget instance
 
     :param palette: initial palette for screen
-    :type palette: iterable of palette entries
 
     :param screen: screen to use, default is a new :class:`raw_display.Screen`
                    instance; stored as :attr:`screen`
-    :type screen: display module screen instance
 
     :param handle_mouse: ``True`` to ask :attr:`.screen` to process mouse events
-    :type handle_mouse: bool
 
     :param input_filter: a function to filter input before sending it to
                    :attr:`.widget`, called from :meth:`.input_filter`
-    :type input_filter: callable
 
     :param unhandled_input: a function called when input is not handled by
                             :attr:`.widget`, called from :meth:`.unhandled_input`
-    :type unhandled_input: callable
 
     :param event_loop: if :attr:`.screen` supports external an event loop it may be
                        given here, default is a new :class:`SelectEventLoop` instance;
                        stored as :attr:`.event_loop`
-    :type event_loop: event loop instance
 
     :param pop_ups: `True` to wrap :attr:`.widget` with a :class:`PopUpTarget`
                     instance to allow any widget to open a pop-up anywhere on the screen
-    :type pop_ups: boolean
 
 
     .. attribute:: screen
@@ -230,12 +222,9 @@ class MainLoop:
         within the :meth:`run` method.
 
         :param sec: seconds until alarm
-        :type sec: float
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
-        :type callback: callable
         :param user_data: optional user data to pass to the callback
-        :type user_data: object
         """
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
 
@@ -256,12 +245,9 @@ class MainLoop:
         :meth:`remove_alarm`.
 
         :param tm: time to call callback e.g. ``time.time() + 5``
-        :type tm: float
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
-        :type callback: callable
         :param user_data: optional user data to pass to the callback
-        :type user_data: object
         """
         sec = tm - time.time()
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
@@ -286,7 +272,6 @@ class MainLoop:
             in the process/thread running the main loop.
 
             :param callback: function taking one parameter to call from within the process/thread running the main loop
-            :type callback: callable
 
             This method returns a file descriptor attached to the write end of a pipe.
             The read end of the pipe is added to the list of files :attr:`event_loop` is watching.

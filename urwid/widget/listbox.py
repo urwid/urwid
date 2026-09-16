@@ -163,7 +163,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
-        :type body: ListWalker
         """
         super().__init__()
         if isinstance(body, ListWalker):
@@ -661,7 +660,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         :param position: a position compatible with :meth:`self._body.set_focus`
         :param coming_from: set to 'above' or 'below' if you know that
                             old position is above or below the new position.
-        :type coming_from: str
         :raises ListBoxError: *coming_from* is not ``'above'``, ``'below'`` or ``None``.
         :raises TypeError: the body does not implement ``set_focus``.
         :raises IndexError: the ListBox is empty.
@@ -952,7 +950,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             the top edge of the listbox (-ve value) or ``0`` if the top edge
             of the focus widget is aligned with the top edge of the
             listbox.
-        :type offset_inset: int
         :raises ListBoxError: *offset_inset* falls outside the listbox rows or the rows of the focus widget.
         """
         (maxcol, maxrow) = size
@@ -1013,15 +1010,11 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             the top edge of the listbox (-ve value) or 0 if the top edge
             of the focus widget is aligned with the top edge of the
             listbox (default if unspecified)
-        :type offset_inset: int
         :param coming_from: either 'above', 'below' or unspecified `None`
-        :type coming_from: str
         :param cursor_coords: (x, y) tuple indicating the desired column and row for the cursor,
             a (x,) tuple indicating only the column for the cursor, or unspecified
-        :type cursor_coords: (int, int)
         :param snap_rows: the maximum number of extra rows to scroll
             when trying to "snap" a selectable focus into the view
-        :type snap_rows: int
         :raises TypeError: the body does not implement ``set_focus``.
         :raises ListBoxError: *offset_inset* leaves no row of the target visible, or *cursor_coords* names a row outside
             the target widget.

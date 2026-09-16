@@ -72,7 +72,6 @@ class Columns(
         """Sizing supported by widget.
 
         :return: Calculated widget sizing
-        :rtype: frozenset[Sizing]
 
         Due to the nature of container with mutable contents, this method cannot be cached.
 
@@ -685,7 +684,6 @@ class Columns(
             for ``'given'`` or a weight value (number) for ``'weight'``
         :param box_widget: set to `True` if this widget is to be treated as a box
             widget when the Columns widget itself is treated as a flow widget.
-        :type box_widget: bool
         :raises ColumnsError: *width_type* and *width_amount* are not a valid combination.
         """
         if width_type == WHSettings.PACK:
@@ -703,7 +701,6 @@ class Columns(
         Set the column in focus by its index in :attr:`widget_list`.
 
         :param num: index of focus-to-be entry
-        :type num: int
 
         .. deprecated:: 1.1.0
             Use the standard container property :attr:`focus_position` instead.
@@ -1142,7 +1139,6 @@ class Columns(
 
         :param size: see :meth:`Widget.render` for details
         :param focus: ``True`` if this widget is in focus
-        :type focus: bool
         :raises ColumnsError: the Columns has no visible column to render.
         """
         widths, _, size_args = self.get_column_sizes(size, focus)
@@ -1338,9 +1334,7 @@ class Columns(
         Pass keypress to the focus column.
 
         :param size: Widget size correct for the supported sizing
-        :type size: tuple[()] | tuple[int] | tuple[int, int]
         :param key: a single keystroke value
-        :type key: str
         """
         if self.focus_position is None:
             return key

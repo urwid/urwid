@@ -59,7 +59,6 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         """
         :param w: a box, flow or fixed widget to pad on the left and/or right
             this widget is stored as self.original_widget
-        :type w: Widget
 
         :param align: one of: ``'left'``, ``'center'``, ``'right'``
             (``'relative'``, *percentage* 0=left 100=right)
@@ -79,13 +78,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
               to enable clipping mode for a fixed widget
 
         :param min_width: the minimum number of columns for self.original_widget or ``None``
-        :type min_width: int | None
 
         :param left: a fixed number of columns to pad on the left
-        :type left: int
 
         :param right: a fixed number of columns to pad on the right
-        :type right: int
 
         Clipping Mode: (width= ``'clip'``)
         In clipping mode this padding widget will behave as a flow

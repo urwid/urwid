@@ -20,7 +20,6 @@ class SolidFill(Widget):
     def __init__(self, fill_char: str = " ") -> None:
         """
         :param fill_char: character to fill area with
-        :type fill_char: bytes or unicode
 
         >>> SolidFill("8")
         <SolidFill box widget '8'>

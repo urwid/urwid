@@ -49,13 +49,10 @@ class Divider(Widget):
     ) -> None:
         """
         :param div_char: character to repeat across line
-        :type div_char: bytes or unicode
 
         :param top: number of blank lines above
-        :type top: int
 
         :param bottom: number of blank lines below
-        :type bottom: int
 
         >>> Divider()
         <Divider flow widget>

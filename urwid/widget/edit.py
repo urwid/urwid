@@ -59,7 +59,6 @@ class Edit(WidgetWrap[Text]):
         Filter for text that may be entered into this widget by the user
 
         :param ch: character to be inserted
-        :type ch: str
 
         This implementation returns True for all printable characters.
         """
@@ -79,23 +78,14 @@ class Edit(WidgetWrap[Text]):
     ) -> None:
         """
         :param caption: markup for caption preceding edit_text, see :class:`Text` for description of text markup.
-        :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or str) must match the text in the caption
-        :type edit_text: bytes or str
         :param multiline: ``True``: :kbd:`enter` inserts a newline, ``False``: return it
-        :type multiline: bool
         :param align: typically 'left', 'center' or 'right'
-        :type align: text alignment mode
         :param wrap: typically 'space', 'any' or 'clip'
-        :type wrap: text wrapping mode
         :param allow_tab: ``True``: :kbd:`tab` inserts 1-8 spaces, ``False``: return it
-        :type allow_tab: bool
         :param edit_pos: initial position for cursor, None:end of edit_text
-        :type edit_pos: int
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
         :param mask: hide text entered with this character, None:disable mask
-        :type mask: bytes or str
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -305,7 +295,6 @@ class Edit(WidgetWrap[Text]):
         Clips pos to [0, len(edit_text)].
 
         :param pos: cursor position
-        :type pos: int
 
         >>> e = Edit("", "word")
         >>> e.edit_pos
@@ -339,7 +328,6 @@ class Edit(WidgetWrap[Text]):
         Set the character for masking text away.
 
         :param mask: hide text entered with this character, None:disable mask
-        :type mask: bytes or unicode
         """
 
         self._mask = mask
@@ -352,7 +340,6 @@ class Edit(WidgetWrap[Text]):
 
         :param text: text for editing, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
 
         >>> e = Edit()
         >>> e.set_edit_text("yes")
@@ -403,7 +390,6 @@ class Edit(WidgetWrap[Text]):
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
 
         >>> e = Edit("", "42")
         >>> e.insert_text(".5")
@@ -437,7 +423,6 @@ class Edit(WidgetWrap[Text]):
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
         :raises ValueError: *text* cannot be inserted at the current edit position.
         """
 

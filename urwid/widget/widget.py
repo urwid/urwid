@@ -469,7 +469,6 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
           coordinates as part of the canvas that :meth:`render` returns.
 
        :param size: See :meth:`Widget.render` for details.
-       :type size: widget size
 
        :returns: (*col*, *row*) if this widget has a cursor, ``None`` otherwise
 
@@ -491,7 +490,6 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
           This method is not implemented in :class:`.Widget` but may be implemented by a subclass.
 
        :param size: See :meth:`Widget.render` for details.
-       :type size: widget size
 
        :returns: a column number or ``'left'`` for the leftmost available
                  column or ``'right'`` for the rightmost available column
@@ -516,11 +514,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
           ``False``.
 
        :param size: See :meth:`Widget.render` for details.
-       :type size: widget size
        :param col: new column for the cursor, 0 is the left edge of this widget
-       :type col: int
        :param row: new row for the cursor, 0 it the top row of this widget
-       :type row: int
 
        :returns: ``True`` if the position was set successfully anywhere on *row*, ``False`` otherwise
     """
@@ -698,11 +693,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         """Keyboard input handler.
 
         :param size: See :meth:`Widget.render` for details
-        :type size: tuple[()] | tuple[int] | tuple[int, int]
         :param key: a single keystroke value; see :ref:`keyboard-input`
-        :type key: str
         :return: ``None`` if *key* was handled by *key* (the same value passed) if *key* was not handled
-        :rtype: str | None
         """
         if not self.selectable():
             if hasattr(self, "logger"):
@@ -728,22 +720,15 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         """Mouse event handler.
 
         :param size: See :meth:`Widget.render` for details.
-        :type size: tuple[()] | tuple[int] | tuple[int, int]
         :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
                      ``'mouse release'``, ``'meta mouse release'``,
                      ``'mouse drag'``; see :ref:`mouse-input`
-        :type event: str
         :param button: 1 through 5 for press events, often 0 for release events
                       (which button was released is often not known)
-        :type button: int
         :param col: Column of the event, 0 is the left edge of this widget
-        :type col: int
         :param row: Row of the event, 0 it the top row of this widget
-        :type row: int
         :param focus: Set to ``True`` if this widget or one of its children is in focus
-        :type focus: bool
         :return: ``True`` if the event was handled by this widget, ``False`` otherwise
-        :rtype: bool | None
         """
         if not self.selectable():
             if hasattr(self, "logger"):
@@ -777,9 +762,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
             ()
               for fixed sizing -- this widget is a fixed size
               which can't be adjusted by the parent
-        :type size: widget size
         :param focus: set to ``True`` if this widget or one of its children is in focus
-        :type focus: bool
 
         :returns: A :class:`Canvas` subclass instance containing the rendered content of this widget
         :raises NotImplementedError: the subclass does not implement rendering.
