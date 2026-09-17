@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import contextlib
+import itertools
 import sys
 import typing
 import warnings
@@ -218,15 +219,16 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
     sis = s.split(SO)
 
     sis0 = sis[0].replace(SI, b"")
-    sout = []
     cout: list[tuple[Literal["U", "0"] | None, int]] = []
     if sis0:
-        sout.append(sis0)
         cout.append((None, len(sis0)))
 
     if len(sis) == 1:
+        # No DEC drawing-character shift in the output: `sout`/`outstr` are never
+        # needed, so skip building the list for this (common) case.
         return sis0, cout
 
+    sout = [sis0] if sis0 else []
     for sn in sis[1:]:
         sl = sn.split(SI, 1)
         if len(sl) == 1:
@@ -435,7 +437,8 @@ def rle_join_modify(
     if not rle2:
         return
     rle_append_modify(rle, rle2[0])
-    rle += rle2[1:]
+    # Extend directly from rle2 rather than through a `rle2[1:]` copy.
+    rle.extend(itertools.islice(rle2, 1, None))
 
 
 def rle_product(
