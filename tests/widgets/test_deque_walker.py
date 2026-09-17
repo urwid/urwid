@@ -167,6 +167,58 @@ class WrapAroundTest(unittest.TestCase):
             walker.prev_position(0)
 
 
+class SimpleDequeWalkerFocusTest(unittest.TestCase):
+    def test_contents_returns_self(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        self.assertIs(walker, walker.contents)
+
+    def test_set_focus(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        walker.set_focus(2)
+        self.assertEqual(2, walker.focus)
+
+    def test_set_focus_out_of_range_raises(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        with self.assertRaises(IndexError):
+            walker.set_focus(3)
+        with self.assertRaises(IndexError):
+            walker.set_focus(-1)
+
+    def test_modified_clamps_focus_on_shrink(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        walker.focus = 2
+        walker.pop()
+        walker.pop()
+        self.assertEqual(0, walker.focus)
+
+    def test_next_prev_position(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        self.assertEqual(1, walker.next_position(0))
+        self.assertEqual(0, walker.prev_position(1))
+
+    def test_positions(self) -> None:
+        walker = urwid.SimpleDequeWalker([1, 2, 3])
+        self.assertEqual([0, 1, 2], list(walker.positions()))
+        self.assertEqual([2, 1, 0], list(walker.positions(reverse=True)))
+
+
+class SimpleFocusDequeWalkerFocusTest(unittest.TestCase):
+    def test_set_focus(self) -> None:
+        walker = urwid.SimpleFocusDequeWalker([1, 2, 3])
+        walker.set_focus(2)
+        self.assertEqual(2, walker.focus)
+
+    def test_next_prev_position(self) -> None:
+        walker = urwid.SimpleFocusDequeWalker([1, 2, 3])
+        self.assertEqual(1, walker.next_position(0))
+        self.assertEqual(0, walker.prev_position(1))
+
+    def test_positions(self) -> None:
+        walker = urwid.SimpleFocusDequeWalker([1, 2, 3])
+        self.assertEqual([0, 1, 2], list(walker.positions()))
+        self.assertEqual([2, 1, 0], list(walker.positions(reverse=True)))
+
+
 class ListBoxIntegrationTest(unittest.TestCase):
     def test_listbox_with_simple_focus_deque_walker(self) -> None:
         texts = [urwid.Text(str(num)) for num in range(5)]
