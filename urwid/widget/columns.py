@@ -452,7 +452,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`."
+            "only for backwards compatibility. You should use the new standard container `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -475,7 +475,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`."
+            "only for backwards compatibility. You should use the new standard container `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -508,8 +508,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "for backwards compatibility only."
-            "You should use the new standard container property .contents to modify Pile contents."
+            "for backwards compatibility only. "
+            "You should use the new standard container property .contents to modify Columns contents. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -549,8 +549,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "for backwards compatibility only."
-            "You should use the new standard container property .contents to modify Pile contents."
+            "for backwards compatibility only. "
+            "You should use the new standard container property .contents to modify Columns contents. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -584,7 +584,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility.You should use the new standard container property `contents`."
+            "only for backwards compatibility. You should use the new standard container property `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -607,7 +607,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility.You should use the new standard container property `contents`."
+            "only for backwards compatibility. You should use the new standard container property `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -707,7 +707,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility.You may also use the new standard container property `focus_position`."
+            "only for backwards compatibility. You may also use the new standard container property `focus_position`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -723,7 +723,7 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility.You may also use the new standard container property `focus_position`."
+            "only for backwards compatibility. You may also use the new standard container property `focus_position`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -742,8 +742,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus."
+            "only for backwards compatibility. "
+            "You may also use the new standard container property `focus_position` to get the focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -773,8 +773,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility."
-            "You may also use the new standard container property `focus` to get the focus."
+            "only for backwards compatibility. "
+            "You may also use the new standard container property `focus` to get the focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -823,8 +823,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus."
+            "only for backwards compatibility. "
+            "You may also use the new standard container property `focus_position` to get the focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -841,8 +841,8 @@ class Columns(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility."
-            "You may also use the new standard container property `focus_position` to get the focus."
+            "only for backwards compatibility. "
+            "You may also use the new standard container property `focus_position` to get the focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,

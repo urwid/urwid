@@ -686,9 +686,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility."
+            "only for backwards compatibility. "
             "You may also use the new standard container property `focus` to get the focus "
-            "and property `focus_position` to read these values."
+            "and property `focus_position` to read these values. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -751,7 +751,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
                     This API will be removed in version 5.0.
                 """
                 warnings.warn(
-                    "ListBox.contents is a property, not a method. Call API will be removed in version 5.0.",
+                    "ListBox.contents is a property, not a method: use it without calling it. "
+                    "API will be removed in version 5.0.",
                     DeprecationWarning,
                     stacklevel=3,
                 )

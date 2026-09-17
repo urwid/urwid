@@ -390,7 +390,7 @@ class Pile(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "only for backwards compatibility. You should use the new standard container property `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -433,7 +433,7 @@ class Pile(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "only for backwards compatibility. You should use the new standard container property `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -473,7 +473,7 @@ class Pile(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
+            "only for backwards compatibility. You should use the new standard container property `contents`. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -621,8 +621,8 @@ class Pile(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus."
+            "for backwards compatibility. "
+            "You may also use the new standard container property .focus to get the child widget in focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -643,8 +643,8 @@ class Pile(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus."
+            "for backwards compatibility. "
+            "You may also use the new standard container property .focus to get the child widget in focus. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -710,10 +710,14 @@ class Pile(
 
         :raises PileError: the item uses a height rule that needs size information the caller did not provide, or a
             height rule that is not supported.
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base. Use :meth:`get_rows_sizes` instead.
+            This API will be removed in version 6.0.
         """
         warnings.warn(
-            "get_item_size is going to be deprecated and can be removed soon."
-            "This method is not used by the urwid codebase and `get_rows_sizes` is used for the similar purposes.",
+            "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose. "
+            "API will be removed in version 6.0.",
             PendingDeprecationWarning,
             stacklevel=2,
         )

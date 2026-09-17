@@ -132,7 +132,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_header` is deprecated, "
-            f"standard property `{self.__class__.__name__}.header` should be used instead."
+            f"standard property `{self.__class__.__name__}.header` should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -151,7 +151,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_header` is deprecated, "
-            f"standard property `{self.__class__.__name__}.header` should be used instead."
+            f"standard property `{self.__class__.__name__}.header` should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -178,7 +178,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_body` is deprecated, "
-            f"standard property {self.__class__.__name__}.body should be used instead."
+            f"standard property {self.__class__.__name__}.body should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -197,7 +197,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_body` is deprecated, "
-            f"standard property `{self.__class__.__name__}.body` should be used instead."
+            f"standard property `{self.__class__.__name__}.body` should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -226,7 +226,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.get_footer` is deprecated, "
-            f"standard property `{self.__class__.__name__}.footer` should be used instead."
+            f"standard property `{self.__class__.__name__}.footer` should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -245,7 +245,7 @@ class Frame(
         """
         warnings.warn(
             f"method `{self.__class__.__name__}.set_footer` is deprecated, "
-            f"standard property `{self.__class__.__name__}.footer` should be used instead."
+            f"standard property `{self.__class__.__name__}.footer` should be used instead. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -289,8 +289,8 @@ class Frame(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "included for backwards compatibility."
-            "You should rather use the container property `.focus_position` to get this value."
+            "included for backwards compatibility. "
+            "You should rather use the container property `.focus_position` to get this value. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
@@ -308,8 +308,8 @@ class Frame(
             This API will be removed in version 5.0.
         """
         warnings.warn(
-            "included for backwards compatibility."
-            "You should rather use the container property `.focus_position` to set this value."
+            "included for backwards compatibility. "
+            "You should rather use the container property `.focus_position` to set this value. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=2,
