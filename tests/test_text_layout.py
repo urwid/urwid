@@ -528,3 +528,240 @@ class TestTextLayoutNoPack(unittest.TestCase):
         """Text widget pack should work also with layout not supporting `pack` method."""
         widget = urwid.Text("123", layout=NumericLayout())
         self.assertEqual((3, 1), widget.pack((3,)))
+
+
+class SupportsModeTest(unittest.TestCase):
+    def test_base_class_supports_everything(self):
+        base = text_layout.TextLayout()
+        self.assertTrue(base.supports_align_mode("bogus"))
+        self.assertTrue(base.supports_wrap_mode("bogus"))
+
+    def test_base_class_layout_not_implemented(self):
+        base = text_layout.TextLayout()
+        self.assertRaises(NotImplementedError, base.layout, "text", 10, "left", "space")
+
+    def test_standard_layout_align_modes(self):
+        layout = text_layout.default_layout
+        for align in ("left", "center", "right"):
+            self.assertTrue(layout.supports_align_mode(align))
+        self.assertFalse(layout.supports_align_mode("bogus"))
+
+    def test_standard_layout_wrap_modes(self):
+        layout = text_layout.default_layout
+        for wrap in ("any", "space", "clip", "ellipsis"):
+            self.assertTrue(layout.supports_wrap_mode(wrap))
+        self.assertFalse(layout.supports_wrap_mode("bogus"))
+
+
+class PackTest(unittest.TestCase):
+    def test_empty_layout_raises(self):
+        self.assertRaises(ValueError, text_layout.default_layout.pack, 10, [])
+
+    def test_maxcol_returned_when_line_reaches_it(self):
+        segs = [[(5, 0, 5)], [(20, 0, 20)]]
+        self.assertEqual(10, text_layout.default_layout.pack(10, segs))
+
+    def test_max_line_width_returned_otherwise(self):
+        segs = [[(3, 0, 3)], [(7, 0, 7)]]
+        self.assertEqual(7, text_layout.default_layout.pack(10, segs))
+
+
+class AlignLayoutTest(unittest.TestCase):
+    def test_invalid_align_raises(self):
+        self.assertRaises(
+            ValueError,
+            text_layout.default_layout.align_layout,
+            "abcde",
+            10,
+            [[(5, 0, 5)]],
+            "space",
+            "bogus",
+        )
+
+    def test_invalid_wrap_mode_raises(self):
+        self.assertRaises(
+            ValueError,
+            text_layout.default_layout.calculate_text_segments,
+            "abcdefghij",
+            3,
+            "bogus",
+        )
+
+
+class WideCharWordWrapTest(unittest.TestCase):
+    """Word-wrap (mode "space") breaking right after a wide character."""
+
+    def test_wrap_after_wide_char(self):
+        with set_temporary_encoding("euc-jp"):
+            for text in (
+                b"\xa1\xa1\xa1\xa1\xa1\xa1abcdefgh",
+                b"ab\xa1\xa1\xa1\xa1cdefgh",
+                b"\xa1\xa1bcdefghij",
+            ):
+                for width in range(2, 8):
+                    with self.subTest(text=text, width=width):
+                        # must not raise, just exercise the wide-char break path
+                        text_layout.default_layout.calculate_text_segments(text, width, "space")
+
+
+class LineWidthTest(unittest.TestCase):
+    def test_ignores_leading_shift(self):
+        self.assertEqual(5, text_layout.line_width([(3, None), (5, 0, 5)]))
+        self.assertEqual(5, text_layout.line_width([(5, 0, 5)]))
+
+
+class ShiftLineTest(unittest.TestCase):
+    def test_shift_no_existing_shift(self):
+        self.assertEqual([(3, None), (5, 0, 5)], text_layout.shift_line([(5, 0, 5)], 3))
+
+    def test_shift_combines_with_existing_shift(self):
+        self.assertEqual([(5, None), (5, 0, 5)], text_layout.shift_line([(3, None), (5, 0, 5)], 2))
+
+    def test_shift_removes_existing_shift_when_zero(self):
+        self.assertEqual([(5, 0, 5)], text_layout.shift_line([(3, None), (5, 0, 5)], -3))
+
+    def test_shift_by_zero_is_noop(self):
+        self.assertEqual([(5, 0, 5)], text_layout.shift_line([(5, 0, 5)], 0))
+
+    def test_non_int_amount_raises(self):
+        self.assertRaises(TypeError, text_layout.shift_line, [(5, 0, 5)], "x")
+
+
+class LayoutSegmentInitTest(unittest.TestCase):
+    def test_not_a_tuple_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, 0)
+
+    def test_three_tuple_sc_not_int_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, ("x", 0, 5))
+
+    def test_three_tuple_offs_not_int_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, (5, "a", 5))
+
+    def test_three_tuple_sc_not_positive_raises_value_error(self):
+        self.assertRaises(ValueError, text_layout.LayoutSegment, (0, 0, 5))
+
+    def test_three_tuple_text_wrong_type_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, (5, 0, 3.5))
+
+    def test_two_tuple_sc_not_int_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, ("x", 0))
+
+    def test_two_tuple_negative_sc_with_offs_raises_value_error(self):
+        self.assertRaises(ValueError, text_layout.LayoutSegment, (-1, 0))
+
+    def test_two_tuple_offs_not_int_raises_type_error(self):
+        self.assertRaises(TypeError, text_layout.LayoutSegment, (5, "x"))
+
+    def test_wrong_length_raises_value_error(self):
+        self.assertRaises(ValueError, text_layout.LayoutSegment, (1, 2, 3, 4))
+
+
+class LayoutSegmentSubsegTest(unittest.TestCase):
+    def test_start_past_end_returns_empty(self):
+        seg = text_layout.LayoutSegment((5, 0, 5))
+        self.assertEqual([], seg.subseg("abcde", 5, 3))
+        self.assertEqual([], seg.subseg("abcde", 5, 5))
+
+    def test_offs_none_with_end_raises_value_error(self):
+        # Defensive guard: normal construction cannot leave offs None while end is set,
+        # so exercise it directly via the __slots__ attribute.
+        seg = text_layout.LayoutSegment((5, 0, 5))
+        seg.offs = None
+        self.assertRaises(ValueError, seg.subseg, "abcde", 0, 3)
+
+
+class CalcLiteralLinePosTest(unittest.TestCase):
+    text = "A" * 27
+    line = [(2, None), (7, 0, 7), (0, 7)]
+
+    def test_left(self):
+        self.assertEqual(0, text_layout._calc_literal_line_pos(self.text, self.line, "left"))
+
+    def test_left_no_offset_found(self):
+        self.assertIsNone(text_layout._calc_literal_line_pos(self.text, [(5, None)], "left"))
+
+    def test_right(self):
+        self.assertEqual(7, text_layout._calc_literal_line_pos(self.text, self.line, "right"))
+
+    def test_right_no_offset_found(self):
+        self.assertIsNone(text_layout._calc_literal_line_pos(self.text, [(5, None)], "right"))
+
+    def test_right_without_end(self):
+        self.assertEqual(2, text_layout._calc_literal_line_pos(self.text, [(3, 2)], "right"))
+
+    def test_right_with_end(self):
+        self.assertEqual(2, text_layout._calc_literal_line_pos(self.text, [(3, 0, 3)], "right"))
+
+    def test_invalid_pref_col_raises(self):
+        self.assertRaises(ValueError, text_layout._calc_literal_line_pos, self.text, self.line, "bogus")
+
+
+class CalcLinePosTest(unittest.TestCase):
+    def test_left_dispatches_to_literal(self):
+        line = [(2, None), (7, 0, 7), (0, 7)]
+        self.assertEqual(0, text_layout.calc_line_pos("A" * 27, line, "left"))
+
+    def test_invalid_pref_col_raises_type_error(self):
+        line = [(2, None), (7, 0, 7), (0, 7)]
+        self.assertRaises(TypeError, text_layout.calc_line_pos, "A" * 27, line, "bogus")
+
+    def test_numeric_beyond_line_returns_last_int_position(self):
+        self.assertEqual(21, text_layout.calc_line_pos("A" * 27, [(13, 8, 21), (0, 21)], 100))
+
+    def test_numeric_beyond_single_segment_returns_last_segment_position(self):
+        self.assertEqual(4, text_layout.calc_line_pos("abcde", [(5, 0, 5)], 100))
+
+
+class CalcPosTest2(unittest.TestCase):
+    def test_row_out_of_range_raises(self):
+        text = "A" * 27
+        trans = [[(2, None), (7, 0, 7), (0, 7)], [(13, 8, 21), (0, 21)]]
+        self.assertRaises(ValueError, text_layout.calc_pos, text, trans, "left", 10)
+
+    def test_falls_back_to_neighboring_rows(self):
+        text = "A" * 27
+        layout = [[(5, None)], [(7, 0, 7), (0, 7)]]
+        self.assertEqual(0, text_layout.calc_pos(text, layout, "left", 0))
+
+    def test_falls_back_searching_both_directions(self):
+        text = "A" * 27
+        layout = [[(5, None)], [(5, None)], [(7, 0, 7), (0, 7)]]
+        self.assertEqual(0, text_layout.calc_pos(text, layout, "left", 1))
+
+    def test_no_match_in_any_row_returns_zero(self):
+        text = "A" * 27
+        layout = [[(5, None)]] * 6
+        self.assertEqual(0, text_layout.calc_pos(text, layout, "left", 2))
+
+    def test_falls_back_with_unequal_row_counts(self):
+        text = "A" * 40
+        layout = [[(5, None)]] * 5 + [[(7, 0, 7), (0, 7)]]
+        self.assertEqual(0, text_layout.calc_pos(text, layout, "left", 2))
+
+    def test_falls_back_matching_row_above(self):
+        text = "A" * 27
+        pad = [(5, None)]
+        row_with_offs = [(7, 0, 7), (0, 7)]
+        layout = [pad, pad, row_with_offs, pad, pad]
+        self.assertEqual(0, text_layout.calc_pos(text, layout, "left", 3))
+
+
+class TrimLineTest(unittest.TestCase):
+    def test_multi_segment_line_not_widened(self):
+        # regression test: trim_line must stop appending whole segments once
+        # their cumulative width reaches `end`, even across more than one
+        # full segment (previously `x` was not advanced for segments taken
+        # as-is, so more segments than requested were appended).
+        segs = [(3, 0, 3), (3, 3, 6), (4, 6, 10)]
+        self.assertEqual([(3, 0, 3)], text_layout.trim_line(segs, "abcdefghij", 0, 3))
+
+
+class CalcCoordsTest(unittest.TestCase):
+    def test_empty_layout_returns_origin(self):
+        self.assertEqual((0, 0), text_layout.calc_coords("A" * 27, [], 5))
+
+    def test_no_exact_match_falls_back_to_closest(self):
+        self.assertEqual((0, 0), text_layout.calc_coords("A" * 27, [[(5, None)]], 3))
+
+    def test_distance_based_closest_match(self):
+        self.assertEqual((2, 0), text_layout.calc_coords("A" * 27, [[(2, None), (3, 5, 8)]], 2))

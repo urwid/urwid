@@ -562,6 +562,7 @@ def trim_line(
             result += s.subseg(text, 0, end - x)
             break
         result.append(seg)
+        x += sc
     return result
 
 
