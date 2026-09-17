@@ -367,14 +367,14 @@ class Frame(
             __slots__ = ()
 
             def __len__(inner_self) -> int:
-                return len(inner_self.keys())
+                return len(self._contents_keys())
 
             __getitem__ = self._contents__getitem__  # type: ignore[assignment]
             __setitem__ = self._contents__setitem__  # type: ignore[assignment]
             __delitem__ = self._contents__delitem__  # type: ignore[assignment]
 
             def __iter__(inner_self) -> Iterator[str]:
-                yield from inner_self.keys()
+                yield from self._contents_keys()
 
             def __repr__(inner_self) -> str:
                 return f"<{inner_self.__class__.__name__}({dict(inner_self)}) for {self}>"  # type: ignore[misc]
