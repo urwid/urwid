@@ -6,7 +6,25 @@ from __future__ import annotations
 
 import unittest
 
+import urwid
+from urwid import util
 from urwid.display import escape
+
+
+class EscapeModifierTest(unittest.TestCase):
+    def test_all_combinations(self):
+        expected = {
+            "1": "",
+            "2": "shift ",
+            "3": "meta ",
+            "4": "shift meta ",
+            "5": "ctrl ",
+            "6": "shift ctrl ",
+            "7": "meta ctrl ",
+            "8": "shift meta ctrl ",
+        }
+        for digit, prefix in expected.items():
+            self.assertEqual(prefix, escape.escape_modifier(digit))
 
 
 class InputEscapeSequenceParserTest(unittest.TestCase):
@@ -158,3 +176,232 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     actual,
                     f"Codes {codes!r} ({[chr(code) for code in codes]}) was not decoded to {expected!r}",
                 )
+
+    def test_sgrmouse_shift_modifier(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0 | 4))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("shift mouse press", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_drag(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0 | escape.MOUSE_DRAG_FLAG))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse drag", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_release(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("m")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse release", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_truncated(self):
+        codes = [27, ord("["), ord("<")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue(codes, more_available=True)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertListEqual(["meta ["], actual)
+        self.assertListEqual([ord("<")], rest)
+
+    def test_sgrmouse_missing_terminator(self):
+        codes = [ord("0"), ord(";"), ord("5"), ord(";"), ord("8")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info(codes, more_available=False))
+
+    def test_mouse_x10_modifiers(self):
+        x, y = 8, 15
+        coord = (x + 33, y + 33)
+        for bit, prefix in ((4, "shift "), (8, "meta "), (16, "ctrl "), (4 | 8 | 16, "shift meta ctrl ")):
+            codes = [27, 91, 77, 32 + bit, *coord]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([(f"{prefix}mouse press", 1, x, y)], actual)
+            self.assertListEqual([], rest)
+
+    def test_mouse_x10_drag(self):
+        x, y = 8, 15
+        codes = [27, 91, 77, 32 + escape.MOUSE_DRAG_FLAG, x + 33, y + 33]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse drag", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_mouse_x10_truncated(self):
+        codes = [27, 91, 77, 32]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_mouse_info([32], more_available=False))
+
+    def test_utf8_multibyte_decoding(self):
+        old_encoding = util.get_encoding()
+        try:
+            urwid.set_encoding("utf-8")
+
+            for text, codes in (
+                ("\xe9", list(b"\xc3\xa9")),  # 2-byte
+                ("€", list(b"\xe2\x82\xac")),  # 3-byte
+                ("\U0001f600", list(b"\xf0\x9f\x98\x80")),  # 4-byte
+            ):
+                with self.subTest(text=text):
+                    actual, rest = escape.process_keyqueue(codes, more_available=False)
+                    self.assertEqual([text], actual)
+                    self.assertListEqual([], rest)
+
+            # invalid continuation byte falls back to a placeholder
+            actual, rest = escape.process_keyqueue([0xC3, ord("A")], more_available=False)
+            self.assertEqual(["<195>"], actual)
+            self.assertListEqual([ord("A")], rest)
+
+            # a standalone byte that is not a valid utf-8 lead byte (a bare continuation byte)
+            actual, rest = escape.process_keyqueue([0x80], more_available=False)
+            self.assertEqual(["<128>"], actual)
+            self.assertListEqual([], rest)
+
+            # overlong 2-byte encoding of NUL is structurally valid but fails to decode
+            actual, rest = escape.process_keyqueue([0xC0, 0x80], more_available=False)
+            self.assertEqual(["<192>"], actual)
+            self.assertListEqual([0x80], rest)
+
+            # truncated multi-byte sequence
+            with self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue([0xC3], more_available=True)
+            actual, rest = escape.process_keyqueue([0xC3], more_available=False)
+            self.assertEqual(["<195>"], actual)
+            self.assertListEqual([], rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
+    def test_nul_byte_fallback(self):
+        old_encoding = util.get_encoding()
+        try:
+            urwid.set_encoding("utf-8")
+            actual, rest = escape.process_keyqueue([0], more_available=False)
+            self.assertEqual(["<0>"], actual)
+            self.assertListEqual([], rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
+    def test_ctrl_lowercase_range(self):
+        # codes 8, 9, 10, 13 are intercepted earlier by _keyconv (backspace/tab/enter)
+        for code in set(range(1, 27)) - {8, 9, 10, 13}:
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([f"ctrl {chr(ord('a') + code - 1)}"], actual)
+                self.assertListEqual([], rest)
+
+    def test_ctrl_uppercase_range(self):
+        for code in range(28, 32):
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([f"ctrl {chr(ord('A') + code - 1)}"], actual)
+                self.assertListEqual([], rest)
+
+    def test_keyconv_lookup(self):
+        for code, key in ((8, "backspace"), (9, "tab"), (10, "enter"), (13, "enter"), (127, "backspace")):
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertListEqual([], rest)
+
+
+class KeyqueueTrieTest(unittest.TestCase):
+    def test_init_rejects_dict_result(self):
+        self.assertRaises(TypeError, escape.KeyqueueTrie, [("a", {})])
+
+    def test_add_rejects_empty_sequence(self):
+        trie = escape.KeyqueueTrie([])
+        self.assertRaises(RuntimeError, trie.add, trie.data, "", "x")
+
+    def test_add_prefix_of_existing_sequence_conflicts(self):
+        # "ab" is added first, so "a" collides with the branch node it created
+        trie = escape.KeyqueueTrie([("ab", "X")])
+        self.assertRaises(RuntimeError, trie.add, trie.data, "a", "Y")
+
+    def test_add_extension_of_existing_sequence_conflicts(self):
+        # "a" is added first as a leaf, so "ab" collides with that leaf
+        trie = escape.KeyqueueTrie([("a", "X")])
+        self.assertRaises(ValueError, trie.add, trie.data, "ab", "Y")
+
+    def test_read_cursor_position_empty_keys(self):
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position([], more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position([], more_available=False))
+
+    def test_read_cursor_position_wrong_prefix(self):
+        self.assertIsNone(escape.input_trie.read_cursor_position([ord("x")], more_available=False))
+
+    def test_read_cursor_position_missing_y(self):
+        # semicolon before any digit
+        codes = [ord("["), ord(";"), ord("5"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_non_digit_y(self):
+        codes = [ord("["), ord("x")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_leading_zero_y(self):
+        codes = [ord("["), ord("0"), ord("1"), ord(";"), ord("5"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_truncated_after_y(self):
+        codes = [ord("["), ord("5"), ord(";")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_non_digit_x(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("y")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_leading_zero_x(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("0"), ord("1"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_missing_x(self):
+        # 'R' immediately after the semicolon, with no digit for x
+        codes = [ord("["), ord("5"), ord(";"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_truncated_after_x_digits(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("3")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_success(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("3"), ord("R"), ord("z")]
+        result = escape.input_trie.read_cursor_position(codes, more_available=False)
+        self.assertEqual((("cursor position", 2, 4), [ord("z")]), result)
+
+
+class OutputSequenceTest(unittest.TestCase):
+    def test_set_cursor_position(self):
+        self.assertEqual(f"{escape.ESC}[6;11H", escape.set_cursor_position(10, 5))
+        self.assertRaises(TypeError, escape.set_cursor_position, "10", 5)
+        self.assertRaises(TypeError, escape.set_cursor_position, 10, "5")
+
+    def test_move_cursor_right(self):
+        self.assertEqual("", escape.move_cursor_right(0))
+        self.assertEqual(f"{escape.ESC}[3C", escape.move_cursor_right(3))
+
+    def test_move_cursor_up(self):
+        self.assertEqual("", escape.move_cursor_up(0))
+        self.assertEqual(f"{escape.ESC}[3A", escape.move_cursor_up(3))
+
+    def test_move_cursor_down(self):
+        self.assertEqual("", escape.move_cursor_down(0))
+        self.assertEqual(f"{escape.ESC}[3B", escape.move_cursor_down(3))
