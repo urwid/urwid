@@ -859,6 +859,7 @@ class Overlay(
             self.bottom = bottom
             self.min_width = min_width
             self.min_height = min_height
+            self.top_w = value_w  # type: ignore[assignment]
         else:
             raise IndexError(f"Overlay.contents has no position {index!r}")
         self._invalidate()
