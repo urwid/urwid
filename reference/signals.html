@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Signal Functions &#8212; Urwid 4.1.3</title>
+    <title>Signal Functions &#8212; Urwid 4.1.4</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=752939d7"></script>
+    <script src="../_static/documentation_options.js?v=bea0a91a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
@@ -59,14 +59,14 @@ instantiate your own Signals object.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>obj</strong> (<em>object</em>) – the object sending a signal</p></li>
-<li><p><strong>name</strong> (<em>signal name</em>) – the signal to listen for, typically a string</p></li>
-<li><p><strong>callback</strong> (<em>function</em>) – the function to call when that signal is sent</p></li>
+<li><p><strong>obj</strong> – the object sending a signal</p></li>
+<li><p><strong>name</strong> – the signal to listen for, typically a string</p></li>
+<li><p><strong>callback</strong> – the function to call when that signal is sent</p></li>
 <li><p><strong>user_arg</strong> – additional argument to callback
 (appended  after the arguments passed when the signal is emitted).
 If None no arguments will be added.
 Don’t use this argument, use user_args instead.</p></li>
-<li><p><strong>weak_args</strong> (<em>iterable</em>) – <p>additional arguments passed to the callback
+<li><p><strong>weak_args</strong> – <p>additional arguments passed to the callback
 (before any arguments passed when the signal
 is emitted and before any user_args).</p>
 <p>These arguments are stored as weak references
@@ -78,7 +78,7 @@ they are referenced by this signal handler.</p>
 <p>Use this argument only as a keyword argument,
 since user_arg might be removed in the future.</p>
 </p></li>
-<li><p><strong>user_args</strong> (<em>iterable</em>) – <p>additional arguments to pass to the callback,
+<li><p><strong>user_args</strong> – <p>additional arguments to pass to the callback,
 (before any arguments passed when the signal
 is emitted but after any weak_args).</p>
 <p>Use this argument only as a keyword argument,
@@ -142,9 +142,9 @@ urwid.disconnect_signal, which doesn’t need this key.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</p></li>
-<li><p><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</p></li>
-<li><p><strong>key</strong> (<em>Key</em>) – the key for this signal handler, as returned by
+<li><p><strong>obj</strong> – the object to disconnect the signal from</p></li>
+<li><p><strong>name</strong> – the signal to disconnect, typically a string</p></li>
+<li><p><strong>key</strong> – the key for this signal handler, as returned by
 connect_signal().</p></li>
 </ul>
 </dd>
@@ -167,9 +167,9 @@ function will simply do nothing.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>obj</strong> (<em>object</em>) – the object to disconnect the signal from</p></li>
-<li><p><strong>name</strong> (<em>signal name</em>) – the signal to disconnect, typically a string</p></li>
-<li><p><strong>callback</strong> (<em>function</em>) – the callback function passed to connect_signal</p></li>
+<li><p><strong>obj</strong> – the object to disconnect the signal from</p></li>
+<li><p><strong>name</strong> – the signal to disconnect, typically a string</p></li>
+<li><p><strong>callback</strong> – the callback function passed to connect_signal</p></li>
 <li><p><strong>user_arg</strong> – the user_arg parameter passed to connect_signal</p></li>
 <li><p><strong>weak_args</strong> – the weak_args parameter passed to connect_signal</p></li>
 <li><p><strong>user_args</strong> – the weak_args parameter passed to connect_signal</p></li>
@@ -194,8 +194,8 @@ function will simply do nothing.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>sig_cls</strong> (<em>class</em>) – the class of an object that will be sending signals</p></li>
-<li><p><strong>signals</strong> (<em>signal names</em>) – a list of signals that may be sent, typically each signal is represented by a string</p></li>
+<li><p><strong>sig_cls</strong> – the class of an object that will be sending signals</p></li>
+<li><p><strong>signals</strong> – a list of signals that may be sent, typically each signal is represented by a string</p></li>
 </ul>
 </dd>
 </dl>
@@ -214,8 +214,8 @@ signal callbacks or emitting any signals from that class’ objects</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>obj</strong> (<em>object</em>) – the object sending a signal</p></li>
-<li><p><strong>name</strong> (<em>signal name</em>) – the signal to send, typically a string</p></li>
+<li><p><strong>obj</strong> – the object sending a signal</p></li>
+<li><p><strong>name</strong> – the signal to send, typically a string</p></li>
 <li><p><strong>args</strong> – zero or more positional arguments to pass to the signal callback functions</p></li>
 </ul>
 </dd>
@@ -297,7 +297,7 @@ with the args arguments as positional parameters.</p>
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>

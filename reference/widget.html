@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 4.1.3</title>
+    <title>Widget Classes &#8212; Urwid 4.1.4</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=752939d7"></script>
+    <script src="../_static/documentation_options.js?v=bea0a91a"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -111,7 +111,7 @@ coordinates as part of the canvas that <a class="reference internal" href="#urwi
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p>
+<dd class="field-odd"><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>(<em>col</em>, <em>row</em>) if this widget has a cursor, <code class="docutils literal notranslate"><span class="pre">None</span></code> otherwise</p>
@@ -135,7 +135,7 @@ It is a separate method to avoid having to render the whole widget while calcula
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p>
+<dd class="field-odd"><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>a column number or <code class="docutils literal notranslate"><span class="pre">'left'</span></code> for the leftmost available
@@ -164,9 +164,9 @@ Not implementing this method is equivalent to having a method that always return
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – new column for the cursor, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – new row for the cursor, 0 it the top row of this widget</p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>col</strong> – new column for the cursor, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – new row for the cursor, 0 it the top row of this widget</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -221,15 +221,12 @@ making normal widgets fail the same way accessing <a class="reference internal" 
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -241,22 +238,19 @@ making normal widgets fail the same way accessing <a class="reference internal" 
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -303,7 +297,7 @@ required to display the text wrapped into a target number of rows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -316,7 +310,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -576,7 +570,7 @@ get_focus_path().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>markup</strong> (<a class="reference internal" href="../manual/displayattributes.html#text-markup"><span class="std std-ref">Text Markup</span></a>) – <p>content of text widget, one of:</p>
+<li><p><strong>markup</strong> – <p>content of text widget, one of:</p>
 <dl class="simple">
 <dt>bytes or unicode</dt><dd><p>text to be displayed</p>
 </dd>
@@ -587,9 +581,9 @@ of <em>text markup</em> with no display attribute already applied</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>align</strong> (<em>text alignment mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
-<li><p><strong>wrap</strong> (<em>text wrapping mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
-<li><p><strong>layout</strong> (<em>text layout instance</em>) – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
+<li><p><strong>align</strong> – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
+<li><p><strong>wrap</strong> – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
+<li><p><strong>layout</strong> – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
 </ul>
 </dd>
 </dl>
@@ -619,8 +613,8 @@ This method is used internally, but may be useful for debugging custom layout cl
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>maxcol</strong> (<em>int</em>) – columns available for display</p></li>
-<li><p><strong>ta</strong> (<em>text and display attributes</em>) – <code class="docutils literal notranslate"><span class="pre">None</span></code> or the (<em>text</em>, <em>display attributes</em>) tuple
+<li><p><strong>maxcol</strong> – columns available for display</p></li>
+<li><p><strong>ta</strong> – <code class="docutils literal notranslate"><span class="pre">None</span></code> or the (<em>text</em>, <em>display attributes</em>) tuple
 returned from <a class="reference internal" href="#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_text()</span></code></a></p></li>
 </ul>
 </dd>
@@ -662,9 +656,9 @@ clipping, as a single element tuple.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <code class="docutils literal notranslate"><span class="pre">None</span></code> or <code class="docutils literal notranslate"><span class="pre">()</span></code> for unlimited screen columns (like FIXED sizing)
+<li><p><strong>size</strong> – <code class="docutils literal notranslate"><span class="pre">None</span></code> or <code class="docutils literal notranslate"><span class="pre">()</span></code> for unlimited screen columns (like FIXED sizing)
 or (<em>maxcol</em>,) to specify a maximum column size</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – widget is focused on</p></li>
+<li><p><strong>focus</strong> – widget is focused on</p></li>
 </ul>
 </dd>
 </dl>
@@ -729,7 +723,7 @@ or (<em>maxcol</em>,) to specify a maximum column size</p></li>
 object in use but defaults to a <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mode</strong> (<em>text alignment mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p>
+<dd class="field-odd"><p><strong>mode</strong> – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="exceptions.html#urwid.TextError" title="urwid.TextError"><strong>TextError</strong></a> – <em>mode</em> is not supported by the layout in use.</p>
@@ -759,8 +753,8 @@ the same time.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>wrap</strong> (<em>text wrapping mode</em>) – typically ‘space’, ‘any’, ‘clip’ or ‘ellipsis’</p></li>
-<li><p><strong>layout</strong> (<em>text layout instance</em>) – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
+<li><p><strong>wrap</strong> – typically ‘space’, ‘any’, ‘clip’ or ‘ellipsis’</p></li>
+<li><p><strong>layout</strong> – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
 </ul>
 </dd>
 </dl>
@@ -778,7 +772,7 @@ the same time.</p>
 <dd><p>Set content of text widget.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>markup</strong> (<em>text markup</em>) – see <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for description.</p>
+<dd class="field-odd"><p><strong>markup</strong> – see <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for description.</p>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">t</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="s2">"foo"</span><span class="p">)</span>
@@ -801,7 +795,7 @@ the same time.</p>
 object in use but defaults to a <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mode</strong> (<em>text wrapping mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p>
+<dd class="field-odd"><p><strong>mode</strong> – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="exceptions.html#urwid.TextError" title="urwid.TextError"><strong>TextError</strong></a> – <em>mode</em> is not supported by the layout in use.</p>
@@ -860,15 +854,15 @@ text if it is signaled for text that it has already changed once).</p></li>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>caption</strong> (<em>text markup</em>) – markup for caption preceding edit_text, see <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for description of text markup.</p></li>
-<li><p><strong>edit_text</strong> (<em>bytes</em><em> or </em><em>str</em>) – initial text for editing, type (bytes or str) must match the text in the caption</p></li>
-<li><p><strong>multiline</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code>: <kbd class="kbd docutils literal notranslate">enter</kbd> inserts a newline, <code class="docutils literal notranslate"><span class="pre">False</span></code>: return it</p></li>
-<li><p><strong>align</strong> (<em>text alignment mode</em>) – typically ‘left’, ‘center’ or ‘right’</p></li>
-<li><p><strong>wrap</strong> (<em>text wrapping mode</em>) – typically ‘space’, ‘any’ or ‘clip’</p></li>
-<li><p><strong>allow_tab</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code>: <kbd class="kbd docutils literal notranslate">tab</kbd> inserts 1-8 spaces, <code class="docutils literal notranslate"><span class="pre">False</span></code>: return it</p></li>
-<li><p><strong>edit_pos</strong> (<em>int</em>) – initial position for cursor, None:end of edit_text</p></li>
-<li><p><strong>layout</strong> (<em>text layout instance</em>) – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
-<li><p><strong>mask</strong> (<em>bytes</em><em> or </em><em>str</em>) – hide text entered with this character, None:disable mask</p></li>
+<li><p><strong>caption</strong> – markup for caption preceding edit_text, see <a class="reference internal" href="#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> for description of text markup.</p></li>
+<li><p><strong>edit_text</strong> – initial text for editing, type (bytes or str) must match the text in the caption</p></li>
+<li><p><strong>multiline</strong> – <code class="docutils literal notranslate"><span class="pre">True</span></code>: <kbd class="kbd docutils literal notranslate">enter</kbd> inserts a newline, <code class="docutils literal notranslate"><span class="pre">False</span></code>: return it</p></li>
+<li><p><strong>align</strong> – typically ‘left’, ‘center’ or ‘right’</p></li>
+<li><p><strong>wrap</strong> – typically ‘space’, ‘any’ or ‘clip’</p></li>
+<li><p><strong>allow_tab</strong> – <code class="docutils literal notranslate"><span class="pre">True</span></code>: <kbd class="kbd docutils literal notranslate">tab</kbd> inserts 1-8 spaces, <code class="docutils literal notranslate"><span class="pre">False</span></code>: return it</p></li>
+<li><p><strong>edit_pos</strong> – initial position for cursor, None:end of edit_text</p></li>
+<li><p><strong>layout</strong> – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
+<li><p><strong>mask</strong> – hide text entered with this character, None:disable mask</p></li>
 </ul>
 </dd>
 </dl>
@@ -987,7 +981,7 @@ This method is used by the keypress() method when inserting
 one or more characters into edit_text.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>text</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – text for inserting, type (bytes or unicode)
+<dd class="field-odd"><p><strong>text</strong> – text for inserting, type (bytes or unicode)
 must match the text in the caption</p>
 </dd>
 </dl>
@@ -1010,7 +1004,7 @@ must match the text in the caption</p>
 insertion.  Handy for pre-validation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>text</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – text for inserting, type (bytes or unicode)
+<dd class="field-odd"><p><strong>text</strong> – text for inserting, type (bytes or unicode)
 must match the text in the caption</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -1147,7 +1141,7 @@ focus.</p>
 Clips pos to [0, len(edit_text)].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>pos</strong> (<em>int</em>) – cursor position</p>
+<dd class="field-odd"><p><strong>pos</strong> – cursor position</p>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">e</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"word"</span><span class="p">)</span>
@@ -1172,7 +1166,7 @@ Clips pos to [0, len(edit_text)].</p>
 <dd><p>Set the edit text for this widget.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>text</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – text for editing, type (bytes or unicode)
+<dd class="field-odd"><p><strong>text</strong> – text for editing, type (bytes or unicode)
 must match the text in the caption</p>
 </dd>
 </dl>
@@ -1202,7 +1196,7 @@ See <a class="reference internal" href="#urwid.Text.set_layout" title="urwid.Tex
 <dd><p>Set the character for masking text away.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mask</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – hide text entered with this character, None:disable mask</p>
+<dd class="field-odd"><p><strong>mask</strong> – hide text entered with this character, None:disable mask</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1233,7 +1227,7 @@ of this widget (caption plus edit_text, possibly masked).</p>
 <dd><p>Filter for text that may be entered into this widget by the user</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>ch</strong> (<em>str</em>) – character to be inserted</p>
+<dd class="field-odd"><p><strong>ch</strong> – character to be inserted</p>
 </dd>
 </dl>
 <p>This implementation returns True for all printable characters.</p>
@@ -1312,9 +1306,9 @@ of this widget (caption plus edit_text, possibly masked).</p>
 <li><p><strong>on_press</strong> – shorthand for connect_signal()
 function call for a single callback</p></li>
 <li><p><strong>user_data</strong> – user_data for on_press</p></li>
-<li><p><strong>align</strong> (<em>label alignment mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
-<li><p><strong>wrap</strong> (<em>label wrapping mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
-<li><p><strong>layout</strong> (<em>text layout instance</em>) – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
+<li><p><strong>align</strong> – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
+<li><p><strong>wrap</strong> – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
+<li><p><strong>layout</strong> – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
 </ul>
 </dd>
 </dl>
@@ -1847,22 +1841,19 @@ WidgetDecoration, or it may hide them from outside access.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2079,9 +2070,9 @@ use the <code class="docutils literal notranslate"><span class="pre">preserve_si
 description of text markup</p></li>
 <li><p><strong>cursor_position</strong> – position the cursor will appear in the
 text when this widget is in focus</p></li>
-<li><p><strong>align</strong> (<em>text alignment mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
-<li><p><strong>wrap</strong> (<em>text wrapping mode</em>) – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
-<li><p><strong>layout</strong> (<em>text layout instance</em>) – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
+<li><p><strong>align</strong> – typically <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code> or <code class="docutils literal notranslate"><span class="pre">'right'</span></code></p></li>
+<li><p><strong>wrap</strong> – typically <code class="docutils literal notranslate"><span class="pre">'space'</span></code>, <code class="docutils literal notranslate"><span class="pre">'any'</span></code>, <code class="docutils literal notranslate"><span class="pre">'clip'</span></code> or <code class="docutils literal notranslate"><span class="pre">'ellipsis'</span></code></p></li>
+<li><p><strong>layout</strong> – defaults to a shared <a class="reference internal" href="text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance</p></li>
 </ul>
 </dd>
 </dl>
@@ -2292,10 +2283,10 @@ wrapped widget.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>w</strong> (<a class="reference internal" href="main_loop.html#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><em>widget</em></a>) – widget to wrap (stored as self.original_widget)</p></li>
-<li><p><strong>attr_map</strong> (<em>display attribute</em><em> or </em><em>dict</em>) – attribute to apply to <em>w</em>, or dict of old display
+<li><p><strong>w</strong> – widget to wrap (stored as self.original_widget)</p></li>
+<li><p><strong>attr_map</strong> – attribute to apply to <em>w</em>, or dict of old display
 attribute: new display attribute mappings</p></li>
-<li><p><strong>focus_map</strong> (<em>display attribute</em><em> or </em><em>dict</em>) – attribute to apply when in focus or dict of
+<li><p><strong>focus_map</strong> – attribute to apply when in focus or dict of
 old display attribute: new display attribute mappings;
 if <code class="docutils literal notranslate"><span class="pre">None</span></code> use <em>attr</em></p></li>
 </ul>
@@ -2384,7 +2375,7 @@ constructor does.  You must specify {None: attribute} instead.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>w</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a box, flow or fixed widget to pad on the left and/or right
+<li><p><strong>w</strong> – a box, flow or fixed widget to pad on the left and/or right
 this widget is stored as self.original_widget</p></li>
 <li><p><strong>align</strong> – one of: <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code>, <code class="docutils literal notranslate"><span class="pre">'right'</span></code>
 (<code class="docutils literal notranslate"><span class="pre">'relative'</span></code>, <em>percentage</em> 0=left 100=right)</p></li>
@@ -2400,9 +2391,9 @@ this widget is stored as self.original_widget</p></li>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>min_width</strong> (<em>int</em><em> | </em><em>None</em>) – the minimum number of columns for self.original_widget or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
-<li><p><strong>left</strong> (<em>int</em>) – a fixed number of columns to pad on the left</p></li>
-<li><p><strong>right</strong> (<em>int</em>) – a fixed number of columns to pad on the right</p></li>
+<li><p><strong>min_width</strong> – the minimum number of columns for self.original_widget or <code class="docutils literal notranslate"><span class="pre">None</span></code></p></li>
+<li><p><strong>left</strong> – a fixed number of columns to pad on the left</p></li>
+<li><p><strong>right</strong> – a fixed number of columns to pad on the right</p></li>
 </ul>
 </dd>
 </dl>
@@ -2550,7 +2541,7 @@ to a fixed size.</p>
 <dd><dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>body</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a flow widget or box widget to be filled around (stored as self.original_widget)</p></li>
+<li><p><strong>body</strong> – a flow widget or box widget to be filled around (stored as self.original_widget)</p></li>
 <li><p><strong>valign</strong> – one of:
 <code class="docutils literal notranslate"><span class="pre">'top'</span></code>, <code class="docutils literal notranslate"><span class="pre">'middle'</span></code>, <code class="docutils literal notranslate"><span class="pre">'bottom'</span></code>,
 (<code class="docutils literal notranslate"><span class="pre">'relative'</span></code>, <em>percentage</em> 0=top 100=bottom)</p></li>
@@ -2572,8 +2563,8 @@ to a fixed size.</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>top</strong> (<em>int</em>) – a fixed number of rows to fill at the top</p></li>
-<li><p><strong>bottom</strong> (<em>int</em>) – a fixed number of rows to fill at the bottom</p></li>
+<li><p><strong>top</strong> – a fixed number of rows to fill at the top</p></li>
+<li><p><strong>bottom</strong> – a fixed number of rows to fill at the bottom</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -2678,9 +2669,9 @@ Sizing FLOW is supported if: FLOW widget (a height type is PACK) or BOX widget w
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>div_char</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – character to repeat across line</p></li>
-<li><p><strong>top</strong> (<em>int</em>) – number of blank lines above</p></li>
-<li><p><strong>bottom</strong> (<em>int</em>) – number of blank lines below</p></li>
+<li><p><strong>div_char</strong> – character to repeat across line</p></li>
+<li><p><strong>top</strong> – number of blank lines above</p></li>
+<li><p><strong>bottom</strong> – number of blank lines below</p></li>
 </ul>
 </dd>
 </dl>
@@ -2825,7 +2816,7 @@ focus widget is always provided by original widget.</p>
 <dd><p>A box widget that fills an area with a single character</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>fill_char</strong> (<em>bytes</em><em> or </em><em>unicode</em>) – character to fill area with</p>
+<dd class="field-odd"><p><strong>fill_char</strong> – character to fill area with</p>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">"8"</span><span class="p">)</span>
@@ -2889,7 +2880,7 @@ the pop-up is opened.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -2902,7 +2893,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2964,15 +2955,12 @@ may render the cached canvas instead of creating a new one.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2984,22 +2972,19 @@ may render the cached canvas instead of creating a new one.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3057,7 +3042,7 @@ required to display the text wrapped into a target number of rows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -3070,7 +3055,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3162,7 +3147,7 @@ required to display the text wrapped into a target number of rows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -3175,7 +3160,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3273,10 +3258,10 @@ the Frame will not automatically change focus up and down in response to keystro
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>body</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a box widget for the body of the frame</p></li>
-<li><p><strong>header</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a flow widget for above the body (or None)</p></li>
-<li><p><strong>footer</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a flow widget for below the body (or None)</p></li>
-<li><p><strong>focus_part</strong> (<em>str</em><em> | </em><a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – ‘header’, ‘footer’ or ‘body’</p></li>
+<li><p><strong>body</strong> – a box widget for the body of the frame</p></li>
+<li><p><strong>header</strong> – a flow widget for above the body (or None)</p></li>
+<li><p><strong>footer</strong> – a flow widget for below the body (or None)</p></li>
+<li><p><strong>focus_part</strong> – ‘header’, ‘footer’ or ‘body’</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -3320,9 +3305,6 @@ that is in focus: <cite>‘body’, ‘header’</cite> or <cite>‘footer’</c
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>one of ‘header’, ‘footer’ or ‘body’.</p>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -3333,16 +3315,13 @@ that is in focus: <cite>‘body’, ‘header’</cite> or <cite>‘footer’</c
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget is in focus</p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>focus</strong> – <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><cite>(head rows, foot rows),(orig head, orig foot)</cite>
 orig head/foot are from rows() calls.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>(int, int), (int, int)</p>
 </dd>
 </dl>
 </dd></dl>
@@ -3371,9 +3350,6 @@ that is in focus: <cite>‘body’, ‘header’</cite> or <cite>‘footer’</c
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>one of ‘header’, ‘footer’ or ‘body’.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>str</p>
 </dd>
 </dl>
 <div class="deprecated">
@@ -3506,7 +3482,7 @@ This API will be removed in version 5.0.</p>
 <dd><p>Vertically stacked list of widgets</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>body</strong> (<a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><em>ListWalker</em></a>) – a ListWalker subclass such as <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
+<dd class="field-odd"><p><strong>body</strong> – a ListWalker subclass such as <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
 that contains widgets to be displayed inside the list box</p>
 </dd>
 </dl>
@@ -3553,16 +3529,16 @@ This is used internally by methods that know the widget’s <em>size</em>.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> – see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
 <li><p><strong>position</strong> – a position compatible with <code class="xref py py-meth docutils literal notranslate"><span class="pre">self._body.set_focus()</span></code></p></li>
-<li><p><strong>offset_inset</strong> (<em>int</em>) – either the number of rows between the
+<li><p><strong>offset_inset</strong> – either the number of rows between the
 top of the listbox and the start of the focus widget (+ve
 value) or the number of lines of the focus widget hidden off
 the top edge of the listbox (-ve value) or 0 if the top edge
 of the focus widget is aligned with the top edge of the
 listbox (default if unspecified)</p></li>
-<li><p><strong>coming_from</strong> (<em>str</em>) – either ‘above’, ‘below’ or unspecified <cite>None</cite></p></li>
-<li><p><strong>cursor_coords</strong> (<em>(</em><em>int</em><em>, </em><em>int</em><em>)</em>) – (x, y) tuple indicating the desired column and row for the cursor,
+<li><p><strong>coming_from</strong> – either ‘above’, ‘below’ or unspecified <cite>None</cite></p></li>
+<li><p><strong>cursor_coords</strong> – (x, y) tuple indicating the desired column and row for the cursor,
 a (x,) tuple indicating only the column for the cursor, or unspecified</p></li>
-<li><p><strong>snap_rows</strong> (<em>int</em>) – the maximum number of extra rows to scroll
+<li><p><strong>snap_rows</strong> – the maximum number of extra rows to scroll
 when trying to “snap” a selectable focus into the view</p></li>
 </ul>
 </dd>
@@ -3723,7 +3699,7 @@ at itself.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>position</strong> – a position compatible with <code class="xref py py-meth docutils literal notranslate"><span class="pre">self._body.set_focus()</span></code></p></li>
-<li><p><strong>coming_from</strong> (<em>str</em>) – set to ‘above’ or ‘below’ if you know that
+<li><p><strong>coming_from</strong> – set to ‘above’ or ‘below’ if you know that
 old position is above or below the new position.</p></li>
 </ul>
 </dd>
@@ -3758,7 +3734,7 @@ This is used internally by methods that know the widget’s <em>size</em>.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> – see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>offset_inset</strong> (<em>int</em>) – either the number of rows between the
+<li><p><strong>offset_inset</strong> – either the number of rows between the
 top of the listbox and the start of the focus widget (+ve
 value) or the number of lines of the focus widget hidden off
 the top edge of the listbox (-ve value) or <code class="docutils literal notranslate"><span class="pre">0</span></code> if the top edge
@@ -3791,7 +3767,7 @@ listbox.</p></li>
 <dd><p>A ListBox with special handling for navigation and collapsing of TreeWidgets</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>body</strong> (<a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><em>ListWalker</em></a>) – a ListWalker subclass such as <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
+<dd class="field-odd"><p><strong>body</strong> – a ListWalker subclass such as <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
 that contains widgets to be displayed inside the list box</p>
 </dd>
 </dl>
@@ -4001,8 +3977,8 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – Widget size correct for the supported sizing</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value</p></li>
+<li><p><strong>size</strong> – Widget size correct for the supported sizing</p></li>
+<li><p><strong>key</strong> – a single keystroke value</p></li>
 </ul>
 </dd>
 </dl>
@@ -4048,7 +4024,7 @@ this column should be. <em>width_amount</em> is ignored.</p>
 <li><p><strong>width_type</strong> – <code class="docutils literal notranslate"><span class="pre">'pack'</span></code>, <code class="docutils literal notranslate"><span class="pre">'given'</span></code> or <code class="docutils literal notranslate"><span class="pre">'weight'</span></code></p></li>
 <li><p><strong>width_amount</strong> – <code class="docutils literal notranslate"><span class="pre">None</span></code> for <code class="docutils literal notranslate"><span class="pre">'pack'</span></code>, a number of screen columns
 for <code class="docutils literal notranslate"><span class="pre">'given'</span></code> or a weight value (number) for <code class="docutils literal notranslate"><span class="pre">'weight'</span></code></p></li>
-<li><p><strong>box_widget</strong> (<em>bool</em>) – set to <cite>True</cite> if this widget is to be treated as a box
+<li><p><strong>box_widget</strong> – set to <cite>True</cite> if this widget is to be treated as a box
 widget when the Columns widget itself is treated as a flow widget.</p></li>
 </ul>
 </dd>
@@ -4072,7 +4048,7 @@ widget when the Columns widget itself is treated as a flow widget.</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> – see <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget is in focus</p></li>
+<li><p><strong>focus</strong> – <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -4113,7 +4089,7 @@ This API will be removed in version 5.0.</p>
 <dd><p>Set the column in focus by its index in <a class="reference internal" href="#urwid.Columns.widget_list" title="urwid.Columns.widget_list"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget_list</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>num</strong> (<em>int</em>) – index of focus-to-be entry</p>
+<dd class="field-odd"><p><strong>num</strong> – index of focus-to-be entry</p>
 </dd>
 </dl>
 <div class="deprecated">
@@ -4129,9 +4105,6 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Calculated widget sizing</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>frozenset[Sizing]</p>
 </dd>
 </dl>
 <p>Due to the nature of container with mutable contents, this method cannot be cached.</p>
@@ -4210,8 +4183,8 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>widget_list</strong> (<em>iterable</em>) – child widgets</p></li>
-<li><p><strong>focus_item</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a><em> or </em><em>int</em>) – child widget that gets the focus initially.
+<li><p><strong>widget_list</strong> – child widgets</p></li>
+<li><p><strong>focus_item</strong> – child widget that gets the focus initially.
 Chooses the first selectable widget if unset.</p></li>
 </ul>
 </dd>
@@ -4316,6 +4289,10 @@ This API will be removed in version 5.0.</p>
 height rule that is not supported.</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.4: </span>Not used by the urwid code base. Use <a class="reference internal" href="#urwid.Pile.get_rows_sizes" title="urwid.Pile.get_rows_sizes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_rows_sizes()</span></code></a> instead.
+This API will be removed in version 6.0.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -4420,9 +4397,6 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Calculated widget sizing</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>frozenset[Sizing]</p>
 </dd>
 </dl>
 <p>Due to the nature of container with mutable contents, this method cannot be cached.</p>
@@ -4617,22 +4591,19 @@ Captures focus changes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4702,7 +4673,7 @@ required to display the text wrapped into a target number of rows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -4715,7 +4686,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -4746,7 +4717,7 @@ may render the cached canvas instead of creating a new one.</p>
 <dd><p>Set the cell in focus.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cell</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a><em> or </em><em>int</em>) – contained element to focus</p>
+<dd class="field-odd"><p><strong>cell</strong> – contained element to focus</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
@@ -4781,8 +4752,8 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>box_widget</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – box widget to wrap</p></li>
-<li><p><strong>height</strong> (<em>int</em>) – number of rows for box widget</p></li>
+<li><p><strong>box_widget</strong> – box widget to wrap</p></li>
+<li><p><strong>height</strong> – number of rows for box widget</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -4811,15 +4782,12 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4831,22 +4799,19 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -4858,7 +4823,7 @@ This API will be removed in version 5.0.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -4871,7 +4836,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -4952,11 +4917,11 @@ Bottom widget should be Box.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>top_w</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a flow, box or fixed widget to overlay “on top”.</p></li>
-<li><p><strong>bottom_w</strong> (<a class="reference internal" href="#urwid.Widget" title="urwid.Widget"><em>Widget</em></a>) – a box widget to appear “below” previous widget.</p></li>
-<li><p><strong>align</strong> (<em>Literal</em><em>[</em><em>&quot;left&quot;</em><em>, </em><em>&quot;center&quot;</em><em>, </em><em>&quot;right&quot;</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>Literal</em><em>[</em><em>&quot;relative&quot;</em><em>]</em><em>, </em><em>int</em><em>]</em>) – alignment, one of <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code>, <code class="docutils literal notranslate"><span class="pre">'right'</span></code> or
+<li><p><strong>top_w</strong> – a flow, box or fixed widget to overlay “on top”.</p></li>
+<li><p><strong>bottom_w</strong> – a box widget to appear “below” previous widget.</p></li>
+<li><p><strong>align</strong> – alignment, one of <code class="docutils literal notranslate"><span class="pre">'left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'center'</span></code>, <code class="docutils literal notranslate"><span class="pre">'right'</span></code> or
 (<code class="docutils literal notranslate"><span class="pre">'relative'</span></code>, <em>percentage</em> 0=left 100=right)</p></li>
-<li><p><strong>width</strong> (<em>Literal</em><em>[</em><em>&quot;pack&quot;</em><em>] </em><em>| </em><em>int</em><em> | </em><em>tuple</em><em>[</em><em>Literal</em><em>[</em><em>&quot;relative&quot;</em><em>]</em><em>, </em><em>int</em><em>]</em>) – <p>width type, one of:</p>
+<li><p><strong>width</strong> – <p>width type, one of:</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">'pack'</span></code></dt><dd><p>if <em>top_w</em> is a fixed widget</p>
 </dd>
@@ -4966,9 +4931,9 @@ Bottom widget should be Box.</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>valign</strong> (<em>Literal</em><em>[</em><em>&quot;top&quot;</em><em>, </em><em>&quot;middle&quot;</em><em>, </em><em>&quot;bottom&quot;</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>Literal</em><em>[</em><em>&quot;relative&quot;</em><em>]</em><em>, </em><em>int</em><em>]</em>) – alignment mode, one of <code class="docutils literal notranslate"><span class="pre">'top'</span></code>, <code class="docutils literal notranslate"><span class="pre">'middle'</span></code>, <code class="docutils literal notranslate"><span class="pre">'bottom'</span></code> or
+<li><p><strong>valign</strong> – alignment mode, one of <code class="docutils literal notranslate"><span class="pre">'top'</span></code>, <code class="docutils literal notranslate"><span class="pre">'middle'</span></code>, <code class="docutils literal notranslate"><span class="pre">'bottom'</span></code> or
 (<code class="docutils literal notranslate"><span class="pre">'relative'</span></code>, <em>percentage</em> 0=top 100=bottom)</p></li>
-<li><p><strong>height</strong> (<em>Literal</em><em>[</em><em>&quot;pack&quot;</em><em>] </em><em>| </em><em>int</em><em> | </em><em>tuple</em><em>[</em><em>Literal</em><em>[</em><em>&quot;relative&quot;</em><em>]</em><em>, </em><em>int</em><em>]</em>) – <p>one of:</p>
+<li><p><strong>height</strong> – <p>one of:</p>
 <dl class="simple">
 <dt><code class="docutils literal notranslate"><span class="pre">'pack'</span></code></dt><dd><p>if <em>top_w</em> is a flow or fixed widget</p>
 </dd>
@@ -4978,12 +4943,12 @@ Bottom widget should be Box.</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>min_width</strong> (<em>int</em>) – the minimum number of columns for <em>top_w</em> when width is not fixed.</p></li>
-<li><p><strong>min_height</strong> (<em>int</em>) – minimum number of rows for <em>top_w</em> when height is not fixed.</p></li>
-<li><p><strong>left</strong> (<em>int</em>) – a fixed number of columns to add on the left.</p></li>
-<li><p><strong>right</strong> (<em>int</em>) – a fixed number of columns to add on the right.</p></li>
-<li><p><strong>top</strong> (<em>int</em>) – a fixed number of rows to add on the top.</p></li>
-<li><p><strong>bottom</strong> (<em>int</em>) – a fixed number of rows to add on the bottom.</p></li>
+<li><p><strong>min_width</strong> – the minimum number of columns for <em>top_w</em> when width is not fixed.</p></li>
+<li><p><strong>min_height</strong> – minimum number of rows for <em>top_w</em> when height is not fixed.</p></li>
+<li><p><strong>left</strong> – a fixed number of columns to add on the left.</p></li>
+<li><p><strong>right</strong> – a fixed number of columns to add on the right.</p></li>
+<li><p><strong>top</strong> – a fixed number of rows to add on the top.</p></li>
+<li><p><strong>bottom</strong> – a fixed number of rows to add on the bottom.</p></li>
 </ul>
 </dd>
 </dl>
@@ -5129,9 +5094,6 @@ See also <a class="reference internal" href="#urwid.Overlay.set_overlay_paramete
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Sizing information depends on the top widget sizing and sizing parameters.</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>frozenset[Sizing]</p>
 </dd>
 </dl>
 <p>Rules:
@@ -5496,7 +5458,7 @@ required to display the text wrapped into a target number of rows.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -5509,7 +5471,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -5591,15 +5553,12 @@ correctly, make sure the global encoding for urwid is set to
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5611,7 +5570,7 @@ correctly, make sure the global encoding for urwid is set to
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -5624,7 +5583,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -5700,15 +5659,12 @@ changed but the widget wasn’t rendered yet.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5720,22 +5676,19 @@ changed but the widget wasn’t rendered yet.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5747,7 +5700,7 @@ changed but the widget wasn’t rendered yet.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -5760,7 +5713,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -5899,15 +5852,12 @@ be defined.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
-<li><p><strong>key</strong> (<em>str</em>) – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details</p></li>
+<li><p><strong>key</strong> – a single keystroke value; see <a class="reference internal" href="../manual/userinput.html#keyboard-input"><span class="std std-ref">Keyboard Input</span></a></p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">None</span></code> if <em>key</em> was handled by <em>key</em> (the same value passed) if <em>key</em> was not handled</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>str | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5919,22 +5869,19 @@ be defined.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>tuple</em><em>[</em><em>(</em><em>)</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>] </em><em>| </em><em>tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em>) – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
-<li><p><strong>event</strong> (<em>str</em>) – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
+<li><p><strong>size</strong> – See <a class="reference internal" href="#urwid.Widget.render" title="urwid.Widget.render"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.render()</span></code></a> for details.</p></li>
+<li><p><strong>event</strong> – Values such as <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code>, <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">mouse</span> <span class="pre">press'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">mouse</span> <span class="pre">release'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code>; see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a></p></li>
-<li><p><strong>button</strong> (<em>int</em>) – 1 through 5 for press events, often 0 for release events
+<li><p><strong>button</strong> – 1 through 5 for press events, often 0 for release events
 (which button was released is often not known)</p></li>
-<li><p><strong>col</strong> (<em>int</em>) – Column of the event, 0 is the left edge of this widget</p></li>
-<li><p><strong>row</strong> (<em>int</em>) – Row of the event, 0 it the top row of this widget</p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>col</strong> – Column of the event, 0 is the left edge of this widget</p></li>
+<li><p><strong>row</strong> – Row of the event, 0 it the top row of this widget</p></li>
+<li><p><strong>focus</strong> – Set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if the event was handled by this widget, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>bool | None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -5946,7 +5893,7 @@ be defined.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>size</strong> (<em>widget size</em>) – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
+<li><p><strong>size</strong> – <p>One of the following, <em>maxcol</em> and <em>maxrow</em> are integers &gt; 0:</p>
 <dl class="simple">
 <dt>(<em>maxcol</em>, <em>maxrow</em>)</dt><dd><p>for box sizing – the parent chooses the exact
 size of this widget</p>
@@ -5959,7 +5906,7 @@ which can’t be adjusted by the parent</p>
 </dd>
 </dl>
 </p></li>
-<li><p><strong>focus</strong> (<em>bool</em>) – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
+<li><p><strong>focus</strong> – set to <code class="docutils literal notranslate"><span class="pre">True</span></code> if this widget or one of its children is in focus</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -6704,7 +6651,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
