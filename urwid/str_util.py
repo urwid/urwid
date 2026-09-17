@@ -40,9 +40,10 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
     Return the screen column width for a single character.
 
     .. deprecated:: 3.0.4
+        Use :func:`wcwidth.wcwidth` instead. This API will be removed in version 6.0.
     """
     warnings.warn(
-        "get_char_width is deprecated in favor of wcwidth.width",
+        "get_char_width is deprecated in favor of wcwidth.width. API will be removed in version 6.0.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -57,9 +58,10 @@ def get_width(o: int) -> Literal[0, 1, 2]:
     Return the screen column width for unicode ordinal o.
 
     .. deprecated:: 3.0.4
+        Use :func:`wcwidth.wcwidth` instead. This API will be removed in version 6.0.
     """
     warnings.warn(
-        "get_width is deprecated in favor of wcwidth.width",
+        "get_width is deprecated in favor of wcwidth.width. API will be removed in version 6.0.",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -173,7 +175,16 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
 def decode_one_uni(text: str, i: int) -> tuple[int, int]:
     """
     decode_one implementation for unicode strings
+
+    .. deprecated:: 4.1.4
+        Not used by the urwid code base; there is no replacement.
+        This API will be removed in version 6.0.
     """
+    warnings.warn(
+        "decode_one_uni is not used by the urwid code base. API will be removed in version 6.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     return ord(text[i]), i + 1
 
 
@@ -183,7 +194,16 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
     pos is assumed to be on the trailing byte of a utf-8 sequence.
 
     :raises TypeError: *text* is not a byte string.
+
+    .. deprecated:: 4.1.4
+        Not used by the urwid code base; there is no replacement.
+        This API will be removed in version 6.0.
     """
+    warnings.warn(
+        "decode_one_right is not used by the urwid code base. API will be removed in version 6.0.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     if not isinstance(text, bytes):
         raise TypeError(text)
     error = ord("?"), pos - 1

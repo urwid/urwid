@@ -50,7 +50,8 @@ class AttrWrap(AttrMap[WrappedWidget]):
         [('fgreet', None, ...'hi   ')]
         """
         warnings.warn(
-            "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead.",
+            "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead. "
+            "API will be removed in version 6.0.",
             PendingDeprecationWarning,
             stacklevel=2,
         )

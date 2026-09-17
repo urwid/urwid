@@ -27,6 +27,7 @@ from __future__ import annotations
 import curses
 import sys
 import typing
+import warnings
 from contextlib import suppress
 
 from urwid import util
@@ -243,6 +244,16 @@ class Screen(BaseScreen, RealTerminal):
             self.cursor_state = "fixed"
 
     def _clear(self) -> None:
+        """Clear the screen and redraw it.
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base; there is no replacement.
+        """
+        warnings.warn(
+            "_clear is not used by the urwid code base. API will be removed in version 5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.s.clear()
         self.s.refresh()
 
@@ -490,7 +501,17 @@ class Screen(BaseScreen, RealTerminal):
         self.last_bstate = next_state
         return result
 
-    def _dbg_instr(self) -> bytes:  # messy input string (intended for debugging)
+    def _dbg_instr(self) -> bytes:
+        """Read a line of input with echo on (intended for debugging).
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base; there is no replacement.
+        """
+        warnings.warn(
+            "_dbg_instr is not used by the urwid code base. API will be removed in version 5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         curses.echo()
         self.s.nodelay(False)
         curses.halfdelay(100)
@@ -498,17 +519,51 @@ class Screen(BaseScreen, RealTerminal):
         curses.noecho()
         return string
 
-    def _dbg_out(self, string: str) -> None:  # messy output function (intended for debugging)
+    def _dbg_out(self, string: str) -> None:
+        """Write *string* at the cursor and refresh (intended for debugging).
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base; there is no replacement.
+        """
+        warnings.warn(
+            "_dbg_out is not used by the urwid code base. API will be removed in version 5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.s.clrtoeol()
         self.s.addstr(string)
         self.s.refresh()
         self._curs_set(1)
 
-    def _dbg_query(self, question: str) -> bytes:  # messy query (intended for debugging)
-        self._dbg_out(question)
-        return self._dbg_instr()
+    def _dbg_query(self, question: str) -> bytes:
+        """Write *question* and read the reply (intended for debugging).
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base; there is no replacement.
+        """
+        warnings.warn(
+            "_dbg_query is not used by the urwid code base. API will be removed in version 5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        with warnings.catch_warnings():
+            # _dbg_out and _dbg_instr are deprecated alongside this method,
+            # so their warnings would only repeat the one raised above.
+            warnings.simplefilter("ignore", DeprecationWarning)
+            self._dbg_out(question)
+            return self._dbg_instr()
 
     def _dbg_refresh(self) -> None:
+        """Refresh the screen (intended for debugging).
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base; there is no replacement.
+        """
+        warnings.warn(
+            "_dbg_refresh is not used by the urwid code base. API will be removed in version 5.0.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.s.refresh()
 
     def get_cols_rows(self) -> tuple[int, int]:

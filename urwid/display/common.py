@@ -1067,7 +1067,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             Call `start` as a context manager instead. This API will be removed in version 5.0.
         """
         warnings.warn(
-            "run_wrapper is deprecated in favor of calling `start` as a context manager."
+            "run_wrapper is deprecated in favor of calling `start` as a context manager. "
             "API will be removed in version 5.0.",
             DeprecationWarning,
             stacklevel=3,
