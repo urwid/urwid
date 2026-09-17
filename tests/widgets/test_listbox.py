@@ -2027,3 +2027,1017 @@ class ListBoxConsumerApiTest(unittest.TestCase):
         self.assertIs(items[2], listbox.focus)
         self.assertEqual(3, len(listbox))
         self.assertEqual([items[2]], listbox.get_focus_widgets())
+
+
+class DuckTypedWalker:
+    """Minimal duck-typed ListWalker-like object (not a ListWalker subclass)."""
+
+    def __init__(self, widgets):
+        self._widgets = widgets
+        self._focus = 0
+
+    def get_focus(self):
+        if not self._widgets:
+            return None, None
+        return self._widgets[self._focus], self._focus
+
+    def get_next(self, position):
+        pos = position + 1
+        if pos >= len(self._widgets):
+            return None, None
+        return self._widgets[pos], pos
+
+    def get_prev(self, position):
+        pos = position - 1
+        if pos < 0:
+            return None, None
+        return self._widgets[pos], pos
+
+    def set_focus(self, position):
+        self._focus = position
+
+
+class V1ProtocolWalker(urwid.ListWalker):
+    """ListWalker subclass without a ``__getitem__()``, to exercise the v1 contents protocol."""
+
+    def __init__(self, widgets):
+        self._widgets = widgets
+        self.focus = 0
+
+    def get_focus(self):
+        if not self._widgets:
+            return None, None
+        return self._widgets[self.focus], self.focus
+
+    def get_next(self, position):
+        pos = position + 1
+        if pos >= len(self._widgets):
+            return None, None
+        return self._widgets[pos], pos
+
+    def get_prev(self, position):
+        pos = position - 1
+        if pos < 0:
+            return None, None
+        return self._widgets[pos], pos
+
+    def set_focus(self, position):
+        self.focus = position
+        self._modified()
+
+
+class _LeafNode(urwid.TreeNode):
+    pass
+
+
+class _RootNode(urwid.ParentNode):
+    """Minimal tree used to build a real urwid.TreeWalker, which (like a few other ListWalker implementations)
+    has no positions() method -- unlike inventing a throwaway stand-in,
+    this exercises ListBox's "no positions()" fallback paths with an existing ListWalker subclass from the codebase.
+    """
+
+    def __init__(self, n_children):
+        self._n_children = n_children
+        super().__init__("root", key="root", depth=0)
+
+    def load_child_keys(self):
+        return list(range(self._n_children))
+
+    def load_child_node(self, key):
+        return _LeafNode(f"item{key}", parent=self, key=key, depth=1)
+
+
+def make_tree_walker(n_children=4, focus_key=0):
+    root = _RootNode(n_children)
+    walker = urwid.TreeWalker(root.get_child_node(focus_key))
+    return walker, root
+
+
+class EmptyNoPositionsWalker(urwid.ListWalker):
+    """ListWalker subclass without positions() that can also be empty.
+
+    urwid.TreeWalker always has a focus node and cannot represent "no widgets",
+    so it cannot be used for this specific empty-body case.
+    """
+
+    def get_focus(self):
+        return None, None
+
+
+class ListBoxInitAndBodySetterTest(unittest.TestCase):
+    def test_init_duck_typed_body_warns(self):
+        widgets = [urwid.Text("a"), urwid.Text("b")]
+        walker = DuckTypedWalker(widgets)
+        with self.assertWarns(DeprecationWarning):
+            lbox = urwid.ListBox(walker)
+        self.assertIs(lbox.body, walker)
+        # non-ListWalker body has no "modified" signal, so caching is disabled
+        canvas = lbox.render((4, 2), focus=True)
+        self.assertEqual([b"a   ", b"b   "], canvas.text)
+
+    def test_body_setter_duck_typed_warns(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        walker = DuckTypedWalker([urwid.Text("x")])
+        with self.assertWarns(DeprecationWarning):
+            lbox.body = walker
+        self.assertIs(lbox.body, walker)
+
+    def test_body_setter_plain_iterable(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        lbox.body = [urwid.Text("x"), urwid.Text("y")]
+        self.assertIsInstance(lbox.body, urwid.SimpleListWalker)
+        self.assertEqual(2, len(lbox.body))
+
+    def test_length_hint_sized(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(3)]))
+        self.assertEqual(3, lbox.__length_hint__())
+
+    def test_length_hint_not_sized(self):
+        class TestWalker(urwid.ListWalker):
+            @property
+            def contents(self):
+                return self
+
+            @staticmethod
+            def next_position(position: int) -> tuple[urwid.Text, int]:
+                return urwid.Text(str(position)), position
+
+            @staticmethod
+            def prev_position(position: int) -> tuple[urwid.Text, int]:
+                return urwid.Text(str(position)), position
+
+        lbox = urwid.ListBox(TestWalker())
+        with self.assertRaises(AttributeError):
+            lbox.__length_hint__
+
+
+class ListBoxScrollProtocolTest(unittest.TestCase):
+    def test_check_support_scrolling_missing_methods(self):
+        class NoGetPrevWalker:
+            def __init__(self, widgets):
+                self._widgets = widgets
+                self._focus = 0
+
+            def get_focus(self):
+                return self._widgets[self._focus], self._focus
+
+            def get_next(self, position):
+                return None, None
+
+            def set_focus(self, position):
+                self._focus = position
+
+        with self.assertWarns(DeprecationWarning):
+            lbox = urwid.ListBox(NoGetPrevWalker([urwid.Text("a")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.rows_max()
+
+    def test_check_support_scrolling_not_sized(self):
+        with self.assertWarns(DeprecationWarning):
+            lbox = urwid.ListBox(DuckTypedWalker([urwid.Text("a")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.get_scrollpos()
+
+    def test_check_support_scrolling_wrap_around(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a"), urwid.Text("b")], wrap_around=True))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.get_first_visible_pos((4, 5))
+
+    def test_scroll_protocol_empty_body(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertEqual(0, lbox.get_scrollpos((4, 5)))
+        self.assertEqual(0, lbox.get_first_visible_pos((4, 5)))
+        self.assertEqual(1, lbox.get_visible_amount((4, 5)))
+
+    def test_scroll_protocol_focus_at_top(self):
+        # focus at position 0 means nothing is above it, so top.fill is empty
+        # and get_scrollpos()/get_first_visible_pos() fall back to focus_pos.
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        size = (4, 5)
+        self.assertEqual(0, lbox.get_scrollpos(size))
+        self.assertEqual(0, lbox.get_first_visible_pos(size))
+
+    def test_rows_max_no_focus(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertEqual(0, lbox.rows_max((4, 5)))
+
+    def test_scroll_protocol(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(10)
+        size = (4, 5)
+
+        pos = lbox.get_scrollpos(size)
+        self.assertIsInstance(pos, int)
+
+        rows = lbox.rows_max(size)
+        self.assertIsInstance(rows, int)
+        # second call without size hits the cached branch
+        self.assertEqual(rows, lbox.rows_max())
+
+        first_visible = lbox.get_first_visible_pos(size)
+        self.assertIsInstance(first_visible, int)
+
+        visible_amount = lbox.get_visible_amount(size)
+        self.assertGreaterEqual(visible_amount, 1)
+
+        self.assertFalse(lbox.require_relative_scroll((4, 10)))
+        big_lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(100)]))
+        self.assertTrue(big_lbox.require_relative_scroll((4, 2)))
+
+
+class ListBoxRenderEmptyTest(unittest.TestCase):
+    def test_render_empty_listbox(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        canvas = lbox.render((4, 5))
+        self.assertEqual([b"    "] * 5, canvas.text)
+
+    def test_render_row_count_mismatch(self):
+        class BadRowsText(urwid.Text):
+            def rows(self, size, focus=False):
+                return super().rows(size, focus) + 1
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([BadRowsText("a"), urwid.Text("b")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+    def test_render_fill_above_row_count_mismatch(self):
+        class BadRowsText(urwid.Text):
+            def rows(self, size, focus=False):
+                return super().rows(size, focus) + 1
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([BadRowsText("a"), urwid.Text("b")]))
+        lbox.set_focus(1)
+        lbox.shift_focus((4, 10), 1)
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+    def test_render_fill_below_row_count_mismatch(self):
+        class BadRowsText(urwid.Text):
+            def rows(self, size, focus=False):
+                return super().rows(size, focus) + 1
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a"), BadRowsText("b")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+    def test_render_cursor_mismatch(self):
+        class LyingCursorEdit(urwid.Edit):
+            def render(self, size, focus=False):
+                canvas = super().render(size, focus)
+                if focus:
+                    canvas = urwid.CompositeCanvas(canvas)
+                    canvas.cursor = (0, 0)
+                return canvas
+
+        e = LyingCursorEdit("", "ab")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+    def test_render_too_short_extra_widget(self):
+        class FlakyNextWalker(urwid.ListWalker):
+            """A ListWalker that claims there is nothing below the focus while calculate_visible() is filling the view.
+
+            It then reveals a real, non-empty widget when render() double-checks afterwards --
+            this simulates a buggy/inconsistent ListWalker implementation.
+            """
+
+            def __init__(self, widgets):
+                self._widgets = widgets
+                self.focus = 0
+                self._calls = 0
+
+            def get_focus(self):
+                return self._widgets[self.focus], self.focus
+
+            def get_next(self, position):
+                self._calls += 1
+                if self._calls <= 2:
+                    return None, None
+                pos = position + 1
+                if pos >= len(self._widgets):
+                    return None, None
+                return self._widgets[pos], pos
+
+            def get_prev(self, position):
+                if position <= 0:
+                    return None, None
+                return self._widgets[position - 1], position - 1
+
+            def set_focus(self, position):
+                self.focus = position
+
+        lbox = urwid.ListBox(FlakyNextWalker([urwid.Text("a"), urwid.Text("b")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+    def test_render_infinite_next_position_guard(self):
+        class LoopingWalker(urwid.ListWalker):
+            """Like FlakyNextWalker above,
+            it claims there is nothing below the focus while calculate_visible() fills the view.
+
+            On every subsequent call it keeps reporting the very same zero-row widget/position pair --
+            simulating a buggy next_position() that never advances.
+            """
+
+            def __init__(self, widgets):
+                self._widgets = widgets
+                self.focus = 0
+                self._calls = 0
+
+            def get_focus(self):
+                return self._widgets[self.focus], self.focus
+
+            def get_next(self, position):
+                self._calls += 1
+                if self._calls <= 2:
+                    return None, None
+                return self._widgets[-1], len(self._widgets) - 1
+
+            def get_prev(self, position):
+                if position <= 0:
+                    return None, None
+                return self._widgets[position - 1], position - 1
+
+            def set_focus(self, position):
+                self.focus = position
+
+        zero_rows = urwid.Pile([])
+        zero_rows.selectable = lambda: False
+        lbox = urwid.ListBox(LoopingWalker([urwid.Text("a"), zero_rows]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.render((4, 5), focus=True)
+
+
+class ListBoxCalculateVisibleEdgeTest(unittest.TestCase):
+    def test_calculate_visible_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertEqual((None, None, None), lbox.calculate_visible((4, 5)))
+
+    def test_calculate_visible_skips_zero_height_above(self):
+        body = urwid.SimpleListWalker([urwid.Pile([]), urwid.Text("a")])
+        lbox = urwid.ListBox(body)
+        lbox.body.set_focus(1)
+        lbox.offset_rows = 1
+        lbox.inset_fraction = (0, 1)
+        middle, top, bottom = lbox.calculate_visible((4, 5))
+        self.assertIsNotNone(middle)
+
+    def test_calculate_visible_fill_from_top_partial(self):
+        text = "\n".join(str(i) for i in range(8))
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(text)]))
+        lbox.set_focus_pending = None
+        lbox.shift_focus((4, 10), -6)
+        canvas = lbox.render((4, 5), focus=True)
+        self.assertEqual(5, canvas.rows())
+
+
+class ListBoxGetCursorCoordsTest(unittest.TestCase):
+    def test_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertIsNone(lbox.get_cursor_coords((4, 5)))
+
+    def test_no_cursor(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        self.assertIsNone(lbox.get_cursor_coords((4, 5)))
+
+    def test_with_cursor(self):
+        e = urwid.Edit("", "ab")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        self.assertEqual((2, 0), lbox.get_cursor_coords((4, 5)))
+
+    def test_cursor_kept_in_view_by_offset_adjustment(self):
+        # calculate_visible() actively re-adjusts the offset/inset so a visible
+        # cursor always lands within the rendered rows; get_cursor_coords()'s own
+        # out-of-range guard (`y < 0 or y >= maxrow`) is therefore not reachable
+        # through this path and is left uncovered as a defensive check.
+        e = urwid.Edit("", "ab")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("\n\n\n\n\n"), e]))
+        lbox.set_focus(1)
+        lbox.shift_focus((4, 20), 10)
+        x, y = lbox.get_cursor_coords((4, 5))
+        self.assertTrue(0 <= y < 5)
+
+
+class ListBoxSetFocusErrorsTest(unittest.TestCase):
+    def test_invalid_coming_from(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.set_focus(0, "sideways")
+
+    def test_no_set_focus_method(self):
+        class NoSetFocusWalker(urwid.ListWalker):
+            def get_focus(self):
+                return urwid.Text("a"), 0
+
+        lbox = urwid.ListBox(NoSetFocusWalker())
+        with self.assertRaises(TypeError):
+            lbox.set_focus(0)
+
+    def test_empty_listbox(self):
+        class EmptyWalker(urwid.ListWalker):
+            def get_focus(self):
+                return None, None
+
+            def set_focus(self, position):
+                pass
+
+        lbox = urwid.ListBox(EmptyWalker())
+        with self.assertRaises(IndexError):
+            lbox.set_focus(0)
+
+    def test_focus_position_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        with self.assertRaises(IndexError):
+            _ = lbox.focus_position
+
+
+class ListBoxContentsTest(unittest.TestCase):
+    def test_getitem_len_repr(self):
+        items = [urwid.Text(str(i)) for i in range(3)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        contents = lbox.contents
+
+        self.assertEqual(3, len(contents))
+        widget, options = contents[1]
+        self.assertIs(items[1], widget)
+        self.assertIsNone(options)
+        self.assertIn("ListBoxContents", repr(contents))
+
+        with self.assertRaises(KeyError):
+            contents[100]
+
+    def test_getitem_v1_protocol(self):
+        widgets = [urwid.Text(str(i)) for i in range(3)]
+        lbox = urwid.ListBox(V1ProtocolWalker(widgets))
+        contents = lbox.contents
+
+        widget = contents[1]
+        self.assertIs(widgets[1], widget)
+        self.assertEqual(0, lbox.body.focus)
+
+        with self.assertRaises(KeyError):
+            contents[100]
+
+    def test_getitem_no_set_focus(self):
+        class NoGetItemNoSetFocus(urwid.ListWalker):
+            def get_focus(self):
+                return urwid.Text("a"), 0
+
+        lbox = urwid.ListBox(NoGetItemNoSetFocus())
+        with self.assertRaises(TypeError):
+            _ = lbox.contents[0]
+
+    def test_options(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        self.assertIsNone(lbox.options())
+
+
+class ListBoxSetFocusValignTest(unittest.TestCase):
+    def test_set_focus_valign_middle(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(5)]))
+        lbox.set_focus_valign("middle")
+        lbox.render((4, 5), focus=True)
+        self.assertIsInstance(lbox.offset_rows, int)
+
+    def test_set_focus_valign_empty(self):
+        walker = urwid.SimpleListWalker([urwid.Text("a")])
+        lbox = urwid.ListBox(walker)
+        lbox.render((4, 5), focus=True)  # resolve the initial "first selectable" pending
+        walker.clear()
+        lbox.set_focus_valign("middle")
+        lbox.render((4, 5), focus=True)  # must not raise; body is now empty
+
+
+class ListBoxFirstSelectableTest(unittest.TestCase):
+    def test_focus_already_selectable(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([SelectableText("a"), urwid.Text("b")]))
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(0, lbox.focus_position)
+
+    def test_picks_later_selectable_widget(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a"), SelectableText("b"), urwid.Text("c")]))
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(1, lbox.focus_position)
+
+    def test_no_set_focus_method(self):
+        class NoSetFocusWalker(urwid.ListWalker):
+            def __init__(self, widgets):
+                self._widgets = widgets
+
+            def get_focus(self):
+                return self._widgets[0], 0
+
+            def get_next(self, position):
+                pos = position + 1
+                if pos >= len(self._widgets):
+                    return None, None
+                return self._widgets[pos], pos
+
+            def get_prev(self, position):
+                return None, None
+
+        lbox = urwid.ListBox(NoSetFocusWalker([urwid.Text("a"), urwid.Text("b")]))
+        with self.assertRaises(TypeError):
+            lbox.render((4, 5), focus=True)
+
+
+class ListBoxSetFocusCompleteTest(unittest.TestCase):
+    def test_type_error_when_body_loses_set_focus(self):
+        class FlakyWalker(urwid.ListWalker):
+            def __init__(self, widgets):
+                self._widgets = widgets
+                self.focus = 0
+                self.set_focus = self._do_set_focus
+
+            def get_focus(self):
+                return self._widgets[self.focus], self.focus
+
+            def _do_set_focus(self, position):
+                self.focus = position
+                self._modified()
+
+        walker = FlakyWalker([urwid.Text("a"), urwid.Text("b"), urwid.Text("c")])
+        lbox = urwid.ListBox(walker)
+        lbox.set_focus(1)
+        del walker.set_focus
+        with self.assertRaises(TypeError):
+            lbox.render((4, 5), focus=True)
+
+    def test_middle_none_after_restore(self):
+        class ShrinkingWalker(urwid.ListWalker):
+            def __init__(self, widgets):
+                self._widgets = widgets
+                self.focus = 0
+
+            def get_focus(self):
+                if 0 <= self.focus < len(self._widgets):
+                    return self._widgets[self.focus], self.focus
+                return None, None
+
+            def set_focus(self, position):
+                self.focus = position
+                self._modified()
+
+        walker = ShrinkingWalker([urwid.Text("a"), urwid.Text("b"), urwid.Text("c")])
+        lbox = urwid.ListBox(walker)
+        lbox.set_focus(2)
+        walker._widgets = []
+        lbox.render((4, 5), focus=True)  # must not raise
+
+    def test_coming_from_scroll_down_then_up(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(10)
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(8, "above")
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(8, lbox.focus_position)
+
+    def test_coming_from_scroll_visible_below(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(3, "below")
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(3, lbox.focus_position)
+
+    def test_far_jump_no_coming_from(self):
+        items = [urwid.Text(str(i)) for i in range(50)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(40)
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(40, lbox.focus_position)
+
+    def test_far_jump_coming_from_above(self):
+        items = [urwid.Text(str(i)) for i in range(50)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(40, "above")
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(40, lbox.focus_position)
+
+    def test_far_jump_coming_from_below(self):
+        items = [urwid.Text(str(i)) for i in range(50)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(40, "below")
+        lbox.render((4, 5), focus=True)
+        self.assertEqual(40, lbox.focus_position)
+
+
+class ListBoxShiftFocusErrorsTest(unittest.TestCase):
+    def test_offset_too_large(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.shift_focus((4, 5), 5)
+
+    def test_negative_offset_too_large(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.shift_focus((4, 5), -1)
+
+
+class ListBoxUpdatePrefColTest(unittest.TestCase):
+    def test_empty_listbox(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        lbox.update_pref_col_from_focus((4, 5))
+        self.assertEqual("left", lbox.pref_col)
+
+    def test_from_cursor_coords_only(self):
+        class CoordsOnlyWidget(urwid.Text):
+            def get_cursor_coords(self, size):
+                return (2, 0)
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([CoordsOnlyWidget("hi")]))
+        lbox.update_pref_col_from_focus((4, 5))
+        self.assertEqual(2, lbox.pref_col)
+
+
+class ListBoxChangeFocusErrorsTest(unittest.TestCase):
+    def test_no_set_focus(self):
+        class NoSetFocus(urwid.ListWalker):
+            def get_focus(self):
+                return urwid.Text("a"), 0
+
+        lbox = urwid.ListBox(NoSetFocus())
+        with self.assertRaises(TypeError):
+            lbox.change_focus((4, 5), 0)
+
+    def test_invalid_offset_inset(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a"), urwid.Text("b")]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.change_focus((4, 5), 1, offset_inset=-5)
+
+    def test_cursor_row_unspecified_no_coming_from(self):
+        e = urwid.Edit("", "hello")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        with self.assertRaises(ValueError):
+            lbox.change_focus((4, 5), 0, cursor_coords=(2,))
+
+    def test_cursor_row_out_of_range(self):
+        e = urwid.Edit("", "hello")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.change_focus((4, 5), 0, cursor_coords=(2, 99))
+
+    def test_cursor_coords_no_coming_from(self):
+        e = urwid.Edit("", "hello")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        lbox.change_focus((4, 5), 0, cursor_coords=(2, 0))
+        self.assertEqual((2, 0), e.get_cursor_coords((4,)))
+
+
+class ListBoxGetFocusOffsetInsetErrorsTest(unittest.TestCase):
+    def test_invalid_inset_fraction(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        lbox.offset_rows = 0
+        lbox.inset_fraction = (5, 3)
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.get_focus_offset_inset((4, 5))
+
+
+class ListBoxMakeCursorVisibleTest(unittest.TestCase):
+    def test_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        lbox.make_cursor_visible((4, 5))  # must not raise
+
+    def test_not_selectable(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        lbox.make_cursor_visible((4, 5))  # must not raise
+
+    def test_no_get_cursor_coords(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([SelectableText("a")]))
+        lbox.make_cursor_visible((4, 5))  # must not raise
+
+    def test_cursor_none(self):
+        class CursorNoneWidget(SelectableText):
+            def get_cursor_coords(self, size):
+                return None
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([CursorNoneWidget("a")]))
+        lbox.make_cursor_visible((4, 5))  # must not raise
+
+    def test_already_visible(self):
+        e = urwid.Edit("", "ab")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([e]))
+        lbox.make_cursor_visible((4, 5))
+        self.assertEqual(0, lbox.offset_rows)
+
+
+class ListBoxKeypressEdgeTest(unittest.TestCase):
+    def test_keypress_empty_listbox(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertEqual("up", lbox.keypress((4, 5), "up"))
+
+    def test_keypress_unhandled_key(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")]))
+        self.assertEqual("x", lbox.keypress((4, 5), "x"))
+
+    def test_keypress_page_up_middle_none(self):
+        class FlakyEmptyWalker(urwid.ListWalker):
+            def __init__(self, widget):
+                self._widget = widget
+                self._calls = 0
+
+            def get_focus(self):
+                self._calls += 1
+                if self._calls <= 3:
+                    return self._widget, 0
+                return None, None
+
+            def get_next(self, position):
+                return None, None
+
+            def get_prev(self, position):
+                return None, None
+
+            def set_focus(self, position):
+                pass
+
+        lbox = urwid.ListBox(FlakyEmptyWalker(urwid.Text("a")))
+        self.assertEqual("page up", lbox.keypress((4, 5), "page up"))
+
+    def test_keypress_page_down_middle_none(self):
+        class FlakyEmptyWalker(urwid.ListWalker):
+            def __init__(self, widget):
+                self._widget = widget
+                self._calls = 0
+
+            def get_focus(self):
+                self._calls += 1
+                if self._calls <= 3:
+                    return self._widget, 0
+                return None, None
+
+            def get_next(self, position):
+                return None, None
+
+            def get_prev(self, position):
+                return None, None
+
+            def set_focus(self, position):
+                pass
+
+        lbox = urwid.ListBox(FlakyEmptyWalker(urwid.Text("a")))
+        self.assertEqual("page down", lbox.keypress((4, 5), "page down"))
+
+    def test_page_up_all_visible_selectable_at_top(self):
+        body = [SelectableText("a"), SelectableText("b"), SelectableText("c")]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
+        lbox.set_focus(2)
+        lbox.keypress((4, 5), "page up")  # must not raise
+
+    def test_page_down_all_visible_selectable_at_bottom(self):
+        body = [SelectableText("a"), SelectableText("b"), SelectableText("c")]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
+        lbox.keypress((4, 5), "page down")  # must not raise
+
+    def test_page_up_zero_row_selectable(self):
+        zero = urwid.Pile([])
+        zero.selectable = lambda: True
+        body = [zero, urwid.Text("\n"), urwid.Text("\n"), SelectableText("\n\n")]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
+        lbox.set_focus(3)
+        lbox.shift_focus((4, 10), 3)
+        lbox.keypress((4, 5), "page up")  # must not raise
+
+    def test_page_down_zero_row_selectable(self):
+        zero = urwid.Pile([])
+        zero.selectable = lambda: True
+        body = [SelectableText("\n\n"), urwid.Text("\n"), urwid.Text("\n"), zero]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(body))
+        lbox.shift_focus((4, 10), 0)
+        lbox.keypress((4, 5), "page down")  # must not raise
+
+    def test_keypress_home_end(self):
+        items = [urwid.Text(str(i)) for i in range(10)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(5)
+        lbox.keypress((4, 5), "home")
+        self.assertEqual(0, lbox.focus_position)
+        lbox.keypress((4, 5), "end")
+        self.assertEqual(9, lbox.focus_position)
+
+    def test_keypress_max_left_no_positions(self):
+        walker, _root = make_tree_walker(3)
+        lbox = urwid.ListBox(walker)
+        with self.assertRaises(TypeError):
+            lbox.keypress((20, 5), "home")
+
+    def test_keypress_max_right_no_positions(self):
+        walker, _root = make_tree_walker(3)
+        lbox = urwid.ListBox(walker)
+        with self.assertRaises(TypeError):
+            lbox.keypress((20, 5), "end")
+
+    def test_keypress_up_middle_none(self):
+        class FlakyEmptyWalker(urwid.ListWalker):
+            def __init__(self, widget):
+                self._widget = widget
+                self._calls = 0
+
+            def get_focus(self):
+                self._calls += 1
+                if self._calls <= 3:
+                    return self._widget, 0
+                return None, None
+
+            def get_next(self, position):
+                return None, None
+
+            def get_prev(self, position):
+                return None, None
+
+            def set_focus(self, position):
+                pass
+
+        lbox = urwid.ListBox(FlakyEmptyWalker(urwid.Text("a")))
+        self.assertEqual("up", lbox.keypress((4, 5), "up"))
+
+    def test_keypress_down_middle_none(self):
+        class FlakyEmptyWalker(urwid.ListWalker):
+            def __init__(self, widget):
+                self._widget = widget
+                self._calls = 0
+
+            def get_focus(self):
+                self._calls += 1
+                if self._calls <= 3:
+                    return self._widget, 0
+                return None, None
+
+            def get_next(self, position):
+                return None, None
+
+            def get_prev(self, position):
+                return None, None
+
+            def set_focus(self, position):
+                pass
+
+        lbox = urwid.ListBox(FlakyEmptyWalker(urwid.Text("a")))
+        self.assertEqual("down", lbox.keypress((4, 5), "down"))
+
+
+class NoMouseEventWidget:
+    """A minimal flow widget that does not implement Widget's mouse_event API."""
+
+    _sizing = frozenset([urwid.Sizing.FLOW])
+
+    def __init__(self, text="x"):
+        self._text = text
+
+    def selectable(self):
+        return False
+
+    def rows(self, size, focus=False):
+        return 1
+
+    def render(self, size, focus=False):
+        return urwid.Text(self._text).render(size, focus)
+
+
+class ListBoxMouseEventTest(unittest.TestCase):
+    def test_mouse_event_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertFalse(lbox.mouse_event((4, 5), "mouse press", 1, 0, 0, True))
+
+    def test_mouse_event_click_changes_focus(self):
+        items = [SelectableText(str(i)) for i in range(5)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.mouse_event((4, 5), "mouse press", 1, 0, 2, True)
+        self.assertEqual(2, lbox.focus_position)
+
+    def test_mouse_event_no_row_match(self):
+        items = [urwid.Text("a")]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        result = lbox.mouse_event((4, 5), "mouse press", 1, 0, 4, True)
+        self.assertFalse(result)
+
+    def test_mouse_event_widget_without_mouse_event(self):
+        w = NoMouseEventWidget()
+        lbox = urwid.ListBox(urwid.SimpleListWalker([w]))
+        with self.assertWarns(DeprecationWarning):
+            result = lbox.mouse_event((4, 5), "mouse press", 1, 0, 0, True)
+        self.assertFalse(result)
+
+    def test_mouse_event_scroll_up(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(10)
+        lbox.render((4, 5), focus=True)
+        handled = lbox.mouse_event((4, 5), "mouse press", 4, 0, 0, True)
+        self.assertTrue(handled)
+
+    def test_mouse_event_scroll_down(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.render((4, 5), focus=True)
+        handled = lbox.mouse_event((4, 5), "mouse press", 5, 0, 0, True)
+        self.assertTrue(handled)
+
+    def test_mouse_event_release_no_scroll(self):
+        items = [urwid.Text(str(i)) for i in range(5)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        result = lbox.mouse_event((4, 5), "mouse release", 1, 0, 0, True)
+        self.assertFalse(result)
+
+    def test_mouse_event_widget_handles_click(self):
+        cb = urwid.CheckBox("opt")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([cb]))
+        handled = lbox.mouse_event((10, 5), "mouse press", 1, 2, 0, True)
+        self.assertTrue(handled)
+        self.assertTrue(cb.state)
+
+
+class ListBoxEndsVisibleTest(unittest.TestCase):
+    def test_ends_visible_empty(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([]))
+        self.assertEqual(["top", "bottom"], lbox.ends_visible((4, 5)))
+
+    def test_ends_visible_both(self):
+        items = [urwid.Text(str(i)) for i in range(3)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertIn("top", result)
+        self.assertIn("bottom", result)
+
+    def test_ends_visible_top_only(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertIn("top", result)
+        self.assertNotIn("bottom", result)
+
+    def test_ends_visible_bottom_only(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(19)
+        lbox.render((4, 5), focus=True)
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertIn("bottom", result)
+        self.assertNotIn("top", result)
+
+    def test_ends_visible_neither(self):
+        items = [urwid.Text(str(i)) for i in range(20)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        lbox.set_focus(10)
+        lbox.render((4, 5), focus=True)
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertEqual([], result)
+
+    def test_ends_visible_trim_bottom_nonzero(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("1\n2\n3\n4\n5\n6")]))
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertNotIn("bottom", result)
+
+    def test_ends_visible_trim_top_nonzero(self):
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("1\n2\n3\n4\n5\n6")]))
+        lbox.shift_focus((4, 10), -1)
+        result = lbox.ends_visible((4, 5), focus=True)
+        self.assertNotIn("top", result)
+
+
+class ListBoxIterTest(unittest.TestCase):
+    def test_iter_with_positions(self):
+        items = [urwid.Text(str(i)) for i in range(5)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        self.assertEqual(list(range(5)), list(iter(lbox)))
+
+    def test_reversed_with_positions(self):
+        items = [urwid.Text(str(i)) for i in range(5)]
+        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+        self.assertEqual(list(range(4, -1, -1)), list(reversed(lbox)))
+
+    def test_iter_without_positions(self):
+        walker, root = make_tree_walker(4, focus_key=1)
+        lbox = urwid.ListBox(walker)
+        expected = [
+            root.get_child_node(1),
+            root.get_child_node(2),
+            root.get_child_node(3),
+            root.get_child_node(0),
+            root,
+        ]
+        self.assertEqual(expected, list(iter(lbox)))
+
+    def test_reversed_without_positions(self):
+        walker, root = make_tree_walker(4, focus_key=1)
+        lbox = urwid.ListBox(walker)
+        expected = [
+            root.get_child_node(0),
+            root,
+            root.get_child_node(1),
+            root.get_child_node(2),
+            root.get_child_node(3),
+        ]
+        self.assertEqual(expected, list(reversed(lbox)))
+
+    def test_iter_empty_without_positions(self):
+        lbox = urwid.ListBox(EmptyNoPositionsWalker())
+        self.assertEqual([], list(iter(lbox)))
+        self.assertEqual([], list(reversed(lbox)))
