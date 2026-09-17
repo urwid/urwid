@@ -28,7 +28,7 @@ import contextlib
 import fcntl
 import functools
 import os
-import selectors
+import select
 import signal
 import struct
 import sys
@@ -52,6 +52,38 @@ if typing.TYPE_CHECKING:
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+
+
+# GPM event-type bits, as reported by the `mev` helper on its `Ax<hex>` field.
+# See GPM's public gpm.h, Gpm_Event.type.
+_GPM_MOVE = 1
+_GPM_DRAG = 2
+_GPM_DOWN = 4
+_GPM_UP = 8
+_GPM_SINGLE = 16
+_GPM_DOUBLE = 32
+_GPM_TRIPLE = 64
+_GPM_MFLAG = 128
+_GPM_HARD = 256
+
+# Event-type combinations actually emitted by `mev -e 158`, decoded against the bitmask above.
+_GPM_EV_DOWN_SINGLE = _GPM_DOWN | _GPM_SINGLE  # 20: first click of a press
+_GPM_EV_DOWN_DOUBLE = _GPM_DOWN | _GPM_DOUBLE  # 36: second click of a press
+_GPM_EV_DOWN_TRIPLE = _GPM_DOWN | _GPM_SINGLE | _GPM_DOUBLE  # 52: third click of a press
+_GPM_EV_DRAG = _GPM_DRAG | _GPM_SINGLE | _GPM_MFLAG  # 146
+_GPM_EV_UP_DOUBLE = _GPM_UP | _GPM_DOUBLE  # 40: release ending a double click
+
+# GPM Gpm_Event.buttons bits, from gpm.h.
+_GPM_B_LEFT = 4
+_GPM_B_MIDDLE = 2
+_GPM_B_RIGHT = 1
+
+# GPM Gpm_Event.modifiers bits. GPM documents this field as the Linux console "get shift state"
+# byte (TIOCLINUX subcode 6): bit 0 is shift, bit 1 is AltGr, bit 2 is control, bit 3 is (left) alt.
+_GPM_MOD_SHIFT = 1
+_GPM_MOD_ALTGR = 2
+_GPM_MOD_CTRL = 4
+_GPM_MOD_ALT = 8
 
 
 class Screen(_raw_display_base.Screen):
@@ -106,7 +138,7 @@ class Screen(_raw_display_base.Screen):
             f"focus_reporting={self.focus_reporting})>"
         )
 
-    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
+    def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
         """
         :param frame: will always be None when the GLib event loop is being used.
         """
@@ -154,7 +186,7 @@ class Screen(_raw_display_base.Screen):
             self._prev_sigcont_handler(signum, frame)
 
         self.start()
-        self._sigwinch_handler(28, None)
+        self._sigwinch_handler(signal.SIGWINCH, None)
 
     def signal_init(self) -> None:
         """
@@ -350,9 +382,10 @@ class Screen(_raw_display_base.Screen):
 
     def _get_gpm_codes(self) -> list[int]:
         codes: list[int] = []
+        gpm_mev = self.gpm_mev
         try:
-            while self.gpm_mev is not None and self.gpm_event_pending:
-                if self.gpm_mev.stdout is None:
+            while gpm_mev is not None and self.gpm_event_pending:
+                if gpm_mev.stdout is None:
                     return codes
                 codes.extend(self._encode_gpm_event())
         except OSError as e:
@@ -376,17 +409,23 @@ class Screen(_raw_display_base.Screen):
         if fd is None or fd not in ready:
             return chars
 
-        with selectors.DefaultSelector() as selector:
-            selector.register(fd, selectors.EVENT_READ)
-            input_ready = selector.select(0)
-            while input_ready:
-                chunk = os.read(fd, 1024)
-                if not chunk:
-                    raise RuntimeError("stdin has been closed")
-                chars.extend(chunk)
-                input_ready = selector.select(0)
+        # `fd` was just reported ready by the select() call above, so the first read is known to
+        # be non-blocking; only the trailing drain reads need a fresh (zero-timeout) readiness
+        # check. A plain select() call is used instead of building a selectors.DefaultSelector
+        # for a single fd, since that would pay for an epoll fd's creation and teardown on every
+        # call just to poll one descriptor a handful of times.
+        chunk = os.read(fd, 1024)
+        if not chunk:
+            raise RuntimeError("stdin has been closed")
+        chars.extend(chunk)
 
-            return chars
+        while select.select([fd], [], [], 0)[0]:
+            chunk = os.read(fd, 1024)
+            if not chunk:
+                raise RuntimeError("stdin has been closed")
+            chars.extend(chunk)
+
+        return chars
 
     def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False
@@ -401,7 +440,7 @@ class Screen(_raw_display_base.Screen):
             signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
 
-        ev_, x_, y_, _ign, b_, m_ = s.split(",")
+        ev_, x_, y_, _ign, b_, m_ = event_result
         ev = int(ev_.rsplit("x", 1)[-1], 16)
         x = int(x_.rsplit(" ", 1)[-1])
         y = int(y_.lstrip().split(" ", 1)[0])
@@ -414,57 +453,57 @@ class Screen(_raw_display_base.Screen):
         result: list[int] = []
 
         mod = 0
-        if m & 1:
+        if m & _GPM_MOD_SHIFT:
             mod |= 4  # shift
-        if m & 10:
+        if m & (_GPM_MOD_ALTGR | _GPM_MOD_ALT):
             mod |= 8  # alt
-        if m & 4:
+        if m & _GPM_MOD_CTRL:
             mod |= 16  # ctrl
 
         def append_button(b: int) -> None:
             b |= mod
             result.extend([27, ord("["), ord("M"), b + 32, x + 32, y + 32])
 
-        if ev in {20, 36, 52}:  # press
-            if b & 4 and last_state & 1 == 0:
+        if ev in {_GPM_EV_DOWN_SINGLE, _GPM_EV_DOWN_DOUBLE, _GPM_EV_DOWN_TRIPLE}:  # press
+            if b & _GPM_B_LEFT and last_state & 1 == 0:
                 append_button(0)
                 next_state |= 1
-            if b & 2 and last_state & 2 == 0:
+            if b & _GPM_B_MIDDLE and last_state & 2 == 0:
                 append_button(1)
                 next_state |= 2
-            if b & 1 and last_state & 4 == 0:
+            if b & _GPM_B_RIGHT and last_state & 4 == 0:
                 append_button(2)
                 next_state |= 4
-        elif ev == 146:  # drag
-            if b & 4:
+        elif ev == _GPM_EV_DRAG:  # drag
+            if b & _GPM_B_LEFT:
                 append_button(0 + escape.MOUSE_DRAG_FLAG)
-            elif b & 2:
+            elif b & _GPM_B_MIDDLE:
                 append_button(1 + escape.MOUSE_DRAG_FLAG)
-            elif b & 1:
+            elif b & _GPM_B_RIGHT:
                 append_button(2 + escape.MOUSE_DRAG_FLAG)
         else:  # release
-            if b & 4 and last_state & 1:
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~1
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~2
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~4
-        if ev == 40:  # double click (release)
-            if b & 4 and last_state & 1:
+        if ev == _GPM_EV_UP_DOUBLE:  # double click (release)
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-        elif ev == 52:
-            if b & 4 and last_state & 1:
+        elif ev == _GPM_EV_DOWN_TRIPLE:  # triple click (press)
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
 
         self.last_bstate = next_state

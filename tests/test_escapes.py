@@ -224,6 +224,24 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             escape.input_trie.read_sgrmouse_info(codes, more_available=True)
         self.assertIsNone(escape.input_trie.read_sgrmouse_info(codes, more_available=False))
 
+    def test_sgrmouse_empty_keys(self):
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info([], more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info([], more_available=False))
+
+    def test_sgrmouse_wheel(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        # code 64/65 (0b1000000/0b1000001) sets the "high button" bit, reporting wheel buttons 4/5
+        for code, expected_button in ((0b1000000, 4), (0b1000001, 5)):
+            key_code = tuple(ord(element) for element in str(code))
+            codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([("mouse press", expected_button, x, y)], actual)
+            self.assertListEqual([], rest)
+
     def test_mouse_x10_modifiers(self):
         x, y = 8, 15
         coord = (x + 33, y + 33)
@@ -245,6 +263,37 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         with self.assertRaises(escape.MoreInputRequired):
             escape.process_keyqueue(codes, more_available=True)
         self.assertIsNone(escape.input_trie.read_mouse_info([32], more_available=False))
+
+    def test_mouse_x10_release(self):
+        x, y = 8, 15
+        # button bits 0b11 (3) always mean "release", regardless of the MOUSE_RELEASE_FLAG bit
+        keys = [32 + 3, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse release", 0, x, y), []), result)
+
+    def test_mouse_x10_double_click(self):
+        x, y = 8, 15
+        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("double mouse click", 1, x, y), []), result)
+
+    def test_mouse_x10_triple_click(self):
+        x, y = 8, 15
+        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("triple mouse click", 1, x, y), []), result)
+
+    def test_mouse_x10_double_click_release(self):
+        x, y = 8, 15
+        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG + escape.MOUSE_RELEASE_FLAG, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("double mouse release", 1, x, y), []), result)
+
+    def test_mouse_x10_leftover_keys_after_report(self):
+        x, y = 8, 15
+        keys = [32, x + 33, y + 33, ord("z")]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse press", 1, x, y), [ord("z")]), result)
 
     def test_utf8_multibyte_decoding(self):
         old_encoding = util.get_encoding()

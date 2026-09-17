@@ -27,6 +27,7 @@ from __future__ import annotations
 import abc
 import contextlib
 import dataclasses
+import errno
 import functools
 import os
 import platform
@@ -55,6 +56,10 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
+
+# signal has no SIGWINCH on Windows; _win32_raw_display passes its own signum explicitly, so this
+# default is only ever actually used on POSIX.
+_SIGWINCH = getattr(signal, "SIGWINCH", 28)
 
 _ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
 
@@ -101,6 +106,21 @@ _NO_UNDERLINE_FAMILIES = frozenset({"dumb", "unknown", "vt52"})
 _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
 _TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
+
+# ANSI SGR base codes (ECMA-48 / ISO 6429): 30-37 selects a standard foreground color, 90-97 a
+# bright one without needing bold; 40-47 selects a standard background color, 100-107 a bright
+# one. AttrSpec numbers its 16 basic colors 0-15, with 8-15 being "the bright half", so
+# _SGR_BRIGHT_OFFSET is subtracted from the AttrSpec number before adding the bright SGR base.
+_SGR_FG_BASE = 30
+_SGR_FG_BRIGHT_BASE = 90
+_SGR_BG_BASE = 40
+_SGR_BG_BRIGHT_BASE = 100
+_SGR_BRIGHT_OFFSET = 8
+
+# Index into the (basic, mono, high_88, high_256, high_true) tuple that
+# BaseScreen.register_palette_entry() emits via UPDATE_PALETTE_ENTRY, keyed by this screen's
+# current color count.
+_ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256: 3, 16777216: 4}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -320,7 +340,7 @@ class Screen(BaseScreen, RealTerminal):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
 
-    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
+    def _sigwinch_handler(self, signum: int = _SIGWINCH, frame: FrameType | None = None) -> None:
         """
         :param frame: will always be None when the GLib event loop is being used.
         """
@@ -352,7 +372,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _on_update_palette_entry(self, name: str | None, *attrspecs: AttrSpec) -> None:
         # copy the attribute to a dictionary containing the escape seqences
-        a: AttrSpec = attrspecs[{16: 0, 1: 1, 88: 2, 256: 3, 2**24: 4}[self.colors]]
+        a: AttrSpec = attrspecs[_ATTRSPEC_INDEX_BY_COLORS[self.colors]]
         self._pal_attrspec[name] = a
         self._pal_escape[name] = self._attrspec_to_escape(a)
 
@@ -946,14 +966,15 @@ class Screen(BaseScreen, RealTerminal):
             # handle resize before trying to draw screen
             return
         try:
-            for line in output:
-                if isinstance(line, bytes):
-                    line = line.decode(encoding, "replace")  # noqa: PLW2901
-                self.write(line)
+            # A single write() call, rather than one per output fragment, avoids paying the
+            # per-call overhead (and, for a real file, a separate write syscall) once per row.
+            self.write(
+                "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
+            )
             self.flush()
         except OSError as e:
             # ignore interrupted syscall
-            if e.args[0] != 4:
+            if e.args[0] != errno.EINTR:
                 raise
 
         self.screen_buf = sb
@@ -1054,11 +1075,11 @@ class Screen(BaseScreen, RealTerminal):
         elif a.foreground_basic:
             if a.foreground_number > 7:
                 if self.fg_bright_is_bold:
-                    fg = f"1;{a.foreground_number - 8 + 30:d}"
+                    fg = f"1;{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BASE:d}"
                 else:
-                    fg = f"{a.foreground_number - 8 + 90:d}"
+                    fg = f"{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BRIGHT_BASE:d}"
             else:
-                fg = f"{a.foreground_number + 30:d}"
+                fg = f"{a.foreground_number + _SGR_FG_BASE:d}"
         else:
             fg = "39"
         st = (
@@ -1077,12 +1098,12 @@ class Screen(BaseScreen, RealTerminal):
         elif a.background_basic:
             if a.background_number > 7:
                 if self.bg_bright_is_blink:
-                    bg = f"5;{a.background_number - 8 + 40:d}"
+                    bg = f"5;{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BASE:d}"
                 else:
                     # this doesn't work on most terminals
-                    bg = f"{a.background_number - 8 + 100:d}"
+                    bg = f"{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BRIGHT_BASE:d}"
             else:
-                bg = f"{a.background_number + 40:d}"
+                bg = f"{a.background_number + _SGR_BG_BASE:d}"
         else:
             bg = "49"
         return f"{escape.ESC}[0;{fg};{st}{bg}m"

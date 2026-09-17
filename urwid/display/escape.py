@@ -297,33 +297,36 @@ class KeyqueueTrie:
                 raise MoreInputRequired()
             return None
 
-        b = keys[0] - 32
-        x, y = (keys[1] - 33) % 256, (keys[2] - 33) % 256  # supports 0-255
+        b = keys[0] - _MOUSE_BYTE_OFFSET
+        # supports 0-255
+        x, y = (keys[1] - _MOUSE_COORD_OFFSET) % 256, (keys[2] - _MOUSE_COORD_OFFSET) % 256
 
         prefixes = []
-        if b & 4:
+        if b & _MOUSE_SHIFT_FLAG:
             prefixes.append("shift ")
-        if b & 8:
+        if b & _MOUSE_META_FLAG:
             prefixes.append("meta ")
-        if b & 16:
+        if b & _MOUSE_CTRL_FLAG:
             prefixes.append("ctrl ")
-        if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 1:
+        multi_click = (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9
+        if multi_click == 1:
             prefixes.append("double ")
-        if (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9 == 2:
+        elif multi_click == 2:
             prefixes.append("triple ")
         prefix = "".join(prefixes)
 
+        button_bits = b & _MOUSE_BUTTON_MASK
         # 0->1, 1->2, 2->3, 64->4, 65->5
-        button = ((b & 64) // 64 * 3) + (b & 3) + 1
+        button = ((b & _MOUSE_HIGH_BUTTON_FLAG) // _MOUSE_HIGH_BUTTON_FLAG * 3) + button_bits + 1
 
-        if b & 3 == 3:
+        if button_bits == _MOUSE_BUTTON_MASK:
             action = "release"
             button = 0
         elif b & MOUSE_RELEASE_FLAG:
             action = "release"
         elif b & MOUSE_DRAG_FLAG:
             action = "drag"
-        elif b & MOUSE_MULTIPLE_CLICK_MASK:
+        elif multi_click:
             action = "click"
         else:
             action = "press"
@@ -373,17 +376,17 @@ class KeyqueueTrie:
         # so setting one here will cause an inconsistent behaviour.
 
         prefixes = []
-        if b & 4:
+        if b & _MOUSE_SHIFT_FLAG:
             prefixes.append("shift ")
-        if b & 8:
+        if b & _MOUSE_META_FLAG:
             prefixes.append("meta ")
-        if b & 16:
+        if b & _MOUSE_CTRL_FLAG:
             prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
-        wheel_used: typing.Literal[0, 1] = typing.cast("Literal[0, 1]", (b & 64) >> 6)
+        wheel_used: typing.Literal[0, 1] = typing.cast("Literal[0, 1]", (b & _MOUSE_HIGH_BUTTON_FLAG) >> 6)
 
-        button = (wheel_used * 3) + (b & 3) + 1
+        button = (wheel_used * 3) + (b & _MOUSE_BUTTON_MASK) + 1
         x -= 1
         y -= 1
 
@@ -469,6 +472,20 @@ MOUSE_MULTIPLE_CLICK_FLAG = 512
 
 # xterm adds this to the button value to signal a mouse drag event
 MOUSE_DRAG_FLAG = 32
+
+# Bits of the X10/SGR mouse report's button byte, per xterm's ctlseqs documentation of the
+# "normal tracking mode" and "SGR mouse mode" reports.
+_MOUSE_SHIFT_FLAG = 4
+_MOUSE_META_FLAG = 8
+_MOUSE_CTRL_FLAG = 16
+_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report button 4/5 (the "extra" buttons, e.g. a wheel)
+_MOUSE_BUTTON_MASK = 3  # low two bits: the base button number (0-2), or 3 to mean "released"
+
+# The X10 report encodes the button byte and the two coordinate bytes by adding an offset to
+# keep them in the printable ASCII range; coordinates are further offset by 1 since they are
+# reported 1-based.
+_MOUSE_BYTE_OFFSET = 32
+_MOUSE_COORD_OFFSET = 33
 
 
 #################################################

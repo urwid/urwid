@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import errno
 import os
 import unittest
+from unittest import mock
 
 import urwid
 from urwid import escape, signals
 from urwid.display._raw_display_base import detect_terminal_properties
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec
 from urwid.util import set_temporary_encoding
 
 
@@ -161,6 +163,70 @@ class TestRawDisplay(unittest.TestCase):
         s._stop_restore_palette()
 
         self.assertEqual([], written)
+
+    def test_draw_screen_ignores_eintr(self):
+        """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""
+        s = urwid.display.raw.Screen()
+        s._setup_G1_done = True  # skip the (unrelated) G1-setup write, which retries forever on OSError
+        s.write = mock.Mock(side_effect=OSError(errno.EINTR, "interrupted system call"))
+        s.flush = lambda: None
+        s._started = True
+
+        canvas = urwid.Text("x").render((1,))
+        s.draw_screen((1, canvas.rows()), canvas)  # must not raise
+
+    def test_draw_screen_reraises_other_oserror(self):
+        """An OSError with an errno other than EINTR during draw_screen() must propagate."""
+        s = urwid.display.raw.Screen()
+        s._setup_G1_done = True  # skip the (unrelated) G1-setup write, which retries forever on OSError
+        s.write = mock.Mock(side_effect=OSError(errno.EIO, "I/O error"))
+        s.flush = lambda: None
+        s._started = True
+
+        canvas = urwid.Text("x").render((1,))
+        with self.assertRaises(OSError):
+            s.draw_screen((1, canvas.rows()), canvas)
+
+    def test_get_available_raw_input_drains_resize_pipe(self):
+        """Every pending write on the resize pipe is drained in one call, however many arrived."""
+        s = urwid.display.raw.Screen()
+        # Only the resize-pipe drain is under test here: route around the keyboard-input side
+        # (_wait_for_input_ready()'s select() over get_input_descriptors(), which is platform- and
+        # terminal-state-sensitive -- e.g. it needs a started screen with a real selectable input,
+        # and an empty descriptor list raises WSAEINVAL when select()ed on Windows) entirely.
+        s._get_input_codes = list
+        s._resize_pipe_wr.send(b"R")
+        s._resize_pipe_wr.send(b"R")
+        s._resize_pipe_wr.send(b"R")
+
+        codes = s.get_available_raw_input()
+
+        self.assertEqual([], codes)
+        # The pipe is now empty: a second call must not find anything left to drain either.
+        self.assertEqual([], s.get_available_raw_input())
+
+    def test_attrspec_hash_is_stable_and_matches_equal_instances(self):
+        """AttrSpec caches its hash at construction time; equal instances must still hash equal,
+        and the cached value must match what a fresh hash computation would give.
+        """
+        a = AttrSpec("yellow", "dark blue")
+        b = AttrSpec("yellow", "dark blue")
+
+        self.assertEqual(a, b)
+        self.assertEqual(hash(a), hash(b))
+        self.assertEqual(hash((a.__class__, a._value)), hash(a))
+
+    def test_attr_to_escape_uses_attrspec_as_dict_key(self):
+        """_pal_escape.get(a) is looked up with an AttrSpec instance directly (not just by
+        palette name), which requires AttrSpec to hash and compare consistently.
+        """
+        s = urwid.display.raw.Screen()
+        s.set_terminal_properties(colors=256)
+        a = s.AttrSpec("brown", "dark green")
+        s._pal_escape[a] = "sentinel escape"
+
+        self.assertEqual("sentinel escape", s._attr_to_escape(a))
+        self.assertEqual("sentinel escape", s._attr_to_escape(s.AttrSpec("brown", "dark green")))
 
 
 class TestTerminalProperties(unittest.TestCase):
