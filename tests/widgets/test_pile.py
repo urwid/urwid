@@ -997,8 +997,10 @@ class PileTest(unittest.TestCase):
         self.assertFalse(pile.mouse_event((10,), "mouse press", 1, 0, 50, True))
 
     def test_mouse_event_child_without_mouse_event(self) -> None:
-        """A child widget missing mouse_event() triggers the same 'not implementing Widget API' warning
-        used elsewhere in the codebase (see e.g. Frame._check_widget_subclass)."""
+        """A child widget missing mouse_event() triggers the same "not implementing Widget API" warning.
+
+        See :meth:`Frame._check_widget_subclass` for the same pattern elsewhere in the codebase.
+        """
         item = NotAWidget("n", b"*")
         with self.assertWarns(urwid.widget.PileWarning):
             pile = urwid.Pile([item])

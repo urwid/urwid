@@ -89,8 +89,8 @@ class TestRawDisplay(unittest.TestCase):
         self.assertIn(escape.HIDE_CURSOR, output)
 
     def test_restart_after_stop_reconnects_input(self):
-        """stop() followed by start() must leave the screen's input descriptors
-        watchable again (regression test for urwid/urwid#285).
+        """stop() followed by start() must leave the screen's input descriptors watchable again
+        (regression test for urwid/urwid#285).
 
         MainLoop reacts to INPUT_DESCRIPTORS_CHANGED by re-hooking the event loop
         with whatever ``get_input_descriptors()`` currently returns, so that list
@@ -132,9 +132,9 @@ class TestRawDisplay(unittest.TestCase):
         s.stop()
 
     def test_modify_terminal_palette_restored_on_stop(self):
-        """Palette entries modified with modify_terminal_palette() must be reset when the
-        screen stops, so urwid doesn't leave the user's terminal with a custom palette after
-        the process exits (urwid/urwid#458).
+        """Palette entries modified with modify_terminal_palette() must be reset when the screen stops,
+        so urwid doesn't leave the user's terminal with a custom palette after the process exits
+        (urwid/urwid#458).
         """
         s = urwid.display.raw.Screen()
         written: list[str] = []

@@ -215,6 +215,82 @@ class RleTest(unittest.TestCase):
         self.assertListEqual(rle3, [("A", 10), ("B", 20)])
         self.assertListEqual(rle4, [("A", 10), ("B", 15), ("K", 1)])
 
+    def test_rle_prepend_empty(self):
+        rle = []
+        util.rle_prepend_modify(rle, ("A", 3))
+        self.assertListEqual(rle, [("A", 3)])
+
+    def test_rle_append_empty(self):
+        rle = []
+        util.rle_append_modify(rle, ("A", 3))
+        self.assertListEqual(rle, [("A", 3)])
+
+    def test_rle_get_at(self):
+        rle = [("A", 10), ("B", 15)]
+        self.assertEqual("A", util.rle_get_at(rle, 0))
+        self.assertEqual("A", util.rle_get_at(rle, 9))
+        self.assertEqual("B", util.rle_get_at(rle, 10))
+        self.assertEqual("B", util.rle_get_at(rle, 24))
+        self.assertIsNone(util.rle_get_at(rle, 25))
+        self.assertIsNone(util.rle_get_at(rle, -1))
+
+    def test_rle_subseg(self):
+        rle = [("A", 10), ("B", 15)]
+        self.assertListEqual([("A", 10), ("B", 15)], util.rle_subseg(rle, 0, 25))
+        self.assertListEqual([("A", 5)], util.rle_subseg(rle, 0, 5))
+        self.assertListEqual([("A", 5), ("B", 5)], util.rle_subseg(rle, 5, 15))
+        self.assertListEqual([("B", 5)], util.rle_subseg(rle, 20, 30))
+        self.assertListEqual([], util.rle_subseg(rle, 25, 30))
+        self.assertListEqual([], util.rle_subseg(rle, 5, 5))
+
+    def test_rle_len(self):
+        self.assertEqual(0, util.rle_len([]))
+        self.assertEqual(25, util.rle_len([("A", 10), ("B", 15)]))
+        self.assertRaises(TypeError, util.rle_len, [("A", 10), "not a tuple"])
+
+    def test_rle_join_modify(self):
+        rle = [("A", 10), ("B", 15)]
+        util.rle_join_modify(rle, [])
+        self.assertListEqual(rle, [("A", 10), ("B", 15)])
+
+        util.rle_join_modify(rle, [("B", 5), ("C", 1)])
+        self.assertListEqual(rle, [("A", 10), ("B", 20), ("C", 1)])
+
+        util.rle_join_modify(rle, [("D", 2)])
+        self.assertListEqual(rle, [("A", 10), ("B", 20), ("C", 1), ("D", 2)])
+
+    def test_rle_product(self):
+        rle1 = [("a", 10), ("b", 5)]
+        rle2 = [("Q", 5), ("P", 10)]
+        self.assertListEqual(
+            [(("a", "Q"), 5), (("a", "P"), 5), (("b", "P"), 5)],
+            util.rle_product(rle1, rle2),
+        )
+        self.assertListEqual([], util.rle_product([], rle2))
+        self.assertListEqual([], util.rle_product(rle1, []))
+
+    def test_rle_product_skips_zero_length_runs(self):
+        rle1 = [("a", 0), ("b", 5)]
+        rle2 = [("Q", 0), ("P", 5)]
+        self.assertListEqual([(("b", "P"), 5)], util.rle_product(rle1, rle2))
+
+    def test_trim_text_attr_cs(self):
+        old_encoding = util.get_encoding()
+        try:
+            util.set_encoding("euc-jp")
+            text = "hel\xa1\xa1lo".encode("iso8859-1")
+            attr = [("A", 7)]
+            cs = [(None, 7)]
+
+            self.assertEqual(
+                (b"hel\xa1\xa1lo", [("A", 7)], [(None, 7)]),
+                util.trim_text_attr_cs(text, attr, cs, 0, 7),
+            )
+            self.assertEqual((b"hel ", [("A", 4)], [(None, 4)]), util.trim_text_attr_cs(text, attr, cs, 0, 4))
+            self.assertEqual((b" lo", [("A", 3)], [(None, 3)]), util.trim_text_attr_cs(text, attr, cs, 4, 7))
+        finally:
+            urwid.set_encoding(old_encoding)
+
 
 class PortabilityTest(unittest.TestCase):
     def test_locale(self):
