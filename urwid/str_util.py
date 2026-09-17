@@ -82,6 +82,10 @@ def _decode_grapheme_at(text: bytes, start: int, end: int) -> tuple[str, int]:
     """
     decoded = text[start:end].decode("utf-8")
     grapheme = next(wcwidth.iter_graphemes(decoded), "")
+    if len(grapheme) == len(decoded):
+        # the grapheme consumed the whole decoded window: its byte length is
+        # already known (end - start) without re-encoding it.
+        return grapheme, end
     grapheme_bytes = grapheme.encode("utf-8")
     return grapheme, start + len(grapheme_bytes)
 
@@ -94,27 +98,11 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
     """
     lt = len(text) - pos
 
-    b2 = 0  # Fallback, not changing anything
-    b3 = 0  # Fallback, not changing anything
-    b4 = 0  # Fallback, not changing anything
-
     try:
         if isinstance(text, str):
             b1 = ord(text[pos])
-            if lt > 1:
-                b2 = ord(text[pos + 1])
-            if lt > 2:
-                b3 = ord(text[pos + 2])
-            if lt > 3:
-                b4 = ord(text[pos + 3])
         else:
             b1 = text[pos]
-            if lt > 1:
-                b2 = text[pos + 1]
-            if lt > 2:
-                b3 = text[pos + 2]
-            if lt > 3:
-                b4 = text[pos + 3]
     except Exception as e:
         raise ValueError(f"{e}: text={text!r}, pos={pos!r}, lt={lt!r}").with_traceback(e.__traceback__) from e
 
@@ -124,6 +112,15 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
 
     if lt < 2:
         return error
+
+    try:
+        if isinstance(text, str):
+            b2 = ord(text[pos + 1])
+        else:
+            b2 = text[pos + 1]
+    except Exception as e:
+        raise ValueError(f"{e}: text={text!r}, pos={pos!r}, lt={lt!r}").with_traceback(e.__traceback__) from e
+
     if b1 & 0xE0 == 0xC0:
         if b2 & 0xC0 != 0x80:
             return error
@@ -132,6 +129,15 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
         return error
     if lt < 3:
         return error
+
+    try:
+        if isinstance(text, str):
+            b3 = ord(text[pos + 2])
+        else:
+            b3 = text[pos + 2]
+    except Exception as e:
+        raise ValueError(f"{e}: text={text!r}, pos={pos!r}, lt={lt!r}").with_traceback(e.__traceback__) from e
+
     if b1 & 0xF0 == 0xE0:
         if b2 & 0xC0 != 0x80:
             return error
@@ -142,6 +148,15 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
         return error
     if lt < 4:
         return error
+
+    try:
+        if isinstance(text, str):
+            b4 = ord(text[pos + 3])
+        else:
+            b4 = text[pos + 3]
+    except Exception as e:
+        raise ValueError(f"{e}: text={text!r}, pos={pos!r}, lt={lt!r}").with_traceback(e.__traceback__) from e
+
     if b1 & 0xF8 == 0xF0:
         if b2 & 0xC0 != 0x80:
             return error
@@ -255,6 +270,10 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
     if _byte_encoding == "utf8":
         decoded = text[start_offs:end_offs].decode("utf-8")
         str_pos, cols = calc_string_text_pos(decoded, 0, len(decoded), pref_col)
+        if str_pos == len(decoded):
+            # the whole decoded window was consumed: its byte length is already
+            # known (end_offs - start_offs) without re-encoding it.
+            return end_offs, cols
         byte_offset = len(decoded[:str_pos].encode("utf-8"))
         return start_offs + byte_offset, cols
 
@@ -354,8 +373,11 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
         decoded = text[start_offs:end_offs].decode("utf-8")
         str_pos = len(decoded)
         prev_str_pos = wcwidth.grapheme_boundary_before(decoded, str_pos)
-        prefix = decoded[:prev_str_pos]
-        return start_offs + len(prefix.encode("utf-8"))
+        # Encode only the removed suffix (normally short) rather than the
+        # (potentially much longer) retained prefix, since prefix length in
+        # bytes is just the total minus the suffix length in bytes.
+        suffix = decoded[prev_str_pos:]
+        return end_offs - len(suffix.encode("utf-8"))
     if _byte_encoding == "wide" and within_double_byte(text, start_offs, end_offs - 1) == 2:
         return end_offs - 2
     return end_offs - 1
