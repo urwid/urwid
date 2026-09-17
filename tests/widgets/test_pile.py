@@ -91,6 +91,80 @@ class ImplementWidget:
         return False
 
 
+class BoxWithRows(urwid.Widget):
+    """A proper Widget that only supports BOX sizing but still has a rows() method."""
+
+    _sizing = frozenset((urwid.BOX,))
+
+    def selectable(self) -> bool:
+        return False
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        return 2
+
+    def pack(self, size: tuple[int, int] | tuple[int] | tuple[()], focus: bool = False) -> tuple[int, int]:
+        return (size[0] if size else 3, 2)
+
+    def render(self, size: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = size[0]
+        rows = size[1] if len(size) > 1 else 2
+        return urwid.SolidFill("#").render((maxcol, rows))
+
+
+class FixedBox(urwid.Widget):
+    """A proper Widget supporting both FIXED and BOX sizing."""
+
+    _sizing = frozenset((urwid.FIXED, urwid.BOX))
+
+    def __init__(self, width: int, height: int, symbol: str) -> None:
+        super().__init__()
+        self.width = width
+        self.height = height
+        self.symbol = symbol
+
+    def selectable(self) -> bool:
+        return False
+
+    def pack(self, size: tuple[int, int] | tuple[int] | tuple[()], focus: bool = False) -> tuple[int, int]:
+        return (self.width, self.height)
+
+    def render(self, size: tuple[int, int] | tuple[int], focus: bool = False) -> urwid.Canvas:
+        maxcol = size[0]
+        rows = size[1] if len(size) > 1 else self.height
+        return urwid.SolidFill(self.symbol).render((maxcol, rows))
+
+
+class NoPrefColText(SelectableText):
+    def get_pref_col(self, size: tuple[int]) -> None:
+        return None
+
+
+class RejectCursorText(SelectableText):
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        return False
+
+
+class NoCoordsText(SelectableText):
+    def get_cursor_coords(self, size: tuple[int]) -> None:
+        return None
+
+
+class ZeroRowsText(SelectableText):
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        return 0
+
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        return True
+
+
+class MultiRowCursorText(SelectableText):
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        return 3
+
+    def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        return row == 1
+
+
 class PileTest(unittest.TestCase):
     def test_basic_sizing(self) -> None:
         box_only = urwid.SolidFill("#")
@@ -711,3 +785,224 @@ class PileTest(unittest.TestCase):
             ),
             pile.render((8, 5)).decoded_text,
         )
+
+    def test_sizing_empty(self) -> None:
+        self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), urwid.Pile([]).sizing())
+
+    def test_sizing_given_non_box_widget_falls_back(self) -> None:
+        pile = urwid.Pile(((5, urwid.ProgressBar(None, None)),))
+        with self.assertWarns(urwid.widget.PileWarning) as ctx:
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), pile.sizing())
+        self.assertIn("not supported", str(ctx.warnings[0].message))
+
+    def test_sizing_pack_flow_only_widget(self) -> None:
+        pile = urwid.Pile(((urwid.PACK, urwid.ProgressBar(None, None)),))
+        self.assertEqual(frozenset((urwid.FLOW,)), pile.sizing())
+
+    def test_init_invalid_items(self) -> None:
+        with self.assertRaises(urwid.PileError):
+            urwid.Pile([("bogus", 1, urwid.Text("x"))])
+        with self.assertRaises(urwid.PileError):
+            urwid.Pile([(1, 2, 3, 4)])
+
+    def test_options(self) -> None:
+        self.assertEqual((urwid.PACK, None), urwid.Pile.options(urwid.PACK))
+        self.assertEqual((urwid.GIVEN, 5), urwid.Pile.options(urwid.GIVEN, 5))
+        self.assertEqual((urwid.WEIGHT, 2), urwid.Pile.options(urwid.WEIGHT, 2))
+        with self.assertRaises(urwid.PileError):
+            urwid.Pile.options(urwid.GIVEN, None)
+
+    def test_focus_setter_widget_not_found(self) -> None:
+        pile = urwid.Pile([urwid.Text("one")])
+        with self.assertRaises(ValueError):
+            pile.focus = urwid.Text("other")
+
+    def test_get_pref_col_not_selectable(self) -> None:
+        pile = urwid.Pile([urwid.Text("one")])
+        self.assertIsNone(pile.get_pref_col((10,)))
+
+    def test_get_pref_col_empty_contents_but_selectable(self) -> None:
+        """Defensive branch: contents is empty even though `_selectable` was left True."""
+        pile = urwid.Pile([])
+        pile._selectable = True
+        self.assertIsNone(pile.get_pref_col((10,)))
+
+    def test_get_rows_sizes_empty_contents(self) -> None:
+        pile = urwid.Pile([])
+        self.assertEqual(((), (), ()), pile.get_rows_sizes(()))
+        self.assertEqual(((5,), (3,), ()), pile.get_rows_sizes((5, 3)))
+
+    def test_fixed_rows_sizes_errors(self) -> None:
+        with self.subTest("PACK with BOX-only widget"), self.assertRaises(urwid.PileError):
+            urwid.Pile(((urwid.PACK, urwid.SolidFill("#")),)).get_rows_sizes(())
+
+        with self.subTest("GIVEN with non-BOX widget"), self.assertRaises(urwid.PileError):
+            urwid.Pile(((5, urwid.ProgressBar(None, None)),)).get_rows_sizes(())
+
+        with self.subTest("WEIGHT with BOX-only widget"), self.assertRaises(urwid.PileError):
+            urwid.Pile((urwid.SolidFill("#"),)).get_rows_sizes(())
+
+        with self.subTest("Only GIVEN BOX items: no width information"), self.assertRaises(urwid.PileError):
+            urwid.Pile(((5, urwid.SolidFill("#")),)).get_rows_sizes(())
+
+    def test_fixed_rows_sizes_weighted_fixed_box_widgets(self) -> None:
+        """FIXED+BOX widgets used with the default WEIGHT option get scaled to a common height."""
+        pile = urwid.Pile((FixedBox(4, 2, "a"), FixedBox(6, 4, "b")))
+        self.assertEqual(frozenset((urwid.FIXED, urwid.BOX)), pile.sizing())
+        self.assertEqual((6, 8), pile.pack(()))
+        self.assertEqual(
+            (
+                "aaaaaa",
+                "aaaaaa",
+                "aaaaaa",
+                "aaaaaa",
+                "bbbbbb",
+                "bbbbbb",
+                "bbbbbb",
+                "bbbbbb",
+            ),
+            pile.render(()).decoded_text,
+        )
+
+    def test_flow_rows_sizes_unusual_sizing_warning(self) -> None:
+        pile = urwid.Pile((BoxWithRows(),))
+        with self.assertWarns(urwid.widget.PileWarning) as ctx:
+            canvas = pile.render((5,))
+        self.assertEqual(("#####", "#####"), canvas.decoded_text)
+        self.assertIn("Unusual widget", str(ctx.warnings[0].message))
+
+    def test_get_rows_sizes_box_unusual_sizing_warning(self) -> None:
+        pile = urwid.Pile(((urwid.PACK, BoxWithRows()),))
+        with self.assertWarns(urwid.widget.PileWarning) as ctx:
+            canvas = pile.render((5, 4))
+        self.assertIn("Unusual widget", str(ctx.warnings[0].message))
+        self.assertEqual(4, canvas.rows())
+
+    def test_get_rows_sizes_hide_loop_exhausted(self) -> None:
+        """When there is zero available space, every hideable item stays hidden (no break taken)."""
+        pile = urwid.Pile(
+            (
+                (urwid.PACK, urwid.Text("a")),
+                (urwid.PACK, urwid.Text("b")),
+                urwid.ListBox((urwid.CheckBox("cb0"),)),
+                (urwid.PACK, urwid.Text("c")),
+                (urwid.PACK, urwid.Text("d")),
+            )
+        )
+        _widths, heights, _args = pile.get_rows_sizes((8, 0), focus=True)
+        self.assertEqual((0, 0, 0, 0, 0), heights)
+
+    def test_get_rows_sizes_zero_weight_ignored_by_hide_logic(self) -> None:
+        pile = urwid.Pile(
+            (
+                (urwid.PACK, urwid.Text("top 0")),
+                ("weight", 0, urwid.SolidFill("z")),
+                urwid.ListBox((urwid.CheckBox("cb 0"),)),
+                (urwid.PACK, urwid.Text("btm -1")),
+            )
+        )
+        self.assertEqual(("top 0   ", "[ ] cb 0"), pile.render((8, 2), True).decoded_text)
+
+    def test_get_item_rows(self) -> None:
+        pile = urwid.Pile([urwid.Text("a"), urwid.Text("b")])
+        self.assertEqual([1, 1], pile.get_item_rows((5, 2), False))
+
+    def test_render_empty_pile(self) -> None:
+        pile = urwid.Pile([])
+        self.assertEqual(("     ", "     "), pile.render((5, 2)).decoded_text)
+        with self.assertRaises(ValueError):
+            pile.render(())
+
+    def test_keypress_empty_contents(self) -> None:
+        pile = urwid.Pile([])
+        self.assertEqual("up", pile.keypress((5,), "up"))
+
+    def test_keypress_unhandled_non_updown_key(self) -> None:
+        """When the focused widget leaves a non-up/down key unhandled, Pile returns it as-is."""
+        pile = urwid.Pile([SelectableText("x")])
+        self.assertEqual("left", pile.keypress((10,), "left"))
+
+    def test_keypress_pref_col_none_and_no_move_cursor(self) -> None:
+        a = NoPrefColText("a")
+        b = SelectableText("b")
+        pile = urwid.Pile([a, b])
+        pile.focus_position = 0
+        self.assertIsNone(pile.keypress((10,), "down"))
+        self.assertEqual(1, pile.focus_position)
+
+    def test_get_cursor_coords(self) -> None:
+        with self.subTest("Not selectable"):
+            pile = urwid.Pile([urwid.Text("one")])
+            self.assertIsNone(pile.get_cursor_coords((10,)))
+
+        with self.subTest("Focus widget without get_cursor_coords"):
+            pile = urwid.Pile([SelectableText("x")])
+            self.assertIsNone(pile.get_cursor_coords((10,)))
+
+        with self.subTest("Focus at position 0"):
+            pile = urwid.Pile([urwid.Edit("", "abc", edit_pos=1)])
+            self.assertEqual((1, 0), pile.get_cursor_coords((10,)))
+
+        with self.subTest("Focus below other items"):
+            pile = urwid.Pile([urwid.Text("one"), urwid.Edit("", "abc", edit_pos=1)])
+            pile.focus_position = 1
+            self.assertEqual((1, 1), pile.get_cursor_coords((10,)))
+
+        with self.subTest("Focus widget's get_cursor_coords returns None"):
+            pile = urwid.Pile([NoCoordsText("x")])
+            self.assertIsNone(pile.get_cursor_coords((10,)))
+
+    def test_keypress_not_selectable_falls_through_to_candidates(self) -> None:
+        """When no child is selectable, up/down still scans candidates before returning the key unchanged."""
+        pile = urwid.Pile([urwid.Text("a"), urwid.Text("b")])
+        self.assertFalse(pile.selectable())
+        self.assertEqual("down", pile.keypress((10,), "down"))
+
+    def test_keypress_zero_row_candidate_skips_move_loop(self) -> None:
+        pile = urwid.Pile([SelectableText("above"), ZeroRowsText("below")])
+        self.assertIsNone(pile.keypress((10,), "down"))
+        self.assertEqual(1, pile.focus_position)
+
+    def test_keypress_move_cursor_retries_rows(self) -> None:
+        """The row-by-row cursor placement loop retries until move_cursor_to_coords succeeds."""
+        pile = urwid.Pile([SelectableText("above"), urwid.Text("mid"), MultiRowCursorText("below")])
+        self.assertIsNone(pile.keypress((10,), "down"))
+        self.assertEqual(2, pile.focus_position)
+
+    def test_move_cursor_to_coords(self) -> None:
+        with self.subTest("Success"):
+            pile = urwid.Pile([urwid.Edit("", "abc"), urwid.Edit("", "def")])
+            self.assertTrue(pile.move_cursor_to_coords((10,), 1, 1))
+            self.assertEqual(1, pile.focus_position)
+
+        with self.subTest("Row beyond all items"):
+            pile = urwid.Pile([urwid.Edit("", "abc"), urwid.Edit("", "def")])
+            self.assertFalse(pile.move_cursor_to_coords((10,), 1, 100))
+
+        with self.subTest("Widget at row not selectable"):
+            pile = urwid.Pile([urwid.Text("a"), urwid.Edit("", "b")])
+            self.assertFalse(pile.move_cursor_to_coords((10,), 0, 0))
+
+        with self.subTest("Widget rejects cursor move"):
+            pile = urwid.Pile([RejectCursorText("x")])
+            self.assertFalse(pile.move_cursor_to_coords((10,), 0, 0))
+            self.assertEqual(0, pile.focus_position)
+
+        with self.subTest("Selectable widget without move_cursor_to_coords"):
+            pile = urwid.Pile([SelectableText("y")])
+            self.assertTrue(pile.move_cursor_to_coords((10,), 0, 0))
+
+    def test_mouse_event_row_beyond_items(self) -> None:
+        pile = urwid.Pile([urwid.Text("a")])
+        self.assertFalse(pile.mouse_event((10,), "mouse press", 1, 0, 50, True))
+
+    def test_mouse_event_child_without_mouse_event(self) -> None:
+        """A child widget missing mouse_event() triggers the same 'not implementing Widget API' warning
+        used elsewhere in the codebase (see e.g. Frame._check_widget_subclass)."""
+        item = NotAWidget("n", b"*")
+        with self.assertWarns(urwid.widget.PileWarning):
+            pile = urwid.Pile([item])
+        with self.assertWarns(DeprecationWarning) as ctx:
+            result = pile.mouse_event((4,), "mouse press", 1, 0, 0, True)
+        self.assertFalse(result)
+        self.assertIn("is not implementing Widget API", str(ctx.warning))

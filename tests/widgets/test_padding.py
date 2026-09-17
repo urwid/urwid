@@ -252,3 +252,222 @@ class PaddingTest(unittest.TestCase):
         self.assertEqual((4, 1), padded.pack(()))
         self.assertEqual([b" OK "], padded.render(()).text)
         self.assertEqual([b" OK   "], padded.render((6,)).text)
+
+    def test_width_none_becomes_clip(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width=None)
+        self.assertEqual(urwid.CLIP, widget.width)
+
+    def test_sizing_clip(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width="clip")
+        self.assertEqual(frozenset((urwid.FLOW,)), widget.sizing())
+
+    def test_sizing_given_box_only_widget(self) -> None:
+        """GIVEN width with a BOX-only widget should not warn (BOX in sizing)."""
+        widget = urwid.Padding(urwid.SolidFill(), width=5)
+        self.assertEqual(frozenset((urwid.BOX,)), widget.sizing())
+
+    def test_align_setter(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        widget.align = urwid.RIGHT
+        self.assertEqual(urwid.RIGHT, widget.align)
+
+    def test_width_setter(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        widget.width = 7
+        self.assertEqual(7, widget.width)
+
+    def test_pack_with_size(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        self.assertEqual((10, 1), widget.pack((10,), False))
+
+    def test_pack_clip_raises(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width="clip")
+        with self.assertRaises(urwid.PaddingError):
+            widget.pack(())
+
+    def test_padding_values_clip_no_size_raises(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width="clip")
+        with self.assertRaises(urwid.PaddingError):
+            widget.padding_values((), False)
+
+    def test_pack_fixed_not_supported_warns(self) -> None:
+        class FlowOnlyButPackable(urwid.Text):
+            def sizing(self):
+                return frozenset((urwid.FLOW,))
+
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+        widget = urwid.Padding(FlowOnlyButPackable("hi"), width=urwid.PACK)
+        with self.assertWarns(urwid.widget.padding.PaddingWarning):
+            self.assertEqual((5, 1), widget.pack(()))
+
+    def test_pack_unexpected_width_type(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width=urwid.PACK)
+        widget._width_type = "bogus"
+        with self.assertRaises(urwid.PaddingError):
+            widget.pack(())
+
+    def test_render_clip(self) -> None:
+        widget = urwid.Padding(urwid.BigText("1", urwid.HalfBlock5x4Font()), width="clip")
+        canvas = widget.render((10,))
+        self.assertEqual(10, canvas.cols())
+
+    def test_render_empty_widget_no_size_raises(self) -> None:
+        class EmptyFixed(urwid.Widget):
+            _sizing = frozenset((urwid.FIXED,))
+
+            def sizing(self):
+                return frozenset((urwid.FIXED,))
+
+            def pack(self, size=(), focus=False):
+                return (0, 1)
+
+            def render(self, size, focus=False):
+                return urwid.TextCanvas([b""], maxcol=0)
+
+        widget = urwid.Padding(EmptyFixed(), width=urwid.PACK)
+        with self.assertRaises(ValueError):
+            widget.render(())
+
+    def test_padding_values_clip(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width="clip")
+        self.assertEqual((0, 8), widget.padding_values((10,), False))
+
+    def test_padding_values_pack_no_size(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width=urwid.PACK)
+        self.assertEqual((0, 0), widget.padding_values((), False))
+
+    def test_rows_clip(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"), width="clip")
+        self.assertEqual(1, widget.rows((10,), False))
+
+    def test_keypress_no_size(self) -> None:
+        widget = urwid.Padding(urwid.Edit("", "hi"), width=urwid.PACK)
+        self.assertEqual("right", widget.keypress((), "right"))
+
+    def test_get_cursor_coords_no_attribute(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        self.assertIsNone(widget.get_cursor_coords((10,)))
+
+    def test_get_cursor_coords_zero_width(self) -> None:
+        widget = urwid.Padding(urwid.Edit("", "hi"), left=5, right=5)
+        self.assertIsNone(widget.get_cursor_coords((10,)))
+
+    def test_get_cursor_coords_no_size(self) -> None:
+        class Stub(urwid.Text):
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+            def sizing(self):
+                return frozenset((urwid.FIXED, urwid.FLOW))
+
+            def get_cursor_coords(self, size):
+                return (1, 0)
+
+        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
+        self.assertEqual((1, 0), widget.get_cursor_coords(()))
+
+    def test_get_cursor_coords_none_from_original(self) -> None:
+        class Stub(urwid.Text):
+            def get_cursor_coords(self, size):
+                return None
+
+        widget = urwid.Padding(Stub("hi"))
+        self.assertIsNone(widget.get_cursor_coords((10,)))
+
+    def test_move_cursor_to_coords_no_attribute(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        self.assertTrue(widget.move_cursor_to_coords((10,), 3, 0))
+
+    def test_move_cursor_to_coords_no_size(self) -> None:
+        class Stub(urwid.Text):
+            def move_cursor_to_coords(self, size, x, y):
+                return True
+
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+            def sizing(self):
+                return frozenset((urwid.FIXED, urwid.FLOW))
+
+        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
+        self.assertTrue(widget.move_cursor_to_coords((), 1, 0))
+
+    def test_mouse_event_no_attribute(self) -> None:
+        class NoMouse:
+            """Plain object without a mouse_event method (unlike urwid.Widget)."""
+
+        widget = urwid.Padding(NoMouse())
+        self.assertFalse(widget.mouse_event((10,), "mouse press", 1, 0, 0, True))
+
+    def test_mouse_event_outside_padding(self) -> None:
+        widget = urwid.Padding(urwid.Button("OK"), left=3, right=3)
+        self.assertFalse(widget.mouse_event((10,), "mouse press", 1, 0, 0, True))
+
+    def test_mouse_event_inside_padding(self) -> None:
+        widget = urwid.Padding(urwid.Button("OK"), left=3, right=3)
+        self.assertTrue(widget.mouse_event((10,), "mouse press", 1, 4, 0, True))
+
+    def test_mouse_event_no_size(self) -> None:
+        class Stub(urwid.Text):
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+            def sizing(self):
+                return frozenset((urwid.FIXED, urwid.FLOW))
+
+            def mouse_event(self, size, event, button, col, row, focus):
+                return True
+
+        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
+        self.assertTrue(widget.mouse_event((), "mouse press", 1, 1, 0, True))
+
+    def test_get_pref_col_no_attribute(self) -> None:
+        widget = urwid.Padding(urwid.Text("hi"))
+        self.assertIsNone(widget.get_pref_col((10,)))
+
+    def test_get_pref_col_with_size(self) -> None:
+        widget = urwid.Padding(urwid.Edit("", "hi"), left=2, right=2)
+        self.assertEqual(4, widget.get_pref_col((10,)))
+
+    def test_get_pref_col_no_size(self) -> None:
+        class Stub(urwid.Text):
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+            def sizing(self):
+                return frozenset((urwid.FIXED, urwid.FLOW))
+
+            def get_pref_col(self, size):
+                return 2
+
+        widget = urwid.Padding(Stub("hi"), left=2, right=2, width=urwid.PACK)
+        self.assertEqual(4, widget.get_pref_col(()))
+
+    def test_get_pref_col_non_int(self) -> None:
+        class Stub(urwid.Text):
+            def pack(self, size=(), focus=False):
+                return (5, 1)
+
+            def sizing(self):
+                return frozenset((urwid.FIXED, urwid.FLOW))
+
+            def get_pref_col(self, size):
+                return None
+
+        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
+        self.assertIsNone(widget.get_pref_col((10,)))
+
+    def test_calculate_left_right_padding_relative_align_requires_amount(self) -> None:
+        with self.assertRaises(TypeError):
+            urwid.widget.padding.calculate_left_right_padding(
+                10,
+                urwid.widget.padding.WHSettings.RELATIVE,
+                None,
+                urwid.widget.padding.WHSettings.GIVEN,
+                5,
+                None,
+                0,
+                0,
+            )

@@ -279,6 +279,70 @@ class GridFlowTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 grid.render(())
 
+    def test_cell_width_setter(self):
+        t1 = urwid.Text("one")
+        t2 = urwid.Text("two")
+        gf = urwid.GridFlow([t1, t2], 5, 1, 0, "left")
+        gf.focus_position = 1
+        gf.cell_width = 8
+        self.assertEqual(gf.cell_width, 8)
+        self.assertEqual(gf.contents, [(t1, ("given", 8)), (t2, ("given", 8))])
+        self.assertEqual(gf.focus_position, 1)
+
+    def test_contents_setter(self):
+        t1 = urwid.Text("one")
+        t2 = urwid.Text("two")
+        gf = urwid.GridFlow([t1, t2], 5, 1, 0, "left")
+        gf.contents = [(t2, gf.options())]
+        self.assertEqual(gf.contents, [(t2, ("given", 5))])
+        self.assertEqual(len(gf), 1)
+
+    def test_v_sep_gt_1(self):
+        """Divider height grows with v_sep when wrapping to multiple rows."""
+        widget = urwid.GridFlow([urwid.Text("first"), urwid.Text("second")], 10, 0, 2, "left")
+        canvas = widget.render((10,))
+        self.assertEqual(4, canvas.rows())
+        self.assertEqual(
+            ("first     ", "          ", "          ", "second    "),
+            canvas.decoded_text,
+        )
+
+    def test_keypress_unhandled_key_passed_through(self):
+        gf = urwid.GridFlow([urwid.Text("a"), urwid.Text("b")], 10, 0, 0, "left")
+        self.assertEqual("x", gf.keypress((10,), "x"))
+
+    def test_get_cursor_coords_and_pref_col(self):
+        e1 = urwid.Edit("", "hello")
+        e2 = urwid.Edit("", "world")
+        gf = urwid.GridFlow([e1, e2], 10, 1, 0, "left")
+        gf.focus_position = 0
+        e1.set_edit_pos(3)
+        self.assertEqual((3, 0), gf.get_cursor_coords((30,)))
+        self.assertEqual(3, gf.get_pref_col((30,)))
+
+    def test_move_cursor_to_coords(self):
+        e1 = urwid.Edit("", "hello")
+        e2 = urwid.Edit("", "world")
+        gf = urwid.GridFlow([e1, e2], 10, 1, 0, "left")
+        gf.focus_position = 0
+        self.assertTrue(gf.move_cursor_to_coords((30,), 15, 0))
+        self.assertEqual(1, gf.focus_position)
+
+    def test_set_focus_from_display_widget_no_pile_focus(self):
+        """When the Pile display widget has no focus, the helper is a no-op."""
+        gf = urwid.GridFlow([urwid.Button("a")], 10, 0, 0, "left")
+        gf._w = mock.Mock(focus=None)
+        gf._set_focus_from_display_widget()
+        self.assertEqual(0, gf.focus_position)
+
+    def test_set_focus_from_display_widget_column_no_focus(self):
+        """When the focused column's widget itself is falsy, column focus position defaults to 0."""
+        inner = urwid.GridFlow([], 5, 0, 0, "left")  # empty GridFlow is falsy (len 0)
+        gf = urwid.GridFlow([inner], 10, 0, 0, "left")
+        gf.render((10,))
+        gf._set_focus_from_display_widget()
+        self.assertEqual(0, gf.focus_position)
+
     def test_focus_changed_callback_replacement(self) -> None:
         """Replace the contents focus callback and read the new index before it is applied."""
         first = urwid.Button("first")
