@@ -21,6 +21,7 @@
 from __future__ import annotations
 
 import abc
+import functools
 import logging
 import os
 import sys
@@ -296,6 +297,7 @@ def _color_desc_true(num: int) -> str:
     return f"#{num:06x}"
 
 
+@functools.lru_cache(maxsize=256)
 def _color_desc_256(num: int) -> str:
     """
     Return a string description of color number num.
@@ -332,6 +334,7 @@ def _color_desc_256(num: int) -> str:
     return f"g{_GRAY_STEPS_256_101[num - _GRAY_START_256]:d}"
 
 
+@functools.lru_cache(maxsize=88)
 def _color_desc_88(num: int) -> str:
     """
     Return a string description of color number num.
@@ -367,6 +370,7 @@ def _color_desc_88(num: int) -> str:
     return f"g{_GRAY_STEPS_88_101[num - _GRAY_START_88]:d}"
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_true(desc: str) -> int | None:
     if (c := _parse_color_256(desc)) is not None:
         (r, g, b) = _COLOR_VALUES_256[c]
@@ -386,6 +390,7 @@ def _parse_color_true(desc: str) -> int | None:
     return None
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_256(desc: str) -> int | None:
     """
     Return a color number for the description desc.
@@ -455,6 +460,7 @@ def _parse_color_256(desc: str) -> int | None:
         return None
 
 
+@functools.lru_cache(maxsize=512)
 def _true_to_256(desc: str) -> str | None:
     if not (desc.startswith("#") and len(desc) == 7):
         return None
@@ -463,6 +469,7 @@ def _true_to_256(desc: str) -> str | None:
     return _color_desc_256(typing.cast("int", c256))  # we control input
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_88(desc: str) -> int | None:
     """
     Return a color number for the description desc.
@@ -540,7 +547,7 @@ class AttrSpecError(Exception):
 
 
 class AttrSpec:
-    __slots__ = ("__value",)
+    __slots__ = ("__hash_value", "__value")
 
     def __init__(
         self,
@@ -611,6 +618,7 @@ class AttrSpec:
             raise AttrSpecError(
                 f"foreground/background ({fg!r}/{bg!r}) require more colors than have been specified ({colors:d})."
             )
+        self.__hash_value = hash((self.__class__, self.__value))
 
     def copy_modified(
         self,
@@ -637,7 +645,7 @@ class AttrSpec:
 
     def __hash__(self) -> int:
         """Instance is immutable and hashable."""
-        return hash((self.__class__, self.__value))
+        return self.__hash_value
 
     @property
     def _value(self) -> int:

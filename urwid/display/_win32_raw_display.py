@@ -189,7 +189,9 @@ class Screen(_raw_display_base.Screen):
         """
         if self._send_input is not None:
             # Console events are only translated for the input socket owned by this screen.
-            self._input_thread = ReadInputThread(self._send_input, lambda: self._sigwinch_handler(28))
+            # signum is left at its default (_raw_display_base._SIGWINCH): this class runs on
+            # Windows only, which has no real SIGWINCH to report here anyway.
+            self._input_thread = ReadInputThread(self._send_input, self._sigwinch_handler)
             self._input_thread.start()
 
         if hasattr(self, "get_input_nonblocking"):
@@ -261,6 +263,10 @@ class ReadInputThread(threading.Thread):
         read = DWORD(0)
         arrtype = _win32.INPUT_RECORD * MAX
         input_records = arrtype()
+        send_input = self._input.send
+        resize = self._resize
+        key_event = _win32.EventType.KEY_EVENT
+        resize_event = _win32.EventType.WINDOW_BUFFER_SIZE_EVENT
 
         while True:
             _win32.ReadConsoleInputW(hIn, byref(input_records), MAX, byref(read))
@@ -268,7 +274,7 @@ class ReadInputThread(threading.Thread):
                 return
             for i in range(read.value):
                 inp = input_records[i]
-                if inp.EventType == _win32.EventType.KEY_EVENT:
+                if inp.EventType == key_event:
                     if not inp.Event.KeyEvent.bKeyDown:
                         continue
 
@@ -277,10 +283,10 @@ class ReadInputThread(threading.Thread):
                     # This input cannot be decoded and should be handled as garbage.
                     input_bytes = input_data.encode("utf-8")
                     if input_bytes != b"\x00":
-                        self._input.send(input_bytes)
+                        send_input(input_bytes)
 
-                elif inp.EventType == _win32.EventType.WINDOW_BUFFER_SIZE_EVENT:
-                    self._resize()
+                elif inp.EventType == resize_event:
+                    resize()
                 else:
                     pass  # TODO: handle mouse events
 
