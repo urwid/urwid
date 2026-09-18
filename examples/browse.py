@@ -103,14 +103,14 @@ class FileTreeWidget(FlagFileWidget["FileNode"]):
         return typing.cast("str", self.get_node().get_key())
 
 
-class EmptyWidget(urwid.TreeWidget):
+class EmptyWidget(urwid.TreeWidget["EmptyNode"]):
     """A marker for expanded directories with no contents."""
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return ("flag", "(empty directory)")
 
 
-class ErrorWidget(urwid.TreeWidget):
+class ErrorWidget(urwid.TreeWidget["ErrorNode"]):
     """A marker for errors reading directories."""
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
@@ -138,7 +138,7 @@ class DirectoryWidget(FlagFileWidget["DirectoryNode"]):
 class FileNode(urwid.TreeNode[str]):
     """Metadata storage for individual files"""
 
-    def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:
+    def __init__(self, path: str, parent: DirectoryNode | None = None) -> None:
         depth = path.count(dir_sep())
         key = os.path.basename(path)
         super().__init__(path, key=key, parent=parent, depth=depth)
@@ -153,12 +153,16 @@ class FileNode(urwid.TreeNode[str]):
         return FileTreeWidget(self)
 
 
-class EmptyNode(urwid.TreeNode):
+class EmptyNode(urwid.TreeNode[None]):
+    """Placeholder child of a directory with no contents."""
+
     def load_widget(self) -> EmptyWidget:
         return EmptyWidget(self)
 
 
-class ErrorNode(urwid.TreeNode):
+class ErrorNode(urwid.TreeNode[None]):
+    """Placeholder child of a directory that could not be read."""
+
     def load_widget(self) -> ErrorWidget:
         return ErrorWidget(self)
 
@@ -166,7 +170,7 @@ class ErrorNode(urwid.TreeNode):
 class DirectoryNode(urwid.ParentNode[str]):
     """Metadata storage for directories"""
 
-    def __init__(self, path: str, parent: urwid.ParentNode | None = None) -> None:
+    def __init__(self, path: str, parent: DirectoryNode | None = None) -> None:
         if path == dir_sep():
             depth = 0
             key = None
@@ -174,6 +178,8 @@ class DirectoryNode(urwid.ParentNode[str]):
             depth = path.count(dir_sep())
             key = os.path.basename(path)
         super().__init__(path, key=key, parent=parent, depth=depth)
+        self.dir_count = 0
+        self.read_error = False
 
     def load_parent(self) -> DirectoryNode:
         parentname, _myname = os.path.split(self.get_value())
@@ -193,37 +199,39 @@ class DirectoryNode(urwid.ParentNode[str]):
                 else:
                     files.append(a)
         except OSError:
-            depth = self.get_depth() + 1
-            self._children[None] = ErrorNode(self, parent=self, key=None, depth=depth)
+            # the placeholder child itself is built by load_child_node
+            self.read_error = True
+            self.dir_count = 0
             return [None]
 
         # sort dirs and files
         dirs.sort(key=alphabetize)
         files.sort(key=alphabetize)
         # store where the first file starts
+        self.read_error = False
         self.dir_count = len(dirs)
         # collect dirs and files together again
         keys: list[str] | list[None] = dirs + files
         if len(keys) == 0:
-            depth = self.get_depth() + 1
-            self._children[None] = EmptyNode(self, parent=self, key=None, depth=depth)
             keys = [None]
         return keys
 
     def load_child_node(
         self,
         key: str | None,  # type: ignore[override]  # We have explicit type
-    ) -> EmptyNode | DirectoryNode | FileNode:
-        """Return either a FileNode or DirectoryNode"""
-        index = self.get_child_index(key)
+    ) -> EmptyNode | ErrorNode | DirectoryNode | FileNode:
+        """Return the node for *key*: a placeholder, a FileNode or a DirectoryNode."""
         if key is None:
-            return EmptyNode(None)
+            depth = self.get_depth() + 1
+            if self.read_error:
+                return ErrorNode(None, parent=self, key=None, depth=depth)
+
+            return EmptyNode(None, parent=self, key=None, depth=depth)
 
         path = os.path.join(self.get_value(), key)
-        if index < self.dir_count:
+        if self.get_child_index(key) < self.dir_count:
             return DirectoryNode(path, parent=self)
 
-        path = os.path.join(self.get_value(), key)
         return FileNode(path, parent=self)
 
     def load_widget(self) -> DirectoryWidget:
