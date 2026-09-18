@@ -29,6 +29,7 @@ import urwid
 
 
 def main() -> None:
+    """Build and run the tour of standard widget types and features."""
     text_header = "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."
     text_intro: list[str | tuple[str, str]] = [
         ("important", "Text"),
@@ -396,6 +397,7 @@ def main() -> None:
 
 
 def setup() -> None:
+    """Run the tour as a web request when applicable, otherwise as a standalone program."""
     urwid.display.web.set_preferences("Urwid Tour")
     # try to handle short web requests quickly
     if urwid.display.web.handle_short_request():

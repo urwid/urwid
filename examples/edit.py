@@ -43,8 +43,11 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
     def __init__(self, name: str) -> None:
         # do not overcomplicate example
-        self.file = open(name, encoding="utf-8")  # noqa: SIM115  # pylint: disable=consider-using-with
-        self.lines = []
+        self.file: typing.TextIO | None = open(  # noqa: SIM115  # pylint: disable=consider-using-with
+            name,
+            encoding="utf-8",
+        )
+        self.lines: list[urwid.Edit] = []
         self.focus = 0
 
     def __del__(self) -> None:
@@ -52,20 +55,28 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
             self.file.close()
 
     def get_focus(self) -> tuple[urwid.Edit, int] | tuple[None, None]:
+        """Return the widget and position for the current focus."""
         return self._get_at_pos(self.focus)
 
     def set_focus(self, focus: int) -> None:
+        """Set the focus position."""
         self.focus = focus
         self._modified()
 
     def get_next(self, position: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
+        """Return the widget and position after the given position."""
         return self._get_at_pos(position + 1)
 
     def get_prev(self, position: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
+        """Return the widget and position before the given position."""
         return self._get_at_pos(position - 1)
 
     def read_next_line(self) -> str:
-        """Read another line from the file."""
+        """Read another line from the file.
+
+        :raises AssertionError: if called after the file has already been closed.
+        """
+        assert self.file is not None, "read past end of file"  # noqa: S101  # "assert" is OK in examples
 
         next_line = self.file.readline()
 
@@ -145,13 +156,15 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
 
 class EditDisplay:
+    """Text editor application, tying the file walker to the urwid widget tree."""
+
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "default", "default"),
         ("foot", "dark cyan", "dark blue", "bold"),
         ("key", "light cyan", "dark blue", "underline"),
     ]
 
-    footer_text = (
+    footer_text: typing.ClassVar[tuple[str, list[str | tuple[str, str]]]] = (
         "foot",
         [
             "Text Editor    ",
@@ -165,11 +178,16 @@ class EditDisplay:
     def __init__(self, name: str) -> None:
         self.save_name = name
         self.walker = LineWalker(name)
-        self.listbox = urwid.ListBox(self.walker)
+        self.listbox: urwid.ListBox[int] = urwid.ListBox(self.walker)
         self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
-        self.view = urwid.Frame(urwid.AttrMap(self.listbox, "body"), footer=self.footer)
+        self.view: urwid.Frame[
+            urwid.AttrMap[urwid.ListBox[int]],
+            None,
+            urwid.AttrMap[urwid.Text],
+        ] = urwid.Frame(urwid.AttrMap(self.listbox, "body"), footer=self.footer)
 
     def main(self) -> None:
+        """Run the text editor application."""
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_keypress)
         self.loop.run()
 
@@ -192,15 +210,13 @@ class EditDisplay:
             # move the cursor to the new line and reset pref_col
             self.loop.process_input(["down", "home"])
         elif k == "right":
-            w, pos = self.walker.get_focus()
-            w, pos = self.walker.get_next(pos)
-            if w:
+            _w, pos = self.walker.get_next(self.walker.focus)
+            if pos is not None:
                 self.listbox.set_focus(pos, "above")
                 self.loop.process_input(["home"])
         elif k == "left":
-            w, pos = self.walker.get_focus()
-            w, pos = self.walker.get_prev(pos)
-            if w:
+            _w, pos = self.walker.get_prev(self.walker.focus)
+            if pos is not None:
                 self.listbox.set_focus(pos, "below")
                 self.loop.process_input(["end"])
         else:
@@ -249,6 +265,7 @@ def re_tab(s: str) -> str:
 
 
 def main() -> None:
+    """Open the file named on the command line and run the editor on it."""
     try:
         name = sys.argv[1]
         # do not overcomplicate example
