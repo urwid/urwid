@@ -3,11 +3,11 @@ from __future__ import annotations
 import urwid
 
 
-def question():
+def question() -> urwid.Pile:
     return urwid.Pile([urwid.Edit(("I say", "What is your name?\n"))])
 
 
-def answer(name):
+def answer(name: str) -> urwid.Text:
     return urwid.Text(("I say", f"Nice to meet you, {name}\n"))
 
 
