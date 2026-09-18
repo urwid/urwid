@@ -48,8 +48,8 @@ class SampleTree(typing.TypedDict):
     children: NotRequired[list[SampleTree]]
 
 
-class ExampleTreeWidget(urwid.TreeWidget):
-    """Display widget for leaf nodes"""
+class ExampleTreeWidget(urwid.TreeWidget["ExampleNode | ExampleParentNode"]):
+    """Display widget for tree nodes"""
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         return self.get_node().get_value()["name"]
@@ -72,7 +72,10 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
         data = self.get_value()
         return tuple(range(len(data["children"])))
 
-    def load_child_node(self, key: int) -> ExampleParentNode | ExampleNode:  # type: ignore[override]
+    def load_child_node(
+        self,
+        key: int,  # type: ignore[override]  # We have explicit type
+    ) -> ExampleParentNode | ExampleNode:
         """Return either an ExampleNode or ExampleParentNode"""
         childdata = self.get_value()["children"][key]
         childdepth = self.get_depth() + 1
