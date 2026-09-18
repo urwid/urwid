@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from collections import deque
 
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.util import get_encoding_mode
@@ -129,8 +130,6 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self.char = []
         if len(attlist) < 2:
             raise BarGraphError(f"attlist must include at least background and seg1: {attlist!r}")
-        if len(attlist) < 2:
-            raise BarGraphError("must at least specify bg and fg!")
         for a in attlist:
             if not isinstance(a, tuple):
                 self.attr.append(a)
@@ -416,22 +415,24 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             :raises BarGraphError: *row* is shorter than the row it is merged into.
             """
             o_count, o_row = o[-1]
-            row = row[:]  # shallow copy, so we don't destroy orig.
-            o_row = o_row[:]
+            # deque gives O(1) popleft()/appendleft() instead of the O(n) list.pop(0) and
+            # [x, *lst] prepend this loop would otherwise do on every iteration.
+            row_remaining: deque[tuple[int | tuple[int, int] | tuple[int, int, int], int]] = deque(row)
+            o_row_remaining: deque[tuple[int | tuple[int, int] | tuple[int, int, int], int]] = deque(o_row)
             widget_list: list[tuple[int | tuple[int, int] | tuple[int, int, int], int]] = []
-            while row:
-                (bt, w), l1, l2 = seg_combine(o_row.pop(0), row.pop(0))
+            while row_remaining:
+                (bt, w), l1, l2 = seg_combine(o_row_remaining.popleft(), row_remaining.popleft())
                 if widget_list and widget_list[-1][0] == bt:
                     widget_list[-1] = (bt, widget_list[-1][1] + w)
                 else:
                     widget_list.append((bt, w))
                 if l1:
-                    o_row = [l1, *o_row]
+                    o_row_remaining.appendleft(l1)
                 if l2:
-                    row = [l2, *row]
+                    row_remaining.appendleft(l2)
 
-            if o_row:
-                raise BarGraphError(o_row)
+            if o_row_remaining:
+                raise BarGraphError(list(o_row_remaining))
 
             o[-1] = (o_count + count, widget_list)
 
@@ -563,8 +564,7 @@ def calculate_bargraph_display(
         row_data.append((seg_num, col, col + width))  # type: ignore[union-attr]  # it's initialised
 
     col = 0
-    barnum = 0
-    for bar in bardata:
+    for barnum, bar in enumerate(bardata):
         width = bar_widths[barnum]
         if width < 1:
             continue
@@ -582,7 +582,6 @@ def calculate_bargraph_display(
                 tallest = s
                 add_segment(k + 1, col, s, width)
         col += width
-        barnum += 1
 
     # print(repr(rows))
     # build rowsets data structure
