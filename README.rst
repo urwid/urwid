@@ -86,7 +86,7 @@ To test code in all Python versions:
     tox -e py39,py310,pypy3       # Test specific versions
 
 Testing different Python implementations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+----------------------------------------
 
 **CPython standard (default)**
 
