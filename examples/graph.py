@@ -34,7 +34,7 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
 UPDATE_INTERVAL = 0.2
 
@@ -53,21 +53,22 @@ class GraphModel:
     on the graph, and keeping track of which mode is enabled.
     """
 
-    data_max_value = 100
+    data_max_value: typing.ClassVar[int] = 100
 
     def __init__(self) -> None:
-        data = [
+        data: list[tuple[str, Sequence[float | int]]] = [
             ("Saw", list(range(0, 100, 2)) * 2),
             ("Square", [0] * 30 + [100] * 30),
             ("Sine 1", [sin100(x) for x in range(100)]),
             ("Sine 2", [(sin100(x) + sin100(x * 2)) / 2 for x in range(100)]),
             ("Sine 3", [(sin100(x) + sin100(x * 3)) / 2 for x in range(100)]),
         ]
-        self.modes = []
-        self.data = {}
+        self.modes: list[str] = []
+        self.data: dict[str, Sequence[float | int]] = {}
         for m, d in data:
             self.modes.append(m)
             self.data[m] = d
+        self.current_mode = self.modes[0]
 
     def get_modes(self) -> list[str]:
         return self.modes
@@ -75,13 +76,13 @@ class GraphModel:
     def set_mode(self, m: str) -> None:
         self.current_mode = m
 
-    def get_data(self, offset: int, r):
+    def get_data(self, offset: int, r: int) -> tuple[list[float | int], int, int]:
         """
         Return the data in [offset:offset+r], the maximum value
         for items returned, and the offset at which the data
         repeats.
         """
-        lines = []
+        lines: list[float | int] = []
         d = self.data[self.current_mode]
         while r:
             offset %= len(d)
@@ -92,7 +93,7 @@ class GraphModel:
         return lines, self.data_max_value, len(d)
 
 
-class GraphView(urwid.WidgetWrap):
+class GraphView(urwid.WidgetWrap[urwid.Widget]):
     """
     A class responsible for providing the application's interface and
     graph display.
@@ -117,14 +118,14 @@ class GraphView(urwid.WidgetWrap):
         ("pg smooth", "dark magenta", "black"),
     ]
 
-    graph_samples_per_bar = 10
-    graph_num_bars = 5
-    graph_offset_per_second = 5
+    graph_samples_per_bar: typing.ClassVar[int] = 10
+    graph_num_bars: typing.ClassVar[int] = 5
+    graph_offset_per_second: typing.ClassVar[int] = 5
 
-    def __init__(self, controller) -> None:
+    def __init__(self, controller: GraphController) -> None:
         self.controller = controller
         self.started = True
-        self.start_time = None
+        self.start_time: float | None = None
         self.offset = 0
         self.last_offset: int | None = None
         super().__init__(self.main_window())
@@ -145,7 +146,7 @@ class GraphView(urwid.WidgetWrap):
         gspb = self.graph_samples_per_bar
         r = gspb * self.graph_num_bars
         d, max_value, repeat = self.controller.get_data(o, r)
-        lines = []
+        lines: list[list[float | int]] = []
         for n in range(self.graph_num_bars):
             value = sum(d[n * gspb : (n + 1) * gspb]) / gspb
             # toggle between two bar types
@@ -156,6 +157,7 @@ class GraphView(urwid.WidgetWrap):
         self.graph.set_data(lines, max_value)
 
         # also update progress
+        prog: float
         if (o // repeat) & 1:
             # show 100% for first half, 0 for second half
             if o % repeat > repeat // 2:
@@ -167,7 +169,7 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress.current = prog
         return True
 
-    def on_animate_button(self, button: urwid.AttrMap[urwid.Button]) -> None:
+    def on_animate_button(self, button: urwid.Button) -> None:
         """Toggle started state and button text."""
         if self.started:  # stop animation
             button.set_label("Start")
@@ -189,14 +191,14 @@ class GraphView(urwid.WidgetWrap):
         """Notify the controller of a new mode setting."""
         if state:
             # The new mode is the label of the button
-            self.controller.set_mode(button.get_label())
+            self.controller.set_mode(typing.cast("str", button.get_label()))
         self.last_offset = None
 
     def on_mode_change(self, m: str) -> None:
         """Handle external mode change by updating radio buttons."""
         for rb in self.mode_buttons:
-            if rb.base_widget.label == m:
-                rb.base_widget.set_state(True, do_callback=False)
+            if rb.original_widget.label == m:
+                rb.original_widget.set_state(True, do_callback=False)
                 break
         self.last_offset = None
 
@@ -207,9 +209,9 @@ class GraphView(urwid.WidgetWrap):
         self.animate_progress_wrap._w = self.animate_progress
         self.update_graph(True)
 
-    def main_shadow(self, w):
+    def main_shadow(self, w: urwid.Widget) -> urwid.Widget:
         """Wrap a shadow and background around widget w."""
-        bg = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
+        bg: urwid.Widget = urwid.AttrMap(urwid.SolidFill("▒"), "screen edge")
         shadow = urwid.AttrMap(urwid.SolidFill(" "), "main shadow")
 
         bg = urwid.Overlay(
@@ -273,14 +275,14 @@ class GraphView(urwid.WidgetWrap):
             "pg smooth" if smooth else None,
         )
 
-    def exit_program(self, w) -> typing.NoReturn:
+    def exit_program(self, w: urwid.Button) -> typing.NoReturn:
         raise urwid.ExitMainLoop()
 
     def graph_controls(self) -> urwid.ListBox[int]:
         modes = self.controller.get_modes()
         # setup mode radio buttons
-        self.mode_buttons = []
-        group = []
+        self.mode_buttons: list[urwid.AttrMap[urwid.RadioButton]] = []
+        group: list[urwid.RadioButton] = []
         for m in modes:
             rb = self.radio_button(group, m, self.on_mode_button)
             self.mode_buttons.append(rb)
@@ -300,6 +302,7 @@ class GraphView(urwid.WidgetWrap):
             urwid.CENTER,
         )
 
+        unicode_checkbox: urwid.Widget
         if urwid.get_encoding_mode() == "utf8":
             unicode_checkbox = urwid.CheckBox("Enable Unicode Graphics", on_state_change=self.on_unicode_checkbox)
         else:
@@ -307,7 +310,7 @@ class GraphView(urwid.WidgetWrap):
 
         self.animate_progress_wrap = urwid.WidgetWrap(self.animate_progress)
 
-        lines = [
+        lines: list[urwid.Widget] = [
             urwid.Text("Mode", align=urwid.CENTER),
             *self.mode_buttons,
             urwid.Divider(),
@@ -319,15 +322,19 @@ class GraphView(urwid.WidgetWrap):
             urwid.Divider(),
             self.button("Quit", self.exit_program),
         ]
-        w = urwid.ListBox(urwid.SimpleListWalker(lines))
+        w = urwid.ListBox(urwid.SimpleListWalker(lines))  # type: ignore[arg-type]  # all lines are flow widgets
         return w
 
-    def main_window(self):
+    def main_window(self) -> urwid.Widget:
         self.graph = self.bar_graph()
         self.graph_wrap = urwid.WidgetWrap(self.graph)
         vline = urwid.AttrMap(urwid.SolidFill("│"), "line")
         c = self.graph_controls()
-        w = urwid.Columns([(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c], dividechars=1, focus_column=2)
+        w: urwid.Widget = urwid.Columns(
+            [(urwid.WEIGHT, 2, self.graph_wrap), (1, vline), c],
+            dividechars=1,
+            focus_column=2,
+        )
         w = urwid.Padding(w, urwid.LEFT, left=1)
         w = urwid.AttrMap(w, "body")
         w = urwid.LineBox(w)
@@ -343,7 +350,7 @@ class GraphController:
     """
 
     def __init__(self) -> None:
-        self.animate_alarm = None
+        self.animate_alarm: typing.Any = None
         self.model = GraphModel()
         self.view = GraphView(self)
         # use the first mode as the default
@@ -353,24 +360,24 @@ class GraphController:
         self.view.on_mode_change(mode)
         self.view.update_graph(True)
 
-    def get_modes(self):
+    def get_modes(self) -> list[str]:
         """Allow our view access to the list of modes."""
         return self.model.get_modes()
 
-    def set_mode(self, m) -> None:
+    def set_mode(self, m: str) -> None:
         """Allow our view to set the mode."""
         self.model.set_mode(m)
         self.view.update_graph(True)
 
-    def get_data(self, offset, data_range):
+    def get_data(self, offset: int, data_range: int) -> tuple[list[float | int], int, int]:
         """Provide data to our view for the graph."""
         return self.model.get_data(offset, data_range)
 
     def main(self) -> None:
-        self.loop = urwid.MainLoop(self.view, self.view.palette)
+        self.loop: urwid.MainLoop = urwid.MainLoop(self.view, self.view.palette)
         self.loop.run()
 
-    def animate_graph(self, loop=None, user_data=None) -> None:
+    def animate_graph(self, loop: urwid.MainLoop | None = None, user_data: typing.Any = None) -> None:
         """update the graph and schedule the next update"""
         self.view.update_graph()
         self.animate_alarm = self.loop.set_alarm_in(UPDATE_INTERVAL, self.animate_graph)

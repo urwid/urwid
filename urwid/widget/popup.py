@@ -200,7 +200,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         if not hasattr(self._current_widget, "get_cursor_coords"):
             raise TypeError(f"widget {type(self._current_widget)} has no get_cursor_coords method")
 
-        return self._current_widget.get_cursor_coords(size)
+        return self._current_widget.get_cursor_coords(size)  # type: ignore[no-any-return]
 
     def get_pref_col(self, size: tuple[int, int]) -> int:
         """
@@ -254,7 +254,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         focus: bool = False,
     ) -> tuple[int, int]:
         self._update_overlay(size, focus)  # type: ignore[arg-type]
-        return self._current_widget.pack(size)  # type: ignore[arg-type]
+        return self._current_widget.pack(size)
 
 
 def _test() -> None:
