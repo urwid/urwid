@@ -2,6 +2,35 @@
 Changelog
 ---------
 
+Urwid 4.1.5
+============
+
+2026-09-18
+
+New features 🗹
++++++++++++++++
+* Support async callbacks set via MainLoop if backend support by @penguinolog in https://github.com/urwid/urwid/pull/1314
+* Support async callbacks in ZMQEventLoop, make ZMQEventLoop async by @penguinolog in https://github.com/urwid/urwid/pull/1315
+* Add full palette and AttrSpec support for WEB display by @penguinolog in https://github.com/urwid/urwid/pull/1316
+* Add capital letters to thin 4x3 font by @penguinolog in https://github.com/urwid/urwid/pull/1323
+
+Deprecations ⚡
++++++++++++++++
+* Announce removal of old display import aliases by @penguinolog in https://github.com/urwid/urwid/pull/1312
+
+Bug fixes 🕷
+++++++++++++
+* Fix screen redraw on window resize for curses display by @penguinolog in https://github.com/urwid/urwid/pull/1317
+* Implement nested popups support by @penguinolog in https://github.com/urwid/urwid/pull/1320
+
+Refactoring 🛠
+++++++++++++++
+* Optimise code and extend test coverage for Canvas classes by @penguinolog in https://github.com/urwid/urwid/pull/1313
+* Optimise BarGraph logic by @penguinolog in https://github.com/urwid/urwid/pull/1321
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.4...4.1.5
+
 Urwid 4.1.4
 ============
 
