@@ -154,8 +154,24 @@ class AsyncioEventLoop(EventLoop):
             task = self._loop.create_task(callback(*args, **kwargs))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
+            task.add_done_callback(self._background_task_done)
             return None
         return callback(*args, **kwargs)
+
+    def _background_task_done(self, task: asyncio.Task[typing.Any]) -> None:
+        """Report a background task's exception directly rather than relying on GC.
+
+        A background task's exception would otherwise only surface through asyncio's
+        "Task exception was never retrieved" mechanism, which CPython triggers from
+        ``Task.__del__`` as soon as the task is refcounted to zero. PyPy and GraalPy use
+        tracing garbage collectors instead, so that finalizer runs at an unpredictable
+        time (if at all before the process exits), leaving :meth:`run` blocked forever
+        on an exception - including a plain :exc:`ExitMainLoop` - that already happened.
+        """
+        if task.cancelled():
+            return
+        if exc := task.exception():
+            self._exception_handler(self._loop, {"exception": exc})
 
     def _entering_idle(self) -> None:
         """

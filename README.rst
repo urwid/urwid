@@ -73,27 +73,104 @@ Testing
 =======
 
 To run tests locally, install & run `tox`. You must have
-appropriate Python versions installed to run `tox` for
-each of them.
+appropriate Python versions installed to run `tox` for each of them.
 
 To test code in all Python versions:
 
 .. code:: bash
 
-    tox                     # Test all versions specified in tox.ini:
-    tox -e py39             # Test Python 3.9 only
-    tox -e py39,py10,pypy3  # Test Python 3.9, Python 3.10 & pypy3
+    tox                           # Test all versions specified in tox.ini
+    tox -e py39                   # Test Python 3.9 only
+    tox -e py313t                 # Test Python 3.13 with free-threading
+    tox -e pypy3                  # Test PyPy3
+    tox -e py39,py310,pypy3       # Test specific versions
+
+Testing different Python implementations
+----------------------------------------
+
+**CPython standard (default)**
+
+Tests all optional extras including C extensions (glib, zmq, twisted).
+
+.. code:: bash
+
+    tox -e py313
+
+**Free-threaded CPython (3.13+)**
+
+Tests with compatible extras (tornado, trio, twisted, serial). Excludes C extensions without free-threading wheel support.
+
+.. code:: bash
+
+    tox -e py313t        # Python 3.13 free-threaded (PEP 703)
+    tox -e py314t        # Python 3.14 free-threaded
+    tox -e py315t        # Python 3.15 free-threaded
+
+**PyPy3**
+
+Tests with compatible extras (tornado, trio, serial). Excludes problematic C extensions.
+
+.. code:: bash
+
+    tox -e pypy3
+
+**GraalPy**
+
+Tests with compatible extras (tornado, serial). Excludes extras that need C extensions GraalPy
+doesn't support (glib, zmq) or that have known compatibility issues (trio, twisted). GraalPy also
+ships no ``_curses`` module, so curses-dependent tests are expected to fail.
+
+.. code:: bash
+
+    tox -e graalpy311      # GraalPy 3.11
+    tox -e graalpy312      # GraalPy 3.12
 
 Supported Python versions
 =========================
 
-- 3.9
-- 3.10
-- 3.11
-- 3.12
-- 3.13
-- 3.14
-- pypy3
+Urwid supports:
+
+- CPython 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15
+- CPython 3.13+ with free-threading (PEP 703 ``--disable-gil``)
+- PyPy 3.x
+- GraalPy 3.11, 3.12 (experimental)
+
+Python implementation notes
+===========================
+
+**CPython (standard Python)**
+
+Full support for all optional features. All extras (``curses``, ``glib``, ``serial``, ``tornado``, ``trio``, ``twisted``, ``zmq``) can be installed.
+
+**CPython with Free-Threading (3.13, 3.14, 3.15+)**
+
+Urwid core and pure-Python event loops are fully supported. Some extras require C extensions that may not have free-threading wheels available:
+
+- ✅ Supported: core, tornado, trio, twisted (24.10.0+), serial, lcd
+- ❌ Unsupported: glib, zmq (require C extensions with free-threading wheel support)
+
+For free-threading Python, install with compatible extras:
+
+.. code:: bash
+
+    python3.13 -m pip install 'urwid[tornado,trio,serial]'
+
+**PyPy**
+
+Urwid core is fully supported. Some extras may have compatibility issues:
+
+- ✅ Supported: core, tornado, trio, serial, lcd
+- ⚠️ Limited: twisted (may have issues, test before using)
+- ❌ Unsupported: glib, zmq (C extensions with limited PyPy support)
+
+**GraalPy (experimental)**
+
+Urwid core and the ``select``/``asyncio`` event loops are supported. Some extras and display
+modules are not:
+
+- ✅ Supported: core, tornado, serial, lcd
+- ❌ Unsupported: curses (GraalPy ships no ``_curses`` module), glib, zmq, twisted, trio (no C
+  extension support, or known compatibility issues)
 
 Authors
 =======
