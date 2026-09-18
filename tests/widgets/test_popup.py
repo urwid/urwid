@@ -51,7 +51,7 @@ class PopUpTargetTest(unittest.TestCase):
         canv = target.render((10, 5))
         self.assertEqual(b"".join(canv.text), b"x" * 10 * 5)
         self.assertIs(target._current_widget, launcher)
-        self.assertIsNone(target._pop_up)
+        self.assertEqual(target._pop_up_levels, [])
 
     def test_render_with_pop_up_creates_overlay(self) -> None:
         launcher = ThingWithAPopUp()
@@ -60,7 +60,7 @@ class PopUpTargetTest(unittest.TestCase):
 
         target.render((10, 5))
         self.assertIsInstance(target._current_widget, urwid.Overlay)
-        self.assertIs(target._pop_up, launcher._pop_up_widget)
+        self.assertEqual([w for w, _overlay in target._pop_up_levels], [launcher._pop_up_widget])
 
         # Render again with the same pop-up widget open: hits the
         # set_overlay_parameters() branch instead of creating a new Overlay.
@@ -78,7 +78,7 @@ class PopUpTargetTest(unittest.TestCase):
         launcher.close_pop_up()
         target.render((10, 5))
         self.assertIs(target._current_widget, launcher)
-        self.assertIsNone(target._pop_up)
+        self.assertEqual(target._pop_up_levels, [])
 
     def test_get_cursor_coords_no_support(self) -> None:
         launcher = ThingWithAPopUp()
@@ -138,6 +138,81 @@ class PopUpTargetTest(unittest.TestCase):
         launcher = ThingWithAPopUp()
         target = urwid.PopUpTarget(launcher)
         self.assertEqual(target.pack((10, 5)), (10, 5))
+
+
+class NestedDialog(urwid.PopUpLauncher[urwid.Filler[urwid.Edit]]):
+    """A pop-up launcher whose own pop-up is another :class:`NestedDialog`.
+
+    Used to reproduce https://github.com/urwid/urwid/issues/469: a pop-up
+    launcher opened from inside an already-open pop-up.
+    """
+
+    def __init__(self, level: int) -> None:
+        self.level = level
+        super().__init__(urwid.Filler(urwid.Edit("", f"level {level}")))
+
+    def create_pop_up(self) -> NestedDialog:
+        return NestedDialog(self.level + 1)
+
+    def get_pop_up_parameters(self) -> dict:
+        return {"left": self.level * 12, "top": 0, "overlay_width": 10, "overlay_height": 3}
+
+
+class NestedPopUpTest(unittest.TestCase):
+    def test_nested_pop_up_is_rendered(self) -> None:
+        outer = NestedDialog(0)
+        target = urwid.PopUpTarget(outer)
+        outer.open_pop_up()
+        inner = outer._pop_up_widget
+
+        inner.open_pop_up()  # nest a second pop-up inside the first one
+
+        canv = target.render((25, 10))
+        text = b"\n".join(canv.text).decode()
+        self.assertIn("level 1", text)
+        self.assertIn("level 2", text)
+        self.assertEqual(len(target._pop_up_levels), 2)
+
+    def test_closing_inner_pop_up_reverts_to_outer(self) -> None:
+        outer = NestedDialog(0)
+        target = urwid.PopUpTarget(outer)
+        outer.open_pop_up()
+        inner = outer._pop_up_widget
+        inner.open_pop_up()
+        target.render((25, 10))
+
+        inner.close_pop_up()
+        canv = target.render((25, 10))
+        text = b"\n".join(canv.text).decode()
+        self.assertIn("level 1", text)
+        self.assertNotIn("level 2", text)
+        self.assertEqual(len(target._pop_up_levels), 1)
+
+    def test_closing_outer_pop_up_closes_everything(self) -> None:
+        outer = NestedDialog(0)
+        target = urwid.PopUpTarget(outer)
+        outer.open_pop_up()
+        inner = outer._pop_up_widget
+        inner.open_pop_up()
+        target.render((25, 10))
+
+        outer.close_pop_up()
+        canv = target.render((25, 10))
+        text = b"\n".join(canv.text).decode()
+        self.assertNotIn("level 1", text)
+        self.assertNotIn("level 2", text)
+        self.assertEqual(target._pop_up_levels, [])
+
+    def test_keypress_reaches_innermost_pop_up(self) -> None:
+        outer = NestedDialog(0)
+        target = urwid.PopUpTarget(outer)
+        outer.open_pop_up()
+        inner = outer._pop_up_widget
+        inner.open_pop_up()
+        innermost = inner._pop_up_widget
+
+        target.keypress((20, 10), "x")
+        self.assertEqual(innermost.original_widget.original_widget.edit_text, "level 2x")
 
 
 if __name__ == "__main__":
