@@ -270,8 +270,11 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         self.assertRaises(ZeroDivisionError, evl.run)
 
     @unittest.skipIf(
-        sys.implementation.name == "pypy",
-        "Well known dead wait (lock?) on pypy.",
+        sys.implementation.name in ("pypy", "graalpy"),
+        "Relies on CPython's refcounting GC to promptly finalize the task and trigger "
+        "asyncio's 'Task exception was never retrieved' handler; PyPy and GraalPy use a "
+        "tracing GC, so that finalizer may never run before the process exits and evl.run() "
+        "hangs forever.",
     )
     def test_coroutine_error(self):
         evl = self.evl
