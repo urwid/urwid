@@ -263,12 +263,12 @@ def parse_chart(
     chart: str,
     convert: Callable[[str], tuple[urwid.AttrSpec, str] | None],
 ) -> list[str | tuple[urwid.AttrSpec, str]]:
-    """
-    Convert string chart into text markup with the correct attributes.
+    """Convert string chart into text markup with the correct attributes.
 
-    chart -- palette chart as a string
-    convert -- function that converts a single palette entry to an
-        (attr, text) tuple, or None if no match is found
+    :param chart: palette chart as a string
+    :param convert: function that converts a single palette entry to an (attr, text) tuple, or ``None`` if no
+                     match is found
+    :returns: text markup for the chart
     """
     out = []
     for match in ATTR_RE.finditer(chart):
@@ -304,12 +304,12 @@ def foreground_chart(
     background: str,
     colors: Literal[1, 16, 88, 256, 16777216],
 ) -> list[str | tuple[urwid.AttrSpec, str]]:
-    """
-    Create text markup for a foreground colour chart
+    """Create text markup for a foreground colour chart.
 
-    chart -- palette chart as string
-    background -- colour to use for background of chart
-    colors -- number of colors (88 or 256)
+    :param chart: palette chart as string
+    :param background: colour to use for background of chart
+    :param colors: number of colors
+    :returns: text markup for the chart
     """
 
     def convert_foreground(entry: str) -> tuple[urwid.AttrSpec, str] | None:
@@ -327,14 +327,14 @@ def background_chart(
     foreground: str,
     colors: Literal[1, 16, 88, 256, 16777216],
 ) -> list[str | tuple[urwid.AttrSpec, str]]:
-    """
-    Create text markup for a background colour chart
+    """Create text markup for a background colour chart.
 
-    chart -- palette chart as string
-    foreground -- colour to use for foreground of chart
-    colors -- number of colors (88 or 256)
+    Remaps 8 <= colour < 16 to high-colour versions in the hopes of greater compatibility.
 
-    This will remap 8 <= colour < 16 to high-colour versions in the hopes of greater compatibility
+    :param chart: palette chart as string
+    :param foreground: colour to use for foreground of chart
+    :param colors: number of colors
+    :returns: text markup for the chart
     """
 
     def convert_background(entry: str) -> tuple[urwid.AttrSpec, str] | None:
@@ -353,6 +353,7 @@ def background_chart(
 
 
 def main() -> None:
+    """Run the palette test example program."""
     palette = [
         ("header", "black,underline", "light gray", "standout,underline", "black,underline", "#88a"),
         ("panel", "light gray", "dark blue", "", "#ffd", "#00a"),
@@ -368,7 +369,7 @@ def main() -> None:
     mode_radio_buttons: list[urwid.RadioButton] = []
     chart_radio_buttons: list[urwid.RadioButton] = []
 
-    def fcs(widget: urwid.AbstractWidget) -> urwid.AttrMap:
+    def fcs(widget: urwid.AbstractWidget) -> urwid.AttrMap[urwid.AbstractWidget]:
         # wrap widgets that can take focus
         return urwid.AttrMap(widget, None, "focus")
 
@@ -391,7 +392,7 @@ def main() -> None:
             is_foreground_chart = chart_radio_buttons[0].state
             set_mode(colors, typing.cast("bool", is_foreground_chart))
 
-    def mode_rb(text: str, colors: int, state: bool = False) -> urwid.AttrMap:
+    def mode_rb(text: str, colors: int, state: bool = False) -> urwid.AttrMap[urwid.RadioButton]:
         # mode radio buttons
         rb = urwid.RadioButton(mode_radio_buttons, text, state)
         urwid.connect_signal(rb, "change", on_mode_change, user_args=(colors,))

@@ -44,31 +44,37 @@ if typing.TYPE_CHECKING:
 
 
 class SampleTree(typing.TypedDict):
+    """Data for a single node of the example tree: a name and, for a parent node, its children."""
+
     name: str
     children: NotRequired[list[SampleTree]]
 
 
 class ExampleTreeWidget(urwid.TreeWidget["ExampleNode | ExampleParentNode"]):
-    """Display widget for tree nodes"""
+    """Display widget for tree nodes."""
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
+        """Return the node's name to display."""
         return self.get_node().get_value()["name"]
 
 
 class ExampleNode(urwid.TreeNode[SampleTree]):
-    """Data storage object for leaf nodes"""
+    """Data storage object for leaf nodes."""
 
     def load_widget(self) -> ExampleTreeWidget:
+        """Return a new widget for this node."""
         return ExampleTreeWidget(self)
 
 
 class ExampleParentNode(urwid.ParentNode[SampleTree]):
-    """Data storage object for interior/parent nodes"""
+    """Data storage object for interior/parent nodes."""
 
     def load_widget(self) -> ExampleTreeWidget:
+        """Return a new widget for this node."""
         return ExampleTreeWidget(self)
 
     def load_child_keys(self) -> tuple[int, ...]:
+        """Return the indices of this node's children."""
         data = self.get_value()
         return tuple(range(len(data["children"])))
 
@@ -76,7 +82,12 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
         self,
         key: int,  # type: ignore[override]  # We have explicit type
     ) -> ExampleParentNode | ExampleNode:
-        """Return either an ExampleNode or ExampleParentNode"""
+        """Return the child node at a given index.
+
+        :param key: index of the child within this node's children
+        :returns: an :class:`ExampleParentNode` if the child has children of its own, an :class:`ExampleNode`
+                  otherwise
+        """
         childdata = self.get_value()["children"][key]
         childdepth = self.get_depth() + 1
         if "children" in childdata:
@@ -86,6 +97,8 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
 
 
 class ExampleTreeBrowser:
+    """Interactive browser for the example tree."""
+
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray"),
         ("focus", "light gray", "dark blue", "standout"),
@@ -140,12 +153,20 @@ class ExampleTreeBrowser:
         self.loop.run()
 
     def unhandled_input(self, k: str | tuple[str, int, int, int]) -> None:
+        """Handle keys not consumed by the widgets: :kbd:`q` to exit.
+
+        :param k: unhandled key or mouse event
+        :raises urwid.ExitMainLoop: when the user presses :kbd:`q`
+        """
         if k in {"q", "Q"}:
             raise urwid.ExitMainLoop()
 
 
 def get_example_tree() -> SampleTree:
-    """generate a quick 100 leaf tree for demo purposes"""
+    """Generate a quick 100 leaf tree for demo purposes.
+
+    :returns: a parent node with 10 children, each having 10 children of their own
+    """
     retval: SampleTree = {"name": "parent", "children": []}
     for i in range(10):
         retval["children"].append({"name": f"child {i!s}"})
@@ -156,6 +177,7 @@ def get_example_tree() -> SampleTree:
 
 
 def main() -> None:
+    """Run the tree sample example program."""
     sample = get_example_tree()
     ExampleTreeBrowser(sample).main()
 

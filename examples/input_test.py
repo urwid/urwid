@@ -30,6 +30,8 @@ import logging
 
 import urwid
 
+loop_cls: type[urwid.EventLoop] | None
+
 if urwid.display.web.is_web_request():
     Screen = urwid.display.web.Screen
     loop_cls = urwid.SelectEventLoop
@@ -92,26 +94,35 @@ else:
 
 
 def key_test() -> None:
+    """Run the main loop that echoes each keypress and its raw bytes to the screen."""
     screen = Screen()
     header = urwid.AttrMap(
         urwid.Text("Values from get_input(). Q exits."),
         "header",
     )
-    lw = urwid.SimpleListWalker([])
+    lw: urwid.SimpleListWalker[urwid.Columns] = urwid.SimpleListWalker([])
     listbox = urwid.AttrMap(
         urwid.ListBox(lw),
         "listbox",
     )
-    top = urwid.Frame(listbox, header)
+    top: urwid.Frame[urwid.AttrMap[urwid.ListBox[urwid.Columns]], urwid.AttrMap[urwid.Text], None] = urwid.Frame(
+        listbox, header
+    )
 
-    def input_filter(keys: list[str | tuple[str, int, int, int]], raw: list[int]) -> list[str]:
+    def input_filter(
+        keys: list[str | tuple[str, int, int, int]], raw: list[int]
+    ) -> list[str | tuple[str, int, int, int]]:
+        """Append a display row for *keys* and *raw* to the list box, then return *keys* unchanged.
+
+        :raises urwid.ExitMainLoop: :kbd:`q` or :kbd:`Q` is among *keys*.
+        """
         if "q" in keys or "Q" in keys:
             raise urwid.ExitMainLoop
 
-        t = []
+        t: list[str | tuple[str, str]] = []
         for k in keys:
             if isinstance(k, tuple):
-                out = []
+                out: list[str | tuple[str, str]] = []
                 for v in k:
                     if out:
                         out += [", "]
@@ -149,7 +160,8 @@ def key_test() -> None:
             screen.tty_signal_keys(*old)
 
 
-def main():
+def main() -> None:
+    """Run the keyboard input test application."""
     urwid.display.web.set_preferences("Input Test")
     if urwid.display.web.handle_short_request():
         return

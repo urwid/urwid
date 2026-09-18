@@ -42,6 +42,8 @@ import urwid
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable
 
+    from typing_extensions import Literal
+
 # use appropriate Screen class
 if urwid.display.web.is_web_request():
     Screen = urwid.display.web.Screen
@@ -49,7 +51,7 @@ else:
     Screen = urwid.display.raw.Screen
 
 
-def div_or_none(a, b):
+def div_or_none(a: float, b: float) -> float | None:
     """Divide a by b. Return result or None on divide by zero."""
     if b == 0:
         return None
@@ -57,7 +59,7 @@ def div_or_none(a, b):
 
 
 # operators supported and the functions used to calculate a result
-OPERATORS = {
+OPERATORS: dict[str, typing.Callable[[int | float, int | float], int | float | None]] = {
     "+": operator.add,
     "-": operator.sub,
     "*": operator.mul,
@@ -79,7 +81,7 @@ E_invalid_key = "Invalid key '%s'."
 E_no_parent_column = "There is no parent column to return to."
 E_cant_combine = "Cannot combine cells with sub-expressions."
 E_invalid_in_parent_cell = "Cannot enter numbers into parent cell."
-E_invalid_in_help_col = [
+E_invalid_in_help_col: list[str | tuple[Hashable, str]] = [
     "Help Column is in focus.  Press ",
     ("key", COLUMN_KEYS[1]),
     "-",
@@ -88,7 +90,7 @@ E_invalid_in_help_col = [
 ]
 
 # Shared layout object
-CALC_LAYOUT = None
+CALC_LAYOUT: CalcNumLayout | None = None
 
 
 class CalcEvent(Exception):
@@ -100,13 +102,13 @@ class CalcEvent(Exception):
         self.message = message
 
     def widget(self) -> urwid.AttrMap[urwid.Text]:
-        """Return a widget containing event information"""
+        """Return a widget containing event information."""
         text = urwid.Text(self.message, urwid.CENTER)
         return urwid.AttrMap(text, self.attr)
 
 
 class ColumnDeleteEvent(CalcEvent):
-    """Sent when user wants to delete a column"""
+    """Sent when user wants to delete a column."""
 
     attr = "confirm"
 
@@ -120,10 +122,12 @@ class UpdateParentEvent(Exception):
 
 
 class Cell:
+    """A single number, or sub-expression, within a calculator column."""
+
     def __init__(self, op: str | None) -> None:
         self.op = op
         self.is_top = op is None
-        self.child = None
+        self.child: CellColumn | None = None
         self.setup_edit()
         self.result = urwid.Text("", layout=CALC_LAYOUT)
 
@@ -144,7 +148,7 @@ class Cell:
         self.edit = urwid.IntEdit()
         if not self.is_top:
             self.edit.set_caption(f"{self.op} ")
-        self.edit.set_layout(None, None, CALC_LAYOUT)
+        self.edit.set_layout(self.edit.align, self.edit.wrap, CALC_LAYOUT)
 
     def get_value(self) -> int | None:
         """Return the numeric value of the cell."""
@@ -163,7 +167,7 @@ class Cell:
             return None
         return int(self.result.text)
 
-    def set_result(self, result: int | None):
+    def set_result(self, result: float | None) -> None:
         """Set the numeric result for this cell."""
 
         if result is None:
@@ -171,7 +175,7 @@ class Cell:
         else:
             self.result.set_text(f"{result:d}")
 
-    def become_parent(self, column, letter: str) -> None:
+    def become_parent(self, column: CellColumn, letter: str) -> None:
         """Change the edit widget to a parent cell widget."""
 
         self.child = column
@@ -190,7 +194,7 @@ class Cell:
 
 
 class ParentEdit(urwid.Edit):
-    """Edit widget modified to link to a child column"""
+    """Edit widget modified to link to a child column."""
 
     def __init__(self, op: str | None, letter: str) -> None:
         """Use the operator and letter of the child column as caption
@@ -214,9 +218,12 @@ class ParentEdit(urwid.Edit):
             caption = f"{self.op} {caption}"
         self.set_caption(caption)
 
-    def keypress(self, size, key: str) -> str | None:
-        """Disable usual editing, allow only removing of child"""
+    def keypress(self, size: tuple[int], key: str) -> str | None:
+        """Disable usual editing, allow only removing of child.
 
+        :raises ColumnDeleteEvent: when `key` is :kbd:`backspace`, to remove this column.
+        :raises CalcEvent: when `key` is a digit, since numbers cannot be entered into a parent cell.
+        """
         if key == "backspace":
             raise ColumnDeleteEvent(self.letter, from_parent=True)
         if key in string.digits:
@@ -226,6 +233,12 @@ class ParentEdit(urwid.Edit):
 
 
 class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text]):
+    """ListWalker-compatible class for browsing the cells, dividers and results within a column.
+
+    Positions are ``(cell index, sub-position)`` tuples, where sub-position is 0 for the cell's edit widget,
+    1 for the divider below it, and 2 for its result.
+    """
+
     def __init__(self, content: Iterable[Cell]) -> None:
         self.content = urwid.MonitoredList(content)
         self.content.set_modified_callback(self._modified)
@@ -234,6 +247,7 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
         self.div = urwid.Divider("-")
 
     def get_cell(self, i: int) -> Cell | None:
+        """Return the cell at index `i`, or None if `i` is out of range."""
         if i < 0 or i >= len(self.content):
             return None
 
@@ -243,6 +257,7 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
         self,
         pos: tuple[int, int],
     ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+        """Return the widget and position passed, or (None, None) if `pos` is out of range."""
         i, sub = pos
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if i < 0 or i >= len(self.content):
@@ -258,15 +273,18 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
     def get_focus(
         self,
     ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+        """Return the widget and position for the current focus."""
         return self._get_at_pos(self.focus)
 
     def set_focus(self, focus: tuple[int, int]) -> None:
+        """Set the focus position."""
         self.focus = focus
 
     def get_next(
         self,
         position: tuple[int, int],
     ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+        """Return the widget and position after the given position."""
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
@@ -284,6 +302,7 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
         self,
         position: tuple[int, int],
     ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+        """Return the widget and position before the given position."""
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
         if sub == 0:
@@ -300,7 +319,11 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
         return self._get_at_pos((i, 1))
 
 
-class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwid.ListBox, None]]):
+class CellColumn(
+    urwid.WidgetWrap[urwid.Frame[urwid.ListBox[tuple[int, int]], urwid.AttrMap[urwid.Text], None]],
+):
+    """A single lettered column of calculator cells."""
+
     def __init__(self, letter: str) -> None:
         self.walker = CellWalker([Cell(None)])
         self.content = self.walker.content
@@ -313,23 +336,51 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
 
         self.letter = letter
         header = urwid.AttrMap(urwid.Text(["Column ", ("key", letter)], layout=CALC_LAYOUT), "colhead")
-        self.frame = urwid.Frame(self.listbox, header)
+        self.frame: urwid.Frame[urwid.ListBox[tuple[int, int]], urwid.AttrMap[urwid.Text], None] = urwid.Frame(
+            self.listbox,
+            header,
+        )
+
+    def _focus_pos(self) -> tuple[int, int]:
+        """Return the current focus position.
+
+        :raises AssertionError: if the walker has no focus, which never happens once a column has its first cell.
+        """
+        _widget, pos = self.walker.get_focus()
+        assert pos is not None  # noqa: S101  # for examples "assert" is acceptable
+        return pos
+
+    def _cell(self, index: int) -> Cell:
+        """Return the cell at the given position.
+
+        :raises AssertionError: if `index` is out of range, which the callers below never pass.
+        """
+        cell = self.walker.get_cell(index)
+        assert cell is not None  # noqa: S101  # for examples "assert" is acceptable
+        return cell
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None:
-        key = self.frame.keypress(size, key)
-        if key is None:
+        """Handle a keystroke within this column, splitting, combining or removing cells as needed.
+
+        :raises UpdateParentEvent: when a cell's result changed, so any parent column can be refreshed.
+        :raises ColumnDeleteEvent: on :kbd:`backspace` at the first cell, asking the caller to remove this column.
+        :raises CalcEvent: on an operation that would combine cells across a sub-expression boundary.
+        """
+        frame_key = self.frame.keypress(size, key)
+        if frame_key is None:
             changed = self.update_results()
             if changed:
                 raise UpdateParentEvent()
             return None
+        key = frame_key
 
-        _f, (i, sub) = self.walker.get_focus()
+        i, sub = self._focus_pos()
         if sub != 0:
             # f is not an edit widget
             return key
         if key in OPERATORS:
             # move trailing text to new cell below
-            edit = self.walker.get_cell(i).edit
+            edit = self._cell(i).edit
             cursor_pos = edit.edit_pos
             tail = edit.edit_text[cursor_pos:]
             edit.set_edit_text(edit.edit_text[:cursor_pos])
@@ -353,7 +404,7 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
                 # we're the first cell
                 raise ColumnDeleteEvent(self.letter, from_parent=False)
 
-            edit = self.walker.get_cell(i).edit
+            edit = self._cell(i).edit
             # check that we can combine
             if above.child is not None:
                 # cell above is parent
@@ -376,7 +427,7 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
 
         if key == "delete":
             # pull text from next cell into current
-            cell = self.walker.get_cell(i)
+            cell = self._cell(i)
             below = self.walker.get_cell(i + 1)
             if cell.child is not None:
                 # this cell is a parent
@@ -388,7 +439,7 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
                 # cell below is a parent
                 raise CalcEvent(E_cant_combine)
 
-            edit = self.walker.get_cell(i).edit
+            edit = self._cell(i).edit
             edit.set_edit_text(edit.edit_text + below.edit.edit_text)
 
             del self.content[i + 1]
@@ -399,24 +450,26 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
         return key
 
     def move_focus_next(self, size: tuple[int, int]) -> None:
-        _f, (i, _sub) = self.walker.get_focus()
+        """Move the focus to the next edit widget, skipping over dividers and results."""
+        i, _sub = self._focus_pos()
         assert i < len(self.content) - 1  # noqa: S101  # for examples "assert" is acceptable
 
         ni = i
         while ni == i:
             self.frame.keypress(size, "down")
-            _nf, (ni, _nsub) = self.walker.get_focus()
+            ni, _nsub = self._focus_pos()
 
     def move_focus_prev(self, size: tuple[int, int]) -> None:
-        _f, (i, _sub) = self.walker.get_focus()
+        """Move the focus to the previous edit widget, skipping over dividers and results."""
+        i, _sub = self._focus_pos()
         assert i > 0  # noqa: S101  # for examples "assert" is acceptable
 
         ni = i
         while ni == i:
             self.frame.keypress(size, "up")
-            _nf, (ni, _nsub) = self.walker.get_focus()
+            ni, _nsub = self._focus_pos()
 
-    def update_results(self, start_from=None) -> bool:
+    def update_results(self, start_from: Cell | None = None) -> bool:
         """Update column.  Return True if final result changed.
 
         start_from -- Cell to start updating from or None to start from
@@ -424,29 +477,32 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
         """
 
         if start_from is None:
-            _f, (i, _sub) = self.walker.get_focus()
+            i, _sub = self._focus_pos()
         else:
             i = self.content.index(start_from)
-            if i is None:
-                return False
 
-        focus_cell = self.walker.get_cell(i)
+        focus_cell = self._cell(i)
 
+        x: int | float | None
         if focus_cell.is_top:
             x = focus_cell.get_value()
         else:
-            last_cell = self.walker.get_cell(i - 1)
+            last_cell = self._cell(i - 1)
             x = last_cell.get_result()
 
             if x is not None and focus_cell.op is not None:
-                x = OPERATORS[focus_cell.op](x, focus_cell.get_value())
+                value = focus_cell.get_value()
+                assert value is not None  # noqa: S101  # for examples "assert" is acceptable
+                x = OPERATORS[focus_cell.op](x, value)
             focus_cell.set_result(x)
 
         for cell in self.content[i + 1 :]:
             if cell.op is None:
                 x = None
-            if x is not None:
-                x = OPERATORS[cell.op](x, cell.get_value())
+            elif x is not None:
+                value = cell.get_value()
+                assert value is not None  # noqa: S101  # for examples "assert" is acceptable
+                x = OPERATORS[cell.op](x, value)
             if cell.get_result() == x:
                 return False
             cell.set_result(x)
@@ -455,12 +511,12 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
 
     def create_child(self, letter: str) -> tuple[Cell, CellColumn] | tuple[None, None]:
         """Return (parent cell,child column) or None,None on failure."""
-        _f, (i, sub) = self.walker.get_focus()
+        i, sub = self._focus_pos()
         if sub != 0:
             # f is not an edit widget
             return None, None
 
-        cell = self.walker.get_cell(i)
+        cell = self._cell(i)
         if cell.child is not None:
             raise CalcEvent(E_new_col_cell_not_empty)
         if cell.edit.edit_text:
@@ -497,10 +553,12 @@ class CellColumn(urwid.WidgetWrap[urwid.Frame[urwid.WidgetWrap[urwid.Text], urwi
 
 
 class HelpColumn(urwid.Widget):
+    """Column displaying the calculator's key bindings and usage notes."""
+
     _selectable = True
     _sizing = frozenset((urwid.BOX,))
 
-    help_text = [  # noqa: RUF012  # text layout typing is too complex
+    help_text: list[str | tuple[str, str] | list[str | tuple[str, str]]] = [  # noqa: RUF012  # typing is too complex
         ("title", "Column Calculator"),
         "",
         ["Numbers: ", ("key", "0"), "-", ("key", "9")],
@@ -550,9 +608,20 @@ class HelpColumn(urwid.Widget):
         self.items = [urwid.Text(x) for x in self.help_text]
         self.listbox = urwid.ListBox(urwid.SimpleListWalker(self.items))
         self.body = urwid.AttrMap(self.listbox, "help")
-        self.frame = urwid.Frame(self.body, header=self.head)
+        self.frame: urwid.Frame[
+            urwid.AttrMap[urwid.ListBox[int]], urwid.AttrMap[urwid.Text], urwid.AttrMap[urwid.Text] | None
+        ] = urwid.Frame(
+            self.body,
+            header=self.head,
+        )
 
-    def render(self, size: tuple[int, int], focus: bool = False) -> urwid.Canvas:
+    def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> urwid.Canvas:
+        """Render the help column, showing the scroll hint footer only while more text is available below.
+
+        :raises ValueError: if `size` is not the two-dimensional size a box widget is always rendered with.
+        """
+        if len(size) != 2:  # box widgets are always rendered with a 2-tuple size
+            raise ValueError(f"HelpColumn is a box widget and requires a (maxcol, maxrow) size, got {size!r}")
         maxcol, maxrow = size
         head_rows = self.head.rows((maxcol,))
         if "bottom" in self.listbox.ends_visible((maxcol, maxrow - head_rows)):
@@ -562,11 +631,19 @@ class HelpColumn(urwid.Widget):
 
         return self.frame.render((maxcol, maxrow), focus)
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+        """Pass the keystroke through to the wrapped frame.
+
+        :raises ValueError: if `size` is not the two-dimensional size a box widget is always rendered with.
+        """
+        if len(size) != 2:  # box widgets are always rendered with a 2-tuple size
+            raise ValueError(f"HelpColumn is a box widget and requires a (maxcol, maxrow) size, got {size!r}")
         return self.frame.keypress(size, key)
 
 
 class CalcDisplay:
+    """Top-level application: the columns of cells, plus the loop and key handling that drives them."""
+
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "white", "dark blue"),
         ("edit", "yellow", "dark blue"),
@@ -584,10 +661,13 @@ class CalcDisplay:
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
         self.columns.focus_position = 1
         view = urwid.AttrMap(self.columns, "body")
-        self.view = urwid.Frame(view)  # for showing messages
-        self.col_link = {}
+        self.view: urwid.Frame[urwid.AttrMap[urwid.Columns], None, urwid.AttrMap[urwid.Text]] = urwid.Frame(
+            view
+        )  # for showing messages
+        self.col_link: dict[CellColumn, tuple[Cell, CellColumn]] = {}
 
     def main(self) -> None:
+        """Run the Column Calculator application."""
         self.loop = urwid.MainLoop(self.view, self.palette, screen=Screen(), input_filter=self.input_filter)
         self.loop.run()
 
@@ -597,7 +677,12 @@ class CalcDisplay:
         print(expression)
         print("Result:", result)
 
-    def input_filter(self, data: list[str | tuple[str, int, int, int]], raw_input: list[int]) -> list[str]:
+    def input_filter(
+        self,
+        data: list[str | tuple[str, int, int, int]],
+        raw_input: list[int],
+    ) -> list[str | tuple[str, int, int, int]]:
+        """Handle every keystroke immediately and consume all input, leaving nothing for MainLoop to process."""
         if "q" in data or "Q" in data:
             raise urwid.ExitMainLoop()
 
@@ -616,10 +701,15 @@ class CalcDisplay:
         return []
 
     def wrap_keypress(self, key: str | tuple[str, int, int, int]) -> None:
-        """Handle confirmation and throw event on bad input."""
+        """Handle confirmation and throw event on bad input.
 
+        :raises ColumnDeleteEvent: if a second BACKSPACE confirms deleting a non-empty column.
+        :raises CalcEvent: if `key` is not a valid movement or editing key for the current focus.
+        """
+        # falls back to the raw key if self.keypress() raises before returning
+        processed_key: str | tuple[str, int, int, int] | None = key
         try:
-            key = self.keypress(key)
+            processed_key = self.keypress(key)
 
         except ColumnDeleteEvent as e:
             if e.letter == COLUMN_KEYS[1]:
@@ -635,18 +725,21 @@ class CalcDisplay:
             self.update_parent_columns()
             return
 
-        if key is None:
+        if processed_key is None:
             return
 
-        if self.columns.focus_position == 0 and key not in {"up", "down", "page up", "page down"}:
+        if self.columns.focus_position == 0 and processed_key not in {"up", "down", "page up", "page down"}:
             raise CalcEvent(E_invalid_in_help_col)
 
-        if key not in EDIT_KEYS and key not in MOVEMENT_KEYS:
-            raise CalcEvent(E_invalid_key % key.upper())
+        if processed_key not in EDIT_KEYS and processed_key not in MOVEMENT_KEYS:
+            key_display = processed_key.upper() if isinstance(processed_key, str) else processed_key
+            raise CalcEvent(E_invalid_key % key_display)
 
     def keypress(self, key: str | tuple[str, int, int, int]) -> str | None:
-        """Handle a keystroke."""
+        """Handle a keystroke.
 
+        :raises CalcEvent: on an invalid column switch, or an attempt to open too many or unparented columns.
+        """
         self.loop.process_input([key])
 
         if isinstance(key, tuple):
@@ -668,10 +761,10 @@ class CalcDisplay:
             if i == 0:
                 # makes no sense in help column
                 return key
-            col = self.columns.contents[i][0]
+            col = self._column_at(i)
             new_letter = COLUMN_KEYS[len(self.columns)]
             parent, child = col.create_child(new_letter)
-            if child is None:
+            if child is None or parent is None:
                 # something invalid in focus
                 return key
             self.columns.contents.append((child, (urwid.WEIGHT, 1, False)))
@@ -684,9 +777,9 @@ class CalcDisplay:
             if i == 0:
                 # makes no sense in help column
                 return key
-            col = self.columns.contents[i][0]
+            col = self._column_at(i)
             parent, pcol = self.get_parent(col)
-            if parent is None:
+            if parent is None or pcol is None:
                 # column has no parent
                 raise CalcEvent(E_no_parent_column)
 
@@ -696,7 +789,17 @@ class CalcDisplay:
 
         return key
 
-    def set_link(self, parent, pcol, child):
+    def _column_at(self, index: int) -> CellColumn:
+        """Return the CellColumn at the given position in `self.columns`.
+
+        :raises AssertionError: if the widget at that position is not a CellColumn, which happens only at
+            position 0, the fixed help column, and callers of this method never pass 0.
+        """
+        col = self.columns.contents[index][0]
+        assert isinstance(col, CellColumn)  # noqa: S101  # for examples "assert" is acceptable
+        return col
+
+    def set_link(self, parent: Cell, pcol: CellColumn, child: CellColumn) -> None:
         """Store the link between a parent cell and child column.
 
         parent -- parent Cell object
@@ -705,23 +808,25 @@ class CalcDisplay:
 
         self.col_link[child] = parent, pcol
 
-    def get_parent(self, child):
+    def get_parent(self, child: CellColumn) -> tuple[Cell, CellColumn] | tuple[None, None]:
         """Return the parent and parent column for a given column."""
 
         return self.col_link.get(child, (None, None))
 
-    def column_empty(self, letter) -> bool:
+    def column_empty(self, letter: str) -> bool:
         """Return True if the column passed is empty."""
 
-        return self.columns.contents[COLUMN_KEYS.index(letter)][0].is_empty()
+        return self._column_at(COLUMN_KEYS.index(letter)).is_empty()
 
-    def delete_column(self, letter) -> None:
+    def delete_column(self, letter: str) -> None:
         """Delete the column with the given letter."""
 
         i = COLUMN_KEYS.index(letter)
-        col = self.columns.contents[i][0]
+        col = self._column_at(i)
 
         parent, pcol = self.get_parent(col)
+        assert parent is not None  # noqa: S101  # for examples "assert" is acceptable
+        assert pcol is not None  # noqa: S101  # for examples "assert" is acceptable
 
         f = self.columns.focus_position
         if f == i:
@@ -734,14 +839,15 @@ class CalcDisplay:
         del self.columns.contents[i]
 
         # delete children of this column
-        keep_right_cols = []
+        keep_right_cols: list[CellColumn] = []
         remove_cols = [col]
-        for rcol, _ in self.columns.contents[i:]:
-            parent, pcol = self.get_parent(rcol)
-            if pcol in remove_cols:
-                remove_cols.append(rcol)
+        for rcol in self.columns.contents[i:]:
+            assert isinstance(rcol[0], CellColumn)  # noqa: S101  # for examples "assert" is acceptable
+            _rparent, rpcol = self.get_parent(rcol[0])
+            if rpcol in remove_cols:
+                remove_cols.append(rcol[0])
             else:
-                keep_right_cols.append(rcol)
+                keep_right_cols.append(rcol[0])
         for rc in remove_cols:
             # remove the links
             del self.col_link[rc]
@@ -750,10 +856,11 @@ class CalcDisplay:
 
         # fix the letter assignments
         for j in range(i, len(self.columns)):
-            col = self.columns.contents[j][0]
+            col = self._column_at(j)
             # fix the column heading
             col.set_letter(COLUMN_KEYS[j])
             parent, pcol = self.get_parent(col)
+            assert parent is not None  # noqa: S101  # for examples "assert" is acceptable
             # fix the parent cell
             parent.edit.set_letter(COLUMN_KEYS[j])
 
@@ -761,7 +868,7 @@ class CalcDisplay:
         """Update the parent columns of the current focus column."""
 
         f = self.columns.focus_position
-        col = self.columns.contents[f][0]
+        col = self._column_at(f)
         while 1:
             parent, pcol = self.get_parent(col)
             if pcol is None:
@@ -772,27 +879,28 @@ class CalcDisplay:
                 return
             col = pcol
 
-    def get_expression_result(self):
+    def get_expression_result(self) -> tuple[str, str]:
         """Return (expression, result) as strings."""
 
-        col = self.columns.contents[1][0]
+        col = self._column_at(1)
         return col.get_expression(), f"{col.get_result():d}"
 
 
 class CalcNumLayout(urwid.TextLayout):
-    """
-    TextLayout class for bottom-right aligned numbers with a space on
-    the last line for the cursor.
-    """
+    """TextLayout class for bottom-right aligned numbers with a space on the last line for the cursor."""
 
-    def layout(self, text: str | bytes, width: int, align: typing.Any, wrap: typing.Any):
-        """
-        Return layout structure for calculator number display.
-        """
+    def layout(
+        self,
+        text: str | bytes,
+        width: int,
+        align: Literal["left", "center", "right"] | urwid.Align,
+        wrap: Literal["any", "space", "clip", "ellipsis"] | urwid.WrapMode,
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
+        """Return layout structure for calculator number display."""
         lt = len(text) + 1  # extra space for cursor
         remaining = lt % width  # remaining segment not full width wide
         linestarts = range(remaining, lt, width)
-        layout = []
+        layout: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]] = []
         if linestarts:
             if remaining:
                 # right-align the remaining segment on 1st line

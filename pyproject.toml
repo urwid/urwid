@@ -287,11 +287,10 @@ generate_python_version_classifiers = false
 table_format = "long"
 
 [tool.mypy]
-disallow_untyped_defs = true
+strict = true
 show_error_context = true
 show_column_numbers = true
 pretty = true
-show_error_codes = true
 [[tool.mypy.overrides]]
 module = "urwid.display.curses"
 disable_error_code = [
@@ -318,6 +317,15 @@ disable_error_code = [
 [[tool.mypy.overrides]]
 module = [ "gi.*", "serial.*", "trio.*" ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "twisted_serve_ssh"
+disable_error_code = [
+  "misc",
+  # twisted and zope.interface ship no type stubs, so every call into them is "untyped" to mypy,
+  # and zope.interface.Interface's metaclass magic isn't something mypy's plugin-free checker understands.
+  "no-untyped-call",
+]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

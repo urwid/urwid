@@ -825,44 +825,59 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
         @property
         def selectable(self) -> Callable[[], bool]:
-            return get_delegate(self).selectable
+            return typing.cast("Callable[[], bool]", get_delegate(self).selectable)
 
         @property
         def get_cursor_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
-            return get_delegate(self).get_cursor_coords
+            return typing.cast(
+                "Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]",
+                get_delegate(self).get_cursor_coords,
+            )
 
         @property
         def get_pref_col(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
-            return get_delegate(self).get_pref_col
+            return typing.cast(
+                "Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]",
+                get_delegate(self).get_pref_col,
+            )
 
         def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
-            return get_delegate(self).keypress(size, key)
+            return typing.cast("str | None", get_delegate(self).keypress(size, key))
 
         @property
         def move_cursor_to_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], int, int], bool]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
-            return get_delegate(self).move_cursor_to_coords
+            return typing.cast(
+                "Callable[[tuple[()] | tuple[int] | tuple[int, int], int, int], bool]",
+                get_delegate(self).move_cursor_to_coords,
+            )
 
         @property
         def rows(self) -> Callable[[tuple[int], bool], int]:
-            return get_delegate(self).rows
+            return typing.cast("Callable[[tuple[int], bool], int]", get_delegate(self).rows)
 
         @property
         def mouse_event(
             self,
         ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None]:
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
-            return get_delegate(self).mouse_event
+            return typing.cast(
+                "Callable[[tuple[()] | tuple[int] | tuple[int, int], str, int, int, int, bool], bool | None]",
+                get_delegate(self).mouse_event,
+            )
 
         @property
         def sizing(self) -> Callable[[], frozenset[Sizing]]:
-            return get_delegate(self).sizing
+            return typing.cast("Callable[[], frozenset[Sizing]]", get_delegate(self).sizing)
 
         @property
         def pack(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], tuple[int, int]]:  # type: ignore[override]
-            return get_delegate(self).pack
+            return typing.cast(
+                "Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], tuple[int, int]]",
+                get_delegate(self).pack,
+            )
 
     return DelegateToWidgetMixin
 

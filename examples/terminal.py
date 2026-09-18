@@ -28,8 +28,10 @@ import urwid
 
 
 def main() -> None:
+    """Run the terminal emulation widget demo."""
     urwid.set_encoding("utf8")
-    term = urwid.Terminal(None, encoding="utf-8")
+    shared_event_loop = urwid.SelectEventLoop()
+    term = urwid.Terminal(None, encoding="utf-8", main_loop=shared_event_loop)
 
     size_widget = urwid.Text("")
 
@@ -72,9 +74,14 @@ def main() -> None:
         # bracketed paste mode, do without it.
         bpm_screen = urwid.display.raw.Screen()
 
-    loop = urwid.MainLoop(mainframe, handle_mouse=False, screen=bpm_screen, unhandled_input=handle_key)
+    loop = urwid.MainLoop(
+        mainframe,
+        handle_mouse=False,
+        screen=bpm_screen,
+        unhandled_input=handle_key,
+        event_loop=shared_event_loop,
+    )
 
-    term.main_loop = loop
     loop.run()
 
 

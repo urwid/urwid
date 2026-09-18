@@ -16,6 +16,9 @@ from urwid.display.raw import Screen
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
+    # Mirrors the private urwid.display._raw_display_base.Screen._DecodedInput alias, which isn't exported.
+    _DecodedInput = list[str | tuple[str, int, int, int] | tuple[typing.Literal["cursor position"], int, int]]
+
 logging.basicConfig()
 
 loop = asyncio.get_event_loop()
@@ -25,7 +28,11 @@ loop = asyncio.get_event_loop()
 # General-purpose setup code
 
 
-def build_widgets() -> urwid.Filler:
+def build_widgets() -> urwid.Filler[urwid.Pile]:
+    """Build the demo widget tree, with a self-updating clock and three text inputs.
+
+    :returns: the top-level widget for the demo.
+    """
     input1 = urwid.Edit("What is your name? ")
     input2 = urwid.Edit("What is your quest? ")
     input3 = urwid.Edit("What is the capital of Assyria? ")
@@ -48,7 +55,12 @@ def build_widgets() -> urwid.Filler:
     return urwid.Filler(urwid.Pile([clock, *inputs]), urwid.TOP)
 
 
-def unhandled(key: str) -> None:
+def unhandled(key: str | tuple[str, int, int, int]) -> None:
+    """Exit the main loop when the user presses :kbd:`ctrl c`.
+
+    :param key: the unhandled key or mouse event passed by :class:`urwid.MainLoop`.
+    :raises urwid.ExitMainLoop: always, when ``key`` is :kbd:`ctrl c`.
+    """
     if key == "ctrl c":
         raise urwid.ExitMainLoop
 
@@ -88,12 +100,14 @@ class AsyncScreen(Screen):
 
     _pending_task: asyncio.Task[bytes] | None
 
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, encoding: str = "utf-8") -> None:
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.WriteTransport, encoding: str = "utf-8") -> None:
         self.reader = reader
         self.writer = writer
         self.encoding = encoding
 
-        super().__init__(None, None)
+        # AsyncScreen overrides every method that would touch the underlying input/output files, so the defaults
+        # (sys.stdin/sys.stdout) used by the base Screen are never actually read from or written to.
+        super().__init__()
 
     def write(self, data: str) -> None:
         self.writer.write(data.encode(self.encoding))
@@ -103,9 +117,18 @@ class AsyncScreen(Screen):
 
     def hook_event_loop(
         self,
-        event_loop: urwid.AsyncioEventLoop,
-        callback: Callable[[list[str], list[int]], object],
-    ) -> None:  # type: ignore[override]
+        event_loop: urwid.EventLoop,
+        callback: Callable[[_DecodedInput, list[int]], typing.Any],
+    ) -> None:
+        """Pump input from the asyncio stream reader into the urwid event loop.
+
+        :param event_loop: must be an :class:`urwid.AsyncioEventLoop`, since it needs asyncio's ``create_task``.
+        :raises TypeError: if ``event_loop`` is not an :class:`urwid.AsyncioEventLoop`.
+        """
+        if not isinstance(event_loop, urwid.AsyncioEventLoop):
+            msg = "AsyncScreen requires an AsyncioEventLoop"
+            raise TypeError(msg)
+
         # Wait on the reader's read coro, and when there's data to read, call
         # the callback and then wait again
         def pump_reader(fut: asyncio.Future[bytes] | None = None) -> None:
@@ -120,7 +143,7 @@ class AsyncScreen(Screen):
                 pass
             else:
                 try:
-                    self.parse_input(event_loop, callback, bytearray(fut.result()))
+                    self.parse_input(event_loop, callback, list(fut.result()))
                 except urwid.ExitMainLoop:
                     # This will immediately close the transport and thus the
                     # connection, which in turn calls connection_lost, which
@@ -141,7 +164,19 @@ class AsyncScreen(Screen):
 
 
 class UrwidProtocol(asyncio.Protocol):
-    def connection_made(self, transport: asyncio.Transport) -> None:
+    """An asyncio protocol that drives an urwid UI over the connection."""
+
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        """Start the urwid UI once a client connects.
+
+        :param transport: the transport for the new connection; must support writing, since :class:`AsyncScreen`
+            writes urwid's output straight back to it.
+        :raises TypeError: if ``transport`` doesn't support writing.
+        """
+        if not isinstance(transport, asyncio.WriteTransport):
+            msg = "UrwidProtocol requires a write-capable transport"
+            raise TypeError(msg)
+
         print("Got a client!")
         self.transport = transport
 
@@ -164,9 +199,11 @@ class UrwidProtocol(asyncio.Protocol):
         self.urwid_loop.start()
 
     def data_received(self, data: bytes) -> None:
+        """Feed received bytes to the stream reader driving :class:`AsyncScreen`."""
         self.reader.feed_data(data)
 
     def connection_lost(self, exc: Exception | None) -> None:
+        """Tear down the urwid UI once the client disconnects."""
         print("Lost a client...")
         self.reader.feed_eof()
         self.urwid_loop.stop()

@@ -52,25 +52,30 @@ class FibonacciWalker(urwid.ListWalker[tuple[int, int], urwid.Text]):
         return urwid.Text(f"{pos[1]:d}", layout=self.numeric_layout), pos
 
     def get_focus(self) -> tuple[urwid.Text, tuple[int, int]]:
+        """Return the widget and position for the current focus."""
         return self._get_at_pos(self.focus)
 
-    def set_focus(self, focus) -> None:
+    def set_focus(self, focus: tuple[int, int]) -> None:
+        """Set the focus position."""
         self.focus = focus
         self._modified()
 
     def get_next(self, position: tuple[int, int]) -> tuple[urwid.Text, tuple[int, int]]:
+        """Return the widget and position after the given position."""
         a, b = position
         focus = b, a + b
         return self._get_at_pos(focus)
 
     def get_prev(self, position: tuple[int, int]) -> tuple[urwid.Text, tuple[int, int]]:
+        """Return the widget and position before the given position."""
         a, b = position
         focus = b - a, a
         return self._get_at_pos(focus)
 
 
 def main() -> None:
-    palette = [
+    """Run the fibonacci sequence viewer application."""
+    palette: list[tuple[str, str, str] | tuple[str, str, str, str]] = [
         ("body", "black", "dark cyan", "standout"),
         ("foot", "light gray", "black"),
         ("key", "light cyan", "black", "underline"),
@@ -81,7 +86,7 @@ def main() -> None:
         ),
     ]
 
-    footer_text = [
+    footer_text: list[tuple[str, str] | str] = [
         ("title", "Fibonacci Set Viewer"),
         "    ",
         ("key", "UP"),
@@ -100,17 +105,19 @@ def main() -> None:
         if key in {"q", "Q"}:
             raise urwid.ExitMainLoop()
 
-    listbox = urwid.ListBox(FibonacciWalker())
+    listbox: urwid.ListBox[tuple[int, int]] = urwid.ListBox(FibonacciWalker())
     footer = urwid.AttrMap(urwid.Text(footer_text), "foot")
-    view = urwid.Frame(urwid.AttrMap(listbox, "body"), footer=footer)
+    view: urwid.Frame[
+        urwid.AttrMap[urwid.ListBox[tuple[int, int]]],
+        None,
+        urwid.AttrMap[urwid.Text],
+    ] = urwid.Frame(urwid.AttrMap(listbox, "body"), footer=footer)
     loop = urwid.MainLoop(view, palette, unhandled_input=exit_on_q)
     loop.run()
 
 
 class NumericLayout(urwid.TextLayout):
-    """
-    TextLayout class for bottom-right aligned numbers
-    """
+    """TextLayout class for bottom-right aligned numbers."""
 
     def layout(
         self,
@@ -119,16 +126,15 @@ class NumericLayout(urwid.TextLayout):
         align: Literal["left", "center", "right"] | urwid.Align,
         wrap: Literal["any", "space", "clip", "ellipsis"] | urwid.WrapMode,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        """
-        Return layout structure for right justified numbers.
-        """
+        """Return layout structure for right justified numbers."""
         lt = len(text)
         r = lt % width  # remaining segment not full width wide
         if r:
-            return [
+            layout: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]] = [
                 [(width - r, None), (r, 0, r)],  # right-align the remaining segment on 1st line
-                *([(width, x, x + width)] for x in range(r, lt, width)),  # fill the rest of the lines
             ]
+            layout.extend([(width, x, x + width)] for x in range(r, lt, width))  # fill the rest of the lines
+            return layout
 
         return [[(width, x, x + width)] for x in range(0, lt, width)]
 
