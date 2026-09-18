@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 4.1.4</title>
+    <title>Display Modules &#8212; Urwid 4.1.5</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bea0a91a"></script>
+    <script src="../_static/documentation_options.js?v=1ad82d03"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -421,41 +421,6 @@ call to draw_screen().</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="urwid.display.web.Screen.register_palette">
-<span class="sig-name descname"><span class="pre">register_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.register_palette" title="Link to this definition">¶</a></dt>
-<dd><p>Register a list of palette entries.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>palette</strong> – list of (name, foreground, background) or (name, same_as_other_name) palette entries.</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><ul class="simple">
-<li><p><strong>ValueError</strong> – an entry is neither a 2- nor a 3-tuple.</p></li>
-<li><p><strong>KeyError</strong> – an entry copies a name that is not registered yet.</p></li>
-</ul>
-</dd>
-</dl>
-<p>calls self.register_palette_entry for each item in l</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="urwid.display.web.Screen.register_palette_entry">
-<span class="sig-name descname"><span class="pre">register_palette_entry</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foreground</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mono</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">foreground_high</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">background_high</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.register_palette_entry" title="Link to this definition">¶</a></dt>
-<dd><p>Register a single palette entry.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – new entry/attribute name</p></li>
-<li><p><strong>foreground</strong> – foreground colour</p></li>
-<li><p><strong>background</strong> – background colour</p></li>
-<li><p><strong>mono</strong> – monochrome terminal attribute</p></li>
-</ul>
-</dd>
-</dl>
-<p>See curses_display.register_palette_entry for more info.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.set_input_timeouts">
 <span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.set_input_timeouts" title="Link to this definition">¶</a></dt>
 <dd><p>Not supported for web display.</p>
@@ -465,6 +430,25 @@ call to draw_screen().</p>
 <dt class="sig sig-object py" id="urwid.display.web.Screen.set_mouse_tracking">
 <span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
 <dd><p>Not yet implemented</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.web.Screen.set_terminal_properties">
+<span class="sig-name descname"><span class="pre">set_terminal_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bright_is_bold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_underline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.set_terminal_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Set the number of colors used to resolve named palette entries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>colors</strong> – one of 1, 16, 88, 256 or 2**24 (2**24, true color, is the default,
+since a browser can render any RGB color directly)</p></li>
+<li><p><strong>bright_is_bold</strong> – ignored, kept for API parity with the other display modules</p></li>
+<li><p><strong>has_underline</strong> – ignored, kept for API parity with the other display modules</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>KeyError</strong> – <em>colors</em> is not one of the supported palette sizes.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -839,10 +823,9 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#urwid.display.web.Screen.draw_screen"><code class="docutils literal notranslate"><span class="pre">Screen.draw_screen()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.get_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_input()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.display.web.Screen.register_palette"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.display.web.Screen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">Screen.register_palette_entry()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">Screen.set_input_timeouts()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.web.Screen.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">Screen.set_terminal_properties()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
@@ -937,7 +920,7 @@ timer will be reset for the next event</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

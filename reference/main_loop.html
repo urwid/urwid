@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 4.1.4</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 4.1.5</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bea0a91a"></script>
+    <script src="../_static/documentation_options.js?v=1ad82d03"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -85,6 +85,14 @@ instance to allow any widget to open a pop-up anywhere on the screen</p></li>
 <dd><p>The event loop object this main loop uses for waiting on alarms and IO</p>
 </dd></dl>
 
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Some <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> implementations accept an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> callback in addition to a
+plain callable - see the specific implementation’s own documentation for whether it does,
+and how it runs one. <a class="reference internal" href="#urwid.MainLoop.set_alarm_in" title="urwid.MainLoop.set_alarm_in"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_alarm_in()</span></code></a>, <a class="reference internal" href="#urwid.MainLoop.set_alarm_at" title="urwid.MainLoop.set_alarm_at"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_alarm_at()</span></code></a>, <a class="reference internal" href="#urwid.MainLoop.watch_file" title="urwid.MainLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_file()</span></code></a> and
+<a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a> all detect an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> callback and pass that detection through to
+<a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>; whether it actually does anything still depends on <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>.</p>
+</div>
 <p>Set up the main loop around a top-level widget, a screen and an event loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
@@ -188,6 +196,11 @@ object and <em>user_data</em></p></li>
 </ul>
 </dd>
 </dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>callback</em> may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
+implementation that supports one; see the note on <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -205,6 +218,11 @@ object and <em>user_data</em></p></li>
 </ul>
 </dd>
 </dl>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>callback</em> may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
+implementation that supports one; see the note on <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -258,6 +276,12 @@ the input.</p>
 <dd><p>Call <em>callback</em> when <em>fd</em> has some data to read. No parameters are
 passed to callback.</p>
 <p>Returns a handle that may be passed to <a class="reference internal" href="#urwid.MainLoop.remove_watch_file" title="urwid.MainLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>callback</em> is passed to <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> unwrapped, so it may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code>
+function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> implementation that supports one; see the note on
+<a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -281,6 +305,11 @@ so that the callback will be triggered just once with the complete value of data
 <p>If the callback returns <code class="docutils literal notranslate"><span class="pre">False</span></code> then the watch will be removed from <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
 and the read end of the pipe will be closed.
 You are responsible for closing the write end of the pipe with <code class="docutils literal notranslate"><span class="pre">os.close(fd)</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><em>callback</em> may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
+implementation that supports one; see the note on <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+</div>
 </dd></dl>
 
 <dl class="py property">
@@ -520,6 +549,12 @@ are passed to callback.</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TrioEventLoop</span></span><a class="headerlink" href="#urwid.TrioEventLoop" title="Link to this definition">¶</a></dt>
 <dd><p>Event loop based on the <code class="docutils literal notranslate"><span class="pre">trio</span></code> module.</p>
 <p><code class="docutils literal notranslate"><span class="pre">trio</span></code> is an async library for Python 3.5 and later.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#urwid.TrioEventLoop.alarm" title="urwid.TrioEventLoop.alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">alarm()</span></code></a>, <a class="reference internal" href="#urwid.TrioEventLoop.watch_file" title="urwid.TrioEventLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_file()</span></code></a> and <a class="reference internal" href="#urwid.TrioEventLoop.enter_idle" title="urwid.TrioEventLoop.enter_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">enter_idle()</span></code></a> accept an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code>
+callback in addition to a plain callable. A coroutine function is scheduled as
+a task in the main loop’s nursery instead of being called directly.</p>
+</div>
 <p>Constructor.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TrioEventLoop.alarm">
@@ -1007,6 +1042,14 @@ similar to <a class="reference internal" href="#urwid.SelectEventLoop" title="ur
 events and file watching (<a class="reference internal" href="#urwid.ZMQEventLoop.watch_file" title="urwid.ZMQEventLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_file()</span></code></a>) capabilities, but also
 incorporates the ability to watch zmq queues for events
 (<a class="reference internal" href="#urwid.ZMQEventLoop.watch_queue" title="urwid.ZMQEventLoop.watch_queue"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_queue()</span></code></a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#urwid.ZMQEventLoop.alarm" title="urwid.ZMQEventLoop.alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">alarm()</span></code></a>, <a class="reference internal" href="#urwid.ZMQEventLoop.watch_file" title="urwid.ZMQEventLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_file()</span></code></a>, <a class="reference internal" href="#urwid.ZMQEventLoop.watch_queue" title="urwid.ZMQEventLoop.watch_queue"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_queue()</span></code></a> and <a class="reference internal" href="#urwid.ZMQEventLoop.enter_idle" title="urwid.ZMQEventLoop.enter_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">enter_idle()</span></code></a> accept an
+<code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> callback in addition to a plain callable. <a class="reference internal" href="#urwid.ZMQEventLoop" title="urwid.ZMQEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">ZMQEventLoop</span></code></a> runs on top
+of an <code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code> loop (via <code class="xref py py-class docutils literal notranslate"><span class="pre">zmq.asyncio.Poller</span></code>), so a coroutine function is
+scheduled as a background task there instead of being called directly, the same way it
+would be on any other <code class="xref py py-mod docutils literal notranslate"><span class="pre">asyncio</span></code>-backed event loop.</p>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ZMQEventLoop.alarm">
 <span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ZMQAlarmHandle</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.alarm" title="Link to this definition">¶</a></dt>
@@ -1045,7 +1088,7 @@ otherwise.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ZMQEventLoop.remove_watch_file">
-<span class="sig-name descname"><span class="pre">remove_watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.remove_watch_file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">remove_watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SupportsFileno</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.remove_watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Remove a file from background polling. Returns <code class="docutils literal notranslate"><span class="pre">True</span></code> if the file was
 being monitored, <code class="docutils literal notranslate"><span class="pre">False</span></code> otherwise.</p>
 </dd></dl>
@@ -1062,6 +1105,11 @@ was being monitored, <code class="docutils literal notranslate"><span class="pre
 <span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.run" title="Link to this definition">¶</a></dt>
 <dd><p>Start the event loop. Exit the loop when any callback raises an
 exception. If <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> is raised, exit cleanly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>BaseException</strong> – the exception that stopped the loop, once the loop has been left.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -1085,7 +1133,7 @@ exception. If <a class="reference internal" href="exceptions.html#urwid.ExitMain
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.ZMQEventLoop.watch_file">
-<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">fd:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">SupportsFileno,</span> <span class="pre">callback:</span> <span class="pre">Callable[[],</span> <span class="pre">typing.Any],</span> <span class="pre">flags:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">&lt;PollEvent.POLLIN:</span> <span class="pre">1&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">SupportsFileno</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_file" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">fd:</span> <span class="pre">int</span> <span class="pre">|</span> <span class="pre">SupportsFileno,</span> <span class="pre">callback:</span> <span class="pre">Callable[[],</span> <span class="pre">typing.Any],</span> <span class="pre">flags:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">&lt;PollEvent.POLLIN:</span> <span class="pre">1&gt;</span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">SupportsFileno</span></span></span><a class="headerlink" href="#urwid.ZMQEventLoop.watch_file" title="Link to this definition">¶</a></dt>
 <dd><p>Call <em>callback</em> when <em>fd</em> has some data to read. No parameters are
 passed to the callback. The <em>flags</em> are as for <a class="reference internal" href="#urwid.ZMQEventLoop.watch_queue" title="urwid.ZMQEventLoop.watch_queue"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_queue()</span></code></a>.
 Returns a handle that may be passed to <a class="reference internal" href="#urwid.ZMQEventLoop.remove_watch_file" title="urwid.ZMQEventLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
@@ -1313,7 +1361,7 @@ Returns a handle that may be passed to <a class="reference internal" href="#urwi
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>

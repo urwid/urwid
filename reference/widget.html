@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 4.1.4</title>
+    <title>Widget Classes &#8212; Urwid 4.1.5</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bea0a91a"></script>
+    <script src="../_static/documentation_options.js?v=1ad82d03"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -2926,7 +2926,17 @@ may render the cached canvas instead of creating a new one.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.PopUpTarget">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">PopUpTarget</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">original_widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">WrappedWidget</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.PopUpTarget" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><p>Box widget that overlays the pop-up(s) declared by a <a class="reference internal" href="#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> inside it.</p>
+<p>Pop-ups nest: a pop-up widget may itself be a <a class="reference internal" href="#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> with its own pop-up
+open, in which case it is drawn overlaid on top of the pop-up that opened it, and so on for
+as many levels as are open at once.</p>
+<p>Wrap <em>original_widget</em>, which is rendered with any open pop-up(s) overlaid on top.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>original_widget</strong> – box widget to wrap; typically contains a <a class="reference internal" href="#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a>.</p>
+</dd>
+</dl>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.PopUpTarget.get_cursor_coords">
 <span class="sig-name descname"><span class="pre">get_cursor_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.PopUpTarget.get_cursor_coords" title="Link to this definition">¶</a></dt>
 <dd><p>Return the cursor coordinates of the current widget.</p>
@@ -6651,7 +6661,7 @@ be defined.</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.4</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
