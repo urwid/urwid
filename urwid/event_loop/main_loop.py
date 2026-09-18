@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import heapq
+import inspect
 import logging
 import os
 import sys
@@ -129,6 +130,13 @@ class MainLoop:
     .. attribute:: event_loop
 
         The event loop object this main loop uses for waiting on alarms and IO
+
+    .. note::
+        Some :attr:`event_loop` implementations (:class:`AsyncioEventLoop`, :class:`TornadoEventLoop`,
+        :class:`TrioEventLoop`) accept an ``async def`` callback in addition to a plain callable, scheduling
+        it as a background task instead of calling it directly. :meth:`set_alarm_in`, :meth:`set_alarm_at`,
+        :meth:`watch_file` and :meth:`watch_pipe` all detect an ``async def`` callback and preserve that
+        support; whether it actually does anything still depends on :attr:`event_loop` supporting it.
     """
 
     def __init__(
@@ -211,6 +219,33 @@ class MainLoop:
         else:
             self._topmost_widget = self._widget
 
+    def _make_alarm_callback(
+        self,
+        callback: Callable[[Self, _T | None], typing.Any],
+        user_data: _T | None,
+    ) -> Callable[[], typing.Any]:
+        """Wrap *callback* for :attr:`event_loop`, preserving ``async def`` support.
+
+        An event loop implementation that supports scheduling an ``async def`` callback
+        detects it by checking the callback it is directly given, so the wrapper returned
+        here has to be an ``async def`` function itself whenever *callback* is one.
+
+        :param callback: function to call with this main loop object and *user_data*
+        :param user_data: user data to pass to *callback*
+        :return: a zero-argument callback suitable for :meth:`EventLoop.alarm`
+        """
+        if inspect.iscoroutinefunction(callback):
+
+            async def cb() -> None:
+                await callback(self, user_data)
+
+        else:
+
+            def cb() -> None:  # type: ignore[misc]  # intentionally the sync variant of the branch above
+                callback(self, user_data)
+
+        return cb
+
     def set_alarm_in(
         self,
         sec: float,
@@ -225,13 +260,13 @@ class MainLoop:
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :param user_data: optional user data to pass to the callback
+
+        .. note::
+            *callback* may be an ``async def`` function on an :attr:`event_loop`
+            implementation that supports one; see the note on :class:`MainLoop`.
         """
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
-
-        def cb() -> None:
-            callback(self, user_data)
-
-        return self.event_loop.alarm(sec, cb)
+        return self.event_loop.alarm(sec, self._make_alarm_callback(callback, user_data))
 
     def set_alarm_at(
         self,
@@ -248,14 +283,14 @@ class MainLoop:
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :param user_data: optional user data to pass to the callback
+
+        .. note::
+            *callback* may be an ``async def`` function on an :attr:`event_loop`
+            implementation that supports one; see the note on :class:`MainLoop`.
         """
         sec = tm - time.time()
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
-
-        def cb() -> None:
-            callback(self, user_data)
-
-        return self.event_loop.alarm(sec, cb)
+        return self.event_loop.alarm(sec, self._make_alarm_callback(callback, user_data))
 
     def remove_alarm(self, handle: typing.Any) -> bool:
         """
@@ -287,6 +322,10 @@ class MainLoop:
             If the callback returns ``False`` then the watch will be removed from :attr:`event_loop`
             and the read end of the pipe will be closed.
             You are responsible for closing the write end of the pipe with ``os.close(fd)``.
+
+            .. note::
+                *callback* may be an ``async def`` function on an :attr:`event_loop`
+                implementation that supports one; see the note on :class:`MainLoop`.
             """
             import fcntl
 
@@ -294,11 +333,21 @@ class MainLoop:
             fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
             watch_handle = None
 
-            def cb() -> None:
-                data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-                if callback(data) is False:
-                    self.event_loop.remove_watch_file(watch_handle)
-                    os.close(pipe_rd)
+            if inspect.iscoroutinefunction(callback):
+
+                async def cb() -> None:
+                    data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
+                    if await callback(data) is False:
+                        self.event_loop.remove_watch_file(watch_handle)
+                        os.close(pipe_rd)
+
+            else:
+
+                def cb() -> None:  # type: ignore[misc]  # intentionally the sync variant of the branch above
+                    data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
+                    if callback(data) is False:
+                        self.event_loop.remove_watch_file(watch_handle)
+                        os.close(pipe_rd)
 
             watch_handle = self.event_loop.watch_file(pipe_rd, cb)
             self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
@@ -328,6 +377,11 @@ class MainLoop:
         passed to callback.
 
         Returns a handle that may be passed to :meth:`remove_watch_file`.
+
+        .. note::
+            *callback* is passed to :attr:`event_loop` unwrapped, so it may be an ``async def``
+            function on an :attr:`event_loop` implementation that supports one; see the note on
+            :class:`MainLoop`.
         """
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         return self.event_loop.watch_file(fd, callback)

@@ -215,6 +215,22 @@ class TestMainLoop(unittest.TestCase):
         self.assertIs(seen[0][0], evl)
         self.assertEqual("token", seen[0][1])
 
+    def test_set_alarm_in_async_callback(self):
+        """An async def callback is awaited, not silently dropped, on a loop that supports it."""
+        seen: list[tuple[urwid.MainLoop, object]] = []
+
+        async def on_alarm(loop: urwid.MainLoop, user_data: object) -> typing.NoReturn:
+            seen.append((loop, user_data))
+            raise urwid.ExitMainLoop
+
+        with dummy_raw_main_loop(event_loop=urwid.AsyncioEventLoop()) as evl:
+            evl.set_alarm_in(0.01, on_alarm, user_data="token")
+            evl.run()
+
+        self.assertEqual(1, len(seen))
+        self.assertIs(seen[0][0], evl)
+        self.assertEqual("token", seen[0][1])
+
     def test_set_alarm_in_reschedule(self):
         """Drain reschedules set_alarm_in until finished."""
         ticks: list[int] = []
@@ -355,6 +371,39 @@ class TestMainLoop(unittest.TestCase):
             evl.run()
 
         self.assertEqual(["at"], seen)
+
+    def test_set_alarm_at_async_callback(self):
+        """An async def callback is awaited, not silently dropped, on a loop that supports it."""
+        seen: list[object] = []
+
+        async def on_alarm(loop: urwid.MainLoop, user_data: object) -> typing.NoReturn:
+            seen.append(user_data)
+            raise urwid.ExitMainLoop
+
+        with dummy_raw_main_loop(event_loop=urwid.AsyncioEventLoop()) as evl:
+            evl.set_alarm_at(time.time() + 0.01, on_alarm, user_data="at")
+            evl.run()
+
+        self.assertEqual(["at"], seen)
+
+    @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    def test_watch_pipe_async_callback(self):
+        """An async def watch_pipe callback is awaited, and its return value still controls removal."""
+        outcome: list[bytes] = []
+
+        async def pipe_cb(data: bytes) -> bool | None:
+            outcome.append(data)
+            return False
+
+        with dummy_raw_main_loop(event_loop=urwid.AsyncioEventLoop()) as evl:
+            pipe_fd = evl.watch_pipe(pipe_cb)
+            os.write(pipe_fd, b"hi")
+            evl.set_alarm_in(0.05, stop_screen_cb)
+            evl.run()
+
+        self.assertEqual([b"hi"], outcome)
+        # already removed by the callback returning False, so a second removal fails
+        self.assertFalse(evl.remove_watch_pipe(pipe_fd))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
     def test_remove_watch_pipe_missing_fd(self):
