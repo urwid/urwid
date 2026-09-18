@@ -6,9 +6,26 @@
 CLASSNAME=$(head -c 6 /dev/urandom | base64 | tr -cd '[:alnum:]')
 PYTHON=${PYTHON:-python}
 
+# Rendered at 2x the logical pixel size (26, twice the 13px logical size)
+# with antialiasing off, so the resulting PNGs are sharp on HiDPI displays;
+# the docs' ``:scale: 50%`` on each image directive shows them at the
+# original logical size everywhere else. Downscaling this 2x capture is
+# also what keeps text looking clean rather than jagged at logical size:
+# the extra samples get averaged away in the process instead of being
+# thrown away, unlike rendering directly at 1x without antialiasing.
+#
+# We tried Terminus, a font with hand-drawn bitmap strikes at fixed pixel
+# sizes, since unlike a scaled vector font (e.g. DejaVu Sans Mono) it stays
+# crisp and symmetric at a given size instead of producing uneven,
+# "dancing" glyphs. But at 2x pixel size, several non-Latin fallback
+# glyphs (used by edit.py's Unicode showcase: Georgian, math symbols, some
+# CJK) rendered as missing-glyph boxes instead of falling back the way
+# they do at 1x -- so we stayed on DejaVu Sans Mono, which has full
+# coverage for everything the examples use, and rely on the 2x-then-
+# downscale trick above for crispness instead.
 urxvt -bg gray90 -b 0 +sb \
-	-fn 'xft:DejaVu Sans Mono:pixelsize=13' \
-	-fb 'xft:DejaVu Sans Mono:pixelsize=13:style=Bold' \
+	-fn 'xft:DejaVu Sans Mono:pixelsize=26:antialias=false' \
+	-fb 'xft:DejaVu Sans Mono:pixelsize=26:style=Bold:antialias=false' \
 	-name "$CLASSNAME" -e "$PYTHON" "$1" &
 RXVTPID=$!
 trap 'kill "$RXVTPID" 2>/dev/null' EXIT

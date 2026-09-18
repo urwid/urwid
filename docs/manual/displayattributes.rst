@@ -382,6 +382,7 @@ Neutral Backgrounds
 -------------------
 
 .. image:: safe_combinations1.png
+   :scale: 50%
 
 Choose colors that are fairly neutral with medium contrast for most of
 your application. It is good to use one background as a default for text,
@@ -395,9 +396,8 @@ Bright Backgrounds
 ------------------
 
 .. image:: bright_combinations1.png
+   :scale: 50%
 
 Use bright colors to draw attention to small areas with important
 information. They are good for buttons and selected widgets (other than
 edit boxes).
-
-

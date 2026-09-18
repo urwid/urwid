@@ -200,6 +200,9 @@ _BASIC_COLORS = [
     LIGHT_CYAN,
     WHITE,
 ]
+# name -> index, for the O(1) lookup AttrSpec needs on every color it parses
+# (_BASIC_COLORS itself is kept for the reverse, index -> name, direction)
+_BASIC_COLOR_INDEX = {color: index for index, color in enumerate(_BASIC_COLORS)}
 
 _ATTRIBUTES = {
     "bold": _BOLD,
@@ -210,6 +213,12 @@ _ATTRIBUTES = {
     "strikethrough": _STRIKETHROUGH,
     "faint": _FAINT,
 }
+
+# AttrSpec.__init__() and __set_foreground()/__set_background() are called
+# once per colored run of text an application constructs, so these are
+# hoisted to module scope rather than re-built as set literals on every call.
+_VALID_COLOR_COUNTS = frozenset({1, 16, 88, 256, 2**24})
+_DEFAULT_COLOR_NAMES = frozenset({"", "default"})
 
 
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
@@ -609,7 +618,7 @@ class AttrSpec:
         >>> AttrSpec("#ddb", "#004", 88)
         AttrSpec('#ccc', '#000', colors=88)
         """
-        if colors not in {1, 16, 88, 256, 2**24}:
+        if colors not in _VALID_COLOR_COUNTS:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
         self.__value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
         self.__set_foreground(fg)
@@ -778,17 +787,17 @@ class AttrSpec:
         # handle comma-separated foreground
         for part in foreground.split(","):
             part = part.strip()  # noqa: PLW2901
-            if part in _ATTRIBUTES:
+            if (attribute_flag := _ATTRIBUTES.get(part)) is not None:
                 # parse and store "settings"/attributes in flags
-                if flags & _ATTRIBUTES[part]:
+                if flags & attribute_flag:
                     raise AttrSpecError(f"Setting {part!r} specified more than once in foreground ({foreground!r})")
-                flags |= _ATTRIBUTES[part]
+                flags |= attribute_flag
                 continue
             # past this point we must be specifying a color
-            if part in {"", "default"}:
+            if part in _DEFAULT_COLOR_NAMES:
                 scolor = 0
-            elif part in _BASIC_COLORS:
-                scolor = _BASIC_COLORS.index(part)
+            elif (basic_color := _BASIC_COLOR_INDEX.get(part)) is not None:
+                scolor = basic_color
                 flags |= _FG_BASIC_COLOR
             elif self.__value & _HIGH_88_COLOR:
                 scolor = _parse_color_88(part)
@@ -830,10 +839,10 @@ class AttrSpec:
         """
         flags = 0
         color: int | None
-        if background in {"", "default"}:
+        if background in _DEFAULT_COLOR_NAMES:
             color = 0
-        elif background in _BASIC_COLORS:
-            color = _BASIC_COLORS.index(background)
+        elif (basic_color := _BASIC_COLOR_INDEX.get(background)) is not None:
+            color = basic_color
             flags |= _BG_BASIC_COLOR
         elif self.__value & _HIGH_88_COLOR:
             color = _parse_color_88(background)
