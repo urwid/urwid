@@ -6,9 +6,14 @@
 CLASSNAME=$(head -c 6 /dev/urandom | base64 | tr -cd '[:alnum:]')
 PYTHON=${PYTHON:-python}
 
+# Terminus is a bitmap-designed font with hand-drawn strikes at fixed pixel
+# sizes, so unlike a scaled vector font (e.g. DejaVu Sans Mono) it stays
+# crisp and symmetric at this size instead of producing uneven, "dancing"
+# glyphs. It has no separate bold face, so bold text is synthesized with
+# embolden.
 urxvt -bg gray90 -b 0 +sb \
-	-fn 'xft:DejaVu Sans Mono:pixelsize=13' \
-	-fb 'xft:DejaVu Sans Mono:pixelsize=13:style=Bold' \
+	-fn 'xft:Terminus (TTF):pixelsize=14:antialias=false' \
+	-fb 'xft:Terminus (TTF):pixelsize=14:antialias=false:embolden=true' \
 	-name "$CLASSNAME" -e "$PYTHON" "$1" &
 RXVTPID=$!
 trap 'kill "$RXVTPID" 2>/dev/null' EXIT
