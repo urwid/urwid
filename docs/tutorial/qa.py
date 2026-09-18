@@ -9,7 +9,7 @@ def exit_on_q(key: str) -> None:
 
 
 class QuestionBox(urwid.Filler):
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int, int] | tuple[()], key: str) -> str | None:
         if key != "enter":
             return super().keypress(size, key)
         self.original_widget = urwid.Text(

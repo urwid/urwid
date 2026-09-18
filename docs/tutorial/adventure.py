@@ -85,7 +85,7 @@ class AdventureGame:
     def __init__(self) -> None:
         self.log = urwid.SimpleFocusListWalker([])
         self.top = urwid.ListBox(self.log)
-        self.inventory = set()
+        self.inventory: set[str] = set()
         self.update_place(map_top)
 
     def update_place(self, place: Place) -> None:

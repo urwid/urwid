@@ -100,7 +100,7 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         )
         self.box_level += 1
 
-    def keypress(self, size, key: str) -> str | None:
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
         if key == "esc" and self.box_level > 1:
             self.original_widget = self.original_widget[0]
             self.box_level -= 1
