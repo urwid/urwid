@@ -136,7 +136,7 @@ Urwid supports:
 - GraalPy 3.11, 3.12 (experimental)
 
 Python implementation notes
-============================
+===========================
 
 **CPython (standard Python)**
 
