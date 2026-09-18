@@ -469,7 +469,12 @@ VERSION = __version_tuple__
 __locals: dict[str, typing.Any] = locals()  # use mutable access for pure lazy loading
 
 # Backward compatible lazy load with deprecation warnings
-_moved_warn: dict[str, str] = {}
+_moved_warn: dict[str, str] = {
+    "display_common": "urwid.display.common",
+    "raw_display": "urwid.display.raw",
+    "curses_display": "urwid.display.curses",
+    "escape": "urwid.display.escape",
+}
 # Before DeprecationWarning need to start PendingDeprecationWarning process.
 
 
@@ -517,12 +522,6 @@ class _MovedModule(types.ModuleType):
         return getattr(real_module, name)
 
 
-display_common = lazy_import("urwid.display.common")
-raw_display = lazy_import("urwid.display.raw")
-curses_display = lazy_import("urwid.display.curses")
-escape = lazy_import("urwid.display.escape")
-
-
 class _MovedModuleWarn(_MovedModule):
     """Special class to handle moved modules.
 
@@ -533,7 +532,7 @@ class _MovedModuleWarn(_MovedModule):
 
     def __getattr__(self, name: str) -> typing.Any:
         warnings.warn(
-            f"{self._moved_from} is moved to {self._moved_to}",
+            f"{self._moved_from} is moved to {self._moved_to} since urwid 2.4.0. API will be removed in version 6.0.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -553,7 +552,7 @@ def __getattr__(name: str) -> typing.Any:
     """
     if name in _moved_warn:
         warnings.warn(
-            f"{name} is moved to {_moved_warn[name]}",
+            f"{name} is moved to {_moved_warn[name]} since urwid 2.4.0. API will be removed in version 6.0.",
             DeprecationWarning,
             stacklevel=2,
         )
