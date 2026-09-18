@@ -25,6 +25,8 @@ Trio library is required.
 
 from __future__ import annotations
 
+import functools
+import inspect
 import logging
 import sys
 import typing
@@ -37,7 +39,12 @@ if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable, Mapping
+    from collections.abc import Awaitable, Callable
+
+    from typing_extensions import ParamSpec
+
+    _Spec = ParamSpec("_Spec")
+    _T = typing.TypeVar("_T")
 
 __all__ = ("TrioEventLoop",)
 
@@ -45,15 +52,16 @@ __all__ = ("TrioEventLoop",)
 class _TrioIdleCallbackInstrument(trio.abc.Instrument):
     """IDLE callbacks emulation helper."""
 
-    __slots__ = ("idle_callbacks",)
+    __slots__ = ("_event_loop",)
 
-    def __init__(self, idle_callbacks: Mapping[int, Callable[[], typing.Any]]):
-        self.idle_callbacks = idle_callbacks
+    def __init__(self, event_loop: TrioEventLoop) -> None:
+        self._event_loop = event_loop
 
     def before_io_wait(self, timeout: float) -> None:
         if timeout > 0:
-            for idle_callback in self.idle_callbacks.values():
-                idle_callback()
+            # pylint: disable=protected-access  # cooperating class
+            for idle_callback in self._event_loop._idle_callbacks.values():
+                self._event_loop._run_callback(idle_callback)
 
 
 class TrioEventLoop(EventLoop):
@@ -61,6 +69,11 @@ class TrioEventLoop(EventLoop):
     Event loop based on the ``trio`` module.
 
     ``trio`` is an async library for Python 3.5 and later.
+
+    .. note::
+        :meth:`alarm`, :meth:`watch_file` and :meth:`enter_idle` accept an ``async def``
+        callback in addition to a plain callable. A coroutine function is scheduled as
+        a task in the main loop's nursery instead of being called directly.
     """
 
     def __init__(self) -> None:
@@ -144,12 +157,32 @@ class TrioEventLoop(EventLoop):
         scope.cancel()
         return existed
 
+    def _run_callback(self, callback: Callable[_Spec, _T], *args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
+        """Call callback, scheduling it as a nursery task instead if it is a coroutine function.
+
+        A coroutine function's exceptions propagate through the nursery like any other task's,
+        so unlike the asyncio/Tornado event loops there is no separate bookkeeping to fail the
+        main loop on error.
+
+        :param callback: function or coroutine function to call
+        :param args: positional arguments to pass to callback
+        :param kwargs: keyword arguments to pass to callback
+        :return: callback return value, or None if it was scheduled as a nursery task
+        """
+        if inspect.iscoroutinefunction(callback):
+            # Only called from a task already running in the nursery, so it is always open here.
+            nursery = typing.cast("trio.Nursery", self._nursery)
+            fn = functools.partial(callback, *args, **kwargs) if kwargs else callback
+            nursery.start_soon(fn, *(() if kwargs else args))
+            return None
+        return callback(*args, **kwargs)
+
     def run(self) -> None:
         """Starts the event loop. Exits the loop when any callback raises an
         exception. If ExitMainLoop is raised, exits cleanly.
         """
 
-        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
+        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
         try:
             trio.run(self._main_task, instruments=[emulate_idle_callbacks])
@@ -174,7 +207,7 @@ class TrioEventLoop(EventLoop):
                 nursery.cancel_scope.cancel()
         """
 
-        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self._idle_callbacks)
+        emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
         try:
             trio.lowlevel.add_instrument(emulate_idle_callbacks)
@@ -214,7 +247,7 @@ class TrioEventLoop(EventLoop):
         """
         with scope:
             await self._sleep(seconds)
-            callback()
+            self._run_callback(callback)
 
     def _handle_main_loop_exception(self, exc: BaseException) -> None:
         """Handles exceptions raised from the main loop, catching ExitMainLoop
@@ -295,4 +328,4 @@ class TrioEventLoop(EventLoop):
             # closed and calling wait_readable with a closed fd does not work.
             while not scope.cancel_called:
                 await self._wait_readable(fd)
-                callback()
+                self._run_callback(callback)
