@@ -46,7 +46,6 @@ from urwid.util import StoppingContext, get_encoding
 from .common import AttrSpec, BaseScreen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable
     from types import FrameType
 
     from typing_extensions import Literal
@@ -70,25 +69,6 @@ BUF_SZ = 16384
 # they are interpolated into pipe file names.
 _URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
 _URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
-
-_code_colours = {
-    "black": "0",
-    "dark red": "1",
-    "dark green": "2",
-    "brown": "3",
-    "dark blue": "4",
-    "dark magenta": "5",
-    "dark cyan": "6",
-    "light gray": "7",
-    "dark gray": "8",
-    "light red": "9",
-    "light green": "A",
-    "yellow": "B",
-    "light blue": "C",
-    "light magenta": "D",
-    "light cyan": "E",
-    "white": "F",
-}
 
 # replace control characters with ?'s
 _trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
@@ -132,64 +112,50 @@ Status: <span id="status">Set up</span>
 ]
 
 
+#: index into the (basic, mono, high_88, high_256, high_true) tuple stored per palette entry,
+#: selected by the ``colors`` value passed to :meth:`Screen.set_terminal_properties`
+_COLOUR_INDEX = {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}
+
+_default_foreground = "black"
+_default_background = "light gray"
+
+
 class Screen(BaseScreen):
     def __init__(self) -> None:
         super().__init__()
-        self.palette: dict[str | None, tuple[str, str, str | None]] = {}
         self.has_color = True
         self._started = False
+        self.colors = 2**24  # browsers render arbitrary RGB, so default to true color
+        self.bright_is_bold = False  # ignored: the browser renders bold as requested
+        self.has_underline = True  # ignored: the browser renders underline as requested
+        self._colour_index = _COLOUR_INDEX[self.colors]
+        self.register_palette_entry(None, _default_foreground, _default_background)
 
     @property
     def started(self) -> bool:
         return self._started
 
-    def register_palette(
+    def set_terminal_properties(
         self,
-        palette: Iterable[tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str]],  # type: ignore[override]
+        colors: int | None = None,
+        bright_is_bold: bool | None = None,
+        has_underline: bool | None = None,
     ) -> None:
-        """Register a list of palette entries.
+        """Set the number of colors used to resolve named palette entries.
 
-        :param palette: list of (name, foreground, background) or (name, same_as_other_name) palette entries.
-        :raises ValueError: an entry is neither a 2- nor a 3-tuple.
-        :raises KeyError: an entry copies a name that is not registered yet.
-
-        calls self.register_palette_entry for each item in l
+        :param colors: one of 1, 16, 88, 256 or 2**24 (2**24, true color, is the default,
+            since a browser can render any RGB color directly)
+        :param bright_is_bold: ignored, kept for API parity with the other display modules
+        :param has_underline: ignored, kept for API parity with the other display modules
+        :raises KeyError: *colors* is not one of the supported palette sizes.
         """
-
-        for item in palette:
-            if len(item) in {3, 4}:
-                self.register_palette_entry(*item)
-                continue
-            if len(item) != 2:
-                raise ValueError(f"Invalid register_palette usage: {item!r}")
-            name, like_name = item
-            if like_name not in self.palette:
-                raise KeyError(f"palette entry '{like_name}' doesn't exist")
-            self.palette[name] = self.palette[like_name]
-
-    def register_palette_entry(
-        self,
-        name: str | None,
-        foreground: str,
-        background: str,
-        mono: str | None = None,  # type: ignore[override]
-        foreground_high: str | None = None,
-        background_high: str | None = None,
-    ) -> None:
-        """Register a single palette entry.
-
-        :param name: new entry/attribute name
-        :param foreground: foreground colour
-        :param background: background colour
-        :param mono: monochrome terminal attribute
-
-        See curses_display.register_palette_entry for more info.
-        """
-        if foreground == "default":
-            foreground = "black"
-        if background == "default":
-            background = "light gray"
-        self.palette[name] = (foreground, background, mono)
+        if colors is not None:
+            self._colour_index = _COLOUR_INDEX[colors]
+            self.colors = colors
+        if bright_is_bold is not None:
+            self.bright_is_bold = bright_is_bold
+        if has_underline is not None:
+            self.has_underline = has_underline
 
     def _handle_resize_request(self, request: str) -> bool:
         """Apply the screen size from a "window resize <cols> <rows>" request.
@@ -383,26 +349,19 @@ class Screen(BaseScreen):
             col = 0
             for a, run in l_row:
                 t_run = run.translate(_trans_table)
-                faint = False
-                if a is None:
-                    fg, bg, _mono = "black", "light gray", None
-                # Check if a is an AttrSpec with faint attribute
-                elif isinstance(a, AttrSpec):
-                    faint = a.faint
-                    fg = a.foreground
-                    bg = a.background
-                    _mono = None
+                if isinstance(a, AttrSpec):
+                    aspec = a
                 else:
-                    fg, bg, _mono = self.palette[typing.cast("str | None", a)]
+                    aspec = self._palette[a][self._colour_index]
                 if y == cy and col <= cx:
                     run_width = calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:
-                        line.append(code_span(t_run, fg, bg, cx - col, faint))
+                        line.append(code_span(t_run, aspec, cx - col))
                     else:
-                        line.append(code_span(t_run, fg, bg, faint=faint))
+                        line.append(code_span(t_run, aspec))
                     col += run_width
                 else:
-                    line.append(code_span(t_run, fg, bg, faint=faint))
+                    line.append(code_span(t_run, aspec))
 
             send(f"{''.join(line)}\n")
         self.last_screen = new_screen
@@ -510,35 +469,58 @@ class Screen(BaseScreen):
         return pending_input
 
 
-def code_span(s: str, fg: str, bg: str, cursor: int = -1, faint: bool = False) -> str:
-    code_fg = _code_colours[fg]
-    code_bg = _code_colours[bg]
-    # Use 'f' for faint, '0' for no attributes
-    attr_code = "f" if faint else "0"
+#: default RGB values substituted for a palette entry's 'default' foreground/background,
+#: matching the black-on-light-gray page background declared in _web.css
+_default_aspec = AttrSpec(_default_foreground, _default_background)
+_d_fg_rgb = _default_aspec.get_rgb_values()[:3]
+_d_bg_rgb = _default_aspec.get_rgb_values()[3:]
+
+# the separator between a span's inline CSS and its text content in the wire format;
+# safe because control characters in the text have already been replaced by _trans_table
+_STYLE_SEP = "\x01"
+
+
+def _span_style(aspec: AttrSpec) -> tuple[str, str, str]:
+    """Return the (foreground, background, extra CSS) for *aspec*, with standout applied."""
+    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
+    if fg_r is None:
+        fg_r, fg_g, fg_b = _d_fg_rgb
+    if bg_r is None:
+        bg_r, bg_g, bg_b = _d_bg_rgb
+    fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
+    bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
+    if aspec.standout:
+        fg, bg = bg, fg
+
+    decoration = [name for name, on in (("underline", aspec.underline), ("line-through", aspec.strikethrough)) if on]
+
+    extra = ""
+    if decoration:
+        extra += f";text-decoration:{' '.join(decoration)}"
+    if aspec.bold:
+        extra += ";font-weight:bold"
+    if aspec.italics:
+        extra += ";font-style:italic"
+    if aspec.blink:
+        extra += ";animation:urwid-blink 1s step-start infinite"
+    if aspec.faint:
+        extra += ";opacity:0.5"
+    return fg, bg, extra
+
+
+def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
+    fg, bg, extra = _span_style(aspec)
+
+    def _piece(fg_: str, bg_: str, text: str) -> str:
+        return f"color:{fg_};background-color:{bg_}{extra}{_STYLE_SEP}{text}\n"
 
     if cursor >= 0:
         c_off, _ign = calc_text_pos(s, 0, len(s), cursor)
         c2_off = move_next_char(s, c_off, len(s))
 
-        return (
-            code_fg
-            + code_bg
-            + attr_code
-            + s[:c_off]
-            + "\n"
-            + code_bg
-            + code_fg
-            + attr_code
-            + s[c_off:c2_off]
-            + "\n"
-            + code_fg
-            + code_bg
-            + attr_code
-            + s[c2_off:]
-            + "\n"
-        )
+        return _piece(fg, bg, s[:c_off]) + _piece(bg, fg, s[c_off:c2_off]) + _piece(fg, bg, s[c2_off:])
 
-    return f"{code_fg + code_bg + attr_code + s}\n"
+    return _piece(fg, bg, s)
 
 
 def is_web_request() -> bool:

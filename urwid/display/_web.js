@@ -19,24 +19,10 @@
 
 "use strict";
 
-const colours = {
-    '0': "black",
-    '1': "#c00000",
-    '2': "green",
-    '3': "#804000",
-    '4': "#0000c0",
-    '5': "#c000c0",
-    '6': "teal",
-    '7': "silver",
-    '8': "gray",
-    '9': "#ff6060",
-    'A': "lime",
-    'B': "yellow",
-    'C': "#8080ff",
-    'D': "#ff40ff",
-    'E': "aqua",
-    'F': "white"
-};
+// Separates a span's inline CSS from its text content within a wire-format line
+// (see urwid.display.web._STYLE_SEP). Safe because urwid.display.web._trans_table
+// has already replaced any control character in the text with '?'.
+const style_separator = "";
 
 // KeyboardEvent.key values that urwid knows under a different name.
 const key_names = {
@@ -270,7 +256,8 @@ function render_update(text) {
             }
             row += 1;
         } else {
-            line.appendChild(make_span(frag.slice(3), frag.charAt(0), frag.charAt(1), frag.charAt(2)));
+            const sep = frag.indexOf(style_separator);
+            line.appendChild(make_span(frag.slice(sep + 1), frag.slice(0, sep)));
         }
     }
 
@@ -287,13 +274,9 @@ function place_line(container, line, row) {
     }
 }
 
-function make_span(s, fg, bg, attrs) {
+function make_span(s, style) {
     const d = document.createElement('span');
-    d.style.backgroundColor = colours[bg];
-    d.style.color = colours[fg];
-    if (attrs === 'f') {
-        d.style.opacity = '0.5';
-    }
+    d.style.cssText = style;
     d.appendChild(document.createTextNode(s));
 
     return d;
