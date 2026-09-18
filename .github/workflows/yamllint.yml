@@ -20,3 +20,10 @@ jobs:
         uses: astral-sh/setup-uv@v10.1.0
       - name: Lint YAML files
         run: uv run --no-project --with-requirements yamllint-requirements.txt yamllint . -f github
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check workflow files
+        uses: reviewdog/action-actionlint@v1
