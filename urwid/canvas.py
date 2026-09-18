@@ -196,8 +196,7 @@ class CanvasCache:
     def cleanup(cls, ref: weakref.ReferenceType[Canvas]) -> None:
         cls.cleanups += 1  # collect stats
 
-        w = cls._refs.get(ref, None)
-        del cls._refs[ref]
+        w = cls._refs.pop(ref, None)
         if not w:
             return
         widget, wcls, size, focus = w
@@ -271,7 +270,7 @@ class Canvas:
         """
         Return the text content of the canvas as a list of strings, one for each row.
         """
-        return [b"".join([text for (attr, cs, text) in row]) for row in self.content()]
+        return [b"".join(text for (attr, cs, text) in row) for row in self.content()]
 
     @property
     def decoded_text(self) -> Sequence[str]:
@@ -317,10 +316,10 @@ class Canvas:
         :raises NotImplementedError: the subclass does not implement the canvas content protocol.
 
         .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
+            Not used by the code base; there is no replacement. It will be removed in version 5.0.
         """
         warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
+            "content_delta is not used by the code base and will be removed in version 5.0",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -472,8 +471,7 @@ class TextCanvas(Canvas):
             cs = [[] for _ in range(len(text))]
 
         # pad text and attr to maxcol
-        for i in range(len(text)):
-            w = widths[i]
+        for i, (w, a_row, cs_row) in enumerate(zip(widths, attr, cs)):
             if w > maxcol:
                 raise CanvasError(
                     f"Canvas text is wider than the maxcol specified:\n"
@@ -482,19 +480,21 @@ class TextCanvas(Canvas):
                     f"text={text!r}\n"
                     f"urwid target encoding={get_encoding()}"
                 )
+            t = text[i]
             if w < maxcol:
-                text[i] += b"".rjust(maxcol - w)
-            a_gap = len(text[i]) - rle_len(attr[i])
+                t += b"".rjust(maxcol - w)
+                text[i] = t
+            a_gap = len(t) - rle_len(a_row)
             if a_gap < 0:
-                raise CanvasError(f"Attribute extends beyond text \n{text[i]!r}\n{attr[i]!r}")
+                raise CanvasError(f"Attribute extends beyond text \n{t!r}\n{a_row!r}")
             if a_gap:
-                rle_append_modify(attr[i], (None, a_gap))
+                rle_append_modify(a_row, (None, a_gap))
 
-            cs_gap = len(text[i]) - rle_len(cs[i])
+            cs_gap = len(t) - rle_len(cs_row)
             if cs_gap < 0:
-                raise CanvasError(f"Character Set extends beyond text \n{text[i]!r}\n{cs[i]!r}")
+                raise CanvasError(f"Character Set extends beyond text \n{t!r}\n{cs_row!r}")
             if cs_gap:
-                rle_append_modify(cs[i], (None, cs_gap))  # type: ignore[arg-type]  # str|None is Hashable
+                rle_append_modify(cs_row, (None, cs_gap))  # type: ignore[arg-type]  # str|None is Hashable
 
         self._attr = attr
         self._cs = cs
@@ -576,8 +576,8 @@ class TextCanvas(Canvas):
             i = 0
             row = []
             for (a, cs), run in attr_cs:
-                if attr and a in attr:
-                    a = attr[a]  # noqa: PLW2901
+                if attr:
+                    a = attr.get(a, a)  # noqa: PLW2901  # single lookup instead of `in` + `[]`
                 row.append((typing.cast("AttrSpec | str | None", a), cs, text[i : i + run]))
                 i += run
             yield row
@@ -590,10 +590,10 @@ class TextCanvas(Canvas):
         otherwise this is the same as calling content().
 
         .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
+            Not used by the code base; there is no replacement. It will be removed in version 5.0.
         """
         warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
+            "content_delta is not used by the code base and will be removed in version 5.0",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -619,9 +619,7 @@ class BlankCanvas(Canvas):
         """
         return (cols, rows) of spaces with default attributes.
         """
-        def_attr = None
-        if attr and None in attr:
-            def_attr = attr[None]
+        def_attr = attr.get(None) if attr else None
         line = [(def_attr, None, b"".rjust(cols))]
         for _ in range(rows):
             yield line  # type: ignore[misc]  # Yes, list is invariant, but we return it
@@ -647,12 +645,12 @@ class BlankCanvas(Canvas):
         Raise :exc:`NotImplementedError`: a BlankCanvas does not know its own size.
 
         .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
+            Not used by the code base; there is no replacement. It will be removed in version 5.0.
 
         :raises NotImplementedError: a BlankCanvas does not know its own size.
         """
         warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
+            "content_delta is not used by the code base and will be removed in version 5.0",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -700,9 +698,7 @@ class SolidCanvas(Canvas):
             cols = self.size[0]
         if rows is None:
             rows = self.size[1]
-        def_attr = None
-        if attr and None in attr:
-            def_attr = attr[None]
+        def_attr = attr.get(None) if attr else None
 
         line = [(def_attr, self._cs, self._text * cols)]
         for _ in range(rows):
@@ -713,10 +709,10 @@ class SolidCanvas(Canvas):
         Return the differences between other and this canvas.
 
         .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
+            Not used by the code base; there is no replacement. It will be removed in version 5.0.
         """
         warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
+            "content_delta is not used by the code base and will be removed in version 5.0",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -837,10 +833,10 @@ class CompositeCanvas(Canvas):
         Return the differences between other and this canvas.
 
         .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
+            Not used by the code base; there is no replacement. It will be removed in version 5.0.
         """
         warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
+            "content_delta is not used by the code base and will be removed in version 5.0",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -1038,7 +1034,7 @@ class CompositeCanvas(Canvas):
                     new_cviews.append((*cv[:4], mapping, *cv[5:]))
                 else:
                     combined = mapping.copy()
-                    combined.update([(k, mapping.get(v, v)) for k, v in cv[4].items()])
+                    combined.update((k, mapping.get(v, v)) for k, v in cv[4].items())
                     new_cviews.append((*cv[:4], combined, *cv[5:]))
             shards.append((num_rows, new_cviews))
         self.shards = shards
@@ -1105,10 +1101,10 @@ def shards_delta(
     Yield shards1 with cviews that are the same as shards2 having canv = None.
 
     .. deprecated:: 4.0.3
-        Not used by the code base; there is no replacement. It will be removed in a future release.
+        Not used by the code base; there is no replacement. It will be removed in version 5.0.
     """
     warnings.warn(
-        "shards_delta is deprecated and will be removed in a future version",
+        "shards_delta is not used by the code base and will be removed in version 5.0",
         DeprecationWarning,
         stacklevel=2,
     )
@@ -1142,10 +1138,10 @@ def shard_cviews_delta(
     If Canvas and shard tail are equal between shards, return None instead of canvas.
 
     .. deprecated:: 4.0.3
-        Not used by the code base; there is no replacement. It will be removed in a future release.
+        Not used by the code base; there is no replacement. It will be removed in version 5.0.
     """
     warnings.warn(
-        "shard_cviews_delta is deprecated and will be removed in a future version",
+        "shard_cviews_delta is not used by the code base and will be removed in version 5.0",
         DeprecationWarning,
         stacklevel=2,
     )
