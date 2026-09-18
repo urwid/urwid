@@ -92,7 +92,16 @@ class AsyncioEventLoop(EventLoop):
                 else:
                     self._event_loop_policy_altered = False
 
-                self._loop = asyncio.get_event_loop()
+                try:
+                    self._loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    # get_event_loop() only auto-creates a loop the first time it is ever called in
+                    # this thread (CPython's BaseDefaultEventLoopPolicy._set_called guard): once
+                    # something else has called set_event_loop() - e.g. a test fixture resetting it
+                    # to None during teardown - a later get_event_loop() call raises instead of
+                    # creating a replacement, even though nothing is currently running one.
+                    self._loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(self._loop)
 
         else:
             self._runner: asyncio.Runner | None = None

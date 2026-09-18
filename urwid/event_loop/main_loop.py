@@ -132,11 +132,11 @@ class MainLoop:
         The event loop object this main loop uses for waiting on alarms and IO
 
     .. note::
-        Some :attr:`event_loop` implementations (:class:`AsyncioEventLoop`, :class:`TornadoEventLoop`,
-        :class:`TrioEventLoop`) accept an ``async def`` callback in addition to a plain callable, scheduling
-        it as a background task instead of calling it directly. :meth:`set_alarm_in`, :meth:`set_alarm_at`,
-        :meth:`watch_file` and :meth:`watch_pipe` all detect an ``async def`` callback and preserve that
-        support; whether it actually does anything still depends on :attr:`event_loop` supporting it.
+        Some :attr:`event_loop` implementations accept an ``async def`` callback in addition to a
+        plain callable - see the specific implementation's own documentation for whether it does,
+        and how it runs one. :meth:`set_alarm_in`, :meth:`set_alarm_at`, :meth:`watch_file` and
+        :meth:`watch_pipe` all detect an ``async def`` callback and pass that detection through to
+        :attr:`event_loop`; whether it actually does anything still depends on :attr:`event_loop`.
     """
 
     def __init__(
