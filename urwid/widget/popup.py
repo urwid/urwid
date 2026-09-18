@@ -102,26 +102,57 @@ class PopUpLauncher(
 
 
 class PopUpTarget(WidgetDecoration[WrappedWidget]):
+    """Box widget that overlays the pop-up(s) declared by a :class:`PopUpLauncher` inside it.
+
+    Pop-ups nest: a pop-up widget may itself be a :class:`PopUpLauncher` with its own pop-up
+    open, in which case it is drawn overlaid on top of the pop-up that opened it, and so on for
+    as many levels as are open at once.
+    """
+
     # FIXME: this whole class is a terrible hack and must be fixed when layout and rendering are separated
     _sizing = frozenset((Sizing.BOX,))
     _selectable = True
 
     def __init__(self, original_widget: WrappedWidget) -> None:
+        """Wrap *original_widget*, which is rendered with any open pop-up(s) overlaid on top.
+
+        :param original_widget: box widget to wrap; typically contains a :class:`PopUpLauncher`.
+        """
         super().__init__(original_widget)
-        self._pop_up: AbstractWidget | None = None
-        self._current_widget: WrappedWidget | Overlay[AbstractWidget, WrappedWidget] = self._original_widget
+        # One (widget, Overlay) entry per currently open pop-up, outermost first.
+        self._pop_up_levels: list[tuple[AbstractWidget, Overlay[AbstractWidget, AbstractWidget]]] = []
+        self._current_widget: AbstractWidget = self._original_widget
 
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
+        """Rebuild :attr:`_current_widget` as a chain of Overlay widgets, one per open pop-up.
+
+        Level 0 wraps :attr:`_original_widget`'s own pop-up, if any; level 1 wraps a further
+        pop-up declared by level 0's pop-up widget, if that widget is itself a
+        :class:`PopUpLauncher` with its own pop-up open; and so on. Each level's pop-up widget
+        is rendered directly to discover whether it declares a further nested pop-up, rather
+        than inspecting the wrapping Overlay's merged canvas, whose "pop up" coordinate can go
+        stale once nothing re-declares it.
+
+        :param size: box size to render :attr:`_original_widget` and every pop-up level at.
+        :param focus: whether this widget is in focus.
+        """
         canv = self._original_widget.render(size, focus=focus)
         self._cache_original_canvas = canv  # imperfect performance hack
 
-        if pop_up := canv.get_pop_up():
+        old_levels = self._pop_up_levels
+        new_levels: list[tuple[AbstractWidget, Overlay[AbstractWidget, AbstractWidget]]] = []
+        bottom_widget: AbstractWidget = self._original_widget
+        # Once a level is rebuilt, every deeper level must be rebuilt too: a reused Overlay's
+        # bottom_w still points at the previous (now discarded) widget at the shallower level.
+        rebuilding = False
+
+        pop_up = canv.get_pop_up()
+        while pop_up:
             left, top, (w, overlay_width, overlay_height) = pop_up
-            if self._pop_up != w:
-                self._pop_up = w
-                self._current_widget = Overlay(
-                    top_w=w,
-                    bottom_w=self._original_widget,
+            level = len(new_levels)
+            if not rebuilding and level < len(old_levels) and old_levels[level][0] == w:
+                overlay = old_levels[level][1]
+                overlay.set_overlay_parameters(
                     align=Align.LEFT,
                     width=overlay_width,
                     valign=VAlign.TOP,
@@ -130,7 +161,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     top=top,
                 )
             else:
-                typing.cast("Overlay[AbstractWidget, WrappedWidget]", self._current_widget).set_overlay_parameters(
+                rebuilding = True
+                overlay = Overlay(
+                    top_w=w,
+                    bottom_w=bottom_widget,
                     align=Align.LEFT,
                     width=overlay_width,
                     valign=VAlign.TOP,
@@ -138,9 +172,14 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     left=left,
                     top=top,
                 )
-        else:
-            self._pop_up = None
-            self._current_widget = self._original_widget
+            new_levels.append((w, overlay))
+            bottom_widget = overlay
+
+            # Check w itself for a further nested pop-up; see the docstring for why.
+            pop_up = w.render((overlay_width, overlay_height), focus=focus).get_pop_up()
+
+        self._pop_up_levels = new_levels
+        self._current_widget = bottom_widget
 
     def render(
         self,
