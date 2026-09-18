@@ -120,6 +120,7 @@ class Screen(BaseScreen, RealTerminal):
         self.set_input_timeouts()
         self.last_bstate = 0
         self._mouse_tracking_enabled = False
+        self._curses_attr_cache: dict[AttrSpec, int] = {}
 
         self.register_palette_entry(None, "default", "default")
 
@@ -182,6 +183,7 @@ class Screen(BaseScreen, RealTerminal):
             except curses.error:
                 self.has_default_colors = False
         self._setup_colour_pairs()
+        self._curses_attr_cache.clear()
         curses.noecho()
         curses.meta(True)
         curses.halfdelay(10)  # use set_input_timeouts to adjust
@@ -579,6 +581,14 @@ class Screen(BaseScreen, RealTerminal):
             p = self._palette.get(a, (AttrSpec("default", "default"),))
             a = p[0]
 
+        try:
+            attr = self._curses_attr_cache[a]
+        except KeyError:
+            attr = self._curses_attr_cache[a] = self._compute_curses_attr(a)
+
+        self.s.attrset(attr)
+
+    def _compute_curses_attr(self, a: AttrSpec) -> int:
         if self.has_color:
             if a.foreground_basic:
                 if a.foreground_number >= 8:
@@ -608,7 +618,7 @@ class Screen(BaseScreen, RealTerminal):
         if a.faint:
             attr |= curses.A_DIM
 
-        self.s.attrset(attr)
+        return attr
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Paint screen with rendered canvas.
@@ -635,12 +645,14 @@ class Screen(BaseScreen, RealTerminal):
                 self.s.move(y, 0)
             except curses.error:
                 # terminal shrunk?
-                # move failed so stop rendering.
-                return
+                # move failed so stop drawing rows, but still flush what
+                # was already drawn instead of leaving a stale screen.
+                break
 
             first = True
             lasta = None
 
+            aborted = False
             for nr, (a, cs, seg) in enumerate(row):
                 if cs != "U":
                     seg = seg.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
@@ -665,17 +677,21 @@ class Screen(BaseScreen, RealTerminal):
                     # screen on the lower right
                     if y != rows - 1 or nr != len(row) - 1:
                         # perhaps screen size changed
-                        # quietly abort.
-                        return
+                        # quietly abort, but still flush what was already drawn.
+                        aborted = True
+                    break
+            if aborted:
+                break
 
-        if canvas.cursor is not None:
-            x, y = canvas.cursor
-            self._curs_set(1)
-            with suppress(curses.error):
-                self.s.move(y, x)
         else:
-            self._curs_set(0)
-            self.s.move(0, 0)
+            if canvas.cursor is not None:
+                x, y = canvas.cursor
+                self._curs_set(1)
+                with suppress(curses.error):
+                    self.s.move(y, x)
+            else:
+                self._curs_set(0)
+                self.s.move(0, 0)
 
         self.s.refresh()
         self.keep_cache_alive_link = canvas

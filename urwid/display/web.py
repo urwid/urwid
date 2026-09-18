@@ -25,6 +25,7 @@ Urwid web application display module
 from __future__ import annotations
 
 import dataclasses
+import functools
 import glob
 import html
 import os
@@ -336,7 +337,7 @@ class Screen(BaseScreen):
             sig: tuple[tuple[AttrSpec | str | None, str] | int | None, ...] = l_row
             if y == cy:
                 sig = (*sig, cx)
-            new_screen[sig] = [*new_screen.get(sig, []), y]
+            new_screen.setdefault(sig, []).append(y)
 
             if (old_line_numbers := self.last_screen.get(sig, None)) is not None:
                 if y in old_line_numbers:
@@ -480,6 +481,7 @@ _d_bg_rgb = _default_aspec.get_rgb_values()[3:]
 _STYLE_SEP = "\x01"
 
 
+@functools.cache
 def _span_style(aspec: AttrSpec) -> tuple[str, str, str]:
     """Return the (foreground, background, extra CSS) for *aspec*, with standout applied."""
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
