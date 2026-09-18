@@ -6,7 +6,9 @@ import sys
 import unittest
 from unittest import mock
 
+import urwid
 from urwid.display import web
+from urwid.display.common import AttrSpec, ScreenError
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -375,3 +377,137 @@ class ScreenStartTest(unittest.TestCase):
         self.assertEqual(self.screen.screen_size, (80, 24))
         self.assertEqual(self.screen.last_screen, {})
         self.assertEqual(self.screen.last_screen_width, 0)
+
+
+class SpanStyleTest(unittest.TestCase):
+    """Tests for web._span_style and web.code_span, which translate an AttrSpec into the
+    inline CSS sent to the browser -- the web equivalent of raw_display's _attrspec_to_escape.
+    """
+
+    def test_default_colours_fall_back_to_the_page_palette(self) -> None:
+        fg, bg, extra = web._span_style(AttrSpec("default", "default"))
+
+        self.assertEqual("#000000", fg)
+        self.assertEqual("#e5e5e5", bg)
+        self.assertEqual("", extra)
+
+    def test_named_colours_render_as_hex(self) -> None:
+        fg, bg, extra = web._span_style(AttrSpec("white", "black"))
+
+        self.assertEqual("#ffffff", fg)
+        self.assertEqual("#000000", bg)
+        self.assertEqual("", extra)
+
+    def test_high_colour_renders_exact_rgb(self) -> None:
+        fg, bg, _extra = web._span_style(AttrSpec("#76b900", "#000000", colors=16777216))
+
+        self.assertEqual("#76b900", fg)
+        self.assertEqual("#000000", bg)
+
+    def test_standout_swaps_foreground_and_background(self) -> None:
+        fg, bg, _extra = web._span_style(AttrSpec("white,standout", "black"))
+
+        self.assertEqual("#000000", fg)
+        self.assertEqual("#ffffff", bg)
+
+    def test_all_attributes_combine_into_one_style(self) -> None:
+        aspec = AttrSpec("white,bold,italics,underline,blink,strikethrough,faint", "black")
+        _fg, _bg, extra = web._span_style(aspec)
+
+        self.assertIn(";text-decoration:underline line-through", extra)
+        self.assertIn(";font-weight:bold", extra)
+        self.assertIn(";font-style:italic", extra)
+        self.assertIn(";animation:urwid-blink 1s step-start infinite", extra)
+        self.assertIn(";opacity:0.5", extra)
+
+    def test_underline_alone_has_no_line_through(self) -> None:
+        _fg, _bg, extra = web._span_style(AttrSpec("white,underline", "black"))
+
+        self.assertEqual(";text-decoration:underline", extra)
+
+    def test_no_attributes_gives_empty_extra(self) -> None:
+        _fg, _bg, extra = web._span_style(AttrSpec("white", "black"))
+
+        self.assertEqual("", extra)
+
+    def test_code_span_wraps_style_and_text(self) -> None:
+        span = web.code_span("hi", AttrSpec("white", "black"))
+
+        self.assertEqual("color:#ffffff;background-color:#000000\x01hi\n", span)
+
+    def test_code_span_cursor_splits_into_three_pieces_with_swapped_colours(self) -> None:
+        span = web.code_span("abc", AttrSpec("white", "black"), cursor=1)
+
+        self.assertEqual(
+            "color:#ffffff;background-color:#000000\x01a\n"
+            "color:#000000;background-color:#ffffff\x01b\n"
+            "color:#ffffff;background-color:#000000\x01c\n",
+            span,
+        )
+
+
+class ScreenPaletteTest(unittest.TestCase):
+    """Tests for Screen palette registration and draw_screen's attribute/colour resolution,
+    which must honour the full AttrSpec feature set the way raw_display does.
+    """
+
+    def setUp(self) -> None:
+        self.screen = web.Screen()
+        self.screen.content_head = ""
+        self.screen.update_method = "multipart"
+        self.screen.last_screen = {}
+        self.screen.last_screen_width = 0
+
+    def _draw(self, canvas: urwid.Canvas) -> str:
+        stdout = io.StringIO()
+        with (
+            mock.patch.object(web.sys, "stdout", stdout),
+            # signal.alarm() doesn't exist on Windows; create=True lets draw_screen's
+            # unconditional signal.alarm(...) calls hit the mock there too
+            mock.patch.object(web.signal, "alarm", create=True),
+        ):
+            self.screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+        return stdout.getvalue()
+
+    def test_default_palette_entry_is_registered_on_construction(self) -> None:
+        self.assertIn(None, self.screen._palette)
+
+    def test_named_palette_entry_renders_registered_attributes(self) -> None:
+        self.screen.register_palette_entry("focus", "light red,bold,underline,standout", "dark blue")
+        canvas = urwid.AttrMap(urwid.Text("hi"), "focus").render((5,))
+
+        output = self._draw(canvas)
+
+        # standout swaps light red (#ff0000) and dark blue (#0000ee)
+        self.assertIn("color:#0000ee;background-color:#ff0000;text-decoration:underline;font-weight:bold\x01hi", output)
+
+    def test_attrspec_on_canvas_bypasses_the_palette(self) -> None:
+        canvas = urwid.AttrMap(urwid.Text("hi"), AttrSpec("white", "black")).render((5,))
+
+        output = self._draw(canvas)
+
+        self.assertIn("color:#ffffff;background-color:#000000\x01hi", output)
+
+    def test_register_palette_copies_an_existing_entry(self) -> None:
+        self.screen.register_palette_entry("focus", "white", "black")
+        self.screen.register_palette([("alias", "focus")])
+
+        self.assertEqual(self.screen._palette["focus"], self.screen._palette["alias"])
+
+    def test_register_palette_rejects_unknown_alias_target(self) -> None:
+        with self.assertRaises(ScreenError):
+            self.screen.register_palette([("alias", "missing")])
+
+    def test_set_terminal_properties_switches_to_mono_rendering(self) -> None:
+        self.screen.register_palette_entry("focus", "white,bold", "black", mono="underline")
+        self.screen.set_terminal_properties(colors=1)
+        canvas = urwid.AttrMap(urwid.Text("hi"), "focus").render((5,))
+
+        output = self._draw(canvas)
+
+        # mono mode drops the colour choice (falls back to the page default) but keeps 'underline'
+        self.assertIn("color:#000000;background-color:#e5e5e5;text-decoration:underline\x01hi", output)
+
+    def test_set_terminal_properties_rejects_unsupported_colour_count(self) -> None:
+        with self.assertRaises(KeyError):
+            self.screen.set_terminal_properties(colors=42)
