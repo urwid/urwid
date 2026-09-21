@@ -75,7 +75,11 @@ if typing.TYPE_CHECKING:
     # A single connected handler: (key, callback, deprecated user_arg, prepared args).
     _SignalHandler = tuple[Key, Callable[..., typing.Any], typing.Any, _UserArgs]
     # Per-sender storage attached to ``obj`` under ``Signals._signal_attr``.
-    _SignalStore = dict[Hashable, list[_SignalHandler]]
+    # Each signal's handlers are stored as a tuple rather than a list, and replaced
+    # (rather than mutated in place) on connect/disconnect, so that ``emit`` can iterate
+    # its snapshot directly without copying, even if a handler connects or disconnects
+    # from within a callback while that iteration is in progress.
+    _SignalStore = dict[Hashable, tuple[_SignalHandler, ...]]
 
 
 class Signals:
@@ -184,14 +188,13 @@ class Signals:
         key = Key()
 
         signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
-        handlers = signals.setdefault(name, [])
 
         # Remove the signal handler when any of the weakref'd arguments
-        # are garbage collected. Note that this means that the handlers
-        # dictionary can be modified _at any time_, so it should never
-        # be iterated directly (e.g. iterate only over .keys() and
-        # .items(), never over .iterkeys(), .iteritems() or the object
-        # itself).
+        # are garbage collected. Note that this can happen _at any time_,
+        # including while ``emit`` is iterating another handler's tuple for
+        # this same signal; that tuple is replaced rather than mutated in
+        # place (see ``_SignalStore`` above), so such an in-progress
+        # iteration is unaffected.
         # We let the callback keep a weakref to the object as well, to
         # prevent a circular reference between the handler and the
         # object (via the weakrefs, which keep strong references to
@@ -203,7 +206,7 @@ class Signals:
                 self.disconnect_by_key(o, name, key)
 
         user_args = self._prepare_user_args(weak_args, user_args, weakref_callback)
-        handlers.append((key, callback, user_arg, user_args))
+        signals[name] = (*signals.get(name, ()), (key, callback, user_arg, user_args))
 
         return key
 
@@ -274,8 +277,8 @@ class Signals:
         function will simply do nothing.
         """
         signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
-        handlers = signals.get(name, [])
-        handlers[:] = [h for h in handlers if h[0] is not key]
+        handlers = signals.get(name, ())
+        signals[name] = tuple(h for h in handlers if h[0] is not key)
 
     def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """
@@ -289,8 +292,8 @@ class Signals:
         This function returns True if any of the callbacks returned True.
         """
         result = False
-        handlers = getattr(obj, self._signal_attr, {}).get(name, [])
-        for _key, callback, user_arg, (weak_args, user_args) in handlers.copy():
+        handlers = getattr(obj, self._signal_attr, {}).get(name, ())
+        for _key, callback, user_arg, (weak_args, user_args) in handlers:
             result |= self._call_callback(callback, user_arg, weak_args, user_args, args)
         return result
 
