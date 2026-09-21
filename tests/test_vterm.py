@@ -515,6 +515,26 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "end paste")
         self.expect(r"testB")
 
+    def test_synchronized_output_mode_on(self):
+        self.write(r"\e[?2026htest")
+        self.expect("test")
+        self.assertTrue(self.term.term_modes.synchronized_output)
+
+    def test_synchronized_output_mode_off(self):
+        self.write(r"\e[?2026ltest")
+        self.expect("test")
+        self.assertFalse(self.term.term_modes.synchronized_output)
+
+    def test_synchronized_output_block_spanning_chunks_drains_in_one_feed(self):
+        """A synchronized-output block bigger than one os.read() chunk (4096 bytes) is fully
+        drained within a single feed() call, so a render() in between never lands mid-block."""
+        self.write(r"\e[?2026h" + "a" * 5000 + r"\e[?2026l" + "B")
+
+        got = self.read()
+
+        self.assertFalse(self.term.term_modes.synchronized_output)
+        self.assertTrue(got.endswith(b"B"))
+
 
 if __name__ == "__main__":
     unittest.main()

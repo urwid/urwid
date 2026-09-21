@@ -454,3 +454,38 @@ class OutputSequenceTest(unittest.TestCase):
     def test_move_cursor_down(self):
         self.assertEqual("", escape.move_cursor_down(0))
         self.assertEqual(f"{escape.ESC}[3B", escape.move_cursor_down(3))
+
+
+class QueryPrivateModeTest(unittest.TestCase):
+    def test_query_private_mode(self):
+        self.assertEqual(f"{escape.ESC}[?1004$p", escape.query_private_mode(1004))
+        self.assertEqual(f"{escape.ESC}[?2004$p", escape.query_private_mode(2004))
+        self.assertEqual(f"{escape.ESC}[?2026$p", escape.query_private_mode(2026))
+
+
+class FindPrivateModeReportsTest(unittest.TestCase):
+    def test_no_reports(self):
+        reports, remaining = escape.find_private_mode_reports(b"just some keystrokes")
+        self.assertEqual({}, reports)
+        self.assertEqual(b"just some keystrokes", remaining)
+
+    def test_single_report_recognized(self):
+        reports, remaining = escape.find_private_mode_reports(b"\x1b[?2004;1$y")
+        self.assertEqual({2004: 1}, reports)
+        self.assertEqual(b"", remaining)
+
+    def test_single_report_not_recognized(self):
+        reports, remaining = escape.find_private_mode_reports(b"\x1b[?2026;0$y")
+        self.assertEqual({2026: 0}, reports)
+        self.assertEqual(b"", remaining)
+
+    def test_multiple_reports_and_surrounding_bytes_are_preserved(self):
+        data = b"a\x1b[?2004;1$yb\x1b[?2026;2$yc"
+        reports, remaining = escape.find_private_mode_reports(data)
+        self.assertEqual({2004: 1, 2026: 2}, reports)
+        self.assertEqual(b"abc", remaining)
+
+    def test_decrqm_recognized_values(self):
+        for value in (1, 2, 3, 4):
+            self.assertIn(value, escape.DECRQM_RECOGNIZED_VALUES)
+        self.assertNotIn(0, escape.DECRQM_RECOGNIZED_VALUES)

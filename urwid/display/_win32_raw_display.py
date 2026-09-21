@@ -59,17 +59,41 @@ class Screen(_raw_display_base.Screen):
         self,
         input: socket.socket | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
         output: _raw_display_base.TextWriter = sys.stdout,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
+
+        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal.
+            If the host terminal supports it,
+            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
+            The default, None, probes the terminal for DEC private mode 2004 support during `start()`
+            and enables it only when the terminal confirms it recognizes the mode;
+            pass True or False to force it on or off without probing.
+        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
+            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
+            The default, None, probes the terminal for DEC private mode 1004 support during `start()`
+            and enables it only when the terminal confirms it recognizes the mode;
+            pass True or False to force it on or off without probing.
         """
         if input is None:
             input, self._send_input = socket.socketpair()  # noqa: A001
 
-        super().__init__(input, output)
+        super().__init__(input, output, bracketed_paste_mode=bracketed_paste_mode, focus_reporting=focus_reporting)
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
+    _console_mode_active: bool = False
+
+    def _is_real_terminal(self) -> bool:
+        """Whether stdin/stdout are a real console with VT mode negotiated in `_start()`.
+
+        The base implementation checks `os.isatty` on the input file descriptor, which is wrong
+        here: `_input_fileno()` is a socket from `socket.socketpair()`, fed by `ReadInputThread`
+        reading the real console, not the console handle itself.
+        """
+        return self._console_mode_active
 
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -118,13 +142,26 @@ class Screen(_raw_display_base.Screen):
 
             self._dwOriginalOutMode = original_out_mode
             self._dwOriginalInMode = original_in_mode
+            self._console_mode_active = True
+
+        # Needs the console input thread running (started below) to read a DECRQM reply: replies
+        # arrive as console key events, which only reach _read_raw_input() once ReadInputThread is
+        # forwarding them over the socket pair.
+        self._start_input_thread()
+        self._detect_terminal_modes()
+
+        if self.modes.bracketed_paste:
+            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
+
+        if self.modes.focus_reporting:
+            self.write(escape.ENABLE_FOCUS_REPORTING)
 
         self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
-        self._mouse_tracking(self._mouse_tracking_enabled)
+        self._mouse_tracking(self.modes.mouse_tracking)
 
         super()._start()  # type: ignore[safe-super]
 
@@ -135,6 +172,12 @@ class Screen(_raw_display_base.Screen):
         :raises RuntimeError: the original console mode could not be restored.
         """
         self.clear()
+
+        if self.modes.bracketed_paste:
+            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+
+        if self.modes.focus_reporting:
+            self.write(escape.DISABLE_FOCUS_REPORTING)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
@@ -153,6 +196,7 @@ class Screen(_raw_display_base.Screen):
 
             self._dwOriginalOutMode = None
             self._dwOriginalInMode = None
+            self._console_mode_active = False
 
         super()._stop()  # type: ignore[safe-super]
 
@@ -187,12 +231,7 @@ class Screen(_raw_display_base.Screen):
 
         Subclasses may wish to use parse_input to wrap the callback.
         """
-        if self._send_input is not None:
-            # Console events are only translated for the input socket owned by this screen.
-            # signum is left at its default (_raw_display_base._SIGWINCH): this class runs on
-            # Windows only, which has no real SIGWINCH to report here anyway.
-            self._input_thread = ReadInputThread(self._send_input, self._sigwinch_handler)
-            self._input_thread.start()
+        self._start_input_thread()
 
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
@@ -208,7 +247,21 @@ class Screen(_raw_display_base.Screen):
 
     _input_thread: ReadInputThread | None = None
 
-    def _read_raw_input(self, timeout: int) -> bytearray:
+    def _start_input_thread(self) -> None:
+        """Start the background console reader, if it isn't already running.
+
+        Called from both `_start()` -- so a DECRQM reply can be read back during mode detection --
+        and `hook_event_loop()`, which used to be the only place this ran.
+        """
+        if self._input_thread is not None or self._send_input is None:
+            return
+        # Console events are only translated for the input socket owned by this screen. signum is
+        # left at its default (_raw_display_base._SIGWINCH): this class runs on Windows only,
+        # which has no real SIGWINCH to report here anyway.
+        self._input_thread = ReadInputThread(self._send_input, self._sigwinch_handler)
+        self._input_thread.start()
+
+    def _read_raw_input(self, timeout: float) -> bytearray:
         ready = self._wait_for_input_ready(timeout)
 
         fd = self._input_fileno()

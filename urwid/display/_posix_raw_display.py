@@ -91,16 +91,23 @@ class Screen(_raw_display_base.Screen):
         self,
         input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
         output: _raw_display_base.TextWriter = sys.stdout,
-        bracketed_paste_mode: bool = False,
-        focus_reporting: bool = False,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal. If the host terminal supports it,
+        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal.
+            If the host terminal supports it,
             the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
+            The default, None, probes the terminal for DEC private mode 2004 support during `start()`
+            and enables it only when the terminal confirms it recognizes the mode;
+            pass True or False to force it on or off without probing.
         :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
             application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
+            The default, None, probes the terminal for DEC private mode 1004 support during `start()`
+            and enables it only when the terminal confirms it recognizes the mode;
+            pass True or False to force it on or off without probing.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -118,11 +125,9 @@ class Screen(_raw_display_base.Screen):
             and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
             since only the main thread can receive process signals.
         """
-        super().__init__(input, output)
+        super().__init__(input, output, bracketed_paste_mode=bracketed_paste_mode, focus_reporting=focus_reporting)
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
-        self.bracketed_paste_mode = bracketed_paste_mode
-        self.focus_reporting = focus_reporting
 
         # These store the previous signal handlers after setting ours
         self._prev_sigcont_handler: SignalHandler = None
@@ -134,8 +139,8 @@ class Screen(_raw_display_base.Screen):
             f"<{self.__class__.__name__}("
             f"input={self._term_input_file}, "
             f"output={self._term_output_file}, "
-            f"bracketed_paste_mode={self.bracketed_paste_mode}, "
-            f"focus_reporting={self.focus_reporting})>"
+            f"bracketed_paste_mode={self.modes.bracketed_paste}, "
+            f"focus_reporting={self.modes.focus_reporting})>"
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
@@ -271,16 +276,20 @@ class Screen(_raw_display_base.Screen):
         else:
             self._rows_used = 0
 
-        if self.bracketed_paste_mode:
-            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
-
-        if self.focus_reporting:
-            self.write(escape.ENABLE_FOCUS_REPORTING)
-
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
+
+        # Needs cbreak mode (just entered above) to read a DECRQM reply byte-by-byte rather than
+        # waiting on a newline from the still-canonical tty.
+        self._detect_terminal_modes()
+
+        if self.modes.bracketed_paste:
+            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
+
+        if self.modes.focus_reporting:
+            self.write(escape.ENABLE_FOCUS_REPORTING)
 
         self.signal_init()
         self._alternate_buffer = alternate_buffer
@@ -291,7 +300,7 @@ class Screen(_raw_display_base.Screen):
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
-        self._mouse_tracking(self._mouse_tracking_enabled)
+        self._mouse_tracking(self.modes.mouse_tracking)
 
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
@@ -301,10 +310,10 @@ class Screen(_raw_display_base.Screen):
         """
         self.clear()
 
-        if self.bracketed_paste_mode:
+        if self.modes.bracketed_paste:
             self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
 
-        if self.focus_reporting:
+        if self.modes.focus_reporting:
             self.write(escape.DISABLE_FOCUS_REPORTING)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
@@ -393,7 +402,7 @@ class Screen(_raw_display_base.Screen):
                 raise
         return codes
 
-    def _read_raw_input(self, timeout: int) -> bytearray:
+    def _read_raw_input(self, timeout: float) -> bytearray:
         """
         Read whatever raw input is available, waiting at most *timeout* seconds.
 

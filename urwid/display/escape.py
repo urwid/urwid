@@ -650,11 +650,25 @@ NUM_KEYPAD_MODE = f"{ESC}>"
 SWITCH_TO_ALTERNATE_BUFFER = f"{ESC}[?1049h"
 RESTORE_NORMAL_BUFFER = f"{ESC}[?1049l"
 
+BRACKETED_PASTE_MODE = 2004
 ENABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004h"
 DISABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004l"
 
+FOCUS_REPORTING_MODE = 1004
 ENABLE_FOCUS_REPORTING = f"{ESC}[?1004h"
 DISABLE_FOCUS_REPORTING = f"{ESC}[?1004l"
+
+# Synchronized output
+# (DEC private mode 2026, https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036):
+# a terminal that recognizes it defers the actual repaint until END_SYNCHRONIZED_UPDATE,
+# instead of rendering every write() as it arrives, so a multi-fragment frame never flickers a partial paint.
+# Support is confirmed with a DECRQM probe (see query_private_mode()/find_private_mode_reports() below)
+# rather than assumed,
+# since a terminal that doesn't recognize mode 2026 simply ignores both sequences, which is safe,
+# but wrapping every frame in a no-op pair for no benefit is not.
+SYNCHRONIZED_OUTPUT_MODE = 2026
+BEGIN_SYNCHRONIZED_UPDATE = f"{ESC}[?2026h"
+END_SYNCHRONIZED_UPDATE = f"{ESC}[?2026l"
 
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
@@ -662,8 +676,42 @@ DISABLE_FOCUS_REPORTING = f"{ESC}[?1004l"
 REPORT_STATUS = f"{ESC}[5n"
 REPORT_CURSOR_POSITION = f"{ESC}[6n"
 
+# DECRQM (CSI ? Pd $ p) asks the terminal to report whether it recognizes a DEC private mode, and
+# the terminal answers with a DECRPM reply (CSI ? Pd ; Ps $ y).
+# Ps is 0 when the mode is not recognized at all, and 1-4 when it is (set, reset, permanently set, permanently reset).
+# This is the capability-probing approach:
+# query, wait briefly, and treat "not recognized" and "no reply at all"
+# the same way -- as unsupported -- rather than assuming a mode works because the terminal accepted the bytes silently.
+DECRQM_RECOGNIZED_VALUES = frozenset({1, 2, 3, 4})
+
+_DECRQM_REPLY_RE = re.compile(rb"\x1b\[\?(?P<mode>\d+);(?P<value>\d)\$y")
+
 INSERT_ON = f"{ESC}[4h"
 INSERT_OFF = f"{ESC}[4l"
+
+
+def query_private_mode(mode: int) -> str:
+    """Return the DECRQM query (CSI ? Pd $ p) asking the terminal to report *mode*'s state."""
+    return f"{ESC}[?{mode:d}$p"
+
+
+def find_private_mode_reports(data: bytes) -> tuple[dict[int, int], bytes]:
+    """Extract every DECRPM reply (CSI ? Pd ; Ps $ y) found in *data*.
+
+    Returns a ``{mode: Ps}`` mapping -- Ps is the raw DECRQM value, 0 meaning the terminal does not
+    recognize the mode at all -- together with *data* minus the matched replies, so bytes that
+    arrived alongside them (such as a keystroke typed while a capability probe was in flight) are
+    not discarded along with the replies themselves.
+    """
+    reports: dict[int, int] = {}
+    remaining = bytearray()
+    pos = 0
+    for match in _DECRQM_REPLY_RE.finditer(data):
+        remaining.extend(data[pos : match.start()])
+        reports[int(match["mode"])] = int(match["value"])
+        pos = match.end()
+    remaining.extend(data[pos:])
+    return reports, bytes(remaining)
 
 
 def set_cursor_position(x: int, y: int) -> str:
