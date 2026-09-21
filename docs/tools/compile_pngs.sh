@@ -7,7 +7,9 @@ SCREENSHOTS="$(dirname "$0")"/screenshots.sh
 
 XVFB=$(which Xvfb)
 if [ -n "$XVFB" ]; then
-	Xvfb :$DISPLAYNUM -screen 0 1024x768x24 &
+	# 1600x1200 to leave headroom above the largest example window
+	# (79x34 characters) rendered at the screenshot tool's 2x pixel density.
+	Xvfb :$DISPLAYNUM -screen 0 1600x1200x24 &
 	XVFBPID=$!
 	trap 'kill "$XVFBPID"' EXIT
 	export DISPLAY=:$DISPLAYNUM

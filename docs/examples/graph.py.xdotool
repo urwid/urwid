@@ -1,2 +1,2 @@
-windowsize --usehints $RXVTWINDOWID 79 24
-key --window $RXVTWINDOWID Down Down Down Return
+windowsize --usehints $TERMWINDOWID 79 24
+key --window $TERMWINDOWID Down Down Down Return
