@@ -517,7 +517,13 @@ class _MovedModule(types.ModuleType):
         self._moved_to = moved_to
 
     def __getattr__(self, name: str) -> typing.Any:
-        real_module = importlib.import_module(self._moved_to)
+        """
+        :raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported.
+        """
+        try:
+            real_module = importlib.import_module(self._moved_to)
+        except ImportError as exc:
+            raise AttributeError(name) from exc
         sys.modules[self._moved_from] = real_module
         return getattr(real_module, name)
 
@@ -557,7 +563,10 @@ def __getattr__(name: str) -> typing.Any:
             stacklevel=2,
         )
 
-        mod = importlib.import_module(_moved_warn[name])
+        try:
+            mod = importlib.import_module(_moved_warn[name])
+        except ImportError as exc:
+            raise AttributeError(name) from exc
         __locals[name] = mod
         return mod
     raise AttributeError(f"{name} not found in {__package__}")

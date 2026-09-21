@@ -61,18 +61,12 @@ __all__: tuple[str, ...] = (
     "RealTerminal",
     "ScreenError",
     # Lazy imported
+    "curses",
     "html_fragment",
     "lcd",
     "raw",
     "web",
 )
-
-try:
-    from . import curses
-
-    __all__ += ("curses",)
-except ImportError:
-    pass
 
 
 def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
@@ -102,3 +96,20 @@ def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
 html_fragment = lazy_import(".html_fragment", "urwid.display")
 lcd = lazy_import(".lcd", "urwid.display")
 web = lazy_import(".web", "urwid.display")
+
+
+def __getattr__(name: str) -> types.ModuleType:
+    """Lazily import `curses`, the optional stdlib-backed display submodule.
+
+    "curses" module may be present without "_curses" private part, so lazy_import will pass and real usage fail.
+
+    :raises AttributeError: *name* is not ``"curses"``, or the stdlib `curses` module is unavailable.
+    """
+    if name != "curses":
+        raise AttributeError(name)
+    try:
+        module = importlib.import_module(".curses", __name__)
+    except ImportError as exc:
+        raise AttributeError(name) from exc
+    globals()["curses"] = module
+    return module

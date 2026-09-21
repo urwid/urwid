@@ -20,6 +20,7 @@ if typing.TYPE_CHECKING:
     from types import TracebackType
 
 IS_WINDOWS = sys.platform == "win32"
+IS_GRAALPY = sys.implementation.name == "graalpy"
 
 
 class ClosingScreenIO(typing.ContextManager[tuple[socket.socket, typing.TextIO]]):
@@ -143,6 +144,7 @@ class RecordingWidget:
 
 class TestMainLoop(unittest.TestCase):
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe(self):
         """Test watching pipe is stopped on explicit False only."""
         evt = threading.Event()  # We need thread synchronization
@@ -387,6 +389,7 @@ class TestMainLoop(unittest.TestCase):
         self.assertEqual(["at"], seen)
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe_async_callback(self):
         """An async def watch_pipe callback is awaited, and its return value still controls removal."""
         outcome: list[bytes] = []
@@ -406,12 +409,14 @@ class TestMainLoop(unittest.TestCase):
         self.assertFalse(evl.remove_watch_pipe(pipe_fd))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_remove_watch_pipe_missing_fd(self):
         """Removing a watch pipe that was never created returns False."""
         with dummy_raw_main_loop() as evl:
             self.assertFalse(evl.remove_watch_pipe(999999))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_remove_watch_pipe_active(self):
         """Removing a still-active watch pipe succeeds once and fails on a second attempt."""
         with dummy_raw_main_loop() as evl:

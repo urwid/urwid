@@ -118,7 +118,9 @@ Tests with compatible extras (tornado, trio, serial). Excludes problematic C ext
 
 Tests with compatible extras (tornado, serial). Excludes extras that need C extensions GraalPy
 doesn't support (glib, zmq) or that have known compatibility issues (trio, twisted). GraalPy also
-ships no ``_curses`` module, so curses-dependent tests are expected to fail.
+ships no ``_curses`` module, so curses-dependent tests are expected to fail, and the Terminal
+widget (``urwid.vterm``) is unsupported since its ``fcntl``/``pty`` usage doesn't work on GraalPy,
+so its tests are skipped rather than run.
 
 .. code:: bash
 
@@ -165,12 +167,13 @@ Urwid core is fully supported. Some extras may have compatibility issues:
 
 **GraalPy (experimental)**
 
-Urwid core and the ``select``/``asyncio`` event loops are supported. Some extras and display
-modules are not:
+Urwid core and the ``select``/``asyncio`` event loops are supported. Some extras, display
+modules, and the Terminal widget are not:
 
 - ✅ Supported: core, tornado, serial, lcd
 - ❌ Unsupported: curses (GraalPy ships no ``_curses`` module), glib, zmq, twisted, trio (no C
-  extension support, or known compatibility issues)
+  extension support, or known compatibility issues), Terminal widget/``urwid.vterm`` (like on
+  Windows, ``fcntl``/``pty`` usage doesn't work on GraalPy)
 
 Authors
 =======

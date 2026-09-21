@@ -17,6 +17,10 @@ from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 # class below is decorated with `@unittest.skipIf(IS_WINDOWS, ...)`, which both runners honour
 # without needing the module to import successfully first.
 IS_WINDOWS = sys.platform == "win32"
+# GraalPy's signal module has no pthread_sigmask at all, which _sigtstp_handler() calls directly,
+# so both mock.patch("signal.pthread_sigmask") (which requires the attribute to exist)
+# and the real code path fail the same way there.
+IS_GRAALPY = sys.implementation.name == "graalpy"
 
 if not IS_WINDOWS:
     import fcntl
@@ -126,6 +130,7 @@ class TestSignalHandlers(unittest.TestCase):
         self.assertTrue(s._resized)
         self.assertEqual([(signal.SIGWINCH, None)], calls)
 
+    @unittest.skipIf(IS_GRAALPY, "signal.pthread_sigmask is missing on GraalPy")
     @mock.patch("os.kill")
     @mock.patch("signal.pthread_sigmask")
     def test_sigtstp_handler_blocks_sigcont_around_the_kill(self, mock_sigmask, mock_kill):
@@ -147,6 +152,7 @@ class TestSignalHandlers(unittest.TestCase):
         self.assertEqual(s._sigcont_handler, signal.getsignal(signal.SIGCONT))
         signal.signal(signal.SIGCONT, s._prev_sigcont_handler or signal.SIG_DFL)
 
+    @unittest.skipIf(IS_GRAALPY, "signal.pthread_sigmask is missing on GraalPy")
     @mock.patch("os.kill")
     @mock.patch("signal.pthread_sigmask")
     def test_sigcont_handler_restarts_the_screen_and_chains(self, mock_sigmask, mock_kill):
@@ -185,6 +191,7 @@ class TestGpmTracking(unittest.TestCase):
         s._start_gpm_tracking()
         self.assertIsNone(s.gpm_mev)
 
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     @mock.patch.dict(os.environ, {"TERM": "linux"})
     @mock.patch("fcntl.fcntl")
     @mock.patch("urwid.display._posix_raw_display.Popen")

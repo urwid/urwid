@@ -71,10 +71,13 @@ else:
 
     args = parser.parse_args()
 
-    if not hasattr(urwid.display, "curses") or "r" in args.argc:
+    if "r" in args.argc:
         Screen = urwid.display.raw.Screen
     else:
-        Screen = urwid.display.curses.Screen
+        try:
+            Screen = urwid.display.curses.Screen
+        except AttributeError:
+            Screen = urwid.display.raw.Screen
 
     loop_cls = event_loops[args.event_loop]
 
