@@ -1,2 +1,2 @@
-windowsize --usehints $RXVTWINDOWID 39 25
-key --window $RXVTWINDOWID Return End
+windowsize --usehints $TERMWINDOWID 39 25
+key --window $TERMWINDOWID Return End
