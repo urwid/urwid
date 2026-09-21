@@ -583,6 +583,15 @@ class PileTest(unittest.TestCase):
             p.contents.append((t2, ("weight", 0.5)))
             self.assertEqual(("one", "two"), p.render((3,)).decoded_text)
 
+    def test_delete_contents_with_negative_step(self) -> None:
+        widgets = [urwid.Text(str(index)) for index in range(5)]
+        for focus, expected_focus in enumerate((1, 1, 3, 3, 3)):
+            with self.subTest(focus=focus):
+                pile = urwid.Pile(widgets, focus_item=focus)
+                del pile.contents[::-2]
+                self.assertEqual([widgets[1], widgets[3]], [item[0] for item in pile.contents])
+                self.assertIs(widgets[expected_focus], pile.focus)
+
     def test_focus_position(self):
         t1 = urwid.Text("one")
         t2 = urwid.Text("two")

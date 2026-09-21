@@ -351,7 +351,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
                     focus += 1
 
                 # adjust for removed items
-                focus -= len(list(range(start, min(focus, stop), step)))
+                focus -= sum(index < focus for index in range(start, stop, step))
 
         return min(focus, len(self) + num_new_items - num_removed - 1)
 
