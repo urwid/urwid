@@ -299,7 +299,7 @@ class MainLoop:
         """
         return self.event_loop.remove_alarm(handle)
 
-    if not IS_WINDOWS:
+    if not IS_WINDOWS and sys.implementation.name != "graalpy":
 
         def watch_pipe(self, callback: Callable[[bytes], bool | None]) -> int:
             """

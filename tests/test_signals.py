@@ -49,7 +49,10 @@ class SiglnalsTest(unittest.TestCase):
         emit_signal(emitter, "test")
         self.assertEqual(calls, ["first", "second", "second", "third"])
 
-    @unittest.skipIf(sys.implementation.name == "pypy", "WeakRef works differently on PyPy")
+    @unittest.skipIf(
+        sys.implementation.name in {"pypy", "graalpy"},
+        "WeakRef works differently on PyPy/GraalPy's tracing GC",
+    )
     def test_weak_del(self):
         emitter = SiglnalsTest.EmClass()
         w1 = Mock(name="w1")

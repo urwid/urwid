@@ -33,6 +33,7 @@ import urwid.vterm
 from urwid.util import set_temporary_encoding
 
 IS_WINDOWS = sys.platform == "win32"
+IS_GRAALPY = sys.implementation.name == "graalpy"
 
 # Sentinel values for the mocked PTY.
 # They never collide with real fds/pids because every os.* call in vterm.py is intercepted while the test is running.
@@ -82,6 +83,7 @@ class _FakeRealTerminal:
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
         self.pty = _FakePTY()

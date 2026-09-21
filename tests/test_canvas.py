@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import unittest
 import weakref
 
@@ -69,6 +70,10 @@ class CanvasCacheTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             urwid.CanvasCache.store(urwid.Widget, unfinalized)
 
+    @unittest.skipIf(
+        sys.implementation.name in {"pypy", "graalpy"},
+        "WeakRef works differently on PyPy/GraalPy's tracing GC",
+    )
     def test_fetch_of_a_dead_weakref_returns_none_without_counting_a_hit(self):
         """A cache entry whose canvas is already gone is a miss, not a hit."""
         widget = urwid.Text("")
