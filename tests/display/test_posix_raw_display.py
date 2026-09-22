@@ -409,8 +409,8 @@ class TestReadRawInput(unittest.TestCase):
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
-class TestDetectPrivateModes(unittest.TestCase):
-    """DECRQM-based capability detection (_detect_private_modes / _detect_terminal_modes)."""
+class TestDetectTerminalModes(unittest.TestCase):
+    """_detect_terminal_modes() only writes the DECRQM queries; it does not wait for a reply."""
 
     def _screen_over_pipe(self, *, bracketed_paste_mode=None, focus_reporting=None):
         read_fd, write_fd = os.pipe()
@@ -421,86 +421,115 @@ class TestDetectPrivateModes(unittest.TestCase):
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
         )
-        s._MODE_PROBE_TIMEOUT = 0.05
-        # get_input_descriptors()/_wait_for_input_ready() only poll the input fd once the screen
-        # is marked started; _detect_private_modes() is exercised directly here, bypassing start()
-        # (and the real _detect_terminal_modes() call it would make) so the test controls exactly
-        # what bytes are on the pipe when detection runs.
-        s._started = True
         written: list[str] = []
         s.write = written.append
         s.flush = lambda: None
-        return s, write_fd, written
+        return s, written
 
     @mock.patch("os.isatty", return_value=True)
-    def test_reports_recognized_and_unrecognized_modes(self, mock_isatty):
-        s, write_fd, written = self._screen_over_pipe()
-        os.write(write_fd, b"\x1b[?2004;1$y\x1b[?2026;0$y")
+    def test_queries_every_mode_left_at_its_sentinel(self, mock_isatty):
+        s, written = self._screen_over_pipe()
 
-        result = s._detect_private_modes([escape.BRACKETED_PASTE_MODE, escape.SYNCHRONIZED_OUTPUT_MODE])
+        s._detect_terminal_modes()
 
-        self.assertEqual({escape.BRACKETED_PASTE_MODE: True, escape.SYNCHRONIZED_OUTPUT_MODE: False}, result)
-        self.assertIn(escape.query_private_mode(escape.BRACKETED_PASTE_MODE), "".join(written))
+        output = "".join(written)
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT), output)
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.GRAPHEME_CLUSTERING), output)
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE), output)
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING), output)
 
     @mock.patch("os.isatty", return_value=True)
-    def test_times_out_as_unsupported_when_terminal_never_replies(self, mock_isatty):
-        s, _write_fd, _written = self._screen_over_pipe()
+    def test_skips_modes_given_an_explicit_preference(self, mock_isatty):
+        s, written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=False)
 
-        result = s._detect_private_modes([escape.SYNCHRONIZED_OUTPUT_MODE])
+        s._detect_terminal_modes()
 
-        self.assertEqual({escape.SYNCHRONIZED_OUTPUT_MODE: False}, result)
+        output = "".join(written)
+        # synchronized_output/grapheme_clustering have no sentinel to skip: always queried.
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT), output)
+        self.assertIn(escape.query_private_mode(escape.PrivateMode.GRAPHEME_CLUSTERING), output)
+        self.assertNotIn(escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE), output)
+        self.assertNotIn(escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING), output)
 
-    def test_not_a_tty_is_reported_unsupported_without_writing_a_query(self):
+    def test_not_a_tty_writes_nothing(self):
         # os.isatty is left unmocked here: a plain pipe is never a tty.
-        s, _write_fd, written = self._screen_over_pipe()
+        s, written = self._screen_over_pipe()
 
-        result = s._detect_private_modes([escape.BRACKETED_PASTE_MODE])
+        s._detect_terminal_modes()
 
-        self.assertEqual({escape.BRACKETED_PASTE_MODE: False}, result)
         self.assertEqual([], written)
 
-    @mock.patch("os.isatty", return_value=True)
-    def test_bytes_around_a_reply_are_kept_for_normal_input_processing(self, mock_isatty):
-        s, write_fd, _written = self._screen_over_pipe()
-        os.write(write_fd, b"a\x1b[?2026;1$yb")
 
-        s._detect_private_modes([escape.SYNCHRONIZED_OUTPUT_MODE])
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestApplyPrivateModeReports(unittest.TestCase):
+    """parse_input() recognizes a DECRPM reply, applies it to self.modes, and strips it out."""
 
-        self.assertEqual([ord("a"), ord("b")], s._partial_codes)
+    @staticmethod
+    def _screen(*, bracketed_paste: bool | None = None):
+        s = _make_screen()
+        s.modes.bracketed_paste = bracketed_paste
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        return s, written
 
-    @mock.patch("os.isatty", return_value=True)
-    def test_detect_terminal_modes_resolves_sentinel_bracketed_paste_and_focus_reporting(self, mock_isatty):
-        s, write_fd, _written = self._screen_over_pipe(bracketed_paste_mode=None, focus_reporting=None)
-        os.write(write_fd, b"\x1b[?2026;1$y\x1b[?2004;1$y\x1b[?1004;1$y")
+    def test_recognized_reply_resolves_the_sentinel_and_is_not_returned(self):
+        s, _written = self._screen()
 
-        s._detect_terminal_modes()
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?2026;1$y"))
 
-        self.assertTrue(s.modes.bracketed_paste)
-        self.assertTrue(s.modes.focus_reporting)
+        self.assertEqual([], keys)
         self.assertTrue(s.modes.synchronized_output)
 
-    @mock.patch("os.isatty", return_value=True)
-    def test_detect_terminal_modes_resolves_unsupported_focus_reporting(self, mock_isatty):
-        s, write_fd, _written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=None)
-        os.write(write_fd, b"\x1b[?2026;0$y\x1b[?1004;0$y")
+    def test_grapheme_clustering_reply_is_recorded_without_acting_on_it(self):
+        """Queried (see TestDetectTerminalModes above), but nothing enables or reads it back."""
+        s, written = self._screen()
 
-        s._detect_terminal_modes()
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?2027;1$y"))
 
-        self.assertFalse(s.modes.focus_reporting)
+        self.assertEqual([], keys)
+        self.assertTrue(s.modes.grapheme_clustering)
+        self.assertEqual([], written)
 
-    @mock.patch("os.isatty", return_value=True)
-    def test_detect_terminal_modes_honors_explicit_preferences(self, mock_isatty):
-        s, write_fd, written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=True)
-        os.write(write_fd, b"\x1b[?2026;0$y")
+    def test_bracketed_paste_confirmed_from_the_sentinel_is_enabled_immediately(self):
+        s, written = self._screen(bracketed_paste=None)
 
-        s._detect_terminal_modes()
+        s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
 
-        # No probe for 2004 or 1004 was sent: only the (forced) synchronized-output query went out.
-        self.assertNotIn(escape.query_private_mode(escape.BRACKETED_PASTE_MODE), "".join(written))
-        self.assertNotIn(escape.query_private_mode(escape.FOCUS_REPORTING_MODE), "".join(written))
         self.assertTrue(s.modes.bracketed_paste)
-        self.assertTrue(s.modes.focus_reporting)
-        self.assertFalse(s.modes.synchronized_output)
+        self.assertIn(escape.ENABLE_BRACKETED_PASTE_MODE, "".join(written))
+
+    def test_unrecognized_reply_resolves_the_sentinel_to_false_without_enabling(self):
+        s, written = self._screen(bracketed_paste=None)
+
+        s.parse_input(None, None, list(b"\x1b[?2004;0$y"))
+
+        self.assertFalse(s.modes.bracketed_paste)
+        self.assertEqual([], written)
+
+    def test_reply_for_an_already_forced_mode_does_not_write_enable_again(self):
+        """A mode that was never at its sentinel must not get ENABLE written a second time."""
+        s, written = self._screen(bracketed_paste=True)
+
+        s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
+
+        self.assertTrue(s.modes.bracketed_paste)
+        self.assertEqual([], written)
+
+    def test_reply_for_a_mode_urwid_does_not_track_is_dropped_without_error(self):
+        s, _written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?9999;1$y"))
+
+        self.assertEqual([], keys)
+
+    def test_ordinary_input_around_a_reply_still_comes_through(self):
+        s, _written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, [ord("a"), *b"\x1b[?2026;1$y", ord("b")])
+
+        self.assertEqual(["a", "b"], keys)
+        self.assertTrue(s.modes.synchronized_output)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

@@ -65,17 +65,12 @@ class Screen(_raw_display_base.Screen):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal.
-            If the host terminal supports it,
-            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
-            The default, None, probes the terminal for DEC private mode 2004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
-        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
-            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
-            The default, None, probes the terminal for DEC private mode 1004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
         """
         if input is None:
             input, self._send_input = socket.socketpair()  # noqa: A001
@@ -144,9 +139,6 @@ class Screen(_raw_display_base.Screen):
             self._dwOriginalInMode = original_in_mode
             self._console_mode_active = True
 
-        # Needs the console input thread running (started below) to read a DECRQM reply: replies
-        # arrive as console key events, which only reach _read_raw_input() once ReadInputThread is
-        # forwarding them over the socket pair.
         self._start_input_thread()
         self._detect_terminal_modes()
 
@@ -248,11 +240,7 @@ class Screen(_raw_display_base.Screen):
     _input_thread: ReadInputThread | None = None
 
     def _start_input_thread(self) -> None:
-        """Start the background console reader, if it isn't already running.
-
-        Called from both `_start()` -- so a DECRQM reply can be read back during mode detection --
-        and `hook_event_loop()`, which used to be the only place this ran.
-        """
+        """Start the background console reader, if it isn't already running."""
         if self._input_thread is not None or self._send_input is None:
             return
         # Console events are only translated for the input socket owned by this screen. signum is

@@ -44,7 +44,8 @@ if typing.TYPE_CHECKING:
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
+    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition, _PrivateModeReport]]
 
 IS_WINDOWS = sys.platform == "win32"
 

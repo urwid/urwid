@@ -97,17 +97,12 @@ class Screen(_raw_display_base.Screen):
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal.
-            If the host terminal supports it,
-            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
-            The default, None, probes the terminal for DEC private mode 2004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
-        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
-            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
-            The default, None, probes the terminal for DEC private mode 1004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -281,8 +276,6 @@ class Screen(_raw_display_base.Screen):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
 
-        # Needs cbreak mode (just entered above) to read a DECRQM reply byte-by-byte rather than
-        # waiting on a newline from the still-canonical tty.
         self._detect_terminal_modes()
 
         if self.modes.bracketed_paste:

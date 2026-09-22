@@ -456,34 +456,55 @@ class OutputSequenceTest(unittest.TestCase):
         self.assertEqual(f"{escape.ESC}[3B", escape.move_cursor_down(3))
 
 
+class PrivateModeTest(unittest.TestCase):
+    def test_members_are_plain_strings(self):
+        # str(member) has to render the bare mode number (not "PrivateMode.BRACKETED_PASTE"),
+        # since query_private_mode() interpolates it directly into an escape sequence.
+        self.assertEqual("1004", str(escape.PrivateMode.FOCUS_REPORTING))
+        self.assertEqual("2004", str(escape.PrivateMode.BRACKETED_PASTE))
+        self.assertEqual("2026", str(escape.PrivateMode.SYNCHRONIZED_OUTPUT))
+        self.assertEqual("2027", str(escape.PrivateMode.GRAPHEME_CLUSTERING))
+
+
 class QueryPrivateModeTest(unittest.TestCase):
     def test_query_private_mode(self):
-        self.assertEqual(f"{escape.ESC}[?1004$p", escape.query_private_mode(1004))
-        self.assertEqual(f"{escape.ESC}[?2004$p", escape.query_private_mode(2004))
-        self.assertEqual(f"{escape.ESC}[?2026$p", escape.query_private_mode(2026))
+        self.assertEqual(f"{escape.ESC}[?1004$p", escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING))
+        self.assertEqual(f"{escape.ESC}[?2004$p", escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE))
+        self.assertEqual(f"{escape.ESC}[?2026$p", escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT))
 
 
-class FindPrivateModeReportsTest(unittest.TestCase):
-    def test_no_reports(self):
-        reports, remaining = escape.find_private_mode_reports(b"just some keystrokes")
-        self.assertEqual({}, reports)
-        self.assertEqual(b"just some keystrokes", remaining)
+class ReadPrivateModeReportTest(unittest.TestCase):
+    def test_recognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2004;1$y"), False)
+        self.assertEqual((("private mode report", "2004", 1), []), result)
 
-    def test_single_report_recognized(self):
-        reports, remaining = escape.find_private_mode_reports(b"\x1b[?2004;1$y")
-        self.assertEqual({2004: 1}, reports)
-        self.assertEqual(b"", remaining)
+    def test_unrecognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;0$y"), False)
+        self.assertEqual((("private mode report", "2026", 0), []), result)
 
-    def test_single_report_not_recognized(self):
-        reports, remaining = escape.find_private_mode_reports(b"\x1b[?2026;0$y")
-        self.assertEqual({2026: 0}, reports)
-        self.assertEqual(b"", remaining)
+    def test_trailing_bytes_are_left_unconsumed(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;1$yab"), False)
+        self.assertEqual((("private mode report", "2026", 1), [ord("a"), ord("b")]), result)
 
-    def test_multiple_reports_and_surrounding_bytes_are_preserved(self):
-        data = b"a\x1b[?2004;1$yb\x1b[?2026;2$yc"
-        reports, remaining = escape.find_private_mode_reports(data)
-        self.assertEqual({2004: 1, 2026: 2}, reports)
-        self.assertEqual(b"abc", remaining)
+    def test_not_a_private_mode_report_returns_none(self):
+        self.assertIsNone(escape.input_trie.read_private_mode_report(list(b"[6;5R"), False))
+        self.assertIsNone(escape.input_trie.read_private_mode_report([], False))
+
+    def test_incomplete_reply_raises_more_input_required_when_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix), self.assertRaises(escape.MoreInputRequired):
+                escape.input_trie.read_private_mode_report(list(prefix), True)
+
+    def test_incomplete_reply_returns_none_when_no_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(prefix), False))
+
+    def test_recognized_through_process_keyqueue(self):
+        codes = [27, *b"[?2004;1$y"]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("private mode report", "2004", 1)], actual)
+        self.assertEqual([], rest)
 
     def test_decrqm_recognized_values(self):
         for value in (1, 2, 3, 4):

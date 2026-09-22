@@ -35,7 +35,6 @@ import selectors
 import signal
 import socket
 import sys
-import time
 import typing
 
 from urwid import signals, str_util, util
@@ -53,7 +52,9 @@ if typing.TYPE_CHECKING:
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
     _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInputWithReports = list[typing.Union[str, _MouseInput, _CursorPosition, _PrivateModeReport]]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
@@ -137,22 +138,40 @@ class TerminalProperties:
 
 @dataclasses.dataclass
 class TermModes:
-    """State of terminal modes negotiated with the real, outward-facing host terminal.
+    """Terminal modes negotiated with the real host terminal (counterpart to `vterm.TermModes`).
 
-    The counterpart to `urwid.vterm.TermModes`,
-    which tracks the same kind of state for the terminal urwid emulates when hosting a child process;
-    this one tracks it for the terminal urwid itself is drawing to.
-    Kept as one object, rather than one attribute per mode directly on `Screen`,
-    so a new negotiated mode is one field here instead of another ad hoc attribute.
+    None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
     """
 
     mouse_tracking: bool = False
-    # None is the sentinel `_detect_terminal_modes()` resolves to True/False: either the terminal
-    # confirmed it recognizes the corresponding DEC private mode (1004 for focus reporting, 2004
-    # for bracketed paste), or __init__ was given an explicit True/False and detection was skipped.
     focus_reporting: bool | None = None
     bracketed_paste: bool | None = None
-    synchronized_output: bool = False
+    synchronized_output: bool | None = None
+    grapheme_clustering: bool | None = None
+
+    # escape.PrivateMode member -> the field it resolves.
+    # mouse tracking omitted: handled explicit via _mouse_tracking method.
+    #
+    _FIELDS: typing.ClassVar[Mapping[str, str]] = {
+        escape.PrivateMode.FOCUS_REPORTING: "focus_reporting",
+        escape.PrivateMode.BRACKETED_PASTE: "bracketed_paste",
+        escape.PrivateMode.SYNCHRONIZED_OUTPUT: "synchronized_output",
+        escape.PrivateMode.GRAPHEME_CLUSTERING: "grapheme_clustering",
+    }
+
+    def set_from_codes(self, *response: tuple[str, int]) -> frozenset[str]:
+        """Apply DECRPM (mode, value) pairs; return the field names newly resolved to supported."""
+        newly_supported = set()
+        for mode, value in response:
+            field = self._FIELDS.get(mode)
+            if field is None:
+                continue
+            was_unresolved = getattr(self, field) is None
+            supported = value in escape.DECRQM_RECOGNIZED_VALUES
+            setattr(self, field, supported)
+            if was_unresolved and supported:
+                newly_supported.add(field)
+        return frozenset(newly_supported)
 
 
 def _term_families(term: str) -> frozenset[str]:
@@ -308,12 +327,6 @@ class Screen(BaseScreen, RealTerminal):
     _term_input_file: SupportsFileno
     _term_output_file: TextWriter
 
-    # Seconds to wait for a DECRQM reply during _detect_private_modes().
-    # Generous enough for a real local round trip (pty, ssh on a LAN), short enough that a terminal which never answers
-    # -- because it doesn't implement DECRQM, or input/output aren't a real terminal at all --
-    # does not make startup perceptibly slower.
-    _MODE_PROBE_TIMEOUT: typing.ClassVar[float] = 0.15
-
     def __init__(
         self,
         input: SupportsFileno,  # noqa: A002  # pylint: disable=redefined-builtin
@@ -321,20 +334,14 @@ class Screen(BaseScreen, RealTerminal):
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
     ) -> None:
-        """Initialize a screen that directly prints escape codes to an output
-        terminal.
+        """Initialize a screen that directly prints escape codes to an output terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal.
-            If the host terminal supports it,
-            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
-            The default, None, probes the terminal for DEC private mode 2004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
-        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
-            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
-            The default, None, probes the terminal for DEC private mode 1004 support during `start()`
-            and enables it only when the terminal confirms it recognizes the mode;
-            pass True or False to force it on or off without probing.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
         """
         super().__init__()
 
@@ -463,85 +470,61 @@ class Screen(BaseScreen, RealTerminal):
             self.write(escape.MOUSE_TRACKING_OFF)
 
     def _is_real_terminal(self) -> bool:
-        """Whether input/output are connected to a real terminal that could answer a DECRQM probe.
+        """Whether input/output are a real terminal that could answer a DECRQM probe.
 
-        The POSIX implementation is the default here: a real file descriptor that `os.isatty` confirms.
-         Windows overrides this, since its input is a socket fed by a background
-        console-reading thread rather than a descriptor `os.isatty` can inspect directly.
+        Overridden on Windows, whose input is a socket, not a descriptor `os.isatty` can inspect.
         """
         fd = self._input_fileno()
         return fd is not None and os.isatty(fd)
 
-    def _detect_private_modes(self, modes: Iterable[int]) -> dict[int, bool]:
-        """Detect DEC private mode support via DECRQM.
+    # TermModes field -> the sequence that enables it, once confirmed supported from a sentinel.
+    _PRIVATE_MODE_ENABLE_SEQUENCE: typing.ClassVar[Mapping[str, str]] = {
+        "bracketed_paste": escape.ENABLE_BRACKETED_PASTE_MODE,
+        "focus_reporting": escape.ENABLE_FOCUS_REPORTING,
+    }
 
-        Queries every mode in *modes* with a single write, waits up to `_MODE_PROBE_TIMEOUT` for replies,
-        and reports whether each was recognized (DECRQM value 1-4) as opposed to
-        explicitly unrecognized (0) or never answered at all.
-        A terminal that cannot or does not reply -- input/output are not a real terminal,
-        or it simply doesn't implement DECRQM -- is reported as not supporting any of the modes queried,
-        rather than the probe hanging or assuming support that was never confirmed.
+    def _detect_terminal_modes(self) -> None:
+        """Send DECRQM queries for the private modes still at their sentinel; does not wait for a reply.
+
+        Replies are recognized later, during normal `parse_input()`
+        (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_private_mode_reports()`).
         """
-        modes = list(modes)
-        supported = dict.fromkeys(modes, False)
-        if not modes or not self._is_real_terminal():
-            return supported
+        if not self._is_real_terminal():
+            return
+
+        modes = [escape.PrivateMode.SYNCHRONIZED_OUTPUT, escape.PrivateMode.GRAPHEME_CLUSTERING]
+        if self.modes.bracketed_paste is None:
+            modes.append(escape.PrivateMode.BRACKETED_PASTE)
+        if self.modes.focus_reporting is None:
+            modes.append(escape.PrivateMode.FOCUS_REPORTING)
 
         self.write("".join(escape.query_private_mode(mode) for mode in modes))
         self.flush()
 
-        buffer = bytearray()
-        pending = set(modes)
-        deadline = time.monotonic() + self._MODE_PROBE_TIMEOUT
-        while pending:
-            remaining = deadline - time.monotonic()
-            if remaining <= 0:
-                break
-            try:
-                buffer.extend(self._read_raw_input(remaining))
-            except RuntimeError:
-                # Input has been closed (e.g. stdin redirected from an already-exhausted pipe).
-                # There is no reply coming, which is exactly what "unsupported" means here -- this
-                # is not the place to raise, since the caller is just trying to start the screen.
-                break
-            reports, leftover = escape.find_private_mode_reports(bytes(buffer))
-            buffer = bytearray(leftover)
-            for mode, value in reports.items():
-                if mode in supported:
-                    supported[mode] = value in escape.DECRQM_RECOGNIZED_VALUES
-                pending.discard(mode)
+    def _apply_private_mode_reports(
+        self,
+        decoded_codes: _DecodedInputWithReports,
+    ) -> _DecodedInput:
+        """Apply any DECRPM replies among *decoded_codes* to `self.modes` and strip them out."""
+        filtered: _DecodedInput = []
+        reports: list[tuple[str, int]] = []
+        for item in decoded_codes:
+            if isinstance(item, tuple) and item[:1] == ("private mode report",):
+                reports.append(typing.cast("tuple[str, int]", item[1:]))
+            else:
+                filtered.append(typing.cast("str | _MouseInput | _CursorPosition", item))
 
-        if buffer:
-            # Bytes that arrived alongside a reply -- most likely a keystroke typed while the probe was in flight
-            # -- belong to the normal input pipeline, not to this detection round trip,
-            # so they are handed to the next get_input()/parse_input() call instead of being dropped.
-            self._partial_codes = [*self._partial_codes, *buffer]
+        if reports:
+            enable = [
+                code
+                for field in self.modes.set_from_codes(*reports)
+                if (code := self._PRIVATE_MODE_ENABLE_SEQUENCE.get(field, ""))
+            ]
+            if enable:
+                self.write("".join(enable))
+                self.flush()
 
-        return supported
-
-    def _detect_terminal_modes(self) -> None:
-        """Resolve the sentinel bracketed-paste/focus-reporting preferences and detect synchronized-output support.
-
-        Called once from `_start()`, after the terminal has been put into a mode where a DECRQM
-        reply can actually be read back (POSIX cbreak mode; the Windows console input thread running).
-        A `bracketed_paste_mode`/`focus_reporting` of True or False, passed explicitly to `__init__`,
-        skips probing for the corresponding mode and is used as given.
-        """
-        detect_paste = self.modes.bracketed_paste is None
-        detect_focus = self.modes.focus_reporting is None
-        modes = [escape.SYNCHRONIZED_OUTPUT_MODE]
-        if detect_paste:
-            modes.append(escape.BRACKETED_PASTE_MODE)
-        if detect_focus:
-            modes.append(escape.FOCUS_REPORTING_MODE)
-
-        results = self._detect_private_modes(modes)
-
-        self.modes.synchronized_output = results[escape.SYNCHRONIZED_OUTPUT_MODE]
-        if detect_paste:
-            self.modes.bracketed_paste = results[escape.BRACKETED_PASTE_MODE]
-        if detect_focus:
-            self.modes.focus_reporting = results[escape.FOCUS_REPORTING_MODE]
+        return filtered
 
     @abc.abstractmethod
     def _start(  # pylint: disable=keyword-arg-before-vararg
@@ -827,7 +810,7 @@ class Screen(BaseScreen, RealTerminal):
             self._input_timeout = None
 
         original_codes = codes
-        decoded_codes = []
+        decoded_codes: _DecodedInputWithReports = []
         try:
             while codes:
                 run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
@@ -852,19 +835,21 @@ class Screen(BaseScreen, RealTerminal):
             raw_codes = original_codes
             self._partial_codes = []
 
-        logger.debug(f"Decoded codes: {decoded_codes!r}, raw codes: {raw_codes!r}")
+        output_codes = self._apply_private_mode_reports(decoded_codes)
+
+        logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
         if self._resized:
-            decoded_codes.append("window resize")
+            output_codes.append("window resize")
             logger.debug('Added "window resize" to the codes')
             self._resized = False
 
         if callback:
-            callback(decoded_codes, raw_codes)
+            callback(output_codes, raw_codes)
             return None
 
         # For get_input
-        return decoded_codes, raw_codes
+        return output_codes, raw_codes
 
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
         logger = self.logger.getChild("wait_for_input_ready")
@@ -1091,9 +1076,7 @@ class Screen(BaseScreen, RealTerminal):
             # per-call overhead (and, for a real file, a separate write syscall) once per row.
             frame = "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
             if self.modes.synchronized_output:
-                # Confirmed via DECRQM in _detect_terminal_modes():
-                # the terminal defers painting until END_SYNCHRONIZED_UPDATE,
-                # so this multi-fragment frame lands atomically instead of rendering partway through on a slow link.
+                # Confirmed supported; the terminal defers painting until END_SYNCHRONIZED_UPDATE.
                 frame = f"{escape.BEGIN_SYNCHRONIZED_UPDATE}{frame}{escape.END_SYNCHRONIZED_UPDATE}"
             self.write(frame)
             self.flush()
