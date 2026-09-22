@@ -143,6 +143,7 @@ class TermModes:
     None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
     """
 
+    alternate_buffer: bool = False
     mouse_tracking: bool = False
     focus_reporting: bool | None = None
     bracketed_paste: bool | None = None
@@ -150,7 +151,8 @@ class TermModes:
     grapheme_clustering: bool | None = None
 
     # escape.PrivateMode member -> the field it resolves.
-    # mouse tracking omitted: handled explicit via _mouse_tracking method.
+    # alternate_buffer: handled by explicit _start argument, expected to be supported by all modern terminals
+    # mouse tracking: handled explicit via _mouse_tracking method, expected to be supported by all modern terminals
     #
     _FIELDS: typing.ClassVar[Mapping[str, str]] = {
         escape.PrivateMode.FOCUS_REPORTING: "focus_reporting",
@@ -349,7 +351,6 @@ class Screen(BaseScreen, RealTerminal):
         self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
         self._pal_escape: dict[str | None, str] = {}
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
-        self._alternate_buffer: bool = False
         self._modified_palette_entries: set[int] = set()
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.term = os.environ.get("TERM", "")
@@ -479,8 +480,8 @@ class Screen(BaseScreen, RealTerminal):
 
     # TermModes field -> the sequence that enables it, once confirmed supported from a sentinel.
     _PRIVATE_MODE_ENABLE_SEQUENCE: typing.ClassVar[Mapping[str, str]] = {
-        "bracketed_paste": escape.ENABLE_BRACKETED_PASTE_MODE,
-        "focus_reporting": escape.ENABLE_FOCUS_REPORTING,
+        "bracketed_paste": escape.PrivateMode.BRACKETED_PASTE.enable_seq,
+        "focus_reporting": escape.PrivateMode.FOCUS_REPORTING.enable_seq,
     }
 
     def _detect_terminal_modes(self) -> None:
@@ -498,7 +499,7 @@ class Screen(BaseScreen, RealTerminal):
         if self.modes.focus_reporting is None:
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
 
-        self.write("".join(escape.query_private_mode(mode) for mode in modes))
+        self.write("".join(mode.query for mode in modes))
         self.flush()
 
     def _apply_private_mode_reports(
@@ -544,8 +545,8 @@ class Screen(BaseScreen, RealTerminal):
         self._mouse_tracking(False)
 
         move_cursor = ""
-        if self._alternate_buffer:
-            move_cursor = escape.RESTORE_NORMAL_BUFFER
+        if self.modes.alternate_buffer:
+            move_cursor = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position(0, self.maxrow)
         self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
@@ -1077,7 +1078,11 @@ class Screen(BaseScreen, RealTerminal):
             frame = "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
             if self.modes.synchronized_output:
                 # Confirmed supported; the terminal defers painting until END_SYNCHRONIZED_UPDATE.
-                frame = f"{escape.BEGIN_SYNCHRONIZED_UPDATE}{frame}{escape.END_SYNCHRONIZED_UPDATE}"
+                frame = (
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.enable_seq}"
+                    f"{frame}"
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.disable_seq}"
+                )
             self.write(frame)
             self.flush()
         except OSError as e:

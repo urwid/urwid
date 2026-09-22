@@ -468,9 +468,9 @@ class PrivateModeTest(unittest.TestCase):
 
 class QueryPrivateModeTest(unittest.TestCase):
     def test_query_private_mode(self):
-        self.assertEqual(f"{escape.ESC}[?1004$p", escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING))
-        self.assertEqual(f"{escape.ESC}[?2004$p", escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE))
-        self.assertEqual(f"{escape.ESC}[?2026$p", escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT))
+        self.assertEqual(f"{escape.ESC}[?1004$p", escape.PrivateMode.FOCUS_REPORTING.query)
+        self.assertEqual(f"{escape.ESC}[?2004$p", escape.PrivateMode.BRACKETED_PASTE.query)
+        self.assertEqual(f"{escape.ESC}[?2026$p", escape.PrivateMode.SYNCHRONIZED_OUTPUT.query)
 
 
 class ReadPrivateModeReportTest(unittest.TestCase):

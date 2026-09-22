@@ -25,6 +25,7 @@ Terminal Escape Sequences for input and display
 from __future__ import annotations
 
 import enum
+import functools
 import re
 import sys
 import typing
@@ -731,6 +732,21 @@ class PrivateMode(str, enum.Enum):
     SYNCHRONIZED_OUTPUT = "2026"
     GRAPHEME_CLUSTERING = "2027"
 
+    @functools.cached_property
+    def query(self) -> str:
+        """Return the DECRQM query (CSI ? Pd $ p) asking the terminal to report *mode*'s state."""
+        return f"{ESC}[?{self}$p"
+
+    @functools.cached_property
+    def enable_seq(self) -> str:
+        """Enable sequence."""
+        return f"{ESC}[?{self}h"
+
+    @functools.cached_property
+    def disable_seq(self) -> str:
+        """Disable sequence."""
+        return f"{ESC}[?{self}l"
+
     # Plain value in f-strings/str(), matching enum.StrEnum (3.11+); drop in release 5 on py3.11+ migration.
     __str__ = str.__str__
 
@@ -741,19 +757,15 @@ CURSOR_HOME_COL = "\r"
 APP_KEYPAD_MODE = f"{ESC}="
 NUM_KEYPAD_MODE = f"{ESC}>"
 
-SWITCH_TO_ALTERNATE_BUFFER = f"{ESC}[?{PrivateMode.ALTERNATE_SCREEN_BUFFER}h"
-RESTORE_NORMAL_BUFFER = f"{ESC}[?{PrivateMode.ALTERNATE_SCREEN_BUFFER}l"
+# Only for backward compatibility, temporary...
+SWITCH_TO_ALTERNATE_BUFFER = PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq
+RESTORE_NORMAL_BUFFER = PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
 
-ENABLE_BRACKETED_PASTE_MODE = f"{ESC}[?{PrivateMode.BRACKETED_PASTE}h"
-DISABLE_BRACKETED_PASTE_MODE = f"{ESC}[?{PrivateMode.BRACKETED_PASTE}l"
+ENABLE_BRACKETED_PASTE_MODE = PrivateMode.BRACKETED_PASTE.enable_seq
+DISABLE_BRACKETED_PASTE_MODE = PrivateMode.BRACKETED_PASTE.disable_seq
 
-ENABLE_FOCUS_REPORTING = f"{ESC}[?{PrivateMode.FOCUS_REPORTING}h"
-DISABLE_FOCUS_REPORTING = f"{ESC}[?{PrivateMode.FOCUS_REPORTING}l"
-
-# Synchronized output (mode 2026): the terminal defers repainting until END_SYNCHRONIZED_UPDATE,
-# so a multi-fragment frame never flickers a partial paint.
-BEGIN_SYNCHRONIZED_UPDATE = f"{ESC}[?{PrivateMode.SYNCHRONIZED_OUTPUT}h"
-END_SYNCHRONIZED_UPDATE = f"{ESC}[?{PrivateMode.SYNCHRONIZED_OUTPUT}l"
+ENABLE_FOCUS_REPORTING = PrivateMode.FOCUS_REPORTING.enable_seq
+DISABLE_FOCUS_REPORTING = PrivateMode.FOCUS_REPORTING.disable_seq
 
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
@@ -767,11 +779,6 @@ DECRQM_RECOGNIZED_VALUES = frozenset({1, 2, 3, 4})
 
 INSERT_ON = f"{ESC}[4h"
 INSERT_OFF = f"{ESC}[4l"
-
-
-def query_private_mode(mode: PrivateMode) -> str:
-    """Return the DECRQM query (CSI ? Pd $ p) asking the terminal to report *mode*'s state."""
-    return f"{ESC}[?{mode}$p"
 
 
 def set_cursor_position(x: int, y: int) -> str:

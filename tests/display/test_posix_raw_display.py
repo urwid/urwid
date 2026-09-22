@@ -57,15 +57,15 @@ class TestStartStop(unittest.TestCase):
         self.addCleanup(s.stop)
 
         output = "".join(written)
-        self.assertIn(escape.SWITCH_TO_ALTERNATE_BUFFER, output)
-        self.assertIn(escape.ENABLE_BRACKETED_PASTE_MODE, output)
-        self.assertIn(escape.ENABLE_FOCUS_REPORTING, output)
+        self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.enable_seq, output)
+        self.assertIn(escape.PrivateMode.FOCUS_REPORTING.enable_seq, output)
         self.assertNotIn("_old_termios_settings", vars(s))
 
         written.clear()
         s.stop()
         output = "".join(written)
-        self.assertIn(escape.DISABLE_BRACKETED_PASTE_MODE, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.disable_seq, output)
         self.assertIn(escape.DISABLE_FOCUS_REPORTING, output)
 
     @mock.patch("termios.tcsetattr")
@@ -433,10 +433,10 @@ class TestDetectTerminalModes(unittest.TestCase):
         s._detect_terminal_modes()
 
         output = "".join(written)
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT), output)
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.GRAPHEME_CLUSTERING), output)
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE), output)
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING), output)
+        self.assertIn(escape.PrivateMode.SYNCHRONIZED_OUTPUT.query, output)
+        self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
+        self.assertIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
 
     @mock.patch("os.isatty", return_value=True)
     def test_skips_modes_given_an_explicit_preference(self, mock_isatty):
@@ -446,10 +446,10 @@ class TestDetectTerminalModes(unittest.TestCase):
 
         output = "".join(written)
         # synchronized_output/grapheme_clustering have no sentinel to skip: always queried.
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.SYNCHRONIZED_OUTPUT), output)
-        self.assertIn(escape.query_private_mode(escape.PrivateMode.GRAPHEME_CLUSTERING), output)
-        self.assertNotIn(escape.query_private_mode(escape.PrivateMode.BRACKETED_PASTE), output)
-        self.assertNotIn(escape.query_private_mode(escape.PrivateMode.FOCUS_REPORTING), output)
+        self.assertIn(escape.PrivateMode.SYNCHRONIZED_OUTPUT.query, output)
+        self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
+        self.assertNotIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
+        self.assertNotIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
 
     def test_not_a_tty_writes_nothing(self):
         # os.isatty is left unmocked here: a plain pipe is never a tty.

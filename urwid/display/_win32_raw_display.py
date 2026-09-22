@@ -107,7 +107,8 @@ class Screen(_raw_display_base.Screen):
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            self.modes.alternate_buffer = True
+            self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
@@ -143,10 +144,10 @@ class Screen(_raw_display_base.Screen):
         self._detect_terminal_modes()
 
         if self.modes.bracketed_paste:
-            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
+            self.write(escape.PrivateMode.BRACKETED_PASTE.enable_seq)
 
         if self.modes.focus_reporting:
-            self.write(escape.ENABLE_FOCUS_REPORTING)
+            self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
         self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
@@ -166,10 +167,10 @@ class Screen(_raw_display_base.Screen):
         self.clear()
 
         if self.modes.bracketed_paste:
-            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+            self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
 
         if self.modes.focus_reporting:
-            self.write(escape.DISABLE_FOCUS_REPORTING)
+            self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
