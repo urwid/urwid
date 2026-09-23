@@ -95,8 +95,8 @@ class Screen(_raw_display_base.Screen):
 
         handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
         handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
-        original_out_mode = DWORD()
-        original_in_mode = DWORD()
+        original_out_mode = DWORD(0)
+        original_in_mode = DWORD(0)
 
         # The standard handles are not consoles when the process runs detached or with redirected streams.
         # In that case there is no console mode to negotiate, same as a POSIX terminal which is not a tty.

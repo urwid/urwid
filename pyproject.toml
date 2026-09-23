@@ -227,6 +227,8 @@ disable = [
 enable = "all"
 extension-pkg-whitelist = []
 ignore = [ "CVS", "version.py" ]
+# gi (PyGObject) is only installed with the "glib" extra; static checks also run without it.
+ignored-modules = [ "gi" ]
 jobs = 0
 load-plugins = [
   "pylint.extensions.check_elif",
