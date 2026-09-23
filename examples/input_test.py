@@ -52,13 +52,22 @@ else:
     if hasattr(urwid, "ZMQEventLoop"):
         event_loops["zmq"] = urwid.ZMQEventLoop
 
+    displays: dict[str, type[urwid.display.BaseScreen]] = {
+        "raw": urwid.display.raw.Screen,
+    }
+    try:
+        from urwid.display import curses
+    except ImportError:
+        pass
+    else:
+        displays["curses"] = curses.Screen
+
     parser = argparse.ArgumentParser(description="Input test")
     parser.add_argument(
-        "argc",
-        help="Positional arguments ('r' for raw display)",
-        metavar="<arguments>",
-        nargs="*",
-        default=(),
+        "--display",
+        choices=displays,
+        default="raw",
+        help="Display module to use (default is 'raw' as most advanced)",
     )
     group = parser.add_argument_group("Advanced Options")
     group.add_argument(
@@ -67,18 +76,15 @@ else:
         default="none",
         help="Event loop to use ('none' = use the default)",
     )
-    group.add_argument("--debug-log", action="store_true", help="Enable debug logging")
+    group.add_argument(
+        "--debug-log",
+        action="store_true",
+        help="Enable debug logging",
+    )
 
     args = parser.parse_args()
 
-    if "r" in args.argc:
-        Screen = urwid.display.raw.Screen
-    else:
-        try:
-            Screen = urwid.display.curses.Screen
-        except AttributeError:
-            Screen = urwid.display.raw.Screen
-
+    Screen = displays[args.display]
     loop_cls = event_loops[args.event_loop]
 
     if args.debug_log:
