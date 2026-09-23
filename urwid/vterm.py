@@ -173,6 +173,7 @@ class TermModes:
     autowrap: bool = True
     visible_cursor: bool = True
     bracketed_paste: bool = False
+    synchronized_output: bool = False
 
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
@@ -1147,6 +1148,13 @@ class TermCanvas(Canvas):
                 self.set_term_cursor()
             elif mode == 2004:
                 self.modes.bracketed_paste = flag
+            elif mode == 2026:
+                # Synchronized output (https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036):
+                # the child program is asking that its writes not be displayed until it closes the
+                # block with CSI ?2026l.
+                # Terminal.feed() reads that flag to keep draining the pty instead of handing a mid-update canvas
+                # back to the next render() pass.
+                self.modes.synchronized_output = flag
         else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             # ECMA-48
             if mode == 3:
@@ -1326,6 +1334,11 @@ class Terminal(Widget):
     _sizing = frozenset([Sizing.BOX])
 
     signals: typing.ClassVar[list[str]] = ["closed", "beep", "leds", "title", "resize"]
+
+    # Upper bound on the bytes drained in one feed() call while term_modes.synchronized_output is set,
+    # so a child that opens a synchronized-output block (CSI ?2026h) and never closes it --
+    # deliberately or by being slow -- cannot stall feed() from ever returning.
+    _SYNCHRONIZED_OUTPUT_DRAIN_LIMIT: typing.ClassVar[int] = 1 << 16
 
     def __init__(
         self,
@@ -1588,6 +1601,31 @@ class Terminal(Widget):
             return
 
         self.term.addstr(data)  # type: ignore[union-attr]
+
+        # The child just opened a synchronized-output block (CSI ?2026h) and is still writing to it:
+        # draining whatever it has already queued on the pty before returning keeps the next
+        # render() from ever handing out a half-painted mid-block canvas.
+        # A child that never closes the block (CSI ?2026l) still gets control back
+        # once _SYNCHRONIZED_OUTPUT_DRAIN_LIMIT is hit
+        # or the pty simply has nothing more buffered right now (EWOULDBLOCK).
+        drained = 0
+        while self.term_modes.synchronized_output and drained < self._SYNCHRONIZED_OUTPUT_DRAIN_LIMIT:
+            try:
+                more = os.read(typing.cast("int", self.master), 4096)
+            except OSError as e:
+                if e.errno == errno.EWOULDBLOCK:
+                    break
+                if e.errno == errno.EIO:
+                    self.terminate()
+                    self._emit("closed")
+                    return
+                raise
+
+            if not more:
+                break
+
+            self.term.addstr(more)  # type: ignore[union-attr]
+            drained += len(more)
 
         self.flush_responses()
 

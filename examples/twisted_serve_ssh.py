@@ -263,8 +263,7 @@ class TwistedScreen(Screen):
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Enable (or disable) mouse tracking.
 
-        After calling this function get_input will include mouse
-        click events along with keystrokes.
+        After calling this function get_input will include mouse click events along with keystrokes.
 
         :param enable: whether to enable or disable mouse tracking.
         """

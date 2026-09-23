@@ -52,7 +52,9 @@ if typing.TYPE_CHECKING:
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
     _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInputWithReports = list[typing.Union[str, _MouseInput, _CursorPosition, _PrivateModeReport]]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
@@ -132,6 +134,47 @@ class TerminalProperties:
     fg_bright_is_bold: bool
     bg_bright_is_blink: bool
     back_color_erase: bool
+
+
+@dataclasses.dataclass
+class TermModes:
+    """Terminal modes negotiated with the real host terminal (counterpart to `vterm.TermModes`).
+
+    None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
+    """
+
+    alternate_buffer: bool | None = None
+    mouse_reporting: bool | None = None
+    mouse_sgr_mode: bool | None = None
+    focus_reporting: bool | None = None
+    bracketed_paste: bool | None = None
+    synchronized_output: bool | None = None
+    grapheme_clustering: bool | None = None
+
+    # escape.PrivateMode member -> the field it resolves.
+    _FIELDS: typing.ClassVar[Mapping[str, str]] = {
+        escape.PrivateMode.ALTERNATE_SCREEN_BUFFER: "alternate_buffer",
+        escape.PrivateMode.MOUSE_REPORTING: "mouse_reporting",
+        escape.PrivateMode.MOUSE_SGR_MODE: "mouse_sgr_mode",
+        escape.PrivateMode.FOCUS_REPORTING: "focus_reporting",
+        escape.PrivateMode.BRACKETED_PASTE: "bracketed_paste",
+        escape.PrivateMode.SYNCHRONIZED_OUTPUT: "synchronized_output",
+        escape.PrivateMode.GRAPHEME_CLUSTERING: "grapheme_clustering",
+    }
+
+    def set_from_codes(self, *response: tuple[str, int]) -> frozenset[str]:
+        """Apply DECRPM (mode, value) pairs; return the field names newly resolved to supported."""
+        newly_supported = set()
+        for mode, value in response:
+            field = self._FIELDS.get(mode)
+            if field is None:
+                continue
+            was_unresolved = getattr(self, field) is None
+            supported = value in escape.DECRQM_RECOGNIZED_VALUES
+            setattr(self, field, supported)
+            if was_unresolved and supported:
+                newly_supported.add(field)
+        return frozenset(newly_supported)
 
 
 def _term_families(term: str) -> frozenset[str]:
@@ -291,16 +334,24 @@ class Screen(BaseScreen, RealTerminal):
         self,
         input: SupportsFileno,  # noqa: A002  # pylint: disable=redefined-builtin
         output: TextWriter,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
     ) -> None:
-        """Initialize a screen that directly prints escape codes to an output
-        terminal.
+        """Initialize a screen that directly prints escape codes to an output terminal.
+
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
         """
         super().__init__()
 
         self._partial_codes: list[int] = []
+        self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
         self._pal_escape: dict[str | None, str] = {}
         self._pal_attrspec: dict[str | None, AttrSpec] = {}
-        self._alternate_buffer: bool = False
         self._modified_palette_entries: set[int] = set()
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.term = os.environ.get("TERM", "")
@@ -316,6 +367,7 @@ class Screen(BaseScreen, RealTerminal):
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
         self.maxrow: int | None = None
+        self._alternate_buffer = False
         self._mouse_tracking_enabled = False
         self.last_bstate = 0
         self._setup_G1_done = False
@@ -406,21 +458,88 @@ class Screen(BaseScreen, RealTerminal):
         """
         Enable (or disable) mouse tracking.
 
-        After calling this function get_input will include mouse
-        click events along with keystrokes.
+        After calling this function get_input will include mouse click events along with keystrokes.
         """
         enable = bool(enable)
         if enable == self._mouse_tracking_enabled:
             return
 
         self._mouse_tracking(enable)
-        self._mouse_tracking_enabled = enable
 
     def _mouse_tracking(self, enable: bool) -> None:
-        if enable:
-            self.write(escape.MOUSE_TRACKING_ON)
-        else:
-            self.write(escape.MOUSE_TRACKING_OFF)
+        """Write the mouse tracking escape sequences and track `_mouse_tracking_enabled`.
+
+        A no-op when *enable* is True but mouse reporting was detected unsupported -- there is
+        nothing to enable, and the tracked state has to agree.
+        """
+        if enable and self.modes.mouse_reporting is False:
+            self._mouse_tracking_enabled = False
+            return
+        self.write(escape.MOUSE_TRACKING_ON if enable else escape.MOUSE_TRACKING_OFF)
+        self._mouse_tracking_enabled = enable
+
+    def _is_real_terminal(self) -> bool:
+        """Whether input/output are a real terminal that could answer a DECRQM probe.
+
+        Overridden on Windows, whose input is a socket, not a descriptor `os.isatty` can inspect.
+        """
+        fd = self._input_fileno()
+        return fd is not None and os.isatty(fd)
+
+    # TermModes field -> the sequence that enables it, once confirmed supported from a sentinel.
+    _PRIVATE_MODE_ENABLE_SEQUENCE: typing.ClassVar[Mapping[str, str]] = {
+        "bracketed_paste": escape.PrivateMode.BRACKETED_PASTE.enable_seq,
+        "focus_reporting": escape.PrivateMode.FOCUS_REPORTING.enable_seq,
+    }
+
+    def _detect_terminal_modes(self) -> None:
+        """Send DECRQM queries for the private modes still at their sentinel; does not wait for a reply.
+
+        Replies are recognized later, during normal `parse_input()`
+        (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_private_mode_reports()`).
+        """
+        if not self._is_real_terminal():
+            return
+
+        modes = [
+            escape.PrivateMode.SYNCHRONIZED_OUTPUT,
+            escape.PrivateMode.GRAPHEME_CLUSTERING,
+            escape.PrivateMode.ALTERNATE_SCREEN_BUFFER,
+            escape.PrivateMode.MOUSE_REPORTING,
+            escape.PrivateMode.MOUSE_SGR_MODE,
+        ]
+        if self.modes.bracketed_paste is None:
+            modes.append(escape.PrivateMode.BRACKETED_PASTE)
+        if self.modes.focus_reporting is None:
+            modes.append(escape.PrivateMode.FOCUS_REPORTING)
+
+        self.write("".join(mode.query for mode in modes))
+        self.flush()
+
+    def _apply_private_mode_reports(
+        self,
+        decoded_codes: _DecodedInputWithReports,
+    ) -> _DecodedInput:
+        """Apply any DECRPM replies among *decoded_codes* to `self.modes` and strip them out."""
+        filtered: _DecodedInput = []
+        reports: list[tuple[str, int]] = []
+        for item in decoded_codes:
+            if isinstance(item, tuple) and item[:1] == ("private mode report",):
+                reports.append(typing.cast("tuple[str, int]", item[1:]))
+            else:
+                filtered.append(typing.cast("str | _MouseInput | _CursorPosition", item))
+
+        if reports:
+            enable = [
+                code
+                for field in self.modes.set_from_codes(*reports)
+                if (code := self._PRIVATE_MODE_ENABLE_SEQUENCE.get(field, ""))
+            ]
+            if enable:
+                self.write("".join(enable))
+                self.flush()
+
+        return filtered
 
     @abc.abstractmethod
     def _start(  # pylint: disable=keyword-arg-before-vararg
@@ -441,7 +560,7 @@ class Screen(BaseScreen, RealTerminal):
 
         move_cursor = ""
         if self._alternate_buffer:
-            move_cursor = escape.RESTORE_NORMAL_BUFFER
+            move_cursor = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position(0, self.maxrow)
         self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
@@ -706,7 +825,7 @@ class Screen(BaseScreen, RealTerminal):
             self._input_timeout = None
 
         original_codes = codes
-        decoded_codes = []
+        decoded_codes: _DecodedInputWithReports = []
         try:
             while codes:
                 run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
@@ -731,19 +850,21 @@ class Screen(BaseScreen, RealTerminal):
             raw_codes = original_codes
             self._partial_codes = []
 
-        logger.debug(f"Decoded codes: {decoded_codes!r}, raw codes: {raw_codes!r}")
+        output_codes = self._apply_private_mode_reports(decoded_codes)
+
+        logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
         if self._resized:
-            decoded_codes.append("window resize")
+            output_codes.append("window resize")
             logger.debug('Added "window resize" to the codes')
             self._resized = False
 
         if callback:
-            callback(decoded_codes, raw_codes)
+            callback(output_codes, raw_codes)
             return None
 
         # For get_input
-        return decoded_codes, raw_codes
+        return output_codes, raw_codes
 
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
         logger = self.logger.getChild("wait_for_input_ready")
@@ -761,7 +882,7 @@ class Screen(BaseScreen, RealTerminal):
         return [event.fd for event, _ in ready]
 
     @abc.abstractmethod
-    def _read_raw_input(self, timeout: int) -> Iterable[int]: ...
+    def _read_raw_input(self, timeout: float) -> Iterable[int]: ...
 
     def _get_keyboard_codes(self) -> Iterable[int]:
         return self._read_raw_input(0)
@@ -968,9 +1089,15 @@ class Screen(BaseScreen, RealTerminal):
         try:
             # A single write() call, rather than one per output fragment, avoids paying the
             # per-call overhead (and, for a real file, a separate write syscall) once per row.
-            self.write(
-                "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
-            )
+            frame = "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
+            if self.modes.synchronized_output:
+                # Confirmed supported; the terminal defers painting until END_SYNCHRONIZED_UPDATE.
+                frame = (
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.enable_seq}"
+                    f"{frame}"
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.disable_seq}"
+                )
+            self.write(frame)
             self.flush()
         except OSError as e:
             # ignore interrupted syscall

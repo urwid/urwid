@@ -24,6 +24,8 @@ Terminal Escape Sequences for input and display
 
 from __future__ import annotations
 
+import enum
+import functools
 import re
 import sys
 import typing
@@ -34,11 +36,10 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from typing_extensions import Literal
-
     _KeyQueueData = dict[int, typing.Union[str, "_KeyQueueData"]]
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
+    _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
 
 # NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
 # from urwid.util import is_mouse_event -- will not work here
@@ -71,6 +72,9 @@ for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
 SAFE_ASCII_DEC_SPECIAL_RE = re.compile(f"^[ -~{DEC_SPECIAL_CHARS}]*$")
 DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 
+# the most common ord() calls used for numeric decode, pre-calculate once
+_ORD_0 = ord("0")
+_ORD_9 = ord("9")
 
 ###################
 # Input sequences
@@ -245,8 +249,12 @@ class KeyqueueTrie:
         self,
         keys: list[int],
         more_available: bool,
-    ) -> tuple[str | _MouseInput | _CursorPosition, list[int]] | None:
+    ) -> tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None:
+        result: tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None
         if result := self.get_recurse(self.data, keys, more_available):
+            return result
+
+        if (result := self.read_private_mode_report(keys, more_available)) is not None:
             return result
 
         return self.read_cursor_position(keys, more_available)
@@ -287,8 +295,7 @@ class KeyqueueTrie:
         keys: list[int],
         more_available: bool,
     ) -> tuple[_MouseInput, list[int]] | None:
-        """
-        Read an X10 mouse report from the codes and return the resulting input.
+        """Read an X10 mouse report from the codes and return the resulting input.
 
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
@@ -316,10 +323,14 @@ class KeyqueueTrie:
         prefix = "".join(prefixes)
 
         button_bits = b & _MOUSE_BUTTON_MASK
-        # 0->1, 1->2, 2->3, 64->4, 65->5
-        button = ((b & _MOUSE_HIGH_BUTTON_FLAG) // _MOUSE_HIGH_BUTTON_FLAG * 3) + button_bits + 1
+        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+            button = 8 + button_bits
+        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+            button = 4 + button_bits
+        else:
+            button = 1 + button_bits
 
-        if button_bits == _MOUSE_BUTTON_MASK:
+        if button_bits == _MOUSE_BUTTON_MASK and not b & (_MOUSE_HIGH_BUTTON_FLAG | _MOUSE_EXTRA_BUTTON_FLAG):
             action = "release"
             button = 0
         elif b & MOUSE_RELEASE_FLAG:
@@ -342,8 +353,7 @@ class KeyqueueTrie:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
 
-        """
-        Read an SGR mouse report from the codes and return the resulting input.
+        """Read an SGR mouse report from the codes and return the resulting input.
 
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         :raises ValueError: the report ends with an unknown mouse action.
@@ -384,9 +394,13 @@ class KeyqueueTrie:
             prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
-        wheel_used: typing.Literal[0, 1] = typing.cast("Literal[0, 1]", (b & _MOUSE_HIGH_BUTTON_FLAG) >> 6)
-
-        button = (wheel_used * 3) + (b & _MOUSE_BUTTON_MASK) + 1
+        button_bits = b & _MOUSE_BUTTON_MASK
+        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+            button = 8 + button_bits
+        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+            button = 4 + button_bits
+        else:
+            button = 1 + button_bits
         x -= 1
         y -= 1
 
@@ -402,16 +416,82 @@ class KeyqueueTrie:
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[pos_m + 1 :])
 
+    def read_private_mode_report(
+        self,
+        keys: list[int],
+        more_available: bool,
+    ) -> tuple[_PrivateModeReport, list[int]] | None:
+        """Interpret a DECRPM reply (CSI ? Pd ; Ps $ y).
+
+        :returns: ``('private mode report', mode, value)``.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if not keys:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        if keys[0] != ord("["):
+            return None
+        if len(keys) < 2:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        if keys[1] != ord("?"):
+            return None
+        # read the mode number
+        mode = ""
+        i = 2
+        for k in keys[i:]:
+            i += 1
+            if k == ord(";"):
+                if not mode:
+                    return None
+                break
+            if k < _ORD_0 or k > _ORD_9:
+                return None
+            mode += chr(k)
+        else:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        if not keys[i:]:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        # Ps: "0" is a valid value here (mode not recognized), unlike the mode number above.
+        value = 0
+        got_digit = False
+        for k in keys[i:]:
+            i += 1
+            if k == ord("$"):
+                break
+            if k < _ORD_0 or k > _ORD_9:
+                return None
+            value = value * 10 + k - _ORD_0
+            got_digit = True
+        else:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        if not got_digit:
+            return None
+        if not keys[i:]:
+            if more_available:
+                raise MoreInputRequired()
+            return None
+        if keys[i] != ord("y"):
+            return None
+        return (("private mode report", mode, value), keys[i + 1 :])
+
     def read_cursor_position(
         self,
         keys: list[int],
         more_available: bool,
     ) -> tuple[_CursorPosition, list[int]] | None:
         """
-        Interpret cursor position information being sent by the
-        user's terminal.  Returned as ('cursor position', x, y)
-        where (x, y) == (0, 0) is the top left of the screen.
+        Interpret cursor position information being sent by the user's terminal.
 
+        :returns: ('cursor position', x, y) where (x, y) == (0, 0) is the top left of the screen.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
         if not keys:
@@ -429,11 +509,11 @@ class KeyqueueTrie:
                 if not y:
                     return None
                 break
-            if k < ord("0") or k > ord("9"):
+            if k < _ORD_0 or k > _ORD_9:
                 return None
-            if not y and k == ord("0"):
+            if not y and k == _ORD_0:
                 return None
-            y = y * 10 + k - ord("0")
+            y = y * 10 + k - _ORD_0
         if not keys[i:]:
             if more_available:
                 raise MoreInputRequired()
@@ -446,11 +526,11 @@ class KeyqueueTrie:
                 if not x:
                     return None
                 return (("cursor position", x - 1, y - 1), keys[i:])
-            if k < ord("0") or k > ord("9"):
+            if k < _ORD_0 or k > _ORD_9:
                 return None
-            if not x and k == ord("0"):
+            if not x and k == _ORD_0:
                 return None
-            x = x * 10 + k - ord("0")
+            x = x * 10 + k - _ORD_0
         if not keys[i:] and more_available:
             raise MoreInputRequired()
         return None
@@ -478,8 +558,11 @@ MOUSE_DRAG_FLAG = 32
 _MOUSE_SHIFT_FLAG = 4
 _MOUSE_META_FLAG = 8
 _MOUSE_CTRL_FLAG = 16
-_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report button 4/5 (the "extra" buttons, e.g. a wheel)
-_MOUSE_BUTTON_MASK = 3  # low two bits: the base button number (0-2), or 3 to mean "released"
+_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report buttons 4-7 (e.g. a wheel)
+_MOUSE_EXTRA_BUTTON_FLAG = 128  # set to report buttons 8-11 (e.g. side buttons)
+_MOUSE_BUTTON_MASK = 3  # low two bits: the button offset within its group
+# button_bits == 3 with neither flag set means "released" (X10 report only); with either flag
+# set it is the group's 4th button (7 or 11), which has no release encoding.
 
 # The X10 report encodes the button byte and the two coordinate bytes by adding an offset to
 # keep them in the printable ASCII range; coordinates are further offset by 1 since they are
@@ -547,7 +630,7 @@ if IS_WINDOWS:
 def process_keyqueue(
     codes: list[int],
     more_available: bool,
-) -> tuple[list[str | _MouseInput | _CursorPosition], list[int]]:
+) -> tuple[list[str | _MouseInput | _CursorPosition | _PrivateModeReport], list[int]]:
     """
     :param codes: list of key codes
     :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
@@ -641,26 +724,67 @@ def process_keyqueue(
 
 ESC = "\x1b"
 
+
+class PrivateMode(str, enum.Enum):
+    """DEC private modes (``CSI ? Pd h``/``l``).
+
+    Not every member is queried or acted on, some members are for future development.
+    `_raw_display_base.TermModes` carries a field for each regardless.
+    """
+
+    ALTERNATE_SCREEN_BUFFER = "1049"
+    MOUSE_REPORTING = "1000"
+    MOUSE_BUTTON_TRACKING = "1002"
+    MOUSE_SGR_MODE = "1006"
+    FOCUS_REPORTING = "1004"
+    BRACKETED_PASTE = "2004"
+    SYNCHRONIZED_OUTPUT = "2026"
+    GRAPHEME_CLUSTERING = "2027"
+
+    @functools.cached_property
+    def query(self) -> str:
+        """Return the DECRQM query (CSI ? Pd $ p) asking the terminal to report *mode*'s state."""
+        return f"{ESC}[?{self}$p"
+
+    @functools.cached_property
+    def enable_seq(self) -> str:
+        """Enable sequence."""
+        return f"{ESC}[?{self}h"
+
+    @functools.cached_property
+    def disable_seq(self) -> str:
+        """Disable sequence."""
+        return f"{ESC}[?{self}l"
+
+    # Plain value in f-strings/str(), matching enum.StrEnum (3.11+); drop in release 5 on py3.11+ migration.
+    __str__ = str.__str__
+
+
 CURSOR_HOME = f"{ESC}[H"
 CURSOR_HOME_COL = "\r"
 
 APP_KEYPAD_MODE = f"{ESC}="
 NUM_KEYPAD_MODE = f"{ESC}>"
 
-SWITCH_TO_ALTERNATE_BUFFER = f"{ESC}[?1049h"
-RESTORE_NORMAL_BUFFER = f"{ESC}[?1049l"
+# Only for backward compatibility, temporary...
+SWITCH_TO_ALTERNATE_BUFFER = PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq
+RESTORE_NORMAL_BUFFER = PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
 
-ENABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004h"
-DISABLE_BRACKETED_PASTE_MODE = f"{ESC}[?2004l"
+ENABLE_BRACKETED_PASTE_MODE = PrivateMode.BRACKETED_PASTE.enable_seq
+DISABLE_BRACKETED_PASTE_MODE = PrivateMode.BRACKETED_PASTE.disable_seq
 
-ENABLE_FOCUS_REPORTING = f"{ESC}[?1004h"
-DISABLE_FOCUS_REPORTING = f"{ESC}[?1004l"
+ENABLE_FOCUS_REPORTING = PrivateMode.FOCUS_REPORTING.enable_seq
+DISABLE_FOCUS_REPORTING = PrivateMode.FOCUS_REPORTING.disable_seq
 
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
 
 REPORT_STATUS = f"{ESC}[5n"
 REPORT_CURSOR_POSITION = f"{ESC}[6n"
+
+# DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
+# Ps: 0 = not recognized, 1-4 = recognized.
+DECRQM_RECOGNIZED_VALUES = frozenset({1, 2, 3, 4})
 
 INSERT_ON = f"{ESC}[4h"
 INSERT_OFF = f"{ESC}[4l"
@@ -701,8 +825,9 @@ def move_cursor_down(x: int) -> str:
 HIDE_CURSOR = f"{ESC}[?25l"
 SHOW_CURSOR = f"{ESC}[?25h"
 
-MOUSE_TRACKING_ON = f"{ESC}[?1000h{ESC}[?1002h{ESC}[?1006h"
-MOUSE_TRACKING_OFF = f"{ESC}[?1006l{ESC}[?1002l{ESC}[?1000l"
+_MOUSE_MODES = (PrivateMode.MOUSE_REPORTING, PrivateMode.MOUSE_BUTTON_TRACKING, PrivateMode.MOUSE_SGR_MODE)
+MOUSE_TRACKING_ON = "".join(mode.enable_seq for mode in _MOUSE_MODES)
+MOUSE_TRACKING_OFF = "".join(mode.disable_seq for mode in reversed(_MOUSE_MODES))
 
 DESIGNATE_G1_SPECIAL = f"{ESC})0"
 

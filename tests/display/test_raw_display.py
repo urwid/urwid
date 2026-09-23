@@ -7,7 +7,7 @@ from unittest import mock
 
 import urwid
 from urwid import escape, signals
-from urwid.display._raw_display_base import detect_terminal_properties
+from urwid.display._raw_display_base import TermModes, detect_terminal_properties
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec
 from urwid.util import set_temporary_encoding
 
@@ -331,3 +331,40 @@ class TestTerminalProperties(unittest.TestCase):
                 self.assertEqual(16777216, props.colors)
                 self.assertFalse(props.fg_bright_is_bold)
                 self.assertTrue(props.has_underline)
+
+
+class TestTermModesSetFromCodes(unittest.TestCase):
+    def test_recognized_reply_resolves_sentinel(self) -> None:
+        modes = TermModes()
+        newly_supported = modes.set_from_codes((escape.PrivateMode.BRACKETED_PASTE, 1))
+        self.assertTrue(modes.bracketed_paste)
+        self.assertEqual({"bracketed_paste"}, newly_supported)
+
+    def test_unrecognized_reply_resolves_sentinel_to_false(self) -> None:
+        modes = TermModes()
+        newly_supported = modes.set_from_codes((escape.PrivateMode.BRACKETED_PASTE, 0))
+        self.assertFalse(modes.bracketed_paste)
+        self.assertEqual(frozenset(), newly_supported)
+
+    def test_reply_for_an_already_resolved_field_is_not_reported_as_newly_supported(self) -> None:
+        modes = TermModes(bracketed_paste=True)
+        newly_supported = modes.set_from_codes((escape.PrivateMode.BRACKETED_PASTE, 1))
+        self.assertTrue(modes.bracketed_paste)
+        self.assertEqual(frozenset(), newly_supported)
+
+    def test_unmapped_mode_is_ignored(self) -> None:
+        modes = TermModes()
+        newly_supported = modes.set_from_codes(("9999", 1))
+        self.assertEqual(frozenset(), newly_supported)
+
+    def test_multiple_reports_in_one_call(self) -> None:
+        modes = TermModes()
+        newly_supported = modes.set_from_codes(
+            (escape.PrivateMode.BRACKETED_PASTE, 1),
+            (escape.PrivateMode.FOCUS_REPORTING, 0),
+            (escape.PrivateMode.SYNCHRONIZED_OUTPUT, 2),
+        )
+        self.assertTrue(modes.bracketed_paste)
+        self.assertFalse(modes.focus_reporting)
+        self.assertTrue(modes.synchronized_output)
+        self.assertEqual({"bracketed_paste", "synchronized_output"}, newly_supported)

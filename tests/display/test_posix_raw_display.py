@@ -57,15 +57,15 @@ class TestStartStop(unittest.TestCase):
         self.addCleanup(s.stop)
 
         output = "".join(written)
-        self.assertIn(escape.SWITCH_TO_ALTERNATE_BUFFER, output)
-        self.assertIn(escape.ENABLE_BRACKETED_PASTE_MODE, output)
-        self.assertIn(escape.ENABLE_FOCUS_REPORTING, output)
+        self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.enable_seq, output)
+        self.assertIn(escape.PrivateMode.FOCUS_REPORTING.enable_seq, output)
         self.assertNotIn("_old_termios_settings", vars(s))
 
         written.clear()
         s.stop()
         output = "".join(written)
-        self.assertIn(escape.DISABLE_BRACKETED_PASTE_MODE, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.disable_seq, output)
         self.assertIn(escape.DISABLE_FOCUS_REPORTING, output)
 
     @mock.patch("termios.tcsetattr")
@@ -99,6 +99,21 @@ class TestStartStop(unittest.TestCase):
 
         s.stop()
         mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
+
+    def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
+        """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so
+        `_alternate_buffer` has to already be correct by the time the write happens, not after
+        later steps -- here `signal_init()` -- that could still fail."""
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        s.signal_init = mock.Mock(side_effect=RuntimeError("boom"))
+
+        with self.assertRaises(RuntimeError):
+            s.start()
+
+        self.assertTrue(s._alternate_buffer)
+        s.stop()  # must not raise: signal_restore() only reads what __init__ already set
 
     def test_start_installs_signal_handlers_and_stop_restores_them(self):
         s = _make_screen()
@@ -406,6 +421,188 @@ class TestReadRawInput(unittest.TestCase):
 
         with self.assertRaises(RuntimeError):
             s._read_raw_input(1)
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestDetectTerminalModes(unittest.TestCase):
+    """_detect_terminal_modes() only writes the DECRQM queries; it does not wait for a reply."""
+
+    def _screen_over_pipe(self, *, bracketed_paste_mode=None, focus_reporting=None):
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = Screen(
+            input=os.fdopen(read_fd, "rb", buffering=0),
+            output=open(os.devnull, "w"),  # noqa: SIM115
+            bracketed_paste_mode=bracketed_paste_mode,
+            focus_reporting=focus_reporting,
+        )
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        return s, written
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_queries_every_mode_left_at_its_sentinel(self, mock_isatty):
+        s, written = self._screen_over_pipe()
+
+        s._detect_terminal_modes()
+
+        output = "".join(written)
+        self.assertIn(escape.PrivateMode.SYNCHRONIZED_OUTPUT.query, output)
+        self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
+        self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.query, output)
+        self.assertIn(escape.PrivateMode.MOUSE_REPORTING.query, output)
+        self.assertIn(escape.PrivateMode.MOUSE_SGR_MODE.query, output)
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
+        self.assertIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_skips_modes_given_an_explicit_preference(self, mock_isatty):
+        s, written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=False)
+
+        s._detect_terminal_modes()
+
+        output = "".join(written)
+        # synchronized_output/grapheme_clustering have no sentinel to skip: always queried.
+        self.assertIn(escape.PrivateMode.SYNCHRONIZED_OUTPUT.query, output)
+        self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
+        self.assertNotIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
+        self.assertNotIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
+
+    def test_not_a_tty_writes_nothing(self):
+        # os.isatty is left unmocked here: a plain pipe is never a tty.
+        s, written = self._screen_over_pipe()
+
+        s._detect_terminal_modes()
+
+        self.assertEqual([], written)
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestApplyPrivateModeReports(unittest.TestCase):
+    """parse_input() recognizes a DECRPM reply, applies it to self.modes, and strips it out."""
+
+    @staticmethod
+    def _screen(*, bracketed_paste: bool | None = None):
+        s = _make_screen()
+        s.modes.bracketed_paste = bracketed_paste
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        return s, written
+
+    def test_recognized_reply_resolves_the_sentinel_and_is_not_returned(self):
+        s, _written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?2026;1$y"))
+
+        self.assertEqual([], keys)
+        self.assertTrue(s.modes.synchronized_output)
+
+    def test_grapheme_clustering_reply_is_recorded_without_acting_on_it(self):
+        """Queried (see TestDetectTerminalModes above), but nothing enables or reads it back."""
+        s, written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?2027;1$y"))
+
+        self.assertEqual([], keys)
+        self.assertTrue(s.modes.grapheme_clustering)
+        self.assertEqual([], written)
+
+    def test_bracketed_paste_confirmed_from_the_sentinel_is_enabled_immediately(self):
+        s, written = self._screen(bracketed_paste=None)
+
+        s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
+
+        self.assertTrue(s.modes.bracketed_paste)
+        self.assertIn(escape.ENABLE_BRACKETED_PASTE_MODE, "".join(written))
+
+    def test_unrecognized_reply_resolves_the_sentinel_to_false_without_enabling(self):
+        s, written = self._screen(bracketed_paste=None)
+
+        s.parse_input(None, None, list(b"\x1b[?2004;0$y"))
+
+        self.assertFalse(s.modes.bracketed_paste)
+        self.assertEqual([], written)
+
+    def test_reply_for_an_already_forced_mode_does_not_write_enable_again(self):
+        """A mode that was never at its sentinel must not get ENABLE written a second time."""
+        s, written = self._screen(bracketed_paste=True)
+
+        s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
+
+        self.assertTrue(s.modes.bracketed_paste)
+        self.assertEqual([], written)
+
+    def test_reply_for_a_mode_urwid_does_not_track_is_dropped_without_error(self):
+        s, _written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?9999;1$y"))
+
+        self.assertEqual([], keys)
+
+    def test_ordinary_input_around_a_reply_still_comes_through(self):
+        s, _written = self._screen()
+
+        keys, _raw = s.parse_input(None, None, [ord("a"), *b"\x1b[?2026;1$y", ord("b")])
+
+        self.assertEqual(["a", "b"], keys)
+        self.assertTrue(s.modes.synchronized_output)
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestMouseTracking(unittest.TestCase):
+    def test_enable_writes_the_sequence_when_support_is_unresolved(self):
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(True)
+
+        self.assertIn(escape.MOUSE_TRACKING_ON, written)
+        self.assertTrue(s._mouse_tracking_enabled)
+
+    def test_enable_is_a_noop_once_confirmed_unsupported(self):
+        s = _make_screen()
+        s.modes.mouse_reporting = False
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(True)
+
+        self.assertEqual([], written)
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_becoming_confirmed_unsupported_resets_a_previously_enabled_state(self):
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s._mouse_tracking(True)
+        self.assertTrue(s._mouse_tracking_enabled)
+
+        s.modes.mouse_reporting = False
+        s._mouse_tracking(True)
+
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_disable_always_writes_the_sequence(self):
+        s = _make_screen()
+        s.modes.mouse_reporting = False
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(False)
+
+        self.assertIn(escape.MOUSE_TRACKING_OFF, written)
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_set_mouse_tracking_is_a_noop_when_already_at_the_requested_state(self):
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+
+        s.set_mouse_tracking(False)  # already disabled by default
+
+        self.assertEqual([], written)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

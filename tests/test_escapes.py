@@ -242,6 +242,19 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             self.assertEqual([("mouse press", expected_button, x, y)], actual)
             self.assertListEqual([], rest)
 
+    def test_sgrmouse_extra_buttons(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        # code 128-131 (0b10000000-0b10000011) sets the "extra button" bit, reporting buttons 8-11
+        for code, expected_button in ((0b10000000, 8), (0b10000001, 9), (0b10000010, 10), (0b10000011, 11)):
+            key_code = tuple(ord(element) for element in str(code))
+            codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([("mouse press", expected_button, x, y)], actual)
+            self.assertListEqual([], rest)
+
     def test_mouse_x10_modifiers(self):
         x, y = 8, 15
         coord = (x + 33, y + 33)
@@ -270,6 +283,22 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         keys = [32 + 3, x + 33, y + 33]
         result = escape.input_trie.read_mouse_info(keys, more_available=False)
         self.assertEqual((("mouse release", 0, x, y), []), result)
+
+    def test_mouse_x10_extra_buttons(self):
+        x, y = 8, 15
+        # code 128-131 sets the "extra button" bit, reporting buttons 8-11; bits 0b11 (button 11)
+        # does not mean "release" here, unlike the plain 0b11 case in test_mouse_x10_release
+        for code, expected_button in ((128, 8), (129, 9), (130, 10), (131, 11)):
+            keys = [32 + code, x + 33, y + 33]
+            result = escape.input_trie.read_mouse_info(keys, more_available=False)
+            self.assertEqual((("mouse press", expected_button, x, y), []), result)
+
+    def test_mouse_x10_wheel_button_7_is_not_release(self):
+        x, y = 8, 15
+        # bits 0b11 combined with the "high button" flag (0b1000011 = 64 + 3) is wheel button 7, not a release
+        keys = [32 + 0b1000011, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse press", 7, x, y), []), result)
 
     def test_mouse_x10_double_click(self):
         x, y = 8, 15
@@ -454,3 +483,59 @@ class OutputSequenceTest(unittest.TestCase):
     def test_move_cursor_down(self):
         self.assertEqual("", escape.move_cursor_down(0))
         self.assertEqual(f"{escape.ESC}[3B", escape.move_cursor_down(3))
+
+
+class PrivateModeTest(unittest.TestCase):
+    def test_members_are_plain_strings(self):
+        # str(member) has to render the bare mode number (not "PrivateMode.BRACKETED_PASTE"),
+        # since query_private_mode() interpolates it directly into an escape sequence.
+        self.assertEqual("1004", str(escape.PrivateMode.FOCUS_REPORTING))
+        self.assertEqual("2004", str(escape.PrivateMode.BRACKETED_PASTE))
+        self.assertEqual("2026", str(escape.PrivateMode.SYNCHRONIZED_OUTPUT))
+        self.assertEqual("2027", str(escape.PrivateMode.GRAPHEME_CLUSTERING))
+
+
+class QueryPrivateModeTest(unittest.TestCase):
+    def test_query_private_mode(self):
+        self.assertEqual(f"{escape.ESC}[?1004$p", escape.PrivateMode.FOCUS_REPORTING.query)
+        self.assertEqual(f"{escape.ESC}[?2004$p", escape.PrivateMode.BRACKETED_PASTE.query)
+        self.assertEqual(f"{escape.ESC}[?2026$p", escape.PrivateMode.SYNCHRONIZED_OUTPUT.query)
+
+
+class ReadPrivateModeReportTest(unittest.TestCase):
+    def test_recognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2004;1$y"), False)
+        self.assertEqual((("private mode report", "2004", 1), []), result)
+
+    def test_unrecognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;0$y"), False)
+        self.assertEqual((("private mode report", "2026", 0), []), result)
+
+    def test_trailing_bytes_are_left_unconsumed(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;1$yab"), False)
+        self.assertEqual((("private mode report", "2026", 1), [ord("a"), ord("b")]), result)
+
+    def test_not_a_private_mode_report_returns_none(self):
+        self.assertIsNone(escape.input_trie.read_private_mode_report(list(b"[6;5R"), False))
+        self.assertIsNone(escape.input_trie.read_private_mode_report([], False))
+
+    def test_incomplete_reply_raises_more_input_required_when_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix), self.assertRaises(escape.MoreInputRequired):
+                escape.input_trie.read_private_mode_report(list(prefix), True)
+
+    def test_incomplete_reply_returns_none_when_no_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(prefix), False))
+
+    def test_recognized_through_process_keyqueue(self):
+        codes = [27, *b"[?2004;1$y"]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("private mode report", "2004", 1)], actual)
+        self.assertEqual([], rest)
+
+    def test_decrqm_recognized_values(self):
+        for value in (1, 2, 3, 4):
+            self.assertIn(value, escape.DECRQM_RECOGNIZED_VALUES)
+        self.assertNotIn(0, escape.DECRQM_RECOGNIZED_VALUES)

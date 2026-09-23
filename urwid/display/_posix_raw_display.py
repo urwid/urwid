@@ -91,16 +91,18 @@ class Screen(_raw_display_base.Screen):
         self,
         input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
         output: _raw_display_base.TextWriter = sys.stdout,
-        bracketed_paste_mode: bool = False,
-        focus_reporting: bool = False,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output
         terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal. If the host terminal supports it,
-            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
-        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
-            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -118,11 +120,9 @@ class Screen(_raw_display_base.Screen):
             and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
             since only the main thread can receive process signals.
         """
-        super().__init__(input, output)
+        super().__init__(input, output, bracketed_paste_mode=bracketed_paste_mode, focus_reporting=focus_reporting)
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
-        self.bracketed_paste_mode = bracketed_paste_mode
-        self.focus_reporting = focus_reporting
 
         # These store the previous signal handlers after setting ours
         self._prev_sigcont_handler: SignalHandler = None
@@ -134,8 +134,8 @@ class Screen(_raw_display_base.Screen):
             f"<{self.__class__.__name__}("
             f"input={self._term_input_file}, "
             f"output={self._term_output_file}, "
-            f"bracketed_paste_mode={self.bracketed_paste_mode}, "
-            f"focus_reporting={self.focus_reporting})>"
+            f"bracketed_paste_mode={self.modes.bracketed_paste}, "
+            f"focus_reporting={self.modes.focus_reporting})>"
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
@@ -266,24 +266,28 @@ class Screen(_raw_display_base.Screen):
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
-
-        if self.bracketed_paste_mode:
-            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
-
-        if self.focus_reporting:
-            self.write(escape.ENABLE_FOCUS_REPORTING)
+        # Set as soon as the buffer is actually switched, not after: _stop() (e.g. from cleanup
+        # after a later exception in this method) has to know to restore the normal buffer.
+        self._alternate_buffer = alternate_buffer
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
 
+        self._detect_terminal_modes()
+
+        if self.modes.bracketed_paste:
+            self.write(escape.PrivateMode.BRACKETED_PASTE.enable_seq)
+
+        if self.modes.focus_reporting:
+            self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
+
         self.signal_init()
-        self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
         if not self._signal_keys_set:
@@ -301,11 +305,11 @@ class Screen(_raw_display_base.Screen):
         """
         self.clear()
 
-        if self.bracketed_paste_mode:
-            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
+        if self.modes.bracketed_paste:
+            self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
 
-        if self.focus_reporting:
-            self.write(escape.DISABLE_FOCUS_REPORTING)
+        if self.modes.focus_reporting:
+            self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
@@ -393,7 +397,7 @@ class Screen(_raw_display_base.Screen):
                 raise
         return codes
 
-    def _read_raw_input(self, timeout: int) -> bytearray:
+    def _read_raw_input(self, timeout: float) -> bytearray:
         """
         Read whatever raw input is available, waiting at most *timeout* seconds.
 
