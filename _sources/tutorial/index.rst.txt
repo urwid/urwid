@@ -11,6 +11,7 @@ Minimal Application
 -------------------
 
 .. image:: minimal1.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the top left corner of the
 screen and will run until interrupted with *CTRL+C* (*^C*).
@@ -43,10 +44,15 @@ Global Input
 ------------
 
 .. image:: input1.png
+   :scale: 50%
 .. image:: input2.png
+   :scale: 50%
 .. image:: input3.png
+   :scale: 50%
 .. image:: input4.png
+   :scale: 50%
 .. image:: input5.png
+   :scale: 50%
 
 This program initially displays the string ``Hello World``, then it displays
 each key pressed, exiting when the user presses *Q*.
@@ -70,9 +76,13 @@ Display Attributes
 ------------------
 
 .. image:: urwid_attr1.png
+   :scale: 50%
 .. image:: urwid_attr2.png
+   :scale: 50%
 .. image:: urwid_attr3.png
+   :scale: 50%
 .. image:: urwid_attr4.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
@@ -123,6 +133,7 @@ High Color Modes
 ----------------
 
 .. image:: highcolors1.png
+   :scale: 50%
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
@@ -168,8 +179,11 @@ Question and Answer
 -------------------
 
 .. image:: qa1.png
+   :scale: 50%
 .. image:: qa2.png
+   :scale: 50%
 .. image:: qa3.png
+   :scale: 50%
 
 This program asks for your name then responds ``Nice to meet you, (your
 name).``
@@ -205,9 +219,13 @@ Signal Handlers
 ---------------
 
 .. image:: sig1.png
+   :scale: 50%
 .. image:: sig2.png
+   :scale: 50%
 .. image:: sig3.png
+   :scale: 50%
 .. image:: sig4.png
+   :scale: 50%
 
 This program asks for your name and responds ``Nice to meet you, (your name)``
 *while* you type your name.  Press *DOWN* then *SPACE* or *ENTER* to exit.
@@ -232,9 +250,13 @@ Multiple Questions
 ------------------
 
 .. image:: multiple1.png
+   :scale: 50%
 .. image:: multiple2.png
+   :scale: 50%
 .. image:: multiple3.png
+   :scale: 50%
 .. image:: multiple4.png
+   :scale: 50%
 
 This program asks for your name and responds ``Nice to meet you, (your name).``
 It then asks again, and again. Old values may be changed and the responses will
@@ -278,8 +300,11 @@ Simple Menu
 -----------
 
 .. image:: smenu1.png
+   :scale: 50%
 .. image:: smenu2.png
+   :scale: 50%
 .. image:: smenu3.png
+   :scale: 50%
 
 We can create a very simple menu using a list of :class:`Button` widgets.
 This program lets you choose an option then repeats what you chose.
@@ -305,9 +330,13 @@ Cascading Menu
 --------------
 
 .. image:: cmenu1.png
+   :scale: 50%
 .. image:: cmenu2.png
+   :scale: 50%
 .. image:: cmenu3.png
+   :scale: 50%
 .. image:: cmenu4.png
+   :scale: 50%
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
@@ -348,9 +377,13 @@ Horizontal Menu
 ---------------
 
 .. image:: hmenu1.png
+   :scale: 50%
 .. image:: hmenu2.png
+   :scale: 50%
 .. image:: hmenu3.png
+   :scale: 50%
 .. image:: hmenu4.png
+   :scale: 50%
 
 This example is like the previous but new menus appear on the right and push
 old menus off the left side of the screen.
@@ -387,9 +420,13 @@ Adventure Game
 --------------
 
 .. image:: adventure1.png
+   :scale: 50%
 .. image:: adventure2.png
+   :scale: 50%
 .. image:: adventure3.png
+   :scale: 50%
 .. image:: adventure4.png
+   :scale: 50%
 
 We can use the same sort of code to build a simple adventure game.  Instead
 of menus we have "places" and instead of submenus and parent menus we just

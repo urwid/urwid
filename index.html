@@ -4,12 +4,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title> &#8212; Urwid 4.1.5</title>
+    <title> &#8212; Urwid 4.1.6</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="_static/documentation_options.js?v=1ad82d03"></script>
+    <script src="_static/documentation_options.js?v=2d20a769"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -23,7 +23,7 @@
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
-        <li class="nav-item nav-item-0"><a href="#">Urwid 4.1.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">Urwid 4.1.6</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href=""></a></li> 
       </ul>
     </div>  
@@ -39,10 +39,10 @@
 
 <ul>
 
-<li><a href="https://pypi.org/packages/source/u/urwid/urwid-4.1.5.tar.gz"
->Download: urwid-4.1.5.tar.gz</a></li>
+<li><a href="https://pypi.org/packages/source/u/urwid/urwid-4.1.6.tar.gz"
+>Download: urwid-4.1.6.tar.gz</a></li>
 
-<li><a href="changelog.html">Changelog</a>
+<li><a href="changelog.html">Changelog</a></li>
 </ul>
 
 <div class="hilight"><pre>git clone https://github.com/urwid/urwid.git</pre></div>
@@ -64,17 +64,103 @@
 
 <div class="section" id="requirements">
 <h3>Requirements</h3>
+
+<h4>Python Versions</h4>
 <ul>
-<li>Python 3.7+ or PyPy</li>
-<li>Linux, OSX, Cygwin or other unix-like OS</li>
-<li>python-gi for GlibEventLoop (optional)</li>
-<li>Twisted for TwistedEventLoop (optional)</li>
-<li>Tornado for TornadoEventLoop (optional)</li>
-<li>Trio for TrioEventLoop (optional)</li>
-<li>ZMQ for ZMQEventLoop (optional)</li>
-<li>Apache for web_display module (optional)</li>
-<li>ncurses for curses_display module (optional)</li>
+<li><strong>CPython 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15</strong> - Full support for all extras</li>
+<li><strong>CPython 3.13+ with free-threading</strong> (PEP 703 --disable-gil) - Pure-Python extras only (tornado, trio, twisted, serial, lcd)</li>
+<li><strong>PyPy 3.x</strong> - Compatible extras (tornado, trio, serial, lcd)</li>
+<li><strong>GraalPy 3.11, 3.12</strong> (experimental) - Compatible extras (tornado, serial, lcd)</li>
 </ul>
+
+<h4>Operating System</h4>
+<ul>
+<li><strong>Unix-like:</strong> Linux, macOS, Cygwin (full support)</li>
+<li><strong>Windows 10+:</strong> Limited support
+  <ul>
+  <li>Curses display module requires additional setup (windows-curses package)</li>
+  <li>ANSI support required</li>
+  <li>Not supported: Terminal widget, file descriptor operations (except sockets), ZMQ event loop</li>
+  <li>ZMQ: Not available on Windows (platform limitation)</li>
+  </ul>
+</li>
+</ul>
+
+<h4>Optional Dependencies by Feature</h4>
+<table style="border-collapse: collapse; border: 1px solid #ccc;">
+<tr style="border-bottom: 1px solid #ccc; background-color: #f5f5f5;">
+<th style="border: 1px solid #ccc; padding: 8px;">Feature</th>
+<th style="border: 1px solid #ccc; padding: 8px;">CPython</th>
+<th style="border: 1px solid #ccc; padding: 8px;">Free-threaded</th>
+<th style="border: 1px solid #ccc; padding: 8px;">PyPy</th>
+<th style="border: 1px solid #ccc; padding: 8px;">GraalPy</th>
+<th style="border: 1px solid #ccc; padding: 8px;">Package</th>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">GLib event loop</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">python-gi (pygobject)</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Twisted event loop</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓ (24.10.0+)</td>
+<td style="border: 1px solid #ccc; padding: 8px;">⚠ Limited</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">twisted>=24.10.0</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Tornado event loop</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">tornado>=6.5.8</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Trio event loop</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">trio>=0.31.0</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">ZMQ event loop</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓ (Linux/Unix)</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">pyzmq>=26.0.0 (not available on Windows)</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Serial/LCD display</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">pyserial</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Curses display (Windows)</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">⚠ Limited</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">windows-curses</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ccc; padding: 8px;">Terminal widget (urwid.vterm)</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
+<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
+<td style="border: 1px solid #ccc; padding: 8px;">fcntl, pty (stdlib; not supported on Windows either)</td>
+</tr>
+</table>
 </div>
 
 <div class="section" id="similar">
@@ -89,19 +175,19 @@
 
 <div style="padding-left: 560px;">
 <div class="section" id="big-buttons">
-<p><a class="reference external image-reference" href="examples/index.html"><img alt="_images/graph2.png" src="_images/graph2.png" width="200" style="padding-bottom: 5px" /></br>
+<p><a class="reference external image-reference" href="examples/index.html"><img alt="_images/graph2.png" src="_images/graph2.png" width="200" style="padding-bottom: 5px" /><br />
 Examples</a></p>
-<p><a class="reference external image-reference" href="tutorial/index.html"><img alt="_images/highcolors1.png" src="_images/highcolors1.png" width="200" style="padding-bottom: 5px" /></br>
+<p><a class="reference external image-reference" href="tutorial/index.html"><img alt="_images/highcolors1.png" src="_images/highcolors1.png" width="200" style="padding-bottom: 5px" /><br />
 Tutorial</a></p>
-<p><a class="reference external image-reference" href="manual/index.html"><img alt="_images/introduction.png" src="_images/introduction.png" width="200" style="padding-bottom: 5px" /></br>
+<p><a class="reference external image-reference" href="manual/index.html"><img alt="_images/introduction.png" src="_images/introduction.png" width="200" style="padding-bottom: 5px" /><br />
 Manual</a></p>
-<p><a class="reference external image-reference" href="reference/index.html"><img alt="_images/urwid_widgets_1.png" src="_images/urwid_widgets_1.png" width="200" style="padding-bottom: 5px" /></br>
+<p><a class="reference external image-reference" href="reference/index.html"><img alt="_images/urwid_widgets_1.png" src="_images/urwid_widgets_1.png" width="200" style="padding-bottom: 5px" /><br />
 Reference</a></p>
 <p><a class="reference internal" href="genindex.html">Index</a></p>
 <p><a class="reference internal" href="search.html">Search Page</a></p>
 </div>
 </div>
-<div style="clear:both">&nbsp;</div>
+<div style="clear:both;"></div>
 
             <div class="clearer"></div>
           </div>
@@ -129,7 +215,7 @@ Reference</a></p>
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              >index</a></li>
-        <li class="nav-item nav-item-0"><a href="#">Urwid 4.1.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">Urwid 4.1.6</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href=""></a></li> 
       </ul>
     </div>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 4.1.5</title>
+    <title>Urwid Tutorial &#8212; Urwid 4.1.6</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=1ad82d03"></script>
+    <script src="../_static/documentation_options.js?v=2d20a769"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -46,7 +46,8 @@
 <span id="id1"></span><h1>Urwid Tutorial<a class="headerlink" href="#urwid-tutorial" title="Link to this heading">¶</a></h1>
 <section id="minimal-application">
 <h2>Minimal Application<a class="headerlink" href="#minimal-application" title="Link to this heading">¶</a></h2>
-<img alt="../_images/minimal1.png" src="../_images/minimal1.png" />
+<a class="reference internal image-reference" href="../_images/minimal1.png"><img alt="../_images/minimal1.png" height="112" src="../_images/minimal1.png" width="168" />
+</a>
 <p>This program displays the string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">World</span></code> in the top left corner of the
 screen and will run until interrupted with <em>CTRL+C</em> (<em>^C</em>).</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -81,11 +82,16 @@ the program to exit with <em>^C</em>.</p></li>
 </section>
 <section id="global-input">
 <h2>Global Input<a class="headerlink" href="#global-input" title="Link to this heading">¶</a></h2>
-<img alt="../_images/input1.png" src="../_images/input1.png" />
-<img alt="../_images/input2.png" src="../_images/input2.png" />
-<img alt="../_images/input3.png" src="../_images/input3.png" />
-<img alt="../_images/input4.png" src="../_images/input4.png" />
-<img alt="../_images/input5.png" src="../_images/input5.png" />
+<a class="reference internal image-reference" href="../_images/input1.png"><img alt="../_images/input1.png" height="48" src="../_images/input1.png" width="96" />
+</a>
+<a class="reference internal image-reference" href="../_images/input2.png"><img alt="../_images/input2.png" height="48" src="../_images/input2.png" width="96" />
+</a>
+<a class="reference internal image-reference" href="../_images/input3.png"><img alt="../_images/input3.png" height="48" src="../_images/input3.png" width="96" />
+</a>
+<a class="reference internal image-reference" href="../_images/input4.png"><img alt="../_images/input4.png" height="48" src="../_images/input4.png" width="96" />
+</a>
+<a class="reference internal image-reference" href="../_images/input5.png"><img alt="../_images/input5.png" height="48" src="../_images/input5.png" width="96" />
+</a>
 <p>This program initially displays the string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">World</span></code>, then it displays
 each key pressed, exiting when the user presses <em>Q</em>.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -119,10 +125,14 @@ widget’s content.</p></li>
 </section>
 <section id="display-attributes">
 <h2>Display Attributes<a class="headerlink" href="#display-attributes" title="Link to this heading">¶</a></h2>
-<img alt="../_images/urwid_attr1.png" src="../_images/urwid_attr1.png" />
-<img alt="../_images/urwid_attr2.png" src="../_images/urwid_attr2.png" />
-<img alt="../_images/urwid_attr3.png" src="../_images/urwid_attr3.png" />
-<img alt="../_images/urwid_attr4.png" src="../_images/urwid_attr4.png" />
+<a class="reference internal image-reference" href="../_images/urwid_attr1.png"><img alt="../_images/urwid_attr1.png" height="112" src="../_images/urwid_attr1.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/urwid_attr2.png"><img alt="../_images/urwid_attr2.png" height="144" src="../_images/urwid_attr2.png" width="80" />
+</a>
+<a class="reference internal image-reference" href="../_images/urwid_attr3.png"><img alt="../_images/urwid_attr3.png" height="48" src="../_images/urwid_attr3.png" width="240" />
+</a>
+<a class="reference internal image-reference" href="../_images/urwid_attr4.png"><img alt="../_images/urwid_attr4.png" height="32" src="../_images/urwid_attr4.png" width="120" />
+</a>
 <p>This program displays the string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">World</span></code> in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
 and the space above and below the text. It waits for a keypress before exiting.</p>
@@ -191,7 +201,8 @@ the alignment around the text, and the filler above and below the text.</p>
 </section>
 <section id="high-color-modes">
 <h2>High Color Modes<a class="headerlink" href="#high-color-modes" title="Link to this heading">¶</a></h2>
-<img alt="../_images/highcolors1.png" src="../_images/highcolors1.png" />
+<a class="reference internal image-reference" href="../_images/highcolors1.png"><img alt="../_images/highcolors1.png" height="144" src="../_images/highcolors1.png" width="208" />
+</a>
 <p>This program displays the string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">World</span></code> in the center of the screen.
 It uses a number of 256-color-mode colors to decorate the text,
 and will work in any terminal that supports 256-color mode. It will exit when
@@ -201,7 +212,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 <span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+<span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
 <span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 9</span>
@@ -263,9 +274,12 @@ for the new child widgets.</p></li>
 </section>
 <section id="question-and-answer">
 <h2>Question and Answer<a class="headerlink" href="#question-and-answer" title="Link to this heading">¶</a></h2>
-<img alt="../_images/qa1.png" src="../_images/qa1.png" />
-<img alt="../_images/qa2.png" src="../_images/qa2.png" />
-<img alt="../_images/qa3.png" src="../_images/qa3.png" />
+<a class="reference internal image-reference" href="../_images/qa1.png"><img alt="../_images/qa1.png" height="112" src="../_images/qa1.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/qa2.png"><img alt="../_images/qa2.png" height="112" src="../_images/qa2.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/qa3.png"><img alt="../_images/qa3.png" height="112" src="../_images/qa3.png" width="168" />
+</a>
 <p>This program asks for your name then responds <code class="docutils literal notranslate"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span>
 <span class="pre">name).</span></code></p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -279,7 +293,7 @@ for the new child widgets.</p></li>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="k">class</span><span class="w"> </span><span class="nc">QuestionBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">):</span>
-<span class="linenos">12</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">12</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[()],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">13</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s2">"enter"</span><span class="p">:</span>
 <span class="linenos">14</span>            <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
 <span class="linenos">15</span>        <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span>
@@ -319,10 +333,14 @@ user to exit the program.</p></li>
 </section>
 <section id="signal-handlers">
 <h2>Signal Handlers<a class="headerlink" href="#signal-handlers" title="Link to this heading">¶</a></h2>
-<img alt="../_images/sig1.png" src="../_images/sig1.png" />
-<img alt="../_images/sig2.png" src="../_images/sig2.png" />
-<img alt="../_images/sig3.png" src="../_images/sig3.png" />
-<img alt="../_images/sig4.png" src="../_images/sig4.png" />
+<a class="reference internal image-reference" href="../_images/sig1.png"><img alt="../_images/sig1.png" height="112" src="../_images/sig1.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/sig2.png"><img alt="../_images/sig2.png" height="112" src="../_images/sig2.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/sig3.png"><img alt="../_images/sig3.png" height="112" src="../_images/sig3.png" width="168" />
+</a>
+<a class="reference internal image-reference" href="../_images/sig4.png"><img alt="../_images/sig4.png" height="112" src="../_images/sig4.png" width="168" />
+</a>
 <p>This program asks for your name and responds <code class="docutils literal notranslate"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name)</span></code>
 <em>while</em> you type your name.  Press <em>DOWN</em> then <em>SPACE</em> or <em>ENTER</em> to exit.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -370,10 +388,14 @@ name and <em>on_exit_click()</em> exits.</p></li>
 </section>
 <section id="multiple-questions">
 <h2>Multiple Questions<a class="headerlink" href="#multiple-questions" title="Link to this heading">¶</a></h2>
-<img alt="../_images/multiple1.png" src="../_images/multiple1.png" />
-<img alt="../_images/multiple2.png" src="../_images/multiple2.png" />
-<img alt="../_images/multiple3.png" src="../_images/multiple3.png" />
-<img alt="../_images/multiple4.png" src="../_images/multiple4.png" />
+<a class="reference internal image-reference" href="../_images/multiple1.png"><img alt="../_images/multiple1.png" height="208" src="../_images/multiple1.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/multiple2.png"><img alt="../_images/multiple2.png" height="208" src="../_images/multiple2.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/multiple3.png"><img alt="../_images/multiple3.png" height="208" src="../_images/multiple3.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/multiple4.png"><img alt="../_images/multiple4.png" height="208" src="../_images/multiple4.png" width="184" />
+</a>
 <p>This program asks for your name and responds <code class="docutils literal notranslate"><span class="pre">Nice</span> <span class="pre">to</span> <span class="pre">meet</span> <span class="pre">you,</span> <span class="pre">(your</span> <span class="pre">name).</span></code>
 It then asks again, and again. Old values may be changed and the responses will
 be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.</p>
@@ -382,11 +404,11 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 <span class="linenos"> 3</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="linenos"> 4</span>
 <span class="linenos"> 5</span>
-<span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">question</span><span class="p">():</span>
+<span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">question</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="s2">"What is your name?</span><span class="se">\n</span><span class="s2">"</span><span class="p">))])</span>
 <span class="linenos"> 8</span>
 <span class="linenos"> 9</span>
-<span class="linenos">10</span><span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<span class="linenos">10</span><span class="k">def</span><span class="w"> </span><span class="nf">answer</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">:</span>
 <span class="linenos">11</span>    <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">((</span><span class="s2">"I say"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Nice to meet you, </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="se">\n</span><span class="s2">"</span><span class="p">))</span>
 <span class="linenos">12</span>
 <span class="linenos">13</span>
@@ -446,9 +468,12 @@ created.</p></li>
 </section>
 <section id="simple-menu">
 <h2>Simple Menu<a class="headerlink" href="#simple-menu" title="Link to this heading">¶</a></h2>
-<img alt="../_images/smenu1.png" src="../_images/smenu1.png" />
-<img alt="../_images/smenu2.png" src="../_images/smenu2.png" />
-<img alt="../_images/smenu3.png" src="../_images/smenu3.png" />
+<a class="reference internal image-reference" href="../_images/smenu1.png"><img alt="../_images/smenu1.png" height="176" src="../_images/smenu1.png" width="192" />
+</a>
+<a class="reference internal image-reference" href="../_images/smenu2.png"><img alt="../_images/smenu2.png" height="176" src="../_images/smenu2.png" width="192" />
+</a>
+<a class="reference internal image-reference" href="../_images/smenu3.png"><img alt="../_images/smenu3.png" height="176" src="../_images/smenu3.png" width="192" />
+</a>
 <p>We can create a very simple menu using a list of <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a> widgets.
 This program lets you choose an option then repeats what you chose.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
@@ -521,10 +546,14 @@ space if the user’s terminal window is large enough.</p></li>
 </section>
 <section id="cascading-menu">
 <h2>Cascading Menu<a class="headerlink" href="#cascading-menu" title="Link to this heading">¶</a></h2>
-<img alt="../_images/cmenu1.png" src="../_images/cmenu1.png" />
-<img alt="../_images/cmenu2.png" src="../_images/cmenu2.png" />
-<img alt="../_images/cmenu3.png" src="../_images/cmenu3.png" />
-<img alt="../_images/cmenu4.png" src="../_images/cmenu4.png" />
+<a class="reference internal image-reference" href="../_images/cmenu1.png"><img alt="../_images/cmenu1.png" height="224" src="../_images/cmenu1.png" width="264" />
+</a>
+<a class="reference internal image-reference" href="../_images/cmenu2.png"><img alt="../_images/cmenu2.png" height="224" src="../_images/cmenu2.png" width="264" />
+</a>
+<a class="reference internal image-reference" href="../_images/cmenu3.png"><img alt="../_images/cmenu3.png" height="224" src="../_images/cmenu3.png" width="264" />
+</a>
+<a class="reference internal image-reference" href="../_images/cmenu4.png"><img alt="../_images/cmenu4.png" height="224" src="../_images/cmenu4.png" width="264" />
+</a>
 <p>A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
 return to previous menus by pressing <em>ESC</em>.</p>
@@ -630,7 +659,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos">100</span>        <span class="p">)</span>
 <span class="linenos">101</span>        <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">+=</span> <span class="mi">1</span>
 <span class="linenos">102</span>
-<span class="linenos">103</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">103</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos">104</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"esc"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
 <span class="linenos">105</span>            <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 <span class="linenos">106</span>            <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-=</span> <span class="mi">1</span>
@@ -674,10 +703,14 @@ return to a previous menu level.</p></li>
 </section>
 <section id="horizontal-menu">
 <h2>Horizontal Menu<a class="headerlink" href="#horizontal-menu" title="Link to this heading">¶</a></h2>
-<img alt="../_images/hmenu1.png" src="../_images/hmenu1.png" />
-<img alt="../_images/hmenu2.png" src="../_images/hmenu2.png" />
-<img alt="../_images/hmenu3.png" src="../_images/hmenu3.png" />
-<img alt="../_images/hmenu4.png" src="../_images/hmenu4.png" />
+<a class="reference internal image-reference" href="../_images/hmenu1.png"><img alt="../_images/hmenu1.png" height="192" src="../_images/hmenu1.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/hmenu2.png"><img alt="../_images/hmenu2.png" height="192" src="../_images/hmenu2.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/hmenu3.png"><img alt="../_images/hmenu3.png" height="192" src="../_images/hmenu3.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/hmenu4.png"><img alt="../_images/hmenu4.png" height="192" src="../_images/hmenu4.png" width="640" />
+</a>
 <p>This example is like the previous but new menus appear on the right and push
 old menus off the left side of the screen.
 The look of buttons and other menu elements are heavily customized
@@ -746,7 +779,7 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 62</span>        <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">response_box</span><span class="p">,</span> <span class="s2">"options"</span><span class="p">))</span>
 <span class="linenos"> 63</span>
 <span class="linenos"> 64</span>
-<span class="linenos"> 65</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+<span class="linenos"> 65</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">MenuButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
 <span class="linenos"> 66</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
 <span class="linenos"> 67</span>
 <span class="linenos"> 68</span>
@@ -835,10 +868,14 @@ when a menu is in focus.</p></li>
 </section>
 <section id="adventure-game">
 <h2>Adventure Game<a class="headerlink" href="#adventure-game" title="Link to this heading">¶</a></h2>
-<img alt="../_images/adventure1.png" src="../_images/adventure1.png" />
-<img alt="../_images/adventure2.png" src="../_images/adventure2.png" />
-<img alt="../_images/adventure3.png" src="../_images/adventure3.png" />
-<img alt="../_images/adventure4.png" src="../_images/adventure4.png" />
+<a class="reference internal image-reference" href="../_images/adventure1.png"><img alt="../_images/adventure1.png" height="256" src="../_images/adventure1.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/adventure2.png"><img alt="../_images/adventure2.png" height="256" src="../_images/adventure2.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/adventure3.png"><img alt="../_images/adventure3.png" height="256" src="../_images/adventure3.png" width="184" />
+</a>
+<a class="reference internal image-reference" href="../_images/adventure4.png"><img alt="../_images/adventure4.png" height="256" src="../_images/adventure4.png" width="184" />
+</a>
 <p>We can use the same sort of code to build a simple adventure game.  Instead
 of menus we have “places” and instead of submenus and parent menus we just
 have “exits”.  This example scrolls previous places off the top of the
@@ -931,7 +968,7 @@ places.</p>
 <span class="linenos"> 85</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 86</span>        <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">([])</span>
 <span class="linenos"> 87</span>        <span class="bp">self</span><span class="o">.</span><span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
-<span class="linenos"> 88</span>        <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<span class="linenos"> 88</span>        <span class="bp">self</span><span class="o">.</span><span class="n">inventory</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 <span class="linenos"> 89</span>        <span class="bp">self</span><span class="o">.</span><span class="n">update_place</span><span class="p">(</span><span class="n">map_top</span><span class="p">)</span>
 <span class="linenos"> 90</span>
 <span class="linenos"> 91</span>    <span class="k">def</span><span class="w"> </span><span class="nf">update_place</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">place</span><span class="p">:</span> <span class="n">Place</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -1034,7 +1071,7 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.5</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>
