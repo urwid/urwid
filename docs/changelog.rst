@@ -2,6 +2,35 @@
 Changelog
 ---------
 
+Urwid 4.1.6
+============
+
+2026-09-23
+
+New features 🗹
++++++++++++++++
+* Implement synchronised output by @penguinolog in https://github.com/urwid/urwid/pull/1333
+
+Bug fixes 🕷
+++++++++++++
+* Preserve focus when deleting negative-step slices by @jakezwang in https://github.com/urwid/urwid/pull/1329
+
+Documentation 🕮
+++++++++++++++++
+* Fix screenshot generation and re-generate screenshots by @penguinolog in https://github.com/urwid/urwid/pull/1326
+* Switch screenshots generation to 2x size and no antialiasing by @penguinolog in https://github.com/urwid/urwid/pull/1327
+
+Refactoring 🛠
+++++++++++++++
+* Optimise signals emit path by @penguinolog in https://github.com/urwid/urwid/pull/1331
+
+New Contributors
+++++++++++++++++
+* @jakezwang made their first contribution in https://github.com/urwid/urwid/pull/1329
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.5...4.1.6
+
 Urwid 4.1.5
 ============
 
