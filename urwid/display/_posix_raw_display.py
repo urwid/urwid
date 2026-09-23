@@ -266,11 +266,13 @@ class Screen(_raw_display_base.Screen):
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.modes.alternate_buffer = True
             self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
+        # Set as soon as the buffer is actually switched, not after: _stop() (e.g. from cleanup
+        # after a later exception in this method) has to know to restore the normal buffer.
+        self._alternate_buffer = alternate_buffer
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
@@ -286,7 +288,6 @@ class Screen(_raw_display_base.Screen):
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
         self.signal_init()
-        self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
         if not self._signal_keys_set:
@@ -294,7 +295,7 @@ class Screen(_raw_display_base.Screen):
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
-        self._mouse_tracking(self.modes.mouse_tracking)
+        self._mouse_tracking(self._mouse_tracking_enabled)
 
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 

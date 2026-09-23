@@ -36,8 +36,6 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
-    from typing_extensions import Literal
-
     _KeyQueueData = dict[int, typing.Union[str, "_KeyQueueData"]]
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
@@ -325,10 +323,14 @@ class KeyqueueTrie:
         prefix = "".join(prefixes)
 
         button_bits = b & _MOUSE_BUTTON_MASK
-        # 0->1, 1->2, 2->3, 64->4, 65->5
-        button = ((b & _MOUSE_HIGH_BUTTON_FLAG) // _MOUSE_HIGH_BUTTON_FLAG * 3) + button_bits + 1
+        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+            button = 8 + button_bits
+        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+            button = 4 + button_bits
+        else:
+            button = 1 + button_bits
 
-        if button_bits == _MOUSE_BUTTON_MASK:
+        if button_bits == _MOUSE_BUTTON_MASK and not b & (_MOUSE_HIGH_BUTTON_FLAG | _MOUSE_EXTRA_BUTTON_FLAG):
             action = "release"
             button = 0
         elif b & MOUSE_RELEASE_FLAG:
@@ -392,9 +394,13 @@ class KeyqueueTrie:
             prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
-        wheel_used: typing.Literal[0, 1] = typing.cast("Literal[0, 1]", (b & _MOUSE_HIGH_BUTTON_FLAG) >> 6)
-
-        button = (wheel_used * 3) + (b & _MOUSE_BUTTON_MASK) + 1
+        button_bits = b & _MOUSE_BUTTON_MASK
+        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+            button = 8 + button_bits
+        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+            button = 4 + button_bits
+        else:
+            button = 1 + button_bits
         x -= 1
         y -= 1
 
@@ -552,8 +558,11 @@ MOUSE_DRAG_FLAG = 32
 _MOUSE_SHIFT_FLAG = 4
 _MOUSE_META_FLAG = 8
 _MOUSE_CTRL_FLAG = 16
-_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report button 4/5 (the "extra" buttons, e.g. a wheel)
-_MOUSE_BUTTON_MASK = 3  # low two bits: the base button number (0-2), or 3 to mean "released"
+_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report buttons 4-7 (e.g. a wheel)
+_MOUSE_EXTRA_BUTTON_FLAG = 128  # set to report buttons 8-11 (e.g. side buttons)
+_MOUSE_BUTTON_MASK = 3  # low two bits: the button offset within its group
+# button_bits == 3 with neither flag set means "released" (X10 report only); with either flag
+# set it is the group's 4th button (7 or 11), which has no release encoding.
 
 # The X10 report encodes the button byte and the two coordinate bytes by adding an offset to
 # keep them in the printable ASCII range; coordinates are further offset by 1 since they are
@@ -817,8 +826,8 @@ HIDE_CURSOR = f"{ESC}[?25l"
 SHOW_CURSOR = f"{ESC}[?25h"
 
 _MOUSE_MODES = (PrivateMode.MOUSE_REPORTING, PrivateMode.MOUSE_BUTTON_TRACKING, PrivateMode.MOUSE_SGR_MODE)
-MOUSE_TRACKING_ON = "".join(f"{ESC}[?{mode}h" for mode in _MOUSE_MODES)
-MOUSE_TRACKING_OFF = "".join(f"{ESC}[?{mode}l" for mode in reversed(_MOUSE_MODES))
+MOUSE_TRACKING_ON = "".join(mode.enable_seq for mode in _MOUSE_MODES)
+MOUSE_TRACKING_OFF = "".join(mode.disable_seq for mode in reversed(_MOUSE_MODES))
 
 DESIGNATE_G1_SPECIAL = f"{ESC})0"
 

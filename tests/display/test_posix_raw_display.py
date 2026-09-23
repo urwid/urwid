@@ -100,6 +100,21 @@ class TestStartStop(unittest.TestCase):
         s.stop()
         mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
 
+    def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
+        """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so
+        `_alternate_buffer` has to already be correct by the time the write happens, not after
+        later steps -- here `signal_init()` -- that could still fail."""
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        s.signal_init = mock.Mock(side_effect=RuntimeError("boom"))
+
+        with self.assertRaises(RuntimeError):
+            s.start()
+
+        self.assertTrue(s._alternate_buffer)
+        s.stop()  # must not raise: signal_restore() only reads what __init__ already set
+
     def test_start_installs_signal_handlers_and_stop_restores_them(self):
         s = _make_screen()
         s.write = lambda *_a: None
@@ -435,6 +450,9 @@ class TestDetectTerminalModes(unittest.TestCase):
         output = "".join(written)
         self.assertIn(escape.PrivateMode.SYNCHRONIZED_OUTPUT.query, output)
         self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
+        self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.query, output)
+        self.assertIn(escape.PrivateMode.MOUSE_REPORTING.query, output)
+        self.assertIn(escape.PrivateMode.MOUSE_SGR_MODE.query, output)
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
         self.assertIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
 
@@ -530,6 +548,61 @@ class TestApplyPrivateModeReports(unittest.TestCase):
 
         self.assertEqual(["a", "b"], keys)
         self.assertTrue(s.modes.synchronized_output)
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestMouseTracking(unittest.TestCase):
+    def test_enable_writes_the_sequence_when_support_is_unresolved(self):
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(True)
+
+        self.assertIn(escape.MOUSE_TRACKING_ON, written)
+        self.assertTrue(s._mouse_tracking_enabled)
+
+    def test_enable_is_a_noop_once_confirmed_unsupported(self):
+        s = _make_screen()
+        s.modes.mouse_reporting = False
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(True)
+
+        self.assertEqual([], written)
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_becoming_confirmed_unsupported_resets_a_previously_enabled_state(self):
+        s = _make_screen()
+        s.write = lambda *_a: None
+        s._mouse_tracking(True)
+        self.assertTrue(s._mouse_tracking_enabled)
+
+        s.modes.mouse_reporting = False
+        s._mouse_tracking(True)
+
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_disable_always_writes_the_sequence(self):
+        s = _make_screen()
+        s.modes.mouse_reporting = False
+        written: list[str] = []
+        s.write = written.append
+
+        s._mouse_tracking(False)
+
+        self.assertIn(escape.MOUSE_TRACKING_OFF, written)
+        self.assertFalse(s._mouse_tracking_enabled)
+
+    def test_set_mouse_tracking_is_a_noop_when_already_at_the_requested_state(self):
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+
+        s.set_mouse_tracking(False)  # already disabled by default
+
+        self.assertEqual([], written)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

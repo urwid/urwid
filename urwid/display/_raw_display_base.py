@@ -143,18 +143,19 @@ class TermModes:
     None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
     """
 
-    alternate_buffer: bool = False
-    mouse_tracking: bool = False
+    alternate_buffer: bool | None = None
+    mouse_reporting: bool | None = None
+    mouse_sgr_mode: bool | None = None
     focus_reporting: bool | None = None
     bracketed_paste: bool | None = None
     synchronized_output: bool | None = None
     grapheme_clustering: bool | None = None
 
     # escape.PrivateMode member -> the field it resolves.
-    # alternate_buffer: handled by explicit _start argument, expected to be supported by all modern terminals
-    # mouse tracking: handled explicit via _mouse_tracking method, expected to be supported by all modern terminals
-    #
     _FIELDS: typing.ClassVar[Mapping[str, str]] = {
+        escape.PrivateMode.ALTERNATE_SCREEN_BUFFER: "alternate_buffer",
+        escape.PrivateMode.MOUSE_REPORTING: "mouse_reporting",
+        escape.PrivateMode.MOUSE_SGR_MODE: "mouse_sgr_mode",
         escape.PrivateMode.FOCUS_REPORTING: "focus_reporting",
         escape.PrivateMode.BRACKETED_PASTE: "bracketed_paste",
         escape.PrivateMode.SYNCHRONIZED_OUTPUT: "synchronized_output",
@@ -366,6 +367,8 @@ class Screen(BaseScreen, RealTerminal):
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
         self.maxrow: int | None = None
+        self._alternate_buffer = False
+        self._mouse_tracking_enabled = False
         self.last_bstate = 0
         self._setup_G1_done = False
         self._rows_used: int | None = None
@@ -458,17 +461,22 @@ class Screen(BaseScreen, RealTerminal):
         After calling this function get_input will include mouse click events along with keystrokes.
         """
         enable = bool(enable)
-        if enable == self.modes.mouse_tracking:
+        if enable == self._mouse_tracking_enabled:
             return
 
         self._mouse_tracking(enable)
-        self.modes.mouse_tracking = enable
 
     def _mouse_tracking(self, enable: bool) -> None:
-        if enable:
-            self.write(escape.MOUSE_TRACKING_ON)
-        else:
-            self.write(escape.MOUSE_TRACKING_OFF)
+        """Write the mouse tracking escape sequences and track `_mouse_tracking_enabled`.
+
+        A no-op when *enable* is True but mouse reporting was detected unsupported -- there is
+        nothing to enable, and the tracked state has to agree.
+        """
+        if enable and self.modes.mouse_reporting is False:
+            self._mouse_tracking_enabled = False
+            return
+        self.write(escape.MOUSE_TRACKING_ON if enable else escape.MOUSE_TRACKING_OFF)
+        self._mouse_tracking_enabled = enable
 
     def _is_real_terminal(self) -> bool:
         """Whether input/output are a real terminal that could answer a DECRQM probe.
@@ -493,7 +501,13 @@ class Screen(BaseScreen, RealTerminal):
         if not self._is_real_terminal():
             return
 
-        modes = [escape.PrivateMode.SYNCHRONIZED_OUTPUT, escape.PrivateMode.GRAPHEME_CLUSTERING]
+        modes = [
+            escape.PrivateMode.SYNCHRONIZED_OUTPUT,
+            escape.PrivateMode.GRAPHEME_CLUSTERING,
+            escape.PrivateMode.ALTERNATE_SCREEN_BUFFER,
+            escape.PrivateMode.MOUSE_REPORTING,
+            escape.PrivateMode.MOUSE_SGR_MODE,
+        ]
         if self.modes.bracketed_paste is None:
             modes.append(escape.PrivateMode.BRACKETED_PASTE)
         if self.modes.focus_reporting is None:
@@ -545,7 +559,7 @@ class Screen(BaseScreen, RealTerminal):
         self._mouse_tracking(False)
 
         move_cursor = ""
-        if self.modes.alternate_buffer:
+        if self._alternate_buffer:
             move_cursor = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position(0, self.maxrow)

@@ -242,6 +242,19 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             self.assertEqual([("mouse press", expected_button, x, y)], actual)
             self.assertListEqual([], rest)
 
+    def test_sgrmouse_extra_buttons(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        # code 128-131 (0b10000000-0b10000011) sets the "extra button" bit, reporting buttons 8-11
+        for code, expected_button in ((0b10000000, 8), (0b10000001, 9), (0b10000010, 10), (0b10000011, 11)):
+            key_code = tuple(ord(element) for element in str(code))
+            codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([("mouse press", expected_button, x, y)], actual)
+            self.assertListEqual([], rest)
+
     def test_mouse_x10_modifiers(self):
         x, y = 8, 15
         coord = (x + 33, y + 33)
@@ -270,6 +283,22 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         keys = [32 + 3, x + 33, y + 33]
         result = escape.input_trie.read_mouse_info(keys, more_available=False)
         self.assertEqual((("mouse release", 0, x, y), []), result)
+
+    def test_mouse_x10_extra_buttons(self):
+        x, y = 8, 15
+        # code 128-131 sets the "extra button" bit, reporting buttons 8-11; bits 0b11 (button 11)
+        # does not mean "release" here, unlike the plain 0b11 case in test_mouse_x10_release
+        for code, expected_button in ((128, 8), (129, 9), (130, 10), (131, 11)):
+            keys = [32 + code, x + 33, y + 33]
+            result = escape.input_trie.read_mouse_info(keys, more_available=False)
+            self.assertEqual((("mouse press", expected_button, x, y), []), result)
+
+    def test_mouse_x10_wheel_button_7_is_not_release(self):
+        x, y = 8, 15
+        # bits 0b11 combined with the "high button" flag (0b1000011 = 64 + 3) is wheel button 7, not a release
+        keys = [32 + 0b1000011, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse press", 7, x, y), []), result)
 
     def test_mouse_x10_double_click(self):
         x, y = 8, 15
