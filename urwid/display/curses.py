@@ -134,7 +134,6 @@ class Screen(BaseScreen, RealTerminal):
 
         :raises NotImplementedError: *enable* is false; tracking cannot be turned off.
         """
-        enable = bool(enable)
         if enable == self._mouse_tracking_enabled:
             return
 

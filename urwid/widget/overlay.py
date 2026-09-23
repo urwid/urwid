@@ -286,8 +286,8 @@ class Overlay(
         if size:
             return super().pack(size, focus)
 
-        extra_cols = (self.left or 0) + (self.right or 0)
-        extra_rows = (self.top or 0) + (self.bottom or 0)
+        extra_cols = self.left + self.right
+        extra_rows = self.top + self.bottom
 
         if self.width_type == WHSettings.PACK:
             cols, rows = self.top_w.pack((), focus)
@@ -356,7 +356,8 @@ class Overlay(
 
         :raises OverlayError: the overlay parameters do not resolve to a row count for the given size.
         """
-        extra_height = (self.top or 0) + (self.bottom or 0)
+        extra_height = self.top + self.bottom
+
         if self.height_type == WHSettings.GIVEN:
             return typing.cast("int", self.height_amount) + extra_height
         if self.height_type == WHSettings.RELATIVE and self.min_height:
@@ -364,7 +365,7 @@ class Overlay(
 
         if self.height_type == WHSettings.PACK:
             top_w = typing.cast("AbstractFlowWidget", self.top_w)
-            extra_height = (self.top or 0) + (self.bottom or 0)
+            extra_height = self.top + self.bottom
             if self.width_type == WHSettings.GIVEN and self.width_amount:
                 return top_w.rows((self.width_amount,), focus) + extra_height
             if self.width_type == WHSettings.RELATIVE:
