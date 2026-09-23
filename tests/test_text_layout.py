@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import sys
+import threading
 import typing
 import unittest
 
@@ -765,3 +767,45 @@ class CalcCoordsTest(unittest.TestCase):
 
     def test_distance_based_closest_match(self):
         self.assertEqual((2, 0), text_layout.calc_coords("A" * 27, [[(2, None), (3, 5, 8)]], 2))
+
+
+class TestTextTranslationCacheThreads(unittest.TestCase):
+    """The translation cache of one Text widget read and refilled from several threads at once.
+
+    Buttons share the class-level ``button_left``/``button_right`` Text widgets, so two threads laying out
+    buttons hit the same cache; each reader has to get the translation for the width it asked for.
+    """
+
+    def test_concurrent_widths(self):
+        # The race window is a few bytecodes wide; the default 5 ms switch interval lets a whole run finish
+        # inside one interval, so the threads have to be forced to interleave.
+        self.addCleanup(sys.setswitchinterval, sys.getswitchinterval())
+        sys.setswitchinterval(1e-6)
+
+        widget = urwid.Text("The quick brown fox jumps over the lazy dog, again and again and again.")
+        widths = (12, 12, 20, 20, 33, 33)
+        expected = {
+            width: text_layout.default_layout.layout(widget.text, width, widget.align, widget.wrap) for width in widths
+        }
+        errors: list[BaseException] = []
+        start = threading.Barrier(len(widths), timeout=30)
+
+        def worker(width: int) -> None:
+            start.wait()
+            for _ in range(20_000):
+                try:
+                    translation = widget.get_line_translation(width)
+                except Exception as exc:  # noqa: BLE001  # collected for the assertion on the test thread
+                    errors.append(exc)
+                    return
+                if translation != expected[width]:
+                    errors.append(AssertionError(f"translation for width {width} is not the one laid out for it"))
+                    return
+
+        threads = [threading.Thread(target=worker, args=(width,)) for width in widths]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(60)
+            self.assertFalse(thread.is_alive(), "worker thread did not finish")
+        self.assertFalse(errors, errors)

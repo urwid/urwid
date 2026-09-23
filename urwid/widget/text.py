@@ -69,7 +69,9 @@ class Text(Widget):
         [('bold', 5)]
         """
         super().__init__()
-        self._cache_maxcol: int | None = None
+        # (maxcol, translation) as one value: a reader either sees a width together with the translation
+        # laid out for it, or nothing, even while another thread is replacing the pair.
+        self._cache: tuple[int, list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]] | None = None
         self._layout: text_layout.TextLayout = layout or text_layout.default_layout
         self._text: str | bytes
         self._attrib: list[tuple[Hashable, int]]
@@ -98,7 +100,7 @@ class Text(Widget):
         return remove_defaults(attrs, Text.__init__)
 
     def _invalidate(self) -> None:
-        self._cache_maxcol = None
+        self._cache = None
         super()._invalidate()
 
     def set_text(self, markup: _TagMarkup) -> None:
@@ -294,21 +296,23 @@ class Text(Widget):
         :param ta: ``None`` or the (*text*, *display attributes*) tuple
                    returned from :meth:`.get_text`
         """
-        if not self._cache_maxcol or self._cache_maxcol != maxcol:
-            self._update_cache_translation(maxcol, ta)
-        return self._cache_translation
+        cache = self._cache
+        if cache is not None and cache[0] == maxcol:
+            return cache[1]
+        return self._update_cache_translation(maxcol, ta)
 
     def _update_cache_translation(
         self,
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None,
-    ) -> None:
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
         if ta:
             text, _attr = ta
         else:
             text, _attr = self.get_text()
-        self._cache_maxcol = maxcol
-        self._cache_translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+        translation = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+        self._cache = (maxcol, translation)
+        return translation
 
     def pack(  # type: ignore[override]
         self,
