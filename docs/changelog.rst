@@ -2,6 +2,18 @@
 Changelog
 ---------
 
+Urwid 4.1.7
+============
+
+2026-09-23
+
+Bug fixes 🕷
+++++++++++++
+* Make Text's line translation cache safe for concurrent readers by @penguinolog in https://github.com/urwid/urwid/pull/1338
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.6...4.1.7
+
 Urwid 4.1.6
 ============
 
