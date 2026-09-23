@@ -16,14 +16,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
         uses: astral-sh/setup-uv@v10.1.0
       - name: Create virtual environment
-        run: uv venv --python-preference only-system
+        run: uv venv
       - name: Install package with all extras
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
