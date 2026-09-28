@@ -20,7 +20,7 @@
 
 
 """
-Urwid tree view
+Urwid tree view.
 
 Features:
 - custom selectable widgets for trees
@@ -87,9 +87,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         super().__init__(widget)
 
     def selectable(self) -> bool:
-        """
-        Allow selection of non-leaf nodes so children may be (un)expanded
-        """
+        """Allow selection of non-leaf nodes so children may be (un)expanded."""
         return not self.is_leaf
 
     def get_indented_widget(self) -> Padding[Text | Columns]:
@@ -103,7 +101,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         return Padding(widget, width=(WHSettings.RELATIVE, 100), left=indent_cols)
 
     def update_expanded_icon(self) -> None:
-        """Update display widget text for parent widgets"""
+        """Update display widget text for parent widgets."""
         # icon is first element in columns indented widget
         icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
         self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
@@ -176,7 +174,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         size: tuple[int] | tuple[()],
         key: str,
     ) -> str | None:
-        """Handle expand & collapse requests (non-leaf nodes)"""
+        """Handle expand & collapse requests (non-leaf nodes)."""
         if self.is_leaf:
             return key
 
@@ -349,13 +347,13 @@ class ParentNode(TreeNode[_T]):
         self._children: dict[Hashable, TreeNode[typing.Any]] = {}
 
     def get_child_keys(self, reload: bool = False) -> Sequence[Hashable]:
-        """Return a possibly ordered list of child keys"""
+        """Return a possibly ordered list of child keys."""
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
         return self._child_keys
 
     def load_child_keys(self) -> Sequence[Hashable]:
-        """Provide ParentNode with an ordered list of child keys (virtual function)
+        """Provide ParentNode with an ordered list of child keys (virtual function).
 
         :raises TreeWidgetError: the subclass does not override this method.
         """
@@ -363,7 +361,6 @@ class ParentNode(TreeNode[_T]):
 
     def get_child_widget(self, key: Hashable) -> TreeWidget[TreeNode[typing.Any]]:
         """Return the widget for a given key.  Create if necessary."""
-
         return self.get_child_node(key).get_widget()
 
     def get_child_node(self, key: Hashable, reload: bool = False) -> TreeNode[typing.Any]:
@@ -373,7 +370,7 @@ class ParentNode(TreeNode[_T]):
         return self._children[key]
 
     def load_child_node(self, key: Hashable) -> TreeNode[typing.Any]:
-        """Load the child node for a given key (virtual function)
+        """Load the child node for a given key (virtual function).
 
         :raises TreeWidgetError: the subclass does not override this method.
         """
@@ -443,9 +440,10 @@ class ParentNode(TreeNode[_T]):
 
 
 class TreeWalker(ListWalker[TreeNode[typing.Any], TreeWidget[TreeNode[typing.Any]]]):
-    """ListWalker-compatible class for displaying TreeWidgets
+    """ListWalker-compatible class for displaying TreeWidgets.
 
-    positions are TreeNodes."""
+    positions are TreeNodes.
+    """
 
     def __init__(self, start_from: TreeNode[typing.Any]) -> None:
         """start_from: TreeNode with the initial focus."""
@@ -482,7 +480,7 @@ class TreeWalker(ListWalker[TreeNode[typing.Any], TreeWidget[TreeNode[typing.Any
 
 
 class TreeListBox(ListBox[TreeNode[typing.Any]]):
-    """A ListBox with special handling for navigation and collapsing of TreeWidgets"""
+    """A ListBox with special handling for navigation and collapsing of TreeWidgets."""
 
     def keypress(
         self,
@@ -494,7 +492,7 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
         return None
 
     def unhandled_input(self, size: tuple[int, int], data: str) -> str | None:
-        """Handle macro-navigation keys"""
+        """Handle macro-navigation keys."""
         if data == "left":
             self.move_focus_to_parent(size)
             return None
@@ -506,7 +504,6 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
 
     def collapse_focus_parent(self, size: tuple[int, int]) -> None:
         """Collapse parent directory."""
-
         _widget, pos = self.body.get_focus()
         self.move_focus_to_parent(size)
 
@@ -516,7 +513,6 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
 
     def move_focus_to_parent(self, size: tuple[int, int]) -> None:
         """Move focus to parent of widget in focus."""
-
         _widget, pos = self.body.get_focus()
 
         parentpos = typing.cast("TreeNode[typing.Any]", pos).get_parent()
@@ -544,14 +540,12 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
 
     def focus_home(self, size: tuple[int, int]) -> None:
         """Move focus to very top."""
-
         _widget, pos = self.body.get_focus()
         rootnode = typing.cast("TreeNode[typing.Any]", pos).get_root()
         self.change_focus(size, rootnode)
 
     def focus_end(self, size: tuple[int, int]) -> None:
         """Move focus to far bottom."""
-
         maxrow, _maxcol = size
         _widget, pos = self.body.get_focus()
 

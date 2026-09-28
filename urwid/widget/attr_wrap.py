@@ -1,3 +1,5 @@
+"""AttrWrap: the deprecated predecessor of AttrMap."""
+
 from __future__ import annotations
 
 import typing
@@ -103,7 +105,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
     def set_attr(self, attr: Hashable) -> None:
         """
-        Set the attribute to apply to the wrapped widget
+        Set the attribute to apply to the wrapped widget.
 
         >> w = AttrWrap(Divider("-"), None)
         >> w.set_attr('new_attr')

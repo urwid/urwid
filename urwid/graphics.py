@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""The PythonLogo widget, and graphics widgets re-exported from :mod:`urwid.widget`."""
+
 from __future__ import annotations
 
 import typing
@@ -78,15 +80,11 @@ class PythonLogo(Widget):
         # fmt: on
 
     def pack(self, size: tuple[()] | None = None, focus: bool = False) -> tuple[int, int]:  # type: ignore[override]
-        """
-        Return the size from our pre-rendered canvas.
-        """
+        """Return the size from our pre-rendered canvas."""
         return self._canvas.cols(), self._canvas.rows()
 
     def render(self, size: tuple[()], focus: bool = False) -> canvas.TextCanvas:  # type: ignore[override]
-        """
-        Return the pre-rendered canvas.
-        """
+        """Return the pre-rendered canvas."""
         fixed_size(size)
         return self._canvas
 

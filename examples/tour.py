@@ -19,8 +19,9 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid tour.  Shows many of the standard widget types and features.
+"""Urwid tour.
+
+Shows many of the standard widget types and features.
 """
 
 from __future__ import annotations

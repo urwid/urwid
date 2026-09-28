@@ -1,3 +1,5 @@
+"""ProgressBar: a flow widget that displays a completion percentage."""
+
 from __future__ import annotations
 
 import typing
@@ -78,9 +80,7 @@ class ProgressBar(Widget):
         self._render_label: Callable[..., TextCanvas] | None = None
 
     def set_completion(self, current: int) -> None:
-        """
-        :param current: current progress
-        """
+        """:param current: current progress"""
         self._current = current
         self._invalidate()
 
@@ -92,9 +92,7 @@ class ProgressBar(Widget):
 
     @done.setter
     def done(self, done: int) -> None:
-        """
-        :param done: progress amount at 100%
-        """
+        """:param done: progress amount at 100%"""
         self._done = done
         self._invalidate()
 
@@ -114,9 +112,7 @@ class ProgressBar(Widget):
         size: tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas:
-        """
-        Render the progress bar.
-        """
+        """Render the progress bar."""
         # pylint: disable=protected-access
         (maxcol,) = size
         label, render_label = self._label, self._render_label

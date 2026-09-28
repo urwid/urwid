@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Text layout: wrapping and aligning text into lines of screen columns."""
+
 from __future__ import annotations
 
 import functools
@@ -390,12 +392,11 @@ class LayoutSegment:
     end: int | None
 
     def __init__(self, seg: _LayoutSegment) -> None:
-        """Create object from line layout segment structure
+        """Create object from line layout segment structure.
 
         :raises TypeError: *seg* is not a tuple, or one of its members has the wrong type.
         :raises ValueError: *seg* does not have 2 or 3 members, or holds an out-of-range screen column count.
         """
-
         if not isinstance(seg, tuple):
             raise TypeError(seg)
 
@@ -667,7 +668,6 @@ def calc_pos(
 
     :raises ValueError: *row* is outside the rows of *layout*.
     """
-
     if row < 0 or row >= len(layout):
         raise ValueError("calculate_pos: out of layout row range")
 

@@ -1,3 +1,5 @@
+"""Edit: a text editing widget, and IntEdit for integers."""
+
 from __future__ import annotations
 
 import string
@@ -56,7 +58,7 @@ class Edit(WidgetWrap[Text]):
 
     def valid_char(self, ch: str) -> bool:
         """
-        Filter for text that may be entered into this widget by the user
+        Filter for text that may be entered into this widget by the user.
 
         :param ch: character to be inserted
 
@@ -164,7 +166,6 @@ class Edit(WidgetWrap[Text]):
         >>> Edit("password:", "seekrit", mask="*").get_text()
         ('password:*******', [])
         """
-
         if self._mask is None:
             return self._caption + self._edit_text, self._attrib  # type: ignore[operator]  # type normalised
 
@@ -187,16 +188,12 @@ class Edit(WidgetWrap[Text]):
         return self.get_text()[1]
 
     def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
-        """
-        Set text alignment mode. See :meth:`Text.set_align_mode` for details.
-        """
+        """Set text alignment mode. See :meth:`Text.set_align_mode` for details."""
         self._w.set_align_mode(mode)
         self._invalidate()
 
     def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
-        """
-        Set text wrapping mode. See :meth:`Text.set_wrap_mode` for details.
-        """
+        """Set text wrapping mode. See :meth:`Text.set_wrap_mode` for details."""
         self._w.set_wrap_mode(mode)
         self._invalidate()
 
@@ -221,7 +218,7 @@ class Edit(WidgetWrap[Text]):
         return self._w.layout
 
     def get_pref_col(self, size: tuple[int]) -> int:
-        """
+        r"""
         Return the preferred column for the cursor, or the
         current cursor x value.  May also return ``'left'`` or ``'right'``
         to indicate the leftmost or rightmost column available.
@@ -242,7 +239,7 @@ class Edit(WidgetWrap[Text]):
         >>> e.keypress(size, "end")
         >>> e.get_pref_col(size)
         <Align.RIGHT: 'right'>
-        >>> e = Edit("", "2\\nwords")
+        >>> e = Edit("", "2\nwords")
         >>> e.keypress(size, "left")
         >>> e.keypress(size, "up")
         >>> e.get_pref_col(size)
@@ -284,9 +281,7 @@ class Edit(WidgetWrap[Text]):
 
     @property
     def caption(self) -> str | bytes:
-        """
-        Read-only property returning the caption for this widget.
-        """
+        """Read-only property returning the caption for this widget."""
         return self._caption
 
     def set_edit_pos(self, pos: int) -> None:
@@ -329,7 +324,6 @@ class Edit(WidgetWrap[Text]):
 
         :param mask: hide text entered with this character, None:disable mask
         """
-
         self._mask = mask
         self._sync_wrapped()
         self._invalidate()
@@ -407,7 +401,7 @@ class Edit(WidgetWrap[Text]):
         self.highlight = None
 
     def _normalize_to_caption(self, text: str | bytes) -> str | bytes:
-        """Return text converted to the same type as self.caption (bytes or unicode)"""
+        """Return text converted to the same type as self.caption (bytes or unicode)."""
         tu = isinstance(text, str)
         cu = isinstance(self._caption, str)
         if tu == cu:
@@ -425,7 +419,6 @@ class Edit(WidgetWrap[Text]):
                      must match the text in the caption
         :raises ValueError: *text* cannot be inserted at the current edit position.
         """
-
         # if there's highlighted text, it'll get replaced by the new text
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         if self.highlight:
@@ -559,12 +552,12 @@ class Edit(WidgetWrap[Text]):
         x: int | Literal[Align.LEFT, Align.RIGHT],
         y: int,
     ) -> bool:
-        """
+        r"""
         Set the cursor position with (x,y) coordinates.
         Returns True if move succeeded, False otherwise.
 
         >>> size = (10,)
-        >>> e = Edit("", "edit\\ntext")
+        >>> e = Edit("", "edit\ntext")
         >>> e.move_cursor_to_coords(size, 5, 0)
         True
         >>> e.edit_pos
@@ -699,10 +692,7 @@ class Edit(WidgetWrap[Text]):
         return self.position_coords(maxcol, self.edit_pos)
 
     def position_coords(self, maxcol: int, pos: int) -> tuple[int, int]:
-        """
-        Return (*x*, *y*) coordinates for an offset into self.edit_text.
-        """
-
+        """Return (*x*, *y*) coordinates for an offset into self.edit_text."""
         p = pos + len(self.caption)
         trans = self.get_line_translation(maxcol)
         x, y = text_layout.calc_coords(self.get_text()[0], trans, p)
@@ -710,12 +700,10 @@ class Edit(WidgetWrap[Text]):
 
 
 class IntEdit(Edit):
-    """Edit widget for integer values"""
+    """Edit widget for integer values."""
 
     def valid_char(self, ch: str) -> bool:
-        """
-        Return true for decimal digits.
-        """
+        """Return true for decimal digits."""
         return len(ch) == 1 and ch in string.digits
 
     def __init__(self, caption: _TagMarkup = "", default: int | str | None = None) -> None:

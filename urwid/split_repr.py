@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Helpers for building a readable ``repr`` of widgets."""
+
 from __future__ import annotations
 
 import typing
@@ -66,7 +68,7 @@ def split_repr(self: Widget) -> str:
 
 def normalize_repr(v: object) -> str:
     """
-    Return dictionary repr sorted by keys, leave others unchanged
+    Return dictionary repr sorted by keys, leave others unchanged.
 
     >>> normalize_repr({1: 2, 3: 4, 5: 6, 7: 8})
     '{1: 2, 3: 4, 5: 6, 7: 8}'

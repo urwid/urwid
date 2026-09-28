@@ -181,7 +181,6 @@ class TrioEventLoop(EventLoop):
         """Starts the event loop. Exits the loop when any callback raises an
         exception. If ExitMainLoop is raised, exits cleanly.
         """
-
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
         try:
@@ -206,7 +205,6 @@ class TrioEventLoop(EventLoop):
 
                 nursery.cancel_scope.cancel()
         """
-
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
         try:

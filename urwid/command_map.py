@@ -17,6 +17,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Mapping of keystrokes to the abstract commands that widgets act on."""
+
 from __future__ import annotations
 
 import enum
@@ -59,7 +61,7 @@ ACTIVATE: typing.Literal[Command.ACTIVATE] = Command.ACTIVATE
 
 class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     """
-    dict-like object for looking up commands from keystrokes
+    dict-like object for looking up commands from keystrokes.
 
     Default values:
 
@@ -121,7 +123,6 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
         :param key: keystroke
         :param command: command aliad. If the alias is `None`, the command is removed from the map.
         """
-
         if command is None:
             if key in self._command:
                 del self._command[key]

@@ -57,9 +57,7 @@ class ExitMainLoop(Exception):
 
 
 class EventLoop(abc.ABC):
-    """
-    Abstract class representing an event loop to be used by :class:`MainLoop`.
-    """
+    """Abstract class representing an event loop to be used by :class:`MainLoop`."""
 
     __slots__ = ("logger",)
 

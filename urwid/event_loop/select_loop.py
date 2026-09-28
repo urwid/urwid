@@ -47,9 +47,7 @@ __all__ = ("SelectEventLoop",)
 
 
 class SelectEventLoop(EventLoop):
-    """
-    Event loop based on :func:`selectors.DefaultSelector.select`
-    """
+    """Event loop based on :func:`selectors.DefaultSelector.select`."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -159,9 +157,7 @@ class SelectEventLoop(EventLoop):
         return True
 
     def _entering_idle(self) -> None:
-        """
-        Call all the registered idle callbacks.
-        """
+        """Call all the registered idle callbacks."""
         for callback in self._idle_callbacks.values():
             callback()
 
@@ -177,9 +173,7 @@ class SelectEventLoop(EventLoop):
                     self._loop()
 
     def _loop(self) -> None:
-        """
-        A single iteration of the event loop
-        """
+        """A single iteration of the event loop."""
         tm: float | Literal["idle"] | None = None
 
         with selectors.DefaultSelector() as selector:

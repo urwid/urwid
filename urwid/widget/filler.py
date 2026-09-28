@@ -1,3 +1,5 @@
+"""Filler: a decoration that lets a flow widget be used as a box widget."""
+
 from __future__ import annotations
 
 import typing

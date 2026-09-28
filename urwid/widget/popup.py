@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Pop-up support: a launcher widget and the target that displays its pop-up."""
+
 from __future__ import annotations
 
 import typing

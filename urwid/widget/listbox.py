@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""ListBox: a scrolling box container of widgets supplied by a list walker."""
+
 from __future__ import annotations
 
 import operator
@@ -109,7 +111,8 @@ class VisibleInfoTopBottom(typing.NamedTuple):
     ) -> Self:
         """Construct from not typed data.
 
-        Useful for overridden cases."""
+        Useful for overridden cases.
+        """
         return cls(trim=trim, fill=[VisibleInfoFillItem(*item) for item in fill])  # pragma: no cover
 
 
@@ -137,9 +140,7 @@ class VisibleInfo(typing.NamedTuple):
 
 
 class ListBox(Widget, WidgetContainerMixin[_K]):
-    """
-    Vertically stacked list of widgets
-    """
+    """Vertically stacked list of widgets."""
 
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
@@ -206,7 +207,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     @property
     def body(self) -> ListWalker[_K, AbstractFlowWidget]:
         """
-        a ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
+        A ListWalker subclass such as :class:`SimpleFocusListWalker` that contains
         widgets to be displayed inside the list box
         """
         return typing.cast("ListWalker[_K, AbstractFlowWidget]", self._body)
@@ -623,9 +624,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         return final_canvas
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
-        """
-        See :meth:`Widget.get_cursor_coords` for details
-        """
+        """See :meth:`Widget.get_cursor_coords` for details."""
         (maxcol, maxrow) = size
 
         middle, _top, _bottom = self.calculate_visible((maxcol, maxrow), True)
@@ -698,7 +697,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     @property
     def focus(self) -> AbstractFlowWidget | None:
         """
-        the child widget in focus or None when ListBox is empty.
+        The child widget in focus or None when ListBox is empty.
 
         Return the widget in focus according to our :obj:`list walker <ListWalker>`.
         """
@@ -1891,7 +1890,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         the focus up to the top.  This is the best we can do with
         a minimal list walker implementation.
         """
-
         if positions_fn := getattr(self._body, "positions", None):
             yield from positions_fn()
             return
@@ -1922,7 +1920,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         reverse of what `__iter__()` produces, but this is the best we can
         do with a minimal list walker implementation.
         """
-
         if positions_fn := getattr(self._body, "positions", None):
             yield from positions_fn(reverse=True)
             return

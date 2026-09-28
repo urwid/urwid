@@ -1,3 +1,5 @@
+"""Mixins that give container widgets their common API."""
+
 from __future__ import annotations
 
 import abc
@@ -86,9 +88,7 @@ class _ContainerElementSizingFlag(enum.IntEnum):
 
 
 class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
-    """
-    Mixin class for widget containers implementing common container methods
-    """
+    """Mixin class for widget containers implementing common container methods."""
 
     def __getitem__(self, position: _KT_contra) -> AbstractWidget:
         """
@@ -190,21 +190,17 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     @property
     @abc.abstractmethod
     def contents(self) -> MutableSequence[_ContentsItem]:
-        """The contents of container as a list of (widget, options)"""
+        """The contents of container as a list of (widget, options)."""
 
     @contents.setter
     def contents(self, new_contents: Sequence[_ContentsItem]) -> None:
-        """The contents of container as a list of (widget, options)"""
+        """The contents of container as a list of (widget, options)."""
 
     @property
     @abc.abstractmethod
     def focus_position(self) -> int | None:
-        """
-        index of child widget in focus.
-        """
+        """Index of child widget in focus."""
 
     @focus_position.setter
     def focus_position(self, position: int) -> None:
-        """
-        index of child widget in focus.
-        """
+        """Index of child widget in focus."""

@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Character width calculation and byte-string decoding for screen layout."""
+
 from __future__ import annotations
 
 import re
@@ -174,7 +176,7 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
 
 def decode_one_uni(text: str, i: int) -> tuple[int, int]:
     """
-    decode_one implementation for unicode strings
+    decode_one implementation for unicode strings.
 
     .. deprecated:: 4.1.4
         Not used by the urwid code base; there is no replacement.
@@ -318,7 +320,6 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
 
     :raises ValueError: *start_offs* is past *end_offs*.
     """
-
     if start_offs > end_offs:
         msg = f"{start_offs=} > {end_offs=}"
         raise ValueError(msg)

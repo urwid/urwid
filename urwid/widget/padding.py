@@ -1,3 +1,5 @@
+"""Padding: a decoration that adds blank columns to the left and right of a widget."""
+
 from __future__ import annotations
 
 import typing
@@ -56,7 +58,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         left: int = 0,
         right: int = 0,
     ) -> None:
-        """
+        r"""
         :param w: a box, flow or fixed widget to pad on the left and/or right
             this widget is stored as self.original_widget
 
@@ -115,7 +117,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         >>> pr(p)  # align against right
         |    12 |
         |    34 |
-        >>> pr(Padding(Text("hi\\nthere"), "right", "pack"))  # pack text first
+        >>> pr(Padding(Text("hi\nthere"), "right", "pack"))  # pack text first
         |  hi   |
         |  there|
         >>> pr(Padding(BigText("1,2,3", FontRegistry["Thin 3x3"]()), width="clip"))
@@ -203,18 +205,14 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     def align(
         self,
     ) -> Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]:
-        """
-        Return the padding alignment setting.
-        """
+        """Return the padding alignment setting."""
         return simplify_align(self._align_type, self._align_amount)
 
     @align.setter
     def align(
         self, align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
     ) -> None:
-        """
-        Set the padding alignment.
-        """
+        """Set the padding alignment."""
         self._align_type, self._align_amount = normalize_align(align, PaddingError)
         self._invalidate()
 
@@ -222,9 +220,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     def width(
         self,
     ) -> Literal[WHSettings.CLIP, WHSettings.PACK] | int | tuple[Literal[WHSettings.RELATIVE], int]:
-        """
-        Return the padding width.
-        """
+        """Return the padding width."""
         return simplify_width(self._width_type, self._width_amount)
 
     @width.setter
@@ -236,9 +232,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             | tuple[Literal["relative", WHSettings.RELATIVE], int]
         ),
     ) -> None:
-        """
-        Set the padding width.
-        """
+        """Set the padding width."""
         self._width_type, self._width_amount = normalize_width(width, PaddingError)
         self._invalidate()
 

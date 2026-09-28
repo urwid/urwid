@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""The base Widget class, its metaclass, and the protocols of the widget API."""
+
 from __future__ import annotations
 
 import abc
@@ -69,7 +71,7 @@ class WidgetMeta(
     MetaSuper,
 ):
     """
-    Bases: :class:`MetaSuper`, :class:`MetaSignals`
+    Bases: :class:`MetaSuper`, :class:`MetaSignals`.
 
     Automatic caching of render and rows methods.
 
@@ -309,9 +311,7 @@ def validate_size(
 def cache_widget_render(
     cls: WidgetMeta,
 ) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
-    """
-    Return a function that wraps the cls.render() method and fetches and stores canvases with CanvasCache.
-    """
+    """Return a function that wraps the cls.render() method and fetches and stores canvases with CanvasCache."""
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.render
 
@@ -392,9 +392,7 @@ def nocache_widget_render_instance(
 
 
 def cache_widget_rows(cls: WidgetMeta) -> Callable[[AbstractWidget, tuple[int], bool], int]:
-    """
-    Return a function that wraps the cls.rows() method and returns rows from the CanvasCache if available.
-    """
+    """Return a function that wraps the cls.rows() method and returns rows from the CanvasCache if available."""
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
     fn = cls.rows
 
@@ -416,7 +414,7 @@ def cache_widget_rows(cls: WidgetMeta) -> Callable[[AbstractWidget, tuple[int], 
 
 class Widget(AbstractWidget, metaclass=WidgetMeta):
     """
-    Widget base class
+    Widget base class.
 
     .. attribute:: _selectable
        :annotation: = False
@@ -747,7 +745,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        """Render widget and produce canvas
+        """Render widget and produce canvas.
 
         :param size: One of the following, *maxcol* and *maxrow* are integers > 0:
 
@@ -790,7 +788,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
 
 def fixed_size(size: tuple[()]) -> None:
     """
-    raise ValueError if size != ().
+    Raise ValueError if size != ().
 
     Used by FixedWidgets to test size parameter.
 

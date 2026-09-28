@@ -96,9 +96,7 @@ class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
 
 
 class TwistedEventLoop(EventLoop):
-    """
-    Event loop based on Twisted_
-    """
+    """Event loop based on Twisted_."""
 
     _idle_emulation_delay = 1.0 / 256  # a short time (in seconds)
 

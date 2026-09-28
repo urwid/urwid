@@ -1,3 +1,5 @@
+"""LineBox: a decoration that draws a line border and title around a widget."""
+
 from __future__ import annotations
 
 import typing
@@ -106,7 +108,6 @@ class LineBox(
 
         :raises ValueError: a *title* is given while *tline* is empty, or *title_align* is not a supported alignment.
         """
-
         w_lline = SolidFill(lline)
         w_rline = SolidFill(rline)
 

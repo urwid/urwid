@@ -19,6 +19,8 @@
 # Re-licensed from gpl-3.0 with author permission.
 # Permission comment link: https://github.com/markqvist/NomadNet/pull/46#issuecomment-1892712616
 
+"""Scrollable and ScrollBar: decorations that scroll a box widget."""
+
 from __future__ import annotations
 
 import contextlib
@@ -129,7 +131,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return True
 
     def __init__(self, widget: WrappedScrollWidget, force_forward_keypress: bool = False) -> None:
-        """Box widget that makes a fixed or flow widget vertically scrollable
+        """Box widget that makes a fixed or flow widget vertically scrollable.
 
         .. note::
             Focusable widgets are handled, including switching focus, but possibly not intuitively,
@@ -347,7 +349,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return False
 
     def _adjust_trim_top(self, canv: Canvas, size: tuple[int, int]) -> None:
-        """Adjust self._trim_top according to self._scroll_action"""
+        """Adjust self._trim_top according to self._scroll_action."""
         action = self._scroll_action
         self._scroll_action = None
 
@@ -421,7 +423,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return self._trim_top
 
     def set_scrollpos(self, position: typing.SupportsInt) -> None:
-        """Set scrolling position
+        """Set scrolling position.
 
         If `position` is positive it is interpreted as lines from the top.
         If `position` is negative it is interpreted as lines from the bottom.
@@ -432,7 +434,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         self._invalidate()
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Return the number of rows for `size`
+        """Return the number of rows for `size`.
 
         If `size` is not given, the currently rendered number of rows is returned.
 
@@ -488,7 +490,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         side: Literal["left", "right"] = SCROLLBAR_RIGHT,  # type: ignore[assignment]  # constant
         width: int = 1,
     ) -> None:
-        """Box widget that adds a scrollbar to `widget`
+        """Box widget that adds a scrollbar to `widget`.
 
         `widget` must be a box widget with the following methods:
           - `get_scrollpos` takes the arguments `size` and `focus` and returns the index of the first visible row.
@@ -652,7 +654,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @property
     def scrollbar_width(self) -> int:
-        """Columns the scrollbar uses"""
+        """Columns the scrollbar uses."""
         return max(1, self._scrollbar_width)
 
     @scrollbar_width.setter
@@ -662,7 +664,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @property
     def scrollbar_side(self) -> Literal["left", "right"]:
-        """Where to display the scrollbar; must be 'left' or 'right'"""
+        """Where to display the scrollbar; must be 'left' or 'right'."""
         return self._scrollbar_side
 
     @scrollbar_side.setter
@@ -679,11 +681,10 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @property
     def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
-        """Nearest `original_widget` that is compatible with the scrolling API
+        """Nearest `original_widget` that is compatible with the scrolling API.
 
         :raises ScrollableError: no wrapped widget supports the scrolling protocol.
         """
-
         w = self
 
         for w in orig_iter(self):  # type: ignore[assignment]

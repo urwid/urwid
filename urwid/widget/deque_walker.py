@@ -17,6 +17,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""List walkers backed by a monitored deque."""
+
 from __future__ import annotations
 
 import typing

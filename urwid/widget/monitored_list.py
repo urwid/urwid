@@ -17,6 +17,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Lists that call a callback when their contents or focus change."""
+
 from __future__ import annotations
 
 import functools
@@ -66,13 +68,13 @@ class MonitoredList(list[_T], typing.Generic[_T]):
             self._modified_callback()
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
-        """
+        r"""
         Assign a callback function with no parameters that is called any
         time the list is modified.  Callback's return value is ignored.
 
         >>> import sys
         >>> ml = MonitoredList([1, 2, 3])
-        >>> ml.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
+        >>> ml.set_modified_callback(lambda: sys.stdout.write("modified\n"))
         >>> ml
         MonitoredList([1, 2, 3])
         >>> ml.append(10)
@@ -199,7 +201,6 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([], focus=None)
         """
-
         super().__init__(*args, **kwargs)
 
         self._focus = focus
@@ -267,14 +268,14 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             self._focus_changed_callback(new_focus)
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
-        """
+        r"""
         Assign a callback to be called when the focus index changes for any reason.
 
         :param callback: a callable in the form ``callback(new_focus)``, where ``new_focus`` is the new focus index.
 
         >>> import sys
         >>> ml = MonitoredFocusList([1, 2, 3], focus=1)
-        >>> ml.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\\n" % (f,)))
+        >>> ml.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\n" % (f,)))
         >>> ml
         MonitoredFocusList([1, 2, 3], focus=1)
         >>> ml.append(10)

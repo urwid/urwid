@@ -17,6 +17,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Deques that call a callback when their contents or focus change."""
+
 from __future__ import annotations
 
 import collections
@@ -95,13 +97,13 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
             self._modified_callback()
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
-        """
+        r"""
         Assign a callback function with no parameters that is called any
         time the deque is modified.  Callback's return value is ignored.
 
         >>> import sys
         >>> md = MonitoredDeque([1, 2, 3])
-        >>> md.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
+        >>> md.set_modified_callback(lambda: sys.stdout.write("modified\n"))
         >>> md
         MonitoredDeque([1, 2, 3])
         >>> md.append(10)
@@ -118,7 +120,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         Eviction from a bounded deque still fires the callback exactly once:
 
         >>> bounded = MonitoredDeque([1, 2, 3], maxlen=3)
-        >>> bounded.set_modified_callback(lambda: sys.stdout.write("modified\\n"))
+        >>> bounded.set_modified_callback(lambda: sys.stdout.write("modified\n"))
         >>> bounded.append(4)
         modified
         >>> bounded
@@ -346,7 +348,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             self._focus_changed_callback(new_focus)
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
-        """Assign a callback to be called when the focus index changes for any reason.
+        r"""Assign a callback to be called when the focus index changes for any reason.
 
         The callback is called as ``callback(new_focus)``.
 
@@ -354,7 +356,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
 
         >>> import sys
         >>> mfd = MonitoredFocusDeque([1, 2, 3], focus=1)
-        >>> mfd.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\\n" % (f,)))
+        >>> mfd.set_focus_changed_callback(lambda f: sys.stdout.write("focus: %d\n" % (f,)))
         >>> mfd.insert(1, 11)
         focus: 2
         >>> mfd

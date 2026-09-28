@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Example: a button that opens a pop-up dialog attached to it."""
+
 from __future__ import annotations
 
 import typing

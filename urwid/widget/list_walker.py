@@ -17,6 +17,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""List walkers: the objects that supply widgets to a ListBox."""
+
 from __future__ import annotations
 
 import typing

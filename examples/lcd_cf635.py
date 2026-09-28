@@ -148,9 +148,7 @@ class LCDProgressBar(urwid.Widget):
 
 
 class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
-    """
-    A slider control using custom CGRAM characters
-    """
+    """A slider control using custom CGRAM characters"""
 
     def __init__(self, data_range: int, value: int, callback: Callable[[int], None]) -> None:
         self.bar = LCDProgressBar(data_range, value)
@@ -176,9 +174,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
 
 
 class MenuOption(urwid.Button):
-    """
-    A menu option, indicated with a single arrow character
-    """
+    """A menu option, indicated with a single arrow character"""
 
     def __init__(self, label: str, submenu: Menu) -> None:
         super().__init__("")

@@ -1,3 +1,5 @@
+"""Frame: a container with a body and an optional header and footer."""
+
 from __future__ import annotations
 
 import typing
@@ -255,7 +257,7 @@ class Frame(
     @property
     def focus_position(self) -> Literal["header", "footer", "body"]:
         """
-        writeable property containing an indicator which part of the frame
+        Writeable property containing an indicator which part of the frame
         that is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
@@ -279,7 +281,7 @@ class Frame(
 
     def get_focus(self) -> Literal["header", "footer", "body"]:
         """
-        writeable property containing an indicator which part of the frame
+        Writeable property containing an indicator which part of the frame
         that is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
@@ -319,8 +321,9 @@ class Frame(
     @property
     def focus(self) -> BodyWidget | HeaderWidget | FooterWidget:
         """
-        child :class:`Widget` in focus: the body, header or footer widget.
-        This is a read-only property."""
+        Child :class:`Widget` in focus: the body, header or footer widget.
+        This is a read-only property.
+        """
         return {  # type: ignore[return-value]
             "header": self._header,
             "footer": self._footer,
@@ -335,7 +338,7 @@ class Frame(
         tuple[BodyWidget | HeaderWidget | FooterWidget, None],
     ]:
         """
-        a dict-like object similar to::
+        A dict-like object similar to::
 
             {
                 "body": (body_widget, None),
@@ -691,9 +694,7 @@ class Frame(
         return x, y + row_adjust
 
     def __iter__(self) -> Iterator[Literal["header", "body", "footer"]]:
-        """
-        Return an iterator over the positions in this Frame top to bottom.
-        """
+        """Return an iterator over the positions in this Frame top to bottom."""
         if self._header:
             yield "header"
         yield "body"
@@ -701,9 +702,7 @@ class Frame(
             yield "footer"
 
     def __reversed__(self) -> Iterator[Literal["footer", "body", "header"]]:
-        """
-        Return an iterator over the positions in this Frame bottom to top.
-        """
+        """Return an iterator over the positions in this Frame bottom to top."""
         if self._footer:
             yield "footer"
         yield "body"

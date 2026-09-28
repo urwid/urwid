@@ -1,3 +1,5 @@
+"""BoxAdapter: a decoration that lets a box widget be used as a flow widget."""
+
 from __future__ import annotations
 
 import typing
@@ -20,15 +22,13 @@ class BoxAdapterError(WidgetError):
 
 
 class BoxAdapter(WidgetDecoration[WrappedWidget]):
-    """
-    Adapter for using a box widget where a flow widget would usually go
-    """
+    """Adapter for using a box widget where a flow widget would usually go."""
 
     no_cache: typing.ClassVar[list[str]] = ["rows"]
 
     def __init__(self, box_widget: WrappedWidget, height: int) -> None:
         """
-        Create a flow widget that contains a box widget
+        Create a flow widget that contains a box widget.
 
         :param box_widget: box widget to wrap
         :param height: number of rows for box widget
@@ -84,7 +84,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """
-        Return the predetermined height (behave like a flow widget)
+        Return the predetermined height (behave like a flow widget).
 
         >>> from urwid import SolidFill
         >>> BoxAdapter(SolidFill("x"), 5).rows((20,))
@@ -144,7 +144,5 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         return canv
 
     def __getattr__(self, name: str) -> typing.Any:
-        """
-        Pass calls to box widget.
-        """
+        """Pass calls to box widget."""
         return getattr(self.original_widget, name)

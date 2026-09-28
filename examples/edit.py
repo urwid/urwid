@@ -98,7 +98,6 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
     def _get_at_pos(self, pos: int) -> tuple[urwid.Edit, int] | tuple[None, None]:
         """Return a widget for the line number passed."""
-
         if pos < 0:
             # line 0 is the start of the file, no more above
             return None, None
@@ -119,7 +118,6 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
     def split_focus(self) -> None:
         """Divide the focus edit widget at the cursor location."""
-
         focus = self.lines[self.focus]
         pos = focus.edit_pos
         edit = urwid.Edit("", focus.edit_text[pos:], allow_tab=True)
@@ -130,7 +128,6 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
     def combine_focus_with_prev(self) -> None:
         """Combine the focus edit widget with the one above."""
-
         above, _ = self.get_prev(self.focus)
         if above is None:
             # already at the top
@@ -144,7 +141,6 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
 
     def combine_focus_with_next(self) -> None:
         """Combine the focus edit widget with the one below."""
-
         below, _ = self.get_next(self.focus)
         if below is None:
             # already at bottom
@@ -193,7 +189,6 @@ class EditDisplay:
 
     def unhandled_keypress(self, k: str | tuple[str, int, int, int]) -> bool | None:
         """Last resort for keypresses."""
-
         if k == "f5":
             self.save_file()
         elif k == "f8":
@@ -225,7 +220,6 @@ class EditDisplay:
 
     def save_file(self) -> None:
         """Write the file out to disk."""
-
         lines = []
         walk = self.walker
         for edit in walk.lines:

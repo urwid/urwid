@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
@@ -195,9 +193,7 @@ class Screen(_raw_display_base.Screen):
         super()._stop()  # type: ignore[safe-super]
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
-        """
-        Remove any hooks added by hook_event_loop.
-        """
+        """Remove any hooks added by hook_event_loop."""
         if self._input_thread is not None:
             self._input_thread.should_exit = True
 

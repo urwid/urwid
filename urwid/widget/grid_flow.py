@@ -1,3 +1,5 @@
+"""GridFlow: a container that flows widgets of equal width into a grid."""
+
 from __future__ import annotations
 
 import typing
@@ -289,7 +291,7 @@ class GridFlow(
 
     @property
     def focus(self) -> AbstractFlowWidget | None:
-        """the child widget in focus or None when GridFlow is empty"""
+        """The child widget in focus or None when GridFlow is empty."""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
@@ -362,7 +364,7 @@ class GridFlow(
     @property
     def focus_position(self) -> int:
         """
-        index of child widget in focus.
+        Index of child widget in focus.
         Raises :exc:`IndexError` if read when GridFlow is empty, or when set to an invalid index.
 
         :raises IndexError: the GridFlow is empty.
@@ -422,9 +424,7 @@ class GridFlow(
         return self._w
 
     def generate_display_widget(self, size: tuple[int] | tuple[()]) -> Divider | Pile:
-        """
-        Actually generate display widget (ignoring cache)
-        """
+        """Actually generate display widget (ignoring cache)."""
         maxcol = self._get_maxcol(size)
 
         divider = Divider()
@@ -482,9 +482,7 @@ class GridFlow(
         return p
 
     def _set_focus_from_display_widget(self) -> None:
-        """
-        Set the focus to the item in focus in the display widget.
-        """
+        """Set the focus to the item in focus in the display widget."""
         # display widget (self._w) is always built as:
         #
         # Pile([

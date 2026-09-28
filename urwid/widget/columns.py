@@ -1,3 +1,5 @@
+"""Columns: a container that places widgets side by side."""
+
 from __future__ import annotations
 
 import typing
@@ -64,9 +66,7 @@ class Columns(
         ]
     ],
 ):
-    """
-    Widgets arranged horizontally in columns from left to right
-    """
+    """Widgets arranged horizontally in columns from left to right."""
 
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
@@ -759,7 +759,7 @@ class Columns(
 
     @property
     def focus(self) -> AbstractWidget | None:
-        """the child widget in focus or None when Columns is empty"""
+        """The child widget in focus or None when Columns is empty."""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
@@ -786,7 +786,7 @@ class Columns(
     @property
     def focus_position(self) -> int:
         """
-        index of child widget in focus.
+        Index of child widget in focus.
         Raises :exc:`IndexError` if read when Columns is empty, or when set to an invalid index.
 
         :raises IndexError: the Columns is empty.
@@ -956,7 +956,7 @@ class Columns(
         self,
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get column widths, heights and render size parameters
+        """Get column widths, heights and render size parameters.
 
         :raises ColumnsError: a child widget does not support a sizing mode this Columns needs, or no child can provide
             a height.
@@ -1046,7 +1046,7 @@ class Columns(
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get column widths, heights and render size parameters"""
+        """Get column widths, heights and render size parameters."""
         if not size:
             return self._get_fixed_column_sizes(focus=focus)
 

@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Encoding detection and conversion, run-length encoding and markup helpers."""
+
 from __future__ import annotations
 
 import contextlib
@@ -305,9 +307,7 @@ def trim_text_attr_cs(
     start_col: int,
     end_col: int,
 ) -> tuple[bytes, list[tuple[Hashable, int]], list[tuple[Hashable, int]]]:
-    """
-    Return ( trimmed text, trimmed attr, trimmed cs ).
-    """
+    """Return ( trimmed text, trimmed attr, trimmed cs )."""
     spos, epos, pad_left, pad_right = calc_trim_text(text, 0, len(text), start_col, end_col)
     attrtr = rle_subseg(attr, spos, epos)
     cstr = rle_subseg(cs, spos, epos)
@@ -327,9 +327,7 @@ def rle_get_at(
     rle: Iterable[tuple[Hashable, int]],
     pos: int,
 ) -> Hashable | None:
-    """
-    Return the attribute at offset pos.
-    """
+    """Return the attribute at offset pos."""
     x = 0
     if pos < 0:
         return None
@@ -375,7 +373,6 @@ def rle_len(
 
     :raises TypeError: an item of *rle* is not a ``(value, run length)`` tuple.
     """
-
     run = 0
     for v in rle:
         if not isinstance(v, tuple):
@@ -486,7 +483,6 @@ class TagMarkupException(Exception):
 
 def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
     """Return (text string, attribute list) for tagmarkup passed."""
-
     tl, al = _tagmarkup_recurse(tm, None)
     # join as str or bytes based on type of first element
     text: str | bytes
@@ -515,7 +511,6 @@ def _tagmarkup_recurse(
     :param attr: current attribute or None
     :raises TagMarkupException: an element is neither text nor an ``(attribute, tagmarkup)`` pair.
     """
-
     if isinstance(tm, list):
         # for lists recurse to process each subelement
         rtl: list[str | bytes] = []

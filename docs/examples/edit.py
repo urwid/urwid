@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Run the edit.py example on a fixed file to take its documentation screenshots."""
+
 from __future__ import annotations
 
 import os

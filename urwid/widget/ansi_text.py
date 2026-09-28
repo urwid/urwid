@@ -40,7 +40,7 @@ __all__ = ("ANSIText",)
 
 
 class ANSIText(WidgetWrap[Text]):
-    """A read-only widget interpreting ANSI/VT100 colour, horizontal and (optionally) vertical movement escapes.
+    r"""A read-only widget interpreting ANSI/VT100 colour, horizontal and (optionally) vertical movement escapes.
 
     It acts almost exactly like a read-only :class:`~urwid.Text` widget for the resolved, escape-free content.
 
@@ -50,7 +50,7 @@ class ANSIText(WidgetWrap[Text]):
     :class:`~urwid.Text` for the same resolved characters, without needing to forward those calls by hand.
 
     By default (``one_line=False``), a newline genuinely starts a new row, ``CSI n A``/``B`` genuinely moves the
-    cursor up/down between rows, and a bare ``\\r`` genuinely overwrites the current row in place (letting
+    cursor up/down between rows, and a bare ``\r`` genuinely overwrites the current row in place (letting
     progress-bar-style redraw sequences resolve correctly) -- ``ansi_text`` is treated as a single, complete block,
     meant to render one already-complete captured screen/block.
 
@@ -66,9 +66,9 @@ class ANSIText(WidgetWrap[Text]):
 
     >>> ANSIText("hello")
     <ANSIText fixed/flow widget 'hello'>
-    >>> ANSIText("a\\nb").text
-    'a\\nb'
-    >>> ANSIText("a\\nb", one_line=True).text
+    >>> ANSIText("a\nb").text
+    'a\nb'
+    >>> ANSIText("a\nb", one_line=True).text
     'a'
     """
 
@@ -127,14 +127,12 @@ class ANSIText(WidgetWrap[Text]):
         return markup
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """
-        :returns: (*text*, *display attributes*), see :meth:`urwid.Text.get_text`.
-        """
+        """:returns: (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
         return self._w.get_text()
 
     @property
     def text(self) -> str | bytes:
-        """Read-only property returning the resolved, escape-free text of this widget (may contain ``\\n``)."""
+        r"""Read-only property returning the resolved, escape-free text of this widget (may contain ``\n``)."""
         return self.get_text()[0]
 
     @property

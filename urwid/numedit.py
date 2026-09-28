@@ -19,6 +19,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Edit widgets that accept only integer or decimal numbers."""
+
 from __future__ import annotations
 
 import decimal
@@ -35,7 +37,7 @@ if typing.TYPE_CHECKING:
 
 
 class NumEdit(Edit):
-    """NumEdit - edit numerical types
+    """NumEdit - edit numerical types.
 
     based on the characters in 'allowed' different numerical types
     can be edited:
@@ -83,9 +85,7 @@ class NumEdit(Edit):
             self._trim_leading_zeros = trimLeadingZeros
 
     def valid_char(self, ch: str) -> bool:
-        """
-        Return true for allowed characters.
-        """
+        """Return true for allowed characters."""
         if len(ch) == 1:
             if ch.upper() in self._allowed:
                 return True
@@ -141,7 +141,7 @@ class NumEdit(Edit):
 
 
 class IntegerEdit(NumEdit):
-    """Edit widget for integer values"""
+    """Edit widget for integer values."""
 
     def __init__(
         self,
@@ -375,9 +375,7 @@ class FloatEdit(NumEdit):
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
     def value(self) -> decimal.Decimal | None:
-        """
-        Return the numeric value of self.edit_text.
-        """
+        """Return the numeric value of self.edit_text."""
         if self.edit_text:
             normalized = decimal.Decimal(self.edit_text.replace(self._decimal_separator, "."))
             if self.significance is not None:

@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
@@ -393,9 +391,7 @@ class Screen(BaseScreen, RealTerminal):
         return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
 
     def _sigwinch_handler(self, signum: int = _SIGWINCH, frame: FrameType | None = None) -> None:
-        """
-        :param frame: will always be None when the GLib event loop is being used.
-        """
+        """:param frame: will always be None when the GLib event loop is being used."""
         logger = self.logger.getChild("signal_handlers")
 
         logger.debug(f"SIGWINCH handler called with signum={signum!r}, frame={frame!r}")
@@ -583,9 +579,7 @@ class Screen(BaseScreen, RealTerminal):
 
     @abc.abstractmethod
     def _stop(self) -> None:
-        """
-        Restore the screen.
-        """
+        """Restore the screen."""
 
     def write(self, data: str) -> None:
         """Write some data to the terminal.
@@ -610,7 +604,7 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
-        """Return pending input as a list.
+        r"""Return pending input as a list.
 
         :param raw_keys: return raw keycodes as well as translated versions
         :raises RuntimeError: the screen has not been started.
@@ -634,15 +628,15 @@ class Screen(BaseScreen, RealTerminal):
 
         When a narrow encoding is not enabled:
 
-        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+        * "Extended ASCII" characters:  "\xa1", "\xb2", "\xfe"
 
         When a wide encoding is enabled:
 
-        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+        * Double-byte characters:  "\xa1\xea", "\xb2\xd4"
 
         When utf8 encoding is enabled:
 
-        * Unicode characters: u"\\u00a5", u'\\u253c"
+        * Unicode characters: u"\u00a5", u'\u253c"
 
         Examples of mouse events returned:
 
@@ -709,9 +703,7 @@ class Screen(BaseScreen, RealTerminal):
 
     @abc.abstractmethod
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
-        """
-        Remove any hooks added by hook_event_loop.
-        """
+        """Remove any hooks added by hook_event_loop."""
 
     @abc.abstractmethod
     def hook_event_loop(
@@ -734,9 +726,7 @@ class Screen(BaseScreen, RealTerminal):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> Callable[[], None]:
-        """
-        Support old Screen classes that still have a get_input_nonblocking and expect it to work.
-        """
+        """Support old Screen classes that still have a get_input_nonblocking and expect it to work."""
 
         @functools.wraps(callback)
         def wrapper() -> None:
@@ -815,7 +805,6 @@ class Screen(BaseScreen, RealTerminal):
         `codes` should be a sequence of keycodes, i.e. bytes.  A bytearray is
         appropriate, but beware of using bytes, which only iterates as integers on Python 3.
         """
-
         logger = self.logger.getChild("parse_input")
 
         # Note: event_loop may be None for 100% synchronous support, only used
@@ -888,9 +877,7 @@ class Screen(BaseScreen, RealTerminal):
         return self._read_raw_input(0)
 
     def _setup_G1(self) -> None:
-        """
-        Initialize the G1 character set to graphics mode if required.
-        """
+        """Initialize the G1 character set to graphics mode if required."""
         if self._setup_G1_done:
             return
 
@@ -1128,7 +1115,6 @@ class Screen(BaseScreen, RealTerminal):
         character on a two column screen, there is no Y to draw after Z.
         The row is then returned untouched and no insert sequence is produced.
         """
-
         new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
@@ -1178,7 +1164,7 @@ class Screen(BaseScreen, RealTerminal):
         return self._attrspec_to_escape(AttrSpec("default", "default"))
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
-        """
+        r"""
         Convert AttrSpec instance a to an escape sequence for the terminal
 
         >>> from urwid.display.raw import Screen  # this class is abstract
@@ -1186,9 +1172,9 @@ class Screen(BaseScreen, RealTerminal):
         >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape
         >>> a2e(s.AttrSpec("brown", "dark green"))
-        '\\x1b[0;33;42m'
+        '\x1b[0;33;42m'
         >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
-        '\\x1b[0;38;5;229;4;48;5;164m'
+        '\x1b[0;38;5;229;4;48;5;164m'
         """
         if self.term == "fbterm":
             fg = escape.ESC + f"[1;{a.foreground_number:d}}}"
@@ -1290,16 +1276,15 @@ class Screen(BaseScreen, RealTerminal):
         self.modify_terminal_palette(entries)
 
     def modify_terminal_palette(self, entries: list[tuple[int, int | None, int | None, int | None]]) -> None:
-        """
-        entries - list of (index, red, green, blue) tuples.
+        """Attempt to set part of the terminal palette (this does not work on all terminals.)
 
-        Attempt to set part of the terminal palette (this does not work on all terminals.)
         The changes are sent as a single escape sequence so they should all take effect at the same time.
 
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256
-        """
 
+        :param entries: list of (index, red, green, blue) tuples.
+        """
         if self.term == "fbterm":
             modify = [f"{index:d};{red:d};{green:d};{blue:d}" for index, red, green, blue in entries]
             self.write(f"\x1b[3;{';'.join(modify)}}}")
