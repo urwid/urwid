@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Signal registration and delivery between widgets and other objects."""
+
 from __future__ import annotations
 
 import abc
@@ -179,7 +181,6 @@ class Signals:
         handler can also be disconnected by calling
         urwid.disconnect_signal, which doesn't need this key.
         """
-
         sig_cls = obj.__class__
         if name not in self._supported.get(sig_cls, ()):
             raise NameError(f"No such signal {name!r} for object {obj!r}")

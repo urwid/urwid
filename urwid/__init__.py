@@ -19,6 +19,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Urwid, a console user interface library: the public API re-exported from its submodules."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -517,9 +519,7 @@ class _MovedModule(types.ModuleType):
         self._moved_to = moved_to
 
     def __getattr__(self, name: str) -> typing.Any:
-        """
-        :raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported.
-        """
+        """:raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported."""
         try:
             real_module = importlib.import_module(self._moved_to)
         except ImportError as exc:

@@ -1,3 +1,5 @@
+"""Text: a widget that displays text with display attributes."""
+
 from __future__ import annotations
 
 import typing
@@ -25,9 +27,7 @@ class TextError(WidgetError):
 
 
 class Text(Widget):
-    """
-    a horizontally resizeable text widget
-    """
+    """A horizontally resizeable text widget."""
 
     _sizing = frozenset([Sizing.FLOW, Sizing.FIXED])
 
@@ -79,9 +79,7 @@ class Text(Widget):
         self.set_layout(align, wrap, layout)
 
     def _repr_words(self) -> list[str]:
-        """
-        Show the text in the repr in python3 format (b prefix for byte strings) and truncate if it's too long
-        """
+        """Show the text in the repr and truncate if it's too long."""
         first = super()._repr_words()
         text = self.get_text()[0]
         rest = repr(text)

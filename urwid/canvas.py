@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Canvases: the rendered, cacheable output of widgets, and the functions that combine them."""
+
 from __future__ import annotations
 
 import contextlib
@@ -177,9 +179,7 @@ class CanvasCache:
 
     @classmethod
     def invalidate(cls, widget: AbstractWidget) -> None:
-        """
-        Remove all canvases cached for widget.
-        """
+        """Remove all canvases cached for widget."""
         sizes = cls._widgets.pop(widget, None)
         if sizes:
             refs = cls._refs
@@ -210,9 +210,7 @@ class CanvasCache:
 
     @classmethod
     def clear(cls) -> None:
-        """
-        Empty the cache.
-        """
+        """Empty the cache."""
         cls._widgets = {}
         cls._refs = {}
         cls._deps = {}
@@ -223,9 +221,7 @@ class CanvasError(Exception):
 
 
 class Canvas:
-    """
-    base class for canvases
-    """
+    """base class for canvases."""
 
     cacheable = True
 
@@ -234,7 +230,7 @@ class Canvas:
     )
 
     def __init__(self) -> None:
-        """Base Canvas class"""
+        """Base Canvas class."""
         self._widget_info: tuple[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
         self.coords: _CanvasCoords = {}
         self.shortcuts: dict[str, str] = {}
@@ -267,9 +263,7 @@ class Canvas:
 
     @property
     def text(self) -> list[bytes]:
-        """
-        Return the text content of the canvas as a list of strings, one for each row.
-        """
+        """Return the text content of the canvas as a list of strings, one for each row."""
         return [b"".join(text for (attr, cs, text) in row) for row in self.content()]
 
     @property
@@ -386,9 +380,7 @@ class Canvas:
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
 
     def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
-        """
-        Return coords shifted by (dx, dy).
-        """
+        """Return coords shifted by (dx, dy)."""
         d: _CanvasCoords = {}
         for name, (x, y, data) in self.coords.items():  # type: ignore[misc]
             # MyPy issue with expansion of TypedDict
@@ -416,9 +408,7 @@ class Canvas:
 
 
 class TextCanvas(Canvas):
-    """
-    class for storing rendered text and attributes
-    """
+    """class for storing rendered text and attributes."""
 
     def __init__(
         self,
@@ -616,9 +606,7 @@ class BlankCanvas(Canvas):
         rows: int = 0,
         attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
-        """
-        return (cols, rows) of spaces with default attributes.
-        """
+        """Return (cols, rows) of spaces with default attributes."""
         def_attr = attr.get(None) if attr else None
         line = [(def_attr, None, b"".rjust(cols))]
         for _ in range(rows):
@@ -661,9 +649,7 @@ blank_canvas = BlankCanvas()
 
 
 class SolidCanvas(Canvas):
-    """
-    A canvas filled completely with a single character.
-    """
+    """A canvas filled completely with a single character."""
 
     def __init__(self, fill_char: str | bytes, cols: int, rows: int) -> None:
         """
@@ -722,9 +708,7 @@ class SolidCanvas(Canvas):
 
 
 class CompositeCanvas(Canvas):
-    """
-    class for storing a combination of canvases
-    """
+    """class for storing a combination of canvases."""
 
     def __init__(self, canv: Canvas | None = None) -> None:
         """
@@ -905,7 +889,7 @@ class CompositeCanvas(Canvas):
 
     def pad_trim_left_right(self, left: int, right: int) -> None:
         """
-        Pad or trim this canvas on the left and right
+        Pad or trim this canvas on the left and right.
 
         values > 0 indicate screen columns to pad
         values < 0 indicate screen columns to trim
@@ -1076,9 +1060,7 @@ def shard_body_tail(
     num_rows: int,
     sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]],
 ) -> list[tuple[int, int, Iterator[_ContentLine] | None, _CView]]:
-    """
-    Return a new shard tail that follows this shard body.
-    """
+    """Return a new shard tail that follows this shard body."""
     shard_tail = []
     col_gap = 0
 
@@ -1436,9 +1418,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
 
 
 def CanvasOverlay(top_c: CompositeCanvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
-    """
-    Overlay canvas top_c onto bottom_c at position (left, top).
-    """
+    """Overlay canvas top_c onto bottom_c at position (left, top)."""
     overlayed_canvas = CompositeCanvas(bottom_c)
     overlayed_canvas.overlay(top_c, left, top)
     overlayed_canvas.children = [(left, top, top_c, None), (0, 0, bottom_c, None)]
@@ -1463,7 +1443,6 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
                             if larger than the actual canvas.cols() value then this widget
                             will be padded on the right.
     """
-
     l2 = []
     focus_item = 0
     maxrow = 0

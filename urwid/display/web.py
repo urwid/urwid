@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Urwid web application display module
-"""
+"""Urwid web application display module."""
 
 from __future__ import annotations
 
@@ -181,7 +179,7 @@ class Screen(BaseScreen):
         return True
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
-        """Not yet implemented"""
+        """Not yet implemented."""
 
     def tty_signal_keys(self, *args: typing.Any, **vargs: typing.Any) -> None:
         """Do nothing."""
@@ -244,9 +242,7 @@ class Screen(BaseScreen):
         return StoppingContext(self)
 
     def stop(self) -> None:
-        """
-        Restore settings and clean up.
-        """
+        """Restore settings and clean up."""
         if not self._started:
             return
 
@@ -283,7 +279,6 @@ class Screen(BaseScreen):
 
     def _set_screen_size(self, cols: int, rows: int) -> None:
         """Set the screen size (within max size)."""
-
         cols = min(cols, MAX_COLS)
         rows = min(rows, MAX_ROWS)
         self.screen_size = cols, rows
@@ -293,7 +288,6 @@ class Screen(BaseScreen):
 
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
         """
-
         (cols, rows) = size
         encoding = get_encoding()
 
@@ -526,9 +520,7 @@ def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
 
 
 def is_web_request() -> bool:
-    """
-    Return True if this is a CGI web request.
-    """
+    """Return True if this is a CGI web request."""
     return "REQUEST_METHOD" in os.environ
 
 
@@ -662,9 +654,7 @@ class ErrorLog:
 
 
 def daemonize(errfile: str) -> None:
-    """
-    Detach process and become a daemon.
-    """
+    """Detach process and become a daemon."""
     if os.fork():
         os._exit(0)
 

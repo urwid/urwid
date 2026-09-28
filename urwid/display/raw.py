@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 

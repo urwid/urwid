@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
@@ -139,9 +137,7 @@ class Screen(_raw_display_base.Screen):
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
-        """
-        :param frame: will always be None when the GLib event loop is being used.
-        """
+        """:param frame: will always be None when the GLib event loop is being used."""
         super()._sigwinch_handler(signum, frame)
 
         if callable(self._prev_sigwinch_handler):
@@ -175,9 +171,7 @@ class Screen(_raw_display_base.Screen):
             signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
 
     def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
-        """
-        :param frame: will always be None when the GLib event loop is being used.
-        """
+        """:param frame: will always be None when the GLib event loop is being used."""
         self.signal_restore()
 
         if callable(self._prev_sigcont_handler):
@@ -300,9 +294,7 @@ class Screen(_raw_display_base.Screen):
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
     def _stop(self) -> None:
-        """
-        Restore the screen.
-        """
+        """Restore the screen."""
         self.clear()
 
         if self.modes.bracketed_paste:
@@ -346,9 +338,7 @@ class Screen(_raw_display_base.Screen):
         return fd_list
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
-        """
-        Remove any hooks added by hook_event_loop.
-        """
+        """Remove any hooks added by hook_event_loop."""
         for handle in self._current_event_loop_handles:
             event_loop.remove_watch_file(handle)
 

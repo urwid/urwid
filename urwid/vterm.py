@@ -19,6 +19,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Terminal emulator widget and the canvas it renders its screen on."""
+
 from __future__ import annotations
 
 import atexit
@@ -220,29 +222,21 @@ class TermCharset:
         self.activate(0)
 
     def define(self, g: int, charset: str) -> None:
-        """
-        Redefine G'g' with new mapping.
-        """
+        """Redefine G'g' with new mapping."""
         self._g[g] = charset
         self.activate(g=self.active)
 
     def activate(self, g: int) -> None:
-        """
-        Activate the given charset slot.
-        """
+        """Activate the given charset slot."""
         self.active = g
         self.current = self.MAPPING.get(self._g[g], None)  # type: ignore[assignment]
 
     def set_sgr_ibmpc(self) -> None:
-        """
-        Set graphics rendition mapping to IBM PC CP437.
-        """
+        """Set graphics rendition mapping to IBM PC CP437."""
         self._sgr_mapping = True
 
     def reset_sgr_ibmpc(self) -> None:
-        """
-        Reset graphics rendition mapping to IBM PC CP437.
-        """
+        """Reset graphics rendition mapping to IBM PC CP437."""
         self._sgr_mapping = False
         self.activate(g=self.active)
 
@@ -320,9 +314,7 @@ class TermCanvas(Canvas):
             self.cursor = None
 
     def reset_scroll(self) -> None:
-        """
-        Reset scrolling region to full terminal size.
-        """
+        """Reset scrolling region to full terminal size."""
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
 
@@ -356,9 +348,7 @@ class TermCanvas(Canvas):
         self.set_term_cursor()
 
     def reset(self) -> None:
-        """
-        Reset the terminal.
-        """
+        """Reset the terminal."""
         self.escbuf = b""
         self.within_escape = False
         self.parsestate = 0
@@ -429,9 +419,7 @@ class TermCanvas(Canvas):
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """
-        Resize the terminal to the given width and height.
-        """
+        """Resize the terminal to the given width and height."""
         x, y = self.term_cursor
 
         if width > self.width:
@@ -479,9 +467,7 @@ class TermCanvas(Canvas):
         self.init_tabstops(extend=True)
 
     def set_g01(self, char: bytes, mod: bytes) -> None:
-        """
-        Set G0 or G1 according to 'char' and modifier 'mod'.
-        """
+        """Set G0 or G1 according to 'char' and modifier 'mod'."""
         if self.modes.main_charset != CHARSET_DEFAULT:
             return
 
@@ -502,9 +488,7 @@ class TermCanvas(Canvas):
         self.charset.define(g, cset)
 
     def parse_csi(self, char: bytes) -> None:
-        """
-        Parse ECMA-48 CSI (Control Sequence Introducer) sequences.
-        """
+        """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
         qmark = self.escbuf.startswith(b"?")
 
         escbuf = []
@@ -539,9 +523,7 @@ class TermCanvas(Canvas):
                 # unpacked tuples in CSI_COMMANDS.
 
     def parse_noncsi(self, char: bytes, mod: bytes = b"") -> None:
-        """
-        Parse escape sequences which are not CSI.
-        """
+        """Parse escape sequences which are not CSI."""
         if mod == b"#" and char == b"8":
             self.decaln()
         elif mod == b"%":  # select main character set
@@ -796,9 +778,7 @@ class TermCanvas(Canvas):
         self.set_term_cursor(0, self.term_cursor[1])
 
     def newline(self) -> None:
-        """
-        Do a carriage return followed by a line feed.
-        """
+        """Do a carriage return followed by a line feed."""
         self.carriage_return()
         self.linefeed()
 
@@ -830,9 +810,7 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def push_char(self, char: bytes | None, x: int, y: int) -> None:
-        """
-        Push one character to current position and advance cursor to x/y.
-        """
+        """Push one character to current position and advance cursor to x/y."""
         if char is not None:
             char = self.charset.apply_mapping(char)
             if self.modes.insert:
@@ -928,16 +906,12 @@ class TermCanvas(Canvas):
             self.term.insert(self.scrollregion_end, self.empty_line())
 
     def decaln(self) -> None:
-        """
-        DEC screen alignment test: Fill screen with E's.
-        """
+        """DEC screen alignment test: Fill screen with E's."""
         for row in range(self.height):
             self.term[row] = self.empty_line(b"E")
 
     def blank_line(self, row: int) -> None:
-        """
-        Blank a single line at the specified row, without modifying other lines.
-        """
+        """Blank a single line at the specified row, without modifying other lines."""
         self.term[row] = self.empty_line()
 
     def insert_chars(
@@ -1107,9 +1081,7 @@ class TermCanvas(Canvas):
         return attrspec
 
     def reverse_video(self, undo: bool = False) -> None:
-        """
-        Reverse video/scanmode (DECSCNM) by swapping fg and bg colors.
-        """
+        """Reverse video/scanmode (DECSCNM) by swapping fg and bg colors."""
         for y in range(self.height):
             for x in range(self.width):
                 char = self.term[y][x]
@@ -1123,9 +1095,7 @@ class TermCanvas(Canvas):
         qmark: bool,
         reset: bool,
     ) -> None:
-        """
-        Helper method for csi_set_modes: set single mode.
-        """
+        """Helper method for csi_set_modes: set single mode."""
         if qmark:
             # DEC private mode
             if mode == 1:
@@ -1170,9 +1140,7 @@ class TermCanvas(Canvas):
         qmark: bool,
         reset: bool = False,
     ) -> None:
-        """
-        Set (DECSET/ECMA-48) or reset modes (DECRST/ECMA-48) if reset is True.
-        """
+        """Set (DECSET/ECMA-48) or reset modes (DECRST/ECMA-48) if reset is True."""
         flag = not reset
 
         for mode in modes:
@@ -1414,7 +1382,7 @@ class Terminal(Widget):
         self.terminated = False
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates for this terminal"""
+        """Return the cursor coordinates for this terminal."""
         if self.term is None:
             return None
 
@@ -1491,9 +1459,7 @@ class Terminal(Widget):
         self._emit("leds", which)
 
     def respond(self, string: str) -> None:
-        """
-        Respond to the underlying application with 'string'.
-        """
+        """Respond to the underlying application with 'string'."""
         self.response_buffer.append(string)
 
     def flush_responses(self) -> None:
@@ -1534,9 +1500,7 @@ class Terminal(Widget):
         self._emit("title", title)
 
     def change_focus(self, has_focus: bool) -> None:
-        """
-        Ignore SIGINT if this widget has focus.
-        """
+        """Ignore SIGINT if this widget has focus."""
         if self.terminated:
             return
 

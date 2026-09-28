@@ -53,9 +53,7 @@ def _ignore_handler(_sig: int, _frame: FrameType | None = None) -> None:
 
 
 class GLibEventLoop(EventLoop):
-    """
-    Event loop based on GLib.MainLoop
-    """
+    """Event loop based on GLib.MainLoop."""
 
     def __init__(self) -> None:
         super().__init__()

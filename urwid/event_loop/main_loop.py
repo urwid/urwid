@@ -20,6 +20,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""The main loop that connects a widget tree, a display module and an event loop."""
+
 from __future__ import annotations
 
 import heapq
@@ -454,7 +456,6 @@ class MainLoop:
 
         :raises CantUseExternalLoop: the screen does not support external event loops.
         """
-
         self.logger.debug(f"Starting event loop {self.event_loop.__class__.__name__!r} to manage display.")
 
         self.screen.start()
@@ -484,7 +485,6 @@ class MainLoop:
         Cleans up any hooks added to the event loop.  Only call this if you're
         managing the event loop yourself, after the loop stops.
         """
-
         self.event_loop.remove_enter_idle(self.idle_handle)
         del self.idle_handle
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)

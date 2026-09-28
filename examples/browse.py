@@ -330,7 +330,6 @@ class DirectoryBrowser:
 
     def main(self) -> None:
         """Run the program."""
-
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 
@@ -361,13 +360,11 @@ _widget_cache: dict[str, DirectoryWidget | FileTreeWidget] = {}
 
 def add_widget(path: str, widget: DirectoryWidget | FileTreeWidget) -> None:
     """Add the widget for a given path."""
-
     _widget_cache[path] = widget
 
 
 def get_flagged_names() -> list[str]:
     """Return a list of all filenames marked as flagged."""
-
     names = [w.get_node().get_value() for w in _widget_cache.values() if w.flagged]
     return names
 
@@ -379,14 +376,12 @@ _initial_cwd: list[str] = []
 
 def store_initial_cwd(name: str) -> None:
     """Store the initial current working directory path components."""
-
     _initial_cwd.clear()
     _initial_cwd.extend(name.split(dir_sep()))
 
 
 def starts_expanded(name: str) -> bool:
     """Return True if directory is a parent of initial cwd."""
-
     if name == "/":
         return True
 
@@ -399,7 +394,6 @@ def starts_expanded(name: str) -> bool:
 
 def escape_filename_sh(name: str) -> str:
     """Return a hopefully safe shell-escaped version of a filename."""
-
     # check whether we have unprintable characters
     for ch in name:
         if ord(ch) < 32:
@@ -413,7 +407,6 @@ def escape_filename_sh(name: str) -> str:
 
 def escape_filename_sh_ansic(name: str) -> str:
     """Return an ansi-c shell-escaped version of a filename."""
-
     out = []
     # gather the escaped characters into a list
     for ch in name:

@@ -1,3 +1,5 @@
+"""Constants and enumerations for widget sizing, alignment and wrapping."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -21,7 +23,7 @@ class Sizing(str, enum.Enum):
 
 
 class Align(str, enum.Enum):
-    """Text alignment modes"""
+    """Text alignment modes."""
 
     LEFT = "left"
     RIGHT = "right"
@@ -29,7 +31,7 @@ class Align(str, enum.Enum):
 
 
 class VAlign(str, enum.Enum):
-    """Filler alignment"""
+    """Filler alignment."""
 
     TOP = "top"
     MIDDLE = "middle"
@@ -37,7 +39,7 @@ class VAlign(str, enum.Enum):
 
 
 class WrapMode(str, enum.Enum):
-    """Text wrapping modes"""
+    """Text wrapping modes."""
 
     SPACE = "space"
     ANY = "any"
@@ -46,7 +48,7 @@ class WrapMode(str, enum.Enum):
 
 
 class WHSettings(str, enum.Enum):
-    """Width and Height settings"""
+    """Width and Height settings."""
 
     PACK = "pack"
     GIVEN = "given"

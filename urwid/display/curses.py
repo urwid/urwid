@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Curses-based UI implementation
-"""
+"""Curses-based UI implementation."""
 
 from __future__ import annotations
 
@@ -171,9 +169,7 @@ class Screen(BaseScreen, RealTerminal):
         self._mouse_tracking_enabled = enable
 
     def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
-        """
-        Initialize the screen and input mode.
-        """
+        """Initialize the screen and input mode."""
         self.s = curses.initscr()
         self.has_color = curses.has_colors()
         if self.has_color:
@@ -206,9 +202,7 @@ class Screen(BaseScreen, RealTerminal):
             self.s.keypad(True)
 
     def _stop(self) -> None:
-        """
-        Restore the screen.
-        """
+        """Restore the screen."""
         curses.echo()
         self._curs_set(1)
         with suppress(curses.error):
@@ -325,7 +319,7 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
-        """Return pending input as a list.
+        r"""Return pending input as a list.
 
         :param raw_keys: return raw keycodes as well as translated versions
         :raises RuntimeError: the screen has not been started.
@@ -349,15 +343,15 @@ class Screen(BaseScreen, RealTerminal):
 
         When a narrow encoding is not enabled:
 
-        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
+        * "Extended ASCII" characters:  "\xa1", "\xb2", "\xfe"
 
         When a wide encoding is enabled:
 
-        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
+        * Double-byte characters:  "\xa1\xea", "\xb2\xd4"
 
         When utf8 encoding is enabled:
 
-        * Unicode characters: u"\\u00a5", u'\\u253c"
+        * Unicode characters: u"\u00a5", u'\u253c"
 
         Examples of mouse events returned:
 
@@ -642,7 +636,6 @@ class Screen(BaseScreen, RealTerminal):
         :raises ValueError: *canvas* does not match *size*, or a run carries an unknown character set.
         :raises TypeError: a text run is not a byte string.
         """
-
         logger = self.logger.getChild("draw_screen")
 
         if not self._started:
@@ -712,9 +705,7 @@ class Screen(BaseScreen, RealTerminal):
         self.keep_cache_alive_link = canvas
 
     def clear(self) -> None:
-        """
-        Force the screen to be completely repainted on the next call to draw_screen().
-        """
+        """Force the screen to be completely repainted on the next call to draw_screen()."""
         self.s.clear()
 
 

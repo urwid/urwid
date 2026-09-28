@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Display modules for character LCD panels, including the Crystalfontz CF635."""
+
 from __future__ import annotations
 
 import abc
@@ -58,9 +60,7 @@ class LCDScreen(BaseScreen, abc.ABC):
 
 
 class CFLCDScreen(LCDScreen, abc.ABC):
-    """
-    Common methods for Crystal Fonts LCD displays
-    """
+    """Common methods for Crystal Fonts LCD displays."""
 
     KEYS: typing.ClassVar[list[str | None]] = [
         None,  # no key with code 0
@@ -284,7 +284,7 @@ class KeyRepeatSimulator:
 
 class CF635Screen(CFLCDScreen):
     """
-    Crystal Fontz 635 display
+    Crystal Fontz 635 display.
 
     20x4 character display + cursor
     no foreground/background colors or settings supported
@@ -357,7 +357,7 @@ class CF635Screen(CFLCDScreen):
 
     def get_input_descriptors(self) -> list[int]:
         """
-        return the fd from our serial device so we get called
+        Return the fd from our serial device so we get called
         on input and responses
         """
         return [self._device.fd]
@@ -413,9 +413,7 @@ class CF635Screen(CFLCDScreen):
         return timeout, data_input, raw_data_input
 
     def _send_next_command(self) -> None:
-        """
-        send out the next command in the queue
-        """
+        """Send out the next command in the queue."""
         if not self._command_queue:
             self._last_command = None
             return
@@ -502,7 +500,7 @@ class CF635Screen(CFLCDScreen):
 
     def set_backlight(self, value: int) -> None:
         """
-        Set backlight brightness
+        Set backlight brightness.
 
         :param value: 0 to 100
         :raises ValueError: *value* is outside 0-100.

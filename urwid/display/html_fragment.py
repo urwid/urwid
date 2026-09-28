@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-HTML PRE-based UI implementation
-"""
+"""HTML PRE-based UI implementation."""
 
 from __future__ import annotations
 

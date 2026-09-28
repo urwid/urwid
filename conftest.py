@@ -1,3 +1,5 @@
+"""Pytest configuration: skip collecting modules that cannot be imported on this platform."""
+
 from __future__ import annotations
 
 import importlib.util

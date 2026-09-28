@@ -1,3 +1,5 @@
+"""Overlay: a container that draws one widget on top of another."""
+
 from __future__ import annotations
 
 import typing
@@ -539,7 +541,6 @@ class Overlay(
 
         :raises OverlayError: *valign* is not a vertical alignment value.
         """
-
         # convert obsolete parameters 'fixed ...':
         normalized_align: Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(align, tuple):
@@ -650,9 +651,7 @@ class Overlay(
 
     @property
     def focus_position(self) -> Literal[1]:
-        """
-        Return the top widget position (currently always 1).
-        """
+        """Return the top widget position (currently always 1)."""
         return 1
 
     @focus_position.setter  # type: ignore[override]
@@ -669,7 +668,7 @@ class Overlay(
     @property
     def contents(self) -> MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]:
         """
-        a list-like object similar to::
+        A list-like object similar to::
 
             [(bottom_w, bottom_options)),
              (top_w, top_options)]

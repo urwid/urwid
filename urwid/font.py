@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Fonts for the BigText widget, and the registry they are looked up in."""
+
 from __future__ import annotations
 
 import typing
@@ -35,7 +37,7 @@ if typing.TYPE_CHECKING:
 
 
 def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
-    """return (dictionary of glyphs, utf8 required)
+    """Return (dictionary of glyphs, utf8 required).
 
     :raises ValueError: *gdata* contains tabs, does not have *height* plus one lines per glyph, or has a glyph whose
         columns do not line up.
@@ -143,7 +145,7 @@ class FontRegistry(type):
         return cls.__registered.get(item)
 
     def __class_getitem__(mcs, item: str) -> FontRegistry | None:
-        """Get font by name if registered.
+        r"""Get font by name if registered.
 
         This method is needed to get access to font from registry class.
         >>> from urwid.util import set_temporary_encoding
@@ -154,8 +156,8 @@ class FontRegistry(type):
         3
         >>> with set_temporary_encoding("utf-8"):
         ...     canvas: TextCanvas = font.render("+")
-        >>> b"\\n".join(canvas.text).decode("utf-8")
-        '  \\n ┼\\n  '
+        >>> b"\n".join(canvas.text).decode("utf-8")
+        '  \n ┼\n  '
         """
         return mcs.__registered.get(item)
 

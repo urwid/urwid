@@ -1,3 +1,5 @@
+"""Bar graph widgets and the helpers that compute their display."""
+
 from __future__ import annotations
 
 import typing
@@ -50,9 +52,7 @@ def nocache_bargraph_get_data(
         tuple[Sequence[Sequence[float | int]], float, Sequence[float | int] | None],
     ],
 ) -> None:
-    """
-    Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data.
-    """
+    """Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data."""
     self.render = nocache_widget_render_instance(self)  # type: ignore[assignment]
     self._get_data = get_data_fn  # type: ignore[assignment]  # pylint: disable=protected-access
 
@@ -197,7 +197,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         size: tuple[int, int],
     ) -> tuple[Sequence[Sequence[float | int]], float, Sequence[float | int] | None]:
         """
-        Return (bardata, top, hlines)
+        Return (bardata, top, hlines).
 
         This function is called by render to retrieve the data for the graph.
         It may be overloaded to create a dynamic bar graph.
@@ -255,9 +255,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return widths
 
     def selectable(self) -> Literal[False]:
-        """
-        Return False.
-        """
+        """Return False."""
         return False
 
     def use_smoothed(self) -> bool:
@@ -267,9 +265,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self,
         size: tuple[int, int],
     ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
-        """
-        Calculate display data.
-        """
+        """Calculate display data."""
         (maxcol, maxrow) = size
         bardata, top, hlines = self._get_data((maxcol, maxrow))
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
@@ -370,7 +366,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         disp: list[tuple[int, list[tuple[int, int]]]],
     ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
         """
-        smooth (col, row*8) display into (col, row) display using
+        Smooth (col, row*8) display into (col, row) display using
         UTF vertical eighth characters represented as bar_type tuple values:
         ( fg, bg, 1-7 )
         where fg is the lower segment, bg is the upper segment and 1-7 is the vertical eighth character to use.
@@ -530,7 +526,6 @@ def calculate_bargraph_display(
     This function should complete in approximately O(n+m) time, where
     n is the number of bars displayed and m is the number of rows.
     """
-
     if len(bardata) != len(bar_widths):
         raise BarGraphError
 
@@ -687,7 +682,6 @@ class GraphVScale(Widget):
             for that label
         :param top: top y position
         """
-
         labels = sorted(labels[:], reverse=True)  # shallow copy
 
         self.pos = []
@@ -698,9 +692,7 @@ class GraphVScale(Widget):
         self.top = top
 
     def selectable(self) -> Literal[False]:
-        """
-        Return False.
-        """
+        """Return False."""
         return False
 
     def render(
@@ -708,9 +700,7 @@ class GraphVScale(Widget):
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> SolidCanvas | CompositeCanvas:
-        """
-        Render GraphVScale.
-        """
+        """Render GraphVScale."""
         (maxcol, maxrow) = size
         pl = scale_bar_values(self.pos, self.top, maxrow)
 
@@ -744,7 +734,5 @@ def scale_bar_values(
     top: float,
     maxrow: int,
 ) -> list[int]:
-    """
-    Return a list of bar values aliased to integer values of maxrow.
-    """
+    """Return a list of bar values aliased to integer values of maxrow."""
     return [maxrow - int(float(v) * maxrow / top + 0.5) for v in bar]

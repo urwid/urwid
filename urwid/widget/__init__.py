@@ -1,3 +1,5 @@
+"""Widget classes: the base widget API, decorations, containers and basic widgets."""
+
 from __future__ import annotations
 
 import typing

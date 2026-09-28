@@ -85,9 +85,7 @@ class TornadoEventLoop(EventLoop):
         self._background_tasks: set[asyncio.Task[typing.Any]] = set()
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T | None]:
-        """
-        Wrap the callback to also call _entering_idle.
-        """
+        """Wrap the callback to also call _entering_idle."""
 
         @functools.wraps(callback)
         def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
@@ -114,9 +112,7 @@ class TornadoEventLoop(EventLoop):
         return callback(*args, **kwargs)
 
     def _entering_idle(self) -> None:
-        """
-        Call all the registered idle callbacks.
-        """
+        """Call all the registered idle callbacks."""
         try:
             for callback in self._idle_callbacks.values():
                 self._run_callback(callback)

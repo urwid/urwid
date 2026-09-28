@@ -19,9 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Keyboard test application
-"""
+"""Keyboard test application"""
 
 from __future__ import annotations
 

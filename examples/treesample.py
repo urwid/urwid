@@ -148,7 +148,6 @@ class ExampleTreeBrowser:
 
     def main(self) -> None:
         """Run the program."""
-
         self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         self.loop.run()
 

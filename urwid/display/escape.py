@@ -18,9 +18,7 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Terminal Escape Sequences for input and display
-"""
+"""Terminal Escape Sequences for input and display."""
 
 from __future__ import annotations
 
@@ -352,7 +350,6 @@ class KeyqueueTrie:
         # Helpful links:
         # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
-
         """Read an SGR mouse report from the codes and return the resulting input.
 
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.

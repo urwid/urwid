@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Example: monitor and display the output of a subprocess while accepting input."""
+
 from __future__ import annotations
 
 import os

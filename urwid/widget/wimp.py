@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Simple interactive widgets: selectable icons, check boxes, radio buttons and buttons."""
+
 from __future__ import annotations
 
 import typing
@@ -279,7 +281,7 @@ class CheckBox(WidgetWrap[Columns]):
         size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
     ) -> tuple[int, int]:
-        """Pack for widget.
+        r"""Pack for widget.
 
         :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
@@ -289,7 +291,7 @@ class CheckBox(WidgetWrap[Columns]):
         (10, 1)
         >>> cb.pack()
         (8, 1)
-        >>> ml_cb = CheckBox("Multi\\nline\\ncheckbox")
+        >>> ml_cb = CheckBox("Multi\nline\ncheckbox")
         >>> ml_cb.pack()
         (12, 3)
         >>> ml_cb.pack((), True)

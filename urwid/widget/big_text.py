@@ -1,3 +1,5 @@
+"""BigText: a widget that renders text in a large font."""
+
 from __future__ import annotations
 
 import typing
@@ -34,9 +36,7 @@ class BigText(Widget):
         self._invalidate()
 
     def get_text(self) -> tuple[str, list[tuple[Hashable, int]]]:
-        """
-        Returns (text, attributes).
-        """
+        """Returns (text, attributes)."""
         return self.text, self.attrib
 
     def set_font(self, font: Font) -> None:

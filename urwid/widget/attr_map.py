@@ -1,3 +1,5 @@
+"""AttrMap: a decoration widget that maps display attributes of its child."""
+
 from __future__ import annotations
 
 import typing
@@ -92,7 +94,7 @@ class AttrMap(
 
     def set_attr_map(self, attr_map: dict[Hashable, Hashable]) -> None:
         """
-        Set the attribute mapping dictionary {from_attr: to_attr, ...}
+        Set the attribute mapping dictionary {from_attr: to_attr, ...}.
 
         Note this function does not accept a single attribute the way the
         constructor does.  You must specify {None: attribute} instead.
@@ -161,9 +163,7 @@ class AttrMap(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> CompositeCanvas:
-        """
-        Render wrapped widget and apply attribute. Return canvas.
-        """
+        """Render wrapped widget and apply attribute. Return canvas."""
         attr_map = self._attr_map
         if focus and self._focus_map is not None:
             attr_map = self._focus_map

@@ -1,3 +1,5 @@
+"""SolidFill: a box widget filled with a single character."""
+
 from __future__ import annotations
 
 from urwid.canvas import SolidCanvas
@@ -7,9 +9,7 @@ from .widget import Widget
 
 
 class SolidFill(Widget):
-    """
-    A box widget that fills an area with a single character
-    """
+    """A box widget that fills an area with a single character."""
 
     _selectable = False
     ignore_focus = True

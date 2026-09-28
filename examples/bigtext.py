@@ -19,9 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid example demonstrating use of the BigText widget.
-"""
+"""Urwid example demonstrating use of the BigText widget."""
 
 from __future__ import annotations
 

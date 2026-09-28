@@ -134,8 +134,8 @@ class Cell:
     def show_result(self, next_cell: Cell | None) -> bool:
         """Return whether this widget should display its result.
 
-        next_cell -- the cell following self or None"""
-
+        next_cell -- the cell following self or None
+        """
         if self.is_top:
             return False
         if next_cell is None:
@@ -144,7 +144,6 @@ class Cell:
 
     def setup_edit(self) -> None:
         """Create the standard edit widget for this cell."""
-
         self.edit = urwid.IntEdit()
         if not self.is_top:
             self.edit.set_caption(f"{self.op} ")
@@ -152,7 +151,6 @@ class Cell:
 
     def get_value(self) -> int | None:
         """Return the numeric value of the cell."""
-
         if self.child is not None:
             return self.child.get_result()
 
@@ -160,7 +158,6 @@ class Cell:
 
     def get_result(self) -> int | None:
         """Return the numeric result of this cell's operation."""
-
         if self.is_top:
             return self.get_value()
         if not self.result.text:
@@ -169,7 +166,6 @@ class Cell:
 
     def set_result(self, result: float | None) -> None:
         """Set the numeric result for this cell."""
-
         if result is None:
             self.result.set_text("")
         else:
@@ -177,19 +173,16 @@ class Cell:
 
     def become_parent(self, column: CellColumn, letter: str) -> None:
         """Change the edit widget to a parent cell widget."""
-
         self.child = column
         self.edit = ParentEdit(self.op, letter)
 
     def remove_child(self) -> None:
         """Change the edit widget back to a standard edit widget."""
-
         self.child = None
         self.setup_edit()
 
     def is_empty(self) -> bool:
         """Return True if the cell is "empty"."""
-
         return self.child is None and not self.result.text
 
 
@@ -204,14 +197,12 @@ class ParentEdit(urwid.Edit):
         remove_fn -- function to call when user wants to remove child
                      function takes no parameters
         """
-
         super().__init__(layout=CALC_LAYOUT)
         self.op = op
         self.set_letter(letter)
 
     def set_letter(self, letter: str) -> None:
         """Set the letter of the child column for display."""
-
         self.letter = letter
         caption = f"({letter})"
         if self.op is not None:
@@ -333,7 +324,6 @@ class CellColumn(
 
     def set_letter(self, letter: str) -> None:
         """Set the column header with letter."""
-
         self.letter = letter
         header = urwid.AttrMap(urwid.Text(["Column ", ("key", letter)], layout=CALC_LAYOUT), "colhead")
         self.frame: urwid.Frame[urwid.ListBox[tuple[int, int]], urwid.AttrMap[urwid.Text], None] = urwid.Frame(
@@ -475,7 +465,6 @@ class CellColumn(
         start_from -- Cell to start updating from or None to start from
                       the current focus (default None)
         """
-
         if start_from is None:
             i, _sub = self._focus_pos()
         else:
@@ -529,12 +518,10 @@ class CellColumn(
 
     def is_empty(self) -> bool:
         """Return True if this column is empty."""
-
         return len(self.content) == 1 and self.content[0].is_empty()
 
     def get_expression(self) -> str:
         """Return the expression as a printable string."""
-
         lines = []
         for c in self.content:
             if c.op is not None:  # only applies to first cell
@@ -548,7 +535,6 @@ class CellColumn(
 
     def get_result(self) -> int | None:
         """Return the result of the last cell in the column."""
-
         return self.content[-1].get_result()
 
 
@@ -804,23 +790,20 @@ class CalcDisplay:
 
         parent -- parent Cell object
         pcol -- CellColumn where parent resides
-        child -- child CellColumn object"""
-
+        child -- child CellColumn object
+        """
         self.col_link[child] = parent, pcol
 
     def get_parent(self, child: CellColumn) -> tuple[Cell, CellColumn] | tuple[None, None]:
         """Return the parent and parent column for a given column."""
-
         return self.col_link.get(child, (None, None))
 
     def column_empty(self, letter: str) -> bool:
         """Return True if the column passed is empty."""
-
         return self._column_at(COLUMN_KEYS.index(letter)).is_empty()
 
     def delete_column(self, letter: str) -> None:
         """Delete the column with the given letter."""
-
         i = COLUMN_KEYS.index(letter)
         col = self._column_at(i)
 
@@ -866,7 +849,6 @@ class CalcDisplay:
 
     def update_parent_columns(self) -> None:
         """Update the parent columns of the current focus column."""
-
         f = self.columns.focus_position
         col = self._column_at(f)
         while 1:
@@ -881,7 +863,6 @@ class CalcDisplay:
 
     def get_expression_result(self) -> tuple[str, str]:
         """Return (expression, result) as strings."""
-
         col = self._column_at(1)
         return col.get_expression(), f"{col.get_result():d}"
 

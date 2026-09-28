@@ -1,3 +1,5 @@
+"""Base classes for decoration widgets that wrap a single child widget."""
+
 from __future__ import annotations
 
 import typing

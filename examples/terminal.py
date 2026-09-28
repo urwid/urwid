@@ -19,6 +19,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Example: a terminal emulator widget running a shell inside an Urwid application."""
+
 from __future__ import annotations
 
 import typing

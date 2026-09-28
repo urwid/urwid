@@ -1,3 +1,5 @@
+"""Divider: a horizontal line widget."""
+
 from __future__ import annotations
 
 import enum
@@ -31,9 +33,7 @@ class DividerSymbols(str, enum.Enum):
 
 
 class Divider(Widget):
-    """
-    Horizontal divider widget
-    """
+    """Horizontal divider widget."""
 
     Symbols = DividerSymbols
 

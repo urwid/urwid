@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Colour and attribute handling and the base classes shared by all display modules."""
+
 from __future__ import annotations
 
 import abc
@@ -232,7 +234,6 @@ def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
     >>> _value_lookup_table([0, 7, 9], 10)
     [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
     """
-
     middle_values = [0] + [(values[i] + values[i + 1] + 1) // 2 for i in range(len(values) - 1)] + [size]
     lookup_table = []
     for i in range(len(middle_values) - 1):
@@ -963,7 +964,6 @@ class RealTerminal:
             then the original settings will be restored when stop()
             is called.
             """
-
             import termios
 
             if fileno is None:
@@ -1015,9 +1015,7 @@ class ScreenError(Exception):
 
 
 class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
-    """
-    Base class for Screen classes (raw_display.Screen, ..., etc.)
-    """
+    """Base class for Screen classes (raw_display.Screen, ..., etc.)."""
 
     signals: typing.ClassVar[list[str]] = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
@@ -1125,7 +1123,6 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             values.  See register_palette_entry() for a description
             of the tuple values.
         """
-
         for item in palette:
             if len(item) in {3, 4, 6}:
                 self.register_palette_entry(*item)

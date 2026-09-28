@@ -109,20 +109,20 @@ class SkippedOp:
 
 @dataclasses.dataclass(frozen=True)
 class ParsedLine:
-    """The result of parsing one physical line of ANSI-coloured text.
+    r"""The result of parsing one physical line of ANSI-coloured text.
 
     :ivar text: the resolved, escape-free text of this line. When produced by :class:`AnsiParser` constructed with
-        ``one_line=True`` (or :func:`parse_ansi_line`), this is guaranteed never to contain a ``\\n`` -- line ends
+        ``one_line=True`` (or :func:`parse_ansi_line`), this is guaranteed never to contain a ``\n`` -- line ends
         are structural split points that produce *separate* :class:`ParsedLine` instances. That invariant is
         deliberately **not** upheld when :class:`AnsiParser` is constructed with ``one_line=False`` (or by
         :func:`parse_ansi_text`): since that mode resolves a whole multi-row block into a single :class:`ParsedLine`,
-        its ``text`` legitimately contains embedded ``\\n`` characters, one per row boundary, by design.
+        its ``text`` legitimately contains embedded ``\n`` characters, one per row boundary, by design.
     :ivar attrib: run-length encoded display attributes for :attr:`text`, the same shape as
         :attr:`urwid.Text.attrib`. ``None`` is a valid RLE tag (meaning "no attribute"), matching
         :func:`urwid.util.decompose_tagmarkup`'s convention.
     :ivar last_attr: the SGR/colour state in effect at the end of this line; feed this back in as ``previous_attr``
         to continue the same colour state into a subsequently parsed line.
-    :ivar bel: the number of BEL (``\\a``) characters seen on this line (``0`` if none were seen).
+    :ivar bel: the number of BEL (``\a``) characters seen on this line (``0`` if none were seen).
     :ivar title: the last OSC window-title string seen on this line, or ``None`` if none was seen.
     :ivar leds: the last keyboard-LED state requested on this line (``CSI n q``), or ``None`` if none was seen.
     :ivar skipped: every :class:`SkippedOp` stripped while parsing this line, in encounter order, for programmatic
@@ -139,7 +139,7 @@ class ParsedLine:
 
 
 class AnsiParser:
-    """Incremental ANSI parser that resolves escape sequences against a 2-D cell grid, in one of two modes.
+    r"""Incremental ANSI parser that resolves escape sequences against a 2-D cell grid, in one of two modes.
 
     Feed text in with :meth:`feed` -- any number of times, e.g. as chunks arrive from a subprocess -- and call
     :meth:`finalize` once to retrieve the result. :meth:`finalize` is a one-shot, terminal operation: construct a
@@ -154,18 +154,18 @@ class AnsiParser:
     treated, and in whether the side channels (``bel``, ``title``, ``leds``, ``skipped``) are reset per line or
     aggregated over the whole input:
 
-    * ``one_line=True``: a line-end sequence (``\\n``, ``\\r``, ``\\r\\n`` or ``\\n\\r``, the latter two pairs
+    * ``one_line=True``: a line-end sequence (``\n``, ``\r``, ``\r\n`` or ``\n\r``, the latter two pairs
       collapsing into a single event) is a **structural split point**, not discarded data -- the moment one is
       seen, the current row is completed into a :class:`ParsedLine` and pushed onto an internal completed-lines
       queue, and a fresh row is started for what follows, carrying the SGR/colour state
       (:attr:`ParsedLine.last_attr`) forward but resetting the per-line side channels. Vertical cursor movement
       (``CSI n A/B/E/F/d`` and ``CSI r;c H``/``f``) is meaningless outside a single line, so it is stripped and
       logged as a :class:`SkippedOp` rather than reinterpreted.
-    * ``one_line=False`` (the default): a full newline (``\\n``, or a collapsed ``\\r\\n``/``\\n\\r`` pair) genuinely
+    * ``one_line=False`` (the default): a full newline (``\n``, or a collapsed ``\r\n``/``\n\r`` pair) genuinely
       moves to a fresh row, resetting the column, while everything keeps accumulating in the same persistent grid
-      -- nothing is split off. A **bare** ``\\r`` (not part of a ``\\r\\n``/``\\n\\r`` pair) is carriage-return-only:
+      -- nothing is split off. A **bare** ``\r`` (not part of a ``\r\n``/``\n\r`` pair) is carriage-return-only:
       it resets the column without changing row, letting progress-bar-style in-place redraw sequences
-      (``"progress: 10%\\rprogress: 20%"``) resolve correctly onto a single row, mirroring real terminal behaviour.
+      (``"progress: 10%\rprogress: 20%"``) resolve correctly onto a single row, mirroring real terminal behaviour.
       Vertical cursor movement genuinely repositions the cursor within the grid instead of being stripped. The side
       channels are aggregated over the *entire* input rather than reset per row: ``bel`` is the total BEL count,
       ``title``/``leds`` are the last value seen anywhere, and ``skipped`` lists every :class:`SkippedOp` in
@@ -180,7 +180,7 @@ class AnsiParser:
     :meth:`finalize` returns a uniform ``tuple[ParsedLine, ...]`` in both modes: in ``one_line=True`` mode, every
     line completed since construction (queue plus a final flush of whatever remains, possibly empty or
     unterminated); in ``one_line=False`` mode, always exactly one :class:`ParsedLine` -- built from the whole grid,
-    rows joined with ``"\\n"`` -- wrapped in a 1-tuple.
+    rows joined with ``"\n"`` -- wrapped in a 1-tuple.
 
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from previously
         parsed text.
@@ -188,14 +188,14 @@ class AnsiParser:
         results; if false (the default), resolve the whole input into a single multi-row :class:`ParsedLine`.
 
     >>> parser = AnsiParser(one_line=True)
-    >>> parser.feed("hello\\nworld")
+    >>> parser.feed("hello\nworld")
     >>> [line.text for line in parser.finalize()]
     ['hello', 'world']
 
     >>> parser = AnsiParser()
-    >>> parser.feed("hello\\nworld")
+    >>> parser.feed("hello\nworld")
     >>> parser.finalize()[0].text
-    'hello\\nworld'
+    'hello\nworld'
     """
 
     def __init__(self, previous_attr: AttrSpec | None = None, *, one_line: bool = False) -> None:
@@ -285,12 +285,12 @@ class AnsiParser:
             i += 1
 
     def finalize(self) -> tuple[ParsedLine, ...]:
-        """Retrieve the parsed result, in a uniform ``tuple[ParsedLine, ...]`` shape regardless of mode.
+        r"""Retrieve the parsed result, in a uniform ``tuple[ParsedLine, ...]`` shape regardless of mode.
 
         In ``one_line=True`` mode, whatever remains in the current (possibly empty, possibly unterminated) row is
         flushed as one final :class:`ParsedLine`, and every line completed since construction is returned, in
         order. In ``one_line=False`` mode, the whole accumulated grid is resolved into a single :class:`ParsedLine`
-        (its ``text`` joining every resolved row with ``"\\n"``) and returned as a 1-tuple.
+        (its ``text`` joining every resolved row with ``"\n"``) and returned as a 1-tuple.
 
         This is a terminal operation: construct a new :class:`AnsiParser` to parse a fresh "session" of input.
 
@@ -324,10 +324,10 @@ class AnsiParser:
     # -- internal: line/row completion and cursor management -------------
 
     def _handle_line_end(self) -> None:
-        """Complete the current line, aborting any in-flight escape sequence.
+        r"""Complete the current line, aborting any in-flight escape sequence.
 
         Only called in one_line mode: a line end always aborts any in-flight escape sequence, since real escape
-        sequences never legitimately contain a raw \\r or \\n. In screen mode a newline is instead handled directly
+        sequences never legitimately contain a raw \r or \n. In screen mode a newline is instead handled directly
         in :meth:`feed` without touching escape-framing state.
         """
         self._within_escape = False
@@ -587,9 +587,9 @@ class AnsiParser:
 
 
 def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[ParsedLine, ...]:
-    """Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=True``) and return its finalised result.
+    r"""Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=True``) and return its finalised result.
 
-    Returns one :class:`ParsedLine` per line found in ``text`` (split on ``\\n``/``\\r``/``\\r\\n``/``\\n\\r``), plus
+    Returns one :class:`ParsedLine` per line found in ``text`` (split on ``\n``/``\r``/``\r\n``/``\n\r``), plus
     a trailing entry for a final unterminated fragment, if any -- never fewer than one element, even for empty
     input, and every character of the original data is preserved across the returned lines (line-end characters are
     structural split points, not stripped content).
@@ -599,11 +599,11 @@ def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[P
         previously parsed line.
     :returns: every :class:`ParsedLine` found in ``text``, in order.
 
-    >>> [line.text for line in parse_ansi_line("one\\ntwo\\nthree")]
+    >>> [line.text for line in parse_ansi_line("one\ntwo\nthree")]
     ['one', 'two', 'three']
     >>> [line.text for line in parse_ansi_line("")]
     ['']
-    >>> [line.text for line in parse_ansi_line("a\\nb")]
+    >>> [line.text for line in parse_ansi_line("a\nb")]
     ['a', 'b']
     """
     parser = AnsiParser(previous_attr, one_line=True)
@@ -612,22 +612,22 @@ def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[P
 
 
 def parse_ansi_text(text: str, previous_attr: AttrSpec | None = None) -> ParsedLine:
-    """Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=False``) and return its sole resolved line.
+    r"""Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=False``) and return its sole resolved line.
 
     Unlike :func:`parse_ansi_line`, vertical cursor movement and newlines are resolved into real multi-row output
     rather than stripped/split: the returned single :class:`ParsedLine`'s ``text`` joins every resolved row with
-    ``"\\n"``.
+    ``"\n"``.
 
     :param text: the text to parse.
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from previously
         parsed text.
     :returns: a single :class:`ParsedLine` representing the whole resolved block.
 
-    >>> parse_ansi_text("one\\ntwo\\nthree").text
-    'one\\ntwo\\nthree'
+    >>> parse_ansi_text("one\ntwo\nthree").text
+    'one\ntwo\nthree'
     >>> parse_ansi_text("").text
     ''
-    >>> parse_ansi_text("progress: 10%\\rprogress: 20%").text
+    >>> parse_ansi_text("progress: 10%\rprogress: 20%").text
     'progress: 20%'
     """
     parser = AnsiParser(previous_attr, one_line=False)
