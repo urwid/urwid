@@ -290,6 +290,21 @@ class CanvasTest(unittest.TestCase):
         )
 
 
+class ZeroColumnTextCanvasTest(unittest.TestCase):
+    def test_empty_text_renders_without_size(self):
+        self.assertEqual([b""], urwid.Text("").render(()).text)
+
+    def test_content_of_zero_column_canvas(self):
+        canvas = urwid.Text("").render((0,))
+        self.assertEqual([[]], list(canvas.content()))
+        self.assertEqual([[]], list(urwid.CompositeCanvas(canvas).content()))
+
+    def test_trim_outside_zero_column_canvas_raises(self):
+        canvas = urwid.Text("").render((0,))
+        with self.assertRaises(ValueError):
+            list(canvas.content(trim_left=1))
+
+
 class TextCanvasErrorTest(unittest.TestCase):
     def test_text_must_be_bytes(self):
         with self.assertRaises(urwid.CanvasError):

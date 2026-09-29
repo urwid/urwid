@@ -121,26 +121,33 @@ class StandardTextLayout(TextLayout):
         A tab character advances to the next tab stop, measured in rendered screen columns
         from the start of the displayed line: explicit *tab_stops* are used first,
         then stops repeat every *tab_stop_every* columns counted from column 0.
+        With *tab_stop_every* ``0`` a tab past the last explicit stop takes no columns.
 
         :param tab_stops: screen columns of explicit tab stops.
-        :param tab_stop_every: interval of the default tab stops.
-        :raises ValueError: *tab_stop_every* or one of *tab_stops* is not a positive column.
+        :param tab_stop_every: interval of the default tab stops, ``0`` for none.
+        :raises ValueError: *tab_stop_every* is negative, or one of *tab_stops* is not a positive column.
         """
         self.tab_stops: tuple[int, ...] = tuple(sorted(set(tab_stops)))
-        if tab_stop_every < 1 or (self.tab_stops and self.tab_stops[0] < 1):
+        if tab_stop_every < 0 or (self.tab_stops and self.tab_stops[0] < 1):
             raise ValueError(f"Tab stops must be positive: {tab_stops=!r}, {tab_stop_every=!r}")
         self.tab_stop_every = tab_stop_every
 
     def next_tab_stop(self, column: int) -> int:
         """Return the screen column of the first tab stop after *column*.
 
+        When there is no stop after *column*, return *column* itself: the tab takes no columns.
+
         >>> StandardTextLayout(tab_stops=(4, 10)).next_tab_stop(5)
         10
         >>> StandardTextLayout(tab_stops=(4, 10)).next_tab_stop(10)
         16
+        >>> StandardTextLayout(tab_stops=(4, 10), tab_stop_every=0).next_tab_stop(10)
+        10
         """
         if (idx := bisect.bisect_right(self.tab_stops, column)) < len(self.tab_stops):
             return self.tab_stops[idx]
+        if not self.tab_stop_every:
+            return column
         return (column // self.tab_stop_every + 1) * self.tab_stop_every
 
     def supports_align_mode(self, align: Literal["left", "center", "right"] | Align) -> bool:
@@ -305,7 +312,10 @@ class StandardTextLayout(TextLayout):
         pos = start
         while pos < end:
             if text[pos : pos + 1] == tab:
-                tab_width = self.next_tab_stop(column) - column
+                if not (tab_width := self.next_tab_stop(column) - column):
+                    line.append((0, pos))
+                    pos += 1
+                    continue
                 if limit is not None and column + tab_width > limit:
                     if limit > column:
                         line.append((limit - column, pos, b" " * (limit - column)))
@@ -355,7 +365,10 @@ class StandardTextLayout(TextLayout):
         pos = start
         while pos < end:
             if text[pos : pos + 1] == tab:
-                if column < width:
+                if self.next_tab_stop(column) == column:
+                    line.append((0, pos))
+                    pos += 1
+                elif column < width:
                     tab_width = min(self.next_tab_stop(column), width) - column
                     line.append((tab_width, pos, b" " * tab_width))
                     column += tab_width

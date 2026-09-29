@@ -168,6 +168,11 @@ class EditTest(unittest.TestCase):
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "ab      ")
 
+    def test_keypress_tab_expanded_to_zero_width(self) -> None:
+        e = urwid.Edit("", "ab", allow_tab=True, layout=urwid.StandardTextLayout(tab_stop_every=0))
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "ab")
+
     def test_keypress_tab_expanded_bytes(self) -> None:
         e = urwid.Edit(b"", b"ab", allow_tab=True)
         e.keypress((20,), "tab")
