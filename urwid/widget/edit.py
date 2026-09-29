@@ -487,7 +487,8 @@ class Edit(WidgetWrap[Text]):
                 if idx:
                     column = layout.next_tab_stop(column)
                 column += calc_width(chunk, 0, len(chunk))
-            self.insert_text(" " * (layout.next_tab_stop(column) - column))
+            if spaces := layout.next_tab_stop(column) - column:
+                self.insert_text(" " * spaces)
             return None
 
         if key == "enter" and self.multiline:

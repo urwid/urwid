@@ -98,7 +98,7 @@ Tab Characters
 :class:`StandardTextLayout` moves a tab character to the next tab stop, as a word processor does.
 Tab stops count rendered screen columns from the start of each displayed line, so a wide character counts
 as two columns. The explicit ``tab_stops`` come first, then stops repeat every ``tab_stop_every`` columns
-(8 by default)::
+(8 by default). With ``tab_stop_every=0`` a tab past the last explicit stop takes no columns::
 
     layout = urwid.StandardTextLayout(tab_stops=(12, 20), tab_stop_every=4)
     text = urwid.Text("name\tvalue\tcomment", layout=layout)

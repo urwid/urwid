@@ -535,7 +535,10 @@ class TextCanvas(Canvas):
         if not rows:
             rows = maxrow - trim_top
 
-        if not ((0 <= trim_left < maxcol) and (cols > 0 and trim_left + cols <= maxcol)):
+        # a canvas without columns (empty text) has one region only: all of it, zero columns wide
+        if not (
+            (0 <= trim_left < maxcol and cols > 0 and trim_left + cols <= maxcol) or maxcol == trim_left == cols == 0
+        ):
             raise ValueError(trim_left)
         if not ((0 <= trim_top < maxrow) and (rows > 0 and trim_top + rows <= maxrow)):
             raise ValueError(trim_top)

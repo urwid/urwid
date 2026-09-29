@@ -876,8 +876,38 @@ class TabStopTest(unittest.TestCase):
         layout = text_layout.StandardTextLayout(tab_stops=(4, 10))
         self.assertEqual([4, 4, 10, 16, 16], [layout.next_tab_stop(col) for col in (0, 3, 4, 10, 15)])
 
+    def test_zero_tab_width(self):
+        layout = text_layout.StandardTextLayout(tab_stop_every=0)
+        self.assertEqual(
+            [[(1, 0, 1), (0, 1), (1, 2, 3), (0, 3)]],
+            layout.layout("a\tb", 10, "left", "space"),
+        )
+        self.assertEqual(["ab        "], self.render("a\tb", 10, layout=layout))
+        self.assertEqual((2, 1), urwid.Text("a\tb", layout=layout).pack())
+
+    def test_zero_tab_width_after_last_explicit_stop(self):
+        layout = text_layout.StandardTextLayout(tab_stops=(4,), tab_stop_every=0)
+        self.assertEqual([4, 4], [layout.next_tab_stop(col) for col in (0, 4)])
+        self.assertEqual(["a   bc    "], self.render("a\tb\tc", 10, layout=layout))
+        self.assertEqual((6, 1), urwid.Text("a\tb\tc", layout=layout).pack())
+
+    def test_zero_tab_width_at_line_end(self):
+        layout = text_layout.StandardTextLayout(tab_stop_every=0)
+        for wrap in ("any", "space"):
+            with self.subTest(wrap=wrap):
+                self.assertEqual(
+                    [[(4, 0, 4), (0, 4)], [(1, 5, 6), (0, 6)]],
+                    layout.layout("abcd\te", 4, "left", wrap),
+                )
+        self.assertEqual([[(0, 0), (0, 1)]], layout.layout("\t", 0, "left", "any"))
+
+    def test_zero_tab_width_trimmed(self):
+        layout = text_layout.StandardTextLayout(tab_stop_every=0)
+        self.assertEqual(["abc…"], self.render("a\tbcdef", 4, wrap="ellipsis", layout=layout))
+        self.assertEqual(["ab  "], self.render("a\tb", 4, wrap="clip", layout=layout))
+
     def test_invalid_stops_raise(self):
-        self.assertRaises(ValueError, text_layout.StandardTextLayout, tab_stop_every=0)
+        self.assertRaises(ValueError, text_layout.StandardTextLayout, tab_stop_every=-1)
         self.assertRaises(ValueError, text_layout.StandardTextLayout, tab_stops=(0, 4))
 
     def test_tab_is_one_segment_rendered_as_spaces(self):
