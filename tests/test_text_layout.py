@@ -978,6 +978,30 @@ class TabStopTest(unittest.TestCase):
     def test_unsupported_wrap_raises(self):
         self.assertRaises(ValueError, text_layout.default_layout._wrap_tabbed_line, "\t", 0, 1, 8, "clip")
 
+    def test_pack_counts_tabs(self):
+        text = urwid.Text("ab\tc")
+        self.assertEqual((9, 1), text.pack())
+        self.assertEqual(["ab      c"], [row.decode() for row in text.render(()).text])
+
+    def test_pack_counts_tabs_with_alignment(self):
+        for align in ("left", "center", "right"):
+            with self.subTest(align=align):
+                self.assertEqual((9, 1), urwid.Text("ab\tc", align=align).pack())
+
+    def test_pack_reaches_far_tab_stop(self):
+        layout = text_layout.StandardTextLayout(tab_stops=(40,))
+        self.assertEqual((41, 1), urwid.Text("x\ty", layout=layout).pack())
+
+    def test_pack_multiline_with_emoji_and_tab(self):
+        self.assertEqual((9, 2), urwid.Text("👩‍💻\tx\n中文").pack())
+
+    def test_pack_layout_without_pack_method(self):
+        class NoPackLayout(urwid.TextLayout):
+            def layout(self, text, width, align, wrap):
+                return [[(len(text), 0, len(text))]]
+
+        self.assertEqual((4, 1), urwid.Text("abcd", layout=NoPackLayout()).pack())
+
     def test_edit_cursor_steps_over_tab(self):
         edit = urwid.Edit("", "ab\tcd")
         coords = []
