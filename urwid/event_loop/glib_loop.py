@@ -30,6 +30,7 @@ import functools
 import logging
 import signal
 import typing
+import warnings
 
 from gi.repository import GLib
 
@@ -53,10 +54,19 @@ def _ignore_handler(_sig: int, _frame: FrameType | None = None) -> None:
 
 
 class GLibEventLoop(EventLoop):
-    """Event loop based on GLib.MainLoop."""
+    """Event loop based on GLib.MainLoop.
+
+    .. deprecated:: 4.1.7
+        This API will be removed in version 6.0.
+    """
 
     def __init__(self) -> None:
         """Initialize a fresh GLib.MainLoop with no alarms or watched files yet."""
+        warnings.warn(
+            "GLibEventLoop is deprecated. API will be removed in version 6.0.",
+            PendingDeprecationWarning,
+            stacklevel=2,
+        )
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[int] = []
