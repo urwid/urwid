@@ -40,6 +40,8 @@ class PaddingWarning(WidgetWarning):
 
 
 class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
+    """Decoration that adds blank columns to the left and/or right of a wrapped widget."""
+
     def __init__(
         self,
         w: WrappedWidget,

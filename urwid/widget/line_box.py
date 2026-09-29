@@ -26,6 +26,8 @@ class LineBox(
     WidgetDecoration[WrappedWidget],
     delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
 ):
+    """Box widget decoration that draws a line border, with an optional title, around another widget."""
+
     Symbols = BOX_SYMBOLS
 
     def __init__(

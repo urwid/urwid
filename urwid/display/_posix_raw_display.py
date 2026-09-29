@@ -85,6 +85,8 @@ _GPM_MOD_ALT = 8
 
 
 class Screen(_raw_display_base.Screen):
+    """Raw screen backend that drives a real POSIX terminal."""
+
     def __init__(
         self,
         input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin

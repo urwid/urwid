@@ -193,10 +193,10 @@ class CFLCDScreen(LCDScreen, abc.ABC):
                 return command, data
 
     class InvalidPacket(Exception):
-        pass
+        """Raised when a packet is longer than the protocol allows, or its CRC does not match."""
 
     class MoreDataRequired(Exception):
-        pass
+        """Raised when the buffered data does not yet hold a complete packet."""
 
     @classmethod
     def _parse_data(cls, data: bytearray) -> tuple[int, bytearray, bytearray]:

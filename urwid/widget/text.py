@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:
 
 
 class TextError(WidgetError):
-    pass
+    """Error raised for invalid :class:`Text` widget usage."""
 
 
 class Text(Widget):

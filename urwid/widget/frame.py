@@ -29,7 +29,7 @@ FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[AbstractFlowWid
 
 
 class FrameError(WidgetError):
-    pass
+    """Frame related errors."""
 
 
 def _check_widget_subclass(widget: AbstractWidget | None) -> None:
@@ -365,6 +365,8 @@ class Frame(
                 tuple[typing.Union[BodyWidget, HeaderWidget, FooterWidget], None],
             ]
         ):
+            """Mapping view onto this Frame's `header`, `body`, and `footer` slots."""
+
             # pylint: disable=no-self-argument
 
             __slots__ = ()

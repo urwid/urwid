@@ -18,7 +18,7 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
 
 
 class BoxAdapterError(WidgetError):
-    pass
+    """BoxAdapter related errors."""
 
 
 class BoxAdapter(WidgetDecoration[WrappedWidget]):

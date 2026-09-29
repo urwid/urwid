@@ -217,7 +217,7 @@ class CanvasCache:
 
 
 class CanvasError(Exception):
-    pass
+    """Raised for errors in canvas content or canvas cache management."""
 
 
 class Canvas:

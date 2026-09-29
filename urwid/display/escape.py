@@ -80,7 +80,7 @@ _ORD_9 = ord("9")
 
 
 class MoreInputRequired(Exception):
-    pass
+    """Raised when the input decoded so far is a prefix of a longer escape sequence."""
 
 
 def escape_modifier(digit: str) -> str:
@@ -199,6 +199,8 @@ input_sequences: list[tuple[str, str]] = [
 
 
 class KeyqueueTrie:
+    """Trie mapping terminal escape sequences to the key names they decode to."""
+
     __slots__ = ("data",)
 
     def __init__(self, sequences: Iterable[tuple[str, str]]) -> None:

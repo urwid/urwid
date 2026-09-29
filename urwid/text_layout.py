@@ -56,6 +56,8 @@ def _get_width(string: str) -> int:
 
 
 class TextLayout:
+    """Base class for a text layout algorithm that lays text out into lines for display."""
+
     def supports_align_mode(self, align: Literal["left", "center", "right"] | Align) -> bool:
         """Return True if align is a supported align mode."""
         return True
@@ -99,10 +101,12 @@ class TextLayout:
 
 
 class CanNotDisplayText(Exception):
-    pass
+    """Raised internally by a text layout when the given text cannot be laid out at all."""
 
 
 class StandardTextLayout(TextLayout):
+    """Default :class:`TextLayout` implementation, wrapping and aligning text by screen column."""
+
     def __init__(self) -> None:  # , tab_stops=(), tab_stop_every=8):
         pass
         # """
@@ -384,6 +388,8 @@ default_layout = StandardTextLayout()
 
 
 class LayoutSegment:
+    """One segment of a line layout: a run of text, an inserted range of spaces, or inserted text."""
+
     __slots__ = ("end", "offs", "sc", "text")
 
     sc: int

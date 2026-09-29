@@ -124,6 +124,8 @@ def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
 
 
 class Scrollable(WidgetDecoration[WrappedScrollWidget]):
+    """Box widget decoration that makes a fixed or flow widget vertically scrollable."""
+
     def sizing(self) -> frozenset[Sizing]:
         return frozenset((Sizing.BOX,))
 
@@ -474,6 +476,8 @@ class _ScrollbarLayout:
 
 
 class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
+    """Box widget decoration that adds a scrollbar alongside a scrollable wrapped widget."""
+
     Symbols = ScrollbarSymbols
 
     def sizing(self) -> frozenset[Sizing]:

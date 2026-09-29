@@ -30,7 +30,7 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class FillerError(WidgetError):
-    pass
+    """Filler related errors."""
 
 
 class FillerWarning(WidgetWarning):
@@ -38,6 +38,8 @@ class FillerWarning(WidgetWarning):
 
 
 class Filler(WidgetDecoration[WrappedWidget]):
+    """Box widget decoration that vertically aligns a flow or box widget within the available space."""
+
     def __init__(
         self,
         body: WrappedWidget,

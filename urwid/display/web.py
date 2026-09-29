@@ -120,6 +120,8 @@ _default_background = "light gray"
 
 
 class Screen(BaseScreen):
+    """Screen backend that renders to a browser client over the web server's polling/streaming connection."""
+
     def __init__(self) -> None:
         super().__init__()
         self.has_color = True
@@ -645,6 +647,8 @@ def set_preferences(
 
 
 class ErrorLog:
+    """File-like object that appends written text to the given error log file."""
+
     def __init__(self, errfile: str | pathlib.PurePath) -> None:
         self.errfile = errfile
 

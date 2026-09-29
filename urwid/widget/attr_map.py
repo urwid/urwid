@@ -18,7 +18,7 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrMapError(WidgetError):
-    pass
+    """AttrMap related errors."""
 
 
 class AttrMap(

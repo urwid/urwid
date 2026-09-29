@@ -32,6 +32,8 @@ if typing.TYPE_CHECKING:
 
 
 class Command(str, enum.Enum):
+    """Abstract commands that a :class:`CommandMap` maps keystrokes to."""
+
     REDRAW_SCREEN = "redraw screen"
     UP = "cursor up"
     DOWN = "cursor down"

@@ -48,10 +48,12 @@ _default_background = "light gray"
 
 
 class HtmlGeneratorSimulationError(Exception):
-    pass
+    """Raised when :class:`HtmlGenerator` is used in a way its simulated screen does not support."""
 
 
 class HtmlGenerator(BaseScreen):
+    """Screen backend that renders each displayed frame as an HTML fragment instead of a real terminal."""
+
     # class variables
     fragments: typing.ClassVar[list[str]] = []
     sizes: typing.ClassVar[list[tuple[int, int]]] = []

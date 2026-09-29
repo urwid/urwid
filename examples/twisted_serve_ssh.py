@@ -85,6 +85,8 @@ class IUrwidUi(Interface):
 
 
 class IUrwidMind(Interface):
+    """Interface for the adapter that drives an urwid UI over a Twisted terminal protocol."""
+
     ui = Attribute("")
     terminalProtocol = Attribute("")
     terminal = Attribute("")

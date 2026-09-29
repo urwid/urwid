@@ -60,6 +60,8 @@ def _check_widget_subclass(widget: AbstractWidget) -> None:
 
 
 class OverlayOptions(typing.NamedTuple):
+    """Placement and sizing options for the top widget of an :class:`Overlay`."""
+
     align: Align | Literal[WHSettings.RELATIVE]
     align_amount: int | None
     width_type: WHSettings
@@ -691,6 +693,8 @@ class Overlay(
 
         # noinspection PyMethodParameters
         class OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
+            """Two-item sequence view onto this Overlay's bottom and top widget entries."""
+
             # pylint: disable=no-self-argument
             def __len__(inner_self) -> int:
                 return 2

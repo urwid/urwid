@@ -15,12 +15,16 @@ if typing.TYPE_CHECKING:
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
     class WidgetContainerProto(typing.Protocol[_KT_contra]):
+        """Structural type for a container's ``contents`` mapping, indexable by position."""
+
         def __getitem__(
             self,
             index: _KT_contra,
         ) -> tuple[AbstractWidget, typing.Any]: ...
 
     class WidgetContainerMixinProto(AbstractWidget, typing.Protocol[_KT_contra]):
+        """Structural type for a widget exposing ``contents`` and a settable ``focus_position``."""
+
         @property
         def contents(self) -> WidgetContainerProto[_KT_contra]: ...
 

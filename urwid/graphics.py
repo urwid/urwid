@@ -56,6 +56,8 @@ __all__ = (
 
 
 class PythonLogo(Widget):
+    """Fixed widget that draws an ASCII-art rendering of the Python logo."""
+
     _sizing = frozenset([Sizing.FIXED])
 
     def __init__(self) -> None:

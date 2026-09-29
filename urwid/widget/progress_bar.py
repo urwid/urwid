@@ -15,6 +15,8 @@ if typing.TYPE_CHECKING:
 
 
 class ProgressBar(Widget):
+    """Flow widget that displays a completion percentage as a bar of Unicode block characters."""
+
     _sizing = frozenset([Sizing.FLOW])
 
     eighths = BAR_SYMBOLS.HORISONTAL[:8]  # Full width line is made by style

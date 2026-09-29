@@ -48,6 +48,8 @@ if typing.TYPE_CHECKING:
 
 
 class SelectableIcon(Text):
+    """Selectable text widget that shows a fixed-position cursor when focused."""
+
     ignore_focus = False
     _selectable = True
 
@@ -139,10 +141,12 @@ class SelectableIcon(Text):
 
 
 class CheckBoxError(WidgetError):
-    pass
+    """Error raised for invalid :class:`CheckBox` usage."""
 
 
 class CheckBox(WidgetWrap[Columns]):
+    """Selectable widget that toggles between checked, unchecked, and mixed states."""
+
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
@@ -468,6 +472,8 @@ class CheckBox(WidgetWrap[Columns]):
 
 
 class RadioButton(CheckBox):
+    """Checkbox-like widget that exclusively selects itself within a shared group list."""
+
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("(X)", 1),
         False: SelectableIcon("( )", 1),
@@ -621,6 +627,8 @@ class RadioButton(CheckBox):
 
 
 class Button(WidgetWrap[Columns]):
+    """Selectable widget that emits a ``click`` signal when activated."""
+
     button_left = Text("<")
     button_right = Text(">")
 

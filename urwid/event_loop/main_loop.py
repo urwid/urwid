@@ -93,7 +93,7 @@ __all__ = ("CantUseExternalLoop", "MainLoop")
 
 
 class CantUseExternalLoop(Exception):
-    pass
+    """Raised when an event loop given to :class:`MainLoop` cannot be reused as an external loop."""
 
 
 class MainLoop:
@@ -764,6 +764,8 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
     """
 
     class Reflect:
+        """Callable stand-in that records its calls and returns a fixed value."""
+
         def __init__(self, name: str, rval: _T | None = None) -> None:
             self._name = name
             self._rval = rval
