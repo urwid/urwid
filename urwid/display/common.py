@@ -926,6 +926,49 @@ class AttrSpec:
         return not self == other
 
 
+#: default RGB values substituted for a palette entry's 'default' foreground/background,
+#: matching the black-on-light-gray terminal default used by the HTML-producing screens
+_default_aspec = AttrSpec("black", "light gray")
+_default_fg_rgb = _default_aspec.get_rgb_values()[:3]
+_default_bg_rgb = _default_aspec.get_rgb_values()[3:]
+
+
+@functools.cache
+def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
+    """Return the (foreground, background, extra CSS declarations) hex colors for *aspec*.
+
+    Covers every :class:`AttrSpec` display setting a browser can render: color (falling back to
+    the default black-on-light-gray for an unset foreground/background), ``standout`` (swaps
+    foreground and background), ``underline``/``strikethrough`` (combined into one
+    ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation, since the
+    ``text-decoration:blink`` value browsers used to support has been dropped) and ``faint``.
+    """
+    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
+    if fg_r is None:
+        fg_r, fg_g, fg_b = _default_fg_rgb
+    if bg_r is None:
+        bg_r, bg_g, bg_b = _default_bg_rgb
+    fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
+    bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
+    if aspec.standout:
+        fg, bg = bg, fg
+
+    decoration = [name for name, on in (("underline", aspec.underline), ("line-through", aspec.strikethrough)) if on]
+
+    extra = ""
+    if decoration:
+        extra += f";text-decoration:{' '.join(decoration)}"
+    if aspec.bold:
+        extra += ";font-weight:bold"
+    if aspec.italics:
+        extra += ";font-style:italic"
+    if aspec.blink:
+        extra += ";animation:urwid-blink 1s step-start infinite"
+    if aspec.faint:
+        extra += ";opacity:0.5"
+    return fg, bg, extra
+
+
 class RealTerminal:
     """Mixin providing access to the real terminal's signal key settings."""
 

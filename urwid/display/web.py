@@ -23,7 +23,6 @@
 from __future__ import annotations
 
 import dataclasses
-import functools
 import glob
 import html
 import os
@@ -42,7 +41,7 @@ from email.message import Message
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import StoppingContext, get_encoding
 
-from .common import AttrSpec, BaseScreen
+from .common import AttrSpec, BaseScreen, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
     from types import FrameType
@@ -465,49 +464,14 @@ class Screen(BaseScreen):
         return pending_input
 
 
-#: default RGB values substituted for a palette entry's 'default' foreground/background,
-#: matching the black-on-light-gray page background declared in _web.css
-_default_aspec = AttrSpec(_default_foreground, _default_background)
-_d_fg_rgb = _default_aspec.get_rgb_values()[:3]
-_d_bg_rgb = _default_aspec.get_rgb_values()[3:]
-
 # the separator between a span's inline CSS and its text content in the wire format;
 # safe because control characters in the text have already been replaced by _trans_table
 _STYLE_SEP = "\x01"
 
 
-@functools.cache
-def _span_style(aspec: AttrSpec) -> tuple[str, str, str]:
-    """Return the (foreground, background, extra CSS) for *aspec*, with standout applied."""
-    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
-    if fg_r is None:
-        fg_r, fg_g, fg_b = _d_fg_rgb
-    if bg_r is None:
-        bg_r, bg_g, bg_b = _d_bg_rgb
-    fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
-    bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
-    if aspec.standout:
-        fg, bg = bg, fg
-
-    decoration = [name for name, on in (("underline", aspec.underline), ("line-through", aspec.strikethrough)) if on]
-
-    extra = ""
-    if decoration:
-        extra += f";text-decoration:{' '.join(decoration)}"
-    if aspec.bold:
-        extra += ";font-weight:bold"
-    if aspec.italics:
-        extra += ";font-style:italic"
-    if aspec.blink:
-        extra += ";animation:urwid-blink 1s step-start infinite"
-    if aspec.faint:
-        extra += ";opacity:0.5"
-    return fg, bg, extra
-
-
 def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     """Return `s` wrapped in an HTML ``<code>`` span styled per `aspec`, with the cursor column highlighted."""
-    fg, bg, extra = _span_style(aspec)
+    fg, bg, extra = attr_spec_to_css(aspec)
 
     def _piece(fg_: str, bg_: str, text: str) -> str:
         return f"color:{fg_};background-color:{bg_}{extra}{_STYLE_SEP}{text}\n"

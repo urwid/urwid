@@ -29,7 +29,7 @@ from urwid import str_util
 from urwid.event_loop import ExitMainLoop
 from urwid.util import get_encoding
 
-from .common import AttrSpec, BaseScreen
+from .common import AttrSpec, BaseScreen, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
     from typing_extensions import Literal
@@ -164,25 +164,9 @@ class HtmlGenerator(BaseScreen):
         return self.keys.pop(0)
 
 
-_default_aspec = AttrSpec(_default_foreground, _default_background)
-(_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = _default_aspec.get_rgb_values()
-
-
 def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     """Wrap *s* in an HTML ``<span>`` styled from *aspec*, splitting it around *cursor* when given a valid index."""
-    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
-    # use real colours instead of default fg/bg
-    if fg_r is None:
-        fg_r, fg_g, fg_b = _d_fg_r, _d_fg_g, _d_fg_b
-    if bg_r is None:
-        bg_r, bg_g, bg_b = _d_bg_r, _d_bg_g, _d_bg_b
-    html_fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
-    html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
-    if aspec.standout:
-        html_fg, html_bg = html_bg, html_fg
-    extra = (
-        ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold + ";opacity:0.5" * aspec.faint
-    )
+    html_fg, html_bg, extra = attr_spec_to_css(aspec)
 
     def _span(fg: str, bg: str, string: str) -> str:
         if not s:

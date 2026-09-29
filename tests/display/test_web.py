@@ -382,55 +382,10 @@ class ScreenStartTest(unittest.TestCase):
 
 
 class SpanStyleTest(unittest.TestCase):
-    """Tests for web._span_style and web.code_span, which translate an AttrSpec into the
-    inline CSS sent to the browser -- the web equivalent of raw_display's _attrspec_to_escape.
+    """Tests for web.code_span, which wraps common.attr_spec_to_css's inline CSS into the wire
+    format sent to the browser. The colour/attribute-to-CSS logic itself is covered by
+    tests/display/test_common.py, since web and html_fragment now share it.
     """
-
-    def test_default_colours_fall_back_to_the_page_palette(self) -> None:
-        fg, bg, extra = web._span_style(AttrSpec("default", "default"))
-
-        self.assertEqual("#000000", fg)
-        self.assertEqual("#e5e5e5", bg)
-        self.assertEqual("", extra)
-
-    def test_named_colours_render_as_hex(self) -> None:
-        fg, bg, extra = web._span_style(AttrSpec("white", "black"))
-
-        self.assertEqual("#ffffff", fg)
-        self.assertEqual("#000000", bg)
-        self.assertEqual("", extra)
-
-    def test_high_colour_renders_exact_rgb(self) -> None:
-        fg, bg, _extra = web._span_style(AttrSpec("#76b900", "#000000", colors=16777216))
-
-        self.assertEqual("#76b900", fg)
-        self.assertEqual("#000000", bg)
-
-    def test_standout_swaps_foreground_and_background(self) -> None:
-        fg, bg, _extra = web._span_style(AttrSpec("white,standout", "black"))
-
-        self.assertEqual("#000000", fg)
-        self.assertEqual("#ffffff", bg)
-
-    def test_all_attributes_combine_into_one_style(self) -> None:
-        aspec = AttrSpec("white,bold,italics,underline,blink,strikethrough,faint", "black")
-        _fg, _bg, extra = web._span_style(aspec)
-
-        self.assertIn(";text-decoration:underline line-through", extra)
-        self.assertIn(";font-weight:bold", extra)
-        self.assertIn(";font-style:italic", extra)
-        self.assertIn(";animation:urwid-blink 1s step-start infinite", extra)
-        self.assertIn(";opacity:0.5", extra)
-
-    def test_underline_alone_has_no_line_through(self) -> None:
-        _fg, _bg, extra = web._span_style(AttrSpec("white,underline", "black"))
-
-        self.assertEqual(";text-decoration:underline", extra)
-
-    def test_no_attributes_gives_empty_extra(self) -> None:
-        _fg, _bg, extra = web._span_style(AttrSpec("white", "black"))
-
-        self.assertEqual("", extra)
 
     def test_code_span_wraps_style_and_text(self) -> None:
         span = web.code_span("hi", AttrSpec("white", "black"))
