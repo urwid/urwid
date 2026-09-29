@@ -61,10 +61,7 @@ class PythonLogo(Widget):
     _sizing = frozenset([Sizing.FIXED])
 
     def __init__(self) -> None:
-        """
-        Create canvas containing an ASCII version of the Python
-        Logo and store it.
-        """
+        """Create canvas containing an ASCII version of the Python Logo and store it."""
         super().__init__()
         blu = AttrSpec("light blue", "default")
         yel = AttrSpec("yellow", "default")

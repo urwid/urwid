@@ -519,7 +519,10 @@ class _MovedModule(types.ModuleType):
         self._moved_to = moved_to
 
     def __getattr__(self, name: str) -> typing.Any:
-        """:raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported."""
+        """Resolve `name` by importing the module this one moved to.
+
+        :raises AttributeError: *name* is not found, including when *self._moved_to* itself cannot be imported.
+        """
         try:
             real_module = importlib.import_module(self._moved_to)
         except ImportError as exc:

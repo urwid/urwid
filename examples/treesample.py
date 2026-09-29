@@ -23,7 +23,7 @@
 # Urwid web site: https://urwid.org/
 
 """
-Urwid example lazy directory browser / tree view
+Urwid example lazy directory browser / tree view.
 
 Features:
 - custom selectable widgets for files and directories

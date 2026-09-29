@@ -224,9 +224,9 @@ _DEFAULT_COLOR_NAMES = frozenset({"", "default"})
 
 
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
-    """
-    Generate a lookup table for finding the closest item in values.
-    Lookup returns (index into values)+1
+    """Generate a lookup table for finding the closest item in *values*.
+
+    Lookup returns (index into values)+1.
 
     :param values: list of values in ascending order, all < size
     :param size: size of lookup table and maximum value
@@ -309,8 +309,8 @@ def _color_desc_true(num: int) -> str:
 
 @functools.lru_cache(maxsize=256)
 def _color_desc_256(num: int) -> str:
-    """
-    Return a string description of color number num.
+    """Return a string description of color number *num*.
+
     0..15 -> 'h0'..'h15' basic colors (as high-colors)
     16..231 -> '#000'..'#fff' color cube colors
     232..255 -> 'g3'..'g93' grays
@@ -346,8 +346,8 @@ def _color_desc_256(num: int) -> str:
 
 @functools.lru_cache(maxsize=88)
 def _color_desc_88(num: int) -> str:
-    """
-    Return a string description of color number num.
+    """Return a string description of color number *num*.
+
     0..15 -> 'h0'..'h15' basic colors (as high-colors)
     16..79 -> '#000'..'#fff' color cube colors
     80..87 -> 'g18'..'g90' grays
@@ -402,8 +402,8 @@ def _parse_color_true(desc: str) -> int | None:
 
 @functools.lru_cache(maxsize=512)
 def _parse_color_256(desc: str) -> int | None:
-    """
-    Return a color number for the description desc.
+    """Return a color number for the description *desc*.
+
     'h0'..'h255' -> 0..255 actual color number
     '#000'..'#fff' -> 16..231 color cube colors
     'g0'..'g100' -> 16, 232..255, 231 grays and color cube black/white
@@ -481,8 +481,8 @@ def _true_to_256(desc: str) -> str | None:
 
 @functools.lru_cache(maxsize=512)
 def _parse_color_88(desc: str) -> int | None:
-    """
-    Return a color number for the description desc.
+    """Return a color number for the description *desc*.
+
     'h0'..'h87' -> 0..87 actual color number
     '#000'..'#fff' -> 16..79 color cube colors
     'g0'..'g100' -> 16, 80..87, 79 grays and color cube black/white
@@ -638,6 +638,7 @@ class AttrSpec:
         bg: str | None = None,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
     ) -> Self:
+        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, and/or *colors* with the given values."""
         if fg is None:
             foreground = self.foreground
         else:
@@ -666,62 +667,77 @@ class AttrSpec:
 
     @property
     def foreground_basic(self) -> bool:
+        """Return whether the foreground color is one of the 16 basic colors."""
         return self.__value & _FG_BASIC_COLOR != 0
 
     @property
     def foreground_high(self) -> bool:
+        """Return whether the foreground color is a 88- or 256-color palette entry."""
         return self.__value & _FG_HIGH_COLOR != 0
 
     @property
     def foreground_true(self) -> bool:
+        """Return whether the foreground color is a 24-bit true color."""
         return self.__value & _FG_TRUE_COLOR != 0
 
     @property
     def foreground_number(self) -> int:
+        """Return the encoded foreground color number."""
         return self.__value & _FG_COLOR_MASK
 
     @property
     def background_basic(self) -> bool:
+        """Return whether the background color is one of the 16 basic colors."""
         return self.__value & _BG_BASIC_COLOR != 0
 
     @property
     def background_high(self) -> bool:
+        """Return whether the background color is a 88- or 256-color palette entry."""
         return self.__value & _BG_HIGH_COLOR != 0
 
     @property
     def background_true(self) -> bool:
+        """Return whether the background color is a 24-bit true color."""
         return self.__value & _BG_TRUE_COLOR != 0
 
     @property
     def background_number(self) -> int:
+        """Return the encoded background color number."""
         return (self.__value & _BG_COLOR_MASK) >> _BG_SHIFT
 
     @property
     def italics(self) -> bool:
+        """Return whether the italics setting is enabled."""
         return self.__value & _ITALICS != 0
 
     @property
     def bold(self) -> bool:
+        """Return whether the bold setting is enabled."""
         return self.__value & _BOLD != 0
 
     @property
     def underline(self) -> bool:
+        """Return whether the underline setting is enabled."""
         return self.__value & _UNDERLINE != 0
 
     @property
     def blink(self) -> bool:
+        """Return whether the blink setting is enabled."""
         return self.__value & _BLINK != 0
 
     @property
     def standout(self) -> bool:
+        """Return whether the standout setting is enabled."""
         return self.__value & _STANDOUT != 0
 
     @property
     def strikethrough(self) -> bool:
+        """Return whether the strikethrough setting is enabled."""
         return self.__value & _STRIKETHROUGH != 0
 
     @property
     def faint(self) -> bool:
+        """Return whether the faint setting is enabled."""
         return self.__value & _FAINT != 0
 
     @property
@@ -742,10 +758,7 @@ class AttrSpec:
         return 1
 
     def __repr__(self) -> str:
-        """
-        Return an executable python representation of the AttrSpec
-        object.
-        """
+        """Return an executable python representation of the AttrSpec object."""
         args = f"{self.foreground!r}, {self.background!r}"
         if self.colors == 88:
             # 88-color mode is the only one that is handled differently
@@ -766,6 +779,7 @@ class AttrSpec:
 
     @property
     def foreground(self) -> str:
+        """Return the foreground color and settings as a comma-separated string."""
         return (
             self._foreground_color()
             + ",bold" * self.bold
@@ -861,8 +875,8 @@ class AttrSpec:
         self.__value = (self.__value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
-        """
-        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color components.
+        """Return ``(fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)`` color components.
+
         Each component is in the range 0-255.
         Values are taken from the XTerm defaults and may not exactly match the user's terminal.
 
@@ -904,9 +918,11 @@ class AttrSpec:
         return (*vals, *_COLOR_VALUES_256[self.background_number])
 
     def __eq__(self, other: object) -> bool:
+        """Return whether `other` is an :class:`AttrSpec` with the same underlying value."""
         return isinstance(other, AttrSpec) and self.__value == other._value
 
     def __ne__(self, other: object) -> bool:
+        """Return whether `other` is not equal to this :class:`AttrSpec`."""
         return not self == other
 
 
@@ -929,8 +945,8 @@ class RealTerminal:
             susp: Literal["undefined"] | int | None = None,
             fileno: int | None = None,
         ) -> tuple[int, int, int, int, int] | None:
-            """
-            Read and/or set the tty's signal character settings.
+            """Read and/or set the tty's signal character settings.
+
             This function returns the current settings as a tuple.
 
             Use the string 'undefined' to unmap keys from their signals.
@@ -955,8 +971,8 @@ class RealTerminal:
             susp: Literal["undefined"] | int | None = None,
             fileno: int | None = None,
         ) -> tuple[int, int, int, int, int] | None:
-            """
-            Read and/or set the tty's signal character settings.
+            """Read and/or set the tty's signal character settings.
+
             This function returns the current settings as a tuple.
 
             Use the string 'undefined' to unmap keys from their signals.
@@ -1033,11 +1049,13 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
     @property
     def started(self) -> bool:
+        """Return whether the screen has been started and not yet stopped."""
         return self._started
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
-        """Set up the screen.  If the screen has already been started, does
-        nothing.
+        """Set up the screen.
+
+        If the screen has already been started, does nothing.
 
         May be used as a context manager, in which case :meth:`stop` will
         automatically be called at the end of the block:
@@ -1057,6 +1075,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """Perform the actual setup of the screen. Subclasses should override this method."""
 
     def stop(self) -> None:
+        """Tear down the screen if it has been started. You shouldn't override this method; override :meth:`_stop`."""
         if self._started:
             self._stop()
         self._started = False
@@ -1087,11 +1106,11 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             fn()
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
-        pass
+        """Enable or disable tracking of mouse movement events. A no-op here; subclasses override it."""
 
     @abc.abstractmethod
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        pass
+        """Draw *canvas* of the given *size* to the screen. Subclasses must implement this method."""
 
     def clear(self) -> None:
         """Clear the screen if possible.

@@ -17,9 +17,9 @@ WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrWrap(AttrMap[WrappedWidget]):
-    """
-    A special case of the :class:`AttrMap` widget that passes all function calls
-    and variable references on to the wrapped widget.
+    """A special case of the :class:`AttrMap` widget.
+
+    Passes all function calls and variable references on to the wrapped widget.
 
     .. deprecated:: 0.9.9
         Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
@@ -31,7 +31,8 @@ class AttrWrap(AttrMap[WrappedWidget]):
         attr: Hashable | Mapping[Hashable, Hashable],
         focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
     ) -> None:
-        """
+        """Build the widget from an existing widget and attribute mapping.
+
         :param w: widget to wrap (stored as self.original_widget)
         :param attr: attribute to apply to w
         :param focus_attr: attribute to apply when in focus, if None use attr
@@ -101,6 +102,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         self.original_widget = new_widget
 
     def get_attr(self) -> Hashable:
+        """Return the attribute applied to the wrapped widget."""
         return typing.cast("Hashable", self.attr_map[None])
 
     def set_attr(self, attr: Hashable) -> None:
@@ -117,14 +119,13 @@ class AttrWrap(AttrMap[WrappedWidget]):
     attr = property(get_attr, set_attr)
 
     def get_focus_attr(self) -> Hashable | None:
+        """Return the attribute applied to the wrapped widget when it is in focus."""
         if focus_map := self.focus_map:
             return typing.cast("Hashable", focus_map[None])
         return None
 
     def set_focus_attr(self, focus_attr: Hashable) -> None:
-        """
-        Set the attribute to apply to the wapped widget when it is in
-        focus
+        """Set the attribute to apply to the wrapped widget when it is in focus.
 
         If None this widget will use the attr instead (no change when in
         focus).
@@ -151,4 +152,5 @@ class AttrWrap(AttrMap[WrappedWidget]):
         return getattr(self._original_widget, name)
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return the sizing modes supported by the wrapped widget."""
         return self._original_widget.sizing()

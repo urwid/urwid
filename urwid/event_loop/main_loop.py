@@ -69,13 +69,17 @@ if typing.TYPE_CHECKING:
             self,
             event_loop: EventLoop,
             callback: Callable[[list[str | tuple[str, int, int, int]], list[int]], typing.Any],
-        ) -> None: ...
+        ) -> None:
+            """Register `callback` with `event_loop` to be called when input is available."""
 
-        def unhook_event_loop(self, event_loop: EventLoop) -> None: ...
+        def unhook_event_loop(self, event_loop: EventLoop) -> None:
+            """Remove the input callback previously registered with `event_loop`."""
 
-        def get_input(self, raw_keys: Literal[True]) -> tuple[list[str | tuple[str, int, int, int]], list[int]]: ...
+        def get_input(self, raw_keys: Literal[True]) -> tuple[list[str | tuple[str, int, int, int]], list[int]]:
+            """Return the input received since the last call, alongside its raw key codes."""
 
-        def set_input_timeouts(self, max_wait: float | None = ...) -> None: ...
+        def set_input_timeouts(self, max_wait: float | None = ...) -> None:
+            """Set the maximum time to wait for input before returning, in seconds."""
 
     class _EventLoopWithAlarmsStore(typing.Protocol):
         """Event loop that supports alarms storage (like :class:`SelectEventLoop`).
@@ -97,9 +101,7 @@ class CantUseExternalLoop(Exception):
 
 
 class MainLoop:
-    """
-    This is the standard main loop implementation for a single interactive
-    session.
+    """This is the standard main loop implementation for a single interactive session.
 
     :param widget: the topmost widget used for painting the screen, stored as
                    :attr:`widget` and may be modified. Must be a box widget.
@@ -195,8 +197,8 @@ class MainLoop:
 
     @property
     def widget(self) -> AbstractWidget:
-        """
-        Property for the topmost widget used to draw the screen.
+        """Property for the topmost widget used to draw the screen.
+
         This must be a box widget.
         """
         return self._widget
@@ -211,6 +213,7 @@ class MainLoop:
 
     @property
     def pop_ups(self) -> bool:
+        """Return whether pop-up widgets opened via :class:`PopUpLauncher` are shown automatically."""
         return self._pop_ups
 
     @pop_ups.setter
@@ -254,9 +257,7 @@ class MainLoop:
         callback: Callable[[Self, _T | None], typing.Any],
         user_data: _T | None = None,
     ) -> typing.Any:
-        """
-        Schedule an alarm in *sec* seconds that will call *callback* from the
-        within the :meth:`run` method.
+        """Schedule an alarm in *sec* seconds that will call *callback* from the within the :meth:`run` method.
 
         :param sec: seconds until alarm
         :param callback: function to call with two parameters: this main loop
@@ -276,10 +277,9 @@ class MainLoop:
         callback: Callable[[Self, _T | None], typing.Any],
         user_data: _T | None = None,
     ) -> typing.Any:
-        """
-        Schedule an alarm at *tm* time that will call *callback* from the
-        within the :meth:`run` function. Returns a handle that may be passed to
-        :meth:`remove_alarm`.
+        """Schedule an alarm at *tm* time that will call *callback* from the within the :meth:`run` function.
+
+        Returns a handle that may be passed to :meth:`remove_alarm`.
 
         :param tm: time to call callback e.g. ``time.time() + 5``
         :param callback: function to call with two parameters: this main loop
@@ -295,18 +295,13 @@ class MainLoop:
         return self.event_loop.alarm(sec, self._make_alarm_callback(callback, user_data))
 
     def remove_alarm(self, handle: typing.Any) -> bool:
-        """
-        Remove an alarm. Return ``True`` if *handle* was found, ``False``
-        otherwise.
-        """
+        """Remove an alarm. Return ``True`` if *handle* was found, ``False`` otherwise."""
         return self.event_loop.remove_alarm(handle)
 
     if not IS_WINDOWS and sys.implementation.name != "graalpy":
 
         def watch_pipe(self, callback: Callable[[bytes], bool | None]) -> int:
-            """
-            Create a pipe for use by a subprocess or thread to trigger a callback
-            in the process/thread running the main loop.
+            """Create a pipe used by another thread or subprocess to trigger *callback* in the main loop.
 
             :param callback: function taking one parameter to call from within the process/thread running the main loop
 
@@ -374,9 +369,7 @@ class MainLoop:
             return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
-        """
-        Call *callback* when *fd* has some data to read. No parameters are
-        passed to callback.
+        """Call *callback* when *fd* has some data to read. No parameters are passed to callback.
 
         Returns a handle that may be passed to :meth:`remove_watch_file`.
 
@@ -389,16 +382,13 @@ class MainLoop:
         return self.event_loop.watch_file(fd, callback)
 
     def remove_watch_file(self, handle: typing.Any) -> bool:
-        """
-        Remove a watch file. Returns ``True`` if the watch file
-        exists, ``False`` otherwise.
-        """
+        """Remove a watch file. Returns ``True`` if the watch file exists, ``False`` otherwise."""
         return self.event_loop.remove_watch_file(handle)
 
     def run(self) -> None:
-        """
-        Start the main loop handling input events and updating the screen. The
-        loop will continue until an :exc:`ExitMainLoop` exception is raised.
+        """Start the main loop handling input events and updating the screen.
+
+        The loop will continue until an :exc:`ExitMainLoop` exception is raised.
 
         If you would prefer to manage the event loop yourself, don't use this
         method.  Instead, call :meth:`start` before starting the event loop,
@@ -408,7 +398,8 @@ class MainLoop:
             self._run()
 
     def _test_run(self) -> None:
-        """
+        """Doctest for :meth:`run`.
+
         >>> w = _refl("widget")  # _refl prints out function calls
         >>> w.render_rval = "fake canvas"  # *_rval is used for return values
         >>> scr = _refl("screen")
@@ -437,8 +428,8 @@ class MainLoop:
         """
 
     def start(self) -> StoppingContext:
-        """
-        Sets up the main loop, hooking into the event loop where necessary.
+        """Set up the main loop, hooking into the event loop where necessary.
+
         Starts the :attr:`screen` if it hasn't already been started.
 
         If you want to control starting and stopping the event loop yourself,
@@ -481,9 +472,9 @@ class MainLoop:
         return StoppingContext(self)
 
     def stop(self) -> None:
-        """
-        Cleans up any hooks added to the event loop.  Only call this if you're
-        managing the event loop yourself, after the loop stops.
+        """Clean up any hooks added to the event loop.
+
+        Only call this if you're managing the event loop yourself, after the loop stops.
         """
         self.event_loop.remove_enter_idle(self.idle_handle)
         del self.idle_handle
@@ -515,7 +506,8 @@ class MainLoop:
         self.stop()
 
     def _update(self, keys: list[str | tuple[str, int, int, int]], raw: list[int]) -> None:
-        """
+        """Filter *keys* and pass them to :meth:`process_input`, resetting :attr:`screen_size` on a window resize.
+
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
         >>> w.mouse_event_rval = True
@@ -538,8 +530,7 @@ class MainLoop:
                 self.screen_size = None
 
     def _run_screen_event_loop(self) -> None:
-        """
-        This method is used when the screen does not support using external event loops.
+        """Run the screen event loop, used when the screen does not support using external event loops.
 
         The alarms stored in the SelectEventLoop in :attr:`event_loop` are modified by this method.
         """
@@ -587,7 +578,8 @@ class MainLoop:
                 self.screen_size = None
 
     def _test_run_screen_event_loop(self) -> None:
-        """
+        """Doctest for :meth:`_run_screen_event_loop`.
+
         >>> w = _refl("widget")
         >>> scr = _refl("screen")
         >>> scr.get_cols_rows_rval = (10, 5)
@@ -608,8 +600,8 @@ class MainLoop:
         """
 
     def process_input(self, keys: Iterable[str | tuple[str, int, int, int]]) -> bool:
-        """
-        This method will pass keyboard input and mouse events to :attr:`widget`.
+        """Pass keyboard input and mouse events to :attr:`widget`.
+
         This method is called automatically from the :meth:`run` method when
         there is input, but may also be called to simulate input from the user.
 
@@ -668,7 +660,8 @@ class MainLoop:
         return something_handled
 
     def _test_process_input(self) -> None:
-        """
+        """Doctest for :meth:`process_input`.
+
         >>> w = _refl("widget")
         >>> w.selectable_rval = True
         >>> scr = _refl("screen")
@@ -687,23 +680,20 @@ class MainLoop:
         keys: list[str | tuple[str, int, int, int]],
         raw: list[int],
     ) -> list[str | tuple[str, int, int, int]]:
-        """
-        This function is passed each all the input events and raw keystroke
-        values. These values are passed to the *input_filter* function
-        passed to the constructor. That function must return a list of keys to
-        be passed to the widgets to handle. If no *input_filter* was
-        defined this implementation will return all the input events.
+        """Pass each of the input events and raw keystroke values through *input_filter*.
+
+        These values are passed to the *input_filter* function passed to the constructor. That function must
+        return a list of keys to be passed to the widgets to handle. If no *input_filter* was defined this
+        implementation will return all the input events.
         """
         if self._input_filter:
             return self._input_filter(keys, raw)
         return keys
 
     def unhandled_input(self, data: str | tuple[str, int, int, int]) -> bool | None:
-        """
-        This function is called with any input that was not handled by the
-        widgets, and calls the *unhandled_input* function passed to the
-        constructor. If no *unhandled_input* was defined then the input
-        will be ignored.
+        """Call the *unhandled_input* function passed to the constructor with any input not handled by the widgets.
+
+        If no *unhandled_input* was defined then the input will be ignored.
 
         *input* is the keyboard or mouse input.
 
@@ -715,10 +705,9 @@ class MainLoop:
         return False
 
     def entering_idle(self) -> None:
-        """
-        This method is called whenever the event loop is about to enter the
-        idle state. :meth:`draw_screen` is called here to update the
-        screen when anything has changed.
+        """Call :meth:`draw_screen` to update the screen when anything has changed.
+
+        This method is called whenever the event loop is about to enter the idle state.
         """
         if self.screen.started:
             self.draw_screen()
@@ -726,9 +715,9 @@ class MainLoop:
             self.logger.debug(f"No redrawing screen: {self.screen!r} is not started.")
 
     def draw_screen(self) -> None:
-        """
-        Render the widgets and paint the screen. This method is called
-        automatically from :meth:`entering_idle`, which runs whenever the
+        """Render the widgets and paint the screen.
+
+        This method is called automatically from :meth:`entering_idle`, which runs whenever the
         event loop is about to go idle -- including after handling input
         and after an alarm callback fires. So screen updates made from
         input handlers or alarm callbacks are redrawn automatically.
@@ -747,8 +736,7 @@ class MainLoop:
 
 
 def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callable[..., _T | typing.Any]:
-    """
-    This function is used to test the main loop classes.
+    """Build a reflection helper used to test the main loop classes.
 
     >>> scr = _refl("screen")
     >>> scr.function("argument")

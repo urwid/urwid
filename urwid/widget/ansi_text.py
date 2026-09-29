@@ -81,7 +81,8 @@ class ANSIText(WidgetWrap[Text]):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
     ) -> None:
-        """
+        """Build the widget from a block of ANSI/VT100-escaped text.
+
         :param ansi_text: a block of text, optionally spanning several lines and containing ANSI/VT100 escape
             sequences. If ``one_line`` is true, only its first physical line is surfaced by this widget instance.
         :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`).
@@ -127,7 +128,7 @@ class ANSIText(WidgetWrap[Text]):
         return markup
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """:returns: (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
+        """Return (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
         return self._w.get_text()
 
     @property

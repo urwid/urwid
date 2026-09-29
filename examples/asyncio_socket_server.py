@@ -70,8 +70,7 @@ def unhandled(key: str | tuple[str, int, int, int]) -> None:
 
 
 def demo1() -> None:
-    """Plain old urwid app.  Just happens to be run atop asyncio as the event
-    loop.
+    """Plain old urwid app.  Just happens to be run atop asyncio as the event loop.
 
     Note that the clock is updated using the asyncio loop directly, not via any
     of urwid's facilities.
@@ -91,8 +90,7 @@ def demo1() -> None:
 
 
 class AsyncScreen(Screen):
-    """An urwid screen that speaks to an asyncio stream, rather than polling
-    file descriptors.
+    """An urwid screen that speaks to an asyncio stream, rather than polling file descriptors.
 
     This is fairly limited; it can't, for example, determine the size of the
     remote screen.  Fixing that depends on the nature of the stream.
@@ -110,10 +108,11 @@ class AsyncScreen(Screen):
         super().__init__()
 
     def write(self, data: str) -> None:
+        """Encode ``data`` and write it to the asyncio stream writer."""
         self.writer.write(data.encode(self.encoding))
 
     def flush(self) -> None:
-        pass
+        """Do nothing; the underlying asyncio writer has no separate flush step."""
 
     def hook_event_loop(
         self,
@@ -158,6 +157,7 @@ class AsyncScreen(Screen):
         pump_reader()
 
     def unhook_event_loop(self, event_loop: urwid.EventLoop) -> None:
+        """Cancel the pending read task started by :meth:`hook_event_loop`."""
         if self._pending_task:
             self._pending_task.cancel()
             self._pending_task = None
@@ -210,9 +210,7 @@ class UrwidProtocol(asyncio.Protocol):
 
 
 def demo2() -> None:
-    """Urwid app served over the network to multiple clients at once, using an
-    asyncio Protocol.
-    """
+    """Urwid app served over the network to multiple clients at once, using an asyncio Protocol."""
     coro = loop.create_server(UrwidProtocol, port=12345)
     loop.run_until_complete(coro)
     print("OK, good to go!  Try this in another terminal (or two):")

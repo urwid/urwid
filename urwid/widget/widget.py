@@ -126,28 +126,34 @@ class AbstractWidget(typing.Protocol):
 
     # Base widget methods (from Widget)
     @abc.abstractmethod
-    def sizing(self) -> frozenset[Sizing]: ...
+    def sizing(self) -> frozenset[Sizing]:
+        """Return the set of sizing modes this widget supports."""
 
     @abc.abstractmethod
-    def selectable(self) -> bool: ...
+    def selectable(self) -> bool:
+        """Return whether this widget can take the input focus."""
 
     @abc.abstractmethod
     def pack(
         self,
         size: typing.Any,
         focus: bool = False,
-    ) -> tuple[int, int]: ...
+    ) -> tuple[int, int]:
+        """Return the number of columns and rows this widget requires to render."""
 
     @property
     @abc.abstractmethod
-    def base_widget(self) -> AbstractWidget: ...
+    def base_widget(self) -> AbstractWidget:
+        """Return the widget without decoration, unwrapping every layer of container/decoration widget."""
 
     @property
     @abc.abstractmethod
-    def focus(self) -> AbstractWidget | None: ...
+    def focus(self) -> AbstractWidget | None:
+        """Return the widget in focus, or ``None`` if this widget has no focus."""
 
     @abc.abstractmethod
-    def keypress(self, size: typing.Any, key: str) -> str | None: ...
+    def keypress(self, size: typing.Any, key: str) -> str | None:
+        """Handle a keypress, returning the key if it was not handled by this widget."""
 
     @abc.abstractmethod
     def mouse_event(
@@ -158,14 +164,16 @@ class AbstractWidget(typing.Protocol):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool | None: ...
+    ) -> bool | None:
+        """Handle a mouse event, returning ``True`` if it was handled by this widget."""
 
     @abc.abstractmethod
     def render(
         self,
         size: typing.Any,
         focus: bool = False,
-    ) -> Canvas: ...
+    ) -> Canvas:
+        """Render this widget into a canvas of the given size."""
 
     # Protected methods
 
@@ -181,7 +189,8 @@ class AbstractBoxWidget(AbstractWidget, typing.Protocol):
     """
 
     @abc.abstractmethod
-    def keypress(self, size: tuple[int, int], key: str) -> str | None: ...
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+        """Handle a keypress for a box-sized widget, returning the key if it was not handled."""
 
     @abc.abstractmethod
     def mouse_event(
@@ -192,21 +201,24 @@ class AbstractBoxWidget(AbstractWidget, typing.Protocol):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool | None: ...
+    ) -> bool | None:
+        """Handle a mouse event for a box-sized widget, returning ``True`` if it was handled."""
 
     @abc.abstractmethod
     def pack(
         self,
         size: tuple[int, int],
         focus: bool = False,
-    ) -> tuple[int, int]: ...
+    ) -> tuple[int, int]:
+        """Return the number of columns and rows this box widget requires to render."""
 
     @abc.abstractmethod
     def render(
         self,
         size: tuple[int, int],
         focus: bool = False,
-    ) -> Canvas: ...
+    ) -> Canvas:
+        """Render this box widget into a canvas of the given size."""
 
 
 @typing.runtime_checkable
@@ -217,7 +229,8 @@ class AbstractFlowWidget(AbstractWidget, typing.Protocol):
     """
 
     @abc.abstractmethod
-    def keypress(self, size: tuple[int], key: str) -> str | None: ...
+    def keypress(self, size: tuple[int], key: str) -> str | None:
+        """Handle a keypress for a flow-sized widget, returning the key if it was not handled."""
 
     @abc.abstractmethod
     def mouse_event(
@@ -228,24 +241,28 @@ class AbstractFlowWidget(AbstractWidget, typing.Protocol):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool | None: ...
+    ) -> bool | None:
+        """Handle a mouse event for a flow-sized widget, returning ``True`` if it was handled."""
 
     @abc.abstractmethod
-    def rows(self, size: tuple[int], focus: bool = False) -> int: ...
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the number of rows this flow widget will occupy for the given number of columns."""
 
     @abc.abstractmethod
     def pack(
         self,
         size: tuple[int],
         focus: bool = False,
-    ) -> tuple[int, int]: ...
+    ) -> tuple[int, int]:
+        """Return the number of columns and rows this flow widget requires to render."""
 
     @abc.abstractmethod
     def render(
         self,
         size: tuple[int],
         focus: bool = False,
-    ) -> Canvas: ...
+    ) -> Canvas:
+        """Render this flow widget into a canvas of the given size."""
 
 
 @typing.runtime_checkable
@@ -256,7 +273,8 @@ class AbstractFixedWidget(AbstractWidget, typing.Protocol):
     """
 
     @abc.abstractmethod
-    def keypress(self, size: tuple[()], key: str) -> str | None: ...
+    def keypress(self, size: tuple[()], key: str) -> str | None:
+        """Handle a keypress for a fixed-sized widget, returning the key if it was not handled."""
 
     @abc.abstractmethod
     def mouse_event(
@@ -267,21 +285,24 @@ class AbstractFixedWidget(AbstractWidget, typing.Protocol):
         col: int,
         row: int,
         focus: bool,
-    ) -> bool | None: ...
+    ) -> bool | None:
+        """Handle a mouse event for a fixed-sized widget, returning ``True`` if it was handled."""
 
     @abc.abstractmethod
     def pack(
         self,
         size: tuple[()],
         focus: bool = False,
-    ) -> tuple[int, int]: ...
+    ) -> tuple[int, int]:
+        """Return the number of columns and rows this fixed-sized widget requires to render."""
 
     @abc.abstractmethod
     def render(
         self,
         size: tuple[()],
         focus: bool = False,
-    ) -> Canvas: ...
+    ) -> Canvas:
+        """Render this fixed-sized widget into a canvas."""
 
 
 class WidgetError(Exception):
@@ -341,10 +362,7 @@ def cache_widget_render(
 def nocache_widget_render(
     cls: WidgetMeta,
 ) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
-    """
-    Return a function that wraps the cls.render() method
-    and finalizes the canvas that it returns.
-    """
+    """Return a function that wraps the cls.render() method and finalizes the canvas that it returns."""
     fn = cls.render
     if hasattr(fn, "original_fn"):
         fn = fn.original_fn
@@ -369,11 +387,7 @@ def nocache_widget_render(
 def nocache_widget_render_instance(
     self: AbstractWidget,
 ) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
-    """
-    Return a function that wraps the cls.render() method
-    and finalizes the canvas that it returns, but does not
-    cache the canvas.
-    """
+    """Return a function that wraps the cls.render() method and finalizes the canvas, without caching it."""
     fn = self.render.original_fn  # type: ignore[attr-defined]
 
     @functools.wraps(fn)
@@ -530,7 +544,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         CanvasCache.invalidate(self)
 
     def _emit(self, name: Hashable, *args: typing.Any) -> None:
-        """Convenience function to emit signals with self as first argument."""
+        """Emit signals with self as first argument."""
         signals.emit_signal(self, name, self, *args)
 
     def selectable(self) -> bool:
@@ -554,7 +568,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         return self._selectable
 
     def sizing(self) -> frozenset[Sizing]:
-        """
+        """Return the sizing modes this widget supports.
+
         :returns: A frozenset including one or more of ``'box'``, ``'flow'`` and
                   ``'fixed'``.  Default implementation returns the value of
                   :attr:`._sizing`, which for this class includes all three.
@@ -647,8 +662,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
 
     @property
     def focus_position(self) -> typing.Any:
-        """
-        Property for reading and setting the focus position for container widgets.
+        """Read or set the focus position for container widgets.
+
         This default implementation raises :exc:`IndexError`,
         making normal widgets fail the same way accessing :attr:`.focus_position` on an empty container widget would.
 
@@ -666,7 +681,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     def __repr__(self) -> str:
-        """A friendly __repr__ for widgets.
+        """Return a friendly repr for widgets.
 
         Designed to be extended by subclasses with _repr_words and _repr_attr methods.
         """
@@ -799,9 +814,7 @@ def fixed_size(size: tuple[()]) -> None:
 
 
 def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
-    """
-    Return a mixin class that delegates all standard widget methods
-    to an attribute given by attribute_name.
+    """Return a mixin class that delegates all standard widget methods to an attribute given by attribute_name.
 
     This mixin is designed to be used as a superclass of another widget.
     """
@@ -829,6 +842,7 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
         @property
         def get_cursor_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]:
+            """Return the delegate widget's `get_cursor_coords` method, if it has one."""
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
             return typing.cast(
                 "Callable[[tuple[()] | tuple[int] | tuple[int, int]], tuple[int, int] | None]",
@@ -837,6 +851,7 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
         @property
         def get_pref_col(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]:
+            """Return the delegate widget's `get_pref_col` method, if it has one."""
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
             return typing.cast(
                 "Callable[[tuple[()] | tuple[int] | tuple[int, int]], int | None]",
@@ -848,6 +863,7 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
         @property
         def move_cursor_to_coords(self) -> Callable[[tuple[()] | tuple[int] | tuple[int, int], int, int], bool]:
+            """Return the delegate widget's `move_cursor_to_coords` method, if it has one."""
             # TODO(Aleksei):  Get rid of property usage after getting rid of "if getattr"
             return typing.cast(
                 "Callable[[tuple[()] | tuple[int] | tuple[int, int], int, int], bool]",
@@ -856,6 +872,7 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
         @property
         def rows(self) -> Callable[[tuple[int], bool], int]:
+            """Return the delegate widget's `rows` method."""
             return typing.cast("Callable[[tuple[int], bool], int]", get_delegate(self).rows)
 
         @property
@@ -922,9 +939,9 @@ class WidgetWrap(
 
     @_w.setter
     def _w(self, new_widget: WrappedWidget) -> None:
-        """
-        Change the wrapped widget.  This is meant to be called
-        only by subclasses.
+        """Change the wrapped widget.
+
+        This is meant to be called only by subclasses.
 
         >>> size = (10,)
         >>> ww = WidgetWrap(Edit("hello? ", "hi"))

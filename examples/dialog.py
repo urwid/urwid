@@ -19,7 +19,7 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""Urwid example similar to dialog(1) program"""
+"""Urwid example similar to dialog(1) program."""
 
 from __future__ import annotations
 

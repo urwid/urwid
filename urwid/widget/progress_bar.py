@@ -31,7 +31,8 @@ class ProgressBar(Widget):
         done: int = 100,
         satt: Hashable = None,
     ) -> None:
-        """
+        """Build the progress bar with the given display attributes and range.
+
         :param normal: display attribute for incomplete part of progress bar
         :param complete: display attribute for complete part of progress bar
         :param current: current progress
@@ -90,6 +91,7 @@ class ProgressBar(Widget):
 
     @property
     def done(self) -> int:
+        """Return the progress amount that represents 100%."""
         return self._done
 
     @done.setter
@@ -99,11 +101,12 @@ class ProgressBar(Widget):
         self._invalidate()
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the number of rows the progress bar occupies, always 1."""
         return 1
 
     def get_text(self) -> str:
-        """
-        Return the progress bar percentage text.
+        """Return the progress bar percentage text.
+
         You can override this method to display custom text.
         """
         percent = min(100, max(0, int(self.current * 100 / self.done)))

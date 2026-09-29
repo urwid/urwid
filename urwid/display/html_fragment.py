@@ -73,6 +73,7 @@ class HtmlGenerator(BaseScreen):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
+        """Store the given terminal capabilities, keeping each one unchanged where it is left as ``None``."""
         if colors is None:
             colors = self.colors
         if bright_is_bold is None:
@@ -85,13 +86,14 @@ class HtmlGenerator(BaseScreen):
         self.has_underline = has_underline
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Do nothing; this simulated screen has no real input source to configure timeouts on."""
 
     def reset_default_terminal_palette(self, *args: typing.Any) -> None:
-        pass
+        """Do nothing; this simulated screen has no real terminal palette to reset."""
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Create an html fragment from the render object.
+
         Append it to HtmlGenerator.fragments list.
 
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
@@ -166,6 +168,7 @@ _default_aspec = AttrSpec(_default_foreground, _default_background)
 
 
 def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
+    """Wrap *s* in an HTML ``<span>`` styled from *aspec*, splitting it around *cursor* when given a valid index."""
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
     # use real colours instead of default fg/bg
     if fg_r is None:
@@ -201,9 +204,7 @@ def screenshot_init(
     sizes: list[tuple[int, int]],
     keys: list[_DecodedInput],
 ) -> None:
-    """
-    Replace curses_display.Screen and raw_display.Screen class with
-    HtmlGenerator.
+    """Replace curses_display.Screen and raw_display.Screen class with HtmlGenerator.
 
     Call this function before executing an application that uses
     curses_display.Screen to have that code use HtmlGenerator instead.

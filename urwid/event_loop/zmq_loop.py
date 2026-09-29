@@ -50,12 +50,11 @@ if typing.TYPE_CHECKING:
 
 
 class ZMQEventLoop(EventLoop):
-    """
-    This class is an urwid event loop for `ZeroMQ`_ applications. It is very
-    similar to :class:`SelectEventLoop`, supporting the usual :meth:`alarm`
-    events and file watching (:meth:`watch_file`) capabilities, but also
-    incorporates the ability to watch zmq queues for events
-    (:meth:`watch_queue`).
+    """This class is an urwid event loop for `ZeroMQ`_ applications.
+
+    It is very similar to :class:`SelectEventLoop`, supporting the usual :meth:`alarm`
+    events and file watching (:meth:`watch_file`) capabilities, but also incorporates
+    the ability to watch zmq queues for events (:meth:`watch_queue`).
 
     .. _ZeroMQ: https://zeromq.org/
 
@@ -115,9 +114,9 @@ class ZMQEventLoop(EventLoop):
         return executor.submit(func, *args, **kwargs)
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> ZMQAlarmHandle:
-        """
-        Call *callback* a given time from now. No parameters are passed to
-        callback. Returns a handle that may be passed to :meth:`remove_alarm`.
+        """Call *callback* a given time from now.
+
+        No parameters are passed to callback. Returns a handle that may be passed to :meth:`remove_alarm`.
 
         :param float seconds:
             floating point time to wait before calling callback.
@@ -130,9 +129,9 @@ class ZMQEventLoop(EventLoop):
         return handle
 
     def remove_alarm(self, handle: ZMQAlarmHandle) -> bool:
-        """
-        Remove an alarm. Returns ``True`` if the alarm exists, ``False``
-        otherwise.
+        """Remove an alarm.
+
+        Returns ``True`` if the alarm exists, ``False`` otherwise.
         """
         try:
             self._alarms.remove(handle)
@@ -149,11 +148,11 @@ class ZMQEventLoop(EventLoop):
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
     ) -> zmq.Socket[typing.Any]:
-        """
-        Call *callback* when zmq *queue* has something to read (when *flags* is
-        set to ``POLLIN``, the default) or is available to write (when *flags*
-        is set to ``POLLOUT``). No parameters are passed to the callback.
-        Returns a handle that may be passed to :meth:`remove_watch_queue`.
+        """Call *callback* when zmq *queue* becomes ready to read or write.
+
+        *flags* controls the condition: ``POLLIN`` (the default) watches for data to read, ``POLLOUT`` watches for
+        availability to write. No parameters are passed to the callback. Returns a handle that may be passed to
+        :meth:`remove_watch_queue`.
 
         :param queue:
             The zmq queue to poll.
@@ -177,9 +176,9 @@ class ZMQEventLoop(EventLoop):
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
     ) -> int | SupportsFileno:
-        """
-        Call *callback* when *fd* has some data to read. No parameters are
-        passed to the callback. The *flags* are as for :meth:`watch_queue`.
+        """Call *callback* when *fd* has some data to read.
+
+        No parameters are passed to the callback. The *flags* are as for :meth:`watch_queue`.
         Returns a handle that may be passed to :meth:`remove_watch_file`.
 
         :param fd:
@@ -200,9 +199,9 @@ class ZMQEventLoop(EventLoop):
         return fd
 
     def remove_watch_queue(self, handle: zmq.Socket[typing.Any]) -> bool:
-        """
-        Remove a queue from background polling. Returns ``True`` if the queue
-        was being monitored, ``False`` otherwise.
+        """Remove a queue from background polling.
+
+        Returns ``True`` if the queue was being monitored, ``False`` otherwise.
         """
         try:
             try:
@@ -216,9 +215,9 @@ class ZMQEventLoop(EventLoop):
         return True
 
     def remove_watch_file(self, handle: int | SupportsFileno) -> bool:
-        """
-        Remove a file from background polling. Returns ``True`` if the file was
-        being monitored, ``False`` otherwise.
+        """Remove a file from background polling.
+
+        Returns ``True`` if the file was being monitored, ``False`` otherwise.
         """
         fileno = handle if isinstance(handle, int) else handle.fileno()
         try:
@@ -233,8 +232,8 @@ class ZMQEventLoop(EventLoop):
         return True
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
-        """
-        Add a *callback* to be executed when the event loop detects it is idle.
+        """Add a *callback* to be executed when the event loop detects it is idle.
+
         Returns a handle that may be passed to :meth:`remove_enter_idle`.
         """
         self._idle_handle += 1
@@ -242,9 +241,9 @@ class ZMQEventLoop(EventLoop):
         return self._idle_handle
 
     def remove_enter_idle(self, handle: int) -> bool:
-        """
-        Remove an idle callback. Returns ``True`` if *handle* was removed,
-        ``False`` otherwise.
+        """Remove an idle callback.
+
+        Returns ``True`` if *handle* was removed, ``False`` otherwise.
         """
         try:
             del self._idle_callbacks[handle]
@@ -276,9 +275,9 @@ class ZMQEventLoop(EventLoop):
             loop.default_exception_handler(context)
 
     def run(self) -> None:
-        """
-        Start the event loop. Exit the loop when any callback raises an
-        exception. If :exc:`ExitMainLoop` is raised, exit cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If :exc:`ExitMainLoop` is raised, exit cleanly.
 
         :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
@@ -304,7 +303,7 @@ class ZMQEventLoop(EventLoop):
             self._main_task = None
 
     async def _loop(self) -> None:
-        """A single iteration of the event loop."""
+        """Run a single iteration of the event loop."""
         state = "wait"  # default state not expecting any action
         if self._alarms or self._did_something:
             timeout = 0.0

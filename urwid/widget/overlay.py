@@ -144,7 +144,8 @@ class Overlay(
         top: int = 0,
         bottom: int = 0,
     ) -> None:
-        """
+        """Build the widget overlaying *top_w* on *bottom_w*.
+
         :param top_w: a flow, box or fixed widget to overlay "on top".
         :param bottom_w: a box widget to appear "below" previous widget.
         :param align: alignment, one of ``'left'``, ``'center'``, ``'right'`` or
@@ -404,6 +405,7 @@ class Overlay(
         return remove_defaults(attrs, Overlay.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
         yield "top", self.top_w
         yield "bottom", self.bottom_w
         yield "align", self.align
@@ -419,6 +421,7 @@ class Overlay(
 
     @property
     def align(self) -> Align | tuple[Literal[WHSettings.RELATIVE], int]:
+        """Return the simplified horizontal alignment of the top widget."""
         return simplify_align(self.align_type, self.align_amount)
 
     @property
@@ -430,10 +433,12 @@ class Overlay(
         | tuple[Literal[WHSettings.RELATIVE], int]
         | tuple[Literal[WHSettings.WEIGHT], int | float]
     ):
+        """Return the simplified width of the top widget."""
         return simplify_width(self.width_type, self.width_amount)
 
     @property
     def valign(self) -> VAlign | tuple[Literal[WHSettings.RELATIVE], int]:
+        """Return the simplified vertical alignment of the top widget."""
         return simplify_valign(self.valign_type, self.valign_amount)
 
     @property
@@ -445,6 +450,7 @@ class Overlay(
         | tuple[Literal[WHSettings.RELATIVE], int]
         | tuple[Literal[WHSettings.WEIGHT], int | float]
     ):
+        """Return the simplified height of the top widget."""
         return simplify_height(self.height_type, self.height_amount)
 
     @staticmethod
@@ -644,10 +650,9 @@ class Overlay(
 
     @property
     def focus(self) -> TopWidget:
-        """
-        Read-only property returning the child widget in focus for
-        container widgets.  This default implementation
-        always returns ``None``, indicating that this widget has no children.
+        """Return the child widget in focus for container widgets.
+
+        This default implementation always returns ``None``, indicating that this widget has no children.
         """
         return self.top_w
 
@@ -669,8 +674,9 @@ class Overlay(
 
     @property
     def contents(self) -> MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]:
-        """
-        A list-like object similar to::
+        """A list-like object holding the overlay's widgets and their options.
+
+        It is similar to::
 
             [(bottom_w, bottom_options)),
              (top_w, top_options)]

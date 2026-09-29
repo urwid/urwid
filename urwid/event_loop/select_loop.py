@@ -81,11 +81,9 @@ class SelectEventLoop(EventLoop):
         seconds: float,
         callback: Callable[[], typing.Any],
     ) -> tuple[float, int, Callable[[], typing.Any]]:
-        """
-        Call callback() a given time from now.  No parameters are
-        passed to callback.
+        """Call callback() a given time from now.
 
-        Returns a handle that may be passed to remove_alarm()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_alarm().
 
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
@@ -111,11 +109,9 @@ class SelectEventLoop(EventLoop):
         return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
-        """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        """Call callback() when fd has some data to read.
 
-        Returns a handle that may be passed to remove_watch_file()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_watch_file().
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
@@ -162,9 +158,9 @@ class SelectEventLoop(EventLoop):
             callback()
 
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
         """
         with contextlib.suppress(ExitMainLoop):
             self._did_something = True
@@ -173,7 +169,7 @@ class SelectEventLoop(EventLoop):
                     self._loop()
 
     def _loop(self) -> None:
-        """A single iteration of the event loop."""
+        """Run a single iteration of the event loop."""
         tm: float | Literal["idle"] | None = None
 
         with selectors.DefaultSelector() as selector:

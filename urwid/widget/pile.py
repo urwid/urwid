@@ -200,7 +200,8 @@ class Pile(
         ],
         focus_item: AbstractWidget | int | None = None,
     ) -> None:
-        """
+        """Build the pile from a list of child widgets.
+
         :param widget_list: child widgets
         :param focus_item: child widget that gets the focus initially.
             Chooses the first selectable widget if unset.
@@ -317,6 +318,7 @@ class Pile(
         return remove_defaults(attrs, Pile.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
         widget_list: list[
             AbstractWidget
             | tuple[Literal[WHSettings.PACK] | int, AbstractWidget]
@@ -338,6 +340,7 @@ class Pile(
         yield "focus_item", self.focus_position if self._contents else None
 
     def __len__(self) -> int:
+        """Return the number of widgets in the pile."""
         return len(self._contents)
 
     def _contents_modified(self) -> None:
@@ -659,8 +662,8 @@ class Pile(
 
     @property
     def focus_position(self) -> int:
-        """
-        Index of child widget in focus.
+        """Index of child widget in focus.
+
         Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
 
         :raises IndexError: the Pile is empty.
@@ -1024,7 +1027,7 @@ class Pile(
         return (max(widths), sum(heights))
 
     def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
-        """A list of the number of rows used by each widget in self.contents.
+        """Return the number of rows used by each widget in self.contents.
 
         This method is a normally used only by `get_item_size` for the BOX case..
         """
@@ -1085,6 +1088,7 @@ class Pile(
         return None
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the total number of rows occupied by all of the pile's widgets."""
         return sum(self.get_rows_sizes(size, focus)[1])
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:

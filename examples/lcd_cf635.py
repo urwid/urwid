@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-The crystalfontz 635 has these characters in ROM:
+The crystalfontz 635 has these characters in ROM.
 
 ....X. ...... ......
 ...XX. .XXXXX ..XXX.
@@ -64,10 +64,7 @@ def program_cgram(screen_inst: CF635Screen) -> None:
 
 
 class LCDCheckBox(urwid.CheckBox):
-    """
-    A check box+label that uses only one character for the check box,
-    including custom CGRAM character
-    """
+    """A check box+label that uses only one character for the check box, including custom CGRAM character."""
 
     states: typing.ClassVar[dict[bool | Literal["mixed"], urwid.SelectableIcon]] = {
         True: urwid.SelectableIcon("\xd0"),
@@ -77,10 +74,7 @@ class LCDCheckBox(urwid.CheckBox):
 
 
 class LCDRadioButton(urwid.RadioButton):
-    """
-    A radio button+label that uses only one character for the radio button,
-    including custom CGRAM character
-    """
+    """A radio button+label that uses only one character for the radio button, including custom CGRAM character."""
 
     states: typing.ClassVar[dict[bool | Literal["mixed"], urwid.SelectableIcon]] = {
         True: urwid.SelectableIcon("\xbb"),
@@ -90,10 +84,7 @@ class LCDRadioButton(urwid.RadioButton):
 
 
 class LCDProgressBar(urwid.Widget):
-    """
-    The "progress bar" used by the horizontal slider for this device,
-    using custom CGRAM characters
-    """
+    """The "progress bar" used by the horizontal slider for this device, using custom CGRAM characters."""
 
     segments = "\x00\x01\x02\x03"
 
@@ -105,6 +96,7 @@ class LCDProgressBar(urwid.Widget):
         self.value = value
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the number of rows the bar occupies, always 1."""
         return 1
 
     def render(self, size: tuple[int], focus: bool = False) -> urwid.Canvas:  # type: ignore[override]
@@ -122,9 +114,7 @@ class LCDProgressBar(urwid.Widget):
         return urwid.Text(s).render(size)
 
     def move_position(self, size: tuple[int], direction: int) -> int:
-        """
-        Update and return the value one step +ve or -ve, based on
-        the size of the displayed bar.
+        """Update and return the value one step +ve or -ve, based on the size of the displayed bar.
 
         :param direction: 1 for +ve, 0 for -ve
         """
@@ -139,16 +129,13 @@ class LCDProgressBar(urwid.Widget):
         return value
 
     def get_steps(self, size: tuple[int]) -> int:
-        """
-        Return the number of steps available given size for rendering
-        the bar and number of segments we can draw.
-        """
+        """Return the number of steps available given size for rendering the bar and number of segments we can draw."""
         (maxcol,) = size
         return maxcol * (len(self.segments) - 1)
 
 
 class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
-    """A slider control using custom CGRAM characters"""
+    """A slider control using custom CGRAM characters."""
 
     def __init__(self, data_range: int, value: int, callback: Callable[[int], None]) -> None:
         self.bar = LCDProgressBar(data_range, value)
@@ -163,6 +150,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
         self.callback = callback
 
     def keypress(self, size: tuple[int], key: str) -> str | None:
+        """Move the slider based on which arrow is focused, or delegate other keys to the wrapped columns."""
         # move the slider based on which arrow is focused
         if key == "enter":
             # use the correct size for adjusting the bar
@@ -174,7 +162,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
 
 
 class MenuOption(urwid.Button):
-    """A menu option, indicated with a single arrow character"""
+    """A menu option, indicated with a single arrow character."""
 
     def __init__(self, label: str, submenu: Menu) -> None:
         super().__init__("")
@@ -189,6 +177,7 @@ class MenuOption(urwid.Button):
         urwid.connect_signal(self, "click", lambda option: show_menu(submenu))
 
     def keypress(self, size: tuple[int], key: str) -> str | None:
+        """Treat :kbd:`right` as :kbd:`enter` to open the submenu, then delegate to the button."""
         if key == "right":
             key = "enter"
         return super().keypress(size, key)

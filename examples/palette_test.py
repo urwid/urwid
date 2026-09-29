@@ -19,8 +19,9 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Palette test.  Shows the available foreground and background settings
+"""Palette test.
+
+Shows the available foreground and background settings
 in monochrome, 16 color, 88 color, 256 color, and 24-bit (true) color modes.
 """
 

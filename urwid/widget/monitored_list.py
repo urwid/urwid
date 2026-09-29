@@ -56,10 +56,7 @@ def _call_modified(
 
 
 class MonitoredList(list[_T], typing.Generic[_T]):
-    """
-    This class can trigger a callback any time its contents are changed
-    with the usual list operations append, extend, etc.
-    """
+    """Trigger a callback any time its contents are changed with the usual list operations append, extend, etc."""
 
     _modified_callback: Callable[[], typing.Any] | None = None
 
@@ -68,9 +65,9 @@ class MonitoredList(list[_T], typing.Generic[_T]):
             self._modified_callback()
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> None:
-        r"""
-        Assign a callback function with no parameters that is called any
-        time the list is modified.  Callback's return value is ignored.
+        r"""Assign a callback function with no parameters that is called any time the list is modified.
+
+        Callback's return value is ignored.
 
         >>> import sys
         >>> ml = MonitoredList([1, 2, 3])
@@ -91,10 +88,12 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         self._modified_callback = callback
 
     def __repr__(self) -> str:
+        """Return a constructor-call-like representation of the list's contents."""
         return f"{self.__class__.__name__}({list(self)!r})"
 
     # noinspection PyMethodParameters
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this list's items, for `rich`'s repr protocol."""
         for item in self:
             yield None, item
 
@@ -107,22 +106,27 @@ class MonitoredList(list[_T], typing.Generic[_T]):
 
     @_call_modified
     def __add__(self, __value: list[typing.Any]) -> list[typing.Any]:
+        """Return a new list with the items of `__value` appended."""
         return super().__add__(__value)
 
     @_call_modified
     def __delitem__(self, __key: typing.SupportsIndex | slice) -> None:
+        """Delete the item or slice at `__key`."""
         super().__delitem__(__key)
 
     @_call_modified
     def __iadd__(self, __value: Iterable[_T]) -> Self:  # type: ignore[override]
+        """Extend the list in place with the items from `__value`."""
         return super().__iadd__(__value)
 
     @_call_modified
     def __rmul__(self, __value: typing.SupportsIndex) -> list[_T]:
+        """Return a new list with this list's items repeated `__value` times."""
         return super().__rmul__(__value)
 
     @_call_modified
     def __imul__(self, __value: typing.SupportsIndex) -> Self:
+        """Repeat the list's contents `__value` times in place."""
         return super().__imul__(__value)
 
     @typing.overload
@@ -133,6 +137,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
 
     @_call_modified
     def __setitem__(self, __key: typing.SupportsIndex | slice, __value: _T | Iterable[_T]) -> None:
+        """Set the item or slice at `__key` to `__value`."""
         if isinstance(__key, slice):
             super().__setitem__(__key, typing.cast("Iterable[_T]", __value))
         else:
@@ -140,50 +145,58 @@ class MonitoredList(list[_T], typing.Generic[_T]):
 
     @_call_modified
     def append(self, __object: _T) -> None:
+        """Append ``__object`` to the end of the list."""
         super().append(__object)
 
     @_call_modified
     def extend(self, __iterable: Iterable[_T]) -> None:
+        """Extend the list with items from ``__iterable``."""
         super().extend(__iterable)
 
     @_call_modified
     def pop(self, __index: typing.SupportsIndex = -1) -> _T:
+        """Remove and return the item at ``__index`` (default the last item)."""
         return super().pop(__index)
 
     @_call_modified
     def insert(self, __index: typing.SupportsIndex, __object: _T) -> None:
+        """Insert ``__object`` before ``__index``."""
         super().insert(__index, __object)
 
     @_call_modified
     def remove(self, __value: _T) -> None:
+        """Remove the first occurrence of ``__value``."""
         super().remove(__value)
 
     @_call_modified
     def reverse(self) -> None:
+        """Reverse the list in place."""
         super().reverse()
 
     @_call_modified
     def sort(self, *, key: Callable[[_T], typing.Any] | None = None, reverse: bool = False) -> None:
+        """Sort the list in place."""
         super().sort(key=key, reverse=reverse)
 
     @_call_modified
     def clear(self) -> None:
+        """Remove all items from the list."""
         super().clear()
 
 
 class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
-    """
-    This class can trigger a callback any time its contents are modified,
-    before and/or after modification, and any time the focus index is changed.
+    """Trigger a callback any time its contents are modified, before and/or after modification.
+
+    Also triggers a callback any time the focus index is changed.
     """
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
 
     def __init__(self, *args: typing.Any, focus: int = 0, **kwargs: typing.Any) -> None:
-        """
-        This is a list that tracks one item as the focus item.  If items
-        are inserted or removed it will update the focus.
+        """Initialize a list that tracks one item as the focus item.
+
+        If items are inserted or removed it will update the focus.
 
         >>> ml = MonitoredFocusList([10, 11, 12, 13, 14], focus=3)
         >>> ml
@@ -206,14 +219,15 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self._focus = focus
 
     def __repr__(self) -> str:
+        """Return a constructor-call-like representation of the list's contents and focus."""
         return f"{self.__class__.__name__}({list(self)!r}, focus={self.focus!r})"
 
     @property
     def focus(self) -> int | None:
-        """
-        Get/set the focus index.  This value is read as None when the list
-        is empty, and may only be set to a value between 0 and len(self)-1
-        or an IndexError will be raised.
+        """Get/set the focus index.
+
+        This value is read as None when the list is empty, and may only be set to a value between 0 and
+        len(self)-1 or an IndexError will be raised.
 
         Return the index of the item "in focus" or None if
         the list is empty.
@@ -228,7 +242,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     @focus.setter
     def focus(self, index: int) -> None:
-        """
+        """Set the focus index.
+
         :param index: index into this list, any index out of range will raise an IndexError, except when the list is
             empty and the index passed is ignored.
         :raises TypeError: *index* is not an integer.
@@ -307,8 +322,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self,
         callback: Callable[[tuple[int, int, int], Collection[_T]], int | None],
     ) -> None:
-        """
-        Assign a callback function to handle validating changes to the list.
+        """Assign a callback function to handle validating changes to the list.
+
         This may raise an exception if the change should not be performed.
         It may also return an integer position to be the new focus after the
         list is modified, or None to use the default behaviour.
@@ -321,11 +336,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self._validate_contents_modified_callback = callback
 
     def _adjust_focus_on_contents_modified(self, slc: slice, new_items: Collection[_T] = ()) -> int:
-        """
-        Default behaviour is to move the focus to the item following
-        any removed items, unless that item was simply replaced.
+        """Default behaviour is to move the focus to the item following any removed items.
 
-        Failing that choose the last item in the list.
+        Unless that item was simply replaced, failing that choose the last item in the list.
 
         returns focus position for after change is applied
         """
@@ -359,7 +372,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     # override all the list methods that modify the list
 
     def __delitem__(self, y: typing.SupportsIndex | slice) -> None:
-        """
+        """Delete items by index or slice, updating focus accordingly.
+
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=2)
         >>> del ml[3]
         >>> ml
@@ -409,7 +423,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     def __setitem__(self, i: slice, y: Iterable[_T]) -> None: ...
 
     def __setitem__(self, i: typing.SupportsIndex | slice, y: _T | Iterable[_T]) -> None:
-        """
+        """Replace items by index or slice, updating focus accordingly.
+
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {new_items!r}")
         >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
@@ -449,7 +464,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     def __imul__(self, n: typing.SupportsIndex) -> Self:
-        """
+        """Repeat the list's contents `n` times in place, adjusting focus accordingly.
+
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {list(new_items)!r}")
         >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
@@ -473,7 +489,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         return self
 
     def append(self, item: _T) -> None:
-        """
+        """Append `item` to the list, adjusting focus accordingly.
+
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {new_items!r}")
         >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
@@ -486,7 +503,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     def extend(self, items: Iterable[_T]) -> None:
-        """
+        """Extend the list with `items`, adjusting focus accordingly.
+
         >>> def modified(indices, new_items):
         ...     print(f"range{indices!r} <- {list(new_items)!r}")
         >>> ml = MonitoredFocusList([0, 1, 2], focus=2)
@@ -500,7 +518,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     def insert(self, index: typing.SupportsIndex, item: _T) -> None:
-        """
+        """Insert `item` before `index`, adjusting focus accordingly.
+
         >>> ml = MonitoredFocusList([0, 1, 2, 3], focus=2)
         >>> ml.insert(-1, -1)
         >>> ml
@@ -517,7 +536,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     def pop(self, index: typing.SupportsIndex = -1) -> _T:
-        """
+        """Remove and return the item at `index`, adjusting focus accordingly.
+
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, 3], focus=4)
         >>> ml.pop(3)
         -3
@@ -542,7 +562,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         return rval
 
     def remove(self, value: _T) -> None:
-        """
+        """Remove the first occurrence of `value`, adjusting focus accordingly.
+
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.remove(-3)
         >>> ml
@@ -560,7 +581,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         self.focus = focus
 
     def reverse(self) -> None:
-        """
+        """Reverse the list in place, adjusting focus accordingly.
+
         >>> ml = MonitoredFocusList([0, 1, 2, 3, 4], focus=1)
         >>> ml.reverse()
         >>> ml
@@ -576,7 +598,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         key: Callable[[_T], typing.Any] | None = None,
         reverse: bool = False,
     ) -> None:
-        """
+        """Sort the list in place, adjusting focus accordingly.
+
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
         >>> ml
@@ -592,6 +615,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     if hasattr(list, "clear"):
 
         def clear(self) -> None:
+            """Remove all items and reset focus to ``None``."""
             focus = self._adjust_focus_on_contents_modified(slice(0, 0))
             super().clear()
             self.focus = focus

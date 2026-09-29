@@ -45,9 +45,11 @@ if typing.TYPE_CHECKING:
 
         def __getitem__(self, key: _K) -> _V_co: ...
 
-        def next_position(self, position: _K) -> _K: ...
+        def next_position(self, position: _K) -> _K:
+            """Return the position following `position`."""
 
-        def prev_position(self, position: _K) -> _K: ...
+        def prev_position(self, position: _K) -> _K:
+            """Return the position preceding `position`."""
 
     class ListBoxContentsProto(typing.Protocol[_K_contra]):
         """Read-only `(widget, options)` view over the :class:`ListBox` body."""
@@ -79,13 +81,17 @@ class ListWalkerError(Exception):
 class ScrollSupportingBody(typing.Protocol):
     """Protocol for ListWalkers."""
 
-    def get_focus(self) -> tuple[AbstractWidget, _K]: ...
+    def get_focus(self) -> tuple[AbstractWidget, _K]:
+        """Return the ``(widget, position)`` currently in focus."""
 
-    def set_focus(self, position: _K) -> None: ...
+    def set_focus(self, position: _K) -> None:
+        """Set the focus to *position*."""
 
-    def get_next(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
+    def get_next(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` after *position*, or ``(None, None)`` if there is none."""
 
-    def get_prev(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
+    def get_prev(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` before *position*, or ``(None, None)`` if there is none."""
 
 
 @typing.runtime_checkable
@@ -97,7 +103,8 @@ class EstimatedSized(typing.Protocol):
     The main use-case is lazy-load, where real length calculation is expensive.
     """
 
-    def __length_hint__(self) -> int: ...
+    def __length_hint__(self) -> int:
+        """Return an estimate of the number of items, per PEP 424."""
 
 
 class ListWalker(
@@ -179,8 +186,7 @@ class SimpleListWalker(
     """ListWalker that presents a plain list of widgets, addressed by integer position."""
 
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
-        """
-        This class inherits :class:`MonitoredList` which means it can be treated as a list.
+        """Initialize a list walker, which can be treated as a list since it inherits :class:`MonitoredList`.
 
         Changes made to this object (when it is treated as a list) are detected automatically
         and will cause ListBox objects using this list walker to be updated.
@@ -209,7 +215,7 @@ class SimpleListWalker(
         ListWalker._modified(self)  # pylint: disable=protected-access
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
-        """This function inherited from MonitoredList is not implemented in SimpleListWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -254,7 +260,7 @@ class SimpleListWalker(
         return position - 1
 
     def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+        """Return an iterable of positions. Optional method.
 
         :param reverse: if true, return positions in reverse order
         """
@@ -270,8 +276,7 @@ class SimpleFocusListWalker(
     """ListWalker like :class:`SimpleListWalker` that also keeps focus tracking items across edits."""
 
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
-        """
-        This class inherits :class:`MonitoredList` which means it can be treated as a list.
+        """Initialize a list walker, which can be treated as a list since it inherits :class:`MonitoredList`.
 
         Changes made to this object (when it is treated as a list) are detected automatically
         and will cause ListBox objects using this list walker to be updated.
@@ -293,7 +298,7 @@ class SimpleFocusListWalker(
         ListWalker._modified(self)  # pylint: disable=protected-access
 
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
-        """This function inherited from MonitoredList is not implemented in SimpleFocusListWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -336,7 +341,7 @@ class SimpleFocusListWalker(
         return pos - 1
 
     def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+        """Return an iterable of positions. Optional method.
 
         :param reverse: if true, return positions in reverse order
         """

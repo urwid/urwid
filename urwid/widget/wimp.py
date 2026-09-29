@@ -61,7 +61,11 @@ class SelectableIcon(Text):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
     ) -> None:
-        """
+        """Create a text widget that is selectable.
+
+        A cursor is displayed at a fixed location in the text when in focus.
+        This widget has no special handling of keyboard or mouse input.
+
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
@@ -69,10 +73,6 @@ class SelectableIcon(Text):
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-
-        This is a text widget that is selectable.  A cursor
-        displayed at a fixed location in the text when in focus.
-        This widget has no special handling of keyboard or mouse input.
         """
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
@@ -82,9 +82,7 @@ class SelectableIcon(Text):
         size: tuple[int] | tuple[()],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:
-        """
-        Render the text content of this widget with a cursor when
-        in focus.
+        """Render the text content of this widget with a cursor when in focus.
 
         >>> si = SelectableIcon("[!]")
         >>> si
@@ -110,9 +108,9 @@ class SelectableIcon(Text):
         return c
 
     def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int] | None:
-        """
-        Return the position of the cursor if visible.  This method
-        is required for widgets that display a cursor.
+        """Return the position of the cursor if visible.
+
+        This method is required for widgets that display a cursor.
         """
         if self._cursor_position > len(self.text):
             return None
@@ -133,9 +131,9 @@ class SelectableIcon(Text):
         size: tuple[int] | tuple[()],  # type: ignore[override]
         key: str,
     ) -> str:
-        """
-        No keys are handled by this widget.  This method is
-        required for selectable widgets.
+        """No keys are handled by this widget.
+
+        This method is required for selectable widgets.
         """
         return key
 
@@ -218,7 +216,8 @@ class CheckBox(WidgetWrap[Columns]):
         user_data: _T | None = None,
         checked_symbol: str | None = None,
     ) -> None:
-        """
+        """Create the CheckBox widget.
+
         :param label: markup for check box label
         :param state: False, True or "mixed"
         :param has_mixed: True if "mixed" is a state to cycle through
@@ -509,7 +508,8 @@ class RadioButton(CheckBox):
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
     ) -> None:
-        """
+        """Create the RadioButton widget.
+
         :param group: list for radio buttons in same group
         :param label: markup for radio button label
         :param state: False, True, "mixed" or "first True"
@@ -668,7 +668,8 @@ class Button(WidgetWrap[Columns]):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
     ) -> None:
-        """
+        """Create the Button widget.
+
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
                          function call for a single callback

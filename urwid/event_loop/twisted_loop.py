@@ -101,7 +101,8 @@ class TwistedEventLoop(EventLoop):
     _idle_emulation_delay = 1.0 / 256  # a short time (in seconds)
 
     def __init__(self, reactor: ReactorBase | None = None, manage_reactor: bool = True) -> None:
-        """
+        """Initialize the event loop, wrapping *reactor* or Twisted's default reactor.
+
         :param reactor: reactor to use
         :param: manage_reactor: `True` if you want this event loop to run
                                 and stop the reactor.
@@ -153,11 +154,9 @@ class TwistedEventLoop(EventLoop):
         )
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> DelayedCall:
-        """
-        Call callback() a given time from now.  No parameters are
-        passed to callback.
+        """Call callback() a given time from now.
 
-        Returns a handle that may be passed to remove_alarm()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_alarm().
 
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
@@ -180,11 +179,9 @@ class TwistedEventLoop(EventLoop):
         return True
 
     def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
-        """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        """Call callback() when fd has some data to read.
 
-        Returns a handle that may be passed to remove_watch_file()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_watch_file().
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
@@ -217,10 +214,7 @@ class TwistedEventLoop(EventLoop):
         return self._idle_handle
 
     def _enable_twisted_idle(self) -> None:
-        """
-        Twisted's reactors don't have an idle or enter-idle callback
-        so the best we can do for now is to set a timer event in a very
-        short time to approximate an enter-idle callback.
+        """Approximate an enter-idle callback with a very short timer, since Twisted's reactor has none.
 
         .. WARNING::
            This will perform worse than the other event loops until we can find a
@@ -252,9 +246,9 @@ class TwistedEventLoop(EventLoop):
         return True
 
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
 
         :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
@@ -268,11 +262,9 @@ class TwistedEventLoop(EventLoop):
             raise exc.with_traceback(exc.__traceback__)
 
     def handle_exit(self, f: Callable[_Spec, _T], enable_idle: bool = True) -> Callable[_Spec, _T | None]:
-        """
-        Decorator that cleanly exits the :class:`TwistedEventLoop` if
-        :class:`ExitMainLoop` is thrown inside of the wrapped function. Store the
-        exception info if some other exception occurs, it will be reraised after
-        the loop quits.
+        """Wrap *f* so that :exc:`ExitMainLoop` raised inside it exits the :class:`TwistedEventLoop` cleanly.
+
+        Store the exception info if some other exception occurs, it will be reraised after the loop quits.
 
         *f* -- function to be wrapped
         """

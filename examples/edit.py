@@ -20,7 +20,7 @@
 # Urwid web site: https://urwid.org/
 
 """
-Urwid example lazy text editor suitable for tabbed and flowing text
+Urwid example lazy text editor suitable for tabbed and flowing text.
 
 Features:
 - custom list walker for lazily loading text file
@@ -51,6 +51,7 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
         self.focus = 0
 
     def __del__(self) -> None:
+        """Close the open file, if any."""
         if self.file is not None:
             self.file.close()
 

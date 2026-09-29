@@ -178,6 +178,7 @@ class FontRegistry(type):
         namespace: dict[str, typing.Any],
         **kwds: typing.Any,
     ) -> FontRegistry:
+        """Create the new font class and register it under its ``name``, if any."""
         font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
         font_class = super().__new__(mcs, name, bases, namespace)
         if font_name:
@@ -236,6 +237,7 @@ class Font(metaclass=FontRegistry):
                 self.add_glyphs(gdata)
 
     def __repr__(self) -> str:
+        """Return the class name as a no-argument constructor call."""
         return f"{self.__class__.__name__}()"
 
     def __str__(self) -> str:
@@ -243,19 +245,23 @@ class Font(metaclass=FontRegistry):
         return f"{self.__class__.__name__}():\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
 
     def add_glyphs(self, gdata: str) -> None:
+        """Parse *gdata* into glyphs and add them to this font's character set."""
         d, utf8_required = separate_glyphs(gdata, self.height)
         self.char.update(d)
         self.utf8_required |= utf8_required
 
     def characters(self) -> str:
+        """Return the characters this font has glyphs for, in sorted order."""
         return "".join(sorted(self.char))
 
     def char_width(self, character: str) -> int:
+        """Return the glyph width of *character*, or 0 if this font has no glyph for it."""
         if character in self.char:
             return self.char[character][0]
         return 0
 
     def char_data(self, character: str) -> list[str]:
+        """Return the raw glyph data rows for *character*."""
         return self.char[character][1]
 
     def render(self, character: str) -> TextCanvas:

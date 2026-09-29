@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
 
 
 class PopUpDialog(urwid.WidgetWrap[urwid.AttrMap[urwid.Filler[urwid.Pile]]]):
-    """A dialog that appears with nothing but a close button"""
+    """A dialog that appears with nothing but a close button."""
 
     signals: typing.ClassVar[list[str]] = ["close"]
 

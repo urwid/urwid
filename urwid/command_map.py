@@ -86,9 +86,11 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     """
 
     def __iter__(self) -> Iterator[str]:
+        """Iterate over the keystrokes currently mapped to a command."""
         return iter(self._command)
 
     def __len__(self) -> int:
+        """Return the number of keystrokes currently mapped to a command."""
         return len(self._command)
 
     _command_defaults: typing.ClassVar[dict[str, str | Command]] = {
@@ -114,9 +116,11 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
         self._command = self._command_defaults.copy()
 
     def restore_defaults(self) -> None:
+        """Reset the command map to the class's default key-to-command bindings."""
         self._command = self._command_defaults.copy()
 
     def __getitem__(self, key: str) -> str | Command | None:
+        """Return the command mapped to `key`, or None if unmapped."""
         return self._command.get(key, None)
 
     def __setitem__(self, key: str, command: str | Command | None) -> None:
@@ -132,18 +136,17 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
         self._command[key] = command
 
     def __delitem__(self, key: str) -> None:
+        """Remove the command mapping for `key`."""
         del self._command[key]
 
     def clear_command(self, command: str | Command) -> None:
+        """Remove every keystroke currently mapped to ``command``."""
         dk = [k for k, v in self._command.items() if v == command]
         for k in dk:
             del self._command[k]
 
     def copy(self) -> Self:
-        """
-        Return a new copy of this CommandMap, likely so we can modify
-        it separate from a shared one.
-        """
+        """Return a new copy of this CommandMap, likely so we can modify it separate from a shared one."""
         c = self.__class__()
         c._command = dict(self._command)  # pylint: disable=protected-access
         return c

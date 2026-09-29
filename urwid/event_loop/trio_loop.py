@@ -77,7 +77,7 @@ class TrioEventLoop(EventLoop):
     """
 
     def __init__(self) -> None:
-        """Constructor."""
+        """Initialize the Trio event loop."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
@@ -101,7 +101,7 @@ class TrioEventLoop(EventLoop):
         seconds: float,
         callback: Callable[[], typing.Any],
     ) -> trio.CancelScope:
-        """Calls `callback()` a given time from now.
+        """Call `callback()` a given time from now.
 
         :param seconds: time in seconds to wait before calling the callback
         :param callback: function to call from the event loop
@@ -112,7 +112,7 @@ class TrioEventLoop(EventLoop):
         return self._start_task(self._alarm_task, seconds, callback)
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
-        """Calls `callback()` when the event loop enters the idle state.
+        """Call `callback()` when the event loop enters the idle state.
 
         There is no such thing as being idle in a Trio event loop so we
         simulate it by repeatedly calling `callback()` with a short delay.
@@ -122,14 +122,14 @@ class TrioEventLoop(EventLoop):
         return self._idle_handle
 
     def remove_alarm(self, handle: trio.CancelScope) -> bool:
-        """Removes an alarm.
+        """Remove an alarm.
 
         :param handle: the handle of the alarm to remove
         """
         return self._cancel_scope(handle)
 
     def remove_enter_idle(self, handle: int) -> bool:
-        """Removes an idle callback.
+        """Remove an idle callback.
 
         :param handle: the handle of the idle callback to remove
         """
@@ -140,7 +140,7 @@ class TrioEventLoop(EventLoop):
         return True
 
     def remove_watch_file(self, handle: trio.CancelScope) -> bool:
-        """Removes a file descriptor being watched for input.
+        """Remove a file descriptor being watched for input.
 
         :param handle: the handle of the file descriptor callback to remove
         :returns: True if the file descriptor was watched, False otherwise
@@ -148,7 +148,7 @@ class TrioEventLoop(EventLoop):
         return self._cancel_scope(handle)
 
     def _cancel_scope(self, scope: trio.CancelScope) -> bool:
-        """Cancels the given Trio cancellation scope.
+        """Cancel the given Trio cancellation scope.
 
         :param scope: the Trio cancellation scope to cancel
         :returns: True if the scope was cancelled, False if it was cancelled already before invoking this function
@@ -178,8 +178,9 @@ class TrioEventLoop(EventLoop):
         return callback(*args, **kwargs)
 
     def run(self) -> None:
-        """Starts the event loop. Exits the loop when any callback raises an
-        exception. If ExitMainLoop is raised, exits cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
         """
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
@@ -189,7 +190,7 @@ class TrioEventLoop(EventLoop):
             self._handle_main_loop_exception(exc)
 
     async def run_async(self) -> None:
-        """Starts the main loop and blocks asynchronously until the main loop exits.
+        """Start the main loop and block asynchronously until the main loop exits.
 
         This allows one to embed an urwid app in a Trio app even if the Trio event loop is already running.
         Example::
@@ -221,8 +222,9 @@ class TrioEventLoop(EventLoop):
         fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> trio.CancelScope:
-        """Calls `callback()` when the given file descriptor has some data
-        to read. No parameters are passed to the callback.
+        """Call `callback()` when the given file descriptor has some data to read.
+
+        No parameters are passed to the callback.
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when some input is available
@@ -236,8 +238,7 @@ class TrioEventLoop(EventLoop):
         seconds: float,
         callback: Callable[[], typing.Any],
     ) -> None:
-        """Asynchronous task that sleeps for a given number of seconds and then
-        calls the given callback.
+        """Asynchronous task that sleeps for a given number of seconds and then calls the given callback.
 
         :param scope: the cancellation scope that can be used to cancel the task
         :param seconds: the number of seconds to wait
@@ -248,11 +249,10 @@ class TrioEventLoop(EventLoop):
             self._run_callback(callback)
 
     def _handle_main_loop_exception(self, exc: BaseException) -> None:
-        """Handles exceptions raised from the main loop, catching ExitMainLoop
-        instead of letting it propagate through.
+        """Handle exceptions raised from the main loop, catching ExitMainLoop instead of letting it propagate.
 
-        Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup,
-        we cannot simply use a try..catch clause, we need a helper function like this.
+        Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup, we cannot simply
+        use a try..catch clause, we need a helper function like this.
 
         :raises BaseException: *exc* itself, unless it is :exc:`ExitMainLoop`.
         """
@@ -266,9 +266,7 @@ class TrioEventLoop(EventLoop):
         raise exc.with_traceback(exc.__traceback__) from None
 
     async def _main_task(self) -> None:
-        """Main Trio task that opens a nursery and then sleeps until the user
-        exits the app by raising ExitMainLoop.
-        """
+        """Open a nursery and sleep until the user exits the app by raising ExitMainLoop."""
         try:
             async with trio.open_nursery() as self._nursery:
                 self._schedule_pending_tasks()
@@ -277,8 +275,9 @@ class TrioEventLoop(EventLoop):
             self._nursery = None
 
     def _schedule_pending_tasks(self) -> None:
-        """Schedules all pending asynchronous tasks that were created before
-        the nursery to be executed on the nursery soon.
+        """Schedule pending tasks created before the nursery opened to run on it soon.
+
+        Tasks queued via :meth:`_start_task` before the nursery existed are started here once it is open.
         """
         if self._nursery is None:
             return
@@ -291,10 +290,10 @@ class TrioEventLoop(EventLoop):
         task: Callable[..., Awaitable[typing.Any]],
         *args: typing.Any,
     ) -> trio.CancelScope:
-        """Starts an asynchronous task in the Trio nursery managed by the
-        main loop. If the nursery has not started yet, store a reference to
-        the task and the arguments so we can start the task when the nursery
-        is open.
+        """Start an asynchronous task in the Trio nursery managed by the main loop.
+
+        If the nursery has not started yet, store a reference to the task and the arguments so we can start the
+        task when the nursery is open.
 
         :param task: a Trio task to run
         :param args: extra positional arguments passed to the task after its cancellation scope
@@ -313,8 +312,7 @@ class TrioEventLoop(EventLoop):
         fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> None:
-        """Asynchronous task that watches the given file descriptor and calls
-        the given callback whenever the file descriptor becomes readable.
+        """Watch *fd* and call *callback* whenever it becomes readable.
 
         :param scope: the cancellation scope that can be used to cancel the task
         :param fd: the file descriptor to watch

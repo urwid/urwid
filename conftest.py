@@ -54,6 +54,7 @@ def _backend_available(name: str) -> bool:
 
 
 def pytest_ignore_collect(collection_path: Path) -> bool | None:
+    """Skip collecting a platform-only or optional-backend test module that cannot run here."""
     name = collection_path.name
 
     if not _PLATFORM_ONLY.get(name, True):

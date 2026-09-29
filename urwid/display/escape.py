@@ -84,6 +84,7 @@ class MoreInputRequired(Exception):
 
 
 def escape_modifier(digit: str) -> str:
+    """Translate a CSI modifier digit into the "shift "/"meta "/"ctrl " prefix combination it encodes."""
     mode = ord(digit) - ord("1")
     return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
 
@@ -250,6 +251,7 @@ class KeyqueueTrie:
         keys: list[int],
         more_available: bool,
     ) -> tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None:
+        """Decode the longest key sequence matching the start of ``keys``, trying the trie then the special reports."""
         result: tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None
         if result := self.get_recurse(self.data, keys, more_available):
             return result
@@ -630,7 +632,8 @@ def process_keyqueue(
     codes: list[int],
     more_available: bool,
 ) -> tuple[list[str | _MouseInput | _CursorPosition | _PrivateModeReport], list[int]]:
-    """
+    """Decode `codes` into input events, consuming as much of the queue as is currently decodable.
+
     :param codes: list of key codes
     :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
         (escape/utf8/wide) and caller will attempt to send more key codes on the next call.
@@ -804,18 +807,21 @@ def set_cursor_position(x: int, y: int) -> str:
 
 
 def move_cursor_right(x: int) -> str:
+    """Return the escape sequence that moves the cursor right by *x* columns, or "" when *x* is not positive."""
     if x < 1:
         return ""
     return ESC + f"[{x:d}C"
 
 
 def move_cursor_up(x: int) -> str:
+    """Return the escape sequence that moves the cursor up by *x* rows, or "" when *x* is not positive."""
     if x < 1:
         return ""
     return ESC + f"[{x:d}A"
 
 
 def move_cursor_down(x: int) -> str:
+    """Return the escape sequence that moves the cursor down by *x* rows, or "" when *x* is not positive."""
     if x < 1:
         return ""
     return ESC + f"[{x:d}B"

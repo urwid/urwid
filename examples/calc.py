@@ -20,7 +20,7 @@
 # Urwid web site: https://urwid.org/
 
 """
-Urwid advanced example column calculator application
+Urwid advanced example column calculator application.
 
 Features:
 - multiple separate list boxes within columns
@@ -190,7 +190,7 @@ class ParentEdit(urwid.Edit):
     """Edit widget modified to link to a child column."""
 
     def __init__(self, op: str | None, letter: str) -> None:
-        """Use the operator and letter of the child column as caption
+        """Use the operator and letter of the child column as caption.
 
         op -- operator or None
         letter -- letter of child column

@@ -80,6 +80,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         self.original_widget = widget
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return the sizing modes this widget supports, which is always just FLOW."""
         return frozenset((Sizing.FLOW,))
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
@@ -95,18 +96,21 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     # The next few functions simply tack-on our height and pass through
     # to self._original_widget
     def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
+        """Return the wrapped box widget's cursor coordinates for *size* at the adapter's height."""
         (maxcol,) = size
         if (get_cursor_coords := getattr(self._original_widget, "get_cursor_coords", None)) is not None:
             return typing.cast("tuple[int, int] | None", get_cursor_coords((maxcol, self.height)))
         return None
 
     def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
+        """Move the cursor of the wrapped box widget to ``(col, row)`` for *size* at the adapter's height."""
         (maxcol,) = size
         if (move_cursor_to_coords := getattr(self._original_widget, "move_cursor_to_coords", None)) is not None:
             return typing.cast("bool", move_cursor_to_coords((maxcol, self.height), col, row))
         return True
 
     def get_pref_col(self, size: tuple[int]) -> int | None:
+        """Return the wrapped box widget's preferred cursor column for *size* at the adapter's height."""
         (maxcol,) = size
         if (get_pref_col := getattr(self._original_widget, "get_pref_col", None)) is not None:
             return typing.cast("int | None", get_pref_col((maxcol, self.height)))
@@ -117,6 +121,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
+        """Forward the keypress to the wrapped box widget at *size* and the adapter's height."""
         (maxcol,) = size
         return self._original_widget.keypress((maxcol, self.height), key)
 
@@ -129,6 +134,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
+        """Forward the mouse event to the wrapped box widget at *size* and the adapter's height."""
         (maxcol,) = size
         if not hasattr(self._original_widget, "mouse_event"):
             return False
@@ -139,6 +145,7 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
         size: tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
+        """Render the wrapped box widget at *size* and the adapter's height."""
         (maxcol,) = size
         canv = CompositeCanvas(self._original_widget.render((maxcol, self.height), focus))
         return canv

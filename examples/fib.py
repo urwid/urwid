@@ -20,7 +20,7 @@
 # Urwid web site: https://urwid.org/
 
 """
-Urwid example fibonacci sequence viewer / unbounded data demo
+Urwid example fibonacci sequence viewer / unbounded data demo.
 
 Features:
 - custom list walker class for browsing infinite set

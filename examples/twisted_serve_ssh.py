@@ -19,7 +19,6 @@ Process
 
 
 TODO:
-
 - better gpm tracking: there is no place for os.Popen in a Twisted app I
   think.
 
@@ -68,7 +67,7 @@ if typing.TYPE_CHECKING:
 
 
 class IUrwidUi(Interface):
-    """Toplevel urwid widget"""
+    """Toplevel urwid widget."""
 
     toplevel = Attribute("Urwid Toplevel Widget")
     palette = Attribute("Urwid Palette")
@@ -94,10 +93,10 @@ class IUrwidMind(Interface):
     avatar = Attribute("The avatar")
 
     def push(data):  # type: ignore[no-untyped-def]
-        """Push data"""
+        """Push data."""
 
     def draw():  # type: ignore[no-untyped-def]
-        """Refresh the UI"""
+        """Refresh the UI."""
 
 
 class UrwidUi:
@@ -154,6 +153,7 @@ class UnhandledKeyHandler:
         return f(key)  # type: ignore[no-any-return]
 
     def key_ctrl_c(self, key: str) -> None:
+        """Close the connection when the operator presses Ctrl-C."""
         self.mind.terminal.loseConnection()
 
 
@@ -169,6 +169,7 @@ class UrwidMind(Adapter):
 
     @property
     def avatar(self) -> IConchUser:
+        """Return the adapted object as an :class:`IConchUser`."""
         return IConchUser(self.original)
 
     def set_terminalProtocol(self, terminalProtocol: UrwidTerminalProtocol) -> None:
@@ -198,8 +199,7 @@ class UrwidMind(Adapter):
 
 
 class TwistedScreen(Screen):
-    """A Urwid screen which knows about the Twisted terminal protocol that is
-    driving it.
+    """A Urwid screen which knows about the Twisted terminal protocol that is driving it.
 
     A Urwid screen is responsible for:
 
@@ -233,7 +233,7 @@ class TwistedScreen(Screen):
     # Urwid Screen API
 
     def get_cols_rows(self) -> tuple[int, int]:
-        """Get the size of the terminal as (cols, rows)"""
+        """Get the size of the terminal as (cols, rows)."""
         return self.terminalProtocol.width, self.terminalProtocol.height
 
     def draw_screen(self, size: tuple[int, int], canvas: urwid.Canvas) -> None:
@@ -322,6 +322,7 @@ class TwistedScreen(Screen):
 
     # Convenience
     def write(self, data: str) -> None:
+        """Write *data* to the terminal."""
         self.terminal.write(data)
 
     # Private
@@ -330,8 +331,7 @@ class TwistedScreen(Screen):
         self._pal_escape[name] = self._attrspec_to_escape(attrspecs[{16: 0, 1: 1, 88: 2, 256: 3}[self.colors]])
 
     def _attrspec_to_escape(self, a: urwid.AttrSpec) -> str:
-        """
-        Convert AttrSpec instance a to an escape sequence for the terminal
+        r"""Convert AttrSpec instance a to an escape sequence for the terminal.
 
         >>> s = Screen()
         >>> s.set_terminal_properties(colors=256)
@@ -368,8 +368,7 @@ class TwistedScreen(Screen):
 
 
 class UrwidTerminalProtocol(TerminalProtocol):
-    """A terminal protocol that knows to proxy input and receive output from
-    Urwid.
+    """A terminal protocol that knows to proxy input and receive output from Urwid.
 
     This integrates with the TwistedScreen in a 1:1.
     """
@@ -380,6 +379,7 @@ class UrwidTerminalProtocol(TerminalProtocol):
         self.height = 24
 
     def connectionMade(self) -> None:
+        """Attach this protocol to its mind and size the terminal once the connection opens."""
         self.urwid_mind.set_terminalProtocol(self)
         self.terminalSize(self.width, self.height)
 
@@ -422,6 +422,7 @@ class UrwidServerProtocol(ServerProtocol):
     """A conch server protocol that proxies input straight to the terminal protocol."""
 
     def dataReceived(self, data: bytes) -> None:
+        """Forward received *data* straight to the connected terminal protocol."""
         if self.terminalProtocol is None:
             msg = "dataReceived needs a connected terminal protocol"
             raise RuntimeError(msg)
@@ -429,9 +430,9 @@ class UrwidServerProtocol(ServerProtocol):
 
 
 class UrwidUser(TerminalUser):
-    """A terminal user that remembers its avatarId
+    """A terminal user that remembers its avatarId.
 
-    The default implementation doesn't
+    The default implementation doesn't.
     """
 
     def __init__(self, original: Componentized, avatarId: bytes) -> None:
@@ -440,8 +441,9 @@ class UrwidUser(TerminalUser):
 
 
 class UrwidTerminalSession(TerminalSession):
-    """A terminal session that remembers the avatar and chained protocol for
-    later use. And implements a missing method for changed Window size.
+    """A terminal session that remembers the avatar and chained protocol for later use.
+
+    Also implements a missing method for changed window size.
 
     Note: This implementation assumes that each SSH connection will only
     request a single shell, which is not an entirely safe assumption, but is
@@ -454,7 +456,7 @@ class UrwidTerminalSession(TerminalSession):
         TerminalSessionTransport(proto, self.chained_protocol, IConchUser(self.original), self.height, self.width)
 
     def windowChanged(self, dimensions: tuple[int, int, int, int]) -> None:
-        """Called when the window size has changed."""
+        """Handle the window size changing."""
         (h, w, _x, _y) = dimensions
         if self.chained_protocol.terminalProtocol is None:
             msg = "terminalSize needs a connected terminal protocol"
@@ -463,9 +465,7 @@ class UrwidTerminalSession(TerminalSession):
 
 
 class UrwidRealm(TerminalRealm):
-    """Custom terminal realm class-configured to use our custom Terminal User
-    Terminal Session.
-    """
+    """Custom terminal realm class-configured to use our custom Terminal User Terminal Session."""
 
     def __init__(self, mind_factory: type[UrwidMind]) -> None:
         super().__init__()
@@ -496,8 +496,9 @@ class UrwidRealm(TerminalRealm):
 
 
 def create_server_factory(urwid_mind_factory: type[UrwidMind]) -> ConchFactory:
-    """Convenience to create a server factory with a portal that uses a realm
-    serving a given urwid widget against checkers provided.
+    """Create a server factory with a portal that uses a realm.
+
+    The realm serves a given urwid widget against the checkers provided.
     """
     rlm = UrwidRealm(urwid_mind_factory)
     # zope.interface lacks type stubs, so @implementer-declared interfaces (here, portal.IRealm on TerminalRealm)
@@ -507,7 +508,7 @@ def create_server_factory(urwid_mind_factory: type[UrwidMind]) -> ConchFactory:
 
 
 def create_service(urwid_mind_factory: type[UrwidMind], port: int, *args: typing.Any, **kw: typing.Any) -> TCPServer:
-    """Convenience to create a service for use in tac-ish situations."""
+    """Create a service for use in tac-ish situations."""
     f = create_server_factory(urwid_mind_factory)
     return TCPServer(port, f, *args, **kw)
 
@@ -515,7 +516,7 @@ def create_service(urwid_mind_factory: type[UrwidMind], port: int, *args: typing
 def create_application(
     application_name: str, urwid_mind_factory: type[UrwidMind], port: int, *args: typing.Any, **kw: typing.Any
 ) -> Componentized:
-    """Convenience to create an application suitable for tac file"""
+    """Create an application suitable for tac file."""
     application: Componentized = Application(application_name)
     svc = create_service(urwid_mind_factory, 6022)
     svc.setServiceParent(application)

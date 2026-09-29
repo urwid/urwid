@@ -99,23 +99,29 @@ class ScrollbarSymbols(str, enum.Enum):
 class SupportsScroll(AbstractBoxWidget, typing.Protocol):
     """Scroll specific methods."""
 
-    def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the index of the first visible row."""
 
-    def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int: ...
+    def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
+        """Return the total number of rows the widget can render."""
 
 
 @typing.runtime_checkable
 class SupportsRelativeScroll(AbstractBoxWidget, typing.Protocol):
     """Relative scroll-specific methods."""
 
-    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
+    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
+        """Return whether the widget should be scrolled using relative position rather than absolute rows."""
 
-    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the index of the first visible item."""
 
-    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the number of items currently visible."""
 
 
 def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
+    """Yield `w` and each of its `original_widget` ancestors, stopping at the first cycle."""
     visited = {w}
     yield w
     while (w := getattr(w, "original_widget", w)) not in visited:
@@ -127,9 +133,11 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
     """Box widget decoration that makes a fixed or flow widget vertically scrollable."""
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return that this widget is always a box widget."""
         return frozenset((Sizing.BOX,))
 
     def selectable(self) -> bool:
+        """Return ``True``: a scrollable widget always accepts the input focus."""
         return True
 
     def __init__(self, widget: WrappedScrollWidget, force_forward_keypress: bool = False) -> None:
@@ -163,6 +171,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
+        """Render the wrapped widget, trimmed to the current scroll position."""
         from urwid import canvas
 
         maxcol, maxrow = size
@@ -287,6 +296,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
+        """Handle scrolling keys, forwarding everything else to the wrapped widget when appropriate."""
         from urwid.command_map import Command
 
         # Maybe offer key to original widget
@@ -335,6 +345,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
+        """Forward a mouse event to the wrapped widget, adjusting the row for the current scroll position."""
         ow = self._original_widget
         if hasattr(ow, "mouse_event"):
             ow_size = self._get_original_widget_size(size)
@@ -414,7 +425,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         raise ScrollableError(f"{ow!r} sizing is not supported")
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Current scrolling position.
+        """Return the current scrolling position.
 
         Lower limit is 0, upper limit is the maximum number of rows with the given maxcol minus maxrow.
 
@@ -481,9 +492,11 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
     Symbols = ScrollbarSymbols
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return that this widget is always a box widget."""
         return frozenset((Sizing.BOX,))
 
     def selectable(self) -> bool:
+        """Return ``True``: a scrollbar-wrapped widget always accepts the input focus."""
         return True
 
     def __init__(
@@ -616,6 +629,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> Canvas:
+        """Render the wrapped widget together with the scrollbar, when scrolling is needed."""
         from urwid import canvas
 
         maxcol, maxrow = size
@@ -702,6 +716,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
+        """Forward a keypress to the wrapped widget."""
         return self._original_widget.keypress(self._original_widget_size, key)
 
     def mouse_event(
@@ -713,6 +728,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
+        """Handle a mouse event, dispatching it to the scrollbar thumb/trough or to the wrapped widget."""
         ow = self._original_widget
         ow_size = self._original_widget_size
         supports_scroll = hasattr(ow, "set_scrollpos")

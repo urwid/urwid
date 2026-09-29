@@ -46,14 +46,12 @@ __all__ = ("EventLoop", "ExitMainLoop", "SupportsFileno")
 class SupportsFileno(typing.Protocol):
     """Object that can provide an OS-level file descriptor."""
 
-    def fileno(self) -> int: ...
+    def fileno(self) -> int:
+        """Return the OS-level file descriptor for this object."""
 
 
 class ExitMainLoop(Exception):
-    """
-    When this exception is raised within a main loop the main loop
-    will exit cleanly.
-    """
+    """When this exception is raised within a main loop, the main loop will exit cleanly."""
 
 
 class EventLoop(abc.ABC):
@@ -85,13 +83,11 @@ class EventLoop(abc.ABC):
 
     @abc.abstractmethod
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> typing.Any:
-        """
-        Call callback() a given time from now.  No parameters are
-        passed to callback.
+        """Call callback() a given time from now.
 
-        This method has no default implementation.
+        No parameters are passed to callback. This method has no default implementation.
 
-        Returns a handle that may be passed to remove_alarm()
+        Returns a handle that may be passed to remove_alarm().
 
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
@@ -139,22 +135,19 @@ class EventLoop(abc.ABC):
 
     @abc.abstractmethod
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
 
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
         This method has no default implementation.
         """
 
     @abc.abstractmethod
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
-        """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        """Call callback() when fd has some data to read.
 
-        This method has no default implementation.
+        No parameters are passed to callback. This method has no default implementation.
 
-        Returns a handle that may be passed to remove_watch_file()
+        Returns a handle that may be passed to remove_watch_file().
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
@@ -165,8 +158,7 @@ class EventLoop(abc.ABC):
         signum: int,
         handler: Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers,
     ) -> Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers | None:
-        """
-        Sets the signal handler for signal signum.
+        """Set the signal handler for signal signum.
 
         The default implementation of :meth:`set_signal_handler`
         is simply a proxy function that calls :func:`signal.signal()`
