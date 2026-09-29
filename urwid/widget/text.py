@@ -121,8 +121,7 @@ class Text(Widget):
         self._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """
-        :returns: (*text*, *display attributes*)
+        """Return (*text*, *display attributes*).
 
             *text*
               complete bytes/unicode content of text widget

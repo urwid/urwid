@@ -231,7 +231,7 @@ class Canvas:
     )
 
     def __init__(self) -> None:
-        """Base Canvas class."""
+        """Initialize the base canvas state shared by all canvas subclasses."""
         self._widget_info: tuple[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool] | None = None
         self.coords: _CanvasCoords = {}
         self.shortcuts: dict[str, str] = {}

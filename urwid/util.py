@@ -172,7 +172,7 @@ def get_encoding() -> str:
 
 @contextlib.contextmanager
 def set_temporary_encoding(encoding_name: str) -> Generator[None]:
-    """Internal helper for encoding specific validation in unittests/doctests.
+    """Temporarily set the target encoding, for encoding-specific validation in unittests/doctests.
 
     Not exported globally.
     """

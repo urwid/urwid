@@ -276,7 +276,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         *,
         focus: int = 0,
     ) -> None:
-        """This is a deque that tracks one item as the focus item.
+        """Initialize a deque that tracks one item as the focus item.
 
         If items are inserted or removed -- including items silently evicted by a bounded (``maxlen``-limited)
         deque -- it will update the focus.

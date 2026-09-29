@@ -530,8 +530,7 @@ class MainLoop:
                 self.screen_size = None
 
     def _run_screen_event_loop(self) -> None:
-        """
-        This method is used when the screen does not support using external event loops.
+        """Run the screen event loop, used when the screen does not support using external event loops.
 
         The alarms stored in the SelectEventLoop in :attr:`event_loop` are modified by this method.
         """
@@ -737,8 +736,7 @@ class MainLoop:
 
 
 def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callable[..., _T | typing.Any]:
-    """
-    This function is used to test the main loop classes.
+    """Build a reflection helper used to test the main loop classes.
 
     >>> scr = _refl("screen")
     >>> scr.function("argument")

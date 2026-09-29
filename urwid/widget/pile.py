@@ -1027,7 +1027,7 @@ class Pile(
         return (max(widths), sum(heights))
 
     def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
-        """A list of the number of rows used by each widget in self.contents.
+        """Return the number of rows used by each widget in self.contents.
 
         This method is a normally used only by `get_item_size` for the BOX case..
         """

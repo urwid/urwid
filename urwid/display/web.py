@@ -188,8 +188,7 @@ class Screen(BaseScreen):
         """Do nothing."""
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
-        """
-        This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.
+        """Read the initial screen size, generate a unique id and handle cleanup when fn exits.
 
         web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
 

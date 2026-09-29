@@ -183,11 +183,11 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     @property
     @abc.abstractmethod
     def contents(self) -> MutableSequence[_ContentsItem]:
-        """The contents of container as a list of (widget, options)."""
+        """Return the contents of container as a list of (widget, options)."""
 
     @contents.setter
     def contents(self, new_contents: Sequence[_ContentsItem]) -> None:
-        """The contents of container as a list of (widget, options)."""
+        """Set the contents of container from a list of (widget, options)."""
 
     @property
     @abc.abstractmethod

@@ -544,7 +544,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         CanvasCache.invalidate(self)
 
     def _emit(self, name: Hashable, *args: typing.Any) -> None:
-        """Convenience function to emit signals with self as first argument."""
+        """Emit signals with self as first argument."""
         signals.emit_signal(self, name, self, *args)
 
     def selectable(self) -> bool:
@@ -681,7 +681,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     def __repr__(self) -> str:
-        """A friendly __repr__ for widgets.
+        """Return a friendly repr for widgets.
 
         Designed to be extended by subclasses with _repr_words and _repr_attr methods.
         """

@@ -194,7 +194,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
 
     def __init__(self, *args: typing.Any, focus: int = 0, **kwargs: typing.Any) -> None:
-        """This is a list that tracks one item as the focus item.
+        """Initialize a list that tracks one item as the focus item.
 
         If items are inserted or removed it will update the focus.
 

@@ -54,8 +54,7 @@ class SimpleDequeWalker(
     """
 
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False, maxlen: int | None = None) -> None:
-        """
-        This class inherits :class:`MonitoredDeque` which means it can be treated as a deque.
+        """Initialize a deque walker, which can be treated as a deque since it inherits :class:`MonitoredDeque`.
 
         Changes made to this object (when it is treated as a deque) are detected automatically
         and will cause ListBox objects using this list walker to be updated.
@@ -86,7 +85,7 @@ class SimpleDequeWalker(
         ListWalker._modified(self)  # pylint: disable=protected-access
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
-        """This function inherited from MonitoredDeque is not implemented in SimpleDequeWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredDeque is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -131,7 +130,7 @@ class SimpleDequeWalker(
         return position - 1
 
     def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+        """Return an iterable of positions. Optional method.
 
         :param reverse: if true, return positions in reverse order
         """
@@ -180,7 +179,7 @@ class SimpleFocusDequeWalker(
         ListWalker._modified(self)  # pylint: disable=protected-access
 
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
-        """This function inherited from MonitoredFocusDeque is not implemented in SimpleFocusDequeWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredFocusDeque is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -223,7 +222,7 @@ class SimpleFocusDequeWalker(
         return pos - 1
 
     def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+        """Return an iterable of positions. Optional method.
 
         :param reverse: if true, return positions in reverse order
         """

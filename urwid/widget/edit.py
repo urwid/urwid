@@ -115,7 +115,7 @@ class Edit(WidgetWrap[Text]):
         self.set_mask(mask)
 
     def selectable(self) -> bool:
-        """Selectable mark.
+        """Return True: this widget is always selectable.
 
         Wrapped Text widget is not selectable while the edit widget has to be selectable.
         """

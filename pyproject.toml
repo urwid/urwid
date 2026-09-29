@@ -156,6 +156,7 @@ extend-select = [
   "D209",  # closing quotes on their own line
   "D301",  # use r""" if any backslashes in a docstring
   "D400",  # summary line should end with a period
+  "D401",  # first line should be in imperative mood
   "D403",  # capitalized first word
   "D412",  # no blank lines between a section header and its content
 ]

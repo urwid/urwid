@@ -158,8 +158,7 @@ class EventLoop(abc.ABC):
         signum: int,
         handler: Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers,
     ) -> Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers | None:
-        """
-        Sets the signal handler for signal signum.
+        """Set the signal handler for signal signum.
 
         The default implementation of :meth:`set_signal_handler`
         is simply a proxy function that calls :func:`signal.signal()`

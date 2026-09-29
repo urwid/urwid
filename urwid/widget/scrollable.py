@@ -425,7 +425,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         raise ScrollableError(f"{ow!r} sizing is not supported")
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Current scrolling position.
+        """Return the current scrolling position.
 
         Lower limit is 0, upper limit is the maximum number of rows with the given maxcol minus maxrow.
 

@@ -1094,7 +1094,7 @@ class TermCanvas(Canvas):
         qmark: bool,
         reset: bool,
     ) -> None:
-        """Helper method for csi_set_modes: set single mode."""
+        """Set a single mode, as a helper for csi_set_modes."""
         if qmark:
             # DEC private mode
             if mode == 1:
@@ -1316,8 +1316,7 @@ class Terminal(Widget):
         escape_sequence: str | None = None,
         encoding: str = "utf-8",
     ):
-        """
-        A terminal emulator within a widget.
+        """Initialize a terminal emulator widget.
 
         ``command`` is the command to execute inside the terminal,
         provided as a list of the command followed by its arguments.

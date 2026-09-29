@@ -417,7 +417,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             raise ListBoxError("Body is wrapped around. Scroll position calculation is undefined.")
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Current scrolling position."""
+        """Return the current scrolling position."""
         self._check_support_scrolling()
 
         if not self._body:

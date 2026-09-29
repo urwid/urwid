@@ -169,7 +169,7 @@ class SelectEventLoop(EventLoop):
                     self._loop()
 
     def _loop(self) -> None:
-        """A single iteration of the event loop."""
+        """Run a single iteration of the event loop."""
         tm: float | Literal["idle"] | None = None
 
         with selectors.DefaultSelector() as selector:

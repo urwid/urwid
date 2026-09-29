@@ -128,7 +128,7 @@ class ANSIText(WidgetWrap[Text]):
         return markup
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """:returns: (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
+        """Return (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
         return self._w.get_text()
 
     @property

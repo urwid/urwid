@@ -113,8 +113,7 @@ class GLibEventLoop(EventLoop):
         signum: int,
         handler: Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers,
     ) -> None:
-        """
-        Sets the signal handler for signal signum.
+        """Set the signal handler for signal signum.
 
         .. WARNING::
             Because this method uses the `GLib`-specific `unix_signal_add`

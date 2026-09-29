@@ -414,7 +414,7 @@ class Screen(BaseScreen, RealTerminal):
         return None
 
     def _input_fileno(self) -> int | None:
-        """Returns the fileno of the input stream, or None if it doesn't have one.
+        """Return the fileno of the input stream, or None if it doesn't have one.
 
         A stream without a fileno can't participate in whatever.
         """

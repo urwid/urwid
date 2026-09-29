@@ -184,7 +184,7 @@ class Screen(_raw_display_base.Screen):
         self._sigwinch_handler(signal.SIGWINCH, None)
 
     def signal_init(self) -> None:
-        """Called in the startup of run wrapper to set the SIGWINCH and SIGTSTP signal handlers.
+        """Set the SIGWINCH and SIGTSTP signal handlers, called in the startup of run wrapper.
 
         Override this function to call from main thread in threaded
         applications.
@@ -193,7 +193,7 @@ class Screen(_raw_display_base.Screen):
         self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
 
     def signal_restore(self) -> None:
-        """Called in the finally block of run wrapper to restore the SIGTSTP, SIGCONT and SIGWINCH signal handlers.
+        """Restore the SIGTSTP, SIGCONT and SIGWINCH signal handlers, called in the finally block of run wrapper.
 
         Override this function to call from main thread in threaded
         applications.

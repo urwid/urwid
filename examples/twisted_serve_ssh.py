@@ -456,7 +456,7 @@ class UrwidTerminalSession(TerminalSession):
         TerminalSessionTransport(proto, self.chained_protocol, IConchUser(self.original), self.height, self.width)
 
     def windowChanged(self, dimensions: tuple[int, int, int, int]) -> None:
-        """Called when the window size has changed."""
+        """Handle the window size changing."""
         (h, w, _x, _y) = dimensions
         if self.chained_protocol.terminalProtocol is None:
             msg = "terminalSize needs a connected terminal protocol"
@@ -496,7 +496,7 @@ class UrwidRealm(TerminalRealm):
 
 
 def create_server_factory(urwid_mind_factory: type[UrwidMind]) -> ConchFactory:
-    """Convenience to create a server factory with a portal that uses a realm.
+    """Create a server factory with a portal that uses a realm.
 
     The realm serves a given urwid widget against the checkers provided.
     """
@@ -508,7 +508,7 @@ def create_server_factory(urwid_mind_factory: type[UrwidMind]) -> ConchFactory:
 
 
 def create_service(urwid_mind_factory: type[UrwidMind], port: int, *args: typing.Any, **kw: typing.Any) -> TCPServer:
-    """Convenience to create a service for use in tac-ish situations."""
+    """Create a service for use in tac-ish situations."""
     f = create_server_factory(urwid_mind_factory)
     return TCPServer(port, f, *args, **kw)
 
@@ -516,7 +516,7 @@ def create_service(urwid_mind_factory: type[UrwidMind], port: int, *args: typing
 def create_application(
     application_name: str, urwid_mind_factory: type[UrwidMind], port: int, *args: typing.Any, **kw: typing.Any
 ) -> Componentized:
-    """Convenience to create an application suitable for tac file."""
+    """Create an application suitable for tac file."""
     application: Componentized = Application(application_name)
     svc = create_service(urwid_mind_factory, 6022)
     svc.setServiceParent(application)

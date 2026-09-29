@@ -40,7 +40,7 @@ class BigText(Widget):
         self._invalidate()
 
     def get_text(self) -> tuple[str, list[tuple[Hashable, int]]]:
-        """Returns (text, attributes)."""
+        """Return (text, attributes)."""
         return self.text, self.attrib
 
     def set_font(self, font: Font) -> None:

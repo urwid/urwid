@@ -303,7 +303,7 @@ class ZMQEventLoop(EventLoop):
             self._main_task = None
 
     async def _loop(self) -> None:
-        """A single iteration of the event loop."""
+        """Run a single iteration of the event loop."""
         state = "wait"  # default state not expecting any action
         if self._alarms or self._did_something:
             timeout = 0.0
