@@ -667,7 +667,7 @@ class LayoutSegment:
                 spos, epos, pad_left, pad_right = calc_trim_text(text, self.offs, self.end, start, end)
                 lines: list[tuple[int, int, int] | tuple[int, int]] = []
                 if pad_left:
-                    lines.append((1, spos - 1))
+                    lines.append((1, move_prev_char(text, self.offs, spos)))
                 # A window that both starts and ends inside wide characters has
                 # nothing left between the two padding cells, and a segment of
                 # zero screen columns is not a shape LayoutSegment accepts.

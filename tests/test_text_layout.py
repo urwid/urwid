@@ -6,7 +6,7 @@ import typing
 import unittest
 
 import urwid
-from urwid import text_layout
+from urwid import canvas, text_layout
 from urwid.util import get_encoding, set_temporary_encoding
 
 if typing.TYPE_CHECKING:
@@ -155,17 +155,17 @@ class SubsegTest(unittest.TestCase):
         t = b"12\xa1\xa156\xa1\xa190"
         self.st((10, 0, 10), t, 0, 8, [(8, 0, 8)])
         self.st((10, 0, 10), t, 2, 10, [(8, 2, 10)])
-        self.st((6, 2, 8), t, 1, 6, [(1, 3), (4, 4, 8)])
+        self.st((6, 2, 8), t, 1, 6, [(1, 2), (4, 4, 8)])
         self.st((6, 2, 8), t, 0, 5, [(4, 2, 6), (1, 6)])
-        self.st((6, 2, 8), t, 1, 5, [(1, 3), (2, 4, 6), (1, 6)])
+        self.st((6, 2, 8), t, 1, 5, [(1, 2), (2, 4, 6), (1, 6)])
 
     def test4_range_inside_a_wide_character(self):
-        """A window that lands inside a wide character is padding and nothing else."""
+        """A window that lands inside a wide character is padding pointing at the start of that character."""
         t = b"12\xa1\xa156\xa1\xa190"
         self.st((10, 0, 10), t, 2, 3, [(1, 2)])
-        self.st((10, 0, 10), t, 3, 4, [(1, 3)])
-        self.st((10, 0, 10), t, 7, 8, [(1, 7)])
-        self.st((6, 2, 8), t, 1, 2, [(1, 3)])
+        self.st((10, 0, 10), t, 3, 4, [(1, 2)])
+        self.st((10, 0, 10), t, 7, 8, [(1, 6)])
+        self.st((6, 2, 8), t, 1, 2, [(1, 2)])
 
 
 class NarrowWideCharacterRenderTest(unittest.TestCase):
@@ -606,6 +606,30 @@ class WideCharWordWrapTest(unittest.TestCase):
                         text_layout.default_layout.calculate_text_segments(text, width, "space")
 
 
+class ZwjSequenceTest(unittest.TestCase):
+    """Emoji ZWJ sequences are one grapheme: no layout offset may point inside one."""
+
+    def test_wrap_never_splits_sequence(self):
+        for wrap in ("any", "space"):
+            with self.subTest(wrap=wrap):
+                self.assertEqual(
+                    ["👩‍💻👩‍💻 ", "👩‍💻   "],
+                    [row.decode() for row in urwid.Text("👩‍💻👩‍💻👩‍💻", wrap=wrap).render((5,)).text],
+                )
+
+    def test_trim_inside_sequence_pads_at_its_start(self):
+        text = "ab 👨‍👩‍👧👨‍👩‍👧"
+        line = text_layout.default_layout.layout(text, 100, "left", "clip")[0]
+        # column 4 is the right half of the first family emoji, which starts at offset 3
+        self.assertEqual([(1, 3), (2, 8, 13)], text_layout.trim_line(line, text, 4, 7))
+
+    def test_trim_inside_sequence_renders_space(self):
+        text = "👨‍👩‍👧👨‍👩‍👧"
+        line = text_layout.default_layout.layout(text, 100, "left", "clip")[0]
+        trimmed = text_layout.trim_line(line, text, 1, 4)
+        self.assertEqual(" 👨‍👩‍👧", canvas.apply_text_layout(text, [], [trimmed], 3).text[0].decode())
+
+
 class LineWidthTest(unittest.TestCase):
     def test_ignores_leading_shift(self):
         self.assertEqual(5, text_layout.line_width([(3, None), (5, 0, 5)]))
@@ -824,6 +848,20 @@ class TabStopTest(unittest.TestCase):
         # "中文" is 2 characters, but 4 screen columns
         self.assertEqual(["中文    x  "], self.render("中文\tx", 11))
 
+    def test_stop_counts_zwj_sequence_as_one_wide_grapheme(self):
+        # 3 code points joined by ZWJ, 2 screen columns
+        self.assertEqual(["👩‍💻      x   "], self.render("👩‍💻\tx", 12))
+
+    def test_zwj_sequence_is_not_split_by_wrap_after_tab(self):
+        self.assertEqual(
+            [[(1, 0, 1), (7, 1, b"       "), (2, 2, 7)], [(3, 7, 13), (0, 13)]],
+            text_layout.default_layout.layout("a\t👨‍👩‍👧👨‍👩‍👧b", 10, "left", "space"),
+        )
+        self.assertEqual(["a       👨‍👩‍👧 ", "👨‍👩‍👧b        "], self.render("a\t👨‍👩‍👧👨‍👩‍👧b", 11, wrap="any"))
+
+    def test_ellipsis_after_tab_keeps_zwj_sequence_whole(self):
+        self.assertEqual(["a       👩‍💻…"], self.render("a\t👩‍💻👩‍💻", 11, wrap="ellipsis"))
+
     def test_tab_on_stop_advances_to_the_next_one(self):
         self.assertEqual(["12345678        y"], self.render("12345678\ty", 17))
 
@@ -947,6 +985,13 @@ class TabStopTest(unittest.TestCase):
             edit.set_edit_pos(pos)
             coords.append(edit.get_cursor_coords((20,)))
         self.assertEqual([(0, 0), (1, 0), (2, 0), (8, 0), (9, 0), (10, 0)], coords)
+
+    def test_edit_cursor_after_zwj_sequence_and_tab(self):
+        edit = urwid.Edit("", "👩‍💻\tx")
+        edit.set_edit_pos(len("👩‍💻\t"))
+        self.assertEqual((8, 0), edit.get_cursor_coords((20,)))
+        edit.set_edit_pos(len("👩‍💻"))
+        self.assertEqual((2, 0), edit.get_cursor_coords((20,)))
 
     def test_edit_click_inside_tab(self):
         edit = urwid.Edit("", "ab\tcd")

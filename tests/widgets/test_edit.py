@@ -138,6 +138,12 @@ class EditTest(unittest.TestCase):
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "中文    ")
 
+    def test_keypress_tab_expanded_after_zwj_sequence(self) -> None:
+        # 3 code points joined by ZWJ, 2 screen columns
+        e = urwid.Edit("", "👩‍💻", allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "👩‍💻      ")
+
     def test_keypress_tab_expanded_from_line_start(self) -> None:
         e = urwid.Edit("", "abc\nd", multiline=True, allow_tab=True)
         e.keypress((20,), "tab")
