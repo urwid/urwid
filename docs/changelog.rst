@@ -2,6 +2,18 @@
 Changelog
 ---------
 
+Urwid 4.2.1
+============
+
+2026-09-29
+
+Bug fixes 🕷
+++++++++++++
+* Fix: Empty `Text` render fail and 0 is valid tab size by @penguinolog in https://github.com/urwid/urwid/pull/1354
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.0...4.2.1
+
 Urwid 4.2.0
 ============
 
