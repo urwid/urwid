@@ -2,6 +2,30 @@
 Changelog
 ---------
 
+Urwid 4.2.0
+============
+
+2026-09-29
+
+New features 🗹
++++++++++++++++
+* Handle tabs by StandardTextLayout by @penguinolog in https://github.com/urwid/urwid/pull/1349
+* HTML fragment can use all colours and styles like web display by @penguinolog in https://github.com/urwid/urwid/pull/1350
+
+Deprecations ⚡
++++++++++++++++
+* Deprecate monkeypatch of displays by HtmlGenerator by @penguinolog in https://github.com/urwid/urwid/pull/1352
+* Deprecate GLibEventLoop by @penguinolog in https://github.com/urwid/urwid/pull/1340
+
+Documentation 🕮
+++++++++++++++++
+* Add minimal docstrings to all classes by @penguinolog in https://github.com/urwid/urwid/pull/1346
+* Add minimal docstrings to all public methods by @penguinolog in https://github.com/urwid/urwid/pull/1347
+* Add last docstrings to class initialisers by @penguinolog in https://github.com/urwid/urwid/pull/1348
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.1.7...4.2.0
+
 Urwid 4.1.7
 ============
 
