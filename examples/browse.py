@@ -54,6 +54,7 @@ class FlagFileWidget(urwid.TreeWidget[_TreeNode]):
     expanded_icon = urwid.AttrMap(urwid.TreeWidget.expanded_icon, "dirmark")
 
     def __init__(self, node: _TreeNode) -> None:
+        """Initialize unflagged, wrapping the tree widget's display in an extra `AttrMap`."""
         super().__init__(node)
         # insert an extra AttrWrap for our own use
         self._w = urwid.AttrMap(self._w, None)
@@ -107,6 +108,7 @@ class FileTreeWidget(FlagFileWidget["FileNode"]):
     """Widget for individual files."""
 
     def __init__(self, node: FileNode) -> None:
+        """Initialize and register this widget under its file's path."""
         super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
@@ -136,6 +138,7 @@ class DirectoryWidget(FlagFileWidget["DirectoryNode"]):
     """Widget for a directory."""
 
     def __init__(self, node: DirectoryNode) -> None:
+        """Initialize, register this widget under its directory's path, and set its initial expanded state."""
         super().__init__(node)
         path = node.get_value()
         add_widget(path, self)
@@ -155,6 +158,7 @@ class FileNode(urwid.TreeNode[str]):
     """Metadata storage for individual files."""
 
     def __init__(self, path: str, parent: DirectoryNode | None = None) -> None:
+        """Initialize with the key and depth derived from `path`."""
         depth = path.count(dir_sep())
         key = os.path.basename(path)
         super().__init__(path, key=key, parent=parent, depth=depth)
@@ -191,6 +195,7 @@ class DirectoryNode(urwid.ParentNode[str]):
     """Metadata storage for directories."""
 
     def __init__(self, path: str, parent: DirectoryNode | None = None) -> None:
+        """Initialize with the key and depth derived from `path`, with no children read yet."""
         if path == dir_sep():
             depth = 0
             key = None
@@ -309,6 +314,7 @@ class DirectoryBrowser:
     ]
 
     def __init__(self) -> None:
+        """Initialize the tree view rooted at the current working directory."""
         cwd = os.getcwd()
         store_initial_cwd(cwd)
         self.header = urwid.Text("")

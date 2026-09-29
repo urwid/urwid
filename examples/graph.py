@@ -53,6 +53,7 @@ class GraphModel:
     data_max_value: typing.ClassVar[int] = 100
 
     def __init__(self) -> None:
+        """Initialize with the built-in sample data sets, defaulting to the first mode."""
         data: list[tuple[str, Sequence[float | int]]] = [
             ("Saw", list(range(0, 100, 2)) * 2),
             ("Square", [0] * 30 + [100] * 30),
@@ -123,6 +124,7 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
     graph_offset_per_second: typing.ClassVar[int] = 5
 
     def __init__(self, controller: GraphController) -> None:
+        """Initialize the graph display, stopped and not yet timed, wrapping `controller`."""
         self.controller = controller
         self.started = True
         self.start_time: float | None = None
@@ -415,6 +417,7 @@ class GraphController:
     """Set up the model and view and run the application."""
 
     def __init__(self) -> None:
+        """Initialize the model and view and switch to the first available mode."""
         self.animate_alarm: typing.Any = None
         self.model = GraphModel()
         self.view = GraphView(self)

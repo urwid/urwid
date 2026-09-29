@@ -144,21 +144,7 @@ extend-select = [
   "PL",
   "PERF",
   "RUF",   # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
-  "D100",  # pydocstyle: missing module docstring
-  "D101",  # pydocstyle: missing class docstring
-  "D102",  # pydocstyle: missing docstring in public method
-  "D103",  # pydocstyle: missing docstring in public function
-  "D105",  # pydocstyle: missing docstring in magic method
-  "D200",  # one-line docstring on one line
-  "D201",  # no blank line before function docstring
-  "D202",  # no blank line after function docstring
-  "D205",  # missing blank line after summary
-  "D209",  # closing quotes on their own line
-  "D301",  # use r""" if any backslashes in a docstring
-  "D400",  # summary line should end with a period
-  "D401",  # first line should be in imperative mood
-  "D403",  # capitalized first word
-  "D412",  # no blank lines between a section header and its content
+  "D",     # pydocstyle
 ]
 extend-ignore = [
   "E221",
@@ -195,8 +181,8 @@ known-third-party = []
 "__init__.py" = [ "F401", "SIM105" ]
 "urwid/display/curses.py" = [ "A005" ]
 # Shown verbatim in the docs as numbered listings, wcur2.py from a fixed line (`:lines: 7-`).
-"docs/tutorial/*.py" = [ "D100", "D101", "D102", "D103" ]
-"docs/manual/*.py" = [ "D100", "D101", "D102", "D103" ]
+"docs/tutorial/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
+"docs/manual/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
 [tool.ruff.lint.pylint]

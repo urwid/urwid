@@ -113,6 +113,7 @@ class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
     }
 
     def __init__(self) -> None:
+        """Initialize the command map with the class's default key-to-command bindings."""
         self._command = self._command_defaults.copy()
 
     def restore_defaults(self) -> None:

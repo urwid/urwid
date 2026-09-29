@@ -60,6 +60,7 @@ class EventLoop(abc.ABC):
     __slots__ = ("logger",)
 
     def __init__(self) -> None:
+        """Initialize a logger scoped to the concrete event loop subclass."""
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
     def run_in_executor(

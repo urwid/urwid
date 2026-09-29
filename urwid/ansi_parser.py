@@ -199,6 +199,7 @@ class AnsiParser:
     """
 
     def __init__(self, previous_attr: AttrSpec | None = None, *, one_line: bool = False) -> None:
+        """Create a parser, as described in the class docstring."""
         self._one_line = one_line
         self._attrspec: AttrSpec | None = previous_attr
 

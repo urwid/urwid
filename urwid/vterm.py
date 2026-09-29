@@ -217,6 +217,7 @@ class TermCharset:
     }
 
     def __init__(self) -> None:
+        """Initialize with the G0/G1 slots at their default charsets, G0 active."""
         self._g = [
             "default",
             "vt100",
@@ -268,6 +269,7 @@ class TermCanvas(Canvas):
     cacheable = False
 
     def __init__(self, width: int, height: int, widget: Terminal) -> None:
+        """Initialize an empty `width` by `height` canvas backing `widget`."""
         super().__init__()
 
         self.width, self.height = width, height

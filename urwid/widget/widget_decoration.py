@@ -48,6 +48,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
     """
 
     def __init__(self, original_widget: WrappedWidget) -> None:
+        """Wrap `original_widget`, warning when it does not implement the Widget API."""
         super().__init__()
         if not isinstance(original_widget, AbstractWidget):
             obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"

@@ -62,6 +62,7 @@ class TornadoEventLoop(EventLoop):
     """
 
     def __init__(self, loop: ioloop.IOLoop | None = None) -> None:
+        """Wrap `loop`, or Tornado's current IOLoop when none is given."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         if loop:

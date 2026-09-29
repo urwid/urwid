@@ -99,6 +99,7 @@ class CalcEvent(Exception):
     attr = "event"
 
     def __init__(self, message: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+        """Initialize with the message to display for this event."""
         self.message = message
 
     def widget(self) -> urwid.AttrMap[urwid.Text]:
@@ -113,6 +114,7 @@ class ColumnDeleteEvent(CalcEvent):
     attr = "confirm"
 
     def __init__(self, letter: str, from_parent: int = 0) -> None:
+        """Initialize with the letter of the column pending removal."""
         super().__init__(["Press ", ("key", "BACKSPACE"), " again to confirm column removal."])
         self.letter = letter
 
@@ -125,6 +127,7 @@ class Cell:
     """A single number, or sub-expression, within a calculator column."""
 
     def __init__(self, op: str | None) -> None:
+        """Initialize an empty cell for the given operator, or the top cell when `op` is None."""
         self.op = op
         self.is_top = op is None
         self.child: CellColumn | None = None
@@ -231,6 +234,7 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
     """
 
     def __init__(self, content: Iterable[Cell]) -> None:
+        """Initialize walking over `content`, focused on the first cell's edit widget."""
         self.content = urwid.MonitoredList(content)
         self.content.set_modified_callback(self._modified)
         self.focus = (0, 0)
@@ -316,6 +320,7 @@ class CellColumn(
     """A single lettered column of calculator cells."""
 
     def __init__(self, letter: str) -> None:
+        """Initialize with a single empty top cell, headed by `letter`."""
         self.walker = CellWalker([Cell(None)])
         self.content = self.walker.content
         self.listbox = urwid.ListBox(self.walker)
@@ -588,6 +593,7 @@ class HelpColumn(urwid.Widget):
     ]
 
     def __init__(self) -> None:
+        """Initialize the scrollable help text box widget."""
         super().__init__()
         self.head = urwid.AttrMap(urwid.Text(["Help Column ", ("key", "?")], layout=CALC_LAYOUT), "help")
         self.foot = urwid.AttrMap(urwid.Text(["[text continues.. press ", ("key", "?"), " then scroll]"]), "helpnote")
@@ -644,6 +650,7 @@ class CalcDisplay:
     ]
 
     def __init__(self) -> None:
+        """Initialize with the help column and a single lettered column "A"."""
         self.columns = urwid.Columns([HelpColumn(), CellColumn("A")], 1)
         self.columns.focus_position = 1
         view = urwid.AttrMap(self.columns, "body")

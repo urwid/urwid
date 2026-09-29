@@ -42,6 +42,7 @@ class MetaSignals(abc.ABCMeta):
         bases: tuple[type, ...],
         d: dict[str, typing.Any],
     ) -> None:
+        """Collect `signals` from the new class and its superclasses into the new class's own list."""
         signals = d.get("signals", [])
         for superclass in cls.__bases__:
             signals.extend(getattr(superclass, "signals", []))
@@ -85,6 +86,7 @@ class Signals:
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
     def __init__(self) -> None:
+        """Initialize with no signal-emitting classes registered yet."""
         self._supported: dict[MetaSignals, Container[Hashable]] = {}
 
     def register(self, sig_cls: MetaSignals, signals: Container[Hashable]) -> None:

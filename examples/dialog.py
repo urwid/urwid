@@ -50,6 +50,7 @@ class ExitButton(urwid.Button):
         on_press: typing.Callable[[ExitButton], typing.NoReturn],
         exitcode: int,
     ) -> None:
+        """Initialize with the exit code raised by `DialogDisplay.button_press` on press."""
         super().__init__(label, on_press)
         self.exitcode = exitcode
 
@@ -73,6 +74,7 @@ class DialogDisplay:
         width: int | str,
         body: urwid.Widget | None = None,
     ) -> None:
+        """Initialize the bordered, shadowed dialog frame around `body`, with an optional header from `text`."""
         raw_width = int(width)
         parsed_width: _Dimension = raw_width if raw_width > 0 else (urwid.RELATIVE, 80)
         raw_height = int(height)
@@ -141,6 +143,7 @@ class InputDialogDisplay(DialogDisplay):
     """Dialog with a single-line text entry field."""
 
     def __init__(self, text: _TagMarkup | None, height: int | str, width: int | str) -> None:
+        """Initialize with an empty single-line text entry field, focused."""
         self.edit = urwid.Edit()
         body = urwid.ListBox(urwid.SimpleListWalker([self.edit]))
         body = urwid.AttrMap(body, "selectable", "focustext")
@@ -169,6 +172,7 @@ class TextDialogDisplay(DialogDisplay):
     """Dialog that displays the contents of a file in a scrollable list box."""
 
     def __init__(self, file: str, height: int | str, width: int | str) -> None:
+        """Initialize with the contents of `file` loaded into the scrollable list box."""
         with open(file, encoding="utf-8") as f:
             lines = [urwid.Text(line.rstrip()) for line in f]
         # read the whole file (being slow, not lazy this time)
@@ -198,6 +202,7 @@ class ListDialogDisplay(DialogDisplay):
         items: tuple[str, ...],
         has_default: bool,
     ) -> None:
+        """Initialize with one item widget per `(tag, item, default)` triple in `items`, built via `constr`."""
         j: list[tuple[str, ...]] = []
         k: int
         tail: tuple[str, ...]
@@ -264,6 +269,7 @@ class MenuItem(urwid.Text):
     """A custom widget for the --menu option."""
 
     def __init__(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
+        """Initialize unselected, with `label` as its text."""
         super().__init__(label)
         self.state = False
 

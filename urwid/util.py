@@ -592,6 +592,7 @@ class StoppingContext(contextlib.AbstractContextManager["StoppingContext"]):
     __slots__ = ("_wrapped",)
 
     def __init__(self, wrapped: CanBeStopped) -> None:
+        """Wrap `wrapped`, whose `stop` method is called on exit."""
         self._wrapped = wrapped
 
     def __enter__(self) -> Self:

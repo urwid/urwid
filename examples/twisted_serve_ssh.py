@@ -103,6 +103,7 @@ class UrwidUi:
     """Base class building the toplevel widget, palette, screen and main loop for a :class:`UrwidMind`."""
 
     def __init__(self, urwid_mind: UrwidMind) -> None:
+        """Build and run the toplevel widget, palette, screen and main loop for `urwid_mind`."""
         self.mind = urwid_mind
         self.toplevel: urwid.Widget = self.create_urwid_toplevel()
         self.palette: _Palette = self.create_urwid_palette()
@@ -139,6 +140,7 @@ class UnhandledKeyHandler:
     """Dispatch an unhandled urwid key to a ``key_<name>`` method, if one exists."""
 
     def __init__(self, mind: UrwidMind) -> None:
+        """Initialize dispatching unhandled keys to `mind`."""
         self.mind = mind
 
     def push(self, key: str | tuple[str, int, int, int]) -> None:
@@ -217,6 +219,7 @@ class TwistedScreen(Screen):
     loop: urwid.MainLoop
 
     def __init__(self, terminalProtocol: UrwidTerminalProtocol) -> None:
+        """Initialize driven by `terminalProtocol`, already started since Twisted supplies its own input."""
         # We will need these later
         self.terminalProtocol = terminalProtocol
         self.terminal = terminalProtocol.terminal
@@ -374,6 +377,7 @@ class UrwidTerminalProtocol(TerminalProtocol):
     """
 
     def __init__(self, urwid_mind: UrwidMind) -> None:
+        """Initialize with `urwid_mind` and a default 80x24 terminal size."""
         self.urwid_mind = urwid_mind
         self.width = 80
         self.height = 24
@@ -436,6 +440,7 @@ class UrwidUser(TerminalUser):
     """
 
     def __init__(self, original: Componentized, avatarId: bytes) -> None:
+        """Initialize remembering `avatarId`, unlike the base implementation."""
         super().__init__(original, avatarId)
         self.avatarId = avatarId
 
@@ -468,6 +473,7 @@ class UrwidRealm(TerminalRealm):
     """Custom terminal realm class-configured to use our custom Terminal User Terminal Session."""
 
     def __init__(self, mind_factory: type[UrwidMind]) -> None:
+        """Initialize with `mind_factory` used to build the `UrwidMind` for each avatar."""
         super().__init__()
         self.mind_factory = mind_factory
 

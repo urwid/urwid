@@ -99,6 +99,7 @@ class AsyncScreen(Screen):
     _pending_task: asyncio.Task[bytes] | None
 
     def __init__(self, reader: asyncio.StreamReader, writer: asyncio.WriteTransport, encoding: str = "utf-8") -> None:
+        """Initialize with the asyncio stream reader and writer to speak the screen protocol over."""
         self.reader = reader
         self.writer = writer
         self.encoding = encoding

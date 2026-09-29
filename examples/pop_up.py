@@ -18,6 +18,7 @@ class PopUpDialog(urwid.WidgetWrap[urwid.AttrMap[urwid.Filler[urwid.Pile]]]):
     signals: typing.ClassVar[list[str]] = ["close"]
 
     def __init__(self) -> None:
+        """Initialize with the message text and a button that emits the "close" signal."""
         close_button = urwid.Button("that's pretty cool")
         urwid.connect_signal(close_button, "click", lambda button: self._emit("close"))
         pile = urwid.Pile(
@@ -33,6 +34,7 @@ class ThingWithAPopUp(urwid.PopUpLauncher[urwid.Button]):
     """A button that opens a :class:`PopUpDialog` when clicked."""
 
     def __init__(self) -> None:
+        """Initialize wrapping a "click-me" button that opens the pop-up when clicked."""
         super().__init__(urwid.Button("click-me"))
         urwid.connect_signal(self.original_widget, "click", lambda button: self.open_pop_up())
 

@@ -61,6 +61,7 @@ class HtmlGenerator(BaseScreen):
     started = True
 
     def __init__(self) -> None:
+        """Initialize the simulated screen with a 16-color palette."""
         super().__init__()
         self.colors = 16
         self.bright_is_bold = False  # ignored
