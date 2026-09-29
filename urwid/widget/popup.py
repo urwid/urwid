@@ -57,6 +57,7 @@ class PopUpLauncher(
     """Decoration that lets a wrapped widget open and close a pop-up widget above it."""
 
     def __init__(self, original_widget: WrappedWidget) -> None:
+        """Wrap `original_widget`, with no pop-up open yet."""
         super().__init__(original_widget)
         self._pop_up_widget: AbstractWidget | None = None
 

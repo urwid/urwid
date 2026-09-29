@@ -135,6 +135,7 @@ class ExampleTreeBrowser:
     ]
 
     def __init__(self, data: SampleTree) -> None:
+        """Initialize the tree view rooted at `data`."""
         self.topnode = ExampleParentNode(data)
         self.listbox = urwid.TreeListBox(urwid.TreeWalker(self.topnode))
         self.listbox.offset_rows = 1

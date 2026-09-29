@@ -88,6 +88,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     _modified_callback: Callable[[], typing.Any] | None = None
 
     def __init__(self, iterable: Iterable[_T] = (), maxlen: int | None = None) -> None:
+        """Build the deque from `iterable`, bounded to `maxlen` items, with no callback set yet."""
         super().__init__(iterable, maxlen)
 
     def _modified(self) -> None:

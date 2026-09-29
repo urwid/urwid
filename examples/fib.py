@@ -44,6 +44,7 @@ class FibonacciWalker(urwid.ListWalker[tuple[int, int], urwid.Text]):
     """
 
     def __init__(self) -> None:
+        """Initialize focused at the start of the fibonacci sequence."""
         self.focus = (0, 1)
         self.numeric_layout = NumericLayout()
 

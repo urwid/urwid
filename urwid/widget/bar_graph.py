@@ -29,7 +29,7 @@ class BarGraphMeta(WidgetMeta):
         Call :meth:`BarGraph.set_data` instead, so that the rendered canvas can be cached.
     """
 
-    def __init__(
+    def __init__(  # noqa: D107 -- BarGraphMeta is deprecated for backwards compatibility only
         cls,
         name: str,
         bases: tuple[type, ...],

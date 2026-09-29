@@ -91,6 +91,7 @@ class LCDProgressBar(urwid.Widget):
     _sizing = frozenset([urwid.Sizing.FLOW])
 
     def __init__(self, data_range: int, value: int) -> None:
+        """Initialize with the value's range and its initial position within it."""
         super().__init__()
         self.range = data_range
         self.value = value
@@ -138,6 +139,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
     """A slider control using custom CGRAM characters."""
 
     def __init__(self, data_range: int, value: int, callback: Callable[[int], None]) -> None:
+        """Initialize with a progress bar over `data_range`, and `callback` to invoke on value changes."""
         self.bar = LCDProgressBar(data_range, value)
         cols = urwid.Columns(
             [
@@ -165,6 +167,7 @@ class MenuOption(urwid.Button):
     """A menu option, indicated with a single arrow character."""
 
     def __init__(self, label: str, submenu: Menu) -> None:
+        """Initialize with `label` and the `submenu` opened when this option is chosen."""
         super().__init__("")
         # use a Text widget for label, we want the cursor
         # on the arrow not the label. Button types self._label as SelectableIcon; a Text works
@@ -187,6 +190,7 @@ class Menu(urwid.ListBox[int]):
     """A submenu of :class:`MenuOption` widgets that can return to its parent menu."""
 
     def __init__(self, widgets: list[MenuWidget]) -> None:
+        """Initialize with `widgets` as its options and no parent menu set."""
         self.menu_parent: Menu | None = None
         super().__init__(urwid.SimpleListWalker(widgets))
 

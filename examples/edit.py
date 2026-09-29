@@ -42,6 +42,7 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
     """ListWalker-compatible class for lazily reading file contents."""
 
     def __init__(self, name: str) -> None:
+        """Initialize with `name` opened for lazy line-by-line reading, no lines loaded yet."""
         # do not overcomplicate example
         self.file: typing.TextIO | None = open(  # noqa: SIM115  # pylint: disable=consider-using-with
             name,
@@ -173,6 +174,7 @@ class EditDisplay:
     )
 
     def __init__(self, name: str) -> None:
+        """Initialize with the file at `name` loaded for editing."""
         self.save_name = name
         self.walker = LineWalker(name)
         self.listbox: urwid.ListBox[int] = urwid.ListBox(self.walker)

@@ -50,6 +50,7 @@ class SelectEventLoop(EventLoop):
     """Event loop based on :func:`selectors.DefaultSelector.select`."""
 
     def __init__(self) -> None:
+        """Initialize with no alarms or watched files yet."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[tuple[float, int, Callable[[], typing.Any]]] = []

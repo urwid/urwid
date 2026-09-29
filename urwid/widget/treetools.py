@@ -67,6 +67,7 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
     expanded_icon = SelectableIcon("-", 0)
 
     def __init__(self, node: _Node) -> None:
+        """Build the widget representing `node`, expanded by default."""
         self._node = node
         self._innerwidget: Text | None = None
         if not isinstance(node, ParentNode):
@@ -261,6 +262,7 @@ class TreeNode(typing.Generic[_T]):
         key: Hashable = None,
         depth: int | None = None,
     ) -> None:
+        """Store `value` under `key`, with `parent` and `depth` as given, or computed from `parent` when omitted."""
         self._key = key
         self._parent = parent
         self._value = value
@@ -360,6 +362,7 @@ class ParentNode(TreeNode[_T]):
         key: Hashable = None,
         depth: int | None = None,
     ) -> None:
+        """Store `value` under `key`, with no child keys loaded yet."""
         super().__init__(value, parent=parent, key=key, depth=depth)
 
         self._child_keys: Sequence[Hashable] | None = None

@@ -108,7 +108,7 @@ class StandardTextLayout(TextLayout):
     """Default :class:`TextLayout` implementation, wrapping and aligning text by screen column."""
 
     def __init__(self) -> None:  # , tab_stops=(), tab_stop_every=8):
-        pass
+        """Do nothing; kept for the disabled tab-stop constructor arguments below."""
         # """
         # tab_stops -- list of screen column indexes for tab stops
         # tab_stop_every -- repeated interval for following tab stops

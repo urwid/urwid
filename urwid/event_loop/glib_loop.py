@@ -56,6 +56,7 @@ class GLibEventLoop(EventLoop):
     """Event loop based on GLib.MainLoop."""
 
     def __init__(self) -> None:
+        """Initialize a fresh GLib.MainLoop with no alarms or watched files yet."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[int] = []

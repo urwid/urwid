@@ -88,6 +88,7 @@ class WidgetMeta(
         bases: tuple[type, ...],
         d: dict[str, typing.Any],
     ) -> None:
+        """Wrap the new class's `render`/`rows` methods with caching, unless listed in `no_cache`."""
         no_cache = d.get("no_cache", [])
 
         super().__init__(name, bases, d)
@@ -537,6 +538,7 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
     _command_map = command_map
 
     def __init__(self) -> None:
+        """Initialize a logger scoped to the concrete widget subclass."""
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
     def _invalidate(self) -> None:

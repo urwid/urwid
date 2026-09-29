@@ -70,6 +70,7 @@ class AsyncioEventLoop(EventLoop):
     """
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs: typing.Any) -> None:
+        """Wrap `loop`, or the current asyncio event loop when none is given."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 

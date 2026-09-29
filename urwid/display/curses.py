@@ -113,6 +113,7 @@ class Screen(BaseScreen, RealTerminal):
     """Screen backend that drives the real terminal through the ``curses`` module."""
 
     def __init__(self) -> None:
+        """Initialize an unstarted curses screen with no color pairs allocated yet."""
         super().__init__()
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.has_color = False

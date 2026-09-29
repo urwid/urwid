@@ -69,6 +69,7 @@ class ZMQEventLoop(EventLoop):
     _alarm_break = count()
 
     def __init__(self) -> None:
+        """Initialize with a fresh zmq poller and no alarms or watched queues yet."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._did_something = True

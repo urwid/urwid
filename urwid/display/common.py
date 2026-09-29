@@ -930,6 +930,7 @@ class RealTerminal:
     """Mixin providing access to the real terminal's signal key settings."""
 
     def __init__(self) -> None:
+        """Initialize with no signal keys saved yet."""
         super().__init__()
         self._signal_keys_set = False
         self._old_signal_keys: tuple[int, int, int, int, int] | None = None
@@ -1040,6 +1041,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     signals: typing.ClassVar[list[str]] = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self) -> None:
+        """Initialize an unstarted screen with an empty palette."""
         super().__init__()
 
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
