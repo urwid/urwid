@@ -127,6 +127,58 @@ class EditTest(unittest.TestCase):
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, " " * 8)
 
+    def test_keypress_tab_expanded_to_next_stop(self) -> None:
+        e = urwid.Edit("", "abc", allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "abc     ")
+
+    def test_keypress_tab_expanded_by_rendered_width(self) -> None:
+        # "中文" is 2 characters, but 4 screen columns
+        e = urwid.Edit("", "中文", allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "中文    ")
+
+    def test_keypress_tab_expanded_from_line_start(self) -> None:
+        e = urwid.Edit("", "abc\nd", multiline=True, allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "abc\nd       ")
+
+    def test_keypress_tab_expanded_after_tab_character(self) -> None:
+        e = urwid.Edit("", "a\tbc", allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "a\tbc      ")
+
+    def test_keypress_tab_expanded_with_layout_tab_stops(self) -> None:
+        e = urwid.Edit("", "a", allow_tab=True, layout=urwid.StandardTextLayout(tab_stops=(3,)))
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "a  ")
+
+    def test_keypress_tab_expanded_with_custom_layout(self) -> None:
+        class CustomLayout(urwid.TextLayout):
+            def layout(self, text: str, width: int, align: str, wrap: str) -> list[list[tuple[int, int, int]]]:
+                return [[(len(text), 0, len(text))]] if text else [[]]
+
+        e = urwid.Edit("", "ab", allow_tab=True, layout=CustomLayout())
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "ab      ")
+
+    def test_keypress_tab_expanded_bytes(self) -> None:
+        e = urwid.Edit(b"", b"ab", allow_tab=True)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, b"ab      ")
+
+    def test_keypress_tab_character(self) -> None:
+        e = urwid.Edit("", "ab", allow_tab=True, edit_pos=1, expand_tabs=False)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "a\tb")
+        self.assertEqual(e.edit_pos, 2)
+        self.assertEqual(e.get_cursor_coords((20,)), (8, 0))
+
+    def test_keypress_tab_character_bytes(self) -> None:
+        e = urwid.Edit(b"", b"", allow_tab=True, expand_tabs=False)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, b"\t")
+
     def test_keypress_tab_not_allowed(self) -> None:
         e = urwid.Edit("", "")
         self.assertEqual(e.keypress((20,), "tab"), "tab")

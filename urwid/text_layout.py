@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import bisect
 import functools
 import typing
 
@@ -31,6 +32,8 @@ from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_ch
 from urwid.util import calc_trim_text, get_encoding
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from typing_extensions import Literal
 
     from urwid.widget import Align, WrapMode
@@ -107,17 +110,38 @@ class CanNotDisplayText(Exception):
 class StandardTextLayout(TextLayout):
     """Default :class:`TextLayout` implementation, wrapping and aligning text by screen column."""
 
-    def __init__(self) -> None:  # , tab_stops=(), tab_stop_every=8):
-        """Do nothing; kept for the disabled tab-stop constructor arguments below."""
-        # """
-        # tab_stops -- list of screen column indexes for tab stops
-        # tab_stop_every -- repeated interval for following tab stops
-        # """
-        # assert tab_stop_every is None or type(tab_stop_every)==int
-        # if not tab_stops and tab_stop_every:
-        #    self.tab_stops = (tab_stop_every,)
-        # self.tab_stops = tab_stops
-        # self.tab_stop_every = tab_stop_every
+    def __init__(
+        self,
+        *,
+        tab_stops: Iterable[int] = (),
+        tab_stop_every: int = 8,
+    ) -> None:
+        """Create a layout with word-processor style tab stops.
+
+        A tab character advances to the next tab stop, measured in rendered screen columns
+        from the start of the displayed line: explicit *tab_stops* are used first,
+        then stops repeat every *tab_stop_every* columns counted from column 0.
+
+        :param tab_stops: screen columns of explicit tab stops.
+        :param tab_stop_every: interval of the default tab stops.
+        :raises ValueError: *tab_stop_every* or one of *tab_stops* is not a positive column.
+        """
+        self.tab_stops: tuple[int, ...] = tuple(sorted(set(tab_stops)))
+        if tab_stop_every < 1 or (self.tab_stops and self.tab_stops[0] < 1):
+            raise ValueError(f"Tab stops must be positive: {tab_stops=!r}, {tab_stop_every=!r}")
+        self.tab_stop_every = tab_stop_every
+
+    def next_tab_stop(self, column: int) -> int:
+        """Return the screen column of the first tab stop after *column*.
+
+        >>> StandardTextLayout(tab_stops=(4, 10)).next_tab_stop(5)
+        10
+        >>> StandardTextLayout(tab_stops=(4, 10)).next_tab_stop(10)
+        16
+        """
+        if (idx := bisect.bisect_right(self.tab_stops, column)) < len(self.tab_stops):
+            return self.tab_stops[idx]
+        return (column // self.tab_stop_every + 1) * self.tab_stop_every
 
     def supports_align_mode(self, align: Literal["left", "center", "right"] | Align) -> bool:
         """Return True if align is 'left', 'center' or 'right'."""
@@ -203,6 +227,7 @@ class StandardTextLayout(TextLayout):
         segments = []
 
         nl: str | bytes = "\n" if isinstance(text, str) else b"\n"
+        tab: str | bytes = "\t" if isinstance(text, str) else b"\t"
         encoding = get_encoding()
         ellipsis_string = get_ellipsis_string(encoding)
         ellipsis_width = _get_width(ellipsis_string)
@@ -218,6 +243,18 @@ class StandardTextLayout(TextLayout):
             nl_pos = text.find(nl, idx)  # type: ignore[arg-type]  # We normalise types
             if nl_pos == -1:
                 nl_pos = len(text)
+            if text.find(tab, idx, nl_pos) != -1:  # type: ignore[arg-type]  # We normalise types
+                tabbed_line, screen_columns, end_off = self._place_tabbed_line(text, idx, nl_pos)
+                if wrap == "ellipsis" and screen_columns > width and ellipsis_width:
+                    limit = width - ellipsis_width
+                    tabbed_line, screen_columns, end_off = self._place_tabbed_line(text, idx, nl_pos, limit=limit)
+                    tabbed_line += [(ellipsis_width, end_off, ellipsis_char), (limit - screen_columns, end_off)]
+                else:
+                    tabbed_line += [(0, nl_pos)]
+                segments.append(tabbed_line)
+                idx = nl_pos + 1
+                continue
+
             screen_columns = calc_width(text, idx, nl_pos)
 
             # trim line to max width if needed, add ellipsis if trimmed
@@ -248,6 +285,144 @@ class StandardTextLayout(TextLayout):
             idx = nl_pos + 1
         return segments
 
+    def _place_tabbed_line(
+        self,
+        text: str | bytes,
+        start: int,
+        end: int,
+        *,
+        limit: int | None = None,
+    ) -> tuple[list[tuple[int, int, int | bytes] | tuple[int, int]], int, int]:
+        """Lay out one line holding tab characters without wrapping it.
+
+        :param limit: screen columns to stop at, ``None`` to lay out the whole line.
+        :returns: the line segments, their total screen columns,
+            and the text offset the layout stopped at (*end* unless *limit* cut the line short).
+        """
+        tab: str | bytes = "\t" if isinstance(text, str) else b"\t"
+        line: list[tuple[int, int, int | bytes] | tuple[int, int]] = []
+        column = 0
+        pos = start
+        while pos < end:
+            if text[pos : pos + 1] == tab:
+                tab_width = self.next_tab_stop(column) - column
+                if limit is not None and column + tab_width > limit:
+                    if limit > column:
+                        line.append((limit - column, pos, b" " * (limit - column)))
+                    return line, limit, pos
+                line.append((tab_width, pos, b" " * tab_width))
+                column += tab_width
+                pos += 1
+                continue
+
+            if (chunk_end := text.find(tab, pos, end)) == -1:  # type: ignore[arg-type]  # same type as text
+                chunk_end = end
+            chunk_width = calc_width(text, pos, chunk_end)
+            if limit is not None and column + chunk_width > limit:
+                _, epos, _, pad_right = calc_trim_text(text, pos, chunk_end, 0, limit - column)
+                if (fitted := limit - column - pad_right) > 0:
+                    line.append((fitted, pos, epos))
+                return line, limit - pad_right, epos
+            if chunk_width:
+                line.append((chunk_width, pos, chunk_end))
+            column += chunk_width
+            pos = chunk_end
+        return line, column, end
+
+    def _wrap_tabbed_line(
+        self,
+        text: str | bytes,
+        start: int,
+        end: int,
+        width: int,
+        wrap: Literal["any", "space", "clip", "ellipsis"] | WrapMode,
+    ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int]]]:
+        """Wrap one line holding tab characters into display lines of *width* screen columns.
+
+        Tab stops restart at column 0 on every display line. A tab reaching past *width* is cut at the line end,
+        and in ``space`` mode it is also a break opportunity, like a space.
+
+        :raises CanNotDisplayText: a character does not fit into an empty display line.
+        :raises ValueError: *wrap* is not a supported wrapping mode.
+        """
+        if wrap not in {"any", "space"}:
+            raise ValueError(wrap)
+        tab: str | bytes = "\t" if isinstance(text, str) else b"\t"
+        space: str | bytes = " " if isinstance(text, str) else b" "
+        lines: list[list[tuple[int, int, int | bytes] | tuple[int, int]]] = []
+        line: list[tuple[int, int, int | bytes] | tuple[int, int]] = []
+        column = 0
+        pos = start
+        while pos < end:
+            if text[pos : pos + 1] == tab:
+                if column < width:
+                    tab_width = min(self.next_tab_stop(column), width) - column
+                    line.append((tab_width, pos, b" " * tab_width))
+                    column += tab_width
+                    pos += 1
+                elif not column:
+                    raise CanNotDisplayText("Tab will not fit in 0-column width")
+                elif wrap == "space":
+                    # the tab at the line end is the break itself: drop it, as a space is dropped
+                    lines.append([*line, (0, pos)])
+                    line, column, pos = [], 0, pos + 1
+                else:
+                    lines.append(line)
+                    line, column = [], 0
+                continue
+
+            if (chunk_end := text.find(tab, pos, end)) == -1:  # type: ignore[arg-type]  # same type as text
+                chunk_end = end
+            if column + (chunk_width := calc_width(text, pos, chunk_end)) <= width:
+                if chunk_width:
+                    line.append((chunk_width, pos, chunk_end))
+                column += chunk_width
+                pos = chunk_end
+                continue
+
+            brk, _ = calc_text_pos(text, pos, chunk_end, width - column)
+            cut: int | None = None
+            resume = brk
+            if wrap == "any":
+                if brk > pos:
+                    cut = brk
+            elif text[brk : brk + 1] == space:
+                cut, resume = brk, brk + 1
+            elif brk > pos and is_wide_char(text, brk):
+                cut = brk
+            else:
+                prev = brk
+                while prev > pos:
+                    prev = move_prev_char(text, pos, prev)
+                    if text[prev : prev + 1] == space:
+                        cut, resume = prev, prev + 1
+                        break
+                    if is_wide_char(text, prev):
+                        cut = resume = move_next_char(text, prev, brk)
+                        break
+
+            if cut is None:
+                if not column:
+                    if brk == pos:
+                        raise CanNotDisplayText("Wide character will not fit in 1-column width")
+                    # no break opportunity at all: force a character wrap
+                    cut = brk
+                else:
+                    # break right after the preceding tab
+                    lines.append(line)
+                    line, column = [], 0
+                    continue
+
+            if cut > pos:
+                line.append((calc_width(text, pos, cut), pos, cut))
+            if resume > cut:
+                line.append((0, cut))  # removed character hint
+            lines.append(line)
+            line, column, pos = [], 0, resume
+
+        lines.append([*line, (0, end)])  # removed character hint
+        return lines
+
     def calculate_text_segments(
         self,
         text: str | bytes,
@@ -262,23 +437,33 @@ class StandardTextLayout(TextLayout):
         wrap - wrapping mode used
 
         Returns a layout structure without an alignment applied.
+        Each line holding a tab character is laid out with tab stops, see :meth:`next_tab_stop`::
 
-        :raises CanNotDisplayText: a wide character has to be placed in a single column.
+            wrap is clip or ellipsis? --yes--> per line: tabs? --yes--> place tabs, then cut with ellipsis
+                    |                                    +--no---> cut with ellipsis
+                    no
+                    |
+            per line: tabs? --yes--> wrap tab by tab
+                      +--no---> wrap at spaces or anywhere
+
+        :raises CanNotDisplayText: a character does not fit into an empty display line.
         :raises ValueError: *wrap* is not a supported wrapping mode.
         """
         if wrap in {"clip", "ellipsis"}:
             return self._calculate_trimmed_segments(text, width, wrap)  # type: ignore[arg-type]  # filtered by if
 
         nl: str | bytes
+        tab: str | bytes
         nl_o: int | str
         sp_o: int | str
-        nl, nl_o, sp_o = "\n", "\n", " "
+        nl, tab, nl_o, sp_o = "\n", "\t", "\n", " "
         if isinstance(text, bytes):
             nl = b"\n"  # can only find bytes in python3 bytestrings
+            tab = b"\t"
             nl_o = ord(nl_o)  # + an item of a bytestring is the ordinal value
             sp_o = ord(sp_o)
 
-        segments: list[list[tuple[int, int, int] | tuple[int, int]]] = []
+        segments: list[list[tuple[int, int, int | bytes] | tuple[int, int]]] = []
         idx = 0
 
         while idx <= len(text):
@@ -286,6 +471,11 @@ class StandardTextLayout(TextLayout):
             nl_pos = text.find(nl, idx)  # type: ignore[arg-type]  # We normalise types
             if nl_pos == -1:
                 nl_pos = len(text)
+
+            if text.find(tab, idx, nl_pos) != -1:  # type: ignore[arg-type]  # We normalise types
+                segments.extend(self._wrap_tabbed_line(text, idx, nl_pos, width, wrap))
+                idx = nl_pos + 1
+                continue
 
             screen_columns = calc_width(text, idx, nl_pos)
             if screen_columns == 0:
@@ -333,7 +523,7 @@ class StandardTextLayout(TextLayout):
                 prev = move_prev_char(text, idx, prev)
                 if text[prev] == sp_o:
                     screen_columns = calc_width(text, idx, prev)
-                    line: list[tuple[int, int, int] | tuple[int, int]] = [(0, prev)]
+                    line: list[tuple[int, int, int | bytes] | tuple[int, int]] = [(0, prev)]
                     if idx != prev:
                         line = [(screen_columns, idx, prev), *line]
                     segments.append(line)
@@ -378,7 +568,7 @@ class StandardTextLayout(TextLayout):
                 # force any char wrap
                 segments.append([(screen_columns, idx, pos)])
                 idx = pos
-        return segments  # type: ignore[return-value]  # we're narrowing here
+        return segments
 
 
 ######################################
