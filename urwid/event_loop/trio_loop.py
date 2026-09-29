@@ -178,8 +178,9 @@ class TrioEventLoop(EventLoop):
         return callback(*args, **kwargs)
 
     def run(self) -> None:
-        """Starts the event loop. Exits the loop when any callback raises an
-        exception. If ExitMainLoop is raised, exits cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
         """
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
@@ -221,8 +222,9 @@ class TrioEventLoop(EventLoop):
         fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> trio.CancelScope:
-        """Calls `callback()` when the given file descriptor has some data
-        to read. No parameters are passed to the callback.
+        """Call `callback()` when the given file descriptor has some data to read.
+
+        No parameters are passed to the callback.
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when some input is available
@@ -236,8 +238,7 @@ class TrioEventLoop(EventLoop):
         seconds: float,
         callback: Callable[[], typing.Any],
     ) -> None:
-        """Asynchronous task that sleeps for a given number of seconds and then
-        calls the given callback.
+        """Asynchronous task that sleeps for a given number of seconds and then calls the given callback.
 
         :param scope: the cancellation scope that can be used to cancel the task
         :param seconds: the number of seconds to wait
@@ -248,11 +249,10 @@ class TrioEventLoop(EventLoop):
             self._run_callback(callback)
 
     def _handle_main_loop_exception(self, exc: BaseException) -> None:
-        """Handles exceptions raised from the main loop, catching ExitMainLoop
-        instead of letting it propagate through.
+        """Handle exceptions raised from the main loop, catching ExitMainLoop instead of letting it propagate.
 
-        Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup,
-        we cannot simply use a try..catch clause, we need a helper function like this.
+        Note that since Trio may collect multiple exceptions from tasks into an ExceptionGroup, we cannot simply
+        use a try..catch clause, we need a helper function like this.
 
         :raises BaseException: *exc* itself, unless it is :exc:`ExitMainLoop`.
         """
@@ -266,9 +266,7 @@ class TrioEventLoop(EventLoop):
         raise exc.with_traceback(exc.__traceback__) from None
 
     async def _main_task(self) -> None:
-        """Main Trio task that opens a nursery and then sleeps until the user
-        exits the app by raising ExitMainLoop.
-        """
+        """Main Trio task that opens a nursery and then sleeps until the user exits the app by raising ExitMainLoop."""
         try:
             async with trio.open_nursery() as self._nursery:
                 self._schedule_pending_tasks()
@@ -277,8 +275,9 @@ class TrioEventLoop(EventLoop):
             self._nursery = None
 
     def _schedule_pending_tasks(self) -> None:
-        """Schedules all pending asynchronous tasks that were created before
-        the nursery to be executed on the nursery soon.
+        """Schedule pending tasks created before the nursery opened to run on it soon.
+
+        Tasks queued via :meth:`_start_task` before the nursery existed are started here once it is open.
         """
         if self._nursery is None:
             return
@@ -291,10 +290,10 @@ class TrioEventLoop(EventLoop):
         task: Callable[..., Awaitable[typing.Any]],
         *args: typing.Any,
     ) -> trio.CancelScope:
-        """Starts an asynchronous task in the Trio nursery managed by the
-        main loop. If the nursery has not started yet, store a reference to
-        the task and the arguments so we can start the task when the nursery
-        is open.
+        """Start an asynchronous task in the Trio nursery managed by the main loop.
+
+        If the nursery has not started yet, store a reference to the task and the arguments so we can start the
+        task when the nursery is open.
 
         :param task: a Trio task to run
         :param args: extra positional arguments passed to the task after its cancellation scope
@@ -313,8 +312,7 @@ class TrioEventLoop(EventLoop):
         fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
     ) -> None:
-        """Asynchronous task that watches the given file descriptor and calls
-        the given callback whenever the file descriptor becomes readable.
+        """Watch *fd* and call *callback* whenever it becomes readable.
 
         :param scope: the cancellation scope that can be used to cancel the task
         :param fd: the file descriptor to watch

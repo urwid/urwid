@@ -187,6 +187,7 @@ class TermModes:
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
 
     def reset(self) -> None:
+        """Reset every mode flag to its terminal-startup default."""
         # ECMA-48
         self.display_ctrl = False
         self.insert = False
@@ -249,6 +250,7 @@ class TermCharset:
         self.activate(g=self.active)
 
     def apply_mapping(self, char: bytes) -> bytes:
+        """Map *char* through the active IBM PC/DEC special character set, tracking which slot the result came from."""
         if self._sgr_mapping or self._g[self.active] == "ibmpc":
             if (dec_pos := DEC_SPECIAL_CHARS.find(char.decode("cp437"))) >= 0:
                 self.current = "0"
@@ -307,9 +309,9 @@ class TermCanvas(Canvas):
         self.reset()
 
     def set_term_cursor(self, x: int | None = None, y: int | None = None) -> None:
-        """
-        Set terminal cursor to x/y and update canvas cursor. If one or both axes
-        are omitted, use the values of the current position.
+        """Set terminal cursor to x/y and update canvas cursor.
+
+        If one or both axes are omitted, use the values of the current position.
         """
         if x is None:
             x = self.term_cursor[0]
@@ -329,12 +331,11 @@ class TermCanvas(Canvas):
         self.scrollregion_end = self.height - 1
 
     def scroll_buffer(self, up: bool = True, reset: bool = False, lines: int | None = None) -> None:
-        """
-        Scroll the scrolling buffer up (up=True) or down (up=False) the given
-        amount of lines or half the screen height.
+        """Scroll the scrolling buffer up (up=True) or down (up=False) the given amount of lines.
 
-        If just 'reset' is True, set the scrollbuffer view to the current
-        terminal content.
+        Scrolls half the screen height when *lines* is omitted.
+
+        If just 'reset' is True, set the scrollbuffer view to the current terminal content.
         """
         if reset:
             self.scrolling_up = 0
@@ -382,6 +383,7 @@ class TermCanvas(Canvas):
         self.clear()
 
     def init_tabstops(self, extend: bool = False) -> None:
+        """Set every column to a tabstop, or, when *extend* is set, grow the existing tabstops to the new width."""
         tablen, mod = divmod(self.width, 8)
         if mod > 0:
             tablen += 1
@@ -393,6 +395,7 @@ class TermCanvas(Canvas):
             self.tabstops = [1 << 0] * tablen
 
     def set_tabstop(self, x: int | None = None, remove: bool = False, clear: bool = False) -> None:
+        """Set, remove, or (with *clear*) remove every tabstop, at column *x* or the cursor's column by default."""
         if clear:
             for tab in range(len(self.tabstops)):
                 self.tabstops[tab] = 0
@@ -408,6 +411,7 @@ class TermCanvas(Canvas):
             self.tabstops[div] |= 1 << mod
 
     def is_tabstop(self, x: int | None = None) -> bool:
+        """Return whether column *x* (the cursor's column by default) is a tabstop."""
         if x is None:
             x = self.term_cursor[0]
 
@@ -415,12 +419,15 @@ class TermCanvas(Canvas):
         return (self.tabstops[div] & (1 << mod)) > 0
 
     def empty_line(self, char: bytes = b" ") -> list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]:
+        """Return a full row of empty characters, one per column, filled with *char*."""
         return [self.empty_char(char)] * self.width
 
     def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
+        """Return one empty terminal cell holding *char*, with the canvas's current attributes and charset."""
         return (self.attrspec, self.charset.current, char)
 
     def addstr(self, data: Iterable[int]) -> None:
+        """Feed a sequence of input bytes through the terminal parser, one byte at a time."""
         if self.width <= 0 or self.height <= 0:
             # not displayable, do nothing!
             return
@@ -574,6 +581,7 @@ class TermCanvas(Canvas):
             self.widget.set_title(title)
 
     def parse_escape(self, char: bytes) -> None:
+        """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
         if self.parsestate == 1:
             # within CSI
             if char in CSI_COMMANDS:
@@ -620,14 +628,13 @@ class TermCanvas(Canvas):
         self.leave_escape()
 
     def leave_escape(self) -> None:
+        """Reset the escape-sequence parser state, discarding any sequence being read."""
         self.within_escape = False
         self.parsestate = 0
         self.escbuf = b""
 
     def get_utf8_len(self, bytenum: int) -> int:
-        """
-        Process startbyte and return the number of bytes following it to get a
-        valid UTF-8 multibyte sequence.
+        """Process startbyte and return the number of bytes following it to get a valid UTF-8 multibyte sequence.
 
         :param bytenum: an integer ordinal
         """
@@ -640,9 +647,7 @@ class TermCanvas(Canvas):
         return length
 
     def addbyte(self, byte: int) -> None:
-        """
-        Parse main charset and add the processed byte(s) to the terminal state
-        machine.
+        """Parse main charset and add the processed byte(s) to the terminal state machine.
 
         :param byte: an integer ordinal
         """
@@ -724,10 +729,7 @@ class TermCanvas(Canvas):
             self.push_cursor(char)
 
     def set_char(self, char: bytes, x: int | None = None, y: int | None = None) -> None:
-        """
-        Set character of either the current cursor position
-        or a position given by 'x' and/or 'y' to 'char'.
-        """
+        """Set character of either the current cursor position or a position given by 'x' and/or 'y' to 'char'."""
         if x is None:
             x = self.term_cursor[0]
         if y is None:
@@ -737,10 +739,9 @@ class TermCanvas(Canvas):
         self.term[y][x] = (self.attrspec, self.charset.current, char)
 
     def constrain_coords(self, x: int, y: int, ignore_scrolling: bool = False) -> tuple[int, int]:
-        """
-        Checks if x/y are within the terminal and returns the corrected version.
-        If 'ignore_scrolling' is set, constrain within the full size of the
-        screen and not within scrolling region.
+        """Check if x/y are within the terminal and return the corrected version.
+
+        If 'ignore_scrolling' is set, constrain within the full size of the screen and not within scrolling region.
         """
         if x >= self.width:
             x = self.width - 1
@@ -761,10 +762,7 @@ class TermCanvas(Canvas):
         return x, y
 
     def linefeed(self, reverse: bool = False) -> None:
-        """
-        Move the cursor down (or up if reverse is True) one line but don't reset
-        horizontal position.
-        """
+        """Move the cursor down (or up if reverse is True) one line but don't reset horizontal position."""
         x, y = self.term_cursor
 
         if reverse:
@@ -785,6 +783,7 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def carriage_return(self) -> None:
+        """Move the cursor to column 0 of the current line."""
         self.set_term_cursor(0, self.term_cursor[1])
 
     def newline(self) -> None:
@@ -800,11 +799,10 @@ class TermCanvas(Canvas):
         relative_y: bool = False,
         relative: bool = False,
     ) -> None:
-        """
-        Move cursor to position x/y while constraining terminal sizes.
-        If 'relative' is True, x/y is relative to the current cursor
-        position. 'relative_x' and 'relative_y' is the same but just with
-        the corresponding axis.
+        """Move cursor to position x/y while constraining terminal sizes.
+
+        If 'relative' is True, x/y is relative to the current cursor position.
+        'relative_x' and 'relative_y' is the same but just with the corresponding axis.
         """
         if relative:
             relative_y = relative_x = True
@@ -831,8 +829,8 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def push_cursor(self, char: bytes | None = None) -> None:
-        """
-        Move cursor one character forward wrapping lines as needed.
+        """Move cursor one character forward wrapping lines as needed.
+
         If 'char' is given, put the character into the former position.
         """
         x, y = self.term_cursor
@@ -868,11 +866,13 @@ class TermCanvas(Canvas):
             self.push_char(char, x, y)
 
     def save_cursor(self, with_attrs: bool = False) -> None:
+        """Save the current cursor position, and its attributes/charset when *with_attrs* is set."""
         self.saved_cursor = self.term_cursor
         if with_attrs:
             self.saved_attrs = (copy.copy(self.attrspec), copy.copy(self.charset))
 
     def restore_cursor(self, with_attrs: bool = False) -> None:
+        """Restore the cursor position saved by :meth:`save_cursor`, and its attributes/charset when *with_attrs*."""
         if self.saved_cursor is None:
             return
 
@@ -883,10 +883,7 @@ class TermCanvas(Canvas):
             self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
 
     def tab(self, tabstop: int = 8) -> None:
-        """
-        Moves cursor to the next 'tabstop' filling everything in between
-        with spaces.
-        """
+        """Move cursor to the next 'tabstop' filling everything in between with spaces."""
         x, y = self.term_cursor
 
         while x < self.width - 1:
@@ -900,12 +897,9 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def scroll(self, reverse: bool = False) -> None:
-        """
-        Append a new line at the bottom and put the topmost line into the
-        scrollback buffer.
+        """Append a new line at the bottom and put the topmost line into the scrollback buffer.
 
-        If reverse is True, do exactly the opposite, but don't save into
-        scrollback buffer.
+        If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
         """
         if reverse:
             self.term.pop(self.scrollregion_end)
@@ -930,9 +924,9 @@ class TermCanvas(Canvas):
         chars: int = 1,
         char: bytes | None = None,
     ) -> None:
-        """
-        Insert 'chars' number of either empty characters - or those specified by
-        'char' - before 'position' (or the current position if not specified)
+        """Insert 'chars' number of empty characters (or those given by 'char') before 'position'.
+
+        Defaults to the current position if 'position' is not specified,
         pushing subsequent characters of the line to the right without wrapping.
         """
         if position is None:
@@ -954,10 +948,10 @@ class TermCanvas(Canvas):
             chars -= 1
 
     def remove_chars(self, position: tuple[int, int] | None = None, chars: int = 1) -> None:
-        """
-        Remove 'chars' number of empty characters from 'position' (or the current
-        position if not specified) pulling subsequent characters of the line to
-        the left without joining any subsequent lines.
+        """Remove 'chars' number of empty characters from 'position'.
+
+        Defaults to the current position if 'position' is not specified,
+        pulling subsequent characters of the line to the left without joining any subsequent lines.
         """
         if position is None:
             position = self.term_cursor
@@ -973,10 +967,9 @@ class TermCanvas(Canvas):
             chars -= 1
 
     def insert_lines(self, row: int | None = None, lines: int = 1) -> None:
-        """
-        Insert 'lines' of empty lines after the specified row, pushing all
-        subsequent lines to the bottom. If no 'row' is specified, the current
-        row is used.
+        """Insert 'lines' of empty lines after the specified row, pushing all subsequent lines to the bottom.
+
+        If no 'row' is specified, the current row is used.
         """
         if row is None:
             row = self.term_cursor[1]
@@ -992,10 +985,9 @@ class TermCanvas(Canvas):
             lines -= 1
 
     def remove_lines(self, row: int | None = None, lines: int = 1) -> None:
-        """
-        Remove 'lines' number of lines at the specified row, pulling all
-        subsequent lines to the top. If no 'row' is specified, the current row
-        is used.
+        """Remove 'lines' number of lines at the specified row, pulling all subsequent lines to the top.
+
+        If no 'row' is specified, the current row is used.
         """
         if row is None:
             row = self.term_cursor[1]
@@ -1015,9 +1007,9 @@ class TermCanvas(Canvas):
         start: tuple[int, int] | tuple[int, int, bool],
         end: tuple[int, int] | tuple[int, int, bool],
     ) -> None:
-        """
-        Erase a region of the terminal. The 'start' tuple (x, y) defines the
-        starting position of the erase, while end (x, y) the last position.
+        """Erase a region of the terminal.
+
+        The 'start' tuple (x, y) defines the starting position of the erase, while end (x, y) the last position.
 
         For example if the terminal size is 4x3, start=(1, 1) and end=(1, 2)
         would erase the following region:
@@ -1075,10 +1067,7 @@ class TermCanvas(Canvas):
             self.attrspec = attrspec
 
     def reverse_attrspec(self, attrspec: AttrSpec | None, undo: bool = False) -> AttrSpec:
-        """
-        Put standout mode to the 'attrspec' given and remove it if 'undo' is
-        True.
-        """
+        """Put standout mode to the 'attrspec' given and remove it if 'undo' is True."""
         if attrspec is None:
             attrspec = AttrSpec("default", "default")
         attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
@@ -1157,10 +1146,9 @@ class TermCanvas(Canvas):
             self.set_mode(mode, flag, qmark, reset)
 
     def csi_set_scroll(self, top: int = 0, bottom: int = 0) -> None:
-        """
-        Set scrolling region, 'top' is the line number of first line in the
-        scrolling region. 'bottom' is the line number of bottom line. If both
-        are set to 0, the whole screen will be used (default).
+        """Set scrolling region, 'top' is the line number of first line in the scrolling region.
+
+        'bottom' is the line number of bottom line. If both are set to 0, the whole screen will be used (default).
         """
         if not top:
             top = 1
@@ -1174,26 +1162,20 @@ class TermCanvas(Canvas):
             self.set_term_cursor(0, 0)
 
     def csi_clear_tabstop(self, mode: int = 0) -> None:
-        """
-        Clear tabstop at current position or if 'mode' is 3, delete all
-        tabstops.
-        """
+        """Clear tabstop at current position or if 'mode' is 3, delete all tabstops."""
         if mode == 0:
             self.set_tabstop(remove=True)
         elif mode == 3:
             self.set_tabstop(clear=True)
 
     def csi_get_device_attributes(self, qmark: bool) -> None:
-        """
-        Report device attributes (what are you?). In our case, we'll report
-        ourself as a VT102 terminal.
-        """
+        """Report device attributes (what are you?). In our case, we'll report ourself as a VT102 terminal."""
         if not qmark:
             self.widget.respond(f"{ESC}[?6c")
 
     def csi_status_report(self, mode: int) -> None:
-        """
-        Report various information about the terminal status.
+        """Report various information about the terminal status.
+
         Information is queried by 'mode', where possible values are:
             5 -> device status report
             6 -> cursor position report
@@ -1206,8 +1188,10 @@ class TermCanvas(Canvas):
             self.widget.respond(ESC + f"[{y + 1:d};{x + 1:d}R")
 
     def csi_erase_line(self, mode: int) -> None:
-        """
-        Erase current line, modes are:
+        """Erase current line.
+
+        Modes are:
+
             0 -> erase from cursor to end of line.
             1 -> erase from start of line to cursor.
             2 -> erase whole line.
@@ -1222,8 +1206,10 @@ class TermCanvas(Canvas):
             self.blank_line(y)
 
     def csi_erase_display(self, mode: int) -> None:
-        """
-        Erase display, modes are:
+        """Erase display.
+
+        Modes are:
+
             0 -> erase from cursor to end of display.
             1 -> erase from start to cursor.
             2 -> erase the whole display.
@@ -1252,10 +1238,7 @@ class TermCanvas(Canvas):
             self.widget.leds(state)  # type: ignore[arg-type]
 
     def clear(self, cursor: tuple[int, int] | None = None) -> None:
-        """
-        Clears the whole terminal screen and resets the cursor position
-        to (0, 0) or to the coordinates given by 'cursor'.
-        """
+        """Clear the whole terminal screen and reset the cursor position to (0, 0) or to 'cursor'."""
         self.term = [self.empty_line() for _ in range(self.height)]
 
         if cursor is None:
@@ -1264,9 +1247,11 @@ class TermCanvas(Canvas):
             self.set_term_cursor(*cursor)
 
     def cols(self) -> int:
+        """Return the canvas's number of columns."""
         return self.width
 
     def rows(self) -> int:
+        """Return the canvas's number of rows."""
         return self.height
 
     def content(  # type: ignore[override]
@@ -1415,6 +1400,7 @@ class Terminal(Widget):
         return (x, y)
 
     def spawn(self) -> None:
+        """Fork the child process running :attr:`command` and connect it to a new pty."""
         env = self.env
         env["TERM"] = "linux"
 
@@ -1440,6 +1426,7 @@ class Terminal(Widget):
         atexit.register(self.terminate)
 
     def terminate(self) -> None:
+        """Stop watching the pty and kill the child process, escalating through signals until it exits."""
         if self.terminated:
             return
 
@@ -1465,9 +1452,11 @@ class Terminal(Widget):
             os.close(typing.cast("int", self.master))
 
     def beep(self) -> None:
+        """Emit a "beep" signal for anything listening on this widget."""
         self._emit("beep")
 
     def leds(self, which: Literal["clear", "scroll_lock", "num_lock", "caps_lock"]) -> None:
+        """Emit a "leds" signal asking the display to set keyboard LED state *which*."""
         self._emit("leds", which)
 
     def respond(self, string: str) -> None:
@@ -1475,15 +1464,18 @@ class Terminal(Widget):
         self.response_buffer.append(string)
 
     def flush_responses(self) -> None:
+        """Write every buffered response to the pty and clear the buffer."""
         for string in self.response_buffer:
             os.write(typing.cast("int", self.master), string.encode("ascii"))
         self.response_buffer = []
 
     def set_termsize(self, width: int, height: int) -> None:
+        """Tell the pty the terminal window is now *width* by *height* characters."""
         winsize = struct.pack("HHHH", height, width, 0, 0)
         fcntl.ioctl(typing.cast("int", self.master), termios.TIOCSWINSZ, winsize)
 
     def touch_term(self, width: int, height: int) -> None:
+        """Spawn the child process if needed, then resize the pty and terminal canvas to *width* by *height*."""
         process_opened = False
 
         if self.pid is None:
@@ -1509,6 +1501,7 @@ class Terminal(Widget):
         self._emit("resize", (width, height))
 
     def set_title(self, title: str) -> None:
+        """Emit a "title" signal with the terminal's new *title*."""
         self._emit("title", title)
 
     def change_focus(self, has_focus: bool) -> None:
@@ -1529,6 +1522,7 @@ class Terminal(Widget):
             RealTerminal().tty_signal_keys(*old_tios)  # pylint: disable=not-an-iterable
 
     def render(self, size: tuple[int, int], focus: bool = False) -> TermCanvas:  # type: ignore[override]
+        """Resize the terminal to *size*, read any pending child output, and return the terminal canvas."""
         if not self.terminated:
             self.change_focus(focus)
 
@@ -1541,16 +1535,19 @@ class Terminal(Widget):
         return self.term  # type: ignore[return-value]
 
     def add_watch(self) -> None:
+        """Register the pty with the main loop, when there is one, so :meth:`feed` runs on new child output."""
         if self.main_loop is None:
             return
         self.main_loop.watch_file(typing.cast("int", self.master), self.feed)
 
     def remove_watch(self) -> None:
+        """Unregister the pty from the main loop, when there is one."""
         if self.main_loop is None:
             return
         self.main_loop.remove_watch_file(self.master)
 
     def wait_and_feed(self, timeout: float = 1.0) -> None:
+        """Block up to *timeout* seconds for pty output, then read and process whatever has arrived."""
         with selectors.DefaultSelector() as selector:
             selector.register(typing.cast("int", self.master), selectors.EVENT_READ)
 
@@ -1559,6 +1556,7 @@ class Terminal(Widget):
         self.feed()
 
     def feed(self) -> None:
+        """Read pending output from the pty and feed it to the terminal, terminating the child on EOF."""
         data = EOF
 
         try:
@@ -1606,6 +1604,7 @@ class Terminal(Widget):
         self.flush_responses()
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None:  # type: ignore[override]
+        """Translate *key* into the byte sequence the child process expects and write it to the pty."""
         if self.terminated:
             return key
 

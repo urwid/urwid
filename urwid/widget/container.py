@@ -20,16 +20,19 @@ if typing.TYPE_CHECKING:
         def __getitem__(
             self,
             index: _KT_contra,
-        ) -> tuple[AbstractWidget, typing.Any]: ...
+        ) -> tuple[AbstractWidget, typing.Any]:
+            """Return the `(widget, options)` entry at `index`."""
 
     class WidgetContainerMixinProto(AbstractWidget, typing.Protocol[_KT_contra]):
         """Structural type for a widget exposing ``contents`` and a settable ``focus_position``."""
 
         @property
-        def contents(self) -> WidgetContainerProto[_KT_contra]: ...
+        def contents(self) -> WidgetContainerProto[_KT_contra]:
+            """Return the container's contents, indexable by position."""
 
         @property
-        def focus_position(self) -> int | str: ...
+        def focus_position(self) -> int | str:
+            """Return the position of the container's currently focused element."""
 
         @focus_position.setter
         def focus_position(self, position: int | str) -> None: ...
@@ -95,23 +98,19 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     """Mixin class for widget containers implementing common container methods."""
 
     def __getitem__(self, position: _KT_contra) -> AbstractWidget:
-        """
-        Container short-cut for self.contents[position][0].base_widget
-        which means "give me the child widget at position without any
-        widget decorations".
+        """Give the child widget at position without any widget decorations.
 
-        This allows for concise traversal of nested container widgets
-        such as:
+        This is a short-cut for self.contents[position][0].base_widget, allowing for concise traversal of nested
+        container widgets such as:
 
             my_widget[position0][position1][position2] ...
         """
         return self.contents[position][0].base_widget
 
     def get_focus_path(self) -> list[int | str]:
-        """
-        Return the .focus_position values starting from this container
-        and proceeding along each child widget until reaching a leaf
-        (non-container) widget.
+        """Return the .focus_position values starting from this container.
+
+        Proceeds along each child widget until reaching a leaf (non-container) widget.
         """
         out: list[int | str] = []
         w = self
@@ -124,10 +123,10 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
             w = w.focus.base_widget  # type: ignore[union-attr,assignment]
 
     def set_focus_path(self, positions: Iterable[int | str]) -> None:
-        """
-        Set the .focus_position property starting from this container
-        widget and proceeding along newly focused child widgets.
-        Any failed assignment due to incompatible position types or invalid positions will raise an IndexError.
+        """Set the .focus_position property starting from this container widget.
+
+        Proceeds along newly focused child widgets. Any failed assignment due to incompatible position types or
+        invalid positions will raise an IndexError.
 
         This method may be used to restore a particular widget to the
         focus by passing in the value returned from an earlier call to
@@ -142,10 +141,9 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
             w = w.focus.base_widget  # type: ignore[union-attr]
 
     def get_focus_widgets(self) -> list[WidgetContainerMixin[typing.Any] | AbstractWidget]:
-        """
-        Return the .focus values starting from this container
-        and proceeding along each child widget until reaching a leaf
-        (non-container) widget.
+        """Return the .focus values starting from this container.
+
+        Proceeds along each child widget until reaching a leaf (non-container) widget.
 
         Note that the list does not contain the topmost container widget
         (i.e., on which this method is called), but does include the
@@ -161,34 +159,25 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
     @property
     @abc.abstractmethod
     def focus(self) -> AbstractWidget | None:
-        """
-        Read-only property returning the child widget in focus for
-        container widgets.  This default implementation
-        always returns ``None``, indicating that this widget has no children.
+        """Read-only property returning the child widget in focus for container widgets.
+
+        This default implementation always returns ``None``, indicating that this widget has no children.
         """
 
 
 class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
-    """
-    Mixin class for widget containers whose positions are indexes into
-    a list available as self.contents.
-    """
+    """Mixin class for widget containers whose positions are indexes into a list available as self.contents."""
 
     def __iter__(self) -> Iterator[int]:
-        """
-        Return an iterable of positions for this container from first
-        to last.
-        """
+        """Return an iterable of positions for this container from first to last."""
         return iter(range(len(self.contents)))
 
     def __reversed__(self) -> Iterator[int]:
-        """
-        Return an iterable of positions for this container from last
-        to first.
-        """
+        """Return an iterable of positions for this container from last to first."""
         return iter(range(len(self.contents) - 1, -1, -1))
 
     def __len__(self) -> int:
+        """Return the number of items in this container."""
         return len(self.contents)
 
     @property

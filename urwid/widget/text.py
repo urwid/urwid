@@ -142,24 +142,19 @@ class Text(Widget):
 
     @property
     def text(self) -> str | bytes:
-        """
-        Read-only property returning the complete bytes/unicode content
-        of this widget
-        """
+        """Read-only property returning the complete bytes/unicode content of this widget."""
         return self.get_text()[0]
 
     @property
     def attrib(self) -> list[tuple[Hashable, int]]:
-        """
-        Read-only property returning the run-length encoded display
-        attributes of this widget
-        """
+        """Read-only property returning the run-length encoded display attributes of this widget."""
         return self.get_text()[1]
 
     def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
-        """
-        Set text alignment mode. Supported modes depend on text layout
-        object in use but defaults to a :class:`StandardTextLayout` instance
+        """Set text alignment mode.
+
+        Supported modes depend on text layout object in use but defaults to a
+        :class:`StandardTextLayout` instance.
 
         :param mode: typically ``'left'``, ``'center'`` or ``'right'``
         :raises TextError: *mode* is not supported by the layout in use.
@@ -183,9 +178,10 @@ class Text(Widget):
         self._invalidate()
 
     def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
-        """
-        Set text wrapping mode. Supported modes depend on text layout
-        object in use but defaults to a :class:`StandardTextLayout` instance
+        """Set text wrapping mode.
+
+        Supported modes depend on text layout object in use but defaults to a
+        :class:`StandardTextLayout` instance.
 
         :param mode: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :raises TextError: *mode* is not supported by the layout in use.
@@ -216,9 +212,7 @@ class Text(Widget):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
         layout: text_layout.TextLayout | None = None,
     ) -> None:
-        """
-        Set the text layout object, alignment and wrapping modes at
-        the same time.
+        """Set the text layout object, alignment and wrapping modes at the same time.
 
         :param wrap: typically 'space', 'any', 'clip' or 'ellipsis'
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
@@ -239,6 +233,7 @@ class Text(Widget):
 
     @property
     def layout(self) -> text_layout.TextLayout:
+        """Return the :class:`TextLayout` instance used to lay out and wrap this widget's text."""
         return self._layout
 
     def render(
@@ -286,8 +281,8 @@ class Text(Widget):
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
-        """
-        Return layout structure used to map self.text to a canvas.
+        """Return layout structure used to map self.text to a canvas.
+
         This method is used internally, but may be useful for debugging custom layout classes.
 
         :param maxcol: columns available for display
@@ -317,10 +312,9 @@ class Text(Widget):
         size: tuple[()] | tuple[int] | None = None,
         focus: bool = False,
     ) -> tuple[int, int]:
-        """
-        Return the number of screen columns and rows required for
-        this Text widget to be displayed without wrapping or
-        clipping, as a single element tuple.
+        """Return the number of screen columns and rows required for this Text widget.
+
+        The widget is expected to be displayed without wrapping or clipping, as a single element tuple.
 
         :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
                      or (*maxcol*,) to specify a maximum column size
@@ -334,8 +328,10 @@ class Text(Widget):
         (8, 2)
         >>> Text("important things").pack(())
         (16, 1)
-        >>> not_common_separated_text = "Line feed\\nLine Separator\\u2028Paragraph Separator\\u2029"
-        >>> # \u2028 (Line Separator) and \u2029 (Paragraph Separator) are not splitted by StandardTextLayout
+        >>> not_common_separated_text = (
+        ...     "Line feed" + chr(10) + "Line Separator" + chr(0x2028) + "Paragraph Separator" + chr(0x2029)
+        ... )
+        >>> # U+2028 (Line Separator) and U+2029 (Paragraph Separator) are not splitted by StandardTextLayout
         >>> not_common_separated = Text(not_common_separated_text)
 
         >>> not_common_separated.pack()

@@ -59,7 +59,8 @@ class NumEdit(Edit):
         trim_leading_zeros: bool = True,
         allow_negative: bool = False,
     ):
-        """
+        """Initialize a numeric edit widget restricted to the given set of characters.
+
         :param allowed: characters accepted by this widget
         :param caption: caption markup
         :param default: default edit value
@@ -151,7 +152,8 @@ class IntegerEdit(NumEdit):
         *,
         allow_negative: bool = False,
     ) -> None:
-        """
+        """Initialize an edit widget restricted to integer values.
+
         :param caption: caption markup
         :param default: default edit value
         :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
@@ -280,7 +282,8 @@ class FloatEdit(NumEdit):
         decimal_separator: str = ".",
         allow_negative: bool = False,
     ) -> None:
-        """
+        """Initialize a decimal edit widget.
+
         :param caption: caption markup
         :param default: default edit value
         :param preserve_significance: return value has the same signif. as default

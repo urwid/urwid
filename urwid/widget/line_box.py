@@ -182,6 +182,7 @@ class LineBox(
 
     @property
     def original_widget(self) -> WrappedWidget:
+        """Return the widget wrapped by the line box."""
         return super().original_widget
 
     @original_widget.setter
@@ -198,6 +199,7 @@ class LineBox(
         return self._wrapped_widget
 
     def format_title(self, text: str) -> str:
+        """Return ``text`` padded with spaces for display in the box's top border, or an empty string if unset."""
         if text:
             return f" {text} "
 

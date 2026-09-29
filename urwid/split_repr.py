@@ -30,9 +30,8 @@ if typing.TYPE_CHECKING:
 
 
 def split_repr(self: Widget) -> str:
-    """
-    Return a helpful description of the object using self._repr_words() and self._repr_attrs()
-    to add to the description.
+    """Return a helpful description of the object using self._repr_words() and self._repr_attrs().
+
     This function may be used by adding code to your class like this:
 
     >>> class Foo(object):
@@ -84,10 +83,9 @@ def normalize_repr(v: object) -> str:
 
 
 def remove_defaults(d: dict[str, object], fn: object) -> dict[str, object]:
-    """
-    Remove keys in d that are set to the default values from
-    fn.  This method is used to unclutter the _repr_attrs()
-    return value.
+    """Remove keys in d that are set to the default values from fn.
+
+    This method is used to unclutter the _repr_attrs() return value.
 
     d will be modified by this function.
 

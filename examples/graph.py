@@ -19,10 +19,9 @@
 #
 # Urwid web site: https://urwid.org/
 
-"""
-Urwid example demonstrating use of the BarGraph widget and creating a
-floating-window appearance.  Also shows use of alarms to create timed
-animation.
+"""Urwid example demonstrating use of the BarGraph widget and creating a floating-window appearance.
+
+Also shows use of alarms to create timed animation.
 """
 
 from __future__ import annotations

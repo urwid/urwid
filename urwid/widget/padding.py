@@ -60,7 +60,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         left: int = 0,
         right: int = 0,
     ) -> None:
-        r"""
+        r"""Build the widget, padding *w* on the left and/or right.
+
         :param w: a box, flow or fixed widget to pad on the left and/or right
             this widget is stored as self.original_widget
 
@@ -196,6 +197,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         return remove_defaults(attrs, Padding.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
         yield "w", self.original_widget
         yield "align", self.align
         yield "width", self.width
@@ -568,9 +570,7 @@ def calculate_left_right_padding(
     left: int,
     right: int,
 ) -> tuple[int, int]:
-    """
-    Return the amount of padding (or clipping) on the left and
-    right part of maxcol columns to satisfy the following:
+    """Return the amount of padding (or clipping) on the left and right part of maxcol columns.
 
     :param align_type: 'left', 'center', 'right', 'relative'
     :param align_amount: a percentage when align_type=='relative'

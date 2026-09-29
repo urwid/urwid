@@ -618,8 +618,8 @@ def calc_line_pos(
     line_layout: _LayoutLine,
     pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
 ) -> int | None:
-    """
-    Calculate the closest linear position to pref_col given a line layout structure.
+    """Calculate the closest linear position to pref_col given a line layout structure.
+
     Returns None if no position found.
 
     :raises TypeError: *pref_col* is neither an integer nor ``'left'``/``'right'``.
@@ -668,9 +668,7 @@ def calc_pos(
     pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int,
     row: int,
 ) -> int:
-    """
-    Calculate the closest linear position to pref_col and row given a
-    layout structure.
+    """Calculate the closest linear position to pref_col and row given a layout structure.
 
     :raises ValueError: *row* is outside the rows of *layout*.
     """

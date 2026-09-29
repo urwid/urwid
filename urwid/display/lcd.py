@@ -47,15 +47,16 @@ class LCDScreen(BaseScreen, abc.ABC):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
-        pass
+        """Set terminal attributes. A no-op here; an LCD screen has no colors, bold, or underline to configure."""
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Set the maximum time in seconds to wait for input characters. A no-op here."""
 
     def reset_default_terminal_palette(self, *args: typing.Any) -> None:
-        pass
+        """Reset the terminal's default palette. A no-op here; an LCD screen has no palette to reset."""
 
     def get_cols_rows(self) -> tuple[int, int]:
+        """Return the size of the LCD display as ``(cols, rows)``."""
         return self.DISPLAY_SIZE
 
 
@@ -112,7 +113,8 @@ class CFLCDScreen(LCDScreen, abc.ABC):
     has_underline = False
 
     def __init__(self, device_path: str, baud: int) -> None:
-        """
+        """Open the serial connection.
+
         :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         """
@@ -125,6 +127,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
     @classmethod
     def get_crc(cls, buf: Iterable[int]) -> bytes:
+        """Return the 16-bit CRC of *buf*, as the two bytes sent in a packet's checksum field."""
         # This seed makes the output of this shift-based algorithm match
         # the table-based algorithm. The center 16 bits of the 32-bit
         # "newCRC" are used for the CRC. The MSB of the lower byte is used
@@ -160,8 +163,8 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         return (((~new_crc) >> 8) & 0xFFFF).to_bytes(2, "little")
 
     def _send_packet(self, command: int, data: Collection[SupportsIndex]) -> None:
-        """
-        low-level packet sending.
+        """Send a low-level packet.
+
         Following the protocol requires waiting for ack packet between
         sending each packet to the device.
         """
@@ -171,11 +174,11 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         self._device.write(buf)
 
     def _read_packet(self) -> tuple[int, bytearray] | None:
-        """
-        low-level packet reading.
-        returns (command/report code, data) or None
+        """Read a low-level packet.
 
-        This method stored data read and tries to resync when bad data
+        Returns ``(command/report code, data)`` or ``None``.
+
+        This method stores data read and tries to resync when bad data
         is received.
         """
         # pull in any new data available
@@ -200,10 +203,9 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
     @classmethod
     def _parse_data(cls, data: bytearray) -> tuple[int, bytearray, bytearray]:
-        """
-        Try to read a packet from the start of data, returning
-        (command/report code, packet_data, remaining_data)
-        or raising InvalidPacket or MoreDataRequired
+        """Try to read a packet from the start of *data*.
+
+        Returns ``(command/report code, packet_data, remaining_data)``.
 
         :raises MoreDataRequired: *data* does not yet hold a complete packet.
         :raises InvalidPacket: the packet is longer than the protocol allows, or its CRC does not match.
@@ -228,16 +230,15 @@ class CFLCDScreen(LCDScreen, abc.ABC):
 
 
 class KeyRepeatSimulator:
-    """
-    Provide simulated repeat key events when given press and
-    release events.
+    """Provide simulated repeat key events when given press and release events.
 
     If two or more keys are pressed, disable repeating until all
     keys are released.
     """
 
     def __init__(self, repeat_delay: float, repeat_next: float) -> None:
-        """
+        """Set up the repeat timing.
+
         :param repeat_delay: seconds to wait before starting to repeat keys
         :param repeat_next: time between each repeated key
         """
@@ -247,11 +248,13 @@ class KeyRepeatSimulator:
         self.multiple_pressed = False
 
     def press(self, key: str) -> None:
+        """Record that *key* was pressed, disabling repeat if another key is already held down."""
         if self.pressed:
             self.multiple_pressed = True
         self.pressed[key] = time.time()
 
     def release(self, key: str) -> None:
+        """Record that *key* was released, re-enabling repeat once no key is held down."""
         if key not in self.pressed:
             return  # ignore extra release events
         del self.pressed[key]
@@ -259,10 +262,9 @@ class KeyRepeatSimulator:
             self.multiple_pressed = False
 
     def next_event(self) -> tuple[float, str] | None:
-        """
-        Return (remaining, key) where remaining is the number of seconds
-        (float) until the key repeat event should be sent, or None if no
-        events are pending.
+        """Return ``(remaining, key)``, or ``None`` if no events are pending.
+
+        *remaining* is the number of seconds (float) until the key repeat event should be sent.
         """
         if len(self.pressed) != 1 or self.multiple_pressed:
             return None
@@ -271,9 +273,9 @@ class KeyRepeatSimulator:
         return None
 
     def sent_event(self) -> None:
-        """
-        Cakk this method when you have sent a key repeat event so the
-        timer will be reset for the next event
+        """Call this method when a key repeat event was sent.
+
+        The timer will be reset for the next event.
         """
         if len(self.pressed) != 1:
             return  # ignore event that shouldn't have been sent
@@ -334,7 +336,8 @@ class CF635Screen(CFLCDScreen):
         repeat_next: float = 0.125,
         key_map: Iterable[str] = ("up", "down", "left", "right", "enter", "esc"),
     ):
-        """
+        """Open the serial connection and set up key repeat handling.
+
         :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
         :param baud: baud rate
         :param repeat_delay: seconds to wait before starting to repeat keys
@@ -356,16 +359,11 @@ class CF635Screen(CFLCDScreen):
         self._update_cursor = False
 
     def get_input_descriptors(self) -> list[int]:
-        """
-        Return the fd from our serial device so we get called
-        on input and responses
-        """
+        """Return the fd from our serial device so we get called on input and responses."""
         return [self._device.fd]
 
     def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
-        """
-        Return a (next_input_timeout, keys_pressed, raw_keycodes)
-        tuple.
+        """Return a ``(next_input_timeout, keys_pressed, raw_keycodes)`` tuple.
 
         The protocol for our device requires waiting for acks between
         each command, so this method responds to those as well as key
@@ -423,6 +421,7 @@ class CF635Screen(CFLCDScreen):
         self._last_command_time = time.time()
 
     def queue_command(self, command: int, data: bytearray) -> None:
+        """Queue *command* with *data* for sending, sending it immediately if no command is awaiting an ACK."""
         self._command_queue.append((command, data))
         # not waiting? send away!
         if self._last_command is None:
@@ -488,7 +487,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_CGRAM, bytearray([index]) + bytearray(data))
 
     def set_cursor_style(self, style: Literal[1, 2, 3, 4]) -> None:
-        """
+        """Set the cursor style.
+
         :param style: CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE, CURSOR_BLINKING_BLOCK_UNDERSCORE or
             CURSOR_INVERTING_BLINKING_BLOCK
         :raises ValueError: *style* is not one of the four cursor styles.
@@ -510,7 +510,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_BACKLIGHT, bytearray([value]))
 
     def set_lcd_contrast(self, value: int) -> None:
-        """
+        """Set the LCD contrast.
+
         :param value: 0 to 255
         :raises ValueError: *value* is outside 0-255.
         """
@@ -519,7 +520,8 @@ class CF635Screen(CFLCDScreen):
         self.queue_command(self.CMD_LCD_CONTRAST, bytearray([value]))
 
     def set_led_pin(self, led: Literal[0, 1, 2, 3], rg: Literal[0, 1], value: int) -> None:
-        """
+        """Set an LED pin's brightness.
+
         :param led: 0 to 3
         :param rg: 0 for red, 1 for green
         :param value: 0 to 100

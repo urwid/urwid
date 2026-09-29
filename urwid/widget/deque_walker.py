@@ -152,9 +152,9 @@ class SimpleFocusDequeWalker(
     """
 
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False, maxlen: int | None = None) -> None:
-        """
-        This class inherits :class:`MonitoredFocusDeque` which means it can be treated as a
-        deque.
+        """Build the walker, wrapping *contents* in a focus-tracking deque.
+
+        This class inherits :class:`MonitoredFocusDeque`, which means it can be treated as a deque.
 
         Changes made to this object (when it is treated as a deque) are detected automatically
         and will cause ListBox objects using this list walker to be updated.

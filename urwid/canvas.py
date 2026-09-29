@@ -73,9 +73,9 @@ def _walk_depends(canv: Canvas) -> list[AbstractWidget]:
 
 
 class CanvasCache:
-    """
-    Cache for rendered canvases.  Automatically populated and
-    accessed by Widget render() MetaClass magic, cleared by
+    """Cache for rendered canvases.
+
+    Automatically populated and accessed by Widget render() MetaClass magic, cleared by
     Widget._invalidate().
 
     Stores weakrefs to the canvas objects, so an external class
@@ -194,6 +194,7 @@ class CanvasCache:
 
     @classmethod
     def cleanup(cls, ref: weakref.ReferenceType[Canvas]) -> None:
+        """Drop the cache entry for a canvas weakref once the canvas it points to has been garbage collected."""
         cls.cleanups += 1  # collect stats
 
         w = cls._refs.pop(ref, None)
@@ -241,12 +242,10 @@ class Canvas:
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool,
     ) -> None:
-        """
-        Mark this canvas as finalized (should not be any future
-        changes to its content). This is required before caching
-        the canvas.  This happens automatically after a widget's
-        'render call returns the canvas thanks to some metaclass
-        magic.
+        """Mark this canvas as finalized (should not be any future changes to its content).
+
+        This is required before caching the canvas.  This happens automatically after a widget's
+        'render call returns the canvas thanks to some metaclass magic.
 
         :param widget: widget that rendered this canvas
         :param size: size parameter passed to widget's render method
@@ -259,6 +258,7 @@ class Canvas:
 
     @property
     def widget_info(self) -> tuple[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool] | None:
+        """Return the ``(widget, size, focus)`` this canvas was finalized with, or ``None`` if not yet finalized."""
         return self._widget_info
 
     @property
@@ -320,6 +320,7 @@ class Canvas:
         raise NotImplementedError()
 
     def get_cursor(self) -> tuple[int, int] | None:
+        """Return the cursor position as ``(x, y)``, or ``None`` if no cursor is set."""
         if c := self.coords.get("cursor", None):
             return c[:2]  # trim off data part
 
@@ -341,6 +342,7 @@ class Canvas:
     cursor = property(get_cursor, set_cursor)
 
     def get_pop_up(self) -> tuple[int, int, tuple[AbstractWidget, int, int]] | None:
+        """Return the pop-up info set on this canvas, or ``None`` if none was set."""
         return self.coords.get("pop up", None)
 
     def set_pop_up(
@@ -351,9 +353,9 @@ class Canvas:
         overlay_width: int,
         overlay_height: int,
     ) -> None:
-        """
-        This method adds pop-up information to the canvas.  This information
-        is intercepted by a PopUpTarget widget higher in the chain to
+        """Add pop-up information to the canvas.
+
+        This information is intercepted by a PopUpTarget widget higher in the chain to
         display a pop-up at the given (left, top) position relative to the
         current canvas.
 
@@ -388,6 +390,7 @@ class Canvas:
         return d
 
     def __repr__(self) -> str:
+        """Return a debug representation including the canvas size, cursor, and finalized state."""
         extra = [""]
         with contextlib.suppress(BaseException):
             extra.append(f"cols={self.cols()}")
@@ -401,6 +404,7 @@ class Canvas:
         return f"<{self.__class__.__name__} finalized={bool(self.widget_info)}{' '.join(extra)} at 0x{id(self):X}>"
 
     def __str__(self) -> str:
+        """Return the canvas content decoded to text, one line per row."""
         with contextlib.suppress(BaseException):
             return "\n".join(self.decoded_text)
 
@@ -419,7 +423,8 @@ class TextCanvas(Canvas):
         maxcol: int | None = None,
         check_width: bool = True,
     ) -> None:
-        """
+        """Build a text canvas from the given lines and attributes.
+
         :param text: list of strings, one for each line
         :param attr: list of run length encoded attributes for text
         :param cs: list of run length encoded character set for text
@@ -501,10 +506,7 @@ class TextCanvas(Canvas):
         return self._maxcol
 
     def translated_coords(self, dx: int, dy: int) -> tuple[int, int] | None:
-        """
-        Return cursor coords shifted by (dx, dy), or None if there
-        is no cursor.
-        """
+        """Return cursor coords shifted by (dx, dy), or None if there is no cursor."""
         if self.cursor:
             x, y = self.cursor
             return x + dx, y + dy
@@ -518,9 +520,7 @@ class TextCanvas(Canvas):
         rows: int = 0,
         attr: Mapping[object, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
-        """
-        Return the canvas content as a list of rows where each row
-        is a list of (attr, cs, text) tuples.
+        """Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
 
         trim_left, trim_top, cols, rows may be set by
         CompositeCanvas when rendering a partially obscured
@@ -593,9 +593,9 @@ class TextCanvas(Canvas):
 
 
 class BlankCanvas(Canvas):
-    """
-    a canvas with nothing on it, only works as part of a composite canvas
-    since it doesn't know its own size
+    """A canvas with nothing on it.
+
+    Only works as part of a composite canvas since it doesn't know its own size.
     """
 
     def content(
@@ -667,9 +667,11 @@ class SolidCanvas(Canvas):
         self.cursor = None
 
     def cols(self) -> int:
+        """Return the screen column width of this canvas."""
         return self.size[0]
 
     def rows(self) -> int:
+        """Return the screen row height of this canvas."""
         return self.size[1]
 
     def content(
@@ -680,6 +682,7 @@ class SolidCanvas(Canvas):
         rows: int | None = None,
         attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
     ) -> Iterator[_ContentLine]:
+        """Return the canvas content as rows of ``(attr, cs, text)`` tuples, each row filled with *fill_char*."""
         if cols is None:
             cols = self.size[0]
         if rows is None:
@@ -744,6 +747,7 @@ class CompositeCanvas(Canvas):
                 self.shortcuts[shortcut] = "wrap"
 
     def __repr__(self) -> str:
+        """Return a debug representation including the canvas size, cursor, finalized state, and children."""
         extra = [""]
         with contextlib.suppress(BaseException):
             extra.append(f"cols={self.cols()}")
@@ -993,9 +997,9 @@ class CompositeCanvas(Canvas):
         self.coords.update(other.translate_coords(left, top))
 
     def fill_attr(self, a: Hashable) -> None:
-        """
-        Apply attribute a to all areas of this canvas with default attribute currently set to None,
-        leaving other attributes intact.
+        """Apply attribute a to all areas of this canvas with default attribute currently set to None.
+
+        Other attributes are left intact.
         """
         self.fill_attr_apply({None: a})
 
@@ -1024,10 +1028,9 @@ class CompositeCanvas(Canvas):
         self.shards = shards
 
     def set_depends(self, widget_list: Sequence[AbstractWidget]) -> None:
-        """
-        Explicitly specify the list of widgets that this canvas
-        depends on.  If any of these widgets change this canvas
-        will have to be updated.
+        """Explicitly specify the list of widgets that this canvas depends on.
+
+        If any of these widgets change this canvas will have to be updated.
 
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
@@ -1333,8 +1336,8 @@ def shards_trim_sides(
 
 
 def shards_join(shard_lists: Iterable[list[tuple[int, list[_CView]]]]) -> list[tuple[int, list[_CView]]]:
-    """
-    Return the result of joining shard lists horizontally.
+    """Return the result of joining shard lists horizontally.
+
     All shards lists must have the same number of rows.
     """
     shards_iters: list[Iterator[tuple[int, list[_CView]]]] = [iter(sl) for sl in shard_lists]
@@ -1366,18 +1369,22 @@ def shards_join(shard_lists: Iterable[list[tuple[int, list[_CView]]]]) -> list[t
 
 
 def cview_trim_rows(cv: _CView, rows: int) -> _CView:
+    """Return a copy of *cv* with its row count replaced by *rows*."""
     return (*cv[:3], rows, *cv[4:])
 
 
 def cview_trim_top(cv: _CView, trim: int) -> _CView:
+    """Return a copy of *cv* with *trim* rows removed from the top."""
     return (cv[0], trim + cv[1], cv[2], cv[3] - trim, *cv[4:])
 
 
 def cview_trim_left(cv: _CView, trim: int) -> _CView:
+    """Return a copy of *cv* with *trim* columns removed from the left."""
     return (cv[0] + trim, cv[1], cv[2] - trim, *cv[3:])
 
 
 def cview_trim_cols(cv: _CView, cols: int) -> _CView:
+    """Return a copy of *cv* with its column count replaced by *cols*."""
     return (*cv[:2], cols, *cv[3:])
 
 
@@ -1492,6 +1499,7 @@ def apply_text_layout(
     ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
     maxcol: int,
 ) -> TextCanvas:
+    """Build a :class:`TextCanvas` by encoding *text* and *attr* according to the line layout *ls*."""
     t: list[bytes] = []
     a: list[list[tuple[Hashable, int]]] = []
     c: list[list[tuple[Literal["0", "U"] | None, int]]] = []
@@ -1533,10 +1541,7 @@ def apply_text_layout(
         linec: list[tuple[Literal["0", "U"] | None, int]] = []
 
         def attrrange(start_offs: int, end_offs: int, destw: int) -> None:
-            """
-            Add attributes based on attributes between
-            start_offs and end_offs.
-            """
+            """Add attributes based on attributes between start_offs and end_offs."""
             # pylint: disable=cell-var-from-loop
             if start_offs == end_offs:
                 [(at, run)] = arange(start_offs, end_offs)  # pylint: disable=unbalanced-tuple-unpacking

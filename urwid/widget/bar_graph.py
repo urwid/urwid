@@ -77,9 +77,9 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         hatt: list[str] | None = None,
         satt: Mapping[tuple[int, int], str] | None = None,
     ) -> None:
-        """
-        Create a bar graph with the passed display characteristics.
-        see set_segment_attributes for a description of the parameters.
+        """Create a bar graph with the passed display characteristics.
+
+        See :meth:`set_segment_attributes` for a description of the parameters.
         """
         super().__init__()
         self.set_segment_attributes(attlist, hatt, satt)
@@ -92,7 +92,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         hatt: list[str] | None = None,
         satt: Mapping[tuple[int, int], str] | None = None,
     ) -> None:
-        """
+        """Set the display attributes to use for the bar graph's segments.
+
         :param attlist: list containing display attribute or
                         (display attribute, character) tuple for background,
                         first segment, and optionally following segments.
@@ -261,6 +262,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         return False
 
     def use_smoothed(self) -> bool:
+        """Return whether smoothed (sub-character resolution) rendering can be used."""
         return bool(self.satt and get_encoding_mode() == "utf8")
 
     def calculate_display(
@@ -290,12 +292,10 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         hlines: Sequence[float | int],
         maxrow: int,
     ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
-        """
-        Add hlines to display structure represented as bar_type tuple values:
-        (bg, 0-5)
-        bg is the segment that has the hline on it
-        0-5 is the hline graphic to use where 0 is a regular underscore
-        and 1-5 are the UTF-8 horizontal scan line characters.
+        """Add hlines to display structure represented as bar_type tuple values.
+
+        The tuple is ``(bg, 0-5)`` where bg is the segment that has the hline on it, and 0-5 is the hline
+        graphic to use where 0 is a regular underscore and 1-5 are the UTF-8 horizontal scan line characters.
         """
         if self.use_smoothed():
             shiftr = 0.0
@@ -367,11 +367,10 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         self,
         disp: list[tuple[int, list[tuple[int, int]]]],
     ) -> list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]:
-        """
-        Smooth (col, row*8) display into (col, row) display using
-        UTF vertical eighth characters represented as bar_type tuple values:
-        ( fg, bg, 1-7 )
-        where fg is the lower segment, bg is the upper segment and 1-7 is the vertical eighth character to use.
+        """Smooth (col, row*8) display into (col, row) display using UTF vertical eighth characters.
+
+        The characters are represented as bar_type tuple values ``(fg, bg, 1-7)`` where fg is the lower
+        segment, bg is the upper segment and 1-7 is the vertical eighth character to use.
 
         :raises BarGraphError: the smoothed rows do not add up to the graph height.
         """
@@ -503,9 +502,7 @@ def calculate_bargraph_display(
     bar_widths: list[int],
     maxrow: int,
 ) -> list[tuple[int, list[tuple[int, int]]]]:
-    """
-    Calculate a rendering of the bar graph described by data, bar_widths
-    and height.
+    """Calculate a rendering of the bar graph described by data, bar_widths and height.
 
     :param bardata: bar information with same structure as BarGraph.data
     :param top: maximal value for bardata segments

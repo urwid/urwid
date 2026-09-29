@@ -79,9 +79,9 @@ def normalize_align(
     align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
 ) -> tuple[Align, None] | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Split align into (align_type, align_amount).  Raise exception err
-    if align doesn't match a valid alignment.
+    """Split align into (align_type, align_amount).
+
+    Raise exception err if align doesn't match a valid alignment.
 
     :raises err: *align* is not a valid alignment; the class to raise is supplied by the caller.
     """
@@ -122,8 +122,8 @@ def simplify_align(
     align_type: Literal["left", "center", "right", "relative", WHSettings.RELATIVE] | Align,
     align_amount: int | None,
 ) -> Align | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Recombine (align_type, align_amount) into an align value.
+    """Recombine (align_type, align_amount) into an align value.
+
     Inverse of normalize_align.
 
     :raises TypeError: *align_amount* is not an integer.
@@ -154,9 +154,9 @@ def normalize_valign(
     valign: Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
 ) -> tuple[VAlign, None] | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Split align into (valign_type, valign_amount).  Raise exception err
-    if align doesn't match a valid alignment.
+    """Split align into (valign_type, valign_amount).
+
+    Raise exception err if align doesn't match a valid alignment.
 
     :raises err: *valign* is not a valid vertical alignment; the class to raise is supplied by the caller.
     """
@@ -197,8 +197,8 @@ def simplify_valign(
     valign_type: Literal["top", "middle", "bottom", "relative", WHSettings.RELATIVE] | VAlign,
     valign_amount: int | None,
 ) -> VAlign | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Recombine (valign_type, valign_amount) into an valign value.
+    """Recombine (valign_type, valign_amount) into an valign value.
+
     Inverse of normalize_valign.
 
     :raises TypeError: *valign_amount* is not an integer.
@@ -251,9 +251,9 @@ def normalize_width(
     | tuple[Literal[WHSettings.GIVEN, WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Split width into (width_type, width_amount).  Raise exception err
-    if width doesn't match a valid alignment.
+    """Split width into (width_type, width_amount).
+
+    Raise exception err if width doesn't match a valid alignment.
 
     :raises err: *width* is not a valid width; the class to raise is supplied by the caller.
     """
@@ -320,8 +320,8 @@ def simplify_width(
     | tuple[Literal[WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Recombine (width_type, width_amount) into an width value.
+    """Recombine (width_type, width_amount) into an width value.
+
     Inverse of normalize_width.
 
     :raises TypeError: *width_amount* is not an integer.
@@ -382,9 +382,9 @@ def normalize_height(
     | tuple[Literal[WHSettings.RELATIVE, WHSettings.GIVEN], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Split height into (height_type, height_amount).  Raise exception err
-    if height isn't valid.
+    """Split height into (height_type, height_amount).
+
+    Raise exception err if height isn't valid.
 
     :raises err: *height* is not a valid height; the class to raise is supplied by the caller.
     """
@@ -464,8 +464,8 @@ def simplify_height(
     | tuple[Literal[WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Recombine (height_type, height_amount) into a height value.
+    """Recombine (height_type, height_amount) into a height value.
+
     Inverse of normalize_height.
 
     :raises TypeError: *height_amount* is not an integer.

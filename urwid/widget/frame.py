@@ -50,9 +50,7 @@ class Frame(
     WidgetContainerMixin[Literal["header", "footer", "body"]],
     typing.Generic[BodyWidget, HeaderWidget, FooterWidget],
 ):
-    """
-    Frame widget is a box widget with optional header and footer
-    flow widgets placed above and below the box widget.
+    """Frame widget is a box widget with optional header and footer flow widgets placed above and below it.
 
     .. note:: The main difference between a Frame and a :class:`Pile` widget
         defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
@@ -69,7 +67,8 @@ class Frame(
         footer: FooterWidget | None = None,
         focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
     ):
-        """
+        """Initialize a new Frame instance.
+
         :param body: a box widget for the body of the frame
         :param header: a flow widget for above the body (or None)
         :param footer: a flow widget for below the body (or None)
@@ -107,6 +106,7 @@ class Frame(
         return remove_defaults(attrs, Frame.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
         yield "body", self._body
         yield "header", self._header
         yield "footer", self._footer
@@ -114,6 +114,7 @@ class Frame(
 
     @property
     def header(self) -> HeaderWidget | None:
+        """Return the header widget, or None if there is no header."""
         return self._header
 
     @header.setter
@@ -162,6 +163,7 @@ class Frame(
 
     @property
     def body(self) -> BodyWidget:
+        """Return the body widget."""
         return self._body
 
     @body.setter
@@ -208,6 +210,7 @@ class Frame(
 
     @property
     def footer(self) -> FooterWidget | None:
+        """Return the footer widget, or None if there is no footer."""
         return self._footer
 
     @footer.setter
@@ -256,9 +259,7 @@ class Frame(
 
     @property
     def focus_position(self) -> Literal["header", "footer", "body"]:
-        """
-        Writeable property containing an indicator which part of the frame
-        that is in focus: `'body', 'header'` or `'footer'`.
+        """Return which part of the frame is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
         """
@@ -280,9 +281,7 @@ class Frame(
         self._invalidate()
 
     def get_focus(self) -> Literal["header", "footer", "body"]:
-        """
-        Writeable property containing an indicator which part of the frame
-        that is in focus: `'body', 'header'` or `'footer'`.
+        """Return which part of the frame is in focus: `'body', 'header'` or `'footer'`.
 
         :returns: one of 'header', 'footer' or 'body'.
 
@@ -320,10 +319,7 @@ class Frame(
 
     @property
     def focus(self) -> BodyWidget | HeaderWidget | FooterWidget:
-        """
-        Child :class:`Widget` in focus: the body, header or footer widget.
-        This is a read-only property.
-        """
+        """Return the child :class:`Widget` in focus: the body, header or footer widget. Read-only."""
         return {  # type: ignore[return-value]
             "header": self._header,
             "footer": self._footer,
@@ -337,8 +333,9 @@ class Frame(
         Literal["header", "footer", "body"],
         tuple[BodyWidget | HeaderWidget | FooterWidget, None],
     ]:
-        """
-        A dict-like object similar to::
+        """Return a dict-like object similar to the following.
+
+        ::
 
             {
                 "body": (body_widget, None),
@@ -626,10 +623,7 @@ class Frame(
         row: int,
         focus: bool,
     ) -> bool | None:
-        """
-        Pass mouse event to appropriate part of frame.
-        Focus may be changed on button 1 press.
-        """
+        """Pass mouse event to appropriate part of frame. Focus may be changed on button 1 press."""
         (maxcol, maxrow) = size
         (htrim, ftrim), (_hrows, _frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 

@@ -313,15 +313,18 @@ def detect_terminal_properties(
 class SupportsFileno(typing.Protocol):
     """Object that can be used to obtain an OS-level file descriptor."""
 
-    def fileno(self) -> int: ...
+    def fileno(self) -> int:
+        """Return the underlying OS-level file descriptor."""
 
 
 class TextWriter(typing.Protocol):
     """Text output stream used by the raw display."""
 
-    def write(self, data: str, /) -> object: ...
+    def write(self, data: str, /) -> object:
+        """Write `data` to the stream."""
 
-    def flush(self) -> object: ...
+    def flush(self) -> object:
+        """Flush buffered output to the stream."""
 
 
 class Screen(BaseScreen, RealTerminal):
@@ -432,9 +435,9 @@ class Screen(BaseScreen, RealTerminal):
         complete_wait: float = 0.125,
         resize_wait: float = 0.125,
     ) -> None:
-        """
-        Set the get_input timeout values.  All values are in floating
-        point numbers of seconds.
+        """Set the get_input timeout values.
+
+        All values are in floating point numbers of seconds.
 
         :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
             None
@@ -683,11 +686,9 @@ class Screen(BaseScreen, RealTerminal):
         return keys
 
     def get_input_descriptors(self) -> list[SupportsFileno | int]:
-        """
-        Return a list of integer file descriptors that should be
-        polled in external event loops to check for user input.
+        """Return a list of integer file descriptors that should be polled in external event loops.
 
-        Use this method if you are implementing your own event loop.
+        Used to check for user input. Use this method if you are implementing your own event loop.
 
         This method is only called by `hook_event_loop`, so if you override
         that, you can safely ignore this.
@@ -713,10 +714,9 @@ class Screen(BaseScreen, RealTerminal):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
-        """
-        Register the given callback with the event loop, to be called with new
-        input whenever it's available.  The callback should be passed a list of
-        processed keys and a list of unprocessed keycodes.
+        """Register the given callback with the event loop, to be called with new input whenever it's available.
+
+        The callback should be passed a list of processed keys and a list of unprocessed keycodes.
 
         Subclasses may wish to use parse_input to wrap the callback.
         """
@@ -1147,10 +1147,7 @@ class Screen(BaseScreen, RealTerminal):
         return new_row, z_col - y_col, (y_attr, y_cs, y_text)
 
     def clear(self) -> None:
-        """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
-        """
+        """Force the screen to be completely repainted on the next call to draw_screen()."""
         self.screen_buf = None
 
     def _attr_to_escape(self, a: AttrSpec | str | None) -> str:
@@ -1166,8 +1163,7 @@ class Screen(BaseScreen, RealTerminal):
         return self._attrspec_to_escape(AttrSpec("default", "default"))
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
-        r"""
-        Convert AttrSpec instance a to an escape sequence for the terminal
+        r"""Convert AttrSpec instance a to an escape sequence for the terminal.
 
         >>> from urwid.display.raw import Screen  # this class is abstract
         >>> s = Screen()
@@ -1229,7 +1225,8 @@ class Screen(BaseScreen, RealTerminal):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
-        """
+        """Set the terminal's color and attribute-rendering properties.
+
         :param colors: number of colors terminal supports (1, 16, 88, 256, or 2**24) or None to leave unchanged
         :param bright_is_bold: set to True if this terminal uses the bold setting to create bright colors (numbers
             8-15), set to False if this Terminal can create bright colors without bold or None to leave unchanged
@@ -1256,8 +1253,8 @@ class Screen(BaseScreen, RealTerminal):
             self._on_update_palette_entry(p, *v)
 
     def reset_default_terminal_palette(self) -> None:
-        """
-        Attempt to set the terminal palette to default values as taken from xterm.
+        """Attempt to set the terminal palette to default values as taken from xterm.
+
         Uses a number of colors from the current set_terminal_properties() screen setting.
         """
         if self.colors == 1:
@@ -1278,7 +1275,7 @@ class Screen(BaseScreen, RealTerminal):
         self.modify_terminal_palette(entries)
 
     def modify_terminal_palette(self, entries: list[tuple[int, int | None, int | None, int | None]]) -> None:
-        """Attempt to set part of the terminal palette (this does not work on all terminals.)
+        """Attempt to set part of the terminal palette; this does not work on all terminals.
 
         The changes are sent as a single escape sequence so they should all take effect at the same time.
 
@@ -1299,4 +1296,5 @@ class Screen(BaseScreen, RealTerminal):
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
     def AttrSpec(self, fg: str, bg: str) -> AttrSpec:
+        """Create an :class:`AttrSpec` using this screen's number of colors."""
         return AttrSpec(fg, bg, self.colors)

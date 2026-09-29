@@ -90,11 +90,9 @@ class GLibEventLoop(EventLoop):
         seconds: float,
         callback: Callable[[], typing.Any],
     ) -> tuple[int, Callable[[], typing.Any]]:
-        """
-        Call callback() a given time from now.  No parameters are
-        passed to callback.
+        """Call callback() a given time from now.
 
-        Returns a handle that may be passed to remove_alarm()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_alarm().
 
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
@@ -181,11 +179,9 @@ class GLibEventLoop(EventLoop):
         return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
-        """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        """Call callback() when fd has some data to read.
 
-        Returns a handle that may be passed to remove_watch_file()
+        No parameters are passed to callback. Returns a handle that may be passed to remove_watch_file().
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
@@ -247,9 +243,9 @@ class GLibEventLoop(EventLoop):
         return True
 
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
 
         :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
@@ -265,9 +261,8 @@ class GLibEventLoop(EventLoop):
             raise exc.with_traceback(exc.__traceback__)
 
     def handle_exit(self, f: Callable[_Spec, _T]) -> Callable[_Spec, _T | Literal[False]]:
-        """
-        Decorator that cleanly exits the :class:`GLibEventLoop` if
-        :exc:`ExitMainLoop` is thrown inside of the wrapped function.
+        """Wrap *f* so that :exc:`ExitMainLoop` raised inside it exits the :class:`GLibEventLoop` cleanly.
+
         Store the exception info if some other exception occurs, it will be reraised after the loop quits.
 
         *f* -- function to be wrapped

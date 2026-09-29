@@ -68,6 +68,7 @@ if IS_WINDOWS:
     )
 
     def initscr() -> curses.window:
+        """Initialize curses on Windows, copying the ``ACS_*``/``LINES``/``COLS`` attributes ``_curses`` misses."""
         import curses  # noqa: I001  # pylint: disable=redefined-outer-name,reimported  # special case for monkeypatch
 
         import _curses
@@ -217,11 +218,9 @@ class Screen(BaseScreen, RealTerminal):
         super()._stop()
 
     def _setup_colour_pairs(self) -> None:
-        """
-        Initialize all 63 color pairs based on the term:
-        bg * 8 + 7 - fg
-        So to get a color, we just need to use that term and get the right color
-        pair number.
+        """Initialize all 63 color pairs based on the term: bg * 8 + 7 - fg.
+
+        So to get a color, we just need to use that term and get the right color pair number.
         """
         if not self.has_color:
             return
@@ -291,9 +290,9 @@ class Screen(BaseScreen, RealTerminal):
         complete_wait: float = 0.1,
         resize_wait: float = 0.1,
     ) -> None:
-        """
-        Set the get_input timeout values.  All values have a granularity
-        of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
+        """Set the get_input timeout values.
+
+        All values have a granularity of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
         0.1 and any value less than 0.05 will be treated as 0.  The
         maximum timeout value for this module is 25.5 seconds.
 
@@ -729,6 +728,7 @@ class _test:
             self.run()
 
     def run(self) -> None:
+        """Render a palette demo screen showing every registered color combination."""
         from urwid.canvas import TextCanvas
 
         encoding = util.get_encoding()

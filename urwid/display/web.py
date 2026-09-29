@@ -134,6 +134,7 @@ class Screen(BaseScreen):
 
     @property
     def started(self) -> bool:
+        """Return whether this screen has been started."""
         return self._started
 
     def set_terminal_properties(
@@ -379,16 +380,14 @@ class Screen(BaseScreen):
         signal.alarm(ALARM_DELAY)
 
     def clear(self) -> None:
-        """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
+        """Force the screen to be completely repainted on the next call to draw_screen().
 
         (does nothing for web_display)
         """
 
     def _fork_child(self) -> None:
-        """
-        Fork a child to run CGI disconnected for polling update method.
+        """Fork a child to run CGI disconnected for polling update method.
+
         Force parent process to exit.
         """
         daemonize(f"{self.pipe_name}.err")
@@ -507,6 +506,7 @@ def _span_style(aspec: AttrSpec) -> tuple[str, str, str]:
 
 
 def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
+    """Return `s` wrapped in an HTML ``<code>`` span styled per `aspec`, with the cursor column highlighted."""
     fg, bg, extra = _span_style(aspec)
 
     def _piece(fg_: str, bg_: str, text: str) -> str:
@@ -533,14 +533,13 @@ def _request_charset() -> str:
 
 
 def handle_short_request() -> bool:
-    """
-    Handle short requests such as passing keystrokes to the application
-    or sending the initial HTML page.  If returns True, then this
-    function recognized and handled a short request, and the calling
+    """Handle short requests such as passing keystrokes to the application or sending the initial HTML page.
+
+    If returns True, then this function recognized and handled a short request, and the calling
     script should immediately exit.
 
     web_display.set_preferences(..) should be called before calling this
-    function for the preferences to take effect
+    function for the preferences to take effect.
     """
     if not is_web_request():
         return False
@@ -653,6 +652,7 @@ class ErrorLog:
         self.errfile = errfile
 
     def write(self, err: str) -> None:
+        """Append `err` to the error log file."""
         with open(self.errfile, "a", encoding="utf-8") as f:
             f.write(err)
 

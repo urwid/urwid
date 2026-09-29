@@ -408,9 +408,7 @@ def calculate_top_bottom_filler(
     top: int,
     bottom: int,
 ) -> tuple[int, int]:
-    """
-    Return the amount of filler (or clipping) on the top and
-    bottom part of maxrow rows to satisfy the following:
+    """Return the amount of filler (or clipping) on the top and bottom part of maxrow rows.
 
     :param valign_type: 'top', 'middle', 'bottom', 'relative'
     :param valign_amount: a percentage when align_type=='relative'
