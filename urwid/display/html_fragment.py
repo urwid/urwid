@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import html
 import typing
+import warnings
 
 from urwid import str_util
 from urwid.event_loop import ExitMainLoop
@@ -214,7 +215,17 @@ def screenshot_init(
 
     screenshot_init( [ (80,25), (20,10) ],
         [ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
+
+    .. deprecated:: 4.1.8
+        Patching ``curses_display.Screen``/``raw_display.Screen`` in place is deprecated and will stop working in
+        version 6.0. Assign :class:`HtmlGenerator` to your application's screen manually instead.
     """
+    warnings.warn(
+        "screenshot_init patches curses.Screen and raw.Screen in place; this will stop working in version 6.0. "
+        "Assign HtmlGenerator to your application's screen manually instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     for row, col in sizes:
         if not isinstance(row, int):
             raise TypeError(f"sizes must be list[tuple[int, int]], with values >0 : {row!r}")
@@ -232,9 +243,15 @@ def screenshot_init(
             if not isinstance(k, str):
                 raise TypeError(f"keys must be list[list[str]]: {k!r}")
 
-    from . import curses, raw
+    from . import raw
 
-    curses.Screen = HtmlGenerator  # type: ignore[assignment,misc]
+    try:
+        from . import curses
+    except (ImportError, AttributeError):
+        pass  # the stdlib "curses" module is not available on this platform (e.g. Windows)
+    else:
+        curses.Screen = HtmlGenerator  # type: ignore[assignment,misc]
+
     raw.Screen = HtmlGenerator  # type: ignore[assignment,misc]
 
     HtmlGenerator.sizes = sizes
