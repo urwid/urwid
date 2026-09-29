@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Text Layout Classes &#8212; Urwid 4.1.6</title>
+    <title>Text Layout Classes &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout Classes</a></li> 
       </ul>
@@ -48,7 +48,8 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.TextLayout">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TextLayout</span></span><a class="headerlink" href="#urwid.TextLayout" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><p>Base class for a text layout algorithm that lays text out into lines for display.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.TextLayout.layout">
 <span class="sig-name descname"><span class="pre">layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'center'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Align</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'any'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'space'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'clip'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ellipsis'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">WrapMode</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">_LayoutFormat</span></span></span><a class="headerlink" href="#urwid.TextLayout.layout" title="Link to this definition">¶</a></dt>
 <dd><p>Return a layout structure for text.</p>
@@ -95,8 +96,24 @@ then no attribute will be used.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.StandardTextLayout">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">StandardTextLayout</span></span><a class="headerlink" href="#urwid.StandardTextLayout" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">StandardTextLayout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">tab_stops</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tab_stop_every</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.StandardTextLayout" title="Link to this definition">¶</a></dt>
+<dd><p>Default <a class="reference internal" href="#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span></code></a> implementation, wrapping and aligning text by screen column.</p>
+<p>Create a layout with word-processor style tab stops.</p>
+<p>A tab character advances to the next tab stop, measured in rendered screen columns
+from the start of the displayed line: explicit <em>tab_stops</em> are used first,
+then stops repeat every <em>tab_stop_every</em> columns counted from column 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tab_stops</strong> – screen columns of explicit tab stops.</p></li>
+<li><p><strong>tab_stop_every</strong> – interval of the default tab stops.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – <em>tab_stop_every</em> or one of <em>tab_stops</em> is not a positive column.</p>
+</dd>
+</dl>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.StandardTextLayout.align_layout">
 <span class="sig-name descname"><span class="pre">align_layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">segs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_LayoutFormat</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'any'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'space'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'clip'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ellipsis'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">WrapMode</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'center'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Align</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">_LayoutFormat</span></span></span><a class="headerlink" href="#urwid.StandardTextLayout.align_layout" title="Link to this definition">¶</a></dt>
 <dd><p>Convert the layout segments to an aligned layout.</p>
@@ -114,11 +131,20 @@ then no attribute will be used.</p>
 <p>text - Unicode text or byte string to display
 width - number of available screen columns
 wrap - wrapping mode used</p>
-<p>Returns a layout structure without an alignment applied.</p>
+<p>Returns a layout structure without an alignment applied.
+Each line holding a tab character is laid out with tab stops, see <a class="reference internal" href="#urwid.StandardTextLayout.next_tab_stop" title="urwid.StandardTextLayout.next_tab_stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">next_tab_stop()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>wrap is clip or ellipsis? --yes--&gt; per line: tabs? --yes--&gt; place tabs, then cut with ellipsis
+        |                                    +--no---&gt; cut with ellipsis
+        no
+        |
+per line: tabs? --yes--&gt; wrap tab by tab
+          +--no---&gt; wrap at spaces or anywhere
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>CanNotDisplayText</strong> – a wide character has to be placed in a single column.</p></li>
+<li><p><strong>CanNotDisplayText</strong> – a character does not fit into an empty display line.</p></li>
 <li><p><strong>ValueError</strong> – <em>wrap</em> is not a supported wrapping mode.</p></li>
 </ul>
 </dd>
@@ -129,6 +155,18 @@ wrap - wrapping mode used</p>
 <dt class="sig sig-object py" id="urwid.StandardTextLayout.layout">
 <span class="sig-name descname"><span class="pre">layout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bytes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">align</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'left'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'center'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'right'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Align</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'any'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'space'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'clip'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'ellipsis'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">WrapMode</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">_LayoutFormat</span></span></span><a class="headerlink" href="#urwid.StandardTextLayout.layout" title="Link to this definition">¶</a></dt>
 <dd><p>Return a layout structure for text.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.StandardTextLayout.next_tab_stop">
+<span class="sig-name descname"><span class="pre">next_tab_stop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">column</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.StandardTextLayout.next_tab_stop" title="Link to this definition">¶</a></dt>
+<dd><p>Return the screen column of the first tab stop after <em>column</em>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">StandardTextLayout</span><span class="p">(</span><span class="n">tab_stops</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span><span class="o">.</span><span class="n">next_tab_stop</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="go">10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">StandardTextLayout</span><span class="p">(</span><span class="n">tab_stops</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span><span class="o">.</span><span class="n">next_tab_stop</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">16</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -181,6 +219,7 @@ wrap - wrapping mode used</p>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.align_layout"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.align_layout()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.calculate_text_segments"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.calculate_text_segments()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.layout"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.layout()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.StandardTextLayout.next_tab_stop"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.next_tab_stop()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.pack"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.pack()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.supports_align_mode"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.supports_align_mode()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.StandardTextLayout.supports_wrap_mode"><code class="docutils literal notranslate"><span class="pre">StandardTextLayout.supports_wrap_mode()</span></code></a></li>
@@ -234,7 +273,7 @@ wrap - wrapping mode used</p>
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout Classes</a></li> 
       </ul>

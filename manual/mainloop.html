@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 4.1.6</title>
+    <title>Main Loop &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -160,6 +160,9 @@ Executors from <cite>concurrent.futures</cite> are not supported.</p>
 </section>
 <section id="glibeventloop">
 <h3><code class="docutils literal notranslate"><span class="pre">GLibEventLoop</span></code><a class="headerlink" href="#glibeventloop" title="Link to this heading">¶</a></h3>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.7: </span>This API will be removed in version 6.0.</p>
+</div>
 <p>This event loop uses GLib’s event loop. This is useful if you are building an
 application that depends on DBus events, but don’t want to base your
 application on Twisted.</p>
@@ -168,7 +171,7 @@ application on Twisted.</p>
 </div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<p><a class="reference internal" href="../reference/main_loop.html#urwid.GLibEventLoop" title="urwid.GLibEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">GLibEventLoop</span> <span class="pre">reference</span></code></a></p>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">GLibEventLoop</span> <span class="pre">reference</span></code></p>
 </div>
 </section>
 <section id="tornadoeventloop">
@@ -275,7 +278,7 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>

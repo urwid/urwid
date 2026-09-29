@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 4.1.6</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -50,8 +50,8 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.Canvas">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">Canvas</span></span><a class="headerlink" href="#urwid.Canvas" title="Link to this definition">¶</a></dt>
-<dd><p>base class for canvases</p>
-<p>Base Canvas class</p>
+<dd><p>base class for canvases.</p>
+<p>Initialize the base canvas state shared by all canvas subclasses.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.cols">
 <span class="sig-name descname"><span class="pre">cols</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Canvas.cols" title="Link to this definition">¶</a></dt>
@@ -92,6 +92,12 @@
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="urwid.Canvas.cursor">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cursor</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.Canvas.cursor" title="Link to this definition">¶</a></dt>
+<dd><p>Return the cursor position as <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no cursor is set.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="urwid.Canvas.decoded_text">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">decoded_text</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.Canvas.decoded_text" title="Link to this definition">¶</a></dt>
 <dd><p>Decoded text content of the canvas as a sequence of strings, one for each row.</p>
@@ -100,11 +106,9 @@
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.finalize">
 <span class="sig-name descname"><span class="pre">finalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.finalize" title="Link to this definition">¶</a></dt>
-<dd><p>Mark this canvas as finalized (should not be any future
-changes to its content). This is required before caching
-the canvas.  This happens automatically after a widget’s
-‘render call returns the canvas thanks to some metaclass
-magic.</p>
+<dd><p>Mark this canvas as finalized (should not be any future changes to its content).</p>
+<p>This is required before caching the canvas.  This happens automatically after a widget’s
+‘render call returns the canvas thanks to some metaclass magic.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -117,6 +121,18 @@ magic.</p>
 <dd class="field-even"><p><a class="reference internal" href="exceptions.html#urwid.CanvasError" title="urwid.CanvasError"><strong>CanvasError</strong></a> – this canvas has already been finalized and can no longer be modified.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_cursor">
+<span class="sig-name descname"><span class="pre">get_cursor</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_cursor" title="Link to this definition">¶</a></dt>
+<dd><p>Return the cursor position as <code class="docutils literal notranslate"><span class="pre">(x,</span> <span class="pre">y)</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no cursor is set.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Canvas.get_pop_up">
+<span class="sig-name descname"><span class="pre">get_pop_up</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractWidget</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.get_pop_up" title="Link to this definition">¶</a></dt>
+<dd><p>Return the pop-up info set on this canvas, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if none was set.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -144,8 +160,8 @@ magic.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Canvas.set_pop_up">
 <span class="sig-name descname"><span class="pre">set_pop_up</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlay_height</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Canvas.set_pop_up" title="Link to this definition">¶</a></dt>
-<dd><p>This method adds pop-up information to the canvas.  This information
-is intercepted by a PopUpTarget widget higher in the chain to
+<dd><p>Add pop-up information to the canvas.</p>
+<p>This information is intercepted by a PopUpTarget widget higher in the chain to
 display a pop-up at the given (left, top) position relative to the
 current canvas.</p>
 <dl class="field-list simple">
@@ -177,12 +193,19 @@ or the overlay size is not positive</p>
 <dd><p>Return coords shifted by (dx, dy).</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.Canvas.widget_info">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">widget_info</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractWidget</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.Canvas.widget_info" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">size,</span> <span class="pre">focus)</span></code> this canvas was finalized with, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if not yet finalized.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.TextCanvas">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TextCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'0'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'U'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxcol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas" title="Link to this definition">¶</a></dt>
-<dd><p>class for storing rendered text and attributes</p>
+<dd><p>class for storing rendered text and attributes.</p>
+<p>Build a text canvas from the given lines and attributes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -211,8 +234,7 @@ has an attribute or character set run extending beyond its text.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TextCanvas.content">
 <span class="sig-name descname"><span class="pre">content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trim_left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">object</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">_ContentLine</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TextCanvas.content" title="Link to this definition">¶</a></dt>
-<dd><p>Return the canvas content as a list of rows where each row
-is a list of (attr, cs, text) tuples.</p>
+<dd><p>Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.</p>
 <p>trim_left, trim_top, cols, rows may be set by
 CompositeCanvas when rendering a partially obscured
 canvas.</p>
@@ -244,8 +266,7 @@ otherwise this is the same as calling content().</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TextCanvas.translated_coords">
 <span class="sig-name descname"><span class="pre">translated_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TextCanvas.translated_coords" title="Link to this definition">¶</a></dt>
-<dd><p>Return cursor coords shifted by (dx, dy), or None if there
-is no cursor.</p>
+<dd><p>Return cursor coords shifted by (dx, dy), or None if there is no cursor.</p>
 </dd></dl>
 
 </dd></dl>
@@ -253,9 +274,9 @@ is no cursor.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.BlankCanvas">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BlankCanvas</span></span><a class="headerlink" href="#urwid.BlankCanvas" title="Link to this definition">¶</a></dt>
-<dd><p>a canvas with nothing on it, only works as part of a composite canvas
-since it doesn’t know its own size</p>
-<p>Base Canvas class</p>
+<dd><p>A canvas with nothing on it.</p>
+<p>Only works as part of a composite canvas since it doesn’t know its own size.</p>
+<p>Initialize the base canvas state shared by all canvas subclasses.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BlankCanvas.cols">
 <span class="sig-name descname"><span class="pre">cols</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NoReturn</span></span></span><a class="headerlink" href="#urwid.BlankCanvas.cols" title="Link to this definition">¶</a></dt>
@@ -270,7 +291,7 @@ since it doesn’t know its own size</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BlankCanvas.content">
 <span class="sig-name descname"><span class="pre">content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trim_left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">_ContentLine</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.BlankCanvas.content" title="Link to this definition">¶</a></dt>
-<dd><p>return (cols, rows) of spaces with default attributes.</p>
+<dd><p>Return (cols, rows) of spaces with default attributes.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -314,22 +335,12 @@ since it doesn’t know its own size</p>
 <dt class="sig sig-object py" id="urwid.SolidCanvas.cols">
 <span class="sig-name descname"><span class="pre">cols</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SolidCanvas.cols" title="Link to this definition">¶</a></dt>
 <dd><p>Return the screen column width of this canvas.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – the subclass does not report its own width.</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SolidCanvas.content">
 <span class="sig-name descname"><span class="pre">content</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">trim_left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim_top</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">_ContentLine</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SolidCanvas.content" title="Link to this definition">¶</a></dt>
-<dd><p>Return the canvas content as a list of rows of <code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">cs,</span> <span class="pre">text)</span></code> tuples.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – the subclass does not implement the canvas content protocol.</p>
-</dd>
-</dl>
+<dd><p>Return the canvas content as rows of <code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">cs,</span> <span class="pre">text)</span></code> tuples, each row filled with <em>fill_char</em>.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -345,11 +356,6 @@ since it doesn’t know its own size</p>
 <dt class="sig sig-object py" id="urwid.SolidCanvas.rows">
 <span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SolidCanvas.rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the screen row height of this canvas.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – the subclass does not report its own height.</p>
-</dd>
-</dl>
 </dd></dl>
 
 </dd></dl>
@@ -357,7 +363,7 @@ since it doesn’t know its own size</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CompositeCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">canv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.CompositeCanvas" title="Link to this definition">¶</a></dt>
-<dd><p>class for storing a combination of canvases</p>
+<dd><p>class for storing a combination of canvases.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>canv</strong> – a Canvas object to wrap this CompositeCanvas around.</p>
@@ -394,8 +400,8 @@ since it doesn’t know its own size</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.fill_attr">
 <span class="sig-name descname"><span class="pre">fill_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.fill_attr" title="Link to this definition">¶</a></dt>
-<dd><p>Apply attribute a to all areas of this canvas with default attribute currently set to None,
-leaving other attributes intact.</p>
+<dd><p>Apply attribute a to all areas of this canvas with default attribute currently set to None.</p>
+<p>Other attributes are left intact.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -429,7 +435,7 @@ leaving other attributes intact.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.pad_trim_left_right">
 <span class="sig-name descname"><span class="pre">pad_trim_left_right</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">left</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">right</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.pad_trim_left_right" title="Link to this definition">¶</a></dt>
-<dd><p>Pad or trim this canvas on the left and right</p>
+<dd><p>Pad or trim this canvas on the left and right.</p>
 <p>values &gt; 0 indicate screen columns to pad
 values &lt; 0 indicate screen columns to trim</p>
 <dl class="field-list simple">
@@ -464,9 +470,8 @@ values &lt; 0 indicate screen columns to trim</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CompositeCanvas.set_depends">
 <span class="sig-name descname"><span class="pre">set_depends</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget_list</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">AbstractWidget</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CompositeCanvas.set_depends" title="Link to this definition">¶</a></dt>
-<dd><p>Explicitly specify the list of widgets that this canvas
-depends on.  If any of these widgets change this canvas
-will have to be updated.</p>
+<dd><p>Explicitly specify the list of widgets that this canvas depends on.</p>
+<p>If any of these widgets change this canvas will have to be updated.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="exceptions.html#urwid.CanvasError" title="urwid.CanvasError"><strong>CanvasError</strong></a> – this canvas has already been finalized and can no longer be modified.</p>
@@ -568,8 +573,8 @@ will be padded on the right.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.CanvasCache">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CanvasCache</span></span><a class="headerlink" href="#urwid.CanvasCache" title="Link to this definition">¶</a></dt>
-<dd><p>Cache for rendered canvases.  Automatically populated and
-accessed by Widget render() MetaClass magic, cleared by
+<dd><p>Cache for rendered canvases.</p>
+<p>Automatically populated and accessed by Widget render() MetaClass magic, cleared by
 Widget._invalidate().</p>
 <p>Stores weakrefs to the canvas objects, so an external class
 must maintain a reference for this cache to be effective.
@@ -579,6 +584,12 @@ garbage collected.</p>
 <p>_widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), …}
 _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
 _deps[widget} = {dependent_widget, …}</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.CanvasCache.cleanup">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">cleanup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ref</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ReferenceType</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.Canvas" title="urwid.canvas.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.cleanup" title="Link to this definition">¶</a></dt>
+<dd><p>Drop the cache entry for a canvas weakref once the canvas it points to has been garbage collected.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CanvasCache.clear">
 <span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CanvasCache.clear" title="Link to this definition">¶</a></dt>
@@ -646,13 +657,17 @@ _deps[widget} = {dependent_widget, …}</p>
 <li><a class="reference internal" href="#urwid.Canvas.cols"><code class="docutils literal notranslate"><span class="pre">Canvas.cols()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.content"><code class="docutils literal notranslate"><span class="pre">Canvas.content()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.content_delta"><code class="docutils literal notranslate"><span class="pre">Canvas.content_delta()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.cursor</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.decoded_text"><code class="docutils literal notranslate"><span class="pre">Canvas.decoded_text</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.finalize"><code class="docutils literal notranslate"><span class="pre">Canvas.finalize()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.get_cursor()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.get_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.get_pop_up()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.rows"><code class="docutils literal notranslate"><span class="pre">Canvas.rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.set_cursor"><code class="docutils literal notranslate"><span class="pre">Canvas.set_cursor()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.set_pop_up"><code class="docutils literal notranslate"><span class="pre">Canvas.set_pop_up()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.text"><code class="docutils literal notranslate"><span class="pre">Canvas.text</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Canvas.translate_coords"><code class="docutils literal notranslate"><span class="pre">Canvas.translate_coords()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Canvas.widget_info"><code class="docutils literal notranslate"><span class="pre">Canvas.widget_info</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#urwid.TextCanvas"><code class="docutils literal notranslate"><span class="pre">TextCanvas</span></code></a><ul>
@@ -702,6 +717,7 @@ _deps[widget} = {dependent_widget, …}</p>
 </li>
 <li><a class="reference internal" href="#canvascache">CanvasCache</a><ul>
 <li><a class="reference internal" href="#urwid.CanvasCache"><code class="docutils literal notranslate"><span class="pre">CanvasCache</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.CanvasCache.cleanup"><code class="docutils literal notranslate"><span class="pre">CanvasCache.cleanup()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CanvasCache.clear"><code class="docutils literal notranslate"><span class="pre">CanvasCache.clear()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CanvasCache.fetch"><code class="docutils literal notranslate"><span class="pre">CanvasCache.fetch()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CanvasCache.invalidate"><code class="docutils literal notranslate"><span class="pre">CanvasCache.invalidate()</span></code></a></li>
@@ -758,7 +774,7 @@ _deps[widget} = {dependent_widget, …}</p>
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>

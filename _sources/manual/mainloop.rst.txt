@@ -152,6 +152,9 @@ application.
 ``GLibEventLoop``
 -----------------
 
+.. deprecated:: 4.1.7
+    This API will be removed in version 6.0.
+
 This event loop uses GLib's event loop. This is useful if you are building an
 application that depends on DBus events, but don't want to base your
 application on Twisted.

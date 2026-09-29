@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 4.1.6</title>
+    <title>Display Modules &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -48,12 +48,19 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.BaseScreen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BaseScreen</span></span><a class="headerlink" href="#urwid.BaseScreen" title="Link to this definition">¶</a></dt>
-<dd><p>Base class for Screen classes (raw_display.Screen, …, etc.)</p>
+<dd><p>Base class for Screen classes (raw_display.Screen, …, etc.).</p>
+<p>Initialize an unstarted screen with an empty palette.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BaseScreen.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Clear the screen if possible.</p>
 <p>Force the screen to be completely repainted on the next call to draw_screen().</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.draw_screen">
+<span class="property"><span class="k"><span class="pre">abstractmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.draw_screen" title="Link to this definition">¶</a></dt>
+<dd><p>Draw <em>canvas</em> of the given <em>size</em> to the screen. Subclasses must implement this method.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -153,11 +160,17 @@ may be used</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
+<dd><p>Enable or disable tracking of mouse movement events. A no-op here; subclasses override it.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.BaseScreen.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StoppingContext</span></span></span><a class="headerlink" href="#urwid.BaseScreen.start" title="Link to this definition">¶</a></dt>
-<dd><p>Set up the screen.  If the screen has already been started, does
-nothing.</p>
-<p>May be used as a context manager, in which case <code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code> will
+<dd><p>Set up the screen.</p>
+<p>If the screen has already been started, does nothing.</p>
+<p>May be used as a context manager, in which case <a class="reference internal" href="#urwid.BaseScreen.stop" title="urwid.BaseScreen.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a> will
 automatically be called at the end of the block:</p>
 <blockquote>
 <div><dl class="simple">
@@ -169,6 +182,18 @@ automatically be called at the end of the block:</p>
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">_start()</span></code>.</p>
 </dd></dl>
 
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.BaseScreen.started">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">started</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.BaseScreen.started" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether the screen has been started and not yet stopped.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.BaseScreen.stop">
+<span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.stop" title="Link to this definition">¶</a></dt>
+<dd><p>Tear down the screen if it has been started. You shouldn’t override this method; override <code class="xref py py-meth docutils literal notranslate"><span class="pre">_stop()</span></code>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <section id="module-urwid.display.raw">
@@ -176,8 +201,8 @@ automatically be called at the end of the block:</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.raw.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextWriter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.raw.Screen" title="Link to this definition">¶</a></dt>
-<dd><p>Initialize a screen that directly prints escape codes to an output
-terminal.</p>
+<dd><p>Raw screen backend that drives a real POSIX terminal.</p>
+<p>Initialize a screen that directly prints escape codes to an output terminal.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -216,9 +241,8 @@ since only the main thread can receive process signals.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.get_input_descriptors">
 <span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">SupportsFileno</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
-<dd><p>Return a list of integer file descriptors that should be
-polled in external event loops to check for user input.</p>
-<p>Use this method if you are implementing your own event loop.</p>
+<dd><p>Return a list of integer file descriptors that should be polled in external event loops.</p>
+<p>Used to check for user input. Use this method if you are implementing your own event loop.</p>
 <p>This method is only called by <cite>hook_event_loop</cite>, so if you override
 that, you can safely ignore this.</p>
 </dd></dl>
@@ -226,17 +250,15 @@ that, you can safely ignore this.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.hook_event_loop">
 <span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_DecodedInput</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.hook_event_loop" title="Link to this definition">¶</a></dt>
-<dd><p>Register the given callback with the event loop, to be called with new
-input whenever it’s available.  The callback should be passed a list of
-processed keys and a list of unprocessed keycodes.</p>
+<dd><p>Register the given callback with the event loop, to be called with new input whenever it’s available.</p>
+<p>The callback should be passed a list of processed keys and a list of unprocessed keycodes.</p>
 <p>Subclasses may wish to use parse_input to wrap the callback.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.signal_init">
 <span class="sig-name descname"><span class="pre">signal_init</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.signal_init" title="Link to this definition">¶</a></dt>
-<dd><p>Called in the startup of run wrapper to set the SIGWINCH
-and SIGTSTP signal handlers.</p>
+<dd><p>Set the SIGWINCH and SIGTSTP signal handlers, called in the startup of run wrapper.</p>
 <p>Override this function to call from main thread in threaded
 applications.</p>
 </dd></dl>
@@ -244,8 +266,7 @@ applications.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.signal_restore">
 <span class="sig-name descname"><span class="pre">signal_restore</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.signal_restore" title="Link to this definition">¶</a></dt>
-<dd><p>Called in the finally block of run wrapper to restore the
-SIGTSTP, SIGCONT and SIGWINCH signal handlers.</p>
+<dd><p>Restore the SIGTSTP, SIGCONT and SIGWINCH signal handlers, called in the finally block of run wrapper.</p>
 <p>Override this function to call from main thread in threaded
 applications.</p>
 </dd></dl>
@@ -264,7 +285,9 @@ applications.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.curses.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.display.curses.Screen" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><p>Screen backend that drives the real terminal through the <code class="docutils literal notranslate"><span class="pre">curses</span></code> module.</p>
+<p>Initialize an unstarted curses screen with no color pairs allocated yet.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.curses.Screen.clear" title="Link to this definition">¶</a></dt>
 <dd><p>Force the screen to be completely repainted on the next call to draw_screen().</p>
@@ -350,8 +373,8 @@ a ( keys pressed, raw keycodes ) tuple instead.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen.set_input_timeouts">
 <span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">complete_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.curses.Screen.set_input_timeouts" title="Link to this definition">¶</a></dt>
-<dd><p>Set the get_input timeout values.  All values have a granularity
-of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
+<dd><p>Set the get_input timeout values.</p>
+<p>All values have a granularity of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
 0.1 and any value less than 0.05 will be treated as 0.  The
 maximum timeout value for this module is 25.5 seconds.</p>
 <dl class="field-list simple">
@@ -389,11 +412,12 @@ click events along with keystrokes.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.web.Screen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.web.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.display.web.Screen" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><p>Screen backend that renders to a browser client over the web server’s polling/streaming connection.</p>
+<p>Initialize an unstarted screen defaulting to true color.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.clear" title="Link to this definition">¶</a></dt>
-<dd><p>Force the screen to be completely repainted on the next
-call to draw_screen().</p>
+<dd><p>Force the screen to be completely repainted on the next call to draw_screen().</p>
 <p>(does nothing for web_display)</p>
 </dd></dl>
 
@@ -431,7 +455,7 @@ call to draw_screen().</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.set_mouse_tracking">
 <span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
-<dd><p>Not yet implemented</p>
+<dd><p>Not yet implemented.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -456,13 +480,19 @@ since a browser can render any RGB color directly)</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.web.Screen.start">
 <span class="sig-name descname"><span class="pre">start</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">StoppingContext</span></span></span><a class="headerlink" href="#urwid.display.web.Screen.start" title="Link to this definition">¶</a></dt>
-<dd><p>This function reads the initial screen size, generates a unique id and handles cleanup when fn exits.</p>
+<dd><p>Read the initial screen size, generate a unique id and handle cleanup when fn exits.</p>
 <p>web_display.set_preferences(..) must be called before calling this function for the preferences to take effect</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>RuntimeError</strong> – the <code class="docutils literal notranslate"><span class="pre">HTTP_X_URWID_METHOD</span></code> environment variable is not set.</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.display.web.Screen.started">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">started</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.display.web.Screen.started" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether this screen has been started.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -485,11 +515,13 @@ since a browser can render any RGB color directly)</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">HtmlGenerator</span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator" title="Link to this definition">¶</a></dt>
-<dd><dl class="py method">
+<dd><p>Screen backend that renders each displayed frame as an HTML fragment instead of a real terminal.</p>
+<p>Initialize the simulated screen with a 16-color palette.</p>
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator.draw_screen">
 <span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.draw_screen" title="Link to this definition">¶</a></dt>
-<dd><p>Create an html fragment from the render object.
-Append it to HtmlGenerator.fragments list.</p>
+<dd><p>Create an html fragment from the render object.</p>
+<p>Append it to HtmlGenerator.fragments list.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>ValueError</strong> – <em>canvas</em> does not have the number of rows given by <em>size</em>.</p>
@@ -521,13 +553,30 @@ Append it to HtmlGenerator.fragments list.</p>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator.reset_default_terminal_palette">
+<span class="sig-name descname"><span class="pre">reset_default_terminal_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.reset_default_terminal_palette" title="Link to this definition">¶</a></dt>
+<dd><p>Do nothing; this simulated screen has no real terminal palette to reset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator.set_input_timeouts">
+<span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.set_input_timeouts" title="Link to this definition">¶</a></dt>
+<dd><p>Do nothing; this simulated screen has no real input source to configure timeouts on.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.html_fragment.HtmlGenerator.set_terminal_properties">
+<span class="sig-name descname"><span class="pre">set_terminal_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bright_is_bold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_underline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.HtmlGenerator.set_terminal_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Store the given terminal capabilities, keeping each one unchanged where it is left as <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.screenshot_init">
 <span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_DecodedInput</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.screenshot_init" title="Link to this definition">¶</a></dt>
-<dd><p>Replace curses_display.Screen and raw_display.Screen class with
-HtmlGenerator.</p>
+<dd><p>Replace curses_display.Screen and raw_display.Screen class with HtmlGenerator.</p>
 <p>Call this function before executing an application that uses
 curses_display.Screen to have that code use HtmlGenerator instead.</p>
 <dl class="field-list simple">
@@ -561,6 +610,10 @@ call get_cols_rows and read a new screen size.</p>
 <dt>screenshot_init( [ (80,25), (20,10) ],</dt><dd><p>[ [“down”]*5, [“a”,”b”,”c”,”window resize”], [“Q”] ] )</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.8: </span>Patching <code class="docutils literal notranslate"><span class="pre">curses_display.Screen</span></code>/<code class="docutils literal notranslate"><span class="pre">raw_display.Screen</span></code> in place is deprecated and will stop working in
+version 6.0. Assign <a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">HtmlGenerator</span></code></a> to your application’s screen manually instead.</p>
+</div>
 </dd></dl>
 
 <dl class="py function">
@@ -576,11 +629,29 @@ call get_cols_rows and read a new screen size.</p>
 <dt class="sig sig-object py" id="urwid.display.lcd.LCDScreen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.lcd.</span></span><span class="sig-name descname"><span class="pre">LCDScreen</span></span><a class="headerlink" href="#urwid.display.lcd.LCDScreen" title="Link to this definition">¶</a></dt>
 <dd><p>Base class for LCD-based screens.</p>
+<p>Initialize an unstarted screen with an empty palette.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.LCDScreen.get_cols_rows">
 <span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.lcd.LCDScreen.get_cols_rows" title="Link to this definition">¶</a></dt>
-<dd><p>Return the terminal dimensions (num columns, num rows).</p>
-<p>Default (fallback) is 80x24.</p>
+<dd><p>Return the size of the LCD display as <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.LCDScreen.reset_default_terminal_palette">
+<span class="sig-name descname"><span class="pre">reset_default_terminal_palette</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.LCDScreen.reset_default_terminal_palette" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the terminal’s default palette. A no-op here; an LCD screen has no palette to reset.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.LCDScreen.set_input_timeouts">
+<span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.LCDScreen.set_input_timeouts" title="Link to this definition">¶</a></dt>
+<dd><p>Set the maximum time in seconds to wait for input characters. A no-op here.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.LCDScreen.set_terminal_properties">
+<span class="sig-name descname"><span class="pre">set_terminal_properties</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bright_is_bold</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_underline</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.LCDScreen.set_terminal_properties" title="Link to this definition">¶</a></dt>
+<dd><p>Set terminal attributes. A no-op here; an LCD screen has no colors, bold, or underline to configure.</p>
 </dd></dl>
 
 </dd></dl>
@@ -588,7 +659,8 @@ call get_cols_rows and read a new screen size.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.lcd.CFLCDScreen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.lcd.</span></span><span class="sig-name descname"><span class="pre">CFLCDScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.lcd.CFLCDScreen" title="Link to this definition">¶</a></dt>
-<dd><p>Common methods for Crystal Fonts LCD displays</p>
+<dd><p>Common methods for Crystal Fonts LCD displays.</p>
+<p>Open the serial connection.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -600,24 +672,33 @@ call get_cols_rows and read a new screen size.</p>
 <dl class="py exception">
 <dt class="sig sig-object py" id="urwid.display.lcd.CFLCDScreen.InvalidPacket">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">InvalidPacket</span></span><a class="headerlink" href="#urwid.display.lcd.CFLCDScreen.InvalidPacket" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Raised when a packet is longer than the protocol allows, or its CRC does not match.</p>
+</dd></dl>
 
 <dl class="py exception">
 <dt class="sig sig-object py" id="urwid.display.lcd.CFLCDScreen.MoreDataRequired">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">MoreDataRequired</span></span><a class="headerlink" href="#urwid.display.lcd.CFLCDScreen.MoreDataRequired" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Raised when the buffered data does not yet hold a complete packet.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.CFLCDScreen.get_crc">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">get_crc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">buf</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bytes</span></span></span><a class="headerlink" href="#urwid.display.lcd.CFLCDScreen.get_crc" title="Link to this definition">¶</a></dt>
+<dd><p>Return the 16-bit CRC of <em>buf</em>, as the two bytes sent in a packet’s checksum field.</p>
+</dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.lcd.</span></span><span class="sig-name descname"><span class="pre">CF635Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">baud</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">115200</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_next</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.125</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">('up',</span> <span class="pre">'down',</span> <span class="pre">'left',</span> <span class="pre">'right',</span> <span class="pre">'enter',</span> <span class="pre">'esc')</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.lcd.CF635Screen" title="Link to this definition">¶</a></dt>
-<dd><p>Crystal Fontz 635 display</p>
+<dd><p>Crystal Fontz 635 display.</p>
 <p>20x4 character display + cursor
 no foreground/background colors or settings supported</p>
 <p>see CGROM for a list of close Unicode matches to characters available</p>
 <p>6 button input
 up, down, left, right, enter (check mark), exit (cross)</p>
+<p>Open the serial connection and set up key repeat handling.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -643,15 +724,13 @@ up, down, left, right, enter (check mark), exit (cross)</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.get_input_descriptors">
 <span class="sig-name descname"><span class="pre">get_input_descriptors</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.get_input_descriptors" title="Link to this definition">¶</a></dt>
-<dd><p>return the fd from our serial device so we get called
-on input and responses</p>
+<dd><p>Return the fd from our serial device so we get called on input and responses.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.get_input_nonblocking">
 <span class="sig-name descname"><span class="pre">get_input_nonblocking</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.get_input_nonblocking" title="Link to this definition">¶</a></dt>
-<dd><p>Return a (next_input_timeout, keys_pressed, raw_keycodes)
-tuple.</p>
+<dd><p>Return a <code class="docutils literal notranslate"><span class="pre">(next_input_timeout,</span> <span class="pre">keys_pressed,</span> <span class="pre">raw_keycodes)</span></code> tuple.</p>
 <p>The protocol for our device requires waiting for acks between
 each command, so this method responds to those as well as key
 press and release events.</p>
@@ -680,9 +759,15 @@ not seem to have any correspondence to keys_pressed.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.queue_command">
+<span class="sig-name descname"><span class="pre">queue_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bytearray</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.queue_command" title="Link to this definition">¶</a></dt>
+<dd><p>Queue <em>command</em> with <em>data</em> for sending, sending it immediately if no command is awaiting an ACK.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.set_backlight">
 <span class="sig-name descname"><span class="pre">set_backlight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_backlight" title="Link to this definition">¶</a></dt>
-<dd><p>Set backlight brightness</p>
+<dd><p>Set backlight brightness.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>value</strong> – 0 to 100</p>
@@ -696,7 +781,8 @@ not seem to have any correspondence to keys_pressed.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.set_cursor_style">
 <span class="sig-name descname"><span class="pre">set_cursor_style</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">style</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">4</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_cursor_style" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Set the cursor style.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>style</strong> – CURSOR_BLINKING_BLOCK, CURSOR_UNDERSCORE, CURSOR_BLINKING_BLOCK_UNDERSCORE or
 CURSOR_INVERTING_BLINKING_BLOCK</p>
@@ -710,7 +796,8 @@ CURSOR_INVERTING_BLINKING_BLOCK</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.set_lcd_contrast">
 <span class="sig-name descname"><span class="pre">set_lcd_contrast</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_lcd_contrast" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Set the LCD contrast.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>value</strong> – 0 to 255</p>
 </dd>
@@ -723,7 +810,8 @@ CURSOR_INVERTING_BLINKING_BLOCK</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.CF635Screen.set_led_pin">
 <span class="sig-name descname"><span class="pre">set_led_pin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">led</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">2</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">3</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">0</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.CF635Screen.set_led_pin" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Set an LED pin’s brightness.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>led</strong> – 0 to 3</p></li>
@@ -742,10 +830,10 @@ CURSOR_INVERTING_BLINKING_BLOCK</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.lcd.KeyRepeatSimulator">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.lcd.</span></span><span class="sig-name descname"><span class="pre">KeyRepeatSimulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">repeat_delay</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_next</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.lcd.KeyRepeatSimulator" title="Link to this definition">¶</a></dt>
-<dd><p>Provide simulated repeat key events when given press and
-release events.</p>
+<dd><p>Provide simulated repeat key events when given press and release events.</p>
 <p>If two or more keys are pressed, disable repeating until all
 keys are released.</p>
+<p>Set up the repeat timing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -757,16 +845,27 @@ keys are released.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.KeyRepeatSimulator.next_event">
 <span class="sig-name descname"><span class="pre">next_event</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.KeyRepeatSimulator.next_event" title="Link to this definition">¶</a></dt>
-<dd><p>Return (remaining, key) where remaining is the number of seconds
-(float) until the key repeat event should be sent, or None if no
-events are pending.</p>
+<dd><p>Return <code class="docutils literal notranslate"><span class="pre">(remaining,</span> <span class="pre">key)</span></code>, or <code class="docutils literal notranslate"><span class="pre">None</span></code> if no events are pending.</p>
+<p><em>remaining</em> is the number of seconds (float) until the key repeat event should be sent.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.KeyRepeatSimulator.press">
+<span class="sig-name descname"><span class="pre">press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.KeyRepeatSimulator.press" title="Link to this definition">¶</a></dt>
+<dd><p>Record that <em>key</em> was pressed, disabling repeat if another key is already held down.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.lcd.KeyRepeatSimulator.release">
+<span class="sig-name descname"><span class="pre">release</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.KeyRepeatSimulator.release" title="Link to this definition">¶</a></dt>
+<dd><p>Record that <em>key</em> was released, re-enabling repeat once no key is held down.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.lcd.KeyRepeatSimulator.sent_event">
 <span class="sig-name descname"><span class="pre">sent_event</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.lcd.KeyRepeatSimulator.sent_event" title="Link to this definition">¶</a></dt>
-<dd><p>Cakk this method when you have sent a key repeat event so the
-timer will be reset for the next event</p>
+<dd><p>Call this method when a key repeat event was sent.</p>
+<p>The timer will be reset for the next event.</p>
 </dd></dl>
 
 </dd></dl>
@@ -788,11 +887,15 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#">Display Modules</a><ul>
 <li><a class="reference internal" href="#urwid.BaseScreen"><code class="docutils literal notranslate"><span class="pre">BaseScreen</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.BaseScreen.clear"><code class="docutils literal notranslate"><span class="pre">BaseScreen.clear()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.draw_screen"><code class="docutils literal notranslate"><span class="pre">BaseScreen.draw_screen()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">BaseScreen.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.register_palette"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette_entry()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">BaseScreen.run_wrapper()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">BaseScreen.set_mouse_tracking()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.start"><code class="docutils literal notranslate"><span class="pre">BaseScreen.start()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.started"><code class="docutils literal notranslate"><span class="pre">BaseScreen.started</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.stop"><code class="docutils literal notranslate"><span class="pre">BaseScreen.stop()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-urwid.display.raw">RAW display</a><ul>
@@ -829,6 +932,7 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#urwid.display.web.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">Screen.set_terminal_properties()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.start"><code class="docutils literal notranslate"><span class="pre">Screen.start()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.web.Screen.started"><code class="docutils literal notranslate"><span class="pre">Screen.started</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.stop"><code class="docutils literal notranslate"><span class="pre">Screen.stop()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.web.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
 </ul>
@@ -840,6 +944,9 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.draw_screen"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.draw_screen()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.get_input"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.reset_default_terminal_palette"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.reset_default_terminal_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.set_input_timeouts()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">HtmlGenerator.set_terminal_properties()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#urwid.display.html_fragment.screenshot_init"><code class="docutils literal notranslate"><span class="pre">screenshot_init()</span></code></a></li>
@@ -849,11 +956,15 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#module-urwid.display.lcd">LCD display</a><ul>
 <li><a class="reference internal" href="#urwid.display.lcd.LCDScreen"><code class="docutils literal notranslate"><span class="pre">LCDScreen</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.display.lcd.LCDScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">LCDScreen.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.LCDScreen.reset_default_terminal_palette"><code class="docutils literal notranslate"><span class="pre">LCDScreen.reset_default_terminal_palette()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.LCDScreen.set_input_timeouts"><code class="docutils literal notranslate"><span class="pre">LCDScreen.set_input_timeouts()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.LCDScreen.set_terminal_properties"><code class="docutils literal notranslate"><span class="pre">LCDScreen.set_terminal_properties()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#urwid.display.lcd.CFLCDScreen"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.display.lcd.CFLCDScreen.InvalidPacket"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.InvalidPacket</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CFLCDScreen.MoreDataRequired"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.MoreDataRequired</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.CFLCDScreen.get_crc"><code class="docutils literal notranslate"><span class="pre">CFLCDScreen.get_crc()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen"><code class="docutils literal notranslate"><span class="pre">CF635Screen</span></code></a><ul>
@@ -861,6 +972,7 @@ timer will be reset for the next event</p>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_descriptors()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.get_input_nonblocking"><code class="docutils literal notranslate"><span class="pre">CF635Screen.get_input_nonblocking()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.program_cgram"><code class="docutils literal notranslate"><span class="pre">CF635Screen.program_cgram()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.queue_command"><code class="docutils literal notranslate"><span class="pre">CF635Screen.queue_command()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.set_backlight"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_backlight()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.set_cursor_style"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_cursor_style()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.CF635Screen.set_lcd_contrast"><code class="docutils literal notranslate"><span class="pre">CF635Screen.set_lcd_contrast()</span></code></a></li>
@@ -869,6 +981,8 @@ timer will be reset for the next event</p>
 </li>
 <li><a class="reference internal" href="#urwid.display.lcd.KeyRepeatSimulator"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.display.lcd.KeyRepeatSimulator.next_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.next_event()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.KeyRepeatSimulator.press"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.press()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.lcd.KeyRepeatSimulator.release"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.release()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.lcd.KeyRepeatSimulator.sent_event"><code class="docutils literal notranslate"><span class="pre">KeyRepeatSimulator.sent_event()</span></code></a></li>
 </ul>
 </li>
@@ -922,7 +1036,7 @@ timer will be reset for the next event</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

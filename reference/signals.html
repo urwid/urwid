@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Signal Functions &#8212; Urwid 4.1.6</title>
+    <title>Signal Functions &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
@@ -56,7 +56,8 @@ instantiate your own Signals object.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Signals.connect">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">weak_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Key</span></span></span><a class="headerlink" href="#urwid.Signals.connect" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Connect <cite>callback</cite> to <cite>obj</cite>’s <cite>name</cite> signal.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> – the object sending a signal</p></li>
@@ -139,7 +140,10 @@ urwid.disconnect_signal, which doesn’t need this key.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Signals.disconnect_by_key">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">disconnect_by_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Signals.disconnect_by_key" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove a callback from the list connected to a signal with connect_signal().</p>
+<p>The key passed should be the value returned by connect_signal().</p>
+<p>If the callback is not connected or already disconnected, this function will simply do nothing.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> – the object to disconnect the signal from</p></li>
@@ -149,11 +153,6 @@ connect_signal().</p></li>
 </ul>
 </dd>
 </dl>
-<p>This function will remove a callback from the list connected
-to a signal with connect_signal(). The key passed should be the
-value returned by connect_signal().</p>
-<p>If the callback is not connected or already disconnected, this
-function will simply do nothing.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -164,7 +163,10 @@ function will simply do nothing.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Signals.disconnect">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_arg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">weak_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">user_args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Signals.disconnect" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Remove a callback from the list connected to a signal with connect_signal().</p>
+<p>The arguments passed should be exactly the same as those passed to connect_signal().</p>
+<p>If the callback is not connected or already disconnected, this function will simply do nothing.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> – the object to disconnect the signal from</p></li>
@@ -176,11 +178,6 @@ function will simply do nothing.</p>
 </ul>
 </dd>
 </dl>
-<p>This function will remove a callback from the list connected
-to a signal with connect_signal(). The arguments passed should
-be exactly the same as those passed to connect_signal().</p>
-<p>If the callback is not connected or already disconnected, this
-function will simply do nothing.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -191,7 +188,10 @@ function will simply do nothing.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Signals.register">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">register</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sig_cls</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="meta.html#urwid.MetaSignals" title="urwid.MetaSignals"><span class="pre">MetaSignals</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">signals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Container</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Signals.register" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Register the signals <cite>sig_cls</cite> objects may send.</p>
+<p>This function must be called for a class before connecting any
+signal callbacks or emitting any signals from that class’ objects.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sig_cls</strong> – the class of an object that will be sending signals</p></li>
@@ -199,8 +199,6 @@ function will simply do nothing.</p>
 </ul>
 </dd>
 </dl>
-<p>This function must be called for a class before connecting any
-signal callbacks or emitting any signals from that class’ objects</p>
 </dd></dl>
 
 <dl class="py function">
@@ -211,7 +209,9 @@ signal callbacks or emitting any signals from that class’ objects</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.Signals.emit">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Signals.emit" title="Link to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
+<dd><p>Call each of the callbacks connected to this signal with the args arguments as positional parameters.</p>
+<p>Returns True if any of the callbacks returned True.</p>
+<dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>obj</strong> – the object sending a signal</p></li>
@@ -220,9 +220,6 @@ signal callbacks or emitting any signals from that class’ objects</p>
 </ul>
 </dd>
 </dl>
-<p>This function calls each of the callbacks connected to this signal
-with the args arguments as positional parameters.</p>
-<p>This function returns True if any of the callbacks returned True.</p>
 </dd></dl>
 
 </section>
@@ -297,7 +294,7 @@ with the args arguments as positional parameters.</p>
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>

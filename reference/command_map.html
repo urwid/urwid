@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Command Map &#8212; Urwid 4.1.6</title>
+    <title>Command Map &#8212; Urwid 4.2.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2d20a769"></script>
+    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
@@ -48,7 +48,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.CommandMap">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">CommandMap</span></span><a class="headerlink" href="#urwid.CommandMap" title="Link to this definition">¶</a></dt>
-<dd><p>dict-like object for looking up commands from keystrokes</p>
+<dd><p>dict-like object for looking up commands from keystrokes.</p>
 <p>Default values:</p>
 <dl class="simple">
 <dt><kbd class="kbd docutils literal notranslate">tab</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">n</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code></p>
@@ -68,11 +68,23 @@
 <dt><kbd class="kbd docutils literal notranslate">space</kbd>, <kbd class="kbd docutils literal notranslate">enter</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'activate'</span></code></p>
 </dd>
 </dl>
+<p>Initialize the command map with the class’s default key-to-command bindings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.CommandMap.clear_command">
+<span class="sig-name descname"><span class="pre">clear_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Command</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CommandMap.clear_command" title="Link to this definition">¶</a></dt>
+<dd><p>Remove every keystroke currently mapped to <code class="docutils literal notranslate"><span class="pre">command</span></code>.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CommandMap.copy">
 <span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#urwid.CommandMap.copy" title="Link to this definition">¶</a></dt>
-<dd><p>Return a new copy of this CommandMap, likely so we can modify
-it separate from a shared one.</p>
+<dd><p>Return a new copy of this CommandMap, likely so we can modify it separate from a shared one.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.CommandMap.restore_defaults">
+<span class="sig-name descname"><span class="pre">restore_defaults</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CommandMap.restore_defaults" title="Link to this definition">¶</a></dt>
+<dd><p>Reset the command map to the class’s default key-to-command bindings.</p>
 </dd></dl>
 
 </dd></dl>
@@ -92,7 +104,9 @@ it separate from a shared one.</p>
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">Command Map</a><ul>
 <li><a class="reference internal" href="#urwid.CommandMap"><code class="docutils literal notranslate"><span class="pre">CommandMap</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.CommandMap.clear_command"><code class="docutils literal notranslate"><span class="pre">CommandMap.clear_command()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.copy"><code class="docutils literal notranslate"><span class="pre">CommandMap.copy()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CommandMap.restore_defaults"><code class="docutils literal notranslate"><span class="pre">CommandMap.restore_defaults()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -143,7 +157,7 @@ it separate from a shared one.</p>
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.1.6</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
