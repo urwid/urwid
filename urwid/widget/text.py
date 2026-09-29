@@ -8,7 +8,7 @@ from urwid import text_layout
 from urwid.canvas import apply_text_layout
 from urwid.split_repr import remove_defaults
 from urwid.str_util import calc_width
-from urwid.util import decompose_tagmarkup, get_encoding
+from urwid.util import decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
 from .widget import Widget, WidgetError
@@ -352,14 +352,12 @@ class Text(Widget):
             cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))
 
-        if text:
-            if isinstance(text, bytes):
-                text = text.decode(get_encoding())
-
-            split_text = text.split("\n")
-
-            return (
-                max(calc_width(line, 0, len(line)) for line in split_text),
-                len(split_text),
-            )
-        return 0, 1
+        # no line is wider than the whole text, except when tabs (counted here as 0 columns) push it further
+        maxcol = calc_width(text, 0, len(text)) + 1
+        while True:
+            trans = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+            if not hasattr(self.layout, "pack"):
+                return max(text_layout.line_width(line) for line in trans), len(trans)
+            if (cols := self.layout.pack(maxcol, trans)) < maxcol:
+                return cols, len(trans)
+            maxcol *= 2
