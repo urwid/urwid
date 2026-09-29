@@ -85,6 +85,8 @@ if typing.TYPE_CHECKING:
 
 
 class Signals:
+    """Registry of signal-emitting classes and the handlers connected to their signals."""
+
     _signal_attr = "_urwid_signals"  # attribute to attach to signal senders
 
     def __init__(self) -> None:

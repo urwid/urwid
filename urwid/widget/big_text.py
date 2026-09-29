@@ -18,6 +18,8 @@ if typing.TYPE_CHECKING:
 
 
 class BigText(Widget):
+    """Fixed widget that renders text using a large :class:`Font`."""
+
     _sizing = frozenset([Sizing.FIXED])
 
     def __init__(self, markup: _TagMarkup, font: Font) -> None:

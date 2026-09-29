@@ -811,6 +811,8 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     get_delegate = attrgetter(attribute_name)
 
     class DelegateToWidgetMixin(Widget):
+        """Mixin that forwards widget behaviour to the wrapped widget named by `attribute_name`."""
+
         no_cache: typing.ClassVar[list[str]] = ["rows"]  # crufty metaclass work-around
 
         def render(
@@ -881,13 +883,15 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
 
 
 class WidgetWrapError(Exception):
-    pass
+    """Error raised for invalid :class:`WidgetWrap` usage."""
 
 
 class WidgetWrap(
     delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
     typing.Generic[WrappedWidget],
 ):
+    """Base class for widgets that compose another widget for their display and behaviour."""
+
     def __init__(self, w: WrappedWidget) -> None:
         """
         :param w: widget to wrap, stored as self._w

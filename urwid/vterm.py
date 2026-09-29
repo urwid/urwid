@@ -103,11 +103,15 @@ KEY_TRANSLATIONS_DECCKM = {
 
 
 class CSIAlias(typing.NamedTuple):
+    """Entry in :data:`CSI_COMMANDS` redirecting a CSI final byte to another command's byte."""
+
     alias_mark: str  # can not have constructor with default first and non-default second arg
     alias: bytes
 
 
 class CSICommand(typing.NamedTuple):
+    """Entry in :data:`CSI_COMMANDS` describing how to parse and dispatch one CSI sequence."""
+
     num_args: int
     default: int
     callback: Callable[[TermCanvas, list[int], bool], typing.Any]  # return value ignored
@@ -163,6 +167,8 @@ CHARSET_UTF8: Literal[2] = 2
 
 @dataclass(eq=True, order=False)
 class TermModes:
+    """Terminal mode flags (ECMA-48 and DEC private modes) tracked for a :class:`TermCanvas`."""
+
     # ECMA-48
     display_ctrl: bool = False
     insert: bool = False
@@ -198,6 +204,8 @@ class TermModes:
 
 
 class TermCharset:
+    """Tracks the terminal's G0/G1 character set slots and which one is currently active."""
+
     __slots__ = ("_g", "_sgr_mapping", "active", "current")
 
     MAPPING: typing.ClassVar[dict[str, str | None]] = {
@@ -253,6 +261,8 @@ class TermCharset:
 
 
 class TermCanvas(Canvas):
+    """Canvas holding a :class:`Terminal` widget's screen and scrollback content."""
+
     cacheable = False
 
     def __init__(self, width: int, height: int, widget: Terminal) -> None:
@@ -1298,6 +1308,8 @@ class TermCanvas(Canvas):
 
 
 class Terminal(Widget):
+    """Widget that runs a child process (or callable) and renders its terminal output."""
+
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
 

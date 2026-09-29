@@ -56,7 +56,7 @@ _Node = typing.TypeVar("_Node", bound="TreeNode[typing.Any] | ParentNode[typing.
 
 
 class TreeWidgetError(RuntimeError):
-    pass
+    """Error raised for invalid tree widget usage."""
 
 
 class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generic[_Node]):

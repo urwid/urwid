@@ -109,6 +109,8 @@ _curses_colours = {  # pylint: disable=consider-using-namedtuple-or-dataclass  #
 
 
 class Screen(BaseScreen, RealTerminal):
+    """Screen backend that drives the real terminal through the ``curses`` module."""
+
     def __init__(self) -> None:
         super().__init__()
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to

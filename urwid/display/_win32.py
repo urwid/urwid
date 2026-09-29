@@ -153,6 +153,8 @@ class INPUT_RECORD(Structure):
 
 
 class EventType(enum.IntFlag):
+    """Windows console `INPUT_RECORD` event type flags."""
+
     KEY_EVENT = 0x0001
     MOUSE_EVENT = 0x0002
     WINDOW_BUFFER_SIZE_EVENT = 0x0004

@@ -291,6 +291,8 @@ class Font(metaclass=FontRegistry):
 
 
 class Thin3x3Font(Font):
+    """3x3 glyph font drawn with thin box-drawing lines, registered as ``"Thin 3x3"``."""
+
     name = "Thin 3x3"
     height = 3
     data = (
@@ -310,6 +312,8 @@ class Thin3x3Font(Font):
 
 
 class Thin4x3Font(Font):
+    """4x3 glyph font drawn with thin box-drawing lines, registered as ``"Thin 4x3"``."""
+
     name = "Thin 4x3"
     height = 3
     data = (
@@ -330,6 +334,8 @@ AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIJJJJKKKKLLLLMMMMNNNNOOOOPPPPQQQQRRRRSSSSTTTUUUU
 
 
 class Sextant3x3Font(Font):
+    """3x3 glyph font drawn with Unicode sextant block characters, registered as ``"Sextant 3x3"``."""
+
     name = "Sextant 3x3"
     height = 3
     data = (
@@ -379,6 +385,8 @@ RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
 
 
 class Sextant2x2Font(Font):
+    """2x2 glyph font drawn with Unicode sextant block characters, registered as ``"Sextant 2x2"``."""
+
     name = "Sextant 2x2"
     height = 2
     data = """
@@ -389,6 +397,8 @@ class Sextant2x2Font(Font):
 
 
 class HalfBlock5x4Font(Font):
+    """5x4 glyph font drawn with half-block characters, registered as ``"Half Block 5x4"``."""
+
     name = "Half Block 5x4"
     height = 4
     data = (
@@ -459,6 +469,8 @@ uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 
 
 class HalfBlock6x5Font(Font):
+    """6x5 glyph font drawn with half-block characters, registered as ``"Half Block 6x5"``."""
+
     name = "Half Block 6x5"
     height = 5
     data = """
@@ -472,6 +484,8 @@ class HalfBlock6x5Font(Font):
 
 
 class HalfBlockHeavy6x5Font(Font):
+    """6x5 glyph font drawn with heavy half-block characters, registered as ``"Half Block Heavy 6x5"``."""
+
     name = "Half Block Heavy 6x5"
     height = 5
     data = """
@@ -485,6 +499,8 @@ class HalfBlockHeavy6x5Font(Font):
 
 
 class Thin6x6Font(Font):
+    """6x6 glyph font drawn with thin box-drawing lines, registered as ``"Thin 6x6"``."""
+
     name = "Thin 6x6"
     height = 6
     data = (
@@ -582,6 +598,8 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
 
 
 class HalfBlock7x7Font(Font):
+    """7x7 glyph font drawn with half-block characters, registered as ``"Half Block 7x7"``."""
+
     name = "Half Block 7x7"
     height = 7
     data = (

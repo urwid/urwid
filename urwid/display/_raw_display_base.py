@@ -325,6 +325,8 @@ class TextWriter(typing.Protocol):
 
 
 class Screen(BaseScreen, RealTerminal):
+    """Shared base for the raw POSIX and Windows screen backends that talk directly to the terminal."""
+
     _term_input_file: SupportsFileno
     _term_output_file: TextWriter
 

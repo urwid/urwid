@@ -26,7 +26,7 @@ if typing.TYPE_CHECKING:
 
 
 class EditError(TextError):
-    pass
+    """Edit related errors."""
 
 
 class Edit(WidgetWrap[Text]):

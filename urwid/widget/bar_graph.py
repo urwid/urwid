@@ -58,10 +58,12 @@ def nocache_bargraph_get_data(
 
 
 class BarGraphError(WidgetError):
-    pass
+    """BarGraph related errors."""
 
 
 class BarGraph(Widget, metaclass=BarGraphMeta):
+    """Box widget that renders a bar graph from a sequence of data values."""
+
     _sizing = frozenset([Sizing.BOX])
 
     ignore_focus = True
@@ -651,6 +653,8 @@ def calculate_bargraph_display(
 
 
 class GraphVScale(Widget):
+    """Box widget that renders a vertical scale of labels for a :class:`BarGraph`."""
+
     _sizing = frozenset([Sizing.BOX])
 
     def __init__(

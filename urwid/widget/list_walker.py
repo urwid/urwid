@@ -41,6 +41,8 @@ if typing.TYPE_CHECKING:
     _V_co = typing.TypeVar("_V_co", covariant=True)
 
     class ListWalkerContainer(typing.Protocol[_K, _V_co]):
+        """Protocol for a positionable container a :class:`ListWalker` can page through."""
+
         def __getitem__(self, key: _K) -> _V_co: ...
 
         def next_position(self, position: _K) -> _K: ...
@@ -70,7 +72,7 @@ __all__ = (
 
 
 class ListWalkerError(Exception):
-    pass
+    """ListWalker related errors."""
 
 
 @typing.runtime_checkable
@@ -102,6 +104,8 @@ class ListWalker(
     typing.Generic[_K, _V_co],
     metaclass=signals.MetaSignals,
 ):
+    """Base class for objects that supply widgets to a :class:`ListBox` on demand, by position."""
+
     # mixin not named as mixin
     signals: typing.ClassVar[list[str]] = ["modified"]
 
@@ -172,6 +176,8 @@ class SimpleListWalker(
     MonitoredList[_T],
     ListWalker[int, _T],
 ):
+    """ListWalker that presents a plain list of widgets, addressed by integer position."""
+
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         This class inherits :class:`MonitoredList` which means it can be treated as a list.
@@ -261,6 +267,8 @@ class SimpleFocusListWalker(
     MonitoredFocusList[_T],
     ListWalker[typing.SupportsIndex, _T],
 ):
+    """ListWalker like :class:`SimpleListWalker` that also keeps focus tracking items across edits."""
+
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
         """
         This class inherits :class:`MonitoredList` which means it can be treated as a list.

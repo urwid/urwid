@@ -39,6 +39,8 @@ if typing.TYPE_CHECKING:
     from .widget import AbstractBoxWidget, AbstractWidget
 
     class PopUpParametersModel(TypedDict):
+        """Position and box size a :class:`PopUpLauncher` requests for its pop-up."""
+
         left: int
         top: int
         overlay_width: int
@@ -52,6 +54,8 @@ class PopUpLauncher(
     delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
     WidgetDecoration[WrappedWidget],
 ):
+    """Decoration that lets a wrapped widget open and close a pop-up widget above it."""
+
     def __init__(self, original_widget: WrappedWidget) -> None:
         super().__init__(original_widget)
         self._pop_up_widget: AbstractWidget | None = None

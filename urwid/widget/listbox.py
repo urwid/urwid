@@ -76,7 +76,7 @@ __all__ = (
 
 
 class ListBoxError(Exception):
-    pass
+    """ListBox related errors."""
 
 
 class VisibleInfoMiddle(typing.NamedTuple):
@@ -117,6 +117,8 @@ class VisibleInfoTopBottom(typing.NamedTuple):
 
 
 class VisibleInfo(typing.NamedTuple):
+    """Named tuple for ListBox internals."""
+
     middle: VisibleInfoMiddle
     top: VisibleInfoTopBottom
     bottom: VisibleInfoTopBottom
@@ -731,6 +733,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     def _contents(self) -> ListBoxContentsProto[_K]:
         # noinspection PyMethodParameters
         class ListBoxContents(Sized):
+            """Mapping-like view onto this ListBox's items, indexed by position."""
+
             # pylint: disable=no-self-argument
 
             __getitem__ = self._contents__getitem__

@@ -38,6 +38,8 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal, Protocol, Self
 
     class CanBeStopped(Protocol):
+        """Protocol for an object providing a no-argument ``stop()`` method."""
+
         def stop(self) -> None: ...
 
     class _TagMarkupList(Protocol):
@@ -478,7 +480,7 @@ def rle_product(
 
 
 class TagMarkupException(Exception):
-    pass
+    """Raised when tag markup passed to :func:`decompose_tagmarkup` is malformed."""
 
 
 def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashable, int]]]:

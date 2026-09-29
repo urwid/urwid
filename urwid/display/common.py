@@ -553,10 +553,12 @@ def _parse_color_88(desc: str) -> int | None:
 
 
 class AttrSpecError(Exception):
-    pass
+    """Raised when an :class:`AttrSpec` is constructed with an invalid color specification."""
 
 
 class AttrSpec:
+    """Text attribute specification, encoding foreground and background colors and display settings."""
+
     __slots__ = ("__hash_value", "__value")
 
     def __init__(
@@ -909,6 +911,8 @@ class AttrSpec:
 
 
 class RealTerminal:
+    """Mixin providing access to the real terminal's signal key settings."""
+
     def __init__(self) -> None:
         super().__init__()
         self._signal_keys_set = False
@@ -1011,7 +1015,7 @@ class RealTerminal:
 
 
 class ScreenError(Exception):
-    pass
+    """Raised for errors in :class:`BaseScreen` and its subclasses."""
 
 
 class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):

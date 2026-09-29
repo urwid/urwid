@@ -49,6 +49,8 @@ if typing.TYPE_CHECKING:
 
 
 class Screen(_raw_display_base.Screen):
+    """Raw screen backend that drives a real Windows console."""
+
     _term_input_file: socket.socket
     # Only set for the socket pair created here: an input given by the caller is fed by the caller.
     _send_input: socket.socket | None = None
@@ -281,6 +283,8 @@ class Screen(_raw_display_base.Screen):
 
 
 class ReadInputThread(threading.Thread):
+    """Background thread that reads console input events and forwards them over a socket."""
+
     name = "urwid Windows input reader"
     daemon = True
     should_exit: bool = False
