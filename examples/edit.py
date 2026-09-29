@@ -89,11 +89,8 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
             # trim newline characters
             next_line = next_line[:-1]
 
-        expanded = next_line.expandtabs()
-
-        edit = urwid.Edit("", expanded, allow_tab=True)
+        edit = urwid.Edit("", next_line, allow_tab=True, expand_tabs=True)
         edit.edit_pos = 0
-        edit.original_text = next_line
         self.lines.append(edit)
 
         return next_line
@@ -122,8 +119,7 @@ class LineWalker(urwid.ListWalker[int, urwid.Edit]):
         """Divide the focus edit widget at the cursor location."""
         focus = self.lines[self.focus]
         pos = focus.edit_pos
-        edit = urwid.Edit("", focus.edit_text[pos:], allow_tab=True)
-        edit.original_text = ""
+        edit = urwid.Edit("", focus.edit_text[pos:], allow_tab=True, expand_tabs=True)
         focus.set_edit_text(focus.edit_text[:pos])
         edit.edit_pos = 0
         self.lines.insert(self.focus + 1, edit)
@@ -223,14 +219,9 @@ class EditDisplay:
 
     def save_file(self) -> None:
         """Write the file out to disk."""
-        lines = []
         walk = self.walker
-        for edit in walk.lines:
-            # collect the text already stored in edit widgets
-            if edit.original_text.expandtabs() == edit.edit_text:
-                lines.append(edit.original_text)
-            else:
-                lines.append(re_tab(edit.edit_text))
+        # collect the text already stored in edit widgets
+        lines = [edit.edit_text for edit in walk.lines]
 
         # then the rest
         while walk.file is not None:
@@ -242,23 +233,6 @@ class EditDisplay:
             for line in lines:
                 outfile.write(prefix + line)
                 prefix = "\n"
-
-
-def re_tab(s: str) -> str:
-    """Return a tabbed string from an expanded one."""
-    line = []
-    p = 0
-    for i in range(8, len(s), 8):
-        if s[i - 2 : i] == "  ":
-            # collapse two or more spaces into a tab
-            line.append(f"{s[p:i].rstrip()}\t")
-            p = i
-
-    if p == 0:
-        return s
-
-    line.append(s[p:])
-    return "".join(line)
 
 
 def main() -> None:

@@ -9,7 +9,7 @@ from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
-from urwid.str_util import is_wide_char, move_next_char, move_prev_char
+from urwid.str_util import calc_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
@@ -76,6 +76,8 @@ class Edit(WidgetWrap[Text]):
         edit_pos: int | None = None,
         layout: text_layout.TextLayout | None = None,
         mask: str | None = None,
+        *,
+        expand_tabs: bool = True,
     ) -> None:
         """Create the Edit widget.
 
@@ -84,10 +86,12 @@ class Edit(WidgetWrap[Text]):
         :param multiline: ``True``: :kbd:`enter` inserts a newline, ``False``: return it
         :param align: typically 'left', 'center' or 'right'
         :param wrap: typically 'space', 'any' or 'clip'
-        :param allow_tab: ``True``: :kbd:`tab` inserts 1-8 spaces, ``False``: return it
+        :param allow_tab: ``True``: :kbd:`tab` is inserted, ``False``: return it
         :param edit_pos: initial position for cursor, None:end of edit_text
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
         :param mask: hide text entered with this character, None:disable mask
+        :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
+            ``False``: a tab character
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -101,6 +105,7 @@ class Edit(WidgetWrap[Text]):
         super().__init__(Text("", align, wrap, layout))
         self.multiline = multiline
         self.allow_tab = allow_tab
+        self.expand_tabs = expand_tabs
         self._edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
@@ -320,6 +325,8 @@ class Edit(WidgetWrap[Text]):
         Set the character for masking text away.
 
         :param mask: hide text entered with this character, None:disable mask
+        :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
+            ``False``: a tab character
         """
         self._mask = mask
         self._sync_wrapped()
@@ -467,8 +474,20 @@ class Edit(WidgetWrap[Text]):
             return None
 
         if key == "tab" and self.allow_tab:
-            key = " " * (8 - (self.edit_pos % 8))
-            self.insert_text(key)
+            if not self.expand_tabs:
+                self.insert_text("\t")
+                return None
+            layout = self._w.layout
+            if not isinstance(layout, text_layout.StandardTextLayout):
+                layout = text_layout.default_layout  # a custom layout has no tab stops
+            text = self._edit_text
+            tab, nl = ("\t", "\n") if isinstance(text, str) else (b"\t", b"\n")
+            column = 0
+            for idx, chunk in enumerate(text[text.rfind(nl, 0, pos) + 1 : pos].split(tab)):
+                if idx:
+                    column = layout.next_tab_stop(column)
+                column += calc_width(chunk, 0, len(chunk))
+            self.insert_text(" " * (layout.next_tab_stop(column) - column))
             return None
 
         if key == "enter" and self.multiline:

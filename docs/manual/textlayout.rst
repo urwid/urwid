@@ -92,6 +92,22 @@ structures from its ``layout()`` method.
    :class:`TextLayout reference <TextLayout>`
 
 
+Tab Characters
+==============
+
+:class:`StandardTextLayout` moves a tab character to the next tab stop, as a word processor does.
+Tab stops count rendered screen columns from the start of each displayed line, so a wide character counts
+as two columns. The explicit ``tab_stops`` come first, then stops repeat every ``tab_stop_every`` columns
+(8 by default)::
+
+    layout = urwid.StandardTextLayout(tab_stops=(12, 20), tab_stop_every=4)
+    text = urwid.Text("name\tvalue\tcomment", layout=layout)
+
+A tab stays one character of the text, so the cursor of an :class:`Edit` widget steps over it in one move.
+A tab that would reach past the line end is cut there, and in the ``space`` wrap mode a tab is a break
+opportunity, like a space.
+
+
 Text Layout Structures
 ======================
 
@@ -133,10 +149,9 @@ correspond to an offset within the text, that may be specified.
 
 Tuple C allows insertion of arbitrary text. This could be used for hyphenating
 split words or any other effect not covered by A or B. The
-:class:`StandardTextLayout` does not currently use this
-tuple in its line layouts.
+:class:`StandardTextLayout` uses it for the ellipsis of the ``ellipsis`` wrap mode
+and for tab characters, which it displays as spaces up to the next tab stop.
 
 .. seealso::
    :class:`TextLayout reference <TextLayout>`,
    :class:`StandardTextLayout reference <StandardTextLayout>`
-
