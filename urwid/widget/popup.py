@@ -129,6 +129,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         # One (widget, Overlay) entry per currently open pop-up, outermost first.
         self._pop_up_levels: list[tuple[AbstractWidget, Overlay[AbstractWidget, AbstractWidget]]] = []
         self._current_widget: AbstractWidget = self._original_widget
+        self._cache_original_canvas: Canvas | None = None
 
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         """Rebuild :attr:`_current_widget` as a chain of Overlay widgets, one per open pop-up.

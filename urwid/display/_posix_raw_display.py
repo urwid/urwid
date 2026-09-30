@@ -122,6 +122,7 @@ class Screen(_raw_display_base.Screen):
         super().__init__(input, output, bracketed_paste_mode=bracketed_paste_mode, focus_reporting=focus_reporting)
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
+        self._old_termios_settings: list[typing.Any] | None = None
 
         # These store the previous signal handlers after setting ours
         self._prev_sigcont_handler: SignalHandler = None
@@ -308,7 +309,7 @@ class Screen(_raw_display_base.Screen):
         self._stop_restore_palette()
 
         fd = self._input_fileno()
-        if fd is not None and os.isatty(fd):
+        if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:
             termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
 
         if self._old_signal_keys:

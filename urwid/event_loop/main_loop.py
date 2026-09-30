@@ -186,6 +186,7 @@ class MainLoop:
         if event_loop is None:
             event_loop = SelectEventLoop()
         self.event_loop: EventLoop = event_loop
+        self.idle_handle: typing.Any = None
 
         if hasattr(self.screen, "signal_handler_setter"):
             # Tell the screen what function it must use to set
@@ -476,7 +477,7 @@ class MainLoop:
         Only call this if you're managing the event loop yourself, after the loop stops.
         """
         self.event_loop.remove_enter_idle(self.idle_handle)
-        del self.idle_handle
+        self.idle_handle = None
         signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
         typing.cast("_ExternalLoopScreen", self.screen).unhook_event_loop(self.event_loop)
 
