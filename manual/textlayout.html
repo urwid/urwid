@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Text Layout &#8212; Urwid 4.2.0</title>
+    <title>Text Layout &#8212; Urwid 4.2.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
+    <script src="../_static/documentation_options.js?v=e756e73c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="userinput.html" title="User Input"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout</a></li> 
       </ul>
@@ -130,7 +130,7 @@ structures from its <code class="docutils literal notranslate"><span class="pre"
 <p><a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> moves a tab character to the next tab stop, as a word processor does.
 Tab stops count rendered screen columns from the start of each displayed line, so a wide character counts
 as two columns. The explicit <code class="docutils literal notranslate"><span class="pre">tab_stops</span></code> come first, then stops repeat every <code class="docutils literal notranslate"><span class="pre">tab_stop_every</span></code> columns
-(8 by default):</p>
+(8 by default). With <code class="docutils literal notranslate"><span class="pre">tab_stop_every=0</span></code> a tab past the last explicit stop takes no columns:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">layout</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">StandardTextLayout</span><span class="p">(</span><span class="n">tab_stops</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span> <span class="n">tab_stop_every</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
 <span class="n">text</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"name</span><span class="se">\t</span><span class="s2">value</span><span class="se">\t</span><span class="s2">comment"</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">)</span>
 </pre></div>
@@ -246,7 +246,7 @@ and for tab characters, which it displays as spaces up to the next tab stop.</p>
         <li class="right" >
           <a href="userinput.html" title="User Input"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout</a></li> 
       </ul>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Reference &#8212; Urwid 4.2.0</title>
+    <title>Urwid Reference &#8212; Urwid 4.2.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
+    <script src="../_static/documentation_options.js?v=e756e73c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>  
@@ -109,6 +109,7 @@
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TrioEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop.remove_watch_file()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TrioEventLoop.run"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop.run()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TrioEventLoop.run_async"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop.run_async()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TrioEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop.run_in_executor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="main_loop.html#urwid.TrioEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop.watch_file()</span></code></a></li>
 </ul>
 </li>
@@ -584,6 +585,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.pack"><code class="docutils literal notranslate"><span class="pre">Columns.pack()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.render"><code class="docutils literal notranslate"><span class="pre">Columns.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.rows"><code class="docutils literal notranslate"><span class="pre">Columns.rows()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.selectable"><code class="docutils literal notranslate"><span class="pre">Columns.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.set_focus"><code class="docutils literal notranslate"><span class="pre">Columns.set_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.set_focus_column"><code class="docutils literal notranslate"><span class="pre">Columns.set_focus_column()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Columns.sizing"><code class="docutils literal notranslate"><span class="pre">Columns.sizing()</span></code></a></li>
@@ -611,6 +613,7 @@
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.pack"><code class="docutils literal notranslate"><span class="pre">Pile.pack()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.render"><code class="docutils literal notranslate"><span class="pre">Pile.render()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.rows"><code class="docutils literal notranslate"><span class="pre">Pile.rows()</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.selectable"><code class="docutils literal notranslate"><span class="pre">Pile.selectable()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.set_focus"><code class="docutils literal notranslate"><span class="pre">Pile.set_focus()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.sizing"><code class="docutils literal notranslate"><span class="pre">Pile.sizing()</span></code></a></li>
 <li class="toctree-l5"><a class="reference internal" href="widget.html#urwid.Pile.widget_list"><code class="docutils literal notranslate"><span class="pre">Pile.widget_list</span></code></a></li>
@@ -1325,7 +1328,7 @@
         <li class="right" >
           <a href="../manual/canvascache.html" title="Canvas Cache"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Reference</a></li> 
       </ul>
     </div>

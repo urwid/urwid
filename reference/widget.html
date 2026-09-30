@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 4.2.0</title>
+    <title>Widget Classes &#8212; Urwid 4.2.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=d0ae6d56"></script>
+    <script src="../_static/documentation_options.js?v=e756e73c"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -2341,15 +2341,17 @@ if <code class="docutils literal notranslate"><span class="pre">None</span></cod
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.AttrMap.set_attr_map">
-<span class="sig-name descname"><span class="pre">set_attr_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.AttrMap.set_attr_map" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_attr_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.AttrMap.set_attr_map" title="Link to this definition">¶</a></dt>
 <dd><p>Set the attribute mapping dictionary {from_attr: to_attr, …}.</p>
-<p>Note this function does not accept a single attribute the way the
-constructor does.  You must specify {None: attribute} instead.</p>
+<p>A single attribute is stored as <code class="docutils literal notranslate"><span class="pre">{None:</span> <span class="pre">attribute}</span></code>, the way the constructor does.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"hi"</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_attr_map</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="s2">"b"</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
 <span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget 'hi'&gt; attr_map={'a': 'b'}&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_attr_map</span><span class="p">(</span><span class="s2">"c"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget 'hi'&gt; attr_map={None: 'c'}&gt;</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -2361,17 +2363,19 @@ constructor does.  You must specify {None: attribute} instead.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.AttrMap.set_focus_map">
-<span class="sig-name descname"><span class="pre">set_focus_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">focus_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.AttrMap.set_focus_map" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">set_focus_map</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">focus_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.AttrMap.set_focus_map" title="Link to this definition">¶</a></dt>
 <dd><p>Set the focus attribute mapping dictionary {from_attr: to_attr, …}.</p>
 <p>If None this widget will use the attr mapping instead (no change
 when in focus).</p>
-<p>Note this function does not accept a single attribute the way the
-constructor does.  You must specify {None: attribute} instead.</p>
+<p>A single attribute is stored as <code class="docutils literal notranslate"><span class="pre">{None:</span> <span class="pre">attribute}</span></code>, the way the constructor does.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"hi"</span><span class="p">),</span> <span class="p">{})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">({</span><span class="s2">"a"</span><span class="p">:</span> <span class="s2">"b"</span><span class="p">})</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
 <span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget 'hi'&gt; attr_map={} focus_map={'a': 'b'}&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">(</span><span class="s2">"c"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
+<span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget 'hi'&gt; attr_map={} focus_map={None: 'c'}&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span><span class="o">.</span><span class="n">set_focus_map</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">w</span>
 <span class="go">&lt;AttrMap fixed/flow widget &lt;Text fixed/flow widget 'hi'&gt; attr_map={}&gt;</span>
@@ -3899,6 +3903,14 @@ widget when the Columns widget itself is treated as a flow widget.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.Columns.selectable">
+<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Columns.selectable" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether any child widget is selectable.</p>
+<p>Asked on every call rather than cached,
+since a child such as <a class="reference internal" href="#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a> may change its selectability after it was added.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.Columns.set_focus">
 <span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">item</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.Columns.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set the item in focus.</p>
@@ -4210,6 +4222,14 @@ This API will be removed in version 5.0.</p>
 <dt class="sig sig-object py" id="urwid.Pile.rows">
 <span class="sig-name descname"><span class="pre">rows</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.Pile.rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the total number of rows occupied by all of the pile’s widgets.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.Pile.selectable">
+<span class="sig-name descname"><span class="pre">selectable</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Pile.selectable" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether any child widget is selectable.</p>
+<p>Asked on every call rather than cached,
+since a child such as <a class="reference internal" href="#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a> may change its selectability after it was added.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -5929,6 +5949,7 @@ If <cite>position</cite> is negative it is interpreted as lines from the bottom.
 <li><a class="reference internal" href="#urwid.Columns.pack"><code class="docutils literal notranslate"><span class="pre">Columns.pack()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.render"><code class="docutils literal notranslate"><span class="pre">Columns.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.rows"><code class="docutils literal notranslate"><span class="pre">Columns.rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Columns.selectable"><code class="docutils literal notranslate"><span class="pre">Columns.selectable()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.set_focus"><code class="docutils literal notranslate"><span class="pre">Columns.set_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.set_focus_column"><code class="docutils literal notranslate"><span class="pre">Columns.set_focus_column()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Columns.sizing"><code class="docutils literal notranslate"><span class="pre">Columns.sizing()</span></code></a></li>
@@ -5956,6 +5977,7 @@ If <cite>position</cite> is negative it is interpreted as lines from the bottom.
 <li><a class="reference internal" href="#urwid.Pile.pack"><code class="docutils literal notranslate"><span class="pre">Pile.pack()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.render"><code class="docutils literal notranslate"><span class="pre">Pile.render()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.rows"><code class="docutils literal notranslate"><span class="pre">Pile.rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.Pile.selectable"><code class="docutils literal notranslate"><span class="pre">Pile.selectable()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.set_focus"><code class="docutils literal notranslate"><span class="pre">Pile.set_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.sizing"><code class="docutils literal notranslate"><span class="pre">Pile.sizing()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.Pile.widget_list"><code class="docutils literal notranslate"><span class="pre">Pile.widget_list</span></code></a></li>
@@ -6187,7 +6209,7 @@ If <cite>position</cite> is negative it is interpreted as lines from the bottom.
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
