@@ -48,6 +48,7 @@ if typing.TYPE_CHECKING:
     from typing_extensions import Literal, Self
 
     from urwid.display import BaseScreen
+    from urwid.display.common import PaletteEntry
     from urwid.widget import AbstractWidget
 
     from .abstract_loop import EventLoop
@@ -146,9 +147,7 @@ class MainLoop:
     def __init__(
         self,
         widget: AbstractWidget,
-        palette: Iterable[
-            tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str] | tuple[str, str, str, str, str, str]
-        ] = (),
+        palette: Iterable[PaletteEntry] = (),
         screen: BaseScreen | None = None,
         handle_mouse: bool = True,
         input_filter: (

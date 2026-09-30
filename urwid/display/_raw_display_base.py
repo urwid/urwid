@@ -41,7 +41,7 @@ from . import escape
 from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import FrameType
 
     from typing_extensions import Literal
@@ -353,8 +353,8 @@ class Screen(BaseScreen, RealTerminal):
 
         self._partial_codes: list[int] = []
         self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
-        self._pal_escape: dict[str | None, str] = {}
-        self._pal_attrspec: dict[str | None, AttrSpec] = {}
+        self._pal_escape: dict[Hashable, str] = {}
+        self._pal_attrspec: dict[Hashable, AttrSpec] = {}
         self._modified_palette_entries: set[int] = set()
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         self.term = os.environ.get("TERM", "")
@@ -423,7 +423,7 @@ class Screen(BaseScreen, RealTerminal):
 
         return None
 
-    def _on_update_palette_entry(self, name: str | None, *attrspecs: AttrSpec) -> None:
+    def _on_update_palette_entry(self, name: Hashable, *attrspecs: AttrSpec) -> None:
         # copy the attribute to a dictionary containing the escape seqences
         a: AttrSpec = attrspecs[_ATTRSPEC_INDEX_BY_COLORS[self.colors]]
         self._pal_attrspec[name] = a
@@ -1046,7 +1046,7 @@ class Screen(BaseScreen, RealTerminal):
                     run[-1:] == b" "
                     and self.back_color_erase
                     and not (
-                        isinstance(pal_a := self._pal_attrspec.get(a, a), AttrSpec)  # type: ignore[arg-type]
+                        isinstance(pal_a := self._pal_attrspec.get(a, a), AttrSpec)
                         and (pal_a.standout or pal_a.underline)
                     )
                 ):
@@ -1152,7 +1152,7 @@ class Screen(BaseScreen, RealTerminal):
 
     def _attr_to_escape(self, a: AttrSpec | str | None) -> str:
         """Convert attribute instance a to an escape sequence for the terminal."""
-        if found := self._pal_escape.get(a):  # type: ignore[arg-type]
+        if found := self._pal_escape.get(a):
             return found
         if isinstance(a, AttrSpec):
             return self._attrspec_to_escape(a)
