@@ -39,7 +39,9 @@ if sys.version_info < (3, 11):
     from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
 
 if typing.TYPE_CHECKING:
+    import asyncio
     from collections.abc import Awaitable, Callable
+    from concurrent.futures import Executor, Future
 
     from typing_extensions import ParamSpec
 
@@ -95,6 +97,22 @@ class TrioEventLoop(EventLoop):
 
         self._sleep = trio.sleep
         self._wait_readable = trio.lowlevel.wait_readable
+
+    def run_in_executor(
+        self,
+        executor: Executor,
+        func: Callable[_Spec, _T],
+        *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
+    ) -> Future[_T] | asyncio.Future[_T]:
+        """Raise :exc:`NotImplementedError`: use Trio's own thread API.
+
+        :raises NotImplementedError: Trio runs blocking calls in threads itself; use ``trio.to_thread.run_sync``.
+        """
+        raise NotImplementedError(
+            "Trio implements its own worker threads. Please use native API for call:\n"
+            "'await trio.to_thread.run_sync(Callable[..., T], *args)'"
+        )
 
     def alarm(
         self,

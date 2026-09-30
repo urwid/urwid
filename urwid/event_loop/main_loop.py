@@ -144,6 +144,23 @@ class MainLoop:
         :attr:`event_loop`; whether it actually does anything still depends on :attr:`event_loop`.
     """
 
+    __slots__ = (
+        "__dict__",
+        "__weakref__",
+        "_input_filter",
+        "_pop_ups",
+        "_topmost_widget",
+        "_unhandled_input",
+        "_watch_pipes",
+        "_widget",
+        "event_loop",
+        "handle_mouse",
+        "idle_handle",
+        "logger",
+        "screen",
+        "screen_size",
+    )
+
     def __init__(
         self,
         widget: AbstractWidget,

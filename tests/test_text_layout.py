@@ -800,6 +800,10 @@ class TestTextTranslationCacheThreads(unittest.TestCase):
     buttons hit the same cache; each reader has to get the translation for the width it asked for.
     """
 
+    @unittest.skipIf(
+        sys.implementation.name == "graalpy",
+        "under coverage tracing GraalPy needs longer than the join timeout for the forced thread switching",
+    )
     def test_concurrent_widths(self):
         # The race window is a few bytecodes wide; the default 5 ms switch interval lets a whole run finish
         # inside one interval, so the threads have to be forced to interleave.

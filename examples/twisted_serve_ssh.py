@@ -52,7 +52,7 @@ import urwid
 from urwid.display.raw import Screen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Hashable
 
     from twisted.cred.checkers import ICredentialsChecker
     from twisted.internet.protocol import ProcessProtocol
@@ -329,7 +329,7 @@ class TwistedScreen(Screen):
         self.terminal.write(data)
 
     # Private
-    def _on_update_palette_entry(self, name: str | None, *attrspecs: urwid.AttrSpec) -> None:
+    def _on_update_palette_entry(self, name: Hashable, *attrspecs: urwid.AttrSpec) -> None:
         # copy the attribute to a dictionary containing the escape sequences
         self._pal_escape[name] = self._attrspec_to_escape(attrspecs[{16: 0, 1: 1, 88: 2, 256: 3}[self.colors]])
 

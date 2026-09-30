@@ -4,10 +4,15 @@ import unittest
 
 import urwid
 from urwid.canvas import TextCanvas
-from urwid.display import curses, html_fragment, raw
+from urwid.display import html_fragment, raw
 from urwid.display.common import AttrSpec
 from urwid.display.html_fragment import HtmlGenerator, HtmlGeneratorSimulationError, html_span
 from urwid.event_loop import ExitMainLoop
+
+try:
+    from urwid.display import curses
+except ImportError:  # no stdlib curses on this platform, e.g. Windows and GraalPy
+    curses = None  # type: ignore[assignment]
 
 
 class HtmlSpanTest(unittest.TestCase):
@@ -153,13 +158,15 @@ class HtmlGeneratorTest(unittest.TestCase):
 
 class ScreenshotInitTest(unittest.TestCase):
     def setUp(self) -> None:
-        self._orig_curses_screen = curses.Screen
+        if curses is not None:
+            self._orig_curses_screen = curses.Screen
         self._orig_raw_screen = raw.Screen
 
     def tearDown(self) -> None:
         HtmlGenerator.sizes = []
         HtmlGenerator.keys = []
-        curses.Screen = self._orig_curses_screen
+        if curses is not None:
+            curses.Screen = self._orig_curses_screen
         raw.Screen = self._orig_raw_screen
 
     def test_rejects_a_non_positive_size(self) -> None:
@@ -181,7 +188,8 @@ class ScreenshotInitTest(unittest.TestCase):
     def test_replaces_curses_and_raw_screen_with_html_generator(self) -> None:
         html_fragment.screenshot_init([(80, 25)], [["Q"]])
 
-        self.assertIs(curses.Screen, HtmlGenerator)
+        if curses is not None:
+            self.assertIs(curses.Screen, HtmlGenerator)
         self.assertIs(raw.Screen, HtmlGenerator)
         self.assertEqual([(80, 25)], HtmlGenerator.sizes)
         self.assertEqual([["Q"]], HtmlGenerator.keys)
