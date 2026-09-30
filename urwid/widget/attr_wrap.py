@@ -114,7 +114,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         >> w
         <AttrWrap flow widget <Divider flow widget '-'> attr='new_attr'>
         """
-        self.set_attr_map({None: attr})
+        self.set_attr_map(attr)
 
     attr = property(get_attr, set_attr)
 
@@ -138,7 +138,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         >> w
         <AttrWrap flow widget <Divider flow widget '-'> attr='old'>
         """
-        self.set_focus_map({None: focus_attr})
+        self.set_focus_map(focus_attr)
 
     focus_attr = property(get_focus_attr, set_focus_attr)
 

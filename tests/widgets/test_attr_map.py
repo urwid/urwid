@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import types
 import unittest
 
 import urwid
@@ -27,6 +28,17 @@ class AttrMapTest(unittest.TestCase):
 
         mapped.focus_map = {None: None}
         self.assertEqual({None: None}, mapped.focus_map)
+
+    def test_bare_attribute_assignment(self) -> None:
+        mapped = urwid.AttrMap(urwid.Text("hi"), "idle")
+
+        mapped.attr_map = "busy"
+        mapped.focus_map = "focus"
+        self.assertEqual({None: "busy"}, mapped.attr_map)
+        self.assertEqual({None: "focus"}, mapped.focus_map)
+
+        mapped.attr_map = types.MappingProxyType({"word": "hot"})
+        self.assertEqual({"word": "hot"}, mapped.attr_map)
 
     def test_render_applies_focus_map(self) -> None:
         mapped = urwid.AttrMap(urwid.Text("hi"), "greeting", "fgreet")
