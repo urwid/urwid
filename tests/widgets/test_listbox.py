@@ -2587,6 +2587,48 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
         walker._widgets = []
         lbox.render((4, 5), focus=True)  # must not raise
 
+    def test_body_emptied_before_render(self) -> None:
+        """A focus change pending on a body emptied before the render leaves a blank canvas."""
+        walker = urwid.SimpleListWalker([SelectableText("a"), SelectableText("b")])
+        lbox = urwid.ListBox(walker)
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(1)
+        walker.clear()
+        canvas = lbox.render((4, 5), focus=True)
+        self.assertEqual([b"    "] * 5, canvas.text)
+
+    def test_body_truncated_before_render(self) -> None:
+        """A focus change pending on a body truncated past the old focus places the new focus by ``coming_from``.
+
+        The result is the one the same change gives on a body that was not truncated.
+        """
+        for walker_class in (urwid.SimpleListWalker, urwid.SimpleFocusListWalker):
+            with self.subTest(walker=walker_class.__name__):
+                walker = walker_class([SelectableText(str(i)) for i in range(20)])
+                lbox = urwid.ListBox(walker)
+                lbox.set_focus(15, coming_from="above")
+                lbox.render((4, 5), focus=True)
+                lbox.set_focus(5, coming_from="below")
+                del walker[10:]
+                canvas = lbox.render((4, 5), focus=True)
+                self.assertEqual(5, lbox.focus_position)
+                self.assertEqual([b"5   ", b"6   ", b"7   ", b"8   ", b"9   "], canvas.text)
+
+    def test_modified_callback_error_while_restoring_propagates(self) -> None:
+        """An error a "modified" signal callback raises while the old focus is restored is not swallowed."""
+        walker = urwid.SimpleListWalker([SelectableText(str(i)) for i in range(3)])
+        lbox = urwid.ListBox(walker)
+        lbox.render((4, 5), focus=True)
+        lbox.set_focus(2)
+
+        def reject_first_row() -> None:
+            if walker.focus == 0:
+                raise KeyError(0)
+
+        urwid.connect_signal(walker, "modified", reject_first_row)
+        with self.assertRaises(KeyError):
+            lbox.render((4, 5), focus=True)
+
     def test_coming_from_scroll_down_then_up(self):
         items = [urwid.Text(str(i)) for i in range(20)]
         lbox = urwid.ListBox(urwid.SimpleListWalker(items))
