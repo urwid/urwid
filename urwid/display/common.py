@@ -34,11 +34,30 @@ from urwid import signals
 from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Sequence
 
     from typing_extensions import Literal, Self
 
     from urwid import Canvas
+
+    # One register_palette() item:
+    # (name, like_other_name)
+    # or the 3, 4 or 6 positional arguments of register_palette_entry().
+    # A name is any hashable value, None being the default attribute.
+    # typing.Union rather than "|": the alias is evaluated by the checkers as Python 3.9 code.
+    PaletteEntry = typing.Union[
+        tuple[Hashable, Hashable],
+        tuple[Hashable, str, str],
+        tuple[Hashable, str, str, typing.Union[str, tuple[str, ...], None]],
+        tuple[
+            Hashable,
+            str,
+            str,
+            typing.Union[str, tuple[str, ...], None],
+            typing.Optional[str],
+            typing.Optional[str],
+        ],
+    ]
 
 IS_WINDOWS = sys.platform == "win32"
 
@@ -1089,7 +1108,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
-        self._palette: dict[str | None, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
+        self._palette: dict[Hashable, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
         self._started: bool = False
 
     @property
@@ -1170,12 +1189,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """
         return 80, 24
 
-    def register_palette(
-        self,
-        palette: Iterable[
-            tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str] | tuple[str, str, str, str, str, str]
-        ],
-    ) -> None:
+    def register_palette(self, palette: Iterable[PaletteEntry]) -> None:
         """Register a set of palette entries.
 
         :param palette: a list of (name, like_other_name) or
@@ -1204,7 +1218,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
     def register_palette_entry(
         self,
-        name: str | None,
+        name: Hashable,
         foreground: str,
         background: str,
         mono: str | tuple[str, ...] | None = None,
@@ -1213,7 +1227,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     ) -> None:
         """Register a single palette entry.
 
-        :param name: new entry/attribute name
+        :param name: new entry/attribute name, any hashable value; ``None`` names the default attribute
 
         :param foreground: a string containing a comma-separated foreground
             color and settings
