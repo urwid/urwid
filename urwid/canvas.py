@@ -224,6 +224,8 @@ class CanvasError(Exception):
 class Canvas:
     """base class for canvases."""
 
+    __slots__ = ("__dict__", "__weakref__", "_widget_info", "coords", "shortcuts")
+
     cacheable = True
 
     _finalized_error = CanvasError(
@@ -600,6 +602,8 @@ class BlankCanvas(Canvas):
 
     Only works as part of a composite canvas since it doesn't know its own size.
     """
+
+    __slots__ = ()
 
     def content(
         self,

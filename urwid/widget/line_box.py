@@ -192,7 +192,7 @@ class LineBox(
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
         _old_widget, options = middle.contents[h_index]
         middle.contents[h_index] = (original_widget, options)  # type: ignore[assignment]
-        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]  # pylint: disable=no-member
+        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]
 
     @property
     def _w(self) -> Pile:
