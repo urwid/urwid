@@ -900,7 +900,14 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
 
         # restore old focus temporarily
-        self._body.set_focus(focus_pos)
+        try:
+            self._body.set_focus(focus_pos)
+        except (IndexError, KeyError):
+            # A focus that did move means a "modified" signal callback raised, not that the position is gone.
+            if self._body.get_focus()[1] != position:
+                raise
+            # The body lost the old focus position after ListBox.set_focus().
+            # The walker still focuses the new position, and the placement below starts from it.
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus)
         if middle is None or top is None or bottom is None:
