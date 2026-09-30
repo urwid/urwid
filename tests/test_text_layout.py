@@ -1036,6 +1036,21 @@ class TabStopTest(unittest.TestCase):
 
         self.assertEqual((4, 1), urwid.Text("abcd", layout=NoPackLayout()).pack())
 
+    def test_pack_layout_wider_than_text(self):
+        """A custom layout wider than the text makes pack() retry at a wider maxcol."""
+
+        class DoubleWidthLayout(urwid.TextLayout):
+            """Lay out the text on one line of twice its length."""
+
+            def layout(self, text, width, align, wrap):
+                return [[(2 * len(text), 0, len(text))]]
+
+            def pack(self, maxcol, layout):
+                """Return the line width, capped at maxcol."""
+                return min(maxcol, text_layout.line_width(layout[0]))
+
+        self.assertEqual((8, 1), urwid.Text("abcd", layout=DoubleWidthLayout()).pack())
+
     def test_edit_cursor_steps_over_tab(self):
         edit = urwid.Edit("", "ab\tcd")
         coords = []

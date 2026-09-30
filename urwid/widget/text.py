@@ -316,6 +316,17 @@ class Text(Widget):
         """Return the number of screen columns and rows required for this Text widget.
 
         The widget is expected to be displayed without wrapping or clipping, as a single element tuple.
+        With *maxcol* the size is taken from the layout at that width.
+        Without it the width is searched for::
+
+            maxcol = text width + 1, with StandardTextLayout tabs at their widest
+                |
+                v
+            lay out at maxcol --> layout has pack()? --no--> widest line, line count
+                ^                        |
+                |                       yes
+                |                        v
+            double maxcol <--no-- layout.pack() < maxcol? --yes--> pack() columns, line count
 
         :param size: ``None`` or ``()`` for unlimited screen columns (like FIXED sizing)
                      or (*maxcol*,) to specify a maximum column size
@@ -354,12 +365,19 @@ class Text(Widget):
             cols = self.layout.pack(maxcol, trans)
             return (cols, len(trans))
 
-        # no line is wider than the whole text, except when tabs (counted here as 0 columns) push it further
+        layout = self.layout
+        # No line is wider than the whole text with every tab taking the widest gap between tab stops.
+        # A custom layout may still widen a line.
         maxcol = calc_width(text, 0, len(text)) + 1
+        tabs = text.count("\t") if isinstance(text, str) else text.count(b"\t")
+        if tabs and isinstance(layout, text_layout.StandardTextLayout):
+            stops = (0, *layout.tab_stops)
+            widest_tab = max((layout.tab_stop_every, *(end - start for start, end in zip(stops, stops[1:]))))
+            maxcol += widest_tab * tabs
         while True:
-            trans = self.layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
-            if not hasattr(self.layout, "pack"):
+            trans = layout.layout(text, maxcol, self._align_mode, self._wrap_mode)
+            if not hasattr(layout, "pack"):
                 return max(text_layout.line_width(line) for line in trans), len(trans)
-            if (cols := self.layout.pack(maxcol, trans)) < maxcol:
+            if (cols := layout.pack(maxcol, trans)) < maxcol:
                 return cols, len(trans)
             maxcol *= 2
