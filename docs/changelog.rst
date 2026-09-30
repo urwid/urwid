@@ -2,6 +2,24 @@
 Changelog
 ---------
 
+Urwid 4.2.2
+============
+
+2026-09-30
+
+Bug fixes 🕷
+++++++++++++
+* Fix Edit wrapping on full len by @penguinolog in https://github.com/urwid/urwid/pull/1356
+
+Refactoring 🛠
+++++++++++++++
+* Simplify `AttrMap` setters to accept parameters like constructor does by @penguinolog in https://github.com/urwid/urwid/pull/1357
+* Type palette names as Hashable and the optional fields as Optional by @penguinolog in https://github.com/urwid/urwid/pull/1358
+* Fix attributes defined outside of init by @penguinolog in https://github.com/urwid/urwid/pull/1359
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.1...4.2.2
+
 Urwid 4.2.1
 ============
 
