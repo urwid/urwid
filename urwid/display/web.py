@@ -130,6 +130,15 @@ class Screen(BaseScreen):
         self.bright_is_bold = False  # ignored: the browser renders bold as requested
         self.has_underline = True  # ignored: the browser renders underline as requested
         self._colour_index = _COLOUR_INDEX[self.colors]
+        self.update_method = ""
+        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        self.last_screen_width = 0
+        self.pipe_name = ""
+        self.input_fd: int | None = None
+        self.input_tail = ""
+        self.content_head = ""
+        self.screen_size: tuple[int, int] | None = None
+        self.server_socket: socket.socket | None = None
         self.register_palette_entry(None, _default_foreground, _default_background)
 
     @property
@@ -216,7 +225,7 @@ class Screen(BaseScreen):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
-        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        self.last_screen = {}
         self.last_screen_width = 0
 
         clients = glob.glob(os.path.join(_prefs.pipe_dir, "urwid*.in"))
@@ -252,8 +261,9 @@ class Screen(BaseScreen):
         with suppress(Exception):
             self._close_connection()
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
-        with suppress(Exception):
-            os.close(self.input_fd)
+        if self.input_fd is not None:
+            with suppress(Exception):
+                os.close(self.input_fd)
         self._cleanup_pipe()
         self._started = False
 
@@ -261,7 +271,7 @@ class Screen(BaseScreen):
         """Not supported for web display."""
 
     def _close_connection(self) -> None:
-        if self.update_method == "polling child":
+        if self.update_method == "polling child" and self.server_socket is not None:
             self.server_socket.settimeout(0)
             sock, _addr = self.server_socket.accept()
             sock.sendall(b"Z")
@@ -303,7 +313,7 @@ class Screen(BaseScreen):
         elif self.update_method == "polling child":
             signal.alarm(0)
             try:
-                s, _addr = self.server_socket.accept()
+                s, _addr = typing.cast("socket.socket", self.server_socket).accept()
             except socket.timeout:
                 sys.exit(0)
             send = s.sendall  # type: ignore[assignment]  # use default flags
@@ -409,7 +419,7 @@ class Screen(BaseScreen):
         if self.update_method == "polling child":
             # send empty update
             try:
-                s, _addr = self.server_socket.accept()
+                s, _addr = typing.cast("socket.socket", self.server_socket).accept()
                 s.close()
             except socket.timeout:
                 sys.exit(0)
@@ -421,7 +431,7 @@ class Screen(BaseScreen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the screen size."""
-        return self.screen_size
+        return typing.cast("tuple[int, int]", self.screen_size)
 
     @typing.overload
     def get_input(self, raw_keys: Literal[False]) -> list[str]: ...
@@ -433,8 +443,9 @@ class Screen(BaseScreen):
         """Return pending input as a list."""
         pending_input = []
         resized = False
+        input_fd = typing.cast("int", self.input_fd)
         with selectors.DefaultSelector() as selector:
-            selector.register(self.input_fd, selectors.EVENT_READ)
+            selector.register(input_fd, selectors.EVENT_READ)
 
             iready = [event.fd for event, _ in selector.select(0.5)]
 
@@ -443,8 +454,8 @@ class Screen(BaseScreen):
                 return [], []
             return []
 
-        keydata = os.read(self.input_fd, MAX_READ).decode(get_encoding())
-        os.close(self.input_fd)
+        keydata = os.read(input_fd, MAX_READ).decode(get_encoding())
+        os.close(input_fd)
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         # sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
         keys = keydata.split("\n")

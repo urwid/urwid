@@ -183,6 +183,12 @@ class Overlay(
 
         self.top_w = top_w
         self.bottom_w = bottom_w
+        self.min_width: int | None = None
+        self.min_height: int | None = None
+        self.left = 0
+        self.right = 0
+        self.top = 0
+        self.bottom = 0
 
         self.set_overlay_parameters(align, width, valign, height, min_width, min_height, left, right, top, bottom)
 

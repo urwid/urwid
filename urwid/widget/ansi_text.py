@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import typing
 
-from urwid.ansi_parser import AnsiParser
+from urwid.ansi_parser import AnsiParser, ParsedLine
 
 from .constants import Align, WrapMode
 from .text import Text
@@ -33,7 +33,6 @@ if typing.TYPE_CHECKING:
 
     from typing_extensions import Literal
 
-    from urwid.ansi_parser import ParsedLine
     from urwid.display import AttrSpec
 
 __all__ = ("ANSIText",)
@@ -93,6 +92,7 @@ class ANSIText(WidgetWrap[Text]):
         """
         self._one_line = one_line
         super().__init__(Text("", align=align, wrap=wrap))
+        self._parsed = ParsedLine("", [], previous_attr)
         self.set_ansi_text(ansi_text, previous_attr)
 
     def _repr_words(self) -> list[str]:

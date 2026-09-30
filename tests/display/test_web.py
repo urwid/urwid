@@ -105,7 +105,6 @@ class ScreenGetInputTest(unittest.TestCase):
         self.screen.input_fd = 10
         self.screen.pipe_name = "/tmp/test_pipe"
         self.screen.update_method = "multipart"
-        self.screen.input_tail = ""  # Initialize input_tail attribute
 
     def _make_selector_mock(self, has_input: bool):
         """Create a mock selector that optionally returns file descriptor events."""
@@ -410,10 +409,7 @@ class ScreenPaletteTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.screen = web.Screen()
-        self.screen.content_head = ""
         self.screen.update_method = "multipart"
-        self.screen.last_screen = {}
-        self.screen.last_screen_width = 0
 
     def _draw(self, canvas: urwid.Canvas) -> str:
         stdout = io.StringIO()

@@ -75,6 +75,8 @@ class Text(Widget):
         self._layout: text_layout.TextLayout = layout or text_layout.default_layout
         self._text: str | bytes
         self._attrib: list[tuple[Hashable, int]]
+        self._align_mode: Literal["left", "center", "right"] | Align = Align.LEFT
+        self._wrap_mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
 

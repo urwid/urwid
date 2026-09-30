@@ -1377,6 +1377,7 @@ class Terminal(Widget):
         self.height: int | None = None
         self.term: TermCanvas | None = None
         self.has_focus = False
+        self.old_tios: tuple[int, int, int, int, int] | None = None
         self.terminated = False
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
@@ -1519,8 +1520,8 @@ class Terminal(Widget):
         if has_focus:
             self.old_tios = RealTerminal().tty_signal_keys()
             RealTerminal().tty_signal_keys(*(["undefined"] * 5))  # type: ignore[arg-type]
-        elif old_tios := getattr(self, "old_tios", ()):
-            RealTerminal().tty_signal_keys(*old_tios)  # pylint: disable=not-an-iterable
+        elif self.old_tios:
+            RealTerminal().tty_signal_keys(*self.old_tios)
 
     def render(self, size: tuple[int, int], focus: bool = False) -> TermCanvas:  # type: ignore[override]
         """Resize the terminal to *size*, read any pending child output, and return the terminal canvas."""

@@ -60,7 +60,7 @@ class TestStartStop(unittest.TestCase):
         self.assertIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq, output)
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.enable_seq, output)
         self.assertIn(escape.PrivateMode.FOCUS_REPORTING.enable_seq, output)
-        self.assertNotIn("_old_termios_settings", vars(s))
+        self.assertIsNone(s._old_termios_settings)
 
         written.clear()
         s.stop()

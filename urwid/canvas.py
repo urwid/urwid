@@ -733,6 +733,7 @@ class CompositeCanvas(Canvas):
 
         # tuples that define the unfinished cviews that are part of shards following the first shard.
         super().__init__()
+        self.depends_on: Sequence[AbstractWidget] | None = None
 
         if canv is None:
             self.shards: list[tuple[int, list[_CView]]] = []

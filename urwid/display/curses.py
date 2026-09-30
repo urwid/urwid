@@ -117,6 +117,7 @@ class Screen(BaseScreen, RealTerminal):
         super().__init__()
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.has_color = False
+        self.has_default_colors = False
         self.s: curses.window | None = None
         self.cursor_state: typing.Literal["fixed"] | int | None = None
         self.prev_input_resize = 0
@@ -124,6 +125,8 @@ class Screen(BaseScreen, RealTerminal):
         self.last_bstate = 0
         self._mouse_tracking_enabled = False
         self._curses_attr_cache: dict[AttrSpec, int] = {}
+        # Holds the last drawn canvas so the canvas cache keeps its entries alive.
+        self.keep_cache_alive_link: Canvas | None = None
 
         self.register_palette_entry(None, "default", "default")
 

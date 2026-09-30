@@ -197,7 +197,6 @@ allow-dunder-method-names = [
 [tool.pylint]
 disable = [
   "arguments-differ",
-  "attribute-defined-outside-init",                   # old bad practice, fixed step-by-step
   "broad-exception-caught",
   "broad-exception-raised",
   "consider-using-assignment-expr",
