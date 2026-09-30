@@ -754,7 +754,7 @@ class ListBoxRenderTest(unittest.TestCase):
             [E("", "hello" * 100)],
             0,
             0,
-            ["hell", "ohel", "lohe", "lloh", "llo "],
+            ["hell", "ohel", "lohe", "lloh", "ello"],
             (3, 4),
         )
 

@@ -676,6 +676,11 @@ class Edit(WidgetWrap[Text]):
         if not self._shift_view_to_cursor:
             return trans
 
+        if self._w.wrap in (WrapMode.SPACE, WrapMode.ANY):
+            # Wrapping modes grow the number of rows instead of clipping a row's width,
+            # so there is never a partially hidden row to scroll horizontally into view.
+            return trans
+
         text, _ignore = self.get_text()
         x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
         if x < 0:
@@ -704,7 +709,13 @@ class Edit(WidgetWrap[Text]):
         (maxcol,) = size
 
         self._shift_view_to_cursor = True
-        return self.position_coords(maxcol, self.edit_pos)
+        x, y = self.position_coords(maxcol, self.edit_pos)
+        if self._w.wrap in (WrapMode.SPACE, WrapMode.ANY) and x >= maxcol:
+            # The cursor sits right after a row that is already full and entirely visible.
+            # Clamp onto its last column instead of scrolling that row out of view for a wrap
+            # that has not happened yet.
+            x = maxcol - 1
+        return x, y
 
     def position_coords(self, maxcol: int, pos: int) -> tuple[int, int]:
         """Return (*x*, *y*) coordinates for an offset into self.edit_text."""

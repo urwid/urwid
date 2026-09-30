@@ -174,13 +174,13 @@ class EditRenderTest(unittest.TestCase):
         self.rtest(w, ["blah", "blah"], (0, 0))
 
         w.set_edit_pos(4)
-        self.rtest(w, ["lah ", "blah"], (3, 0))
+        self.rtest(w, ["blah", "blah"], (3, 0))
 
         w.set_edit_pos(5)
         self.rtest(w, ["blah", "blah"], (0, 1))
 
         w.set_edit_pos(9)
-        self.rtest(w, ["blah", "lah "], (3, 1))
+        self.rtest(w, ["blah", "blah"], (3, 1))
 
     def test2_ClipWrap(self):
         w = urwid.Edit("", "blah\nblargh", 1)
@@ -205,7 +205,7 @@ class EditRenderTest(unittest.TestCase):
         w = urwid.Edit("", "hi", align="right")
         w.keypress((4,), "end")
 
-        self.rtest(w, [" hi "], (3, 0))
+        self.rtest(w, ["  hi"], (3, 0))
 
         w.keypress((4,), "left")
         self.rtest(w, ["  hi"], (3, 0))
