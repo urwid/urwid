@@ -9,6 +9,18 @@ Urwid 4.2.2
 
 Bug fixes 🕷
 ++++++++++++
+* Fix Pile, Columns and GridFlow selectable flag caching by @penguinolog in https://github.com/urwid/urwid/pull/1362
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.2...4.2.3
+
+Urwid 4.2.2
+============
+
+2026-09-30
+
+Bug fixes 🕷
+++++++++++++
 * Fix Edit wrapping on full len by @penguinolog in https://github.com/urwid/urwid/pull/1356
 
 Refactoring 🛠
