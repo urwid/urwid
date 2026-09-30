@@ -831,10 +831,23 @@ class PileTest(unittest.TestCase):
         self.assertIsNone(pile.get_pref_col((10,)))
 
     def test_get_pref_col_empty_contents_but_selectable(self) -> None:
-        """Defensive branch: contents is empty even though `_selectable` was left True."""
+        """Defensive branch: contents is empty even though `selectable` was overridden to return True."""
         pile = urwid.Pile([])
-        pile._selectable = True
+        pile.selectable = lambda: True  # abuse our Pile
         self.assertIsNone(pile.get_pref_col((10,)))
+
+    def test_selectable_follows_child_change(self) -> None:
+        """A child changing its selectability after it was added is seen by the pile and its keypress."""
+        placeholder = urwid.WidgetPlaceholder(urwid.Text("wait"))
+        pile = urwid.Pile([placeholder])
+        self.assertFalse(pile.selectable())
+
+        placeholder.original_widget = urwid.Edit()
+        self.assertTrue(pile.selectable())
+        self.assertIsNone(pile.keypress((10,), "a"))
+
+        placeholder.original_widget = urwid.Text("done")
+        self.assertFalse(pile.selectable())
 
     def test_get_rows_sizes_empty_contents(self) -> None:
         pile = urwid.Pile([])

@@ -223,7 +223,6 @@ class Pile(
         .. note:: If the Pile is treated as a box widget there must be at least
             one ``'weight'`` tuple in :attr:`widget_list`.
         """
-        self._selectable = False
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -344,9 +343,16 @@ class Pile(
         return len(self._contents)
 
     def _contents_modified(self) -> None:
-        """Recalculate whether this widget should be selectable whenever the contents has been changed."""
-        self._selectable = any(w.selectable() for w, o in self.contents)
+        """Invalidate this widget whenever the contents has been changed."""
         self._invalidate()
+
+    def selectable(self) -> bool:
+        """Return whether any child widget is selectable.
+
+        Asked on every call rather than cached,
+        since a child such as :class:`~urwid.WidgetPlaceholder` may change its selectability after it was added.
+        """
+        return any(w.selectable() for w, _ in self.contents)
 
     def _validate_contents_modified(
         self,

@@ -275,7 +275,6 @@ class Columns(
         *box_columns* will be displayed with this calculated number of rows,
         filling the full height.
         """
-        self._selectable = False
         self._cache_column_widths: list[int] = []
         self._cache_pack_widths: dict[int, int] = {}
         super().__init__()
@@ -401,9 +400,16 @@ class Columns(
         return len(self._contents)
 
     def _contents_modified(self) -> None:
-        """Recalculate whether this widget should be selectable whenever the contents has been changed."""
-        self._selectable = any(w.selectable() for w, o in self.contents)
+        """Invalidate this widget whenever the contents has been changed."""
         self._invalidate()
+
+    def selectable(self) -> bool:
+        """Return whether any child widget is selectable.
+
+        Asked on every call rather than cached,
+        since a child such as :class:`~urwid.WidgetPlaceholder` may change its selectability after it was added.
+        """
+        return any(w.selectable() for w, _ in self.contents)
 
     def _validate_contents_modified(
         self,

@@ -1042,6 +1042,19 @@ class ColumnsTest(unittest.TestCase):
         self.assertIs(second, columns.focus)
         self.assertEqual(1, columns.focus_position)
 
+    def test_selectable_follows_child_change(self) -> None:
+        """A child changing its selectability after it was added is seen by the columns and its keypress."""
+        placeholder = urwid.WidgetPlaceholder(urwid.Text("wait"))
+        columns = urwid.Columns([placeholder])
+        self.assertFalse(columns.selectable())
+
+        placeholder.original_widget = urwid.Edit()
+        self.assertTrue(columns.selectable())
+        self.assertIsNone(columns.keypress((10,), "a"))
+
+        placeholder.original_widget = urwid.Text("done")
+        self.assertFalse(columns.selectable())
+
     def test_pack_given_and_weight_footer_row(self) -> None:
         """Footer-style row: weighted SolidFill spacers around given-width buttons."""
         ok_button = urwid.Button("OK", align=urwid.CENTER)
