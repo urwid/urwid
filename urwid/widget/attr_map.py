@@ -67,18 +67,10 @@ class AttrMap(
         [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
         """
         super().__init__(w)
-
-        if isinstance(attr_map, Mapping):
-            self.attr_map = dict(attr_map)
-        else:
-            self.attr_map = {None: attr_map}
-
-        if isinstance(focus_map, Mapping):
-            self.focus_map = dict(focus_map)
-        elif focus_map is None:
-            self.focus_map = focus_map
-        else:
-            self.focus_map = {None: focus_map}
+        self._attr_map: dict[Hashable, Hashable] = {}
+        self._focus_map: dict[Hashable, Hashable] | None = None
+        self.set_attr_map(attr_map)
+        self.set_focus_map(focus_map)
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         # only include the focus_attr when it takes effect (not None)
@@ -93,28 +85,31 @@ class AttrMap(
         # FIXME: a dictionary that detects modifications would be better
         return dict(self._attr_map)
 
-    def set_attr_map(self, attr_map: dict[Hashable, Hashable]) -> None:
+    def set_attr_map(self, attr_map: Hashable | Mapping[Hashable, Hashable]) -> None:
         """
         Set the attribute mapping dictionary {from_attr: to_attr, ...}.
 
-        Note this function does not accept a single attribute the way the
-        constructor does.  You must specify {None: attribute} instead.
+        A single attribute is stored as ``{None: attribute}``, the way the constructor does.
 
         >>> from urwid import Text
         >>> w = AttrMap(Text("hi"), None)
         >>> w.set_attr_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
+        >>> w.set_attr_map("c")
+        >>> w
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={None: 'c'}>
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        for from_attr, to_attr in attr_map.items():
+        mapping: dict[Hashable, Hashable] = dict(attr_map) if isinstance(attr_map, Mapping) else {None: attr_map}
+        for from_attr, to_attr in mapping.items():
             if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
                 raise AttrMapError(
                     f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
                 )
 
-        self._attr_map = attr_map
+        self._attr_map = mapping
         self._invalidate()
 
     attr_map = property(get_attr_map, set_attr_map)
@@ -127,33 +122,39 @@ class AttrMap(
             return dict(self._focus_map)
         return None
 
-    def set_focus_map(self, focus_map: dict[Hashable, Hashable] | None) -> None:
+    def set_focus_map(self, focus_map: Hashable | Mapping[Hashable, Hashable] | None) -> None:
         """Set the focus attribute mapping dictionary {from_attr: to_attr, ...}.
 
         If None this widget will use the attr mapping instead (no change
         when in focus).
 
-        Note this function does not accept a single attribute the way the
-        constructor does.  You must specify {None: attribute} instead.
+        A single attribute is stored as ``{None: attribute}``, the way the constructor does.
 
         >>> from urwid import Text
         >>> w = AttrMap(Text("hi"), {})
         >>> w.set_focus_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
+        >>> w.set_focus_map("c")
+        >>> w
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={None: 'c'}>
         >>> w.set_focus_map(None)
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={}>
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        if focus_map is not None:
-            for from_attr, to_attr in focus_map.items():
+        mapping: dict[Hashable, Hashable] | None
+        if focus_map is None:
+            mapping = None
+        else:
+            mapping = dict(focus_map) if isinstance(focus_map, Mapping) else {None: focus_map}
+            for from_attr, to_attr in mapping.items():
                 if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
                     raise AttrMapError(
                         f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
                     )
-        self._focus_map = focus_map
+        self._focus_map = mapping
         self._invalidate()
 
     focus_map = property(get_focus_map, set_focus_map)
