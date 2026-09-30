@@ -101,6 +101,18 @@ class TextTest(unittest.TestCase):
         widget.set_text([("a", "AB"), ("b", "CD")])
         self.assertEqual(("ABCD", [("a", 2), ("b", 2)]), widget.get_text())
 
+    def test_pack_does_not_wrap_after_tab(self) -> None:
+        """A line holding a tab packs to its unwrapped width, not to a layout wrapped after the tab stop."""
+        for widget, expected in (
+            (urwid.Text("Tab\there:"), (13, 1)),
+            (urwid.Text(b"Tab\there:"), (13, 1)),
+            (urwid.Text("a\tb\tcccccccc"), (24, 1)),
+            (urwid.Text("abcdef\t中中", wrap="any"), (12, 1)),
+            (urwid.Text("a\tbbbbbbbbbbbb", layout=urwid.StandardTextLayout(tab_stops=(12,))), (24, 1)),
+        ):
+            with self.subTest(text=widget.text, wrap=widget.wrap):
+                self.assertEqual(expected, widget.pack(()))
+
 
 class EditTest(unittest.TestCase):
     def setUp(self):
