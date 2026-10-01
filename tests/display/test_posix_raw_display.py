@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import signal
 import struct
+import subprocess
 import sys
 import unittest
 from unittest import mock
@@ -268,21 +269,64 @@ class TestGpmTracking(unittest.TestCase):
             s._start_gpm_tracking()
 
         mock_proc.kill.assert_called_once()
-        mock_proc.wait.assert_called_once_with(1)
+        mock_proc.__exit__.assert_called_once()
 
-    @mock.patch("os.waitpid")
-    @mock.patch("os.kill")
-    def test_stop_gpm_tracking(self, mock_kill, mock_waitpid):
+    @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
+    def test_stop_gpm_tracking(self, mock_kill):
+        """The helper is interrupted, its pipes closed and reaped, and the event loop told to stop watching it."""
         s = _make_screen()
         fake_proc = mock.MagicMock()
-        fake_proc.pid = 4321
         s.gpm_mev = fake_proc
+        seen = []
+        signals.connect_signal(s, INPUT_DESCRIPTORS_CHANGED, lambda: seen.append(s.gpm_mev))
 
         s._stop_gpm_tracking()
 
-        mock_kill.assert_called_once_with(4321, signal.SIGINT)
-        mock_waitpid.assert_called_once_with(4321, 0)
+        fake_proc.send_signal.assert_called_once_with(signal.SIGINT)
+        fake_proc.wait.assert_called_once_with(1.0)
+        fake_proc.kill.assert_not_called()
+        fake_proc.__exit__.assert_called_once()
+        mock_kill.assert_not_called()
         self.assertIsNone(s.gpm_mev)
+        self.assertEqual([None], seen)
+
+    @mock.patch.dict(os.environ, {"TERM": "linux"})
+    @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
+    @mock.patch("fcntl.fcntl")
+    @mock.patch("urwid.display._posix_raw_display.Popen")
+    @mock.patch("os.path.isfile", return_value=True)
+    def test_toggling_mouse_tracking_updates_watched_descriptors(
+        self, mock_isfile, mock_popen_cls, mock_fcntl, mock_kill
+    ):
+        """Turning mouse tracking on and off at run time adds and removes the helper's output from the watch."""
+        fake_proc = mock_popen_cls.return_value = mock.MagicMock()
+        s = _make_screen()
+        seen = []
+        signals.connect_signal(s, INPUT_DESCRIPTORS_CHANGED, lambda: seen.append(s.gpm_mev))
+
+        s.set_mouse_tracking(True)
+        s.set_mouse_tracking(False)
+
+        self.assertEqual([fake_proc, None], seen)
+        fake_proc.__exit__.assert_called_once()
+        mock_kill.assert_not_called()
+
+    @mock.patch.dict(os.environ, {"TERM": "linux"})
+    @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
+    @mock.patch("fcntl.fcntl")
+    @mock.patch("urwid.display._posix_raw_display.Popen")
+    @mock.patch("os.path.isfile", return_value=True)
+    def test_helper_that_does_not_exit_is_killed(self, mock_isfile, mock_popen_cls, mock_fcntl, mock_kill):
+        """A helper still running after the timeout is killed rather than waited for without limit."""
+        fake_proc = mock_popen_cls.return_value = mock.MagicMock()
+        fake_proc.wait.side_effect = subprocess.TimeoutExpired("mev", 1.0)
+        s = _make_screen()
+
+        s.set_mouse_tracking(True)
+        s.set_mouse_tracking(False)
+
+        fake_proc.kill.assert_called_once_with()
+        fake_proc.__exit__.assert_called_once()
 
     def test_stop_gpm_tracking_noop_when_not_tracking(self):
         s = _make_screen()
@@ -388,11 +432,10 @@ class TestEncodeGpmEvent(unittest.TestCase):
         self.assertEqual(4 + 32, result[3])
         self.assertEqual(_GPM_MOD_SHIFT, 1)  # sanity: the constant used to build the fixture
 
-    @mock.patch("os.waitpid")
-    @mock.patch("os.kill")
-    def test_malformed_line_stops_tracking(self, mock_kill, mock_waitpid):
+    @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
+    def test_malformed_line_stops_tracking(self, mock_kill):
         s = self._screen_with_gpm_line("not,enough,fields\n")
-        s.gpm_mev.pid = 4242
+        gpm_mev = s.gpm_mev
         seen = []
         signals.connect_signal(s, INPUT_DESCRIPTORS_CHANGED, lambda: seen.append(True))
 
@@ -401,7 +444,8 @@ class TestEncodeGpmEvent(unittest.TestCase):
         self.assertEqual([], result)
         self.assertIsNone(s.gpm_mev)
         self.assertEqual([True], seen)
-        mock_kill.assert_called_once_with(4242, signal.SIGINT)
+        gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
+        mock_kill.assert_not_called()
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

@@ -28,6 +28,7 @@ import functools
 import os
 import signal
 import struct
+import subprocess
 import sys
 import termios
 import tty
@@ -85,6 +86,9 @@ _GPM_MOD_ALT = 8
 
 # most bytes of terminal input read per wake-up
 _INPUT_READ_LIMIT = 65536
+
+# seconds the gpm helper is given to exit on SIGINT before it is killed
+_GPM_STOP_TIMEOUT = 1.0
 
 
 class Screen(_raw_display_base.Screen):
@@ -217,7 +221,7 @@ class Screen(_raw_display_base.Screen):
         if not os.environ.get("TERM", "").lower().startswith("linux"):
             return
 
-        m = Popen(  # pylint: disable=consider-using-with
+        m = Popen(
             ["/usr/bin/mev", "-e", "158"],
             stdin=PIPE,
             stdout=PIPE,
@@ -225,18 +229,27 @@ class Screen(_raw_display_base.Screen):
             encoding="ascii",
         )
         if m.stdout is None:
-            m.kill()
-            m.wait(1)
+            with m:  # closes the pipes and reaps the process on the way out
+                m.kill()
             raise RuntimeError("gpm mouse tracking stdout was not created")
         fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
         self.gpm_mev = m
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _stop_gpm_tracking(self) -> None:
-        if not self.gpm_mev:
+        """Stop the gpm helper, close its pipes and stop watching its output."""
+        gpm_mev, self.gpm_mev = self.gpm_mev, None
+        if gpm_mev is None:
             return
-        os.kill(self.gpm_mev.pid, signal.SIGINT)
-        os.waitpid(self.gpm_mev.pid, 0)
-        self.gpm_mev = None
+        try:
+            with gpm_mev:  # closes both pipes and reaps the process on the way out
+                gpm_mev.send_signal(signal.SIGINT)
+                try:
+                    gpm_mev.wait(_GPM_STOP_TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    gpm_mev.kill()
+        finally:
+            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -429,7 +442,6 @@ class Screen(_raw_display_base.Screen):
         if len(event_result) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
-            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
 
         ev_, x_, y_, _ign, b_, m_ = event_result
