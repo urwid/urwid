@@ -893,15 +893,15 @@ class Screen(BaseScreen, RealTerminal):
         return self._read_raw_input(0)
 
     def _setup_G1(self) -> None:
-        """Initialize the G1 character set to graphics mode if required."""
+        """Initialize the G1 character set to graphics mode if required.
+
+        :raises OSError: the terminal could not be written to. The setup is tried again on the next draw.
+        """
         if self._setup_G1_done:
             return
 
-        while True:
-            with contextlib.suppress(OSError):
-                self.write(escape.DESIGNATE_G1_SPECIAL)
-                self.flush()
-                break
+        self.write(escape.DESIGNATE_G1_SPECIAL)
+        self.flush()
         self._setup_G1_done = True
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
@@ -909,6 +909,7 @@ class Screen(BaseScreen, RealTerminal):
 
         :raises RuntimeError: the screen has not been started.
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        :raises OSError: the terminal could not be written to, for a reason other than an interrupted system call.
         """
 
         def set_cursor_position(x: int, y: int) -> str:

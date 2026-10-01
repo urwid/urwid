@@ -184,7 +184,7 @@ class TestRawDisplay(unittest.TestCase):
     def test_draw_screen_ignores_eintr(self):
         """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""
         s = urwid.display.raw.Screen()
-        s._setup_G1_done = True  # skip the (unrelated) G1-setup write, which retries forever on OSError
+        s._setup_G1_done = True  # skip the G1-setup write, so the error comes from the frame write under test
         s.write = mock.Mock(side_effect=OSError(errno.EINTR, "interrupted system call"))
         s.flush = lambda: None
         s._started = True
@@ -192,10 +192,24 @@ class TestRawDisplay(unittest.TestCase):
         canvas = urwid.Text("x").render((1,))
         s.draw_screen((1, canvas.rows()), canvas)  # must not raise
 
+    def test_setup_g1_propagates_oserror(self):
+        """A terminal that cannot be written to raises instead of retrying, and the setup is tried again later."""
+        s = urwid.display.raw.Screen()
+        s.write = mock.Mock(side_effect=OSError(errno.EIO, "I/O error"))
+        s.flush = lambda: None
+
+        canvas = urwid.Text("x").render((1,))
+        with mock.patch.object(s, "_started", True):
+            for _ in range(2):
+                with self.assertRaises(OSError):
+                    s.draw_screen((1, canvas.rows()), canvas)
+
+        self.assertEqual([mock.call(escape.DESIGNATE_G1_SPECIAL)] * 2, s.write.call_args_list)
+
     def test_draw_screen_reraises_other_oserror(self):
         """An OSError with an errno other than EINTR during draw_screen() must propagate."""
         s = urwid.display.raw.Screen()
-        s._setup_G1_done = True  # skip the (unrelated) G1-setup write, which retries forever on OSError
+        s._setup_G1_done = True  # skip the G1-setup write, so the error comes from the frame write under test
         s.write = mock.Mock(side_effect=OSError(errno.EIO, "I/O error"))
         s.flush = lambda: None
         s._started = True
