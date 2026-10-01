@@ -765,6 +765,75 @@ class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             pull.close()
             push.close()
 
+    def test_watch_file_with_a_zmq_socket(self):
+        """A zmq socket given to watch_file() is called back when it has a message."""
+        evl = self.evl
+        out: list[bytes] = []
+        ctx = zmq.Context.instance()
+        pull = ctx.socket(zmq.PULL)
+        push = ctx.socket(zmq.PUSH)
+        try:
+            address = f"inproc://{self.id()}"
+            pull.bind(address)
+            push.connect(address)
+
+            def on_ready() -> typing.NoReturn:
+                out.append(pull.recv())
+                raise urwid.ExitMainLoop
+
+            def give_up() -> typing.NoReturn:
+                raise urwid.ExitMainLoop
+
+            evl.watch_file(pull, on_ready)
+            evl.alarm(5, give_up)  # a missed event fails the assertion below instead of hanging the run
+            push.send(b"hi")
+            evl.run()
+
+            self.assertEqual([b"hi"], out)
+            self.assertTrue(evl.remove_watch_file(pull))
+        finally:
+            pull.close()
+            push.close()
+
+    def test_zmq_socket_has_one_watch_for_file_and_queue(self):
+        """watch_file() and watch_queue() set the same watch on a zmq socket, and either remove call clears it."""
+        evl = self.evl
+        pull = zmq.Context.instance().socket(zmq.PULL)
+        try:
+            evl.watch_file(pull, lambda: None)
+            with self.assertRaises(ValueError):
+                evl.watch_queue(pull, lambda: None)
+            self.assertTrue(evl.remove_watch_queue(pull))
+            self.assertFalse(evl.remove_watch_file(pull))
+
+            evl.watch_queue(pull, lambda: None)
+            self.assertTrue(evl.remove_watch_file(pull))
+            self.assertFalse(evl.remove_watch_queue(pull))
+        finally:
+            pull.close()
+
+    def test_remove_watch_file_by_object_or_descriptor(self):
+        """A watch is removed from the poller whether it is named by the object or by its descriptor number."""
+        evl = self.evl
+        called = []
+        with ClosingSocketPair() as (rd_1, wr_1), ClosingSocketPair() as (rd_2, wr_2):
+            evl.watch_file(rd_1, lambda: called.append("by object"))
+            evl.watch_file(rd_2.fileno(), lambda: called.append("by descriptor"))
+
+            self.assertTrue(evl.remove_watch_file(rd_1.fileno()))
+            self.assertTrue(evl.remove_watch_file(rd_2))
+            self.assertFalse(evl.remove_watch_file(rd_1))
+            wr_1.send(b"x")
+            wr_2.send(b"x")
+
+            def stop() -> typing.NoReturn:
+                raise urwid.ExitMainLoop
+
+            evl.alarm(0, stop)
+            evl.run()
+
+        self.assertEqual([], called)
+
     def test_watch_queue_rejects_a_queue_already_being_watched(self):
         evl = self.evl
         pull = zmq.Context.instance().socket(zmq.PULL)
