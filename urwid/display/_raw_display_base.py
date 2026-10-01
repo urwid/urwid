@@ -38,7 +38,14 @@ import typing
 from urwid import signals, str_util, util
 
 from . import escape
-from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
+from .common import (
+    UNPRINTABLE_C1_TRANS_TABLE,
+    UNPRINTABLE_TRANS_TABLE,
+    UPDATE_PALETTE_ENTRY,
+    AttrSpec,
+    BaseScreen,
+    RealTerminal,
+)
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
@@ -948,6 +955,8 @@ class Screen(BaseScreen, RealTerminal):
                 last_charset_flag = charset
 
             line_text = run.decode(encoding, "replace")
+            if charset != "U" and not line_text.isascii():
+                line_text = line_text.translate(UNPRINTABLE_C1_TRANS_TABLE)
 
             if not last:
                 output.append(line_text)
