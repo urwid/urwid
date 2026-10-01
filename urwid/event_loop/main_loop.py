@@ -335,6 +335,7 @@ class MainLoop:
 
             If the callback returns ``False`` then the watch will be removed from :attr:`event_loop`
             and the read end of the pipe will be closed.
+            The same happens once every write end is closed: the callback then receives ``b""`` one last time.
             You are responsible for closing the write end of the pipe with ``os.close(fd)``.
 
             .. note::
@@ -345,26 +346,39 @@ class MainLoop:
 
             pipe_rd, pipe_wr = os.pipe()
             fcntl.fcntl(pipe_rd, fcntl.F_SETFL, os.O_NONBLOCK)
-            watch_handle = None
+            entry: tuple[typing.Any, int] | None = None
 
+            # A callback acts only while its own entry is registered: once remove_watch_pipe() closed the read end,
+            # its descriptor number may already belong to another file.
             if inspect.iscoroutinefunction(callback):
 
                 async def cb() -> None:
-                    data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-                    if await callback(data) is False:
-                        self.event_loop.remove_watch_file(watch_handle)
-                        os.close(pipe_rd)
+                    if self._watch_pipes.get(pipe_wr) is not entry:
+                        return
+                    try:
+                        data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
+                    except BlockingIOError:
+                        return  # a task started by an earlier wake-up already read the data
+                    if not data:
+                        # Removed before awaiting: the pipe stays readable at its end, starting a task per pass.
+                        self.remove_watch_pipe(pipe_wr)
+                        await callback(data)
+                    elif await callback(data) is False and self._watch_pipes.get(pipe_wr) is entry:
+                        self.remove_watch_pipe(pipe_wr)
 
             else:
 
                 def cb() -> None:  # type: ignore[misc]  # intentionally the sync variant of the branch above
+                    if self._watch_pipes.get(pipe_wr) is not entry:
+                        return
                     data = os.read(pipe_rd, PIPE_BUFFER_READ_SIZE)
-                    if callback(data) is False:
-                        self.event_loop.remove_watch_file(watch_handle)
-                        os.close(pipe_rd)
+                    if (callback(data) is False or not data) and self._watch_pipes.get(pipe_wr) is entry:
+                        self.remove_watch_pipe(pipe_wr)
 
-            watch_handle = self.event_loop.watch_file(pipe_rd, cb)
-            self._watch_pipes[pipe_wr] = (watch_handle, pipe_rd)
+            # An entry left under this number belongs to a write end the caller has closed since.
+            self.remove_watch_pipe(pipe_wr)
+            entry = (self.event_loop.watch_file(pipe_rd, cb), pipe_rd)
+            self._watch_pipes[pipe_wr] = entry
             return pipe_wr
 
         def remove_watch_pipe(self, write_fd: int) -> bool:
@@ -380,8 +394,7 @@ class MainLoop:
             except KeyError:
                 return False
 
-            if not self.event_loop.remove_watch_file(watch_handle):
-                return False
+            self.event_loop.remove_watch_file(watch_handle)
             os.close(pipe_rd)
             return True
 

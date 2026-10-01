@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import concurrent.futures
 import contextlib
 import doctest
@@ -156,6 +157,92 @@ class TestMainLoop(unittest.TestCase):
         screen.start.assert_called_once_with()
         screen.stop.assert_called_once_with()
         event_loop.run.assert_not_called()
+
+    @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
+    def test_watch_pipe_removed_at_end_of_file(self):
+        """Once every write end is closed, the callback gets b"" once and the watch is gone."""
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=unittest.mock.Mock(spec=urwid.display.raw.Screen),
+            event_loop=urwid.SelectEventLoop(),
+        )
+        received: list[bytes] = []
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        def on_data(data: bytes) -> None:
+            received.append(data)
+            if len(received) > 2:
+                stop()  # a watch left on the closed pipe keeps it ready and starves the alarm below
+
+        pipe_wr = loop.watch_pipe(on_data)
+        os.write(pipe_wr, b"data")
+        os.close(pipe_wr)
+        loop.event_loop.alarm(0.1, stop)
+        loop.event_loop.run()
+
+        self.assertEqual([b"data", b""], received)
+        self.assertFalse(loop.remove_watch_pipe(pipe_wr))
+
+    @unittest.skipIf(IS_WINDOWS, "AsyncioEventLoop is not supported on Windows here")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
+    def test_watch_pipe_async_callback_reads_each_write_once(self):
+        """Wake-ups queued before the first task read the pipe do not fail on the drained descriptor."""
+        asyncio_loop = asyncio.new_event_loop()
+        self.addCleanup(asyncio_loop.close)
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=unittest.mock.Mock(spec=urwid.display.raw.Screen),
+            event_loop=urwid.AsyncioEventLoop(loop=asyncio_loop),
+        )
+        received: list[bytes] = []
+
+        async def on_data(data: bytes) -> bool:
+            received.append(data)
+            return data != b"last"
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        pipe_wr = loop.watch_pipe(on_data)
+        self.addCleanup(os.close, pipe_wr)
+        os.write(pipe_wr, b"first")
+        loop.event_loop.alarm(0.1, lambda: os.write(pipe_wr, b"last"))
+        loop.event_loop.alarm(0.2, stop)
+        loop.event_loop.run()
+
+        self.assertEqual([b"first", b"last"], received)
+        self.assertFalse(loop.remove_watch_pipe(pipe_wr))
+
+    @unittest.skipIf(IS_WINDOWS, "AsyncioEventLoop is not supported on Windows here")
+    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
+    def test_watch_pipe_async_callback_gets_end_of_file_once(self):
+        """An async callback still running at the end of the pipe does not get b"" again on later passes."""
+        asyncio_loop = asyncio.new_event_loop()
+        self.addCleanup(asyncio_loop.close)
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=unittest.mock.Mock(spec=urwid.display.raw.Screen),
+            event_loop=urwid.AsyncioEventLoop(loop=asyncio_loop),
+        )
+        received: list[bytes] = []
+
+        async def on_data(data: bytes) -> None:
+            received.append(data)
+            await asyncio.sleep(0.05)
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        pipe_wr = loop.watch_pipe(on_data)
+        os.close(pipe_wr)
+        loop.event_loop.alarm(0.2, stop)
+        loop.event_loop.run()
+
+        self.assertEqual([b""], received)
+        self.assertFalse(loop.remove_watch_pipe(pipe_wr))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
     @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
