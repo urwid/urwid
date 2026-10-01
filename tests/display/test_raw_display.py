@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import gc
 import os
+import sys
 import unittest
 import weakref
 from unittest import mock
@@ -23,6 +24,10 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual("\x1b[0;38;5;229;4;48;5;164m", a2e(s.AttrSpec("#fea,underline", "#d0d")))
         self.assertEqual("\x1b[0;33;2;42m", a2e(s.AttrSpec("brown,faint", "dark green")))
 
+    @unittest.skipUnless(
+        sys.implementation.name == "cpython",
+        "relies on reference counting freeing the screen as soon as it is dropped",
+    )
     def test_dropped_screen_is_freed_without_the_cyclic_collector(self):
         """Nothing in a new screen refers back to it, so dropping it releases its sockets at once."""
         gc.disable()
