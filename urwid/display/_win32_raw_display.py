@@ -38,6 +38,9 @@ from urwid import signals
 from . import _raw_display_base, _win32, escape
 from .common import INPUT_DESCRIPTORS_CHANGED
 
+# milliseconds the console reader waits for input before checking whether it has to stop
+_INPUT_POLL_MS = 100
+
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -135,6 +138,7 @@ class Screen(_raw_display_base.Screen):
                 raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
 
             if not (ok := _win32.SetConsoleMode(handle_in, dword_in_mode)):
+                _win32.SetConsoleMode(handle_out, original_out_mode)
                 raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
 
             self._dwOriginalOutMode = original_out_mode
@@ -158,6 +162,12 @@ class Screen(_raw_display_base.Screen):
 
         super()._start()  # type: ignore[safe-super]
 
+    def __del__(self) -> None:
+        if self._send_input is not None:  # the socket pair was created here, so it is closed here
+            self._send_input.close()
+            self._term_input_file.close()
+        super().__del__()
+
     def _stop(self) -> None:
         """
         Restore the screen.
@@ -173,6 +183,8 @@ class Screen(_raw_display_base.Screen):
             self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
+        # After the signal: a main loop still connected to it re-hooks the screen, which starts a reader.
+        self._stop_input_thread()
 
         self._stop_mouse_restore_buffer()
         self._stop_restore_palette()
@@ -195,14 +207,6 @@ class Screen(_raw_display_base.Screen):
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
         """Remove any hooks added by hook_event_loop."""
-        if self._input_thread is not None:
-            self._input_thread.should_exit = True
-
-            with contextlib.suppress(RuntimeError):
-                self._input_thread.join(5)
-
-            self._input_thread = None
-
         for handle in self._current_event_loop_handles:
             event_loop.remove_watch_file(handle)
 
@@ -247,6 +251,15 @@ class Screen(_raw_display_base.Screen):
         self._input_thread = ReadInputThread(self._send_input, self._sigwinch_handler)
         self._input_thread.start()
 
+    def _stop_input_thread(self) -> None:
+        """Stop the background console reader, so it reads no input meant for whatever uses the console next."""
+        if self._input_thread is None:
+            return
+        self._input_thread.should_exit = True
+        with contextlib.suppress(RuntimeError):
+            self._input_thread.join(5)
+        self._input_thread = None
+
     def _read_raw_input(self, timeout: float) -> bytearray:
         ready = self._wait_for_input_ready(timeout)
 
@@ -260,7 +273,10 @@ class Screen(_raw_display_base.Screen):
             selector.register(fd, selectors.EVENT_READ)
 
             while selector.select(0):
-                chars.extend(self._term_input_file.recv(1024))
+                chunk = self._term_input_file.recv(1024)
+                if not chunk:
+                    raise RuntimeError("stdin has been closed")
+                chars.extend(chunk)
 
             return chars
 
@@ -304,32 +320,43 @@ class ReadInputThread(threading.Thread):
         read = DWORD(0)
         arrtype = _win32.INPUT_RECORD * MAX
         input_records = arrtype()
-        send_input = self._input.send
+        send_input = self._input.sendall
         resize = self._resize
         key_event = _win32.EventType.KEY_EVENT
         resize_event = _win32.EventType.WINDOW_BUFFER_SIZE_EVENT
 
-        while True:
-            _win32.ReadConsoleInputW(hIn, byref(input_records), MAX, byref(read))
-            if self.should_exit:
+        # A character outside the Basic Multilingual Plane arrives as two UTF-16 halves in two key events,
+        # possibly in two reads: the first half waits here for the second one.
+        high_surrogate = ""
+
+        while not self.should_exit:
+            # The timeout keeps should_exit checked while no input arrives.
+            wait_result = _win32.WaitForSingleObject(hIn, _INPUT_POLL_MS)
+            if wait_result == _win32.WAIT_TIMEOUT:
+                continue
+            if wait_result != _win32.WAIT_OBJECT_0 or not _win32.ReadConsoleInputW(
+                hIn, input_records, MAX, byref(read)
+            ):
+                self.logger.warning("Reading console input failed, no further input is received")
                 return
-            for i in range(read.value):
-                inp = input_records[i]
+
+            chars = [high_surrogate]
+            for inp in input_records[: read.value]:
                 if inp.EventType == key_event:
-                    if not inp.Event.KeyEvent.bKeyDown:
-                        continue
-
-                    input_data = inp.Event.KeyEvent.uChar.UnicodeChar
-                    # On Windows atomic press/release of modifier keys produce phantom input with code NULL.
-                    # This input cannot be decoded and should be handled as garbage.
-                    input_bytes = input_data.encode("utf-8")
-                    if input_bytes != b"\x00":
-                        send_input(input_bytes)
-
+                    if inp.Event.KeyEvent.bKeyDown:
+                        chars.append(inp.Event.KeyEvent.uChar.UnicodeChar)
                 elif inp.EventType == resize_event:
                     resize()
                 else:
                     pass  # TODO: handle mouse events
+
+            # On Windows atomic press/release of modifier keys produce phantom input with code NULL.
+            text = "".join(chars).replace("\x00", "")
+            high_surrogate = text[-1:] if "\ud800" <= text[-1:] <= "\udbff" else ""
+            if high_surrogate:
+                text = text[:-1]
+            if text:
+                send_input(text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace").encode("utf-8"))
 
 
 def _test() -> None:
