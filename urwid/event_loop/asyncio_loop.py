@@ -285,8 +285,13 @@ class AsyncioEventLoop(EventLoop):
 
         :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
+        # The handler stops the loop on any exception, so it must not stay on a loop shared with other code.
+        previous_handler = self._loop.get_exception_handler()
         self._loop.set_exception_handler(self._exception_handler)
-        self._loop.run_forever()
+        try:
+            self._loop.run_forever()
+        finally:
+            self._loop.set_exception_handler(previous_handler)
         if self._exc:
             exc = self._exc
             self._exc = None
