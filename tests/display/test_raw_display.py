@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import errno
+import gc
 import os
 import unittest
+import weakref
 from unittest import mock
 
 import urwid
@@ -20,6 +22,16 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual("\x1b[0;33;42m", a2e(s.AttrSpec("brown", "dark green")))
         self.assertEqual("\x1b[0;38;5;229;4;48;5;164m", a2e(s.AttrSpec("#fea,underline", "#d0d")))
         self.assertEqual("\x1b[0;33;2;42m", a2e(s.AttrSpec("brown,faint", "dark green")))
+
+    def test_dropped_screen_is_freed_without_the_cyclic_collector(self):
+        """Nothing in a new screen refers back to it, so dropping it releases its sockets at once."""
+        gc.disable()
+        self.addCleanup(gc.enable)
+        s = urwid.display.raw.Screen()
+        screen_ref = weakref.ref(s)
+        del s
+
+        self.assertIsNone(screen_ref())
 
     def test_attrspec_faint(self):
         a = urwid.AttrSpec("dark red,faint", "")

@@ -363,7 +363,9 @@ class Screen(BaseScreen, RealTerminal):
         self._pal_escape: dict[Hashable, str] = {}
         self._pal_attrspec: dict[Hashable, AttrSpec] = {}
         self._modified_palette_entries: set[int] = set()
-        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
+        # Connected through a weak reference: a bound method would be a reference cycle back to this screen,
+        # keeping its sockets open until the cyclic garbage collector happened to run.
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
         properties = detect_terminal_properties(self.term, os.environ)
         self.colors = properties.colors
