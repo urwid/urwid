@@ -406,7 +406,7 @@ class TestEncodeGpmEvent(unittest.TestCase):
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
 class TestReadRawInput(unittest.TestCase):
-    def test_drains_all_available_bytes_across_multiple_writes(self):
+    def test_reads_bytes_of_several_writes_in_one_call(self):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
         s = Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))  # noqa: SIM115
@@ -421,6 +421,22 @@ class TestReadRawInput(unittest.TestCase):
         result = s._read_raw_input(1)
 
         self.assertEqual(bytearray(b"abcdef"), result)
+
+    @mock.patch("urwid.display._posix_raw_display._INPUT_READ_LIMIT", 4)
+    def test_input_beyond_the_read_limit_is_left_for_the_next_pass(self):
+        """One call reads at most the limit, so a producer that keeps writing cannot keep it reading."""
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = _make_screen(read_fd)
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        s.start()
+        self.addCleanup(s.stop)
+
+        os.write(write_fd, b"abcdef")
+
+        self.assertEqual(list(b"abcd"), s.get_available_raw_input())
+        self.assertEqual(list(b"ef"), s.get_available_raw_input())
 
     def test_returns_empty_on_timeout_with_nothing_available(self):
         read_fd, write_fd = os.pipe()
