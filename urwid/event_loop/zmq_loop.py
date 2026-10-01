@@ -163,7 +163,7 @@ class ZMQEventLoop(EventLoop):
 
         :param int flags:
             The condition to monitor on the queue (defaults to ``POLLIN``).
-        :raises ValueError: *queue* is already being watched.
+        :raises ValueError: *queue* is already being watched, by this method or by :meth:`watch_file`.
         """
         if queue in self._queue_callbacks:
             raise ValueError(f"already watching {queue!r}")
@@ -182,8 +182,16 @@ class ZMQEventLoop(EventLoop):
         No parameters are passed to the callback. The *flags* are as for :meth:`watch_queue`.
         Returns a handle that may be passed to :meth:`remove_watch_file`.
 
+        .. note::
+            For a zmq socket, this method and :meth:`watch_queue` set the same watch.
+            Calling this method on a watched socket replaces its callback and flags,
+            while :meth:`watch_queue` refuses a watched socket.
+            Either :meth:`remove_watch_file` or :meth:`remove_watch_queue` removes it.
+
         :param fd:
             The file-like object, or fileno to monitor.
+            A zmq socket is watched for its 0MQ events, as by :meth:`watch_queue`.
+            Its ``fileno()`` is the socket's notification descriptor and does not name the same watch.
 
         :param callback:
             The function to call when the file has data available.
@@ -191,12 +199,10 @@ class ZMQEventLoop(EventLoop):
         :param int flags:
             The condition to monitor on the file (defaults to ``POLLIN``).
         """
-        # zmq.Poller.register() accepts a raw fd directly, so an int is registered as-is
-        # rather than wrapped in os.fdopen(): that wrapper would take ownership of the fd
-        # and close it on GC, racing whatever the caller does with the fd it still owns.
-        fileno = fd if isinstance(fd, int) else fd.fileno()
-        self._poller.register(fd, flags)
-        self._queue_callbacks[fileno] = callback
+        # The key the poller reports a ready entry by: the socket for a zmq socket, the descriptor number otherwise.
+        key = fd if isinstance(fd, (int, zmq.Socket)) else fd.fileno()
+        self._poller.register(key, flags)
+        self._queue_callbacks[key] = callback
         return fd
 
     def remove_watch_queue(self, handle: zmq.Socket[typing.Any]) -> bool:
@@ -218,14 +224,16 @@ class ZMQEventLoop(EventLoop):
     def remove_watch_file(self, handle: int | SupportsFileno) -> bool:
         """Remove a file from background polling.
 
+        *handle* may be the object given to :meth:`watch_file` or, for an ordinary file, its descriptor number.
+        A zmq socket is named by the socket object itself.
         Returns ``True`` if the file was being monitored, ``False`` otherwise.
         """
-        fileno = handle if isinstance(handle, int) else handle.fileno()
+        key = handle if isinstance(handle, (int, zmq.Socket)) else handle.fileno()
         try:
             try:
-                self._poller.unregister(handle)
+                self._poller.unregister(key)
             finally:
-                self._queue_callbacks.pop(fileno, None)
+                self._queue_callbacks.pop(key, None)
 
         except KeyError:
             return False
