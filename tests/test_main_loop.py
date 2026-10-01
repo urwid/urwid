@@ -143,6 +143,20 @@ class RecordingWidget:
 
 
 class TestMainLoop(unittest.TestCase):
+    def test_run_stops_the_screen_when_start_fails(self):
+        """A failure in start() after the screen started leaves the terminal restored."""
+        screen = unittest.mock.Mock(spec=urwid.display.raw.Screen)
+        screen.set_mouse_tracking.side_effect = OSError
+        event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, event_loop=event_loop)
+
+        with self.assertRaises(OSError):
+            loop.run()
+
+        screen.start.assert_called_once_with()
+        screen.stop.assert_called_once_with()
+        event_loop.run.assert_not_called()
+
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
     @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe(self):
@@ -513,11 +527,12 @@ class TestMainLoop(unittest.TestCase):
         self.assertEqual(["a"], order)
 
     def test_run_reraises_unexpected_event_loop_error(self):
-        """run() stops the screen and lets an unexpected event loop error propagate."""
+        """run() removes its event loop hooks, stops the screen and lets an unexpected event loop error propagate."""
         with dummy_raw_main_loop() as evl:
             with unittest.mock.patch.object(evl.event_loop, "run", side_effect=RuntimeError("boom")):
                 self.assertRaises(RuntimeError, evl.run)
             self.assertFalse(evl.screen.started)
+            self.assertIsNone(evl.idle_handle)
 
     def test_update_processes_keys_and_resets_screen_size_on_resize(self):
         """_update runs process_input and clears screen_size on a window resize event."""

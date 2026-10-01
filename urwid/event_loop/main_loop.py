@@ -514,13 +514,15 @@ class MainLoop:
                 return
             finally:
                 self.screen.stop()
+        except BaseException:
+            # start() may have failed after starting the screen or hooking the event loop.
+            self.stop()
+            raise
 
         try:
             self.event_loop.run()
-        except:
-            self.screen.stop()  # clean up screen control
-            raise
-        self.stop()
+        finally:
+            self.stop()
 
     def _update(self, keys: list[str | tuple[str, int, int, int]], raw: list[int]) -> None:
         """Filter *keys* and pass them to :meth:`process_input`, resetting :attr:`screen_size` on a window resize.
