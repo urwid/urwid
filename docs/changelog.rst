@@ -2,7 +2,20 @@
 Changelog
 ---------
 
-Urwid 4.2.2
+Urwid 4.2.4
+============
+
+2026-10-01
+
+Bug fixes 🕷
+++++++++++++
+* Fix Text.pack() wrapping a line after a tab stop by @penguinolog in https://github.com/urwid/urwid/pull/1364
+* Fix ListBox focus restore on a shrunk body by @penguinolog in https://github.com/urwid/urwid/pull/1365
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.3...4.2.4
+
+Urwid 4.2.3
 ============
 
 2026-09-30
