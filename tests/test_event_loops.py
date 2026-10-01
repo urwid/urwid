@@ -242,9 +242,85 @@ class EventLoopTestMixin:
         )
 
 
-class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class StaleReadyWatchTestMixin:
+    """Descriptors reported ready together, where an earlier callback changes the watch of a later one."""
+
+    def _poll_once(self) -> None:
+        """Run one iteration of the loop."""
+        raise NotImplementedError
+
+    def test_watch_removed_by_earlier_callback_is_skipped(self):
+        """A descriptor that was ready but lost its watch earlier in the same pass is not called back."""
+        evl = self.evl
+        called = []
+        with ClosingSocketPair() as (rd_1, wr_1), ClosingSocketPair() as (rd_2, wr_2):
+
+            def first() -> None:
+                called.append("first")
+                evl.remove_watch_file(rd_2.fileno())
+
+            def second() -> None:
+                called.append("second")
+                evl.remove_watch_file(rd_1.fileno())
+
+            evl.watch_file(rd_1.fileno(), first)
+            evl.watch_file(rd_2.fileno(), second)
+            wr_1.send(b"x")
+            wr_2.send(b"x")
+
+            self._poll_once()
+
+        # Both descriptors were ready; whichever callback ran first removed the other one's watch.
+        self.assertEqual(1, len(called))
+
+    def test_watch_replaced_by_earlier_callback_is_skipped(self):
+        """A watch replaced earlier in the same pass is not called with the readiness seen for the old one."""
+        evl = self.evl
+        called = []
+        with ClosingSocketPair() as (rd_1, wr_1), ClosingSocketPair() as (rd_2, wr_2):
+
+            def replacement() -> None:
+                called.append("replacement")
+
+            def first() -> None:
+                called.append("first")
+                evl.remove_watch_file(rd_2.fileno())
+                evl.watch_file(rd_2.fileno(), replacement)
+
+            def second() -> None:
+                called.append("second")
+                evl.remove_watch_file(rd_1.fileno())
+                evl.watch_file(rd_1.fileno(), replacement)
+
+            evl.watch_file(rd_1.fileno(), first)
+            evl.watch_file(rd_2.fileno(), second)
+            wr_1.send(b"x")
+            wr_2.send(b"x")
+
+            self._poll_once()
+
+        self.assertEqual(1, len(called))
+        self.assertNotIn("replacement", called)
+
+
+class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin):
     def setUp(self):
         self.evl = urwid.SelectEventLoop()
+
+    def _poll_once(self) -> None:
+        """Run one iteration of the loop."""
+        self.evl._loop()
+
+    def test_watch_registered_with_a_file_object_is_called(self):
+        """A watch registered with an object that has fileno() is found again when its descriptor is ready."""
+        called = []
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: called.append("ready"))
+            wr.send(b"x")
+
+            self._poll_once()
+
+        self.assertEqual(["ready"], called)
 
 
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
@@ -735,9 +811,13 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
 @unittest.skipUnless(ZMQ_AVAILABLE, "ZMQ is not available")
 @unittest.skipIf(IS_WINDOWS, "ZMQEventLoop is not supported under windows")
-class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin):
     def setUp(self):
         self.evl = urwid.ZMQEventLoop()
+
+    def _poll_once(self) -> None:
+        """Run one iteration of the loop."""
+        asyncio.run(self.evl._loop())
 
     def test_watch_queue_and_remove_watch_queue(self):
         evl = self.evl

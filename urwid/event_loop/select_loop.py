@@ -218,5 +218,10 @@ class SelectEventLoop(EventLoop):
 
         self.logger.debug("Processing input")
         for record in ready:
-            record.data()
+            # An earlier callback in this pass may have removed or replaced the watch and closed its descriptor.
+            # Looked up by the registered object rather than record.fd, so a watch given a file object is found.
+            watch_callback = self._watch_files.get(typing.cast("int", record.fileobj))
+            if watch_callback is None or watch_callback is not record.data:
+                continue
+            watch_callback()
             self._did_something = True

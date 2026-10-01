@@ -306,6 +306,7 @@ class ZMQEventLoop(EventLoop):
     async def _loop(self) -> None:
         """Run a single iteration of the event loop."""
         state = "wait"  # default state not expecting any action
+        polled_callbacks = dict(self._queue_callbacks)
         if self._alarms or self._did_something:
             timeout = 0.0
             if self._alarms:
@@ -328,6 +329,10 @@ class ZMQEventLoop(EventLoop):
                 self._did_something = True
 
         for queue in ready:
+            # A callback earlier in this pass, or another task during the poll, may have removed or replaced the
+            # watch and closed its descriptor.
+            if queue in polled_callbacks and self._queue_callbacks.get(queue) is not polled_callbacks[queue]:
+                continue
             self._run_callback(self._queue_callbacks[queue])
             self._did_something = True
 
