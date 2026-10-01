@@ -179,8 +179,15 @@ SetConsoleMode.restype = BOOL
 
 # https://docs.microsoft.com/de-de/windows/console/readconsoleinput
 ReadConsoleInputW = windll.kernel32.ReadConsoleInputW
-# ReadConsoleInputW.argtypes = [HANDLE, POINTER(INPUT_RECORD), DWORD, LPDWORD]
+ReadConsoleInputW.argtypes = [HANDLE, POINTER(INPUT_RECORD), DWORD, LPDWORD]
 ReadConsoleInputW.restype = BOOL
+
+# https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
+WAIT_OBJECT_0 = 0x00000000
+WAIT_TIMEOUT = 0x00000102
+WaitForSingleObject = windll.kernel32.WaitForSingleObject
+WaitForSingleObject.argtypes = [HANDLE, DWORD]
+WaitForSingleObject.restype = DWORD
 
 # https://docs.microsoft.com/en-us/windows/console/getconsolescreenbufferinfo
 GetConsoleScreenBufferInfo = windll.kernel32.GetConsoleScreenBufferInfo
