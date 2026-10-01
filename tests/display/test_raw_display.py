@@ -90,6 +90,23 @@ class TestRawDisplay(unittest.TestCase):
         self.assertIn(escape.SHOW_CURSOR, output)
         self.assertIn(escape.HIDE_CURSOR, output)
 
+    def test_draw_screen_replaces_control_characters(self):
+        """Displayed text must not reach the terminal as C0 or C1 control sequences (e.g. OSC 52, CSI)."""
+        for encoding in ("utf-8", "latin-1"):
+            with self.subTest(encoding=encoding), set_temporary_encoding(encoding):
+                s = urwid.display.raw.Screen()
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+
+                canvas = urwid.Text("a\x1b]0;t\x07 \x9d52;c;SGVsbG8=\x9c \x9b2J \x85é").render((40,))
+                with mock.patch.object(s, "_started", True):
+                    s.draw_screen((40, canvas.rows()), canvas)
+
+                output = "".join(written)
+                self.assertIn("a?]0;t? ?52;c;SGVsbG8=? ?2J ?é", output)
+                self.assertFalse(any("\x80" <= char <= "\x9f" for char in output))
+
     def test_restart_after_stop_reconnects_input(self):
         """stop() followed by start() must leave the screen's input descriptors watchable again
         (regression test for urwid/urwid#285).
