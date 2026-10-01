@@ -26,7 +26,6 @@ import contextlib
 import fcntl
 import functools
 import os
-import select
 import signal
 import struct
 import sys
@@ -83,6 +82,9 @@ _GPM_MOD_SHIFT = 1
 _GPM_MOD_ALTGR = 2
 _GPM_MOD_CTRL = 4
 _GPM_MOD_ALT = 8
+
+# most bytes of terminal input read per wake-up
+_INPUT_READ_LIMIT = 65536
 
 
 class Screen(_raw_display_base.Screen):
@@ -396,7 +398,7 @@ class Screen(_raw_display_base.Screen):
 
     def _read_raw_input(self, timeout: float) -> bytearray:
         """
-        Read whatever raw input is available, waiting at most *timeout* seconds.
+        Read at most `_INPUT_READ_LIMIT` bytes of the raw input available, waiting at most *timeout* seconds.
 
         :raises RuntimeError: the input file has been closed.
         """
@@ -410,22 +412,11 @@ class Screen(_raw_display_base.Screen):
         if fd is None or fd not in ready:
             return chars
 
-        # `fd` was just reported ready by the select() call above, so the first read is known to
-        # be non-blocking; only the trailing drain reads need a fresh (zero-timeout) readiness
-        # check. A plain select() call is used instead of building a selectors.DefaultSelector
-        # for a single fd, since that would pay for an epoll fd's creation and teardown on every
-        # call just to poll one descriptor a handful of times.
-        chunk = os.read(fd, 1024)
+        # `fd` was just reported ready, so this read does not block. Input beyond the limit is read on the next pass.
+        chunk = os.read(fd, _INPUT_READ_LIMIT)
         if not chunk:
             raise RuntimeError("stdin has been closed")
         chars.extend(chunk)
-
-        while select.select([fd], [], [], 0)[0]:
-            chunk = os.read(fd, 1024)
-            if not chunk:
-                raise RuntimeError("stdin has been closed")
-            chars.extend(chunk)
-
         return chars
 
     def _encode_gpm_event(self) -> list[int]:
