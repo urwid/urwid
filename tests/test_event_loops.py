@@ -345,6 +345,26 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
         self.assertRaises(ZeroDivisionError, evl.run)
 
+    def test_run_restores_the_previous_exception_handler(self):
+        """After run() returns or raises, the loop's own exception handler is back in place."""
+
+        def previous_handler(_loop: asyncio.AbstractEventLoop, _context: dict[str, typing.Any]) -> None:
+            """Stand in for an exception handler the application installed."""
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        self.loop.set_exception_handler(previous_handler)
+        self.addCleanup(self.loop.set_exception_handler, None)
+        self.evl.alarm(0, stop)
+        self.evl.run()
+        self.assertIs(previous_handler, self.loop.get_exception_handler())
+
+        self.evl.alarm(0, lambda: 1 / 0)
+        with self.assertRaises(ZeroDivisionError):
+            self.evl.run()
+        self.assertIs(previous_handler, self.loop.get_exception_handler())
+
     @unittest.skipIf(
         sys.implementation.name in ("pypy", "graalpy"),
         "Relies on CPython's refcounting GC to promptly finalize the task and trigger "
