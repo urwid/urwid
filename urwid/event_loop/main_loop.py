@@ -739,10 +739,13 @@ class MainLoop:
         and after an alarm callback fires. So screen updates made from
         input handlers or alarm callbacks are redrawn automatically.
 
-        If you modify the widgets displayed from somewhere else, such as
-        another thread or a callback that does not go through the event
-        loop's idle handling, you will need to call this method yourself
-        to repaint the screen.
+        If you modify the widgets displayed from a callback that does not go through the event loop's idle handling,
+        you will need to call this method yourself to repaint the screen.
+
+        .. important::
+            Call it only from the thread running the event loop, like every other widget and screen change.
+            Another thread hands the work over instead: it writes to a :meth:`watch_pipe` descriptor,
+            or uses the event loop's own thread-safe scheduling, such as ``loop.call_soon_threadsafe()`` in asyncio.
         """
         if not self.screen_size:
             self.screen_size = self.screen.get_cols_rows()
