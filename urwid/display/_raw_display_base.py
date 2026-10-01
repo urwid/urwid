@@ -394,6 +394,7 @@ class Screen(BaseScreen, RealTerminal):
         # pipe for signalling external event loops about resize events
         self._resize_pipe_rd, self._resize_pipe_wr = socket.socketpair()
         self._resize_pipe_rd.setblocking(False)
+        self._resize_pipe_wr.setblocking(False)
 
     def __del__(self) -> None:
         self._resize_pipe_rd.close()
@@ -403,16 +404,21 @@ class Screen(BaseScreen, RealTerminal):
         return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
 
     def _sigwinch_handler(self, signum: int = _SIGWINCH, frame: FrameType | None = None) -> None:
-        """:param frame: will always be None when the GLib event loop is being used."""
-        logger = self.logger.getChild("signal_handlers")
+        """Record a terminal resize and wake the input loop.
 
-        logger.debug(f"SIGWINCH handler called with signum={signum!r}, frame={frame!r}")
+        This runs at an arbitrary point of the program (a signal handler, or the console reader thread on Windows),
+        so it only sets a flag and writes to the wake-up socket.
+        :meth:`parse_input` reports the resize and drops the screen buffer in the thread that draws the screen.
 
-        if IS_WINDOWS or not self._resized:
-            self._resize_pipe_wr.send(b"R")
-            logger.debug("Sent fake resize input to the pipe")
+        :param frame: will always be None when the GLib event loop is being used.
+        """
         self._resized = True
-        self.screen_buf = None
+        self._wake_input_loop()
+
+    def _wake_input_loop(self) -> None:
+        """Make the input descriptors readable, without blocking when a wake-up is already pending."""
+        with contextlib.suppress(BlockingIOError):
+            self._resize_pipe_wr.send(b"R")
 
     @property
     def _term_input_io(self) -> SupportsFileno | None:
@@ -853,9 +859,10 @@ class Screen(BaseScreen, RealTerminal):
         logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
         if self._resized:
+            self._resized = False
+            self.screen_buf = None
             output_codes.append("window resize")
             logger.debug('Added "window resize" to the codes')
-            self._resized = False
 
         if callback:
             callback(output_codes, raw_codes)
