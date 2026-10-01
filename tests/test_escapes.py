@@ -229,6 +229,55 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             escape.input_trie.read_sgrmouse_info([], more_available=True)
         self.assertIsNone(escape.input_trie.read_sgrmouse_info([], more_available=False))
 
+    def test_sgrmouse_malformed_is_not_a_report(self):
+        """Input after ``ESC [ <`` that is not ``Pb;Px;Py`` decodes as keys instead of raising."""
+        for body in (b"hello M", b"1;2M", b";;M", b"1;2;3;4M", b"1;x;3M"):
+            with self.subTest(body=body):
+                self.assertIsNone(escape.input_trie.read_sgrmouse_info(list(body), more_available=True))
+                actual, rest = escape.process_keyqueue([27, *b"[<", *body], more_available=False)
+                self.assertListEqual(["meta ["], actual)
+                self.assertListEqual(list(b"<" + body), rest)
+
+    def test_sgrmouse_overlong_body_is_not_buffered(self):
+        """A digit run far longer than any report is rejected rather than held waiting for a terminator."""
+        codes = [ord("1")] * 100
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info(codes, more_available=True))
+
+    def test_sgrmouse_body_length_limit(self):
+        """A body up to the length limit is still awaited, one past it is not a report."""
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info([ord("1")] * 32, more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info([ord("1")] * 33, more_available=True))
+
+    def test_report_after_escape(self):
+        """A terminal report following ESC keeps the ESC as a separate key instead of raising."""
+        actual, rest = escape.process_keyqueue([27, 27, *b"[?1000;1$y"], more_available=False)
+        self.assertListEqual(["esc", ("private mode report", "1000", 1)], actual)
+        self.assertListEqual([], rest)
+
+    def test_escape_run_awaiting_more_input(self):
+        """The first of three ESCs is decoded at once while the rest wait for more input."""
+        actual, rest = escape.process_keyqueue([27, 27, 27], more_available=True)
+        self.assertListEqual(["esc"], actual)
+        self.assertListEqual([27, 27], rest)
+
+    @staticmethod
+    def _decode_all(codes: list[int]) -> list[str]:
+        """Decode every code, as parse_input does once no more input is expected."""
+        decoded = []
+        while codes:
+            run, codes = escape.process_keyqueue(codes, more_available=False)
+            decoded.extend(run)
+        return decoded
+
+    def test_long_escape_run(self):
+        """A long run of ESC bytes decodes without exhausting the recursion limit."""
+        self.assertListEqual(["esc"] * 5000, self._decode_all([27] * 5000))
+
+    def test_escape_run_before_meta_key(self):
+        """Only the ESC directly before a key sequence turns it into a meta key."""
+        self.assertListEqual(["esc", "esc", "meta up"], self._decode_all([27, 27, 27, 27, ord("["), ord("A")]))
+
     def test_sgrmouse_wheel(self):
         prefix = (27, ord("["), ord("<"))
         x = 4

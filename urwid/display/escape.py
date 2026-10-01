@@ -39,10 +39,6 @@ if typing.TYPE_CHECKING:
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
 
-# NOTE: because of circular imports (urwid.util -> urwid.escape -> urwid.util)
-# from urwid.util import is_mouse_event -- will not work here
-import urwid.util  # isort: skip
-
 IS_WINDOWS = sys.platform == "win32"
 
 within_double_byte = str_util.within_double_byte
@@ -73,6 +69,8 @@ DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 # the most common ord() calls used for numeric decode, pre-calculate once
 _ORD_0 = ord("0")
 _ORD_9 = ord("9")
+# longest "Pb;Px;Py" body of an SGR mouse report accepted before its "M"/"m" terminator
+_SGR_MOUSE_MAX_LEN = 32
 
 ###################
 # Input sequences
@@ -356,30 +354,33 @@ class KeyqueueTrie:
         # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
         """Read an SGR mouse report from the codes and return the resulting input.
 
+        :returns: the mouse event and the codes left after the report,
+            or None when the codes do not start with an SGR mouse report.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
-        :raises ValueError: the report ends with an unknown mouse action.
         """
         if not keys:
             if more_available:
                 raise MoreInputRequired()
             return None
 
-        value = ""
-        pos_m = 0
-        found_m = False
-        for k in keys:
-            value += chr(k)
+        # Anything other than "Pb;Px;Py" digits before the terminator, or a longer run, is not a report: it is
+        # rejected here instead of being buffered while waiting for a terminator that may never come.
+        for pos_m in range(min(len(keys), _SGR_MOUSE_MAX_LEN + 1)):
+            k = keys[pos_m]
             if k in {ord("M"), ord("m")}:
-                found_m = True
                 break
-            pos_m += 1
-        if not found_m:
-            if more_available:
+            if not (_ORD_0 <= k <= _ORD_9 or k == ord(";")):
+                return None
+        else:
+            if more_available and len(keys) <= _SGR_MOUSE_MAX_LEN:
                 raise MoreInputRequired()
             return None
 
-        (b, x, y) = (int(val) for val in value[:-1].split(";"))
-        action = value[-1]
+        fields = bytes(keys[:pos_m]).split(b";")
+        if len(fields) != 3 or not all(fields):
+            return None
+        b, x, y = (int(field) for field in fields)
+        action = chr(keys[pos_m])
         # Double and triple clicks are not supported.
         # They can be implemented by using a timer.
         # This timer can check if the last registered click is below a certain threshold.
@@ -410,10 +411,8 @@ class KeyqueueTrie:
                 action = "drag"
             else:
                 action = "press"
-        elif action == "m":
-            action = "release"
         else:
-            raise ValueError(f"Unknown mouse action: {action!r}")
+            action = "release"
 
         return ((f"{prefix}mouse {action}", button, x, y), keys[pos_m + 1 :])
 
@@ -708,12 +707,16 @@ def process_keyqueue(
         decoded, remaining_codes = result
         return [decoded], remaining_codes
 
+    if codes[1:3] == [27, 27]:
+        # With a third ESC following, the second one cannot start a sequence the first one prefixes as meta,
+        # so decode the first one alone rather than recursing once per ESC in an arbitrarily long run.
+        return ["esc"], codes[1:]
+
     if codes[1:]:
         # Meta keys -- ESC+Key form
         run, remaining_codes = process_keyqueue(codes[1:], more_available)
-        if urwid.util.is_mouse_event(run[0]):
-            return ["esc", *run], remaining_codes
-        if run[0] == "esc" or typing.cast("str", run[0]).find("meta ") >= 0:
+        # A mouse event or a terminal report (cursor position, DECRPM) cannot take a meta prefix.
+        if not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0]:
             return ["esc", *run], remaining_codes
         return [f"meta {run[0]}", *run[1:]], remaining_codes
 
