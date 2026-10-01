@@ -17,9 +17,7 @@ from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 # class below is decorated with `@unittest.skipIf(IS_WINDOWS, ...)`, which both runners honour
 # without needing the module to import successfully first.
 IS_WINDOWS = sys.platform == "win32"
-# GraalPy's signal module has no pthread_sigmask at all, which _sigtstp_handler() calls directly,
-# so both mock.patch("signal.pthread_sigmask") (which requires the attribute to exist)
-# and the real code path fail the same way there.
+# GraalPy's fcntl module has no fcntl() function.
 IS_GRAALPY = sys.implementation.name == "graalpy"
 
 if not IS_WINDOWS:
@@ -122,6 +120,8 @@ class TestStartStop(unittest.TestCase):
 
         previous_winch = signal.getsignal(signal.SIGWINCH)
         previous_tstp = signal.getsignal(signal.SIGTSTP)
+        previous_cont = signal.signal(signal.SIGCONT, signal.SIG_IGN)
+        self.addCleanup(signal.signal, signal.SIGCONT, previous_cont)
 
         s.start()
         self.assertEqual(s._sigwinch_handler, signal.getsignal(signal.SIGWINCH))
@@ -130,6 +130,8 @@ class TestStartStop(unittest.TestCase):
         s.stop()
         self.assertEqual(previous_winch, signal.getsignal(signal.SIGWINCH))
         self.assertEqual(previous_tstp, signal.getsignal(signal.SIGTSTP))
+        # SIGCONT belongs to the application: neither start() nor stop() replaces it.
+        self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
@@ -145,49 +147,73 @@ class TestSignalHandlers(unittest.TestCase):
         self.assertTrue(s._resized)
         self.assertEqual([(signal.SIGWINCH, None)], calls)
 
-    @unittest.skipIf(IS_GRAALPY, "signal.pthread_sigmask is missing on GraalPy")
-    @mock.patch("os.kill")
-    @mock.patch("signal.pthread_sigmask")
-    def test_sigtstp_handler_blocks_sigcont_around_the_kill(self, mock_sigmask, mock_kill):
-        mock_sigmask.return_value = set()
-        s = _make_screen()
+    def _started_screen(self) -> Screen:
+        """Start a screen over a pipe whose write end stays open, so reading input finds nothing rather than EOF."""
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = _make_screen(read_fd)
         s.write = lambda *_a: None
         s.flush = lambda: None
         s.start()
-        self.addCleanup(lambda: s.stop() if s._started else None)
+        self.addCleanup(s.stop)
+        return s
 
-        s._sigtstp_handler(signal.SIGTSTP, None)
+    @mock.patch("os.kill")
+    def test_sigtstp_handler_only_requests_a_suspend(self, mock_kill):
+        """The handler leaves the terminal alone and wakes the input loop instead."""
+        s = self._started_screen()
 
-        mock_sigmask.assert_any_call(signal.SIG_BLOCK, {signal.SIGCONT})
-        mock_sigmask.assert_any_call(signal.SIG_SETMASK, set())
+        signal.getsignal(signal.SIGTSTP)(signal.SIGTSTP, None)
+
+        self.assertTrue(s.started)
+        mock_kill.assert_not_called()
+        self.assertEqual(b"R", s.get_input_descriptors()[0].recv(16))
+
+    def test_requested_suspend_runs_in_the_input_path(self):
+        """The screen is stopped, with the previous SIGTSTP disposition back, before the process suspends."""
+        previous_tstp = signal.getsignal(signal.SIGTSTP)
+        s = self._started_screen()
+        handler = signal.getsignal(signal.SIGTSTP)
+        state_at_kill = []
+
+        def fake_kill(pid: int, signum: int) -> None:
+            state_at_kill.append((pid, signum, s.started, signal.getsignal(signal.SIGTSTP)))
+
+        handler(signal.SIGTSTP, None)
+        with mock.patch("os.kill", side_effect=fake_kill):
+            keys, _raw = s.parse_input(None, None, s.get_available_raw_input())
+
+        self.assertEqual([(os.getpid(), signal.SIGTSTP, False, previous_tstp)], state_at_kill)
+        self.assertTrue(s.started)
+        self.assertEqual(handler, signal.getsignal(signal.SIGTSTP))
+        self.assertEqual(["window resize"], keys)
+
+    @mock.patch("os.kill")
+    def test_suspend_requested_while_reading_input_is_not_lost(self, mock_kill):
+        """A request whose wake-up byte is drained by the same pass is still carried out in that pass."""
+        s = self._started_screen()
+        handler = signal.getsignal(signal.SIGTSTP)
+
+        def read_while_signalled() -> list[int]:
+            handler(signal.SIGTSTP, None)
+            return []
+
+        with mock.patch.object(s, "_get_input_codes", side_effect=read_while_signalled):
+            s.get_available_raw_input()
+
         mock_kill.assert_called_once_with(os.getpid(), signal.SIGTSTP)
-        # stop() ran as part of the handler, so the screen is no longer marked started.
-        self.assertFalse(s._started)
-        # A SIGCONT handler was installed to catch the eventual resume.
-        self.assertEqual(s._sigcont_handler, signal.getsignal(signal.SIGCONT))
-        signal.signal(signal.SIGCONT, s._prev_sigcont_handler or signal.SIG_DFL)
 
-    @unittest.skipIf(IS_GRAALPY, "signal.pthread_sigmask is missing on GraalPy")
     @mock.patch("os.kill")
-    @mock.patch("signal.pthread_sigmask")
-    def test_sigcont_handler_restarts_the_screen_and_chains(self, mock_sigmask, mock_kill):
-        mock_sigmask.return_value = set()
-        s = _make_screen()
-        s.write = lambda *_a: None
-        s.flush = lambda: None
-        s.start()
-        s._sigtstp_handler(signal.SIGTSTP, None)
-        self.assertFalse(s._started)
+    def test_stop_discards_a_pending_suspend(self, mock_kill):
+        """A suspend requested before stop() does not stop the process after the next start()."""
+        s = self._started_screen()
+        signal.getsignal(signal.SIGTSTP)(signal.SIGTSTP, None)
 
-        chained = []
-        s._prev_sigcont_handler = lambda signum, frame: chained.append((signum, frame))
-
-        s._sigcont_handler(signal.SIGCONT, None)
-
-        self.assertTrue(s._started)
-        self.assertTrue(s._resized)
-        self.assertEqual([(signal.SIGCONT, None)], chained)
         s.stop()
+        s.start()
+        s.get_available_raw_input()
+
+        mock_kill.assert_not_called()
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

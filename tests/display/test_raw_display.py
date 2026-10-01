@@ -222,6 +222,33 @@ class TestRawDisplay(unittest.TestCase):
         # The pipe is now empty: a second call must not find anything left to drain either.
         self.assertEqual([], s.get_available_raw_input())
 
+    def test_resize_drops_screen_buffer_in_parse_input(self):
+        """The resize handler leaves the screen buffer to the drawing thread, which drops it with the report."""
+        s = urwid.display.raw.Screen()
+        s.screen_buf = [[]]
+
+        s._sigwinch_handler()
+
+        self.assertTrue(s._resized)
+        self.assertEqual([[]], s.screen_buf)
+
+        keys, _raw = s.parse_input(None, None, [])
+
+        self.assertEqual(["window resize"], keys)
+        self.assertFalse(s._resized)
+        self.assertIsNone(s.screen_buf)
+
+    def test_resize_wake_up_does_not_block_on_a_full_socket(self):
+        """A wake-up already pending in a full socket is enough, so the handler returns instead of blocking."""
+        s = urwid.display.raw.Screen()
+        with mock.patch.object(s, "_resize_pipe_wr") as wake_socket:
+            wake_socket.send.side_effect = BlockingIOError
+
+            s._sigwinch_handler()
+
+        wake_socket.send.assert_called_once_with(b"R")
+        self.assertTrue(s._resized)
+
     def test_attrspec_hash_is_stable_and_matches_equal_instances(self):
         """AttrSpec caches its hash at construction time; equal instances must still hash equal,
         and the cached value must match what a fresh hash computation would give.
