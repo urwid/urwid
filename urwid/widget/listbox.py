@@ -326,11 +326,14 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         fill_lines = offset_rows
         fill_above = []
         top_pos = pos
+        # A body that wraps around hands out the same widgets again once the list is exhausted.
+        shown_pos = [focus_pos]
         while fill_lines > 0:
             prev, pos = self._body.get_prev(pos)
-            if prev is None:  # run out of widgets above?
+            if prev is None or pos in shown_pos:  # run out of widgets above?
                 offset_rows -= fill_lines
                 break
+            shown_pos.append(pos)
             top_pos = pos
 
             p_rows = prev.rows((maxcol,))
@@ -349,8 +352,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         fill_below = []
         while fill_lines > 0:
             next_pos, pos = self._body.get_next(pos)
-            if next_pos is None:  # run out of widgets below?
+            if next_pos is None or pos in shown_pos:  # run out of widgets below?
                 break
+            shown_pos.append(pos)
 
             n_rows = next_pos.rows((maxcol,))
             if n_rows:  # filter out 0-height widgets
@@ -376,8 +380,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         pos = top_pos
         while fill_lines > 0:
             prev, pos = self._body.get_prev(pos)
-            if prev is None:
+            if prev is None or pos in shown_pos:
                 break
+            shown_pos.append(pos)
 
             p_rows = prev.rows((maxcol,))
             fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))

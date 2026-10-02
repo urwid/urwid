@@ -2,6 +2,14 @@
 Changelog
 ---------
 
+Unreleased
+==========
+
+Bug fixes
++++++++++
+* Stop ListBox from repeating items when a wrapping list walker is shorter than
+  the available height (issue #464).
+
 Urwid 4.2.4
 ============
 

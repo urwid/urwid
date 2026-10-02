@@ -3083,3 +3083,51 @@ class ListBoxIterTest(unittest.TestCase):
         lbox = urwid.ListBox(EmptyNoPositionsWalker())
         self.assertEqual([], list(iter(lbox)))
         self.assertEqual([], list(reversed(lbox)))
+
+
+class ListBoxWrapAroundRenderTest(unittest.TestCase):
+    """A wrapping walker must not repeat its contents to fill a tall listbox (#464)."""
+
+    @staticmethod
+    def _rows(walker, size: tuple[int, int]) -> list[str]:
+        canvas = urwid.ListBox(walker).render(size, focus=True)
+        return [line.decode().rstrip() for line in canvas.text]
+
+    def test_short_list_is_shown_once(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Text(t) for t in ("a", "b", "c")], wrap_around=True)
+        self.assertEqual(["a", "b", "c", "", ""], self._rows(walker, (4, 5)))
+
+    def test_short_focus_list_is_shown_once(self) -> None:
+        walker = urwid.SimpleFocusListWalker([urwid.Text(t) for t in ("a", "b", "c")], wrap_around=True)
+        self.assertEqual(["a", "b", "c", "", ""], self._rows(walker, (4, 5)))
+
+    def test_focus_in_middle_is_shown_once(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Text(t) for t in ("a", "b", "c")], wrap_around=True)
+        walker.set_focus(1)
+        self.assertEqual(["b", "c", "a", "", ""], self._rows(walker, (4, 5)))
+
+    def test_long_list_still_fills_the_screen(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Text(t) for t in "abcdefgh"], wrap_around=True)
+        self.assertEqual(["a", "b", "c"], self._rows(walker, (4, 3)))
+
+    def test_keyboard_focus_still_wraps(self) -> None:
+        walker = urwid.SimpleFocusListWalker([urwid.Button(t) for t in ("a", "b", "c")], wrap_around=True)
+        listbox = urwid.ListBox(walker)
+        listbox.render((8, 5), focus=True)
+        listbox.keypress((8, 5), "up")
+        self.assertEqual(2, walker.focus)
+        self.assertEqual(3, sum(bool(line.strip()) for line in listbox.render((8, 5), focus=True).text))
+        listbox.keypress((8, 5), "down")
+        self.assertEqual(0, walker.focus)
+
+    def test_zero_height_items_do_not_loop(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Pile([]), urwid.Text("a")], wrap_around=True)
+        self.assertEqual(["a", "", "", "", ""], self._rows(walker, (4, 5)))
+
+    def test_collecting_above_focus_does_not_repeat_items(self) -> None:
+        walker = urwid.SimpleListWalker([urwid.Text(t) for t in ("a", "b", "c")], wrap_around=True)
+        listbox = urwid.ListBox(walker)
+        listbox.render((4, 5), focus=True)
+        listbox.shift_focus((4, 5), 4)
+        rows = [line.decode().rstrip() for line in listbox.render((4, 5), focus=True).text]
+        self.assertEqual(["b", "c", "a", "", ""], rows)
