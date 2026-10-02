@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import itertools
+import math
+import sys
 import typing
 import warnings
 from itertools import chain, repeat
@@ -378,12 +380,13 @@ class Pile(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0)),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(n))),
                     )
                 ):
                     invalid_items.append(item)
 
-        except (TypeError, ValueError) as exc:
+        # OverflowError: math.isfinite() of an int too large for a float
+        except (TypeError, ValueError, OverflowError) as exc:
             raise PileError(f"added content invalid: {exc}").with_traceback(exc.__traceback__) from exc
 
         if invalid_items:
@@ -695,7 +698,10 @@ class Pile(
         self.contents.focus = position
 
     def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
-        """Return the preferred column for the cursor, or None."""
+        """Return the preferred column for the cursor, or None.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not self.selectable():
             return None
 
@@ -761,8 +767,8 @@ class Pile(
 
         Fixed case expect widget sizes calculation with several cycles for unknown height cases.
 
-        :raises PileError: a child widget does not support a sizing mode this Pile needs, or no child can provide a
-            width.
+        :raises PileError: a child widget does not support a sizing mode this Pile needs, no child can provide a
+            width, or the weights are too far apart to keep their ratio at a fixed size.
         """
         if not self.contents:
             return (), (), ()
@@ -841,7 +847,12 @@ class Pile(
             max_weighted_coefficient = max(height / weight for weight, height in weight_max_sizes.items())
 
             for weight in weight_max_sizes:
-                height = max(int(max_weighted_coefficient * weight + 0.5), 1)
+                try:
+                    height = max(int(max_weighted_coefficient * weight + 0.5), 1)
+                except OverflowError as exc:
+                    raise PileError(
+                        f"Weights of {self!r} are too far apart to keep their ratio at a fixed size"
+                    ) from exc
                 for idx in weighted[weight]:
                     heights[idx] = height
                     w_h_args[idx] = (max_width, height)
@@ -911,7 +922,10 @@ class Pile(
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get rows widths, heights and render size parameters."""
+        """Get rows widths, heights and render size parameters.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not size:
             return self._get_fixed_rows_sizes(focus=focus)
         if len(size) == 1:
@@ -968,7 +982,6 @@ class Pile(
                 heights[i] = 0
                 w_h_args[i] = (maxcol, 0)  # zero-weighted items treated as ('given', 0)
 
-        sum_weight = sum(weighted.values())
         if remaining <= 0 and focus_position in weighted:
             # We need to hide some widgets: focused part will be not displayed by default
             # At this place we have to operate also negative "remaining" to be sure that widget really fit
@@ -1004,6 +1017,14 @@ class Pile(
 
         remaining = max(remaining, 0)
 
+        if weighted and (max_weight := max(weighted.values())) > sys.float_info.max / (
+            len(weighted) * max(remaining, 1)
+        ):
+            # remaining * sum_weight could overflow a float: scale weights to at most 1, keeping their ratios
+            weighted = {idx: weight / max_weight for idx, weight in weighted.items()}
+
+        sum_weight = sum(weighted.values())
+
         for idx in sorted(weighted, key=lambda idx: (idx != focus_position, idx)):
             # We have to sort weighted items way that focused widget will gain render priority
             if remaining == 0:
@@ -1026,7 +1047,10 @@ class Pile(
         )
 
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
-        """Get packed sized for widget."""
+        """Get packed size for widget.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if size:
             return super().pack(size, focus)
         widths, heights, _ = self.get_rows_sizes(size, focus)
@@ -1048,6 +1072,7 @@ class Pile(
         Render the Pile and return the resulting canvas.
 
         :raises ValueError: the Pile is empty and no *size* was given.
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
@@ -1076,7 +1101,10 @@ class Pile(
         return out
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates of the focus widget."""
+        """Return the cursor coordinates of the focus widget.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not self.selectable():
             return None
 
@@ -1101,6 +1129,8 @@ class Pile(
         """Pass the keypress to the widget in focus.
 
         Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         if not self.contents:
             return key
@@ -1158,7 +1188,10 @@ class Pile(
         col: int,
         row: int,
     ) -> bool:
-        """Capture pref col and set new focus."""
+        """Capture pref col and set new focus.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         self.pref_col = col
 
         # FIXME guessing focus==True
@@ -1193,6 +1226,8 @@ class Pile(
         """Pass the event to the contained widget.
 
         May change focus on button 1 press.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)

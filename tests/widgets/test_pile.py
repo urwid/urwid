@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import unittest
 import warnings
 
@@ -534,6 +535,34 @@ class PileTest(unittest.TestCase):
         )
         p.render((5, 4))
 
+    def test_non_finite_size_rejected(self) -> None:
+        """Reject a size that is infinite, NaN or too large for a float, as it cannot be converted to rows."""
+        for kind, amount in (
+            ("weight", math.inf),
+            ("weight", math.nan),
+            ("weight", 10**400),  # too large for a float
+            ("given", math.inf),
+        ):
+            with self.subTest(kind=kind, amount=amount):
+                with self.assertRaises(urwid.PileError):
+                    urwid.Pile([(kind, amount, urwid.SolidFill())])
+                pile = urwid.Pile([])
+                with self.assertRaises(urwid.PileError):
+                    pile.contents.append((urwid.SolidFill(), (kind, amount)))
+                self.assertEqual(0, len(pile.contents))
+
+    def test_huge_finite_weights_render(self) -> None:
+        """Split rows by weight ratio even when the weights, their sum or rows * weight overflow a float."""
+        for weights, expected in (
+            ((1e308, 1e308), (25, 25)),  # float sum overflows
+            ((10**308, 10**308), (25, 25)),  # int sum is too large for a float
+            ((1e307, 1), (50, 0)),  # rows * weight overflows
+        ):
+            with self.subTest(weights=weights):
+                pile = urwid.Pile([("weight", weight, urwid.SolidFill()) for weight in weights])
+                self.assertEqual(expected, pile.get_rows_sizes((10, 50))[1])
+                self.assertEqual(50, pile.render((10, 50)).rows())
+
     def test_mouse_event_in_empty_pile(self):
         p = urwid.Pile([])
         p.mouse_event((5,), "button press", 1, 1, 1, False)
@@ -885,6 +914,14 @@ class PileTest(unittest.TestCase):
             ),
             pile.render(()).decoded_text,
         )
+
+    def test_fixed_rows_sizes_weights_too_far_apart(self) -> None:
+        """Raise PileError when the weight ratio scales a fixed height past what a float can hold."""
+        pile = urwid.Pile((("weight", 5e-324, FixedBox(4, 2, "a")), ("weight", 1, FixedBox(6, 4, "b"))))
+        with self.assertRaisesRegex(urwid.PileError, "too far apart"):
+            pile.pack(())
+        with self.assertRaisesRegex(urwid.PileError, "too far apart"):
+            pile.render(())
 
     def test_flow_rows_sizes_unusual_sizing_warning(self) -> None:
         pile = urwid.Pile((BoxWithRows(),))
