@@ -87,7 +87,8 @@ class Signals:
 
     def __init__(self) -> None:
         """Initialize with no signal-emitting classes registered yet."""
-        self._supported: dict[MetaSignals, Container[Hashable]] = {}
+        # Weak keys, so that a class created at run time is not kept alive by having signals.
+        self._supported: weakref.WeakKeyDictionary[MetaSignals, Container[Hashable]] = weakref.WeakKeyDictionary()
 
     def register(self, sig_cls: MetaSignals, signals: Container[Hashable]) -> None:
         """Register the signals `sig_cls` objects may send.
@@ -204,11 +205,12 @@ class Signals:
         obj_weak = weakref.ref(obj)
 
         def weakref_callback(_ref: weakref.ReferenceType[typing.Any]) -> None:
-            if o := obj_weak():
+            if (o := obj_weak()) is not None:
                 self.disconnect_by_key(o, name, key)
 
         user_args = self._prepare_user_args(weak_args, user_args, weakref_callback)
         signals[name] = (*signals.get(name, ()), (key, callback, user_arg, user_args))
+        self._drop_dead_handlers(signals, name)
 
         return key
 
@@ -277,6 +279,17 @@ class Signals:
         signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
         handlers = signals.get(name, ())
         signals[name] = tuple(h for h in handlers if h[0] is not key)
+        self._drop_dead_handlers(signals, name)
+
+    def _drop_dead_handlers(self, signals: _SignalStore, name: Hashable) -> None:
+        """Remove the handlers of `name` that have a garbage-collected weak argument.
+
+        A weak argument's callback can run between another update's read and write of these handlers.
+        That write then restores the handler the callback removed.
+        A weak argument never comes back to life, so the loop stops once no handler has a dead one.
+        """
+        while any(w() is None for h in signals[name] for w in h[3][0]):
+            signals[name] = tuple(h for h in signals[name] if all(w() is not None for w in h[3][0]))
 
     def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """Call each of the callbacks connected to this signal with the args arguments as positional parameters.
