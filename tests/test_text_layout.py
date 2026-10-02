@@ -4,12 +4,17 @@ import sys
 import threading
 import typing
 import unittest
+import unittest.mock
+
+import wcwidth
 
 import urwid
 from urwid import canvas, text_layout
 from urwid.util import get_encoding, set_temporary_encoding
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from typing_extensions import Literal
 
 
@@ -1072,3 +1077,114 @@ class TabStopTest(unittest.TestCase):
         self.assertEqual(2, edit.edit_pos)
         edit.move_cursor_to_coords((20,), 7, 0)
         self.assertEqual(3, edit.edit_pos)
+
+
+class _CountingText(str):
+    """A text that adds the length of every range its ``find`` scans to ``scanned``."""
+
+    __slots__ = ()
+    scanned = 0
+
+    def find(self, sub, start=0, end=None):
+        """Count the scanned range, then search it."""
+        _CountingText.scanned += (len(self) if end is None else end) - start
+        return super().find(sub, start, end)
+
+
+class _CountingBytes(bytes):
+    """A byte string that adds the length of every range its ``find`` scans to ``_CountingText.scanned``."""
+
+    __slots__ = ()
+
+    def find(self, sub, start=0, end=None):
+        """Count the scanned range, then search it."""
+        _CountingText.scanned += (len(self) if end is None else end) - start
+        return super().find(sub, start, end)
+
+
+class LongParagraphWorkTest(unittest.TestCase):
+    """Laying out a paragraph scans each character a bounded number of times, whatever its length."""
+
+    def count_processed(self, text: str | bytes, wrap: Literal["any", "space"]) -> int:
+        """Return how many characters the layout of text hands to the scanning and measuring functions."""
+        real_iter_graphemes = wcwidth.iter_graphemes
+        real_width = wcwidth.width
+
+        def iter_graphemes(unistr, start=0, end=None):
+            if start == 0 and end is None:
+                # the C segmenter prepares the whole string before it yields the first cluster
+                _CountingText.scanned += len(unistr)
+            for grapheme in real_iter_graphemes(unistr, start, end):
+                _CountingText.scanned += len(grapheme)
+                yield grapheme
+
+        def width(unistr, **kwargs):
+            _CountingText.scanned += len(unistr)
+            return real_width(unistr, **kwargs)
+
+        _CountingText.scanned = 0
+        counting = _CountingText(text) if isinstance(text, str) else _CountingBytes(text)
+        with unittest.mock.patch.multiple(wcwidth, iter_graphemes=iter_graphemes, width=width):
+            text_layout.default_layout.calculate_text_segments(counting, 20, wrap)
+        return _CountingText.scanned
+
+    def assert_linear(self, make_text: Callable[[int], str | bytes]) -> None:
+        """Assert that four times the text costs at most five times the work, for both wrap modes."""
+        for wrap in ("any", "space"):
+            with self.subTest(text=make_text(1), wrap=wrap):
+                self.assertLess(
+                    self.count_processed(make_text(4000), wrap), 5 * self.count_processed(make_text(1000), wrap)
+                )
+
+    def test_unbroken_paragraph(self):
+        """A paragraph without spaces, also one holding a tab, costs work linear in its length."""
+        self.assert_linear(lambda n: "x" * n)
+        self.assert_linear(lambda n: "\u00e9" * n)
+        self.assert_linear(lambda n: "x" * n + "\t" + "x" * n)
+
+    def test_unbroken_utf8_paragraph(self):
+        """A UTF-8 byte string paragraph without spaces costs work linear in its length."""
+        with set_temporary_encoding("utf-8"):
+            self.assert_linear(lambda n: b"x" * n)
+            self.assert_linear(lambda n: "\u00e9".encode() * n)
+
+
+class ClusterStartingBeforeLineTest(unittest.TestCase):
+    """A grapheme cluster made of a space and a combining character is broken at the space."""
+
+    def capped_segments(self, text: str | bytes, width: int) -> list:
+        """Return the space-wrapped segments of text, raising once the layout stops advancing."""
+        calls = 0
+        real_calc_text_pos = text_layout.calc_text_pos
+
+        def calc_text_pos(*args):
+            nonlocal calls
+            calls += 1
+            if calls > 100:
+                raise RuntimeError("the layout does not advance")
+            return real_calc_text_pos(*args)
+
+        with unittest.mock.patch.object(text_layout, "calc_text_pos", calc_text_pos):
+            return text_layout.default_layout.calculate_text_segments(text, width, "space")
+
+    def test_combining_mark_after_space(self):
+        """Wrapping after the space does not measure a range that ends before it starts."""
+        text = " \u0301hhgb\u00e9abbd"
+        segments = text_layout.default_layout.calculate_text_segments(text, 8, "space")
+        self.assertEqual(len(text), segments[-1][-1][-1])
+
+    def test_emoji_modifier_after_space_before_tab(self):
+        """Wrapping a line holding a tab advances past the cluster instead of breaking at its space again."""
+        text = " \U0001f3fbxx\t"
+        self.assertEqual(len(text), self.capped_segments(text, 3)[-1][-1][-1])
+
+    def test_vowel_sign_after_space_in_long_word(self):
+        """Joining a broken word with the line before it happens only when the break moves past the space."""
+        for text, width in (
+            ("abc \u093fdefgh ijk", 2),
+            ("abc \u093fdefgh ijk", 4),
+            ("\u0917\u0bb7 \u093f\u0939\u0926\u0939\u0928", 3),
+        ):
+            for encoded in (text, text.encode()):
+                with self.subTest(text=encoded, width=width), set_temporary_encoding("utf-8"):
+                    self.assertEqual(len(encoded), self.capped_segments(encoded, width)[-1][-1][-1])

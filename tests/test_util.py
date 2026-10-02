@@ -193,6 +193,28 @@ class TagMarkupTest(unittest.TestCase):
     def test_bad_tuple(self):
         self.assertRaises(urwid.TagMarkupException, lambda: urwid.decompose_tagmarkup((1, 2, 3)))
 
+    def test_mixed_text_types_count_converted_lengths(self):
+        """Attribute runs count the characters of the joined text, whatever type each element had."""
+        with util.set_temporary_encoding("utf-8"):
+            self.assertEqual(
+                ("a\u00e9b", [(None, 2), ("x", 1)]), urwid.decompose_tagmarkup(["a", b"\xc3\xa9", ("x", "b")])
+            )
+            self.assertEqual(
+                (b"a\xc3\xa9b", [(None, 3), ("x", 1)]),
+                urwid.decompose_tagmarkup([b"a", "\u00e9", ("x", b"b")]),
+            )
+            self.assertEqual(
+                ("\u00e9z", [("a", 0), ("b", 1), (None, 0), ("c", 1)]),
+                urwid.decompose_tagmarkup([("a", ""), ("b", b"\xc3\xa9"), "", ("c", "z")]),
+            )
+
+    def test_mixed_text_types_replace_unconvertible(self):
+        """An element the target encoding cannot convert is replaced instead of raising."""
+        with util.set_temporary_encoding("utf-8"):
+            self.assertEqual(("name: \ufffd\ufffd", []), urwid.decompose_tagmarkup(["name: ", b"\xff\xfe"]))
+        with util.set_temporary_encoding("ascii"):
+            self.assertEqual((b"raw:?", []), urwid.decompose_tagmarkup([b"raw:", "\u20ac"]))
+
     def test_bad_type(self):
         self.assertRaises(urwid.TagMarkupException, lambda: urwid.decompose_tagmarkup(5))
 
