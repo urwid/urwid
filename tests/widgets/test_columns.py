@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import typing
 import unittest
 import warnings
@@ -1078,3 +1079,41 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(1, canvas.rows())
         self.assertIn(b"<   OK   >", canvas.text[0])
         self.assertIn(b"< Cancel >", canvas.text[0])
+
+    def test_non_finite_width_amount_rejected(self) -> None:
+        """Infinite, NaN, and beyond-float-range amounts are rejected on every way into the contents."""
+        for amount in (math.inf, math.nan, 10**400):
+            for width_type in (urwid.WEIGHT, urwid.GIVEN):
+                with self.subTest(amount=amount, width_type=width_type):
+                    item = (width_type, amount, urwid.Text("a"))
+                    with self.assertRaises(urwid.ColumnsError):
+                        urwid.Columns([item])
+
+                    columns = urwid.Columns([urwid.Text("b")])
+                    options = (width_type, amount, False)
+                    with self.assertRaises(urwid.ColumnsError):
+                        columns.contents.append((urwid.Text("a"), options))
+                    with self.assertRaises(urwid.ColumnsError):
+                        columns.contents = [(urwid.Text("a"), options)]
+
+    def test_huge_finite_weights(self) -> None:
+        """Weights whose sum exceeds the float range still divide the width between them."""
+        columns = urwid.Columns(
+            [urwid.Text("a"), (urwid.WEIGHT, 1e308, urwid.Text("b")), (urwid.WEIGHT, 1e308, urwid.Text("c"))]
+        )
+        self.assertEqual([1, 10, 9], columns.column_widths((20,)))
+        self.assertEqual(20, columns.render((20,)).cols())
+
+    def test_all_zero_weights(self) -> None:
+        """Columns whose weights are all zero keep their minimum width instead of dividing by a zero total."""
+        columns = urwid.Columns([(urwid.WEIGHT, 0, urwid.Text("a")), (urwid.WEIGHT, 0, urwid.Text("b"))])
+        self.assertEqual([1, 1], columns.column_widths((20,)))
+        self.assertEqual(20, columns.render((20,)).cols())
+
+    def test_fixed_column_sizes_weights_too_far_apart(self) -> None:
+        """Raise ColumnsError when the weight ratio scales a fixed width past what a float can hold."""
+        columns = urwid.Columns([(urwid.WEIGHT, 5e-324, urwid.Text("a")), (urwid.WEIGHT, 1, urwid.Text("b"))])
+        with self.assertRaisesRegex(urwid.ColumnsError, "too far apart"):
+            columns.pack(())
+        with self.assertRaisesRegex(urwid.ColumnsError, "too far apart"):
+            columns.render(())
