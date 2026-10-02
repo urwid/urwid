@@ -230,19 +230,32 @@ class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generi
         return None
 
     def last_child(self) -> TreeWidget[TreeNode[typing.Any]] | None:
-        """Return last child if expanded."""
-        if self.is_leaf or not self.expanded:
-            return None
+        """Return the last visible descendant if expanded.
 
-        if typing.cast("ParentNode[typing.Any]", self._node).has_children():
-            last_child = typing.cast("ParentNode[typing.Any]", self._node).get_last_child().get_widget()
-        else:
-            return None
-        # recursively search down for the last descendant
-        if (last_descendant := last_child.last_child()) is not None:
-            return last_descendant
+        The descent is a loop rather than a recursion, so the depth of the tree is not limited by the
+        interpreter's recursion limit.
+        A descendant widget whose class overrides this method is asked for its own last descendant.
 
-        return last_child
+        :raises TreeWidgetError: the descent reaches a node it already passed, so the tree has a cycle.
+        """
+        # Keyed by id(), holding the node so the id cannot be reused by another node during the descent.
+        visited: dict[int, TreeNode[typing.Any]] = {}
+        last_descendant: TreeWidget[TreeNode[typing.Any]] | None = None
+        widget: TreeWidget[typing.Any] = self
+        while not widget.is_leaf and widget.expanded:
+            node = typing.cast("ParentNode[typing.Any]", widget.get_node())
+            if id(node) in visited:
+                raise TreeWidgetError(f"Cycle in the tree: node {node.get_key()} is its own descendant")
+            visited[id(node)] = node
+            if not node.has_children():
+                break
+            widget = last_descendant = node.get_last_child().get_widget()
+            if type(widget).last_child is not TreeWidget.last_child:
+                if (overridden := widget.last_child()) is not None:
+                    return overridden
+                return widget
+
+        return last_descendant
 
 
 class TreeNode(typing.Generic[_T]):
@@ -280,12 +293,41 @@ class TreeNode(typing.Generic[_T]):
         return TreeWidget(self)
 
     def get_depth(self) -> int:
-        """Return this node's depth in the tree, computing and caching it if necessary."""
-        if self._depth is self._parent is None:  # type: ignore[comparison-overlap]  # for None is valid
-            self._depth = 0
-        elif self._depth is None:
-            self._depth = typing.cast("ParentNode[typing.Any]", self._parent).get_depth() + 1
-        return self._depth
+        """Return this node's depth in the tree, computing and caching it if necessary.
+
+        The ancestors are walked in a loop rather than recursively, so the depth of the tree is not limited by the
+        interpreter's recursion limit.
+        Every ancestor whose depth was unknown caches its own depth as well.
+        The walk stops at an ancestor whose class overrides this method, and uses the depth that ancestor returns.
+
+        :raises TreeWidgetError: the parent links form a cycle.
+        """
+        if self._depth is not None:
+            return self._depth
+
+        # pylint: disable=protected-access  # the depth cache and parent link of other nodes of this class
+        unresolved: list[TreeNode[typing.Any]] = []
+        # ids of the nodes in ``unresolved``, which keeps them alive so no id is reused during the walk.
+        visited: set[int] = set()
+        depth = -1
+        node: TreeNode[typing.Any] | None = self
+        while node is not None:
+            if node is not self and type(node).get_depth is not TreeNode.get_depth:
+                depth = node.get_depth()
+                break
+            if node._depth is not None:
+                depth = node._depth
+                break
+            if id(node) in visited:
+                raise TreeWidgetError(f"Cycle in the tree: node {node.get_key()} is its own ancestor")
+            visited.add(id(node))
+            unresolved.append(node)
+            node = node._parent
+
+        for ancestor in reversed(unresolved):
+            depth += 1
+            ancestor._depth = depth
+        return depth
 
     def get_index(self) -> int | None:
         """Return this node's position among its parent's children, or None for the root."""
@@ -367,11 +409,22 @@ class ParentNode(TreeNode[_T]):
 
         self._child_keys: Sequence[Hashable] | None = None
         self._children: dict[Hashable, TreeNode[typing.Any]] = {}
+        # Position of each key in ``_indexed_keys``, the key list the map was built from.
+        self._child_index: dict[Hashable, int] = {}
+        self._indexed_keys: Sequence[Hashable] | None = None
 
     def get_child_keys(self, reload: bool = False) -> Sequence[Hashable]:
-        """Return a possibly ordered list of child keys."""
+        """Return a possibly ordered list of child keys.
+
+        A reload also drops the cached child nodes whose keys are no longer in the list.
+        """
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
+            if reload:
+                current = set(self._child_keys)
+                self._children = {key: node for key, node in self._children.items() if key in current}
+                self._child_index = {}
+                self._indexed_keys = None
         return self._child_keys
 
     def load_child_keys(self) -> Sequence[Hashable]:
@@ -422,12 +475,19 @@ class ParentNode(TreeNode[_T]):
 
         :raises TreeWidgetError: *key* is not a child of this node.
         """
-        try:
-            return self.get_child_keys().index(key)
-        except ValueError as exc:
-            raise TreeWidgetError(
-                f"Can't find key {key} in ParentNode {self.get_key()}\nParentNode items: {self.get_child_keys()!s}"
-            ).with_traceback(exc.__traceback__) from exc
+        child_keys = self.get_child_keys()
+        index = self._child_index.get(key) if child_keys is self._indexed_keys else None
+        if index is None or index >= len(child_keys) or child_keys[index] != key:
+            # The map is missing or does not match the key list: it was reloaded, replaced, or changed in place.
+            child_index: dict[Hashable, int] = {}
+            for position, child_key in enumerate(child_keys):
+                child_index.setdefault(child_key, position)
+            self._child_index, self._indexed_keys = child_index, child_keys
+            if (index := child_index.get(key)) is None:
+                raise TreeWidgetError(
+                    f"Can't find key {key} in ParentNode {self.get_key()}\nParentNode items: {child_keys!s}"
+                )
+        return index
 
     def next_child(self, key: Hashable) -> TreeNode[typing.Any] | None:
         """Return the next child node in index order from the given key."""
