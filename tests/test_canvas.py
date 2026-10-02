@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import gc
 import sys
+import traceback
 import unittest
 import weakref
+from unittest import mock
 
 import urwid
 from urwid import canvas
@@ -136,6 +139,190 @@ class CanvasCacheTest(unittest.TestCase):
         self.assertEqual({}, urwid.CanvasCache._widgets)
         self.assertEqual({}, urwid.CanvasCache._refs)
         self.assertEqual({}, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
+
+
+class CanvasCacheDependencyLeakTest(unittest.TestCase):
+    """CanvasCache must not keep a dependent widget alive once none of its canvases is cached."""
+
+    def setUp(self):
+        """Start from an empty cache and leave one behind."""
+        urwid.CanvasCache.clear()
+        self.addCleanup(urwid.CanvasCache.clear)
+        self.alive = []  # canvases a screen would still hold; the cache only keeps weak references
+
+    def store(self, widget, size=(10, 1), depends_on=None):
+        """Cache a canvas for *widget* and keep it alive for the rest of the test."""
+        canv = urwid.TextCanvas()
+        self.alive.append(canv)
+        canv.finalize(widget, size, False)
+        if depends_on is not None:
+            canv.depends_on = depends_on
+        urwid.CanvasCache.store(urwid.Widget, canv)
+        return canv
+
+    def test_rebuilt_wrappers_around_a_persistent_child_are_released(self):
+        """Wrappers rebuilt on every refresh around one cached child must not pile up in its dependants."""
+        child = urwid.Text("static")
+        paddings = []
+        last_canvas = None  # the screen keeps only the last canvas it drew
+        for _ in range(200):
+            padding = urwid.Padding(child)
+            last_canvas = urwid.AttrMap(padding, None).render((20,))
+            paddings.append(weakref.ref(padding))
+        del padding
+        gc.collect()
+
+        self.assertEqual(1, sum(ref() is not None for ref in paddings))
+        self.assertEqual({paddings[-1]()}, urwid.CanvasCache._deps[child])
+        self.assertLessEqual(len(urwid.CanvasCache._children), 2)  # the last Padding and AttrMap
+        self.assertIsNotNone(last_canvas)
+
+    def test_gridflow_focus_changes_release_old_display_widgets(self):
+        """GridFlow rebuilds its display widgets on a focus change: the old ones must be released."""
+        grid = urwid.GridFlow([urwid.Button(str(i)) for i in range(9)], 8, 1, 0, "left")
+        size = (30,)
+        canv = grid.render(size, focus=True)
+        gc.collect()
+        links_after_first_render = sum(map(len, urwid.CanvasCache._deps.values()))
+        displays = []
+        for i in range(100):
+            grid.keypress(size, "right" if i % 2 == 0 else "left")
+            canv = grid.render(size, focus=True)
+            displays.append(weakref.ref(grid._w))
+        gc.collect()
+
+        self.assertEqual(1, sum(ref() is not None for ref in displays))
+        self.assertEqual(links_after_first_render, sum(map(len, urwid.CanvasCache._deps.values())))
+        self.assertIsNotNone(canv)
+
+    def test_invalidate_removes_the_widget_from_its_children_deps(self):
+        """An invalidated widget must not stay among the dependants of the widgets it depended on."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        child_canv = self.store(child)
+        self.store(parent, depends_on=[child])
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+
+        urwid.CanvasCache.invalidate(parent)
+
+        self.assertNotIn(child, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
+        self.assertIs(child_canv, urwid.CanvasCache.fetch(child, urwid.Widget, (10, 1), False))
+
+    def test_cleanup_of_a_replaced_ref_keeps_the_live_entry(self):
+        """A canvas stored again under the same key must stay cached when the canvas it replaced dies."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(parent, depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[parent][urwid.Widget, (10, 1), False]
+        new_canv = self.store(parent, depends_on=[child])
+
+        urwid.CanvasCache.cleanup(old_ref)
+
+        self.assertIs(new_canv, urwid.CanvasCache.fetch(parent, urwid.Widget, (10, 1), False))
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+
+    def test_cleanup_between_dependency_lookup_and_add_in_store(self):
+        """A cleanup that drops a now-empty dependants set while store() holds it must not lose the new link."""
+        child = urwid.Text("")
+        old_parent = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(old_parent, depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[old_parent][urwid.Widget, (10, 1), False]
+
+        class CleanupAfterSetdefault(dict):
+            """Run a cleanup right after every setdefault() lookup."""
+
+            def setdefault(self, key, default=None):
+                found = super().setdefault(key, default)
+                urwid.CanvasCache.cleanup(old_ref)  # as if the old parent's canvas died right here
+                return found
+
+        urwid.CanvasCache._deps = CleanupAfterSetdefault(urwid.CanvasCache._deps)
+        self.store(parent, depends_on=[child])
+
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+        urwid.CanvasCache.invalidate(child)
+        self.assertIsNone(urwid.CanvasCache.fetch(parent, urwid.Widget, (10, 1), False))
+
+    def test_cleanup_emptying_the_sizes_store_is_adding_to(self):
+        """A canvas that store() could not register must not leave its widget in the dependency indexes."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(parent, size=(5, 1), depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[parent][urwid.Widget, (5, 1), False]
+        lookups = []
+
+        class CleanupAfterFirstGet(dict):
+            """Run a cleanup right after the first get() lookup of the parent."""
+
+            def get(self, key, default=None):
+                found = super().get(key, default)
+                if key is parent and not lookups:
+                    lookups.append(key)
+                    urwid.CanvasCache.cleanup(old_ref)  # empties and drops the sizes just returned
+                return found
+
+        urwid.CanvasCache._widgets = CleanupAfterFirstGet(urwid.CanvasCache._widgets)
+        canv = self.store(parent, depends_on=[child])
+
+        self.assertNotIn(parent, urwid.CanvasCache._widgets)
+        self.assertNotIn(parent, urwid.CanvasCache._children)
+        self.assertNotIn(child, urwid.CanvasCache._deps)
+        self.assertIsNotNone(canv)
+
+    def test_collected_child_is_released_by_a_dependant_cached_under_another_size(self):
+        """A child whose last canvas is gone must not stay linked from a dependant that is still cached."""
+        parent = urwid.Text("")
+        kept_child = urwid.Text("")
+        self.store(kept_child)
+        self.store(parent, depends_on=[kept_child])  # the canvas the screen keeps
+        children = []
+        for _ in range(100):
+            child = urwid.Text("")
+            children.append(weakref.ref(child))
+            child_canv = urwid.TextCanvas()
+            child_canv.finalize(child, (20, 1), False)
+            urwid.CanvasCache.store(urwid.Widget, child_canv)
+            parent_canv = urwid.TextCanvas()
+            parent_canv.finalize(parent, (20, 1), False)
+            parent_canv.depends_on = [child]
+            urwid.CanvasCache.store(urwid.Widget, parent_canv)  # a measuring render, discarded right away
+            del child, child_canv, parent_canv
+        gc.collect()
+
+        self.assertEqual(0, sum(ref() is not None for ref in children))
+        self.assertEqual({kept_child}, urwid.CanvasCache._children[parent])
+
+    def test_cleanup_during_invalidate_recursion(self):
+        """A cleanup running while invalidate() walks the dependants must not change a set being iterated."""
+        child = urwid.Text("")
+        parents = [urwid.Text(str(i)) for i in range(5)]
+        self.store(child)
+        for parent in parents:
+            self.store(parent, depends_on=[child])
+        bystander = urwid.Text("")
+        self.store(bystander, depends_on=[child, parents[0]])
+        bystander_ref = urwid.CanvasCache._widgets[bystander][urwid.Widget, (10, 1), False]
+        invalidate = urwid.CanvasCache.invalidate.__func__
+        calls = []
+
+        def invalidate_with_cleanup(cls, widget):
+            calls.append(widget)
+            if len(calls) == 2:
+                cls.cleanup(bystander_ref)  # as if the bystander's canvas died mid-walk
+            invalidate(cls, widget)
+
+        with mock.patch.object(urwid.CanvasCache, "invalidate", classmethod(invalidate_with_cleanup)):
+            urwid.CanvasCache.invalidate(child)
+
+        self.assertEqual({}, urwid.CanvasCache._widgets)
+        self.assertEqual({}, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
 
 
 class CanvasTest(unittest.TestCase):
@@ -303,6 +490,28 @@ class ZeroColumnTextCanvasTest(unittest.TestCase):
         canvas = urwid.Text("").render((0,))
         with self.assertRaises(ValueError):
             list(canvas.content(trim_left=1))
+
+
+class FinalizedCanvasErrorTest(unittest.TestCase):
+    """Errors raised on misuse of a finalized canvas."""
+
+    def test_repeated_misuse_does_not_keep_the_canvas_alive(self):
+        """Each misuse of a finalized canvas raises its own error, so no traceback outlives its handler."""
+        canv = urwid.TextCanvas([b"hi"])
+        canv.finalize(urwid.Text("hi"), (2,), False)
+        tracebacks = []
+        for _ in range(5):
+            # Not assertRaises: it strips the traceback, which hides the accumulation.
+            try:
+                canv.finalize(urwid.Text("hi"), (2,), False)
+            except urwid.CanvasError as exc:  # noqa: PERF203  # the repeated raise is what is under test
+                tracebacks.append(len(traceback.extract_tb(exc.__traceback__)))
+        canv_ref = weakref.ref(canv)
+        del canv
+        gc.collect()
+
+        self.assertEqual([tracebacks[0]] * 5, tracebacks)
+        self.assertIsNone(canv_ref())
 
 
 class TextCanvasErrorTest(unittest.TestCase):

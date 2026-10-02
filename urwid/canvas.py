@@ -86,7 +86,12 @@ class CanvasCache:
 
     _widgets[widget] = {(wcls, size, focus): weakref.ref(canvas), ...}
     _refs[weakref.ref(canvas)] = (widget, wcls, size, focus)
-    _deps[widget} = {dependent_widget, ...}
+    _deps[widget] = {dependent_widget, ...}
+    _children[dependent_widget] = {widget, ...}
+
+    _children is the reverse of _deps.
+    It removes a dependent widget from _deps once that widget has no cached canvas left.
+    Widgets are not guaranteed to be weak-referenceable, so neither index can use weak references.
     """
 
     _widgets: typing.ClassVar[
@@ -105,6 +110,7 @@ class CanvasCache:
         ]
     ] = {}
     _deps: typing.ClassVar[dict[AbstractWidget, set[AbstractWidget]]] = {}
+    _children: typing.ClassVar[dict[AbstractWidget, set[AbstractWidget]]] = {}
     hits = 0
     fetches = 0
     cleanups = 0
@@ -130,23 +136,34 @@ class CanvasCache:
         depends_on = getattr(canvas, "depends_on", None)
         if depends_on is None and hasattr(canvas, "children"):
             depends_on = _walk_depends(canvas)
+        widgets = cls._widgets
         if depends_on:
-            widgets = cls._widgets
             for w in depends_on:
                 if w not in widgets:
                     return
-            deps = cls._deps
-            for w in depends_on:
-                deps.setdefault(w, set()).add(widget)
 
+        # cleanup() is a weakref callback and can run between any two lines below.
+        # It drops a widget's dependencies once its sizes are empty,
+        # so they are added only after the live canvas keeps the sizes non-empty.
         key = (wcls, size, focus)
         ref = weakref.ref(canvas, cls.cleanup)
         cls._refs[ref] = (widget, wcls, size, focus)
-        sizes = cls._widgets.get(widget)
+        sizes = widgets.get(widget)
         if sizes is None:
-            cls._widgets[widget] = {key: ref}
+            sizes = widgets[widget] = {key: ref}
         else:
             sizes[key] = ref
+        if not depends_on or widgets.get(widget) is not sizes:
+            # A cleanup dropped the emptied sizes before ref was added to them: the canvas is not cached.
+            return
+
+        cls._children.setdefault(widget, set()).update(depends_on)
+        deps = cls._deps
+        for w in depends_on:
+            deps.setdefault(w, set()).add(widget)
+            if widget not in deps.get(w, ()):
+                # A cleanup emptied and dropped the set between the lookup and the add.
+                deps[w] = {widget}
 
     @classmethod
     def fetch(
@@ -185,7 +202,9 @@ class CanvasCache:
             refs = cls._refs
             for ref in sizes.values():
                 refs.pop(ref, None)
+        cls._forget(widget)
 
+        # The popped set is out of reach of every other frame, so the recursion cannot change it.
         dependants = cls._deps.pop(widget, None)
         if not dependants:
             return
@@ -201,13 +220,36 @@ class CanvasCache:
         if not w:
             return
         widget, wcls, size, focus = w
+        key = (wcls, size, focus)
         sizes = cls._widgets.get(widget, None)
-        if not sizes:
+        # A later store() for the same key replaced ref: that entry belongs to a live canvas.
+        if not sizes or sizes.get(key) is not ref:
             return
-        sizes.pop((wcls, size, focus), None)
+        sizes.pop(key, None)
         if not sizes:
             cls._widgets.pop(widget, None)
-            cls._deps.pop(widget, None)
+            # Dependants still cached under another key must not keep this widget alive through _children.
+            children = cls._children
+            for dependant in cls._deps.pop(widget, ()):
+                siblings = children.get(dependant)
+                if siblings is not None:
+                    siblings.discard(widget)
+            cls._forget(widget)
+
+    @classmethod
+    def _forget(cls, widget: AbstractWidget) -> None:
+        """Remove *widget* from the dependants of every widget its cached canvases depended on."""
+        # Iterate the popped set: no other frame can reach it, so a nested cleanup() cannot change it.
+        children = cls._children.pop(widget, None)
+        if not children:
+            return
+        deps = cls._deps
+        for child in children:
+            dependants = deps.get(child)
+            if dependants is not None:
+                dependants.discard(widget)
+                if not dependants:
+                    deps.pop(child, None)
 
     @classmethod
     def clear(cls) -> None:
@@ -215,6 +257,7 @@ class CanvasCache:
         cls._widgets = {}
         cls._refs = {}
         cls._deps = {}
+        cls._children = {}
 
 
 class CanvasError(Exception):
@@ -228,7 +271,9 @@ class Canvas:
 
     cacheable = True
 
-    _finalized_error = CanvasError(
+    # A message rather than a shared exception: re-raising one instance chains every traceback onto it,
+    # and those frames keep the canvases and widgets of every failed call alive.
+    _finalized_message: typing.ClassVar[str] = (
         "This canvas has been finalized. Use CompositeCanvas to wrap this canvas if you need to make changes."
     )
 
@@ -255,7 +300,7 @@ class Canvas:
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
         self._widget_info = widget, size, focus
 
     @property
@@ -335,7 +380,7 @@ class Canvas:
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info and self.cacheable:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
         if c is None:
             self.coords.pop("cursor", None)
             return
@@ -370,7 +415,7 @@ class Canvas:
             or the overlay size is not positive
         """
         if self.widget_info and self.cacheable:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         if left < 0 or top < 0:
             raise CanvasError(f"Pop-up position must not be negative, got left={left!r} and top={top!r}")
@@ -871,7 +916,7 @@ class CompositeCanvas(Canvas):
         if top >= self.rows():
             raise ValueError(f"cannot trim {top:d} lines from {self.rows():d}!")
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         if top:
             self.shards = shards_trim_top(self.shards, top)
@@ -895,7 +940,7 @@ class CompositeCanvas(Canvas):
         if end > self.rows():
             raise ValueError(f"cannot trim {end:d} lines from {self.rows():d}!")
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         self.shards = shards_trim_rows(self.shards, self.rows() - end)
 
@@ -909,7 +954,7 @@ class CompositeCanvas(Canvas):
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
         shards = self.shards
         if left < 0 or right < 0:
             trim_left = max(0, -left)
@@ -938,7 +983,7 @@ class CompositeCanvas(Canvas):
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
         orig_shards = self.shards
 
         if top < 0 or bottom < 0:
@@ -963,7 +1008,7 @@ class CompositeCanvas(Canvas):
         :raises ValueError: *other* does not fit within this canvas at the given *left* and *top* offsets.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         width = other.cols()
         height = other.rows()
@@ -1019,7 +1064,7 @@ class CompositeCanvas(Canvas):
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         shards: list[tuple[int, list[_CView]]] = []
         for num_rows, original_cviews in self.shards:
@@ -1043,7 +1088,7 @@ class CompositeCanvas(Canvas):
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
         """
         if self.widget_info:
-            raise self._finalized_error
+            raise CanvasError(self._finalized_message)
 
         self.depends_on = widget_list
 
