@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import typing
 
 from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
@@ -104,12 +105,28 @@ class ProgressBar(Widget):
         """Return the number of rows the progress bar occupies, always 1."""
         return 1
 
+    def _scaled_completion(self, scale: int) -> float:
+        """Return the completed fraction of the bar multiplied by ``scale``, clamped to ``[0, scale]``.
+
+        A ``done`` that is not positive, or a NaN result, counts as nothing completed.
+        When ``current`` or ``done`` is too large for a float, the bar is complete if ``current`` exceeds ``done``.
+        """
+        completed: float = 0
+        if self.done > 0:
+            try:
+                completed = self.current * scale / self.done
+            except OverflowError:
+                completed = scale if self.current > self.done else 0
+        if math.isnan(completed):
+            return 0
+        return min(scale, max(0, completed))
+
     def get_text(self) -> str:
         """Return the progress bar percentage text.
 
         You can override this method to display custom text.
         """
-        percent = min(100, max(0, int(self.current * 100 / self.done)))
+        percent = int(self._scaled_completion(100))
         return f"{percent!s} %"
 
     def render(
@@ -134,13 +151,13 @@ class ProgressBar(Widget):
             label.set_align_mode(self.text_align)
         c = render_label((maxcol,))
 
-        cf = float(self.current) * maxcol / self.done
+        cf = self._scaled_completion(maxcol)
         ccol_dirty = int(cf)
         ccol = len(c._text[0][:ccol_dirty].decode("utf-8", "ignore").encode("utf-8"))
         cs = 0
         if self.satt is not None:
             cs = int((cf - ccol) * 8)
-        if ccol < 0 or (ccol == cs == 0):
+        if ccol == cs == 0:
             c._attr = [[(self.normal, maxcol)]]
         elif ccol >= maxcol:
             c._attr = [[(self.complete, maxcol)]]
