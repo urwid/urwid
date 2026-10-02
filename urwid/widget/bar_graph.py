@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import typing
 from collections import deque
 
@@ -190,7 +191,8 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         and it will have a second segment that starts at 30%.
         """
         if hlines is not None:
-            hlines = sorted(hlines[:], reverse=True)  # shallow copy
+            # NaN compares false with every value, so sorting with it in place leaves the rest out of order.
+            hlines = sorted((h for h in hlines if not (isinstance(h, float) and math.isnan(h))), reverse=True)
 
         self.data = bardata, top, hlines
         self._invalidate()
@@ -313,7 +315,16 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
             ]
 
         # reverse the hlines to match screen ordering
-        rhl: list[float] = [rh for h in hlines if (rh := float(top - h) * maxrow / top - shiftr) >= 0]
+        rhl: list[float] = []
+        for h in hlines:
+            try:
+                rh = float(top - h) * maxrow / top - shiftr
+            except (OverflowError, ZeroDivisionError):
+                # out of float range, or a zero top: the line has no row in the graph
+                continue
+            # the range check also drops NaN and infinity
+            if 0 <= rh < math.inf:
+                rhl.append(rh)
 
         # build a list of rows that will have hlines
         hrows = []
@@ -683,7 +694,11 @@ class GraphVScale(Widget):
             for that label
         :param top: top y position
         """
-        labels = sorted(labels[:], reverse=True)  # shallow copy
+        # NaN compares false with every value, so sorting with it in place leaves the rest out of order.
+        labels = sorted(
+            (label for label in labels if not (isinstance(label[0], float) and math.isnan(label[0]))),
+            reverse=True,
+        )
 
         self.pos = []
         self.txt = []
@@ -735,5 +750,29 @@ def scale_bar_values(
     top: float,
     maxrow: int,
 ) -> list[int]:
-    """Return a list of bar values aliased to integer values of maxrow."""
-    return [maxrow - int(float(v) * maxrow / top + 0.5) for v in bar]
+    """Return a list of bar values aliased to integer values of maxrow.
+
+    A value that is not a number counts as zero.
+    A value that scales to infinity, or is too large for a float, gives a row outside the range from 0 to *maxrow*.
+    A *top* that is zero, not a number, infinite or too large for a float gives ``maxrow + 1`` for every value.
+    """
+    try:
+        valid_top = math.isfinite(top) and top != 0
+    except OverflowError:
+        valid_top = False
+    if not valid_top:
+        return [maxrow + 1] * len(bar)
+
+    rows = []
+    for v in bar:
+        try:
+            value = float(v)
+        except OverflowError:
+            value = math.inf if v > 0 else -math.inf
+        scaled = value * maxrow / top
+        if math.isnan(scaled):
+            scaled = 0.0
+        elif math.isinf(scaled):
+            scaled = math.copysign(maxrow + 1.0, scaled)
+        rows.append(maxrow - int(scaled + 0.5))
+    return rows

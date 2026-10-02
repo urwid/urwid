@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import unittest
 
 import urwid
@@ -123,6 +124,45 @@ class HLinesDisplayTest(unittest.TestCase):
         # hline above top: rh comes out negative and is filtered.
         result = g.hlines_display(disp, top=5, hlines=[6], maxrow=5)
         self.assertEqual(result, disp)
+
+    def test_infinite_hline_is_dropped(self) -> None:
+        """Drop an infinite hline instead of overflowing."""
+        g = urwid.BarGraph(["bg", "fg"], hatt=["hbg", "hfg"])
+        disp = [(5, [(1, 3)])]
+        result = g.hlines_display(disp, top=5, hlines=[-math.inf], maxrow=5)
+        self.assertEqual(result, disp)
+
+    def test_hline_overflowing_the_scale_is_dropped(self) -> None:
+        """Drop an hline whose scaled row overflows."""
+        g = urwid.BarGraph(["bg", "fg"], hatt=["hbg", "hfg"])
+        disp = [(5, [(1, 3)])]
+        # (top - h) * maxrow overflows to infinity.
+        result = g.hlines_display(disp, top=5, hlines=[-1e308], maxrow=5)
+        self.assertEqual(result, disp)
+
+    def test_hline_too_large_for_float_is_dropped(self) -> None:
+        """Drop an hline that does not fit in a float."""
+        g = urwid.BarGraph(["bg", "fg"], hatt=["hbg", "hfg"])
+        disp = [(5, [(1, 3)])]
+        result = g.hlines_display(disp, top=5, hlines=[-(10**400)], maxrow=5)
+        self.assertEqual(result, disp)
+
+    def test_zero_top_drops_hlines(self) -> None:
+        """Drop every hline when top is zero."""
+        g = urwid.BarGraph(["bg", "fg"], hatt=["hbg", "hfg"])
+        disp = [(5, [(1, 3)])]
+        result = g.hlines_display(disp, top=0, hlines=[1], maxrow=5)
+        self.assertEqual(result, disp)
+
+    def test_nan_hline_does_not_disturb_the_other_hlines(self) -> None:
+        """Keep the other hlines in place next to a NaN one."""
+        g = urwid.BarGraph(["bg", "fg"], hatt=["hbg", "hfg"])
+        g.set_data([[0]], 10, [3, math.nan, 7, 1])
+        result = g.calculate_display((3, 5))
+        self.assertEqual(
+            result,
+            [(1, [(0, 3)]), (1, [((0, 0), 3)]), (1, [(0, 3)]), (1, [((0, 0), 3)]), (1, [((0, 0), 3)])],
+        )
 
     def test_hline_on_segment_without_hatt_entry_is_left_unstyled(self) -> None:
         # hatt has only one entry (index 0), so bar_type 1 has no matching hatt: fill_row leaves it as-is.
@@ -276,6 +316,91 @@ class RenderTest(unittest.TestCase):
         # Row 2 (0-indexed) carries the hline character instead of the plain fill.
         self.assertEqual(canv.text[2], g.hlines[0].encode())
 
+    def test_render_nan_value_draws_no_bar(self) -> None:
+        """Render a NaN value as an empty bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[math.nan]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_infinite_value_draws_full_bar(self) -> None:
+        """Render an infinite value as a full bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[math.inf]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b"#", b"#", b"#"])
+
+    def test_render_negative_infinite_value_draws_no_bar(self) -> None:
+        """Render a negative infinite value as an empty bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[-math.inf]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_negative_value_draws_no_bar(self) -> None:
+        """Render a negative value as an empty bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[-3]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_value_overflowing_the_scale_draws_full_bar(self) -> None:
+        """Render a value whose scaled row overflows as a full bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        # value * maxrow overflows to infinity.
+        g.set_data([[1e308]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b"#", b"#", b"#"])
+
+    def test_render_value_too_large_for_float_draws_full_bar(self) -> None:
+        """Render a value that does not fit in a float as a full bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[10**400]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b"#", b"#", b"#"])
+
+    def test_render_negative_value_too_large_for_float_draws_no_bar(self) -> None:
+        """Render a negative value that does not fit in a float as an empty bar."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[-(10**400)]], 5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_zero_top_draws_nothing(self) -> None:
+        """Render no bars and no hlines when top is zero."""
+        g = urwid.BarGraph(["bg", ("fg", "#")], hatt=["hbg", "hfg"])
+        g.set_data([[1]], 0, [1])
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_nan_top_draws_nothing(self) -> None:
+        """Render no bars and no hlines when top is NaN."""
+        g = urwid.BarGraph(["bg", ("fg", "#")], hatt=["hbg", "hfg"])
+        g.set_data([[1]], math.nan, [1])
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_infinite_top_draws_nothing(self) -> None:
+        """Render no bars and no hlines when top is infinite."""
+        g = urwid.BarGraph(["bg", ("fg", "#")], hatt=["hbg", "hfg"])
+        g.set_data([[1]], math.inf, [1])
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_top_too_large_for_float_draws_nothing(self) -> None:
+        """Render no bars and no hlines when top does not fit in a float."""
+        g = urwid.BarGraph(["bg", ("fg", "#")], hatt=["hbg", "hfg"])
+        g.set_data([[1]], 10**400, [1])
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b" ", b" "])
+
+    def test_render_negative_top_draws_inverted_bar(self) -> None:
+        """Render a negative top as a graph growing from the other end."""
+        g = urwid.BarGraph(["bg", ("fg", "#")])
+        g.set_data([[-3]], -5)
+        canv = g.render((1, 3))
+        self.assertEqual(list(canv.text), [b" ", b"#", b"#"])
+
     def test_render_smoothed_vertical_eighth(self) -> None:
         old_encoding = get_encoding()
         urwid.set_encoding("utf-8")
@@ -325,10 +450,79 @@ class GraphVScaleTest(unittest.TestCase):
         self.assertNotIn("a", text)
         self.assertIn("b", text)
 
+    def test_render_zero_top_draws_no_labels(self) -> None:
+        """Render no labels when top is zero."""
+        scale = urwid.GraphVScale([(1, "x")], 0)
+        canv = scale.render((3, 3))
+        self.assertEqual(list(canv.text), [b"   ", b"   ", b"   "])
+
+    def test_render_nan_top_draws_no_labels(self) -> None:
+        """Render no labels when top is NaN."""
+        scale = urwid.GraphVScale([(1, "x")], math.nan)
+        canv = scale.render((3, 3))
+        self.assertEqual(list(canv.text), [b"   ", b"   ", b"   "])
+
+    def test_render_nan_label_is_dropped(self) -> None:
+        """Drop a label at a NaN position."""
+        scale = urwid.GraphVScale([(math.nan, "x")], 10)
+        canv = scale.render((3, 3))
+        self.assertEqual(list(canv.text), [b"   ", b"   ", b"   "])
+
+    def test_render_nan_label_does_not_disturb_the_other_labels(self) -> None:
+        """Keep the other labels in place next to a NaN one."""
+        scale = urwid.GraphVScale([(8, "a"), (math.nan, "x"), (5, "b"), (2, "c")], 10)
+        canv = scale.render((1, 10))
+        self.assertEqual(b"".join(canv.text), b" a  b  c  ")
+
+    def test_render_label_too_large_for_float_is_skipped(self) -> None:
+        """Skip a label at a position that does not fit in a float."""
+        scale = urwid.GraphVScale([(10**400, "a"), (5, "b")], 10)
+        canv = scale.render((3, 4))
+        self.assertEqual(list(canv.text), [b"   ", b"b  ", b"   ", b"   "])
+
+    def test_render_infinite_label_is_skipped(self) -> None:
+        """Skip a label at infinity."""
+        scale = urwid.GraphVScale([(math.inf, "a"), (5, "b")], 10)
+        canv = scale.render((3, 4))
+        self.assertEqual(list(canv.text), [b"   ", b"b  ", b"   ", b"   "])
+
+    def test_render_negative_infinite_label_is_skipped(self) -> None:
+        """Skip a label at negative infinity."""
+        scale = urwid.GraphVScale([(5, "b"), (-math.inf, "a")], 10)
+        canv = scale.render((3, 4))
+        self.assertEqual(list(canv.text), [b"   ", b"b  ", b"   ", b"   "])
+
     def test_render_exact_fit_needs_no_trailing_padding(self) -> None:
         scale = urwid.GraphVScale([(1, "x")], 10)
         canv = scale.render((5, 1))
         self.assertEqual(list(canv.text), [b"x    "])
+
+
+class ScaleBarValuesTest(unittest.TestCase):
+    """Scaling bar values to rows."""
+
+    def test_finite_values(self) -> None:
+        """Scale finite values in range."""
+        self.assertEqual(bar_graph.scale_bar_values([0, 5, 10], 10, 4), [4, 2, 0])
+
+    def test_out_of_range_values_stay_out_of_range(self) -> None:
+        """Keep out-of-range values just outside the rows."""
+        rows = bar_graph.scale_bar_values([-1e308, -math.inf, 1e308, math.inf], 10, 4)
+        self.assertEqual(rows, [8, 8, -1, -1])
+
+    def test_values_too_large_for_float_stay_out_of_range(self) -> None:
+        """Place values that do not fit in a float outside the rows."""
+        self.assertEqual(bar_graph.scale_bar_values([10**400, -(10**400)], 10, 4), [-1, 8])
+
+    def test_unusable_top_puts_every_value_below_the_rows(self) -> None:
+        """Place every value past maxrow when top is zero, NaN, infinite or too large for a float."""
+        for top in (0, math.nan, math.inf, 10**400):
+            with self.subTest(top=top):
+                self.assertEqual(bar_graph.scale_bar_values([1, 2], top, 4), [5, 5])
+
+    def test_nan_counts_as_zero(self) -> None:
+        """Scale NaN as zero."""
+        self.assertEqual(bar_graph.scale_bar_values([math.nan], 10, 4), [4])
 
 
 if __name__ == "__main__":
