@@ -89,6 +89,33 @@ _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
 #: Line-end byte pairs that collapse into a single structural split point.
 _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
 
+#: The furthest a relative cursor move advances, and the furthest 1-based row or column an absolute move reaches.
+#: The input is untrusted, and a few bytes such as ``CSI 300000000 C`` would otherwise pad the grid with that many
+#: cells. 1024 exceeds the width and height of practical terminals, and caps what one movement sequence adds to the
+#: grid at 1024 cells.
+_MAX_CURSOR_POSITION = 1024
+
+#: CSI parameter strings of this length or longer are skipped unparsed. Real sequences are far shorter (a truecolour
+#: foreground and background SGR is under 50 characters). Staying below 640, the lowest limit
+#: :func:`sys.set_int_max_str_digits` accepts, guarantees ``int()`` never rejects a parameter.
+_MAX_CSI_LENGTH = 256
+
+#: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator is discarded
+#: unbuffered, so an unterminated OSC costs neither memory nor quadratic string growth.
+_MAX_OSC_LENGTH = 4096
+
+#: The most entries a ``skipped`` list holds, covering one 64 KiB raw display read of 2-byte sequences.
+_MAX_SKIPPED = 65536
+
+#: Padding cells a parser may insert regardless of input length, one full 1024 x 1024 screen.
+_PADDING_BUDGET = _MAX_CURSOR_POSITION * _MAX_CURSOR_POSITION
+
+#: Padding cells each fed character adds to the budget, as many as a tab writes.
+_PADDING_PER_CHARACTER = 8
+
+#: Padding cells an empty row inserted by a vertical move costs, about what the row allocates.
+_PADDING_PER_ROW = 8
+
 
 @dataclasses.dataclass(frozen=True)
 class SkippedOp:
@@ -98,7 +125,8 @@ class SkippedOp:
     full two-dimensional terminal canvas.
 
     :ivar kind: one of ``"vertical-move"``, ``"terminal-setting"`` or ``"unknown"``.
-    :ivar raw: the raw sequence text as encountered (including its ``ESC``/``CSI`` framing).
+    :ivar raw: the raw sequence text as encountered (including its ``ESC``/``CSI`` framing), truncated for a sequence
+        skipped for its length.
     :ivar reason: a human-readable explanation, used verbatim in the log message emitted alongside this entry.
     """
 
@@ -125,8 +153,8 @@ class ParsedLine:
     :ivar bel: the number of BEL (``\a``) characters seen on this line (``0`` if none were seen).
     :ivar title: the last OSC window-title string seen on this line, or ``None`` if none was seen.
     :ivar leds: the last keyboard-LED state requested on this line (``CSI n q``), or ``None`` if none was seen.
-    :ivar skipped: every :class:`SkippedOp` stripped while parsing this line, in encounter order, for programmatic
-        inspection independent of the log.
+    :ivar skipped: the :class:`SkippedOp` entries stripped while parsing this line, in encounter order, for
+        programmatic inspection independent of the log. It holds at most the first 65536 of them.
     """
 
     text: str
@@ -168,14 +196,20 @@ class AnsiParser:
       (``"progress: 10%\rprogress: 20%"``) resolve correctly onto a single row, mirroring real terminal behaviour.
       Vertical cursor movement genuinely repositions the cursor within the grid instead of being stripped. The side
       channels are aggregated over the *entire* input rather than reset per row: ``bel`` is the total BEL count,
-      ``title``/``leds`` are the last value seen anywhere, and ``skipped`` lists every :class:`SkippedOp` in
-      encounter order.
+      ``title``/``leds`` are the last value seen anywhere, and ``skipped`` lists the :class:`SkippedOp`
+      entries in encounter order.
 
     Deliberately out of scope in both modes (stripped and logged as :class:`SkippedOp` with
     ``kind="terminal-setting"`` or ``kind="unknown"``): erase (``CSI J``/``K``), scroll regions, save/restore
     cursor, mode toggles, insert/delete, device queries, tabstops, and the non-CSI vertical-movement escapes
     (``ESC D``/``M``/``E``) -- a genuine two-dimensional buffer would technically allow implementing erase and
     save/restore cursor, but that is a candidate follow-up, kept out of scope here.
+
+    The padding inserted to reach a moved cursor -- blank cells before a written character and empty rows below the
+    last one -- is limited to ``1024 * 1024 + 8 * n`` cells over the parser's lifetime, ``n`` being the number of
+    characters fed so far, and an empty row counts as 8 cells. Once the limit is reached, a character is written at the
+    end of its row instead, a vertical move past the last row stays on the last row, and each such cut is recorded as
+    a :class:`SkippedOp` with ``kind="unknown"``.
 
     :meth:`finalize` returns a uniform ``tuple[ParsedLine, ...]`` in both modes: in ``one_line=True`` mode, every
     line completed since construction (queue plus a final flush of whatever remains, possibly empty or
@@ -210,6 +244,10 @@ class AnsiParser:
         self._row = 0
         self._col = 0
 
+        # padding cells still allowed, and the last cursor move a cut padding is recorded against
+        self._padding_budget = _PADDING_BUDGET
+        self._last_move = ""
+
         # side channels -- reset per completed line in one_line mode (see
         # _complete_line()), aggregated over the entire input otherwise
         self._bel_count = 0
@@ -220,7 +258,8 @@ class AnsiParser:
         # completed-lines queue, used only in one_line mode
         self._completed: list[ParsedLine] = []
 
-        # escape-framing state: 0 none / 1 CSI / 2 OSC / 3 two-char intermediate
+        # escape-framing state: 0 none / 1 CSI / 2 OSC / 3 two-char intermediate /
+        # 4 the discarded remainder of an over-long OSC string
         self._within_escape = False
         self._parsestate = 0
         self._escbuf = ""
@@ -240,6 +279,7 @@ class AnsiParser:
         """
         if not text:
             return
+        self._padding_budget += _PADDING_PER_CHARACTER * len(text)
 
         if self._pending_line_end is not None:
             pending = self._pending_line_end
@@ -366,6 +406,20 @@ class AnsiParser:
         while len(self._rows) <= row:
             self._rows.append([])
 
+    def _move_to_row(self, row: int, raw: str) -> None:
+        """Move the cursor to ``row``, inserting the missing empty rows up to it within the padding budget.
+
+        Without enough budget the cursor moves to the last existing row instead, and ``raw`` is recorded as skipped.
+        """
+        cost = (row + 1 - len(self._rows)) * _PADDING_PER_ROW
+        if cost > self._padding_budget:
+            self._skip("unknown", raw, "padding limit reached, cursor kept on the last row")
+            row = min(row, len(self._rows) - 1)
+        elif cost > 0:
+            self._padding_budget -= cost
+            self._ensure_row(row)
+        self._row = row
+
     def _newline(self) -> None:
         self._row += 1
         self._ensure_row(self._row)
@@ -374,7 +428,7 @@ class AnsiParser:
     # -- internal: char-by-char state machine ---------------------------
 
     def _step(self, ch: str) -> None:
-        if self._parsestate == 2:
+        if self._parsestate in {2, 4}:
             self._handle_osc_char(ch)
             return
         if ch == BEL:
@@ -413,8 +467,13 @@ class AnsiParser:
         elif self._col == len(row):
             row.append((ch, attr))
         else:
-            while len(row) < self._col:
-                row.append((" ", None))
+            gap = self._col - len(row)
+            if gap > self._padding_budget:
+                self._skip("unknown", self._last_move, "padding limit reached, written at the end of the row")
+                self._col = len(row)
+            else:
+                self._padding_budget -= gap
+                row.extend([(" ", None)] * gap)
             row.append((ch, attr))
         self._col += 1
 
@@ -426,17 +485,22 @@ class AnsiParser:
         self._escbuf = ""
 
     def _skip(self, kind: str, raw: str, reason: str) -> None:
-        self._skipped.append(SkippedOp(kind=kind, raw=raw, reason=reason))
-        message = f"{reason}: {raw!r}"
-        if kind == "unknown":
-            LOGGER.warning(message)
-        else:
-            LOGGER.info(message)
+        """Record a stripped sequence and log it at debug level.
+
+        Entries past the first :data:`_MAX_SKIPPED` are not recorded.
+        Untrusted input can repeat a sequence without limit.
+        A warning would reach stderr, over the UI, through Python's last-resort handler.
+        """
+        if len(self._skipped) < _MAX_SKIPPED:
+            self._skipped.append(SkippedOp(kind=kind, raw=raw, reason=reason))
+        LOGGER.debug("%s: %r", reason, raw)
 
     def _parse_escape(self, ch: str) -> None:
         if self._parsestate == 1:  # within CSI
             if ch in "0123456789;" or (not self._escbuf and ch == "?"):
-                self._escbuf += ch
+                # past the limit the parameters are dropped; _dispatch_csi skips the sequence by its length
+                if len(self._escbuf) < _MAX_CSI_LENGTH:
+                    self._escbuf += ch
                 return
             self._dispatch_csi(ch, self._escbuf)
             self._leave_escape()
@@ -469,23 +533,29 @@ class AnsiParser:
         self._leave_escape()
 
     def _dispatch_csi(self, final: str, escbuf: str) -> None:
+        raw = f"{ESC}[{escbuf}{final}"
+        if len(escbuf) >= _MAX_CSI_LENGTH:
+            self._skip("unknown", raw, f"CSI parameters of {_MAX_CSI_LENGTH} characters or more, truncated")
+            return
+
         qmark = escbuf.startswith("?")
         body = escbuf[1:] if qmark else escbuf
         params: list[int | None] = [int(p) if p else None for p in body.split(";")] if body else []
-        raw = f"{ESC}[{escbuf}{final}"
 
         if final == "m":
             ints = [p if p is not None else 0 for p in params] or [0]
             self._attrspec = sgi_params_to_attrspec(ints, self._attrspec)
         elif final == "C":
             n = params[0] if params and params[0] else 1
-            self._col += n
+            self._col += min(n, _MAX_CURSOR_POSITION)
+            self._last_move = raw
         elif final == "D":
             n = params[0] if params and params[0] else 1
             self._col = max(0, self._col - n)
         elif final == "G":
             n = params[0] if params and params[0] else 1
-            self._col = max(0, n - 1)
+            self._col = min(n, _MAX_CURSOR_POSITION) - 1
+            self._last_move = raw
         elif final == "q":
             mode = params[0] if params and params[0] else 0
             self._leds = led_state(mode)
@@ -503,6 +573,7 @@ class AnsiParser:
             # reinterpreted
             self._skip("vertical-move", raw, f"CSI {final!r} vertical cursor movement is meaningless for a single line")
             return
+        self._last_move = raw
 
         # these genuinely reposition the cursor within the grid
         if final == "A":
@@ -510,12 +581,10 @@ class AnsiParser:
             self._row = max(0, self._row - n)
         elif final == "B":
             n = params[0] if params and params[0] else 1
-            self._row += n
-            self._ensure_row(self._row)
+            self._move_to_row(self._row + min(n, _MAX_CURSOR_POSITION), raw)
         elif final == "E":
             n = params[0] if params and params[0] else 1
-            self._row += n
-            self._ensure_row(self._row)
+            self._move_to_row(self._row + min(n, _MAX_CURSOR_POSITION), raw)
             self._col = 0
         elif final == "F":
             n = params[0] if params and params[0] else 1
@@ -523,14 +592,12 @@ class AnsiParser:
             self._col = 0
         elif final == "d":
             n = params[0] if params and params[0] else 1
-            self._row = max(0, n - 1)
-            self._ensure_row(self._row)
+            self._move_to_row(min(n, _MAX_CURSOR_POSITION) - 1, raw)
         elif final in ("H", "f"):
             r = params[0] if params and params[0] else 1
             c = params[1] if len(params) > 1 and params[1] else 1
-            self._row = max(0, r - 1)
-            self._ensure_row(self._row)
-            self._col = max(0, c - 1)
+            self._move_to_row(min(r, _MAX_CURSOR_POSITION) - 1, raw)
+            self._col = min(c, _MAX_CURSOR_POSITION) - 1
 
     def _dispatch_noncsi(self, ch: str, mod: str) -> None:
         raw = f"{ESC}{mod}{ch}"
@@ -558,11 +625,25 @@ class AnsiParser:
             self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
 
     def _handle_osc_char(self, ch: str) -> None:
+        if self._parsestate == 4:
+            # only the last character is kept, which is enough to recognise either terminator
+            if ch == BEL or (self._escbuf == ESC and ch == "\\"):
+                self._leave_escape()
+            else:
+                self._escbuf = ch
+            return
         if ch == BEL:
             self._finish_osc(self._escbuf)
             return
         if self._escbuf[-1:] == ESC and ch == "\\":
             self._finish_osc(self._escbuf[:-1])
+            return
+        if len(self._escbuf) >= _MAX_OSC_LENGTH:
+            self._skip(
+                "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {_MAX_OSC_LENGTH} characters or more, truncated"
+            )
+            self._parsestate = 4
+            self._escbuf = ch
             return
         if self._escbuf.startswith("P") and len(self._escbuf) == 8:
             self._finish_osc_skip("OSC palette set")
@@ -687,6 +768,8 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
     ``vterm.TermCanvas.sgi_to_attrspec``. SGR 10/11/12 (which toggle vterm's charset/display-control state rather
     than colour/attributes) are deliberately ignored here -- a caller that also needs that side effect applies it
     itself; this function never raises for an unrecognised numeric code, it simply has no effect on the result.
+    An extended colour (``38``/``48``) whose index or component is outside ``0..255`` is consumed and ignored the same
+    way.
 
     :param params: the SGR numeric parameters to apply, in encounter order.
     :param previous: the :class:`~urwid.AttrSpec` in effect before ``params`` is applied, or ``None`` if none is
@@ -739,19 +822,21 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
         elif attr in (38, 48):
             if idx + 2 < len(params) and params[idx + 1] == 5:
                 color = params[idx + 2]
-                colors = max(256, colors)
-                if attr == 38:
-                    fg = color
-                else:
-                    bg = color
+                if 0 <= color <= 255:
+                    colors = max(256, colors)
+                    if attr == 38:
+                        fg = color
+                    else:
+                        bg = color
                 idx += 2
             elif idx + 4 < len(params) and params[idx + 1] == 2:
-                color = (params[idx + 2] << 16) + (params[idx + 3] << 8) + params[idx + 4]
-                colors = 16777216  # 2 ** 24
-                if attr == 38:
-                    fg = color
-                else:
-                    bg = color
+                if all(0 <= component <= 255 for component in params[idx + 2 : idx + 5]):
+                    color = (params[idx + 2] << 16) + (params[idx + 3] << 8) + params[idx + 4]
+                    colors = 16777216  # 2 ** 24
+                    if attr == 38:
+                        fg = color
+                    else:
+                        bg = color
                 idx += 4
         elif attr == 39:
             fg = None
