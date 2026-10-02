@@ -25,7 +25,7 @@ from __future__ import annotations
 import operator
 import typing
 import warnings
-from collections.abc import Iterable, Sized
+from collections.abc import Container, Iterable, Sized
 from contextlib import suppress
 
 from urwid import signals
@@ -141,6 +141,42 @@ class VisibleInfo(typing.NamedTuple):
         )
 
 
+class _SeenPositions(Container[typing.Any]):
+    """Collection of walker positions already visited, for loops that must stop on a repeat.
+
+    Positions are opaque objects that only promise ``==``.
+    Hashable positions are kept in a set, so a lookup does not grow with the number visited.
+    Once a position cannot be hashed, all of them move to a list and are compared with ``==``.
+    """
+
+    __slots__ = ("_hashed", "_listed")
+
+    def __init__(self) -> None:
+        """Create an empty collection."""
+        self._hashed: set[object] = set()
+        self._listed: list[object] | None = None
+
+    def __contains__(self, position: object) -> bool:
+        """Return whether a position equal to *position* was added."""
+        if self._listed is not None:
+            return position in self._listed
+        try:
+            return position in self._hashed
+        except TypeError:
+            return position in list(self._hashed)
+
+    def add(self, position: object) -> None:
+        """Add *position*."""
+        if self._listed is None:
+            try:
+                self._hashed.add(position)
+            except TypeError:
+                self._listed = list(self._hashed)
+            else:
+                return
+        self._listed.append(position)
+
+
 class ListBox(Widget, WidgetContainerMixin[_K]):
     """Vertically stacked list of widgets."""
 
@@ -218,7 +254,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     @body.setter
     def body(self, body: Iterable[AbstractFlowWidget] | ListWalker[_K, AbstractFlowWidget]) -> None:
         with suppress(AttributeError):
-            signals.disconnect_signal(self._body, "modified", self._invalidate)
+            signals.disconnect_signal(self._body, "modified", type(self)._invalidate, weak_args=[self])
             # _body may be not yet assigned
 
         if isinstance(body, ListWalker):
@@ -233,7 +269,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         else:
             self._body = SimpleListWalker(body)
         try:
-            signals.connect_signal(self._body, "modified", self._invalidate)
+            # A weak reference lets a ListBox over a long-lived walker be collected; the handler goes with it.
+            signals.connect_signal(self._body, "modified", type(self)._invalidate, weak_args=[self])
         except NameError:
             # our list walker has no modified signal,
             # so we must not cache our canvases because we don't know when our content has changed
@@ -327,13 +364,14 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         fill_above = []
         top_pos = pos
         # A body that wraps around hands out the same widgets again once the list is exhausted.
-        shown_pos = [focus_pos]
+        shown_pos = _SeenPositions()
+        shown_pos.add(focus_pos)
         while fill_lines > 0:
             prev, pos = self._body.get_prev(pos)
             if prev is None or pos in shown_pos:  # run out of widgets above?
                 offset_rows -= fill_lines
                 break
-            shown_pos.append(pos)
+            shown_pos.add(pos)
             top_pos = pos
 
             p_rows = prev.rows((maxcol,))
@@ -354,7 +392,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             next_pos, pos = self._body.get_next(pos)
             if next_pos is None or pos in shown_pos:  # run out of widgets below?
                 break
-            shown_pos.append(pos)
+            shown_pos.add(pos)
 
             n_rows = next_pos.rows((maxcol,))
             if n_rows:  # filter out 0-height widgets
@@ -382,7 +420,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             prev, pos = self._body.get_prev(pos)
             if prev is None or pos in shown_pos:
                 break
-            shown_pos.append(pos)
+            shown_pos.add(pos)
 
             p_rows = prev.rows((maxcol,))
             fill_above.append(VisibleInfoFillItem(prev, pos, p_rows))
@@ -608,7 +646,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             if fill_below:
                 bottom_pos = fill_below[-1][1]
 
-            rendered_positions = frozenset(idx for _, idx, _ in combinelist)
+            rendered_positions = [idx for _, idx, _ in combinelist]
             next_widget, next_pos = self._body.get_next(bottom_pos)
             while next_widget is not None and next_pos is not None and next_pos not in rendered_positions:
                 if next_widget.rows((maxcol,), False):
@@ -844,7 +882,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             0,
         )
 
-        self.shift_focus((maxcol, maxrow), rtop)
+        # A 0-height focus aligned at or near the bottom would start below the last row: put it on the last row.
+        self.shift_focus((maxcol, maxrow), min(rtop, maxrow - 1))
 
     def _set_focus_first_selectable(self, size: tuple[int, int], focus: bool) -> None:
         """Choose the first visible, selectable widget below the current focus as the focus widget.
@@ -1284,12 +1323,15 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         row_offset += 1
         self._invalidate()
 
+        # A wrapping body of 0-height widgets returns to a position without moving row_offset: stop there.
+        scrolled = _SeenPositions()
         while row_offset > 0:
             # need to scroll in another candidate widget
             widget, pos = self._body.get_prev(pos)
-            if widget is None:
+            if widget is None or (pos, row_offset) in scrolled:
                 # cannot scroll any further
                 return True  # keypress not handled
+            scrolled.add((pos, row_offset))
             rows = widget.rows((maxcol,), True)
             row_offset -= rows
             if rows and widget.selectable():
@@ -1358,12 +1400,15 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         row_offset -= 1
         self._invalidate()
 
+        # A wrapping body of 0-height widgets returns to a position without moving row_offset: stop there.
+        scrolled = _SeenPositions()
         while row_offset < maxrow:
             # need to scroll in another candidate widget
             widget, pos = self._body.get_next(pos)
-            if widget is None:
+            if widget is None or (pos, row_offset) in scrolled:
                 # cannot scroll any further
                 return True  # keypress not handled
+            scrolled.add((pos, row_offset))
             rows = widget.rows((maxcol,))
             if rows and widget.selectable():
                 # this one will do
@@ -1458,10 +1503,13 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             t.append((row_offset, widget, pos, rows))
         # add newly visible ones, including within snap_rows
         snap_region_start = len(t)
+        # A wrapping body of 0-height widgets returns to a position without moving row_offset: stop there.
+        scrolled = _SeenPositions()
         while row_offset > -snap_rows:
             prev_widget, pos = self._body.get_prev(pos)
-            if prev_widget is None:
+            if prev_widget is None or (pos, row_offset) in scrolled:
                 break
+            scrolled.add((pos, row_offset))
             rows = prev_widget.rows((maxcol,))
             row_offset -= rows
             # determine if one below puts current one into snap rgn
@@ -1594,6 +1642,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             return None
         # bring in only one row if possible
         rows = prev_widget.rows((maxcol,), True)
+        if not rows:  # never focus a 0-height widget
+            return None
         self.change_focus(
             (maxcol, maxrow),
             typing.cast("_K", pos),
@@ -1652,10 +1702,13 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             row_offset += rows
         # add newly visible ones, including within snap_rows
         snap_region_start = len(t)
+        # A wrapping body of 0-height widgets returns to a position without moving row_offset: stop there.
+        scrolled = _SeenPositions()
         while row_offset < maxrow + snap_rows:
             next_widget, pos = self._body.get_next(pos)
-            if next_widget is None:
+            if next_widget is None or (pos, row_offset) in scrolled:
                 break
+            scrolled.add((pos, row_offset))
             rows = next_widget.rows((maxcol,))
             t.append((row_offset, next_widget, pos, rows))
             row_offset += rows
@@ -1772,7 +1825,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             return None
 
         # no choices available, just shift current one
-        self.shift_focus((maxcol, maxrow), max(1 - focus_rows, row_offset))
+        # The bottom fill puts a trailing 0-height widget at row maxrow, below the last row: use the last row.
+        self.shift_focus((maxcol, maxrow), min(maxrow - 1, max(1 - focus_rows, row_offset)))
 
         # final check for pathological case where we may fall short
         middle, _top, bottom = self.calculate_visible((maxcol, maxrow), True)
@@ -1792,6 +1846,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             return None
         # bring in only one row if possible
         rows = next_widget.rows((maxcol,), True)
+        if not rows:  # never focus a 0-height widget
+            return None
         self.change_focus(
             (maxcol, maxrow),
             typing.cast("_K", pos),
