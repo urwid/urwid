@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import codecs
 import re
 import typing
 import warnings
@@ -81,17 +82,43 @@ def _decode_grapheme_at(text: bytes, start: int, end: int) -> tuple[str, int]:
     :param start: starting byte position
     :param end: ending byte position
     :returns: (grapheme_string, next_byte_position)
+    :raises UnicodeDecodeError: the decoded bytes are not valid UTF-8.
 
     Assumes caller provides valid UTF-8 byte boundaries.
+    Decodes a window that doubles until it holds a character past the first grapheme cluster,
+    so the cost follows the cluster length rather than the length of the rest of the text.
     """
-    decoded = text[start:end].decode("utf-8")
-    grapheme = next(wcwidth.iter_graphemes(decoded), "")
-    if len(grapheme) == len(decoded):
-        # the grapheme consumed the whole decoded window: its byte length is
-        # already known (end - start) without re-encoding it.
-        return grapheme, end
-    grapheme_bytes = grapheme.encode("utf-8")
-    return grapheme, start + len(grapheme_bytes)
+    window = 16
+    while True:
+        stop = min(end, start + window)
+        # an incremental decoder keeps a character cut by the window end instead of failing on it
+        decoded = codecs.getincrementaldecoder("utf-8")().decode(text[start:stop], final=stop == end)
+        grapheme = next(wcwidth.iter_graphemes(decoded), "")
+        if len(grapheme) < len(decoded):
+            return grapheme, start + len(grapheme.encode("utf-8"))
+        if stop == end:
+            # the grapheme consumed the whole decoded window: its byte length is
+            # already known (end - start) without re-encoding it.
+            return grapheme, end
+        window *= 2
+
+
+def _first_grapheme(text: str, start: int, end: int) -> str:
+    """
+    Return the first grapheme cluster of text[start:end].
+
+    Segments a slice that doubles while the cluster reaches its end,
+    so the cost follows the cluster length rather than the length of the rest of the text.
+
+    :raises StopIteration: *start* is not before *end*.
+    """
+    window = 16
+    while True:
+        stop = min(end, start + window)
+        grapheme = next(wcwidth.iter_graphemes(text[start:stop]))
+        if start + len(grapheme) < stop or stop == end:
+            return grapheme
+        window *= 2
 
 
 def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
@@ -245,6 +272,8 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
 
     Iterates by grapheme clusters for emoji ZWJ sequences, flags,
     combining characters, and other multi-codepoint unicode sequences.
+    Segments a window that doubles until the result is found,
+    so the cost follows the length of the returned range rather than the length of the whole range.
 
     :param text: string
     :param start_offs: starting text position
@@ -258,14 +287,21 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
 
     cols = 0
     pos = start_offs
-    for grapheme in wcwidth.iter_graphemes(text[start_offs:end_offs]):
-        grapheme_width = wcwidth.width(grapheme, control_codes="ignore")
-        if grapheme_width + cols > pref_col:
-            return pos, cols
-        cols += grapheme_width
-        pos += len(grapheme)
-
-    return end_offs, cols
+    window = max(pref_col, 0) + 16
+    while True:
+        stop = min(end_offs, pos + window)
+        # iterating a slice uses the C segmenter of wcwidth, iterating a range of the whole text does not
+        for grapheme in wcwidth.iter_graphemes(text[pos:stop]):
+            if pos + len(grapheme) == stop < end_offs:
+                break  # the window end may cut this cluster: segment it again in a larger window
+            grapheme_width = wcwidth.width(grapheme, control_codes="ignore")
+            if grapheme_width + cols > pref_col:
+                return pos, cols
+            cols += grapheme_width
+            pos += len(grapheme)
+        else:
+            return end_offs, cols
+        window *= 2
 
 
 def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: int) -> tuple[int, int]:
@@ -280,6 +316,7 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
 
     :raises ValueError: *start_offs* is past *end_offs*.
     :raises TypeError: the byte encoding is in use and *text* is not a byte string.
+    :raises UnicodeDecodeError: the byte encoding is UTF-8 and the decoded bytes are not valid UTF-8.
     """
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
@@ -291,12 +328,22 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
         raise TypeError(text)
 
     if _byte_encoding == "utf8":
-        decoded = text[start_offs:end_offs].decode("utf-8")
-        str_pos, cols = calc_string_text_pos(decoded, 0, len(decoded), pref_col)
-        if str_pos == len(decoded):
-            # the whole decoded window was consumed: its byte length is already
-            # known (end_offs - start_offs) without re-encoding it.
-            return end_offs, cols
+        # decode a window that doubles until a cluster that is whole in it crosses pref_col,
+        # so the cost follows the length of the returned range rather than the length of the whole range
+        window = 4 * max(pref_col, 0) + 16
+        while True:
+            stop = min(end_offs, start_offs + window)
+            decoded = codecs.getincrementaldecoder("utf-8")().decode(text[start_offs:stop], final=stop == end_offs)
+            str_pos, cols = calc_string_text_pos(decoded, 0, len(decoded), pref_col)
+            if stop == end_offs:
+                if str_pos == len(decoded):
+                    # the whole decoded window was consumed: its byte length is already
+                    # known (end_offs - start_offs) without re-encoding it.
+                    return end_offs, cols
+                break
+            if str_pos < wcwidth.grapheme_boundary_before(decoded, len(decoded)):
+                break
+            window *= 2
         byte_offset = len(decoded[:str_pos].encode("utf-8"))
         return start_offs + byte_offset, cols
 
@@ -363,7 +410,7 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
     :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     """
     if isinstance(text, str):
-        grapheme = next(wcwidth.iter_graphemes(text[offs:]))
+        grapheme = _first_grapheme(text, offs, len(text))
         return wcwidth.width(grapheme, control_codes="ignore") == 2
     if not isinstance(text, bytes):
         raise TypeError(text)
@@ -377,10 +424,11 @@ def is_wide_char(text: str | bytes, offs: int) -> bool:
 
 def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     """
-    Return the position of the grapheme cluster before end_offs.
+    Return the position of the grapheme cluster before end_offs, never before start_offs.
 
     For Unicode strings, handle multi-codepoint, "grapheme clusters",
     to better measure emoji ZWJ, flags, combining characters, skin tones.
+    A cluster that starts before start_offs is cut at start_offs, as the byte string path does.
 
     :raises ValueError: *start_offs* is not before *end_offs*.
     :raises TypeError: the byte encoding is in use and *text* is not a byte string.
@@ -388,7 +436,7 @@ def move_prev_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
-        return wcwidth.grapheme_boundary_before(text, end_offs)
+        return max(start_offs, wcwidth.grapheme_boundary_before(text, end_offs))
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":
@@ -418,8 +466,7 @@ def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     if start_offs >= end_offs:
         raise ValueError((start_offs, end_offs))
     if isinstance(text, str):
-        grapheme = next(wcwidth.iter_graphemes(text[start_offs:end_offs]))
-        return start_offs + len(grapheme)
+        return start_offs + len(_first_grapheme(text, start_offs, end_offs))
     if not isinstance(text, bytes):
         raise TypeError(text)
     if _byte_encoding == "utf8":

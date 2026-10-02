@@ -72,3 +72,12 @@ class DecodeOneTest(unittest.TestCase):
             str_util.decode_one(b"ab", 5)
         with self.assertRaises(ValueError):
             str_util.decode_one("ab", 5)
+
+
+class MovePrevCharTest(unittest.TestCase):
+    """Moving back by one grapheme cluster within a range of a string."""
+
+    def test_cluster_starting_before_start_offs(self):
+        """A space and a combining mark form one cluster: moving back from inside the range stops at start_offs."""
+        self.assertEqual(1, str_util.move_prev_char(" \u0301ab", 1, 2))
+        self.assertEqual(0, str_util.move_prev_char(" \u0301ab", 0, 2))

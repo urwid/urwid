@@ -58,6 +58,22 @@ def _get_width(string: str) -> int:
     return wcwidth.width(string, control_codes="ignore")
 
 
+def _calc_fitting_text(text: str | bytes, start: int, end: int, max_cols: int) -> tuple[int, int]:
+    """Return the end offset and the screen columns of the longest part of text[start:end] fitting into max_cols.
+
+    Text of up to ``4 * max_cols + 16`` code units is measured as a whole first. Longer text is cut with
+    :func:`calc_text_pos` before it is measured, so the cost follows the length of the part that fits
+    rather than the length of the whole range.
+    """
+    if end - start <= 4 * max_cols + 16 and (cols := calc_width(text, start, end)) <= max_cols:
+        return end, cols
+    pos, cols = calc_text_pos(text, start, end, max_cols)
+    if pos == end and (whole := calc_width(text, start, end)) <= max_cols:
+        # the per-cluster measure of calc_text_pos and the whole-text measure of calc_width can disagree
+        cols = whole
+    return pos, cols
+
+
 class TextLayout:
     """Base class for a text layout algorithm that lays text out into lines for display."""
 
@@ -363,6 +379,7 @@ class StandardTextLayout(TextLayout):
         line: list[tuple[int, int, int | bytes] | tuple[int, int]] = []
         column = 0
         pos = start
+        chunk_end = start - 1
         while pos < end:
             if text[pos : pos + 1] == tab:
                 if self.next_tab_stop(column) == column:
@@ -384,16 +401,23 @@ class StandardTextLayout(TextLayout):
                     line, column = [], 0
                 continue
 
-            if (chunk_end := text.find(tab, pos, end)) == -1:  # type: ignore[arg-type]  # same type as text
+            # the tab found for an earlier display line still ends the chunk this one continues
+            if chunk_end < pos and (chunk_end := text.find(tab, pos, end)) == -1:  # type: ignore[arg-type]
                 chunk_end = end
-            if column + (chunk_width := calc_width(text, pos, chunk_end)) <= width:
+            if (
+                chunk_end - pos <= width - column
+                and column + (chunk_width := calc_width(text, pos, chunk_end)) <= width
+            ):
+                brk = chunk_end
+            else:
+                brk, chunk_width = _calc_fitting_text(text, pos, chunk_end, width - column)
+            if brk == chunk_end:
                 if chunk_width:
                     line.append((chunk_width, pos, chunk_end))
                 column += chunk_width
                 pos = chunk_end
                 continue
 
-            brk, _ = calc_text_pos(text, pos, chunk_end, width - column)
             cut: int | None = None
             resume = brk
             if wrap == "any":
@@ -478,34 +502,34 @@ class StandardTextLayout(TextLayout):
 
         segments: list[list[tuple[int, int, int | bytes] | tuple[int, int]]] = []
         idx = 0
+        nl_pos = -1
 
         while idx <= len(text):
-            # look for the next eligible line break
-            nl_pos = text.find(nl, idx)  # type: ignore[arg-type]  # We normalise types
-            if nl_pos == -1:
-                nl_pos = len(text)
+            if nl_pos < idx:
+                # look for the next eligible line break, valid until idx passes it
+                nl_pos = text.find(nl, idx)  # type: ignore[arg-type]  # We normalise types
+                if nl_pos == -1:
+                    nl_pos = len(text)
 
-            if text.find(tab, idx, nl_pos) != -1:  # type: ignore[arg-type]  # We normalise types
-                segments.extend(self._wrap_tabbed_line(text, idx, nl_pos, width, wrap))
-                idx = nl_pos + 1
-                continue
+                if text.find(tab, idx, nl_pos) != -1:  # type: ignore[arg-type]  # We normalise types
+                    segments.extend(self._wrap_tabbed_line(text, idx, nl_pos, width, wrap))
+                    idx = nl_pos + 1
+                    continue
 
-            screen_columns = calc_width(text, idx, nl_pos)
-            if screen_columns == 0:
+            if nl_pos - idx <= width and (screen_columns := calc_width(text, idx, nl_pos)) <= width:
+                pos = nl_pos
+            else:
+                pos, screen_columns = _calc_fitting_text(text, idx, nl_pos, width)
+            if pos == nl_pos:
+                if screen_columns:
+                    # this segment fits
+                    segments.append([(screen_columns, idx, nl_pos), (0, nl_pos)])
+                else:
+                    segments.append([(0, nl_pos)])
                 # removed character hint
-                segments.append([(0, nl_pos)])
                 idx = nl_pos + 1
                 continue
 
-            if screen_columns <= width:
-                # this segment fits
-                segments.append([(screen_columns, idx, nl_pos), (0, nl_pos)])
-                # removed character hint
-
-                idx = nl_pos + 1
-                continue
-
-            pos, screen_columns = calc_text_pos(text, idx, nl_pos, width)
             if pos == idx:  # pathological width=1 double-byte case
                 raise CanNotDisplayText("Wide character will not fit in 1-column width")
 
@@ -564,11 +588,17 @@ class StandardTextLayout(TextLayout):
                     else:
                         [(p_sc, p_off, _p_end), (h_sc, h_off)] = segments[-1]  # type: ignore[misc]
 
-                    if p_sc < width and h_sc == 0 and text[h_off] == sp_o:
+                    if (
+                        p_sc < width
+                        and h_sc == 0
+                        and text[h_off] == sp_o
+                        # a join that breaks before the removed space again would repeat this line forever
+                        and (joined := calc_text_pos(text, p_off, nl_pos, width))[0] > h_off
+                    ):
                         # combine with the previous line
                         del segments[-1]
                         idx = p_off
-                        pos, screen_columns = calc_text_pos(text, idx, nl_pos, width)
+                        pos, screen_columns = joined
                         segments.append([(screen_columns, idx, pos)])
                         # check for trailing " " or "\n"
                         idx = pos

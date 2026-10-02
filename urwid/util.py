@@ -479,16 +479,33 @@ class TagMarkupException(Exception):
 
 
 def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-    """Return (text string, attribute list) for tagmarkup passed."""
+    """Return (text string, attribute list) for tagmarkup passed.
+
+    Elements that are not of the type of the first one are converted with the target encoding,
+    replacing what cannot be converted, as :func:`apply_target_encoding` does.
+    """
     tl, al = _tagmarkup_recurse(tm, None)
     # join as str or bytes based on type of first element
     text: str | bytes
+    converted: list[str] | list[bytes]
     if tl:
         encoding = get_encoding()
         if isinstance(tl[0], str):
-            text = "".join(item if isinstance(item, str) else item.decode(encoding) for item in tl)
+            converted = [item if isinstance(item, str) else item.decode(encoding, "replace") for item in tl]
+            text = "".join(converted)
         else:
-            text = b"".join(item if isinstance(item, bytes) else item.encode(encoding) for item in tl)
+            converted = [item if isinstance(item, bytes) else item.encode(encoding, "replace") for item in tl]
+            text = b"".join(converted)
+        if len(text) != sum(len(item) for item in tl):
+            # the attribute runs count the elements before conversion: recount them after it
+            items = zip(tl, converted)
+            for i, (attr, run) in enumerate(al):
+                remaining, new_run = run, 0
+                while remaining > 0:
+                    item, converted_item = next(items)
+                    remaining -= len(item)
+                    new_run += len(converted_item)
+                al[i] = (attr, new_run)
     else:
         text = ""
 
