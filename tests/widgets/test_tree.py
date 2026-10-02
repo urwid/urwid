@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import typing
 import unittest
 
@@ -55,6 +56,117 @@ class SelfRegisteringChild(urwid.TreeNode):
 
     def set_parent(self, parent: SelfRegisteringParent) -> None:
         self._parent = parent
+
+
+class ComparisonCountingKey(str):
+    """String key counting the equality comparisons made against it."""
+
+    __slots__ = ()
+    comparisons = 0
+
+    def __eq__(self, other: object) -> bool:
+        """Count the comparison, then compare as a string."""
+        ComparisonCountingKey.comparisons += 1
+        return super().__eq__(other)
+
+    __hash__ = str.__hash__
+
+
+class ReloadingParent(urwid.ParentNode):
+    """Parent whose child keys change on every reload."""
+
+    def __init__(self, value: str, *, child_count: int) -> None:
+        """Create a parent with ``child_count`` changing child keys and one key present in every generation."""
+        super().__init__(value, key=value)
+        self.child_count = child_count
+        self.generation = 0
+
+    def load_child_keys(self) -> list[Hashable]:
+        """Return the keys of the next generation."""
+        self.generation += 1
+        return [*(f"{self.generation}-{idx}" for idx in range(self.child_count)), "kept"]
+
+    def load_child_node(self, key: Hashable) -> TreeNode:
+        """Create a leaf node for ``key``."""
+        return TreeNode(key, parent=self, key=key)
+
+
+class CyclicParent(urwid.ParentNode):
+    """Parent whose only child is ``self.child``, assigned after construction to close a cycle."""
+
+    def __init__(self, value: str, *, parent: CyclicParent | None = None) -> None:
+        """Create the node with no child yet and no ``has_children`` calls counted."""
+        super().__init__(value, parent=parent, key=value)
+        self.child: CyclicParent | None = None
+        self.has_children_calls = 0
+
+    def load_child_keys(self) -> list[Hashable]:
+        """Return the key of the only child."""
+        return [self.child.get_key()]
+
+    def load_child_node(self, key: Hashable) -> TreeNode:
+        """Return the only child."""
+        return self.child
+
+    def has_children(self) -> bool:
+        """Count the call, failing once a descent has clearly stopped making progress."""
+        self.has_children_calls += 1
+        if self.has_children_calls > 100:
+            raise RuntimeError("cycle guard: the descent did not stop")
+        return super().has_children()
+
+
+class CountingParentLink(urwid.TreeNode):
+    """Leaf whose parent link counts its reads, failing once a walk has clearly stopped making progress."""
+
+    def __init__(self, value: str) -> None:
+        """Create the node with no reads of its parent link counted."""
+        self.parent_reads = 0
+        self.link: urwid.TreeNode | None = None
+        super().__init__(value, key=value)
+
+    @property
+    def _parent(self) -> urwid.TreeNode | None:
+        """Return the parent link, counting the read."""
+        self.parent_reads += 1
+        if self.parent_reads > 100:
+            raise RuntimeError("cycle guard: the walk did not stop")
+        return self.link
+
+    @_parent.setter
+    def _parent(self, value: urwid.TreeNode | None) -> None:
+        self.link = value
+
+
+class FixedDepthParent(SelfRegisteringParent):
+    """Parent that reports a fixed depth through an overridden ``get_depth``."""
+
+    def get_depth(self) -> int:
+        """Return a depth no parent link implies."""
+        return 10
+
+
+class NoDescendantWidget(urwid.TreeWidget):
+    """Widget that reports no last descendant through an overridden ``last_child``."""
+
+    def last_child(self) -> None:
+        """Hide the children of this widget from a descent."""
+
+
+class NoDescendantParent(SelfRegisteringParent):
+    """Parent rendered with a :class:`NoDescendantWidget`."""
+
+    def load_widget(self) -> NoDescendantWidget:
+        """Create the overriding widget."""
+        return NoDescendantWidget(self)
+
+
+def build_chain(depth: int) -> SelfRegisteringParent:
+    """Build a single-branch tree ``depth`` levels deep bottom-up, so no node knows its depth yet."""
+    node: SelfRegisteringParent | SelfRegisteringChild = SelfRegisteringChild("leaf", key="leaf")
+    for level in range(depth, 0, -1):
+        node = SelfRegisteringParent(f"level_{level}", key=f"{level}/", children=(node,))
+    return node
 
 
 class TestTree(unittest.TestCase):
@@ -364,6 +476,71 @@ class TestTreeNode(unittest.TestCase):
         self.assertFalse(empty.has_children())
         self.assertEqual([], list(empty.get_child_keys()))
 
+    def test_get_depth_deeper_than_recursion_limit(self):
+        """A depth computed bottom-up does not recurse once per level."""
+        depth = sys.getrecursionlimit() * 2
+        node = build_chain(depth)
+        while isinstance(node, urwid.ParentNode):
+            node = node.get_last_child()
+
+        self.assertEqual(depth, node.get_depth())
+        self.assertEqual(depth - 1, node.get_parent().get_depth())
+
+    def test_get_depth_parent_cycle(self):
+        """A cycle in the parent links raises instead of walking it forever."""
+        first, second = CountingParentLink("first"), CountingParentLink("second")
+        first._parent, second._parent = second, first
+
+        with self.assertRaises(urwid.TreeWidgetError):
+            first.get_depth()
+
+    def test_get_depth_uses_overriding_ancestor(self):
+        """The walk asks an ancestor that overrides get_depth for its depth."""
+        parent = FixedDepthParent("parent", key="parent")
+        child = SelfRegisteringChild("child", parent=parent, key="child")
+
+        self.assertEqual(11, child.get_depth())
+
+    def test_get_child_index_does_not_scan_keys(self):
+        """Walking all siblings looks each key up instead of scanning the key list."""
+        count = 2000
+        root = SelfRegisteringParent(
+            "root",
+            key="/",
+            children=(SelfRegisteringChild(f"child_{idx}", key=ComparisonCountingKey(idx)) for idx in range(count)),
+        )
+        ComparisonCountingKey.comparisons = 0
+        node = root.get_first_child()
+        visited = 1
+        while (node := node.next_sibling()) is not None:
+            visited += 1
+
+        self.assertEqual(count, visited)
+        # Scanning the key list for each sibling makes about count**2 / 2 comparisons.
+        self.assertLess(ComparisonCountingKey.comparisons, count * 4)
+
+    def test_get_child_index_after_reload(self):
+        """Indexes follow the reloaded key list."""
+        parent = ReloadingParent("parent", child_count=3)
+
+        self.assertEqual(1, parent.get_child_index("1-1"))
+        parent.get_child_keys(reload=True)
+        self.assertEqual(2, parent.get_child_index("2-2"))
+        self.assertEqual(3, parent.get_child_index("kept"))
+        with self.assertRaises(urwid.TreeWidgetError):
+            parent.get_child_index("1-1")
+
+    def test_reload_drops_nodes_of_removed_keys(self):
+        """A reload keeps only the cached nodes whose keys are still listed."""
+        parent = ReloadingParent("parent", child_count=100)
+        kept = parent.get_child_node("kept")
+        for _ in range(50):
+            for key in parent.get_child_keys(reload=True):
+                parent.get_child_node(key)
+
+        self.assertEqual(set(parent.get_child_keys()), set(parent._children))
+        self.assertIs(kept, parent.get_child_node("kept"))
+
     def test_load_parent_not_implemented(self):
         orphan = TreeNode("orphan", key="orphan", depth=1)
         with self.assertRaises(urwid.TreeWidgetError) as ctx:
@@ -508,6 +685,63 @@ class TestTreeWidget(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             broken.get_widget().next_inorder()
+
+
+class TestLastChild(unittest.TestCase):
+    """Descent to the last visible descendant."""
+
+    def test_cycle(self):
+        """A node that is its own descendant raises instead of descending forever."""
+        first = CyclicParent("first")
+        second = CyclicParent("second", parent=first)
+        first.child, second.child = second, first
+
+        with self.assertRaises(urwid.TreeWidgetError):
+            first.get_widget().last_child()
+
+    def test_overriding_descendant_widget(self):
+        """A descendant widget that overrides last_child decides its own last descendant."""
+        hiding = NoDescendantParent("hiding", key="h/", children=(SelfRegisteringChild("hidden", key="x"),))
+        root = SelfRegisteringParent("root", key="/", children=(hiding,))
+
+        self.assertIs(hiding.get_widget(), root.get_widget().last_child())
+
+
+class TestDeepTree(unittest.TestCase):
+    """A subtree deeper than the recursion limit, built bottom-up."""
+
+    def setUp(self) -> None:
+        """Put the deep subtree before a leaf under the root."""
+        self.depth = sys.getrecursionlimit() * 2
+        self.deep = build_chain(self.depth)
+        self.root = SelfRegisteringParent("root", key="/", children=(self.deep, SelfRegisteringChild("tail", key="t")))
+        self.widget = urwid.TreeListBox(urwid.TreeWalker(self.root))
+        self.size = (20, 3)
+
+    def test_last_child_deeper_than_recursion_limit(self):
+        """The last descendant is found without recursing once per level."""
+        last = self.deep.get_widget().last_child()
+
+        self.assertEqual("leaf", last.get_node().get_key())
+        self.assertEqual(self.depth + 1, last.get_node().get_depth())
+
+    def test_render_below_deep_subtree(self):
+        """Rendering with the deep subtree above the focus fills the rows above it."""
+        tail = self.root.get_child_node("t")
+        self.widget.change_focus(self.size, tail, 2)
+        self.widget.render(self.size, focus=True)
+
+        self.assertIs(tail, self.widget.focus_position)
+        self.assertEqual("leaf", self.widget.body.get_prev(tail)[1].get_key())
+
+    def test_focus_end_inside_deep_subtree(self):
+        """The End key moves the focus to the deepest last node."""
+        deep = build_chain(self.depth)
+        root = SelfRegisteringParent("root", key="/", children=(SelfRegisteringChild("head", key="h"), deep))
+        widget = urwid.TreeListBox(urwid.TreeWalker(root))
+        widget.keypress(self.size, "end")
+
+        self.assertEqual("leaf", widget.focus_position.get_key())
 
 
 class TestTreeWalker(unittest.TestCase):
