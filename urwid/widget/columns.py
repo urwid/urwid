@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+import sys
 import typing
 import warnings
 from itertools import chain, repeat
@@ -437,12 +439,13 @@ class Columns(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0)),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(n))),
                         not isinstance(b, bool),
                     )
                 ):
                     invalid_items.append(item)
-        except (TypeError, ValueError) as exc:
+        # OverflowError: math.isfinite() of an int too large for a float
+        except (TypeError, ValueError, OverflowError) as exc:
             raise ColumnsError(f"added content invalid {exc}").with_traceback(exc.__traceback__) from exc
 
         if invalid_items:
@@ -939,10 +942,16 @@ class Columns(
             if weighted and weighted[0][1] == i:
                 del weighted[0]
 
-        if shared:
+        grow = shared + len(weighted) * self.min_width
+        if weighted and (max_weight := max(weight for weight, _i in weighted)) > sys.float_info.max / (
+            len(weighted) * max(grow, 1)
+        ):
+            # grow * wtotal could overflow a float: scale weights to at most 1, keeping their ratios
+            weighted = [(weight / max_weight, i) for weight, i in weighted]
+
+        wtotal = sum(weight for weight, _i in weighted)
+        if shared and wtotal:
             # divide up the remaining space between weighted cols
-            wtotal = sum(weight for weight, i in weighted)
-            grow = shared + len(weighted) * self.min_width
             for weight, i in sorted(weighted):
                 width = max(int(grow * weight / wtotal + 0.5), self.min_width)
 
@@ -961,8 +970,8 @@ class Columns(
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
         """Get column widths, heights and render size parameters.
 
-        :raises ColumnsError: a child widget does not support a sizing mode this Columns needs, or no child can provide
-            a height.
+        :raises ColumnsError: a child widget does not support a sizing mode this Columns needs, no child can provide
+            a height, or the weights are too far apart to keep their ratio at a fixed size.
         """
         widths: dict[int, int] = {}
         heights: dict[int, int] = {}
@@ -1020,7 +1029,12 @@ class Columns(
             max_weighted_coefficient = max(width / weight for weight, width in weight_max_sizes.items())
 
             for weight in weight_max_sizes:
-                width = max(int(max_weighted_coefficient * weight + 0.5), self.min_width)
+                try:
+                    width = max(int(max_weighted_coefficient * weight + 0.5), self.min_width)
+                except OverflowError as exc:
+                    raise ColumnsError(
+                        f"Weights of {self!r} are too far apart to keep their ratio at a fixed size"
+                    ) from exc
                 for widget, i, is_box, focused in weighted[weight]:
                     widths[i] = width
 
@@ -1049,7 +1063,10 @@ class Columns(
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get column widths, heights and render size parameters."""
+        """Get column widths, heights and render size parameters.
+
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not size:
             return self._get_fixed_column_sizes(focus=focus)
 
@@ -1126,7 +1143,10 @@ class Columns(
         size: tuple[()] | tuple[int] | tuple[int, int] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
-        """Get packed sized for widget."""
+        """Get packed size for widget.
+
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if size:
             return super().pack(size, focus)
         widths, heights, _ = self.get_column_sizes(size, focus)
@@ -1142,7 +1162,8 @@ class Columns(
 
         :param size: see :meth:`Widget.render` for details
         :param focus: ``True`` if this widget is in focus
-        :raises ColumnsError: the Columns has no visible column to render.
+        :raises ColumnsError: the Columns has no visible column to render, or *size* is ``()`` and the children cannot
+            be sized as a fixed widget.
         """
         widths, _, size_args = self.get_column_sizes(size, focus)
 
@@ -1175,7 +1196,10 @@ class Columns(
         return canvas
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates from the focus widget."""
+        """Return the cursor coordinates from the focus widget.
+
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         w, _ = self.contents[self.focus_position]
 
         if not w.selectable():
@@ -1205,7 +1229,8 @@ class Columns(
 
         see :meth:`Widget.move_cursor_coords` for details
 
-        :raises ValueError: no column accepts the cursor at the given coordinates.
+        :raises ValueError: the column sizes cannot be computed for *size*, for example *size* is ``()`` and the
+            children cannot be sized as a fixed widget.
         """
         try:
             widths, _, size_args = self.get_column_sizes(size, focus=True)
@@ -1256,7 +1281,10 @@ class Columns(
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Send event to appropriate column. May change focus on button 1 press."""
+        """Send event to appropriate column. May change focus on button 1 press.
+
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         widths, _, size_args = self.get_column_sizes(size, focus=focus)
 
         x = 0
@@ -1290,7 +1318,10 @@ class Columns(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
     ) -> Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None:
-        """Return the pref col from the column in focus."""
+        """Return the pref col from the column in focus.
+
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         widths, _, size_args = self.get_column_sizes(size, focus=True)
 
         w, _ = self.contents[self.focus_position]
@@ -1335,6 +1366,7 @@ class Columns(
 
         :param size: Widget size correct for the supported sizing
         :param key: a single keystroke value
+        :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         if self.focus_position is None:
             return key
