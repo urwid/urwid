@@ -597,6 +597,13 @@ class TermCanvas(Canvas):
             self.escbuf = b""
             self.parsestate = 2
             return
+        elif self.parsestate == 2 and self.escbuf[-1:] == ESC_B and char != b"\\":
+            # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
+            # unapplied and starts a new escape sequence
+            self.leave_escape()
+            self.within_escape = True
+            self.process_char(char)
+            return
         elif self.parsestate == 2 and char == b"\a":
             # end of OSC
             self.parse_osc(self.escbuf.lstrip(b"0"))

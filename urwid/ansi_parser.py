@@ -100,8 +100,9 @@ _MAX_CURSOR_POSITION = 1024
 #: :func:`sys.set_int_max_str_digits` accepts, guarantees ``int()`` never rejects a parameter.
 _MAX_CSI_LENGTH = 256
 
-#: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator is discarded
-#: unbuffered, so an unterminated OSC costs neither memory nor quadratic string growth.
+#: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator, or up to an ESC
+#: starting a new sequence, is discarded unbuffered, so an unterminated OSC costs neither memory nor quadratic string
+#: growth.
 _MAX_OSC_LENGTH = 4096
 
 #: The most entries a ``skipped`` list holds, covering one 64 KiB raw display read of 2-byte sequences.
@@ -625,6 +626,15 @@ class AnsiParser:
             self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
 
     def _handle_osc_char(self, ch: str) -> None:
+        if self._escbuf[-1:] == ESC and ch != "\\":
+            # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
+            # unapplied and starts a new escape sequence
+            if self._parsestate == 2:
+                self._skip("unknown", f"{ESC}]{self._escbuf[:-1]}", "unterminated OSC string")
+            self._leave_escape()
+            self._within_escape = True
+            self._step(ch)
+            return
         if self._parsestate == 4:
             # only the last character is kept, which is enough to recognise either terminator
             if ch == BEL or (self._escbuf == ESC and ch == "\\"):
