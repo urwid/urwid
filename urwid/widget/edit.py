@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import string
+import sys
 import typing
+import unicodedata
 
 from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
@@ -61,9 +63,18 @@ class Edit(WidgetWrap[Text]):
 
         :param ch: character to be inserted
 
-        This implementation returns True for all printable characters.
+        This implementation returns True for a wide character and for any single character that is not a control
+        character (Unicode category ``Cc``): the displays print a control character as ``?`` while the width
+        calculation counts it as zero columns. A single byte is accepted unless it is a C0 control or DEL, because
+        0x80-0xff are printable characters in a single-byte encoding.
         """
-        return is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
+        if is_wide_char(ch, 0):
+            return True
+        if len(ch) != 1:
+            return False
+        if isinstance(ch, str):
+            return unicodedata.category(ch) != "Cc"
+        return 32 <= ord(ch) != 0x7F
 
     def __init__(
         self,
@@ -136,7 +147,7 @@ class Edit(WidgetWrap[Text]):
     def _repr_words(self) -> list[str]:
         return [
             *super()._repr_words(),
-            repr(self._edit_text),
+            repr(self._edit_text if self._mask is None else self._mask * len(self._edit_text)),
             *([f"caption={self._caption!r}"] if self._caption else []),
             *(["multiline"] if self.multiline is True else []),
         ]
@@ -147,6 +158,7 @@ class Edit(WidgetWrap[Text]):
             "align": self._w.align,
             "wrap": self._w.wrap,
             "edit_pos": self._edit_pos,
+            "mask": self._mask,
         }
         return remove_defaults(attrs, Edit.__init__)
 
@@ -421,7 +433,8 @@ class Edit(WidgetWrap[Text]):
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
-        :raises ValueError: *text* cannot be inserted at the current edit position.
+        :raises ValueError: *text* cannot be inserted at the current edit position. The message carries the texts
+            involved unless a mask is set.
         """
         # if there's highlighted text, it'll get replaced by the new text
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
@@ -437,7 +450,8 @@ class Edit(WidgetWrap[Text]):
         try:
             result_text = result_text[:result_pos] + text + result_text[result_pos:]
         except (IndexError, TypeError) as exc:
-            raise ValueError(repr((self.edit_text, result_text, text))).with_traceback(exc.__traceback__) from exc
+            detail = repr((self.edit_text, result_text, text)) if self._mask is None else "masked text"
+            raise ValueError(detail).with_traceback(exc.__traceback__) from exc
 
         result_pos += len(text)
         return (result_text, result_pos)
@@ -755,6 +769,9 @@ class IntEdit(Edit):
         """
         Handle editing keystrokes.  Remove leading zeros.
 
+        A digit is refused when the resulting text would exceed :func:`sys.get_int_max_str_digits` digits, so that
+        :meth:`value` can convert whatever the user typed.
+
         >>> e, size = IntEdit("", 5002), (10,)
         >>> e.keypress(size, "home")
         >>> e.keypress(size, "delete")
@@ -764,6 +781,11 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
+        # 0 means no limit; the function is missing on Python 3.9 and 3.10 without the security backport.
+        max_digits = getattr(sys, "get_int_max_str_digits", lambda: 0)()
+        if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
+            return key
+
         if unhandled := super().keypress(size, key):
             return unhandled
 
@@ -783,6 +805,9 @@ class IntEdit(Edit):
         >>> e.keypress(size, "1")
         >>> e.value() == 51
         True
+
+        :raises ValueError: the text was set programmatically to something that is not a decimal integer,
+            or to more digits than :func:`sys.get_int_max_str_digits` allows.
         """
         if self.edit_text:
             return int(self.edit_text)

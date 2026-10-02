@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import sys
+import types
 import unittest
+from unittest import mock
 
 import urwid
+from urwid.util import set_temporary_encoding
 
 
 class EditTest(unittest.TestCase):
@@ -15,6 +19,42 @@ class EditTest(unittest.TestCase):
     def test_get_text_masked(self) -> None:
         e = urwid.Edit("pw:", "secret", mask="*")
         self.assertEqual(e.get_text(), ("pw:******", []))
+
+    def test_repr_masked_hides_text(self) -> None:
+        """repr() of a masked Edit shows the mask, never the text."""
+        e = urwid.Edit("pw: ", "hunter2", mask="*")
+        self.assertEqual(repr(e), "<Edit selectable flow widget '*******' caption='pw: ' edit_pos=7 mask='*'>")
+
+    def test_insert_text_result_error_masked_hides_text(self) -> None:
+        """The ValueError raised for a masked Edit does not carry the text."""
+        e = urwid.Edit("", "hunter2", mask="*")
+        e._edit_text = b"hunter2"
+        with self.assertRaises(ValueError) as ctx:
+            e.insert_text_result("x")
+        self.assertNotIn("hunter2", str(ctx.exception))
+
+    def test_valid_char_rejects_control_characters(self) -> None:
+        """Control characters, which render as '?' but count as zero columns, are refused."""
+        e = urwid.Edit()
+        for ch in ("\x00", "\x1b", "\x7f", "\x80", "\x9b", "\x9f"):
+            with self.subTest(ch=ch):
+                self.assertFalse(e.valid_char(ch))
+                self.assertEqual(e.keypress((20,), ch), ch)
+        self.assertEqual(e.edit_text, "")
+        for ch in (" ", "a", "~", "\xa0", "\xe9", "\u044f"):
+            with self.subTest(ch=ch):
+                self.assertTrue(e.valid_char(ch))
+
+    def test_valid_char_bytes(self) -> None:
+        """A byte is refused only when it is a C0 control or DEL: 0x80-0xff are letters in KOI8-R."""
+        e = urwid.Edit(b"", b"")
+        with set_temporary_encoding("koi8-r"):
+            for ch in (b"\x00", b"\x1f", b"\x7f"):
+                with self.subTest(ch=ch):
+                    self.assertFalse(e.valid_char(ch))
+            for ch in (b" ", b"a", b"\x80", b"\x9f", b"\xbf", b"\xff"):
+                with self.subTest(ch=ch):
+                    self.assertTrue(e.valid_char(ch))
 
     def test_text_property(self) -> None:
         e = urwid.Edit("Y/n? ", "yes")
@@ -324,6 +364,38 @@ class IntEditTest(unittest.TestCase):
         e.keypress((10,), "5")
         e.keypress((10,), "1")
         self.assertEqual(e.value(), 51)
+
+    @unittest.skipUnless(hasattr(sys, "get_int_max_str_digits"), "the interpreter has no int digit limit")
+    def test_keypress_refuses_digits_beyond_int_limit(self) -> None:
+        """Typing stops at the int digit limit, so value() still converts the text."""
+        e = urwid.IntEdit("", "1" * 9)
+        with mock.patch.object(sys, "get_int_max_str_digits", return_value=10):
+            self.assertIsNone(e.keypress((20,), "2"))
+            self.assertEqual(e.keypress((20,), "3"), "3")
+        self.assertEqual(e.edit_text, "1" * 9 + "2")
+        self.assertEqual(e.value(), 1111111112)
+
+    def test_keypress_without_int_limit(self) -> None:
+        """A limit of 0, or an interpreter without the limit, accepts digits without bound."""
+        with self.subTest("limit 0"):
+            e = urwid.IntEdit("", "1" * 9)
+            with mock.patch.object(sys, "get_int_max_str_digits", return_value=0, create=True):
+                self.assertIsNone(e.keypress((20,), "2"))
+            self.assertEqual(e.edit_text, "1" * 9 + "2")
+        with self.subTest("no limit function"):
+            e = urwid.IntEdit("", "1" * 9)
+            with mock.patch.object(urwid.widget.edit, "sys", types.SimpleNamespace()):
+                self.assertIsNone(e.keypress((20,), "2"))
+            self.assertEqual(e.edit_text, "1" * 9 + "2")
+
+    @unittest.skipUnless(hasattr(sys, "get_int_max_str_digits"), "the interpreter has no int digit limit")
+    def test_keypress_replaces_highlight_at_int_limit(self) -> None:
+        """A digit replacing a highlighted range is accepted when the result stays within the limit."""
+        e = urwid.IntEdit("", "1" * 10)
+        e.highlight = (0, 2)
+        with mock.patch.object(sys, "get_int_max_str_digits", return_value=10):
+            self.assertIsNone(e.keypress((20,), "2"))
+        self.assertEqual(e.edit_text, "2" + "1" * 8)
 
     def test_value_empty(self) -> None:
         e = urwid.IntEdit()
