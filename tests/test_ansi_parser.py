@@ -603,5 +603,55 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertEqual([], result.skipped)
 
 
+class OscTerminationTest(unittest.TestCase):
+    """An ESC inside an OSC string either starts the ST terminator or ends the string and starts a new sequence."""
+
+    def _parse_chunked(self, chunks: list[str], one_line: bool) -> ParsedLine:
+        parser = AnsiParser(one_line=one_line)
+        for chunk in chunks:
+            parser.feed(chunk)
+        return parser.finalize()[0]
+
+    def test_unterminated_osc_ends_at_escape(self) -> None:
+        """End an OSC string at an ESC not followed by a backslash, unapplied, and parse what follows."""
+        text = "a\x1b]0;title\x1b[31mred text\x07b"
+        red = sgi_params_to_attrspec([31], None)
+        for one_line in (True, False):
+            for split in range(len(text) + 1):
+                with self.subTest(one_line=one_line, split=split):
+                    line = self._parse_chunked([text[:split], text[split:]], one_line)
+                    self.assertEqual("ared textb", line.text)
+                    self.assertEqual([(None, 1), (red, 9)], line.attrib)
+                    self.assertIsNone(line.title)
+                    self.assertEqual(1, line.bel)
+                    self.assertEqual([("unknown", "\x1b]0;title")], [(op.kind, op.raw) for op in line.skipped])
+
+    def test_osc_terminated_by_st_across_feed_calls(self) -> None:
+        """Apply an OSC title whose ESC backslash terminator is split across two feed calls."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["\x1b]0;title\x1b", "\\rest"], one_line)
+                self.assertEqual("title", line.title)
+                self.assertEqual("rest", line.text)
+
+    def test_title_never_contains_escape(self) -> None:
+        """Take the title from the OSC string an ESC starts, not from the unterminated one before it."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["\x1b]0;ti\x1b", "]0;tle\x07x"], one_line)
+                self.assertEqual("tle", line.title)
+                self.assertEqual("x", line.text)
+
+    def test_overlong_osc_discard_ends_at_escape(self) -> None:
+        """End the discarded remainder of an over-long OSC string at an ESC not followed by a backslash."""
+        red = sgi_params_to_attrspec([31], None)
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;" + "A" * 5000 + "\x1b", "[31mb"], one_line)
+                self.assertEqual("ab", line.text)
+                self.assertEqual([(None, 1), (red, 1)], line.attrib)
+                self.assertIsNone(line.title)
+
+
 if __name__ == "__main__":
     unittest.main()

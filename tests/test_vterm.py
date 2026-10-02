@@ -483,6 +483,47 @@ class TermTest(unittest.TestCase):
         self.expect_signal("stupid title")
         self.disconnect_signal("title")
 
+    def test_unterminated_osc_ends_at_escape(self):
+        """End an OSC string unapplied at an ESC not followed by a backslash, and parse what follows."""
+        self.connect_signal("title")
+        for chunks in (["a\\e]0;title\\e[31mred"], ["a\\e]0;title\\e", "[31mred"]):
+            with self.subTest(chunks=chunks):
+                for chunk in chunks:
+                    self.write(chunk)
+                    self.read()
+                self.expect(
+                    [
+                        [
+                            (None, None, b"a"),
+                            *[(urwid.AttrSpec("dark red", "default"), None, c) for c in (b"r", b"e", b"d")],
+                        ]
+                    ],
+                    raw=True,
+                )
+                self.assertIsNone(self._sig_response)
+                self.write("\\e[0m\\e[H\\e[2J")
+        self.disconnect_signal("title")
+
+    def test_osc_terminated_by_st_across_chunks(self):
+        """Apply an OSC title whose ESC backslash terminator is split across two reads."""
+        self.connect_signal("title")
+        self.write("\\e]0;title\\e")
+        self.read()
+        self.write("\\rest")
+        self.expect("rest")
+        self.expect_signal("title")
+        self.disconnect_signal("title")
+
+    def test_title_never_contains_escape(self):
+        """Take the title from the OSC string an ESC starts, not from the unterminated one before it."""
+        self.connect_signal("title")
+        self.write("\\e]0;ti\\e")
+        self.read()
+        self.write("]0;tle\007x")
+        self.expect("x")
+        self.expect_signal("tle")
+        self.disconnect_signal("title")
+
     def test_set_leds(self):
         self.connect_signal("leds")
         self.write(r"\e[0qtest1")
