@@ -237,7 +237,7 @@ class ListBoxIntegrationTest(unittest.TestCase):
         lb.body = urwid.SimpleDequeWalker([])
         self.assertEqual(
             lb.body._urwid_signals["modified"][0][1],
-            lb._invalidate,
+            urwid.ListBox._invalidate,
             "outdated canvas cache reuse after ListWalker's contents modified",
         )
 
@@ -246,7 +246,7 @@ class ListBoxIntegrationTest(unittest.TestCase):
         lb.body = urwid.SimpleFocusDequeWalker([])
         self.assertEqual(
             lb.body._urwid_signals["modified"][0][1],
-            lb._invalidate,
+            urwid.ListBox._invalidate,
             "outdated canvas cache reuse after ListWalker's contents modified",
         )
 
