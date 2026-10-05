@@ -1142,8 +1142,11 @@ class Pile(
                 key = processed
             else:
                 return None
-            if self._command_map[key] not in {Command.UP, Command.DOWN}:
+            if self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents:
                 return key
+            # The child may have changed this Pile's contents or focus while handling the key.
+            i = self.focus_position
+            _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
 
         if self._command_map[key] == Command.UP:
             candidates = tuple(range(i - 1, -1, -1))  # count backwards to 0
@@ -1151,12 +1154,13 @@ class Pile(
             candidates = tuple(range(i + 1, len(self.contents)))
 
         for j in candidates:
-            if not self.contents[j][0].selectable():
+            w = self.contents[j][0]
+            if not w.selectable():
                 continue
 
             self._update_pref_col_from_focus(size_args[self.focus_position])
             self.focus_position = j
-            if not hasattr(self.focus, "move_cursor_to_coords"):
+            if not hasattr(w, "move_cursor_to_coords"):
                 return None
 
             rows = heights[j]
@@ -1165,11 +1169,7 @@ class Pile(
             else:  # self._command_map[key] == 'cursor down'
                 rowlist = tuple(range(rows))
             for row in rowlist:
-                if self.focus.move_cursor_to_coords(  # type: ignore[union-attr]
-                    size_args[self.focus_position],
-                    self.pref_col,
-                    row,
-                ):
+                if w.move_cursor_to_coords(size_args[j], self.pref_col, row):
                     break
             return None
 
@@ -1209,6 +1209,10 @@ class Pile(
             return False
 
         if hasattr(w, "move_cursor_to_coords") and w.move_cursor_to_coords(w_size, col, row - wrow) is False:
+            return False
+
+        # The child may have changed this Pile's contents while moving its cursor.
+        if i >= len(self.contents) or self.contents[i][0] is not w:
             return False
 
         self.focus_position = i

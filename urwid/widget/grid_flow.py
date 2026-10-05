@@ -90,7 +90,9 @@ class GridFlow(
             prepared_contents,
             focus=focus_position,
         )
-        self._contents.set_modified_callback(self._invalidate)
+        # Bumped on every contents change, so input handlers can tell that the display widget went stale.
+        self._contents_generation = 0
+        self._contents.set_modified_callback(self._contents_changed)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._contents_modified)
         self._cell_width = cell_width
@@ -138,6 +140,11 @@ class GridFlow(
     def _invalidate(self) -> None:
         self._cache_maxcol = None
         super()._invalidate()  # type: ignore[safe-super]  # dynamic base
+
+    def _contents_changed(self) -> None:
+        """Record a contents change and invalidate the cached display widget."""
+        self._contents_generation += 1
+        self._invalidate()
 
     def _contents_modified(
         self,
@@ -514,13 +521,15 @@ class GridFlow(
         """
         self.get_display_widget(size)
         focus_before = self.contents.focus
+        generation_before = self._contents_generation
 
         if (processed := super().keypress(size, key)) is not None:  # type: ignore[safe-super]  # dynamic base
             return processed
 
-        # The display widget was built before the keypress was dispatched, so a callback
-        # that set the focus itself is the more recent value and must not be overwritten.
-        if self.contents.focus == focus_before:
+        # The display widget was built before the keypress was dispatched, so a callback that
+        # set the focus or changed the contents is the more recent state and must not be
+        # overwritten from it: after a contents change its focus indexes the old contents.
+        if self.contents.focus == focus_before and self._contents_generation == generation_before:
             self._set_focus_from_display_widget()
         return None
 
@@ -576,10 +585,11 @@ class GridFlow(
         """Handle a mouse event, updating the focus based on the resulting display widget."""
         self.get_display_widget(size)
         focus_before = self.contents.focus
+        generation_before = self._contents_generation
         super().mouse_event(size, event, button, col, row, focus)  # type: ignore[safe-super]  # dynamic base
-        # Same as in keypress: a callback that set the focus itself wins over the
-        # display widget, which was built before the event was dispatched.
-        if self.contents.focus == focus_before:
+        # Same as in keypress: a callback that set the focus or changed the contents wins
+        # over the display widget, which was built before the event was dispatched.
+        if self.contents.focus == focus_before and self._contents_generation == generation_before:
             self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 

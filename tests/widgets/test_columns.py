@@ -9,7 +9,7 @@ import urwid
 from tests.util import SelectableText
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection
+    from collections.abc import Callable, Collection
 
     from typing_extensions import Literal
 
@@ -91,6 +91,25 @@ class ImplementWidget:
         focus: bool,
     ) -> bool | None:
         return False
+
+
+class ParentMutatingText(SelectableText):
+    """Selectable text that runs *callback* before returning a key unhandled or accepting a cursor move."""
+
+    def __init__(self, markup: str, callback: Callable[[], object]) -> None:
+        """Run *callback* on every keypress and cursor move."""
+        super().__init__(markup)
+        self.callback = callback
+
+    def keypress(self, size: tuple[int], key: str) -> str:
+        """Run the callback, then return *key* unhandled."""
+        self.callback()
+        return super().keypress(size, key)
+
+    def move_cursor_to_coords(self, _size: tuple[int], _col: int, _row: int) -> bool:
+        """Run the callback, then accept the cursor move."""
+        self.callback()
+        return True
 
 
 class ColumnsTest(unittest.TestCase):
@@ -1117,3 +1136,27 @@ class ColumnsTest(unittest.TestCase):
             columns.pack(())
         with self.assertRaisesRegex(urwid.ColumnsError, "too far apart"):
             columns.render(())
+
+    def test_keypress_child_changes_contents(self) -> None:
+        """An unhandled key moves the focus from the contents the focused child left behind."""
+        with self.subTest("Items before the focus removed"):
+            edits = [urwid.Edit("", text) for text in "abc"]
+            columns = urwid.Columns(
+                [*edits, ParentMutatingText("d", lambda: columns.contents.__delitem__(slice(0, 2)))]
+            )
+            columns.focus_position = 3
+            self.assertIsNone(columns.keypress((40,), "left"))
+            self.assertIs(edits[2], columns.focus)
+
+        with self.subTest("All items removed"):
+            columns = urwid.Columns(
+                [urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(slice(None)))]
+            )
+            columns.focus_position = 1
+            self.assertEqual("left", columns.keypress((40,), "left"))
+
+    def test_move_cursor_to_coords_child_changes_contents(self) -> None:
+        """The focus does not move to a position the child's contents change made stale."""
+        columns = urwid.Columns([urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(0))])
+        self.assertFalse(columns.move_cursor_to_coords((40,), 30, 0))
+        self.assertEqual(0, columns.focus_position)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import operator
 import unittest
 
 import urwid
@@ -116,6 +117,18 @@ class SimpleListWalkerMutationTest(unittest.TestCase):
         del self.walker[1:3]
         self.assertEqual(1, self.modified_count)
         self.assertEqual([0, 3, 4], list(self.walker))
+
+    def test_operators_returning_a_new_list_do_not_trigger_modified(self) -> None:
+        """Do not notify for ``+`` and ``n * walker``, which return a new list and leave the walker unchanged."""
+        for name, operation, expected in (
+            ("add", lambda walker: operator.add(walker, [5]), [0, 1, 2, 3, 4, 5]),
+            ("rmul", lambda walker: operator.mul(2, walker), [0, 1, 2, 3, 4] * 2),
+        ):
+            with self.subTest(name):
+                self.modified_count = 0
+                self.assertEqual(expected, operation(self.walker))
+                self.assertEqual(0, self.modified_count)
+                self.assertEqual([0, 1, 2, 3, 4], list(self.walker))
 
     def test_negative_index_getitem(self) -> None:
         self.assertEqual(4, self.walker[-1])
@@ -261,6 +274,64 @@ class SimpleFocusListWalkerFocusTest(unittest.TestCase):
             walker.next_position(0)
         with self.assertRaises(IndexError):
             walker.prev_position(0)
+
+
+class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
+    """The modified callback runs once, after both the contents and the focus are updated."""
+
+    def test_callback_sees_final_focus(self) -> None:
+        """Every mutating operation notifies once, with the contents and the focus already final."""
+        operations = {
+            "del item": lambda ml: ml.__delitem__(0),
+            "del slice": lambda ml: ml.__delitem__(slice(0, 2)),
+            "set item": lambda ml: ml.__setitem__(2, 7),
+            "set slice": lambda ml: ml.__setitem__(slice(0, 1), [8, 9]),
+            "imul": lambda ml: ml.__imul__(0),
+            "append": lambda ml: ml.append(6),
+            "extend": lambda ml: ml.extend([6, 7]),
+            "insert": lambda ml: ml.insert(0, -1),
+            "pop": lambda ml: ml.pop(0),
+            "remove": lambda ml: ml.remove(0),
+            "reverse": lambda ml: ml.reverse(),
+            "sort": lambda ml: ml.sort(reverse=True),
+            "clear": lambda ml: ml.clear(),
+        }
+        for name, operation in operations.items():
+            with self.subTest(name):
+                ml = urwid.MonitoredFocusList(range(6), focus=2)
+                seen = []
+                ml.set_modified_callback(lambda ml=ml, seen=seen: seen.append((list(ml), ml.focus)))
+                operation(ml)
+                self.assertEqual([(list(ml), ml.focus)], seen)
+
+    def test_focus_set_by_callback_is_kept(self) -> None:
+        """A focus set by the modified callback is not overwritten afterwards."""
+        ml = urwid.MonitoredFocusList(range(6), focus=2)
+        ml.set_modified_callback(lambda: setattr(ml, "focus", 0) if ml.focus else None)
+        ml.insert(0, -1)
+        self.assertEqual(0, ml.focus)
+
+    def test_insert_by_callback_keeps_focus_item(self) -> None:
+        """An insertion made by the modified callback keeps the focus on the same item."""
+        ml = urwid.MonitoredFocusList(["a", "b", "c", "d"], focus=2)
+        ml.set_modified_callback(lambda: ml.insert(0, "x") if len(ml) == 3 else None)
+        del ml[0]
+        self.assertEqual(["x", "b", "c", "d"], list(ml))
+        self.assertEqual("c", ml[ml.focus])
+
+    def test_walker_signal_sees_final_focus(self) -> None:
+        """A ListBox rendered from the walker's modified signal shows the new focus item."""
+        walker = urwid.SimpleFocusListWalker([urwid.Text(str(num)) for num in range(3)])
+        walker.focus = 2
+        listbox = urwid.ListBox(walker)
+        seen = []
+
+        def on_modified() -> None:
+            seen.append((walker.get_focus()[1], listbox.render((5, 1), focus=True).text))
+
+        urwid.connect_signal(walker, "modified", on_modified)
+        del walker[2]
+        self.assertEqual([(1, [b"1    "])], seen)
 
 
 if __name__ == "__main__":

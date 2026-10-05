@@ -597,11 +597,12 @@ class RadioButton(CheckBox):
         if state is not True:
             return
 
-        # clear the state of each other radio button
+        # clear the state of each other radio button, unless a signal handler has
+        # since cleared this one: the selection then belongs to whoever did that
         for cb in self.group:
-            if cb is self:
-                continue
-            if cb.state:
+            if self._state is not True:
+                break
+            if cb is not self and cb.state:
                 cb.state = False
 
     def toggle_state(self) -> None:

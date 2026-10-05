@@ -403,6 +403,33 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         new_len = len(self) - num_removed + num_inserted
         return max(0, min(focus, new_len - 1))
 
+    def _modify(
+        self,
+        focus: int | Callable[[], int],
+        change: Callable[ArgSpec, Ret],
+        /,
+        *args: ArgSpec.args,
+        **kwargs: ArgSpec.kwargs,
+    ) -> Ret:
+        """Apply ``change(*args, **kwargs)``, set the focus, then send the modified notification once.
+
+        The notification comes last so that its callback sees the new focus, and a focus it sets is kept.
+
+        :param focus: the new focus index, or a callable returning it, called after the change
+        :param change: the unmonitored operation applying the change
+        :returns: what ``change`` returns
+        :raises Exception: whatever ``change`` raises, leaving the focus as it was and notifying nothing;
+            or whatever the focus-changed or the modified callback raises.
+        :raises TypeError: the new focus is not an integer; the change is applied and notified.
+        :raises IndexError: the new focus is out of range; the change is applied and notified.
+        """
+        rval = change(*args, **kwargs)
+        try:
+            self.focus = focus() if callable(focus) else focus
+        finally:
+            self._modified()
+        return rval
+
     # override all the deque methods that modify the deque, except __setitem__: replacing an item at a given
     # index never changes which index is in focus, so the inherited MonitoredDeque.__setitem__ needs no
     # focus-adjustment wrapper here (see the class docstring for a worked example).
@@ -433,8 +460,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         if idx < 0:
             idx += len(self)
         focus = self._adjust_focus_on_single_change(idx, 1, 0)
-        super().__delitem__(index)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).__delitem__, index)
 
     def append(self, item: _T) -> None:
         """Append ``item`` to the right end of the deque.
@@ -461,8 +487,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = max(0, self._focus - 1)
         else:
             focus = self._focus
-        super().append(item)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).append, item)
 
     def appendleft(self, item: _T) -> None:
         """Append ``item`` to the left end of the deque.
@@ -489,8 +514,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = min(self._focus + 1, len(self) - 1)
         else:
             focus = self._focus + 1
-        super().appendleft(item)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).appendleft, item)
 
     def extend(self, items: Iterable[_T]) -> None:
         """Extend the deque with ``items`` on the right end.
@@ -512,8 +536,18 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         else:
             evicted = 0
         focus = max(0, self._focus - evicted) if self else 0
-        super().extend(items_list)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).extend, items_list)
+
+    def __iadd__(self, items: Iterable[_T]) -> MonitoredFocusDeque[_T]:
+        """Extend the deque in place with ``items``, adjusting the focus like :meth:`extend`.
+
+        >>> bounded = MonitoredFocusDeque([0, 1, 2], maxlen=4, focus=2)
+        >>> bounded += (6, 7, 8)
+        >>> bounded
+        MonitoredFocusDeque([2, 6, 7, 8], maxlen=4, focus=0)
+        """
+        self.extend(items)
+        return self
 
     def extendleft(self, items: Iterable[_T]) -> None:
         """Extend the deque with ``items`` on the left end, each item prepended in turn.
@@ -533,8 +567,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         focus = self._focus + len(items_list) if self else 0
         if self.maxlen is not None:
             focus = min(focus, self.maxlen - 1)
-        super().extendleft(items_list)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).extendleft, items_list)
 
     def pop(self) -> _T:  # type: ignore[override]  # deque.pop takes no argument, unlike list.pop
         """Remove and return the tail item.
@@ -551,9 +584,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         MonitoredFocusDeque([0, 1, 2], focus=2)
         """
         focus = self._adjust_focus_on_single_change(len(self) - 1, 1, 0)
-        rval = super().pop()
-        self.focus = focus
-        return rval
+        return self._modify(focus, super(MonitoredDeque, self).pop)
 
     def popleft(self) -> _T:
         """Remove and return the head item.
@@ -569,9 +600,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         MonitoredFocusDeque([1, 2, 3], focus=1)
         """
         focus = self._adjust_focus_on_single_change(0, 1, 0)
-        rval = super().popleft()
-        self.focus = focus
-        return rval
+        return self._modify(focus, super(MonitoredDeque, self).popleft)
 
     def insert(self, index: typing.SupportsIndex, item: _T) -> None:
         """Insert ``item`` before ``index``.
@@ -596,8 +625,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         else:
             idx = min(idx, len(self))
         focus = self._adjust_focus_on_single_change(idx, 0, 1)
-        super().insert(index, item)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).insert, int(index), item)
 
     def remove(self, value: _T) -> None:
         """Remove the first occurrence of ``value``, adjusting focus to follow the removal.
@@ -612,8 +640,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         """
         index = self.index(value)
         focus = self._adjust_focus_on_single_change(index, 1, 0)
-        super().remove(value)
-        self.focus = focus
+        self._modify(focus, super(MonitoredDeque, self).remove, value)
 
     def reverse(self) -> None:
         """Reverse the deque in place, keeping focus on the same item.
@@ -623,8 +650,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([4, 3, 2, 1, 0], focus=3)
         """
-        super().reverse()
-        self.focus = max(0, len(self) - self._focus - 1)
+        self._modify(max(0, len(self) - self._focus - 1), super(MonitoredDeque, self).reverse)
 
     def rotate(self, n: int = 1) -> None:
         """Rotate the deque ``n`` steps to the right (or left, for negative ``n``).
@@ -642,9 +668,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([1, 2, 3, 4, 0], focus=4)
         """
-        super().rotate(n)
-        if self:
-            self.focus = (self._focus + n) % len(self)
+        self._modify((self._focus + n) % len(self) if self else self._focus, super(MonitoredDeque, self).rotate, n)
 
     def clear(self) -> None:
         """Remove all items and reset focus to ``None``.
@@ -654,8 +678,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([], focus=None)
         """
-        super().clear()
-        self.focus = 0
+        self._modify(0, super(MonitoredDeque, self).clear)
 
 
 def _test() -> None:

@@ -170,3 +170,94 @@ class RadioButtonTest(unittest.TestCase):
 
         second.set_state(True)
         self.assertEqual([("B", True)], seen)
+
+    def test_signal_sequence(self) -> None:
+        """Each button emits change and postchange once per transition, the selected one first."""
+        events: list[tuple[str, str, object]] = []
+        group: list[urwid.RadioButton] = []
+        buttons = [urwid.RadioButton(group, label) for label in "ABC"]
+        for button in buttons:
+            urwid.connect_signal(button, "change", lambda rb, state: events.append(("change", rb.label, state)))
+            urwid.connect_signal(button, "postchange", lambda rb, old: events.append(("post", rb.label, old)))
+
+        buttons[1].set_state(True)
+        buttons[2].state = True
+        buttons[2].set_state(False)
+        buttons[0].toggle_state()
+        buttons[1].set_state(True, do_callback=False)
+
+        self.assertEqual([False, True, False], [button.state for button in buttons])
+        self.assertEqual(
+            [
+                ("change", "B", True),
+                ("post", "B", False),
+                ("change", "A", False),
+                ("post", "A", True),
+                ("change", "C", True),
+                ("post", "C", False),
+                ("change", "B", False),
+                ("post", "B", True),
+                ("change", "C", False),
+                ("post", "C", True),
+                ("change", "A", True),
+                ("post", "A", False),
+                ("change", "A", False),
+                ("post", "A", True),
+            ],
+            events,
+        )
+
+    def test_reentrant_selection_leaves_one_selected(self) -> None:
+        """A signal handler that moves the selection leaves exactly one button selected."""
+
+        def select_on(
+            signal: str,
+            source: urwid.RadioButton,
+            target: urwid.RadioButton,
+            when: bool,
+        ) -> None:
+            # Fire only on the transition that `when` names, so a chain cannot loop.
+            if signal == "change":
+                urwid.connect_signal(source, signal, lambda rb, new: target.set_state(True) if new is when else None)
+            else:
+                urwid.connect_signal(
+                    source, signal, lambda rb, old: target.set_state(True) if rb.state is when else None
+                )
+
+        # (description, handlers as (signal, source, target, fire when source becomes), expected states)
+        cases = (
+            ("postchange of the selected moves on", [("postchange", 1, 2, True)], [False, False, True, False]),
+            ("change of the selected moves on", [("change", 1, 2, True)], [False, True, False, False]),
+            ("postchange of a cleared one moves on", [("postchange", 0, 2, False)], [False, False, True, False]),
+            (
+                "postchange chain across three buttons",
+                [("postchange", 1, 2, True), ("postchange", 2, 3, True)],
+                [False, False, False, True],
+            ),
+            (
+                "postchange of a cleared one starts a chain",
+                [("postchange", 0, 2, False), ("postchange", 2, 3, True)],
+                [False, False, False, True],
+            ),
+        )
+        for description, handlers, expected in cases:
+            with self.subTest(description):
+                group: list[urwid.RadioButton] = []
+                buttons = [urwid.RadioButton(group, label) for label in "ABCD"]
+                for signal, source, target, when in handlers:
+                    select_on(signal, buttons[source], buttons[target], when)
+
+                buttons[1].set_state(True)
+
+                self.assertEqual(expected, [button.state for button in buttons])
+
+    def test_postchange_handler_unselecting_itself(self) -> None:
+        """A button its own postchange handler unselects does not clear the previous selection."""
+        group: list[urwid.RadioButton] = []
+        first = urwid.RadioButton(group, "A")
+        second = urwid.RadioButton(group, "B")
+        urwid.connect_signal(second, "postchange", lambda rb, old: rb.set_state(False))
+
+        second.set_state(True)
+
+        self.assertEqual((True, False), (first.state, second.state))
