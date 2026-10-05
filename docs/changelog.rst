@@ -2,23 +2,66 @@
 Changelog
 ---------
 
-Unreleased
-==========
+Urwid 4.2.5
+============
 
-Bug fixes
-+++++++++
-* Leave control characters and escape sequences that ``Text`` and ``Edit`` measure as zero
-  columns out of the drawn text, so untrusted text no longer overflows into the next widget.
-* Stop ListBox from repeating items when a wrapping list walker is shorter than
-  the available height (issue #464).
-* ``TrioEventLoop``: an exception from an idle callback now ends ``run()``, and ``ExitMainLoop`` from one
-  stops the loop, as with the other event loops; Trio used to log it and stop running idle callbacks.
+2026-10-05
 
-Deprecations
-++++++++++++
-* ``MonitoredDeque.insert()`` and ``MonitoredFocusDeque.insert()`` warn on an index
-  without ``__index__`` (a float, a ``Decimal``, a numeric string); from version 5.0
-  such an index raises ``TypeError``, as ``collections.deque.insert()`` does.
+Deprecations ⚡
++++++++++++++++
+* Deprecate non-integer index in deque insert(): ``MonitoredDeque.insert()`` and ``MonitoredFocusDeque.insert()`` warn on an index without ``__index__`` (a float, a ``Decimal``, a numeric string); from version 5.0 such an index raises ``TypeError``, as ``collections.deque.insert()`` does by @penguinolog in https://github.com/urwid/urwid/pull/1399
+* ⚡🕷 Deprecate the unused ``_sigcont_handler`` (removal in 5.0); also a bug fix, see "Major bug fixes" below: Do terminal signal work in the input loop, not in handlers by @penguinolog in https://github.com/urwid/urwid/pull/1369
+
+Security fixes 🛡
++++++++++++++++++
+* Replace C1 control characters (U+0080-U+009F) in raw display output, so displayed text cannot inject terminal escape sequences such as OSC 52 clipboard writes by @penguinolog in https://github.com/urwid/urwid/pull/1367
+* Stop crafted terminal input (a paste with about 1000 ESC bytes, malformed mouse reports, an ESC before a terminal report) from crashing the input parser and ending the main loop by @penguinolog in https://github.com/urwid/urwid/pull/1368
+* Read terminal input at most 64 KiB per wake-up, so a fast producer cannot grow memory without bound; also fix ``ValueError`` from ``select()`` on descriptors numbered 1024 or higher by @penguinolog in https://github.com/urwid/urwid/pull/1373
+* Limit the memory and time ``ANSIText`` spends on untrusted output (cursor moves, padding, long CSI and OSC sequences); out-of-range SGR colours are ignored instead of raising by @penguinolog in https://github.com/urwid/urwid/pull/1382
+* Lay out long text in linear time instead of quadratic time (80000 characters without spaces: 5.4 s -> 65 ms); also fix wrong attribute runs in markup that mixes ``str`` and ``bytes`` by @penguinolog in https://github.com/urwid/urwid/pull/1386
+* Stop a masked ``Edit`` from exposing its text in ``repr()`` and in ``ValueError``; refuse control characters as input; stop ``IntEdit`` from accepting more digits than ``int()`` can convert by @penguinolog in https://github.com/urwid/urwid/pull/1387
+* Handle very deep and cyclic trees: no ``RecursionError`` on deep trees, ``TreeWidgetError`` instead of an endless loop on a cycle, faster sibling lookup (up to 98% less time), and cached nodes of removed keys are freed by @penguinolog in https://github.com/urwid/urwid/pull/1389
+* End an OSC string at an ESC that does not start the terminator, so the text after it can no longer end up in the window title by @penguinolog in https://github.com/urwid/urwid/pull/1392
+* Keep zero-width control characters and escape sequences out of drawn text, so untrusted text no longer overflows its column and overwrites the next widget by @penguinolog in https://github.com/urwid/urwid/pull/1398
+
+Major bug fixes 🕷
+++++++++++++++++++
+* ⚡ Do terminal signal work in the input loop, not in the signal handlers: suspend (SIGTSTP) and resize (SIGWINCH) no longer change the screen and terminal mode at an arbitrary point of a running draw; also deprecates the unused ``_sigcont_handler``, see "Deprecations" by @penguinolog in https://github.com/urwid/urwid/pull/1369
+* Fix ``ZMQEventLoop.watch_file()`` with a ZMQ socket (raised ``KeyError``), and remove a watch by either the object or its descriptor number by @penguinolog in https://github.com/urwid/urwid/pull/1371
+* Stop ``draw_screen`` from spinning at full CPU forever after the terminal can no longer be written to (hangup, broken pipe) by @penguinolog in https://github.com/urwid/urwid/pull/1375
+* Restore the asyncio loop's exception handler after ``run()``, so an unrelated task exception no longer stops the application's own loop by @penguinolog in https://github.com/urwid/urwid/pull/1376
+* Fix the Windows console reader: characters outside the BMP no longer end the reader and lose all later input, failed reads no longer spin, and stopping the screen no longer waits up to 5 s by @penguinolog in https://github.com/urwid/urwid/pull/1379
+* Fix ``watch_pipe``: no second read task on a pipe that is still readable, no double close of a descriptor that may belong to another file, and no full-CPU spin at end of file (the callback gets ``b""`` once and the watch is removed) by @penguinolog in https://github.com/urwid/urwid/pull/1380
+* Fix ``ListBox`` repeating items when a wrapping walker is shorter than the available height (issue #464) by @charan-rathore in https://github.com/urwid/urwid/pull/1381
+* Fix ``ListBox`` hangs and slowdowns with many 0-height widgets (up to 98% less time), scrolling keys that never ended on wrapping bodies, ``ListBoxError`` from page up, page down and end, and ``ListBox`` objects kept alive by their walker by @penguinolog in https://github.com/urwid/urwid/pull/1383
+* Free widgets that were dropped from the canvas cache: wrappers rebuilt around a cached child (for example ``GridFlow`` display widgets on each focus change) were never freed by @penguinolog in https://github.com/urwid/urwid/pull/1393
+
+Corner case fixes 🕸
+++++++++++++++++++++
+These problems need an unusual setup, an error path, or input from outside the normal range of values.
+
+* Skip a ready descriptor whose watch was removed or replaced by an earlier callback in the same pass, in ``SelectEventLoop`` and ``ZMQEventLoop`` by @penguinolog in https://github.com/urwid/urwid/pull/1370
+* Clean up ``MainLoop`` when its event loop or ``start()`` fails: remove the idle callback and watches, and restore the terminal mode and screen buffer by @penguinolog in https://github.com/urwid/urwid/pull/1374
+* Free a dropped raw display screen at once, without waiting for the cyclic garbage collector by @penguinolog in https://github.com/urwid/urwid/pull/1377
+* Stop the gpm helper with a timeout (kill it if it does not exit) and tell the event loop when it starts or stops by @penguinolog in https://github.com/urwid/urwid/pull/1378
+* Reject infinite, NaN and over-large widths and weights in ``Columns``, and fix overflow errors from widely different weights by @penguinolog in https://github.com/urwid/urwid/pull/1384
+* Reject infinite, NaN and over-large sizes in ``Pile``, and fix overflow errors from large or widely different weights by @penguinolog in https://github.com/urwid/urwid/pull/1385
+* Draw ``ProgressBar`` correctly when ``current`` or ``done`` is negative, zero, NaN, infinite or too large for a float by @penguinolog in https://github.com/urwid/urwid/pull/1388
+* Keep ``BarGraph`` and ``GraphVScale`` rendering when ``top`` is zero or NaN, or a value, line or label is NaN, infinite or too large by @penguinolog in https://github.com/urwid/urwid/pull/1390
+* Free signal classes created at run time, and keep a weak-argument handler disconnected when a callback interrupts ``connect`` or ``disconnect_by_key`` by @penguinolog in https://github.com/urwid/urwid/pull/1391
+* Handle contents changed by a widget callback while a container or a focus list is working (``GridFlow``, ``Pile``, ``Columns``, ``MonitoredFocusList``, ``MonitoredFocusDeque``, ``RadioButton``), instead of continuing with stale indexes by @penguinolog in https://github.com/urwid/urwid/pull/1397
+* ``TrioEventLoop``: an exception from an idle callback now ends ``run()``, and ``ExitMainLoop`` from one stops the loop, as with the other event loops; Trio used to log it and stop running idle callbacks by @penguinolog in https://github.com/urwid/urwid/pull/1399
+
+Documentation 🕮
+++++++++++++++++
+* Document that MainLoop.draw_screen belongs to the loop thread by @penguinolog in https://github.com/urwid/urwid/pull/1372
+
+New Contributors
+++++++++++++++++
+* @charan-rathore made their first contribution in https://github.com/urwid/urwid/pull/1381
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.4...4.2.5
 
 Urwid 4.2.4
 ============
