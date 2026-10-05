@@ -520,6 +520,12 @@ class ScaleBarValuesTest(unittest.TestCase):
             with self.subTest(top=top):
                 self.assertEqual(bar_graph.scale_bar_values([1, 2], top, 4), [5, 5])
 
+    def test_non_number_top_is_rejected(self) -> None:
+        """Raise TypeError for a top that is not a number, even one float() would parse."""
+        for top in ("nan", "inf", b"nan"):
+            with self.subTest(top=top), self.assertRaises(TypeError):
+                bar_graph.scale_bar_values([1, 2], top, 4)  # type: ignore[arg-type]
+
     def test_nan_counts_as_zero(self) -> None:
         """Scale NaN as zero."""
         self.assertEqual(bar_graph.scale_bar_values([math.nan], 10, 4), [4])

@@ -11,6 +11,14 @@ Bug fixes
   columns out of the drawn text, so untrusted text no longer overflows into the next widget.
 * Stop ListBox from repeating items when a wrapping list walker is shorter than
   the available height (issue #464).
+* ``TrioEventLoop``: an exception from an idle callback now ends ``run()``, and ``ExitMainLoop`` from one
+  stops the loop, as with the other event loops; Trio used to log it and stop running idle callbacks.
+
+Deprecations
+++++++++++++
+* ``MonitoredDeque.insert()`` and ``MonitoredFocusDeque.insert()`` warn on an index
+  without ``__index__`` (a float, a ``Decimal``, a numeric string); from version 5.0
+  such an index raises ``TypeError``, as ``collections.deque.insert()`` does.
 
 Urwid 4.2.4
 ============

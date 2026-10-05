@@ -18,11 +18,8 @@ from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 # class below is decorated with `@unittest.skipIf(IS_WINDOWS, ...)`, which both runners honour
 # without needing the module to import successfully first.
 IS_WINDOWS = sys.platform == "win32"
-# GraalPy's fcntl module has no fcntl() function.
-IS_GRAALPY = sys.implementation.name == "graalpy"
 
 if not IS_WINDOWS:
-    import fcntl
     import termios
 
     from urwid.display._posix_raw_display import _GPM_B_LEFT, _GPM_MOD_SHIFT, Screen
@@ -233,12 +230,11 @@ class TestGpmTracking(unittest.TestCase):
         s._start_gpm_tracking()
         self.assertIsNone(s.gpm_mev)
 
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     @mock.patch.dict(os.environ, {"TERM": "linux"})
-    @mock.patch("fcntl.fcntl")
+    @mock.patch("os.set_blocking")
     @mock.patch("urwid.display._posix_raw_display.Popen")
     @mock.patch("os.path.isfile", return_value=True)
-    def test_start_gpm_tracking_success_sets_nonblocking(self, mock_isfile, mock_popen_cls, mock_fcntl):
+    def test_start_gpm_tracking_success_sets_nonblocking(self, mock_isfile, mock_popen_cls, mock_set_blocking):
         mock_proc = mock.MagicMock()
         mock_proc.stdout.fileno.return_value = 99
         mock_popen_cls.return_value = mock_proc
@@ -253,7 +249,7 @@ class TestGpmTracking(unittest.TestCase):
             close_fds=True,
             encoding="ascii",
         )
-        mock_fcntl.assert_called_once_with(99, fcntl.F_SETFL, os.O_NONBLOCK)
+        mock_set_blocking.assert_called_once_with(99, False)
         self.assertIs(mock_proc, s.gpm_mev)
 
     @mock.patch.dict(os.environ, {"TERM": "linux"})
@@ -292,11 +288,11 @@ class TestGpmTracking(unittest.TestCase):
 
     @mock.patch.dict(os.environ, {"TERM": "linux"})
     @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
-    @mock.patch("fcntl.fcntl")
+    @mock.patch("os.set_blocking")
     @mock.patch("urwid.display._posix_raw_display.Popen")
     @mock.patch("os.path.isfile", return_value=True)
     def test_toggling_mouse_tracking_updates_watched_descriptors(
-        self, mock_isfile, mock_popen_cls, mock_fcntl, mock_kill
+        self, mock_isfile, mock_popen_cls, mock_set_blocking, mock_kill
     ):
         """Turning mouse tracking on and off at run time adds and removes the helper's output from the watch."""
         fake_proc = mock_popen_cls.return_value = mock.MagicMock()
@@ -313,10 +309,10 @@ class TestGpmTracking(unittest.TestCase):
 
     @mock.patch.dict(os.environ, {"TERM": "linux"})
     @mock.patch("os.kill")  # guard: the helper must be stopped through its Popen object only
-    @mock.patch("fcntl.fcntl")
+    @mock.patch("os.set_blocking")
     @mock.patch("urwid.display._posix_raw_display.Popen")
     @mock.patch("os.path.isfile", return_value=True)
-    def test_helper_that_does_not_exit_is_killed(self, mock_isfile, mock_popen_cls, mock_fcntl, mock_kill):
+    def test_helper_that_does_not_exit_is_killed(self, mock_isfile, mock_popen_cls, mock_set_blocking, mock_kill):
         """A helper still running after the timeout is killed rather than waited for without limit."""
         fake_proc = mock_popen_cls.return_value = mock.MagicMock()
         fake_proc.wait.side_effect = subprocess.TimeoutExpired("mev", 1.0)

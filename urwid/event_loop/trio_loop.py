@@ -51,6 +51,11 @@ if typing.TYPE_CHECKING:
 __all__ = ("TrioEventLoop",)
 
 
+async def _reraise(exc: BaseException) -> typing.NoReturn:
+    """Raise *exc* from a nursery task, so it stops the loop like a failing alarm or watch callback."""
+    raise exc
+
+
 class _TrioIdleCallbackInstrument(trio.abc.Instrument):
     """IDLE callbacks emulation helper."""
 
@@ -60,10 +65,18 @@ class _TrioIdleCallbackInstrument(trio.abc.Instrument):
         self._event_loop = event_loop
 
     def before_io_wait(self, timeout: float) -> None:
-        if timeout > 0:
-            # pylint: disable=protected-access  # cooperating class
-            for idle_callback in self._event_loop._idle_callbacks.values():
-                self._event_loop._run_callback(idle_callback)
+        # pylint: disable=protected-access  # cooperating class
+        # Trio keeps polling while the main task's nursery is cancelled and after it has closed: the loop is exiting.
+        nursery = self._event_loop._nursery
+        if timeout > 0 and nursery is not None and not nursery.cancel_scope.cancel_called:
+            try:
+                for idle_callback in list(self._event_loop._idle_callbacks.values()):
+                    self._event_loop._run_callback(idle_callback)
+            # Trio logs an exception raised by an instrument hook and then disables the instrument.
+            except BaseException as exc:  # noqa: BLE001  # re-raised in the nursery
+                nursery.start_soon(_reraise, exc)
+                # The wait this hook precedes would otherwise run its full timeout before the new task.
+                trio.lowlevel.current_trio_token().run_sync_soon(lambda: None)
 
 
 class TrioEventLoop(EventLoop):
@@ -188,7 +201,7 @@ class TrioEventLoop(EventLoop):
         :return: callback return value, or None if it was scheduled as a nursery task
         """
         if inspect.iscoroutinefunction(callback):
-            # Only called from a task already running in the nursery, so it is always open here.
+            # Callers run only while the nursery is open: its tasks, and the idle instrument, which checks.
             nursery = typing.cast("trio.Nursery", self._nursery)
             fn = functools.partial(callback, *args, **kwargs) if kwargs else callback
             nursery.start_soon(fn, *(() if kwargs else args))

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import collections
+import decimal
+import math
 import unittest
+import warnings
 
 import urwid
 
@@ -213,6 +216,63 @@ class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
         mfd.append(1)
         self.assertEqual(0, len(mfd))
         self.assertIsNone(mfd.focus)
+
+
+class _Index:
+    """Integer-like object that supports only ``__index__``, as ``deque.insert()`` requires."""
+
+    def __index__(self) -> int:
+        return 1
+
+
+class MonitoredDequeInsertIndexTest(unittest.TestCase):
+    """Check ``insert()`` index conversion against ``collections.deque.insert()``."""
+
+    classes = (urwid.MonitoredDeque, urwid.MonitoredFocusDeque)
+
+    def test_integer_index_does_not_warn(self) -> None:
+        """Insert at an ``int``, a ``bool`` and an ``__index__`` object like ``deque`` does, with no warning."""
+        for cls in self.classes:
+            for index in (1, True, _Index()):
+                with self.subTest(cls=cls.__name__, index=index), warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    reference = collections.deque([0, 1, 2])
+                    reference.insert(index, 9)
+                    deq = cls([0, 1, 2])
+                    deq.insert(index, 9)
+                    self.assertEqual(list(reference), list(deq))
+
+    def test_non_integer_index_warns(self) -> None:
+        """Insert at an index without ``__index__``, converted by ``int()``, with one deprecation warning."""
+        for cls in self.classes:
+            for index in (1.5, decimal.Decimal(1), "1"):
+                with self.subTest(cls=cls.__name__, index=index):
+                    deq = cls([0, 1, 2])
+                    with warnings.catch_warnings(record=True) as caught:
+                        warnings.simplefilter("always")
+                        deq.insert(index, 9)
+                    message = (
+                        f"{cls.__name__}.insert() with an index of type {type(index).__name__} is deprecated: "
+                        "pass an int or an object with __index__. "
+                        "Support will be removed in version 5.0, after which it raises TypeError like deque.insert()."
+                    )
+                    self.assertEqual(
+                        [(DeprecationWarning, message, __file__)],
+                        [(item.category, str(item.message), item.filename) for item in caught],
+                    )
+                    self.assertEqual([0, 9, 1, 2], list(deq))
+
+    def test_rejected_index_raises_as_before(self) -> None:
+        """Raise what ``int()`` raises for an index it rejects, unchained, with no warning and no change."""
+        for cls in self.classes:
+            for index, error in ((None, TypeError), ("abc", ValueError), (math.inf, OverflowError)):
+                with self.subTest(cls=cls.__name__, index=index), warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    deq = cls([0, 1, 2])
+                    with self.assertRaises(error) as raised:
+                        deq.insert(index, 9)
+                    self.assertIsNone(raised.exception.__context__)
+                    self.assertEqual([0, 1, 2], list(deq))
 
 
 class WrapAroundTest(unittest.TestCase):
