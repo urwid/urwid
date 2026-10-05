@@ -8,6 +8,7 @@ import weakref
 from unittest import mock
 
 import urwid
+from tests.util import collect_and_count_alive
 from urwid import canvas
 from urwid.util import get_encoding
 
@@ -73,9 +74,9 @@ class CanvasCacheTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             urwid.CanvasCache.store(urwid.Widget, unfinalized)
 
-    @unittest.skipIf(
-        sys.implementation.name in {"pypy", "graalpy"},
-        "WeakRef works differently on PyPy/GraalPy's tracing GC",
+    @unittest.skipUnless(
+        sys.implementation.name == "cpython",
+        "relies on reference counting freeing the canvas as soon as its last reference is dropped",
     )
     def test_fetch_of_a_dead_weakref_returns_none_without_counting_a_hit(self):
         """A cache entry whose canvas is already gone is a miss, not a hit."""
@@ -171,9 +172,8 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
             last_canvas = urwid.AttrMap(padding, None).render((20,))
             paddings.append(weakref.ref(padding))
         del padding
-        gc.collect()
 
-        self.assertEqual(1, sum(ref() is not None for ref in paddings))
+        self.assertEqual(1, collect_and_count_alive(paddings))
         self.assertEqual({paddings[-1]()}, urwid.CanvasCache._deps[child])
         self.assertLessEqual(len(urwid.CanvasCache._children), 2)  # the last Padding and AttrMap
         self.assertIsNotNone(last_canvas)
@@ -190,9 +190,8 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
             grid.keypress(size, "right" if i % 2 == 0 else "left")
             canv = grid.render(size, focus=True)
             displays.append(weakref.ref(grid._w))
-        gc.collect()
 
-        self.assertEqual(1, sum(ref() is not None for ref in displays))
+        self.assertEqual(1, collect_and_count_alive(displays))
         self.assertEqual(links_after_first_render, sum(map(len, urwid.CanvasCache._deps.values())))
         self.assertIsNotNone(canv)
 
@@ -293,9 +292,8 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
             parent_canv.depends_on = [child]
             urwid.CanvasCache.store(urwid.Widget, parent_canv)  # a measuring render, discarded right away
             del child, child_canv, parent_canv
-        gc.collect()
 
-        self.assertEqual(0, sum(ref() is not None for ref in children))
+        self.assertEqual(0, collect_and_count_alive(children))
         self.assertEqual({kept_child}, urwid.CanvasCache._children[parent])
 
     def test_cleanup_during_invalidate_recursion(self):

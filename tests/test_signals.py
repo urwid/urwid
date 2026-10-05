@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import gc
 import sys
+import sysconfig
 import typing
 import unittest
 import weakref
@@ -9,9 +10,9 @@ from unittest.mock import Mock
 
 from urwid import (
     Edit,
+    MetaSignals,
     Signals,
     SimpleListWalker,
-    Text,
     Widget,
     connect_signal,
     disconnect_signal,
@@ -113,9 +114,14 @@ class SiglnalsTest(unittest.TestCase):
 class RegistryLeakTest(unittest.TestCase):
     """The signal registry does not keep the classes it knows alive."""
 
+    @unittest.skipIf(
+        sys.version_info[:2] == (3, 13) and sysconfig.get_config_var("Py_GIL_DISABLED"),
+        "the free-threaded CPython 3.13 build makes every class immortal once a thread has been started",
+    )
     def test_runtime_classes_are_collected(self) -> None:
         """Classes created at run time are freed once nothing else refers to them."""
-        refs = [weakref.ref(type("Runtime", (Text,), {})) for _ in range(20)]
+        # Not a Widget subclass: GraalPy itself can keep a runtime Widget subclass alive.
+        refs = [weakref.ref(MetaSignals("Runtime", (), {"signals": ["ping"]})) for _ in range(20)]
         gc.collect()
         self.assertEqual([], [ref for ref in refs if ref() is not None])
 

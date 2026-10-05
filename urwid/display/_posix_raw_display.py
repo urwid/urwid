@@ -232,7 +232,7 @@ class Screen(_raw_display_base.Screen):
             with m:  # closes the pipes and reaps the process on the way out
                 m.kill()
             raise RuntimeError("gpm mouse tracking stdout was not created")
-        fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+        os.set_blocking(m.stdout.fileno(), False)
         self.gpm_mev = m
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 

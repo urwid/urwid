@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 import dataclasses
-import gc
 import typing
 import unittest
 import weakref
 
 import urwid
-from tests.util import SelectableText
+from tests.util import SelectableText, collect_and_count_alive
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -3311,8 +3310,7 @@ class ListBoxBodySignalTest(unittest.TestCase):
         """A ListBox over a long-lived walker is collected, and its handler removed with it."""
         walker = urwid.SimpleFocusListWalker([urwid.Text("a")])
         refs = [weakref.ref(urwid.ListBox(walker)) for _ in range(10)]
-        gc.collect()
-        self.assertEqual([], [ref for ref in refs if ref() is not None])
+        self.assertEqual(0, collect_and_count_alive(refs))
         self.assertEqual((), vars(walker)["_urwid_signals"]["modified"])
 
     def test_body_replacement_disconnects(self) -> None:

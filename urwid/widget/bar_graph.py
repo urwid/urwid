@@ -757,7 +757,7 @@ def scale_bar_values(
     A *top* that is zero, not a number, infinite or too large for a float gives ``maxrow + 1`` for every value.
     """
     try:
-        valid_top = math.isfinite(top) and top != 0
+        valid_top = math.isfinite(top) and math.isfinite(float(top)) and top != 0
     except OverflowError:
         valid_top = False
     if not valid_top:

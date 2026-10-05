@@ -4,12 +4,14 @@ import asyncio
 import concurrent.futures
 import socket
 import sys
+import time
 import typing
 import unittest
 
 import urwid
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
     from concurrent.futures import Future
     from types import TracebackType
 
@@ -79,6 +81,24 @@ class ClosingSocketPair(typing.ContextManager[tuple[socket.socket, socket.socket
 
 class EventLoopTestMixin:
     evl: urwid.EventLoop
+
+    def _exit_once_seen(self, out: list[str], exit_clean: Callable[[], typing.NoReturn], *expected: str) -> None:
+        """Call *exit_clean* from an alarm once every string in *expected* is in *out*.
+
+        Work the test waits for can finish after any fixed delay on a loaded machine, and alarms that are due
+        together run in one pass, so a loop started late can stop before it was ever idle. The check repeats on
+        a short alarm and calls *exit_clean* anyway after a generous deadline, so work that never happens fails
+        the test instead of hanging it.
+        """
+        deadline = time.monotonic() + 10
+
+        def exit_once_seen() -> None:
+            if not set(expected).issubset(out) and time.monotonic() < deadline:
+                self.evl.alarm(0.005, exit_once_seen)
+                return
+            exit_clean()
+
+        self.evl.alarm(0.01, exit_once_seen)
 
     def test_event_loop(self):
         evl: urwid.EventLoop = self.evl
@@ -186,7 +206,7 @@ class EventLoopTestMixin:
         with ClosingSocketPair() as (rd, wr):
             self.assertEqual(wr.send(b"data"), 4)
 
-            _handle = evl.alarm(0.01, exit_clean)
+            self._exit_once_seen(out, exit_clean, "waiting", "hello")
             _handle = evl.alarm(0.005, say_hello)
             idle_handle = evl.enter_idle(say_waiting)
             if self._expected_idle_handle is not None:
@@ -227,7 +247,7 @@ class EventLoopTestMixin:
                 out.append("clean exit")
                 raise urwid.ExitMainLoop
 
-            _handle = self.evl.alarm(0.1, exit_clean)
+            self._exit_once_seen(out, exit_clean, "callback called with future outcome: True")
             _handle = self.evl.alarm(0.005, start)
             self.evl.run()
 
@@ -456,7 +476,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
         evl.enter_idle(say_waiting)
         evl.alarm(0.005, say_hello)
-        evl.alarm(0.01, exit_clean)
+        self._exit_once_seen(out, exit_clean, "waiting")
         evl.run()
         self.assertIn("waiting", out)
 
@@ -556,7 +576,7 @@ class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
         evl.enter_idle(say_waiting)
         evl.alarm(0.005, say_hello)
-        evl.alarm(0.01, exit_clean)
+        self._exit_once_seen(out, exit_clean, "waiting")
         evl.run()
         self.assertIn("waiting", out)
 
@@ -648,7 +668,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             self.assertEqual(wr.send(b"data"), 4)
 
             _handle = evl.watch_file(rd.fileno(), step2)
-            _handle = evl.alarm(0.1, exit_clean)
+            self._exit_once_seen(out, exit_clean, "callback called with future outcome: True")
             _handle = evl.alarm(0.05, say_hello)
             _handle = evl.alarm(0.06, test_remove_alarm)
             _handle = evl.alarm(0.07, test_remove_watch_file)
@@ -747,9 +767,86 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
         evl.enter_idle(say_waiting)
         evl.alarm(0.005, say_hello)
-        evl.alarm(0.01, exit_clean)
+        self._exit_once_seen(out, exit_clean, "waiting")
         evl.run()
         self.assertIn("waiting", out)
+
+    def test_idle_callbacks_run_only_while_the_nursery_is_open(self) -> None:
+        """Idle callbacks, which need the nursery when async, are not run while Trio polls after it closed."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        out: list[str] = []
+
+        async def say_waiting() -> None:
+            out.append("waiting")
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(lambda: out.append("idle" if evl._nursery else "idle after exit"))
+        evl.enter_idle(say_waiting)
+        self._exit_once_seen(out, exit_clean, "waiting")
+        evl.run()
+
+        self.assertIn("waiting", out)
+        self.assertNotIn("idle after exit", out)
+
+    def test_idle_callback_exit_main_loop_stops_the_loop(self) -> None:
+        """ExitMainLoop raised by an idle callback stops the loop cleanly, as from an alarm callback."""
+        evl = self.evl
+        out: list[str] = []
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(exit_clean)
+        self._exit_once_seen(out, guard_exit, "clean exit")
+        evl.run()
+        self.assertEqual(["clean exit"], out)
+
+    def test_idle_callback_may_change_the_idle_callbacks(self) -> None:
+        """An idle callback that removes itself and adds another does not break the loop."""
+        evl = self.evl
+        out: list[str] = []
+        handles: list[int] = []
+
+        def once() -> None:
+            out.append("once")
+            evl.remove_enter_idle(handles[0])
+            handles.append(evl.enter_idle(lambda: out.append("waiting")))
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        handles.append(evl.enter_idle(once))
+        self._exit_once_seen(out, exit_clean, "waiting")
+        evl.run()
+        self.assertEqual("once", out[0])
+        self.assertIn("waiting", out)
+        self.assertEqual("clean exit", out[-1])
+
+    def test_idle_callback_error_is_raised_from_run(self) -> None:
+        """An exception raised by an idle callback stops the loop and is raised from run()."""
+        evl = self.evl
+        out: list[str] = []
+
+        def exit_error() -> typing.NoReturn:
+            out.append("error")
+            raise ZeroDivisionError
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(exit_error)
+        self._exit_once_seen(out, guard_exit, "error")
+        self.assertRaises(ZeroDivisionError, evl.run)
+        self.assertEqual(["error"], out)
 
     def test_async_alarm_callback_error(self):
         evl = self.evl
@@ -779,7 +876,7 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             def exit_clean() -> typing.NoReturn:
                 raise urwid.ExitMainLoop
 
-            evl.alarm(0.02, exit_clean)
+            self._exit_once_seen(out, exit_clean, "hi")
             evl.run()
 
         self.assertEqual(["hi"], out)
@@ -1005,7 +1102,7 @@ class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTes
 
         evl.enter_idle(say_waiting)
         evl.alarm(0.005, say_hello)
-        evl.alarm(0.01, exit_clean)
+        self._exit_once_seen(out, exit_clean, "waiting")
         evl.run()
         self.assertIn("waiting", out)
 
