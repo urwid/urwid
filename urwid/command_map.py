@@ -27,11 +27,10 @@ from collections.abc import MutableMapping
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
+    from typing import Self
 
-    from typing_extensions import Self
 
-
-class Command(str, enum.Enum):
+class Command(enum.StrEnum):
     """Abstract commands that a :class:`CommandMap` maps keystrokes to."""
 
     REDRAW_SCREEN = "redraw screen"
@@ -61,7 +60,7 @@ CURSOR_MAX_RIGHT: typing.Literal[Command.MAX_RIGHT] = Command.MAX_RIGHT
 ACTIVATE: typing.Literal[Command.ACTIVATE] = Command.ACTIVATE
 
 
-class CommandMap(MutableMapping[str, typing.Union[str, Command, None]]):
+class CommandMap(MutableMapping[str, str | Command | None]):
     """
     dict-like object for looking up commands from keystrokes.
 

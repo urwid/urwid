@@ -48,7 +48,7 @@ if typing.TYPE_CHECKING:
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
 
 class Screen(_raw_display_base.Screen):

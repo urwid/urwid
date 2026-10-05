@@ -15,8 +15,7 @@ from .widget import Widget, WidgetError, WidgetMeta, nocache_widget_render, noca
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.util import _TagMarkup
 
@@ -318,7 +317,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         rhl: list[float] = []
         for h in hlines:
             try:
-                rh = float(top - h) * maxrow / top - shiftr
+                rh = float(top - h) * maxrow / top - shiftr  # noqa: FURB123  # an int too big for a float must overflow
             except (OverflowError, ZeroDivisionError):
                 # out of float range, or a zero top: the line has no row in the graph
                 continue
@@ -722,7 +721,7 @@ class GraphVScale(Widget):
 
         combinelist = []
         rows = 0
-        for p, t in zip(pl, self.txt):
+        for p, t in zip(pl, self.txt, strict=False):
             p -= 1  # noqa: PLW2901
             if p >= maxrow:
                 break
@@ -757,7 +756,8 @@ def scale_bar_values(
     A *top* that is zero, not a number, infinite or too large for a float gives ``maxrow + 1`` for every value.
     """
     try:
-        valid_top = math.isfinite(top) and math.isfinite(float(top)) and top != 0
+        # float() raises OverflowError for an int too large for a float; GraalPy's math.isfinite() accepts one.
+        valid_top = math.isfinite(top) and math.isfinite(float(top)) and top != 0  # noqa: FURB123
     except OverflowError:
         valid_top = False
     if not valid_top:

@@ -34,7 +34,7 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
-    _KeyQueueData = dict[int, typing.Union[str, "_KeyQueueData"]]
+    _KeyQueueData = dict[int, str | "_KeyQueueData"]
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
@@ -57,10 +57,7 @@ DEC_SPECIAL_CHARS = "▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼�
 ALT_DEC_SPECIAL_CHARS = "_`abcdefghijklmnopqrstuvwxyz{|}~"
 
 DEC_SPECIAL_CHARMAP = {}
-if len(DEC_SPECIAL_CHARS) != len(ALT_DEC_SPECIAL_CHARS):
-    raise RuntimeError(repr((DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS)))
-
-for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS):
+for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS, strict=True):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
 SAFE_ASCII_DEC_SPECIAL_RE = re.compile(f"^[ -~{DEC_SPECIAL_CHARS}]*$")
@@ -151,13 +148,13 @@ input_sequences: list[tuple[str, str]] = [
     ("[201~", "end paste"),
     *(
         (prefix + letter, modifier + key)
-        for prefix, modifier in zip("O[", ("meta ", "shift "))
-        for letter, key in zip("abcd", ("up", "down", "right", "left"))
+        for prefix, modifier in zip("O[", ("meta ", "shift "), strict=True)
+        for letter, key in zip("abcd", ("up", "down", "right", "left"), strict=True)
     ),
     *(
         (f"[{digit}{symbol}", modifier + key)
-        for modifier, symbol in zip(("shift ", "meta "), "$^")
-        for digit, key in zip("235678", ("insert", "delete", "page up", "page down", "home", "end"))
+        for modifier, symbol in zip(("shift ", "meta "), "$^", strict=True)
+        for digit, key in zip("235678", ("insert", "delete", "page up", "page down", "home", "end"), strict=True)
     ),
     *((f"O{ord('p') + n:c}", str(n)) for n in range(10)),
     *(
@@ -165,7 +162,7 @@ input_sequences: list[tuple[str, str]] = [
         (prefix + digit + letter, escape_modifier(digit) + key)
         for prefix in ("[", "[1;")
         for digit in "12345678"
-        for letter, key in zip("ABCDEFGH", ("up", "down", "right", "left", "5", "end", "5", "home"))
+        for letter, key in zip("ABCDEFGH", ("up", "down", "right", "left", "5", "end", "5", "home"), strict=True)
     ),
     *(
         # modified F1-F4 keys - O#X form and [1;#X form
@@ -186,6 +183,7 @@ input_sequences: list[tuple[str, str]] = [
                 "page down",
                 *(f"f{idx}" for idx in range(1, 21)),
             ),
+            strict=True,
         )
     ),
     # mouse reporting (special handling done in KeyqueueTrie)
@@ -730,7 +728,7 @@ def process_keyqueue(
 ESC = "\x1b"
 
 
-class PrivateMode(str, enum.Enum):
+class PrivateMode(enum.StrEnum):
     """DEC private modes (``CSI ? Pd h``/``l``).
 
     Not every member is queried or acted on, some members are for future development.
@@ -760,9 +758,6 @@ class PrivateMode(str, enum.Enum):
     def disable_seq(self) -> str:
         """Disable sequence."""
         return f"{ESC}[?{self}l"
-
-    # Plain value in f-strings/str(), matching enum.StrEnum (3.11+); drop in release 5 on py3.11+ migration.
-    __str__ = str.__str__
 
 
 CURSOR_HOME = f"{ESC}[H"

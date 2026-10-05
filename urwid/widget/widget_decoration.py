@@ -10,7 +10,7 @@ from urwid.canvas import CompositeCanvas
 from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .constants import Sizing
 

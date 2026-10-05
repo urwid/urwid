@@ -101,8 +101,7 @@ This event loop integrates with the asyncio module in Python.
 
 ::
 
-    import asyncio
-    evl = urwid.AsyncioEventLoop(loop=asyncio.get_event_loop())
+    evl = urwid.AsyncioEventLoop()  # the running asyncio loop, or a new SelectorEventLoop of its own
     loop = urwid.MainLoop(widget, event_loop=evl)
 
 .. note::

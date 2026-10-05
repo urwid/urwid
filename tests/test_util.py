@@ -300,7 +300,7 @@ class RleTest(unittest.TestCase):
         old_encoding = util.get_encoding()
         try:
             util.set_encoding("euc-jp")
-            text = "hel\xa1\xa1lo".encode("iso8859-1")
+            text = b"hel\xa1\xa1lo"
             attr = [("A", 7)]
             cs = [(None, 7)]
 

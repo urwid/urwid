@@ -164,26 +164,26 @@ class Utf8BytesGraphemeTest(unittest.TestCase):
 
     def test_move_next_through_family_emoji_bytes(self):
         # After 'A' (1 byte), should skip entire family emoji
-        text = f"A{FAMILY}B".encode("utf-8")
+        text = f"A{FAMILY}B".encode()
         pos = str_util.move_next_char(text, 1, len(text))
         assert pos == 1 + len(FAMILY_BYTES)
 
     def test_move_next_through_flag_bytes(self):
         # After 'A' (1 byte), should skip entire flag
-        text = f"A{FLAG_CA}B".encode("utf-8")
+        text = f"A{FLAG_CA}B".encode()
         pos = str_util.move_next_char(text, 1, len(text))
         assert pos == 1 + len(FLAG_CA_BYTES)
 
     def test_move_prev_through_family_emoji_bytes(self):
         # From position after family emoji, should go back to after 'A'
-        text = f"A{FAMILY}B".encode("utf-8")
+        text = f"A{FAMILY}B".encode()
         end_pos = 1 + len(FAMILY_BYTES)
         pos = str_util.move_prev_char(text, 0, end_pos)
         assert pos == 1
 
     def test_move_prev_through_flag_bytes(self):
         # From position after flag, should go back to after 'A'
-        text = f"A{FLAG_CA}B".encode("utf-8")
+        text = f"A{FLAG_CA}B".encode()
         end_pos = 1 + len(FLAG_CA_BYTES)
         pos = str_util.move_prev_char(text, 0, end_pos)
         assert pos == 1
@@ -195,7 +195,7 @@ class Utf8BytesGraphemeTest(unittest.TestCase):
         assert str_util.is_wide_char(FLAG_CA_BYTES, 0)
 
     def test_calc_text_pos_flag_boundaries_bytes(self):
-        text = f"A{FLAG_CA}B".encode("utf-8")
+        text = f"A{FLAG_CA}B".encode()
         # Column 1 should be at position 1 (after 'A')
         pos, col = str_util.calc_text_pos(text, 0, len(text), 1)
         assert pos == 1

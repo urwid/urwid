@@ -5,8 +5,7 @@ from __future__ import annotations
 import typing
 import warnings
 import weakref
-
-from typing_extensions import Literal
+from typing import Literal
 
 from urwid.split_repr import remove_defaults
 
@@ -38,7 +37,7 @@ GridFlowContentsItem = tuple[AbstractFlowWidget, GridFlowOptions]
 
 
 class GridFlow(
-    WidgetWrap[typing.Union[Pile, Divider]],
+    WidgetWrap["Pile | Divider"],  # quoted: pylint cannot infer a base subscripted with a "|" union
     WidgetContainerMixin[int],
     WidgetContainerListContentsMixin[GridFlowContentsItem],
 ):
@@ -161,7 +160,7 @@ class GridFlow(
                 _w, (t, _n) = item
                 if t != WHSettings.GIVEN:
                     raise GridFlowError(f"added content invalid {item!r}")
-            except (TypeError, ValueError) as exc:  # noqa: PERF203
+            except (TypeError, ValueError) as exc:
                 raise GridFlowError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
 
     @property

@@ -45,8 +45,7 @@ from .common import AttrSpec, BaseScreen, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
     from types import FrameType
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.canvas import Canvas
 
@@ -314,7 +313,7 @@ class Screen(BaseScreen):
             signal.alarm(0)
             try:
                 s, _addr = typing.cast("socket.socket", self.server_socket).accept()
-            except socket.timeout:
+            except TimeoutError:
                 sys.exit(0)
             send = s.sendall  # type: ignore[assignment]  # use default flags
         else:
@@ -421,7 +420,7 @@ class Screen(BaseScreen):
             try:
                 s, _addr = typing.cast("socket.socket", self.server_socket).accept()
                 s.close()
-            except socket.timeout:
+            except TimeoutError:
                 sys.exit(0)
         else:
             # send empty update

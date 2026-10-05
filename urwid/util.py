@@ -34,8 +34,7 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence
     from types import TracebackType
-
-    from typing_extensions import Literal, Protocol, Self
+    from typing import Literal, Protocol, Self
 
     class CanBeStopped(Protocol):
         """Protocol for an object providing a no-argument ``stop()`` method."""
@@ -61,7 +60,7 @@ if typing.TYPE_CHECKING:
         def reverse(self) -> None:
             """Reverse the list of tag markup elements in place."""
 
-    _TagMarkup = typing.Union[str, bytes, tuple[Hashable, "_TagMarkup"], "_TagMarkupList"]
+    _TagMarkup = str | bytes | tuple[Hashable, "_TagMarkup"] | _TagMarkupList
 
 
 def __getattr__(name: str) -> typing.Any:
@@ -464,7 +463,7 @@ def rle_product(
         while r2 == 0 and i2 < len(rle2):
             a2, r2 = rle2[i2]
             i2 += 1
-        if r1 == 0 or r2 == 0:
+        if 0 in (r1, r2):
             break
 
         r = min(r1, r2)
@@ -498,7 +497,7 @@ def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashabl
             text = b"".join(converted)
         if len(text) != sum(len(item) for item in tl):
             # the attribute runs count the elements before conversion: recount them after it
-            items = zip(tl, converted)
+            items = zip(tl, converted, strict=True)
             for i, (attr, run) in enumerate(al):
                 remaining, new_run = run, 0
                 while remaining > 0:

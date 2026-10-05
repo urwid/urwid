@@ -22,7 +22,7 @@ from .constants import (
 from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .widget import AbstractFlowWidget, AbstractWidget
 

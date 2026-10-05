@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import types
 import unittest
 from unittest import mock
 
@@ -378,7 +377,6 @@ class IntEditTest(unittest.TestCase):
         e.keypress((10,), "1")
         self.assertEqual(e.value(), 51)
 
-    @unittest.skipUnless(hasattr(sys, "get_int_max_str_digits"), "the interpreter has no int digit limit")
     def test_keypress_refuses_digits_beyond_int_limit(self) -> None:
         """Typing stops at the int digit limit, so value() still converts the text."""
         e = urwid.IntEdit("", "1" * 9)
@@ -389,19 +387,12 @@ class IntEditTest(unittest.TestCase):
         self.assertEqual(e.value(), 1111111112)
 
     def test_keypress_without_int_limit(self) -> None:
-        """A limit of 0, or an interpreter without the limit, accepts digits without bound."""
-        with self.subTest("limit 0"):
-            e = urwid.IntEdit("", "1" * 9)
-            with mock.patch.object(sys, "get_int_max_str_digits", return_value=0, create=True):
-                self.assertIsNone(e.keypress((20,), "2"))
-            self.assertEqual(e.edit_text, "1" * 9 + "2")
-        with self.subTest("no limit function"):
-            e = urwid.IntEdit("", "1" * 9)
-            with mock.patch.object(urwid.widget.edit, "sys", types.SimpleNamespace()):
-                self.assertIsNone(e.keypress((20,), "2"))
-            self.assertEqual(e.edit_text, "1" * 9 + "2")
+        """A limit of 0 accepts digits without bound."""
+        e = urwid.IntEdit("", "1" * 9)
+        with mock.patch.object(sys, "get_int_max_str_digits", return_value=0):
+            self.assertIsNone(e.keypress((20,), "2"))
+        self.assertEqual(e.edit_text, "1" * 9 + "2")
 
-    @unittest.skipUnless(hasattr(sys, "get_int_max_str_digits"), "the interpreter has no int digit limit")
     def test_keypress_replaces_highlight_at_int_limit(self) -> None:
         """A digit replacing a highlighted range is accepted when the result stays within the limit."""
         e = urwid.IntEdit("", "1" * 10)

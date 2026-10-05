@@ -28,22 +28,17 @@ from __future__ import annotations
 import functools
 import inspect
 import logging
-import sys
 import typing
 
 import trio
 
 from .abstract_loop import EventLoop, ExitMainLoop, SupportsFileno
 
-if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
-
 if typing.TYPE_CHECKING:
     import asyncio
     from collections.abc import Awaitable, Callable
     from concurrent.futures import Executor, Future
-
-    from typing_extensions import ParamSpec
+    from typing import ParamSpec
 
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
@@ -83,7 +78,7 @@ class TrioEventLoop(EventLoop):
     """
     Event loop based on the ``trio`` module.
 
-    ``trio`` is an async library for Python 3.5 and later.
+    ``trio`` is an async library.
 
     .. note::
         :meth:`alarm`, :meth:`watch_file` and :meth:`enter_idle` accept an ``async def``

@@ -41,8 +41,7 @@ from .abstract_loop import EventLoop, ExitMainLoop, SupportsFileno
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
-
-    from typing_extensions import ParamSpec
+    from typing import ParamSpec
 
     ZMQAlarmHandle = tuple[float, int, Callable[[], typing.Any]]
     _T = typing.TypeVar("_T")
@@ -303,7 +302,7 @@ class ZMQEventLoop(EventLoop):
             while True:
                 try:
                     await self._loop()
-                except zmq.error.ZMQError as exc:  # noqa: PERF203
+                except zmq.error.ZMQError as exc:
                     if exc.errno != errno.EINTR:
                         raise
         except (ExitMainLoop, asyncio.CancelledError):
@@ -314,7 +313,7 @@ class ZMQEventLoop(EventLoop):
     async def _loop(self) -> None:
         """Run a single iteration of the event loop."""
         state = "wait"  # default state not expecting any action
-        polled_callbacks = dict(self._queue_callbacks)
+        polled_callbacks = self._queue_callbacks.copy()
         if self._alarms or self._did_something:
             timeout = 0.0
             if self._alarms:

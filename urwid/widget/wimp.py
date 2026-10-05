@@ -37,8 +37,7 @@ from .widget import WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, MutableSequence
-
-    from typing_extensions import Literal, Self
+    from typing import Literal, Self
 
     from urwid.canvas import TextCanvas
     from urwid.text_layout import TextLayout

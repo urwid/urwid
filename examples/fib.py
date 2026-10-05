@@ -34,7 +34,7 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 class FibonacciWalker(urwid.ListWalker[tuple[int, int], urwid.Text]):

@@ -33,12 +33,11 @@ from urwid.util import calc_trim_text, get_encoding
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.widget import Align, WrapMode
 
-    _LayoutSegment = typing.Union[tuple[int, int, typing.Union[int | bytes]], tuple[int, typing.Union[int | None]]]
+    _LayoutSegment = tuple[int, int, int | bytes] | tuple[int, int | None]
     _LayoutLine = list[_LayoutSegment]
     _LayoutFormat = list[_LayoutLine]
 

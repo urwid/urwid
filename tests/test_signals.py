@@ -8,6 +8,7 @@ import unittest
 import weakref
 from unittest.mock import Mock
 
+from tests.util import GC_KEEPS_UNREACHABLE
 from urwid import (
     Edit,
     MetaSignals,
@@ -118,6 +119,7 @@ class RegistryLeakTest(unittest.TestCase):
         sys.version_info[:2] == (3, 13) and sysconfig.get_config_var("Py_GIL_DISABLED"),
         "the free-threaded CPython 3.13 build makes every class immortal once a thread has been started",
     )
+    @unittest.skipIf(GC_KEEPS_UNREACHABLE, "GraalPy for Python 3.11 never frees a class created at run time")
     def test_runtime_classes_are_collected(self) -> None:
         """Classes created at run time are freed once nothing else refers to them."""
         # Not a Widget subclass: GraalPy itself can keep a runtime Widget subclass alive.

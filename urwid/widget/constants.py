@@ -7,14 +7,14 @@ import enum
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
 
 
-class Sizing(str, enum.Enum):
+class Sizing(enum.StrEnum):
     """Widget sizing methods."""
 
     FLOW = "flow"
@@ -22,7 +22,7 @@ class Sizing(str, enum.Enum):
     FIXED = "fixed"
 
 
-class Align(str, enum.Enum):
+class Align(enum.StrEnum):
     """Text alignment modes."""
 
     LEFT = "left"
@@ -30,7 +30,7 @@ class Align(str, enum.Enum):
     CENTER = "center"
 
 
-class VAlign(str, enum.Enum):
+class VAlign(enum.StrEnum):
     """Filler alignment."""
 
     TOP = "top"
@@ -38,7 +38,7 @@ class VAlign(str, enum.Enum):
     BOTTOM = "bottom"
 
 
-class WrapMode(str, enum.Enum):
+class WrapMode(enum.StrEnum):
     """Text wrapping modes."""
 
     SPACE = "space"
@@ -47,7 +47,7 @@ class WrapMode(str, enum.Enum):
     ELLIPSIS = "ellipsis"
 
 
-class WHSettings(str, enum.Enum):
+class WHSettings(enum.StrEnum):
     """Width and Height settings."""
 
     PACK = "pack"
@@ -485,7 +485,7 @@ def simplify_height(
     )
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _BoxSymbols:
     """Box symbols for drawing."""
 
@@ -503,7 +503,7 @@ class _BoxSymbols:
     CROSS: str
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _BoxSymbolsWithDashes(_BoxSymbols):
     """Box symbols for drawing.
 
@@ -518,7 +518,7 @@ class _BoxSymbolsWithDashes(_BoxSymbols):
     VERTICAL_4_DASH: str
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _LightBoxSymbols(_BoxSymbolsWithDashes):
     """Box symbols for drawing.
 
@@ -556,7 +556,7 @@ class _BoxSymbolsCollection(typing.NamedTuple):
 BOX_SYMBOLS = _BoxSymbolsCollection()
 
 
-class BAR_SYMBOLS(str, enum.Enum):
+class BAR_SYMBOLS(enum.StrEnum):
     """Standard Unicode bar symbols excluding empty space.
 
     Start from space (0), then 1/8 till full block (1/1).

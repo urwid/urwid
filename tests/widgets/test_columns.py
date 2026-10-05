@@ -11,7 +11,7 @@ from tests.util import SelectableText
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection
 
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 class NotAWidget:

@@ -5,8 +5,7 @@ from __future__ import annotations
 import typing
 import warnings
 from collections.abc import MutableSequence
-
-from typing_extensions import Literal
+from typing import Literal
 
 from urwid.canvas import CanvasOverlay, CompositeCanvas
 from urwid.split_repr import remove_defaults
@@ -78,7 +77,7 @@ class OverlayOptions(typing.NamedTuple):
     bottom: int
 
 
-OverlayContentsItem = tuple[typing.Union[TopWidget, BottomWidget], OverlayOptions]
+OverlayContentsItem = tuple[TopWidget | BottomWidget, OverlayOptions]
 
 
 class Overlay(

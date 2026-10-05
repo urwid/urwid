@@ -5,8 +5,7 @@ from __future__ import annotations
 import typing
 import warnings
 from collections.abc import MutableMapping
-
-from typing_extensions import Literal
+from typing import Literal
 
 from urwid.canvas import CanvasCombine, CompositeCanvas
 from urwid.split_repr import remove_defaults
@@ -24,8 +23,8 @@ if typing.TYPE_CHECKING:
 
 
 BodyWidget = typing.TypeVar("BodyWidget", bound=AbstractBoxWidget)
-HeaderWidget = typing.TypeVar("HeaderWidget", bound=typing.Union[AbstractFlowWidget, None])
-FooterWidget = typing.TypeVar("FooterWidget", bound=typing.Union[AbstractFlowWidget, None])
+HeaderWidget = typing.TypeVar("HeaderWidget", bound=AbstractFlowWidget | None)
+FooterWidget = typing.TypeVar("FooterWidget", bound=AbstractFlowWidget | None)
 
 
 class FrameError(WidgetError):
@@ -359,7 +358,7 @@ class Frame(
         class FrameContents(
             MutableMapping[
                 str,
-                tuple[typing.Union[BodyWidget, HeaderWidget, FooterWidget], None],
+                tuple[BodyWidget | HeaderWidget | FooterWidget, None],
             ]
         ):
             """Mapping view onto this Frame's `header`, `body`, and `footer` slots."""

@@ -30,7 +30,7 @@ import warnings
 import wcwidth
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
 SAFE_ASCII_RE = re.compile(r"^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(rb"^[ -~]*$")

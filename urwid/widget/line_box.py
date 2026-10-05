@@ -14,8 +14,7 @@ from .widget_decoration import WidgetDecoration, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .widget import AbstractWidget, Widget
 

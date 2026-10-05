@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import itertools
 import typing
 
 from urwid import text_layout
@@ -15,8 +16,7 @@ from .widget import Widget, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.canvas import TextCanvas
     from urwid.util import _TagMarkup
@@ -372,7 +372,7 @@ class Text(Widget):
         tabs = text.count("\t") if isinstance(text, str) else text.count(b"\t")
         if tabs and isinstance(layout, text_layout.StandardTextLayout):
             stops = (0, *layout.tab_stops)
-            widest_tab = max((layout.tab_stop_every, *(end - start for start, end in zip(stops, stops[1:]))))
+            widest_tab = max((layout.tab_stop_every, *(end - start for start, end in itertools.pairwise(stops))))
             maxcol += widest_tab * tabs
         while True:
             trans = layout.layout(text, maxcol, self._align_mode, self._wrap_mode)

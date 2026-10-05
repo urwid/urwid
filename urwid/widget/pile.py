@@ -8,8 +8,7 @@ import sys
 import typing
 import warnings
 from itertools import chain, repeat
-
-from typing_extensions import Literal
+from typing import Literal
 
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
@@ -52,19 +51,17 @@ class Pile(
     Widget,
     WidgetContainerMixin[int],
     WidgetContainerListContentsMixin[
-        typing.Union[
-            tuple[
-                typing.Union[AbstractFlowWidget, AbstractFixedWidget],
-                tuple[Literal[WHSettings.PACK], None],
-            ],
-            tuple[
-                AbstractBoxWidget,
-                tuple[Literal[WHSettings.GIVEN], int],
-            ],
-            tuple[
-                typing.Union[AbstractBoxWidget, AbstractFlowWidget],
-                tuple[Literal[WHSettings.WEIGHT], typing.Union[int, float]],
-            ],
+        tuple[
+            AbstractFlowWidget | AbstractFixedWidget,
+            tuple[Literal[WHSettings.PACK], None],
+        ]
+        | tuple[
+            AbstractBoxWidget,
+            tuple[Literal[WHSettings.GIVEN], int],
+        ]
+        | tuple[
+            AbstractBoxWidget | AbstractFlowWidget,
+            tuple[Literal[WHSettings.WEIGHT], int | float],
         ]
     ],
 ):
@@ -424,6 +421,7 @@ class Pile(
                 widgets,
                 # need to grow contents list if widgets is longer
                 chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1)))),
+                strict=False,
             )
         ]
         if focus_position < len(widgets):
@@ -502,7 +500,7 @@ class Pile(
                     new_height,
                 ),
             )
-            for ((new_t, new_height), (w, options)) in zip(item_types, self.contents)
+            for ((new_t, new_height), (w, options)) in zip(item_types, self.contents, strict=False)
         ]
         if focus_position < len(item_types):
             self.focus_position = focus_position
@@ -997,16 +995,16 @@ class Pile(
             # Try to move to the center
             offset = len(before) - len(after)
             if not offset:
-                indexes: Iterable[int] = itertools.chain.from_iterable(zip(after[::-1], before))
+                indexes: Iterable[int] = itertools.chain.from_iterable(zip(after[::-1], before, strict=True))
             elif offset > 0:
                 indexes = (
                     *before[:offset],
-                    *itertools.chain.from_iterable(zip(after[::-1], before[offset:])),
+                    *itertools.chain.from_iterable(zip(after[::-1], before[offset:], strict=True)),
                 )
             else:
                 indexes = (
                     *after[-1 : offset - 1 : -1],
-                    *itertools.chain.from_iterable(zip(after[offset - 1 :: -1], before)),
+                    *itertools.chain.from_iterable(zip(after[offset - 1 :: -1], before, strict=True)),
                 )
 
             for idx in indexes:
@@ -1077,7 +1075,7 @@ class Pile(
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):
+        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):
             item_focus = self.focus == w
             canv = None
             if height > 0:
@@ -1198,7 +1196,7 @@ class Pile(
         focus = True
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)
-        for i, (r, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):  # noqa: B007
+        for i, (r, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):  # noqa: B007
             if wrow + r > row:
                 break
             wrow += r
@@ -1236,7 +1234,7 @@ class Pile(
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)
 
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):  # noqa: B007
+        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):  # noqa: B007
             if wrow + height > row:
                 target_row = row - wrow
                 break

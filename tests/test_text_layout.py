@@ -15,7 +15,7 @@ from urwid.util import get_encoding, set_temporary_encoding
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 class CalcBreaksTest(unittest.TestCase):

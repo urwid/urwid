@@ -46,14 +46,13 @@ from urwid.util import (
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator, Mapping, Sequence
-
-    from typing_extensions import Literal, NotRequired
+    from typing import Literal, NotRequired
 
     from .display.common import AttrSpec
     from .widget import AbstractWidget
 
-    _ContentLine = list[tuple[typing.Union[AttrSpec, str, None], typing.Union[Literal["0", "U"], None], bytes]]
-    _CView = tuple[int, int, int, int, typing.Union[dict[Hashable, Hashable], None], "Canvas"]
+    _ContentLine = list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]
+    _CView = tuple[int, int, int, int, dict[Hashable, Hashable] | None, "Canvas"]
 
     _CanvasCoords = typing.TypedDict(
         "_CanvasCoords",
@@ -517,7 +516,7 @@ class TextCanvas(Canvas):
             cs = [[] for _ in range(len(text))]
 
         # pad text and attr to maxcol
-        for i, (w, a_row, cs_row) in enumerate(zip(widths, attr, cs)):
+        for i, (w, a_row, cs_row) in enumerate(zip(widths, attr, cs, strict=False)):
             if w > maxcol:
                 raise CanvasError(
                     f"Canvas text is wider than the maxcol specified:\n"
@@ -599,9 +598,10 @@ class TextCanvas(Canvas):
                 self._text[trim_top : trim_top + rows],
                 self._attr[trim_top : trim_top + rows],
                 self._cs[trim_top : trim_top + rows],
+                strict=False,
             )
         else:
-            text_attr_cs = zip(self._text, self._attr, self._cs)
+            text_attr_cs = zip(self._text, self._attr, self._cs, strict=False)
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:

@@ -37,8 +37,7 @@ from .abstract_loop import EventLoop, ExitMainLoop
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from concurrent.futures import Executor, Future
-
-    from typing_extensions import Literal, ParamSpec
+    from typing import Literal, ParamSpec
 
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")

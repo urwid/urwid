@@ -42,8 +42,7 @@ from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
-
-    from typing_extensions import Self
+    from typing import Self
 
     from urwid.util import _TagMarkup
 
@@ -59,7 +58,7 @@ class TreeWidgetError(RuntimeError):
     """Error raised for invalid tree widget usage."""
 
 
-class TreeWidget(WidgetWrap[Padding[typing.Union[Text, Columns]]], typing.Generic[_Node]):
+class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3

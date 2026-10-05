@@ -30,8 +30,7 @@ from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.display import AttrSpec
 

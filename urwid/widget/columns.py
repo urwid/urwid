@@ -7,8 +7,7 @@ import sys
 import typing
 import warnings
 from itertools import chain, repeat
-
-from typing_extensions import Literal
+from typing import Literal
 
 import urwid
 from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
@@ -53,18 +52,13 @@ class Columns(
     Widget,
     WidgetContainerMixin[int],
     WidgetContainerListContentsMixin[
-        typing.Union[
-            tuple[
-                typing.Union[AbstractFlowWidget, AbstractFixedWidget],
-                tuple[Literal[WHSettings.PACK], None, bool],
-            ],
-            tuple[
-                typing.Union[AbstractBoxWidget, AbstractFlowWidget],
-                typing.Union[
-                    tuple[Literal[WHSettings.GIVEN], int, bool],
-                    tuple[Literal[WHSettings.WEIGHT], typing.Union[int, float], bool],
-                ],
-            ],
+        tuple[
+            AbstractFlowWidget | AbstractFixedWidget,
+            tuple[Literal[WHSettings.PACK], None, bool],
+        ]
+        | tuple[
+            AbstractBoxWidget | AbstractFlowWidget,
+            tuple[Literal[WHSettings.GIVEN], int, bool] | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
         ]
     ],
 ):
@@ -496,6 +490,7 @@ class Columns(
             for (new, (w, options)) in zip(
                 widgets,
                 chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1, False)))),
+                strict=False,
             )
         ]
         if focus_position < len(widgets):
@@ -577,7 +572,7 @@ class Columns(
                     b,
                 ),
             )
-            for ((new_t, new_n), (w, (t, n, b))) in zip(column_types, self.contents)
+            for ((new_t, new_n), (w, (t, n, b))) in zip(column_types, self.contents, strict=False)
         ]
         if focus_position < len(column_types):
             self.focus_position = focus_position
@@ -1082,7 +1077,9 @@ class Columns(
         max_height = -1
         focus_position = self.focus_position if focus and self.contents else -1
 
-        for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(zip(widths, self.contents)):
+        for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(
+            zip(widths, self.contents, strict=False)
+        ):
             if isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
@@ -1168,7 +1165,7 @@ class Columns(
         widths, _, size_args = self.get_column_sizes(size, focus)
 
         data: list[tuple[Canvas, int, bool, int]] = []
-        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents)):
+        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
             # if the widget has a width of 0, hide it
             if width <= 0:
                 continue
@@ -1239,7 +1236,7 @@ class Columns(
 
         best: tuple[int, int, int, AbstractWidget] | None = None
         x = 0
-        for i, (width, (w, _options)) in enumerate(zip(widths, self.contents)):
+        for i, (width, (w, _options)) in enumerate(zip(widths, self.contents, strict=False)):
             end: int = x + width
             if w.selectable():
                 if col != Align.RIGHT and (col == Align.LEFT or x > col) and best is None:  # type: ignore[operator]
@@ -1292,7 +1289,7 @@ class Columns(
         widths, _, size_args = self.get_column_sizes(size, focus=focus)
 
         x = 0
-        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents)):
+        for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
             if col < x:
                 return False
             w = self.contents[i][0]  # noqa: PLW2901

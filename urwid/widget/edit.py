@@ -20,8 +20,7 @@ from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid.canvas import TextCanvas
     from urwid.util import _TagMarkup
@@ -149,7 +148,7 @@ class Edit(WidgetWrap[Text]):
             *super()._repr_words(),
             repr(self._edit_text if self._mask is None else self._mask * len(self._edit_text)),
             *([f"caption={self._caption!r}"] if self._caption else []),
-            *(["multiline"] if self.multiline is True else []),
+            *(["multiline"] if self.multiline else []),
         ]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
@@ -781,8 +780,7 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        # 0 means no limit; the function is missing on Python 3.9 and 3.10 without the security backport.
-        max_digits = getattr(sys, "get_int_max_str_digits", lambda: 0)()
+        max_digits = sys.get_int_max_str_digits()  # 0 means no limit
         if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
             return key
 
