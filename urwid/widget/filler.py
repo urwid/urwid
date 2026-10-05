@@ -203,38 +203,6 @@ class Filler(WidgetDecoration[WrappedWidget]):
         }
         return remove_defaults(attrs, Filler.__init__)
 
-    @property
-    def body(self) -> WrappedWidget:
-        """
-        The wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    @body.setter
-    def body(self, new_body: WrappedWidget) -> None:
-        """
-        Replace the wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_body
-
     def selectable(self) -> bool:
         """Return selectable from body."""
         return self._original_widget.selectable()

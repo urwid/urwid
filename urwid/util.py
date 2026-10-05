@@ -566,17 +566,8 @@ def is_mouse_press(ev: str) -> bool:
     return "press" in ev
 
 
-class MetaSuper(type):
-    """Metaclass kept only so that existing class definitions keep importing.
-
-    All logic has been removed; it is a plain :class:`type` subclass.
-
-    .. deprecated:: 3.0.0
-        Drop it from the class bases. While it is still listed, move it to the last position,
-        so that future changes to the other bases are not blocked by it.
-    """
-
-    __slots__ = ()
+# Former metaclass, now an alias of `type`: `metaclass=MetaSuper` keeps working, and so does a base list naming it last.
+MetaSuper = type
 
 
 def int_scale(val: int, val_range: int, out_range: int) -> int:

@@ -28,13 +28,12 @@ import logging
 import os
 import sys
 import typing
-import warnings
 
 from urwid import signals
 from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterable, Sequence
+    from collections.abc import Hashable, Iterable, Sequence
     from typing import Literal, Self
 
     from urwid import Canvas
@@ -1146,28 +1145,6 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
     def _stop(self) -> None:
         """Perform actual teardown of the screen. Subclasses should override this method."""
-
-    def run_wrapper(
-        self,
-        fn: Callable[[], typing.Any],
-        *args: typing.Any,
-        **kwargs: typing.Any,
-    ) -> None:
-        """Start the screen, call a function, then stop the screen.
-
-        Extra arguments are passed to `start`.
-
-        .. deprecated:: 1.3.0
-            Call `start` as a context manager instead. This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "run_wrapper is deprecated in favor of calling `start` as a context manager. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        with self.start(*args, **kwargs):
-            fn()
 
     def set_mouse_tracking(self, enable: bool = True) -> None:
         """Enable or disable tracking of mouse movement events. A no-op here; subclasses override it."""

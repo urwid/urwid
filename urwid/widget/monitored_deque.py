@@ -22,11 +22,9 @@
 from __future__ import annotations
 
 import collections
-import contextlib
 import functools
 import operator
 import typing
-import warnings
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
@@ -55,32 +53,6 @@ def _call_modified(
         return rval
 
     return call_modified_wrapper
-
-
-def _insert_index(owner: str, index: typing.SupportsIndex, *, stacklevel: int) -> int:
-    """Convert an ``insert()`` position to an integer as ``deque.insert()`` does.
-
-    An object without ``__index__`` that ``int()`` accepts is still converted by ``int()``, with a warning.
-
-    :param owner: class name for the warning message
-    :param index: position passed to ``insert()``
-    :param stacklevel: ``warnings.warn`` stack level of the caller of ``insert()``, counted from this function
-    :returns: the position as an integer
-    :raises TypeError: *index* has no ``__index__`` and ``int()`` rejects its type.
-    :raises ValueError: ``int()`` rejects the value of *index*, such as a NaN or an unparsable string.
-    :raises OverflowError: *index* is an infinite float.
-    """
-    with contextlib.suppress(TypeError):
-        return operator.index(index)
-    idx = int(index)
-    warnings.warn(
-        f"{owner}.insert() with an index of type {type(index).__name__} is deprecated: "
-        "pass an int or an object with __index__. "
-        "Support will be removed in version 5.0, after which it raises TypeError like deque.insert().",
-        DeprecationWarning,
-        stacklevel=stacklevel + 1,
-    )
-    return idx
 
 
 class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
@@ -219,19 +191,15 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     def insert(self, __index: typing.SupportsIndex, __object: _T) -> None:
         """Insert ``__object`` before ``__index``.
 
-        .. deprecated:: 4.2.5
-            An ``__index`` without ``__index__`` that ``int()`` accepts (a float, a ``Decimal``, a numeric string)
-            is converted by ``int()`` with a :exc:`DeprecationWarning`.
-            Pass an integer instead.
-            From version 5.0 such an index raises :exc:`TypeError`, as ``deque.insert()`` does.
+        .. versionchanged:: 5.0
+            An ``__index`` without ``__index__`` (a float, a ``Decimal``, a numeric string) raises :exc:`TypeError`,
+            as ``deque.insert()`` does.
 
-        :raises TypeError: ``__index`` has no ``__index__`` and ``int()`` rejects its type.
-        :raises ValueError: ``int()`` rejects the value of ``__index``, such as a NaN or an unparsable string.
-        :raises OverflowError: ``__index`` is an infinite float or does not fit a C ``ssize_t``.
+        :raises TypeError: ``__index`` has no ``__index__``.
+        :raises OverflowError: ``__index`` does not fit a C ``ssize_t``.
         :raises IndexError: the deque is bounded and already full.
         """
-        # _call_modified's wrapper sits between this method and its caller.
-        super().insert(_insert_index(type(self).__name__, __index, stacklevel=3), __object)
+        super().insert(operator.index(__index), __object)
 
     @_call_modified
     def remove(self, __value: _T) -> None:
@@ -649,17 +617,14 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         Note ``deque.insert`` itself raises ``IndexError`` on an already-full bounded deque,
         rather than evicting -- so there is no eviction case to handle here.
 
-        .. deprecated:: 4.2.5
-            An ``index`` without ``__index__`` that ``int()`` accepts (a float, a ``Decimal``, a numeric string)
-            is converted by ``int()`` with a :exc:`DeprecationWarning`.
-            Pass an integer instead.
-            From version 5.0 such an index raises :exc:`TypeError`, as ``deque.insert()`` does.
+        .. versionchanged:: 5.0
+            An ``index`` without ``__index__`` (a float, a ``Decimal``, a numeric string) raises :exc:`TypeError`,
+            as ``deque.insert()`` does.
 
         :param index: position before which to insert
         :param item: item to insert
-        :raises TypeError: *index* has no ``__index__`` and ``int()`` rejects its type.
-        :raises ValueError: ``int()`` rejects the value of *index*, such as a NaN or an unparsable string.
-        :raises OverflowError: *index* is an infinite float or does not fit a C ``ssize_t``.
+        :raises TypeError: *index* has no ``__index__``.
+        :raises OverflowError: *index* does not fit a C ``ssize_t``.
         :raises IndexError: the deque is bounded and already full.
 
         >>> mfd = MonitoredFocusDeque([0, 1, 2, 3], focus=2)
@@ -670,7 +635,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([-2, 0, 1, 2, -1, 3], focus=3)
         """
-        position = _insert_index(type(self).__name__, index, stacklevel=2)
+        position = operator.index(index)
         if position < 0:
             idx = max(0, len(self) + position)
         else:

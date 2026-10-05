@@ -606,7 +606,7 @@ class PileTest(unittest.TestCase):
 
         with self.subTest("Focus"):
             self.assertEqual(p.focus, None)
-            self.assertRaises(IndexError, lambda: getattr(p, "focus_position"))
+            self.assertRaises(IndexError, lambda: p.focus_position)
             self.assertRaises(IndexError, lambda: setattr(p, "focus_position", None))
             self.assertRaises(IndexError, lambda: setattr(p, "focus_position", 0))
 
@@ -657,43 +657,6 @@ class PileTest(unittest.TestCase):
         p.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(p, "focus_position", -1))
         self.assertRaises(IndexError, lambda: setattr(p, "focus_position", 2))
-
-    def test_deprecated(self):
-        t1 = urwid.Text("one")
-        t2 = urwid.Text("two")
-        p = urwid.Pile([t1, t2])
-        # old methods:
-        with self.subTest("Focus"):
-            p.set_focus(0)
-            self.assertRaises(IndexError, lambda: p.set_focus(-1))
-            self.assertRaises(IndexError, lambda: p.set_focus(2))
-            p.set_focus(t2)
-            self.assertEqual(p.focus_position, 1)
-            self.assertRaises(ValueError, lambda: p.set_focus("nonexistant"))
-
-        with self.subTest("Contents"):
-            self.assertEqual(p.widget_list, [t1, t2])
-            self.assertEqual(p.item_types, [("weight", 1), ("weight", 1)])
-
-        with self.subTest("Contents change"):
-            p.widget_list = [t2, t1]
-            self.assertEqual(p.widget_list, [t2, t1])
-            self.assertEqual(p.contents, [(t2, ("weight", 1)), (t1, ("weight", 1))])
-            self.assertEqual(p.focus_position, 1)  # focus unchanged
-            p.item_types = [("flow", None), ("weight", 2)]
-            self.assertEqual(p.item_types, [("flow", None), ("weight", 2)])
-            self.assertEqual(p.contents, [(t2, ("pack", None)), (t1, ("weight", 2))])
-            self.assertEqual(p.focus_position, 1)  # focus unchanged
-
-        with self.subTest("Contents change 2"):
-            p.widget_list = [t1]
-            self.assertEqual(len(p.contents), 1)
-            self.assertEqual(p.focus_position, 0)
-            p.widget_list.extend([t2, t1])
-            self.assertEqual(len(p.contents), 3)
-            self.assertEqual(p.item_types, [("flow", None), ("weight", 1), ("weight", 1)])
-            p.item_types[:] = [("weight", 2)]
-            self.assertEqual(len(p.contents), 1)
 
     def test_focused_not_fit(self):
         """Pile not fit in size and focused widget is out of default display window"""

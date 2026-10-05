@@ -100,28 +100,6 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
     return result, utf8_required
 
 
-def add_font(name: str, cls: FontRegistry) -> None:
-    """
-    Register a font class under the given name.
-
-    :param name: name to register the font class under
-    :param cls: the font class to register
-
-    .. deprecated:: 2.2.0
-        Set the ``name`` attribute on the font class, pass the ``font_name`` metaclass keyword argument,
-        or call ``Font.register(<name>)`` instead. This API will be removed in version 5.0.
-    """
-    warnings.warn(
-        "`add_font` is deprecated, please set 'name' attribute to the font class,"
-        " use metaclass keyword argument 'font_name'"
-        " or use `Font.register(<name>)`. "
-        "API will be removed in version 5.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cls.register(name)
-
-
 class FontRegistryWarning(UserWarning):
     """FontRegistry warning."""
 

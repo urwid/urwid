@@ -37,7 +37,6 @@ import termios
 import time
 import traceback
 import typing
-import warnings
 from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass
@@ -1279,25 +1278,6 @@ class TermCanvas(Canvas):
         else:
             viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
             yield from (*self.scrollback_buffer, *self.term)[viewport_range]
-
-    def content_delta(  # type: ignore[override]
-        self,
-        other: Canvas,
-    ) -> list[int] | Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
-        """
-        Return the differences between other and this canvas.
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in a future release.
-        """
-        warnings.warn(
-            "content_delta is not used by code base and will be removed in the future releases",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if other is self:
-            return [self.cols()] * self.rows()
-        return self.content()
 
 
 class Terminal(Widget):

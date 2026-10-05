@@ -721,24 +721,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         self.set_focus_pending = coming_from, focus_widget, focus_pos
         self._body.set_focus(position)
 
-    def get_focus(self) -> tuple[AbstractFlowWidget, _K] | tuple[None, None]:
-        """
-        Return a `(focus widget, focus position)` tuple.
-
-        .. deprecated:: 2.2.0
-            Use the standard container properties :attr:`focus` and :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus` to get the focus "
-            "and property `focus_position` to read these values. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._body.get_focus()
-
     @property
     def focus(self) -> AbstractFlowWidget | None:
         """
@@ -786,22 +768,6 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
             def __repr__(inner_self) -> str:
                 return f"<{inner_self.__class__.__name__} for {self!r} at 0x{id(inner_self):X}>"
-
-            def __call__(inner_self) -> Self:
-                """
-                Return the contents object itself.
-
-                .. deprecated:: 2.4.3
-                    :attr:`ListBox.contents` is a property, not a method: use it without calling it.
-                    This API will be removed in version 5.0.
-                """
-                warnings.warn(
-                    "ListBox.contents is a property, not a method: use it without calling it. "
-                    "API will be removed in version 5.0.",
-                    DeprecationWarning,
-                    stacklevel=3,
-                )
-                return inner_self
 
         return ListBoxContents()
 

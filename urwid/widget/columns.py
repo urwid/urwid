@@ -6,7 +6,6 @@ import math
 import sys
 import typing
 import warnings
-from itertools import chain, repeat
 from typing import Literal
 
 import urwid
@@ -17,7 +16,7 @@ from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
-from .monitored_list import MonitoredFocusList, MonitoredList
+from .monitored_list import MonitoredFocusList
 from .widget import (
     AbstractBoxWidget,
     AbstractFixedWidget,
@@ -446,178 +445,6 @@ class Columns(
             raise ColumnsError(f"added content invalid: {invalid_items!r}")
 
     @property
-    def widget_list(self) -> MonitoredList[AbstractWidget]:
-        """
-        A list of the widgets in this Columns.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(w for w, t in self.contents)
-
-        def user_modified() -> None:
-            self.widget_list = ml
-
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    @widget_list.setter
-    def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
-        """
-        Replace the widgets in this Columns, keeping the old options where possible.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        focus_position = self.focus_position
-        self.contents = [
-            # need to grow contents list if widgets is longer
-            (new, options)  # type: ignore[misc]  # deprecated API, historic code lack support of FIXED
-            for (new, (w, options)) in zip(
-                widgets,
-                chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1, False)))),
-                strict=False,
-            )
-        ]
-        if focus_position < len(widgets):
-            self.focus_position = focus_position
-
-    @property
-    def column_types(
-        self,
-    ) -> MonitoredList[
-        tuple[Literal[Sizing.FLOW], None]
-        | tuple[Literal[Sizing.FIXED], int]
-        | tuple[Literal[WHSettings.WEIGHT], int | float],
-    ]:
-        """
-        A list of the old partial options values for the widgets in this Columns.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility only. "
-            "You should use the new standard container property .contents to modify Columns contents. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(
-            # return the old column type names
-            (
-                {
-                    WHSettings.GIVEN: Sizing.FIXED,
-                    WHSettings.PACK: Sizing.FLOW,
-                }.get(t, t),
-                n,
-            )
-            for w, (t, n, b) in self.contents
-        )
-
-        def user_modified() -> None:
-            self.column_types = ml  # type: ignore[assignment]
-
-        ml.set_modified_callback(user_modified)
-        return ml  # type: ignore[return-value]
-
-    @column_types.setter
-    def column_types(
-        self,
-        column_types: MonitoredList[
-            tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]
-            | tuple[Literal[Sizing.FIXED, WHSettings.GIVEN], int]
-            | tuple[Literal[WHSettings.WEIGHT], int | float],
-        ],
-    ) -> None:
-        """
-        Replace the width settings of the widgets in this Columns.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility only. "
-            "You should use the new standard container property .contents to modify Columns contents. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        focus_position = self.focus_position
-        self.contents = [
-            (  # type: ignore[misc]
-                w,
-                (
-                    {
-                        Sizing.FIXED: WHSettings.GIVEN,
-                        Sizing.FLOW: WHSettings.PACK,
-                    }.get(new_t, new_t),  # type: ignore[arg-type]
-                    new_n,
-                    b,
-                ),
-            )
-            for ((new_t, new_n), (w, (t, n, b))) in zip(column_types, self.contents, strict=False)
-        ]
-        if focus_position < len(column_types):
-            self.focus_position = focus_position
-
-    @property
-    def box_columns(self) -> MonitoredList[int]:
-        """Return the indexes of the columns that are treated as box widgets when Columns is a flow widget.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(i for i, (w, (t, n, b)) in enumerate(self.contents) if b)
-
-        def user_modified() -> None:
-            self.box_columns = ml
-
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    @box_columns.setter
-    def box_columns(self, box_columns: MonitoredList[int]) -> None:
-        """
-        Mark the columns at the given indexes as box widgets.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        box_columns = set(box_columns)  # type: ignore[assignment]
-        self.contents = [(w, (t, n, i in box_columns)) for (i, (w, (t, n, b))) in enumerate(self.contents)]  # type: ignore[misc]
-
-    @property
     def contents(
         self,
     ) -> MonitoredFocusList[
@@ -697,89 +524,9 @@ class Columns(
         self._cache_maxcol = None
         super()._invalidate()
 
-    def set_focus_column(self, num: int) -> None:
-        """
-        Set the column in focus by its index in :attr:`widget_list`.
-
-        :param num: index of focus-to-be entry
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You may also use the new standard container property `focus_position`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.focus_position = num
-
-    def get_focus_column(self) -> int:
-        """
-        Return the focus column index.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You may also use the new standard container property `focus_position`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.focus_position
-
-    def set_focus(self, item: AbstractWidget | int) -> None:
-        """
-        Set the item in focus.
-
-        :param item: widget or integer index
-        :raises ValueError: *item* is a widget that is not in the contents.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus_position` to get the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if isinstance(item, int):
-            self.focus_position = item
-            return
-        for i, (w, _options) in enumerate(self.contents):
-            if item == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in Columns contents: {item!r}")
-
     @property
     def focus(self) -> AbstractWidget | None:
         """The child widget in focus or None when Columns is empty."""
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
-    def get_focus(self) -> AbstractWidget | None:
-        """
-        Return the widget in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus` to get the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
@@ -813,42 +560,6 @@ class Columns(
                 exc.__traceback__
             ) from exc
         self.contents.focus = position
-
-    @property
-    def focus_col(self) -> int:
-        """
-        A property for reading and setting the index of the column in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus_position` to get the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.focus_position
-
-    @focus_col.setter
-    def focus_col(self, new_position: int) -> None:
-        """
-        Set the index of the column in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus_position` to get the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.focus_position = new_position
 
     def column_widths(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[int]:
         """
@@ -1348,7 +1059,7 @@ class Columns(
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Return the number of rows required by the columns.
 
-        This only makes sense if :attr:`widget_list` contains flow widgets.
+        This only makes sense if :attr:`contents` contains flow widgets.
 
         see :meth:`Widget.rows` for details
         """

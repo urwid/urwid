@@ -33,7 +33,6 @@ from urwid import signals
 from urwid.canvas import Canvas, CanvasCache, CompositeCanvas
 from urwid.command_map import command_map
 from urwid.split_repr import split_repr
-from urwid.util import MetaSuper
 
 from .constants import Sizing
 
@@ -68,10 +67,9 @@ LOGGER = logging.getLogger(__name__)
 class WidgetMeta(
     signals.MetaSignals,
     type(typing.Protocol),  # type: ignore[misc]  # hack: _ProtocolMeta is private, but need to subclass protocols
-    MetaSuper,
 ):
     """
-    Bases: :class:`MetaSuper`, :class:`MetaSignals`.
+    Bases: :class:`MetaSignals`.
 
     Automatic caching of render and rows methods.
 
@@ -951,42 +949,13 @@ class WidgetWrap(
         [...'hello? hi ']
         >>> ww.selectable()
         True
-        >>> ww._w = Text("goodbye")  # calls _set_w()
+        >>> ww._w = Text("goodbye")
         >>> ww.render(size).text
         [...'goodbye   ']
         >>> ww.selectable()
         False
         """
         self._wrapped_widget = new_widget
-        self._invalidate()
-
-    def _set_w(self, w: WrappedWidget) -> None:
-        """
-        Change the wrapped widget.  This is meant to be called only by subclasses.
-
-        .. deprecated:: 2.2.0
-            Assign to the :attr:`WidgetWrap._w` property directly instead.
-            This API will be removed in version 5.0.
-
-        >>> from urwid import Edit, Text
-        >>> size = (10,)
-        >>> ww = WidgetWrap(Edit("hello? ", "hi"))
-        >>> ww.render(size).text  # ... = b in Python 3
-        [...'hello? hi ']
-        >>> ww.selectable()
-        True
-        >>> ww._w = Text("goodbye")  # calls _set_w()
-        >>> ww.render(size).text
-        [...'goodbye   ']
-        >>> ww.selectable()
-        False
-        """
-        warnings.warn(
-            "_set_w is deprecated. Please use 'WidgetWrap._w' property directly. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._wrapped_widget = w
         self._invalidate()
 
 

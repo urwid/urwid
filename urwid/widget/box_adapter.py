@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import typing
-import warnings
 
 from urwid.canvas import CompositeCanvas
 
@@ -46,38 +45,6 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         return {**super()._repr_attrs(), "height": self.height}
-
-    @property
-    def box_widget(self) -> WrappedWidget:
-        """
-        The wrapped box widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    @box_widget.setter
-    def box_widget(self, widget: WrappedWidget) -> None:
-        """
-        Replace the wrapped box widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``box_widget``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "original stored as original_widget, keep for compatibility. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = widget
 
     def sizing(self) -> frozenset[Sizing]:
         """Return the sizing modes this widget supports, which is always just FLOW."""

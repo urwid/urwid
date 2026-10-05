@@ -7,7 +7,6 @@ import math
 import sys
 import typing
 import warnings
-from itertools import chain, repeat
 from typing import Literal
 
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
@@ -17,7 +16,7 @@ from urwid.util import is_mouse_press
 
 from .constants import Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
-from .monitored_list import MonitoredFocusList, MonitoredList
+from .monitored_list import MonitoredFocusList
 from .widget import (
     AbstractBoxWidget,
     AbstractFixedWidget,
@@ -220,7 +219,7 @@ class Pile(
         Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)`
 
         .. note:: If the Pile is treated as a box widget there must be at least
-            one ``'weight'`` tuple in :attr:`widget_list`.
+            one ``'weight'`` tuple in *widget_list*.
         """
         super().__init__()
         self._contents: MonitoredFocusList[
@@ -390,122 +389,6 @@ class Pile(
             raise PileError(f"added content invalid: {invalid_items!r}")
 
     @property
-    def widget_list(self) -> MonitoredList[AbstractWidget]:
-        """
-        A list of the widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(w for w, t in self.contents)
-
-        def user_modified() -> None:
-            self.widget_list = ml
-
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    @widget_list.setter
-    def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
-        focus_position = self.focus_position
-        self.contents = [
-            (new, options)  # type: ignore[misc]  # deprecated API, historic code lack support of FIXED
-            for (new, (w, options)) in zip(
-                widgets,
-                # need to grow contents list if widgets is longer
-                chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1)))),
-                strict=False,
-            )
-        ]
-        if focus_position < len(widgets):
-            self.focus_position = focus_position
-
-    @property
-    def item_types(
-        self,
-    ) -> MonitoredList[
-        tuple[Literal[Sizing.FIXED], int]
-        | tuple[Literal[Sizing.FLOW], None]
-        | tuple[Literal[WHSettings.WEIGHT], int | float]
-    ]:
-        """
-        A list of the options values for widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(
-            # return the old item type names
-            (
-                {
-                    WHSettings.GIVEN: Sizing.FIXED,
-                    WHSettings.PACK: Sizing.FLOW,
-                }.get(f, f),
-                height,
-            )
-            for w, (f, height) in self.contents
-        )
-
-        def user_modified() -> None:
-            self.item_types = ml  # type: ignore[assignment]
-
-        ml.set_modified_callback(user_modified)
-        return ml  # type: ignore[return-value]
-
-    @item_types.setter
-    def item_types(
-        self,
-        item_types: MonitoredList[
-            tuple[Literal[Sizing.FIXED, WHSettings.GIVEN], int]
-            | tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]
-            | tuple[Literal[WHSettings.WEIGHT], int | float]
-        ],
-    ) -> None:
-        """
-        Replace the height settings of the widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        focus_position = self.focus_position
-        self.contents = [
-            (  # type: ignore[misc]
-                w,
-                (
-                    {
-                        Sizing.FIXED: WHSettings.GIVEN,
-                        Sizing.FLOW: WHSettings.PACK,
-                    }.get(new_t, new_t),  # type: ignore[arg-type]  # normalisation from legacy
-                    new_height,
-                ),
-            )
-            for ((new_t, new_height), (w, options)) in zip(item_types, self.contents, strict=False)
-        ]
-        if focus_position < len(item_types):
-            self.focus_position = focus_position
-
-    @property
     def contents(
         self,
     ) -> MonitoredFocusList[
@@ -612,52 +495,6 @@ class Pile(
         :param item: element to focus
         :raises ValueError: *item* is a widget that is not in the contents.
         """
-        if isinstance(item, int):
-            self.focus_position = item
-            return
-        for i, (w, _options) in enumerate(self.contents):
-            if item == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in Pile contents: {item!r}")
-
-    def get_focus(self) -> AbstractWidget | None:
-        """
-        Return the widget in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility. "
-            "You may also use the new standard container property .focus to get the child widget in focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
-    def set_focus(self, item: AbstractWidget | int) -> None:
-        """
-        Set the child widget in focus.
-
-        :param item: widget or integer index
-        :raises ValueError: *item* is a widget that is not in the contents.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility. "
-            "You may also use the new standard container property .focus to get the child widget in focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         if isinstance(item, int):
             self.focus_position = item
             return

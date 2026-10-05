@@ -33,7 +33,6 @@ import sys
 import termios
 import tty
 import typing
-import warnings
 from subprocess import PIPE, Popen
 
 from urwid import signals
@@ -164,26 +163,6 @@ class Screen(_raw_display_base.Screen):
         """
         self._suspend_requested = True
         self._wake_input_loop()
-
-    def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
-        """Restore the signal handlers and restart the screen after a suspend.
-
-        .. deprecated:: 4.2.5
-            No longer installed: :meth:`get_available_raw_input` restarts the screen after a suspend.
-            It does not chain to a previous ``SIGCONT`` handler, since none is recorded any more.
-            This API will be removed in version 5.0.
-
-        :param frame: will always be None when the GLib event loop is being used.
-        """
-        warnings.warn(
-            "_sigcont_handler is no longer installed, the screen is restarted after a suspend by "
-            "get_available_raw_input. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.signal_restore()
-        self.start()
-        self._sigwinch_handler(signal.SIGWINCH, None)
 
     def signal_init(self) -> None:
         """Set the SIGWINCH and SIGTSTP signal handlers, called in the startup of run wrapper.
