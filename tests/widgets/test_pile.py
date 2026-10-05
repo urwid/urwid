@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import math
+import typing
 import unittest
 import warnings
 
 import urwid
 from tests.util import SelectableText
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class NotAWidget:
@@ -164,6 +168,26 @@ class MultiRowCursorText(SelectableText):
 
     def move_cursor_to_coords(self, size: tuple[int], col: int, row: int) -> bool:
         return row == 1
+
+
+class ParentMutatingText(SelectableText):
+    """Selectable text that runs *callback* before returning a key unhandled or answering a cursor move."""
+
+    def __init__(self, markup: str, callback: Callable[[], object], *, accept_cursor: bool = True) -> None:
+        """Run *callback* on every keypress and cursor move, and answer cursor moves with *accept_cursor*."""
+        super().__init__(markup)
+        self.callback = callback
+        self.accept_cursor = accept_cursor
+
+    def keypress(self, size: tuple[int], key: str) -> str:
+        """Run the callback, then return *key* unhandled."""
+        self.callback()
+        return super().keypress(size, key)
+
+    def move_cursor_to_coords(self, _size: tuple[int], _col: int, _row: int) -> bool:
+        """Run the callback, then report whether the cursor move is accepted."""
+        self.callback()
+        return self.accept_cursor
 
 
 class PileTest(unittest.TestCase):
@@ -1067,3 +1091,36 @@ class PileTest(unittest.TestCase):
             result = pile.mouse_event((4,), "mouse press", 1, 0, 0, True)
         self.assertFalse(result)
         self.assertIn("is not implementing Widget API", str(ctx.warning))
+
+    def test_keypress_child_changes_contents(self) -> None:
+        """An unhandled key moves the focus from the contents the focused child left behind."""
+        with self.subTest("Items before the focus removed"):
+            edits = [urwid.Edit("", text) for text in "abc"]
+            pile = urwid.Pile([*edits, ParentMutatingText("d", lambda: pile.contents.__delitem__(slice(0, 2)))])
+            pile.focus_position = 3
+            self.assertIsNone(pile.keypress((10,), "up"))
+            self.assertIs(edits[2], pile.focus)
+
+        with self.subTest("All items removed"):
+            pile = urwid.Pile(
+                [urwid.Edit("", "a"), ParentMutatingText("b", lambda: pile.contents.__delitem__(slice(None)))]
+            )
+            pile.focus_position = 1
+            self.assertEqual("up", pile.keypress((10,), "up"))
+
+    def test_keypress_new_focus_changes_contents_while_placing_cursor(self) -> None:
+        """The cursor placement keeps addressing the newly focused child after it changes the contents."""
+        target = ParentMutatingText(
+            "b\nc\nd",
+            lambda: pile.contents.insert(0, (urwid.Text(""), pile.options())),
+            accept_cursor=False,
+        )
+        pile = urwid.Pile([urwid.Edit("", "a"), target])
+        self.assertIsNone(pile.keypress((10,), "down"))
+        self.assertIs(target, pile.focus)
+
+    def test_move_cursor_to_coords_child_changes_contents(self) -> None:
+        """The focus does not move to a position the child's contents change made stale."""
+        pile = urwid.Pile([urwid.Edit("", "a"), ParentMutatingText("b", lambda: pile.contents.__delitem__(0))])
+        self.assertFalse(pile.move_cursor_to_coords((10,), 0, 1))
+        self.assertEqual(0, pile.focus_position)

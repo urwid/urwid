@@ -97,6 +97,80 @@ class MonitoredDequeModifiedCallbackTest(unittest.TestCase):
         self.assertEqual(8, counter["count"])
 
 
+class MonitoredFocusDequeModifiedCallbackTest(unittest.TestCase):
+    """The modified callback runs once, after both the contents and the focus are updated."""
+
+    def test_callback_sees_final_focus(self) -> None:
+        """Every mutating operation notifies once, with the contents and the focus already final."""
+        operations = {
+            "del item": lambda md: md.__delitem__(0),
+            "set item": lambda md: md.__setitem__(2, 7),
+            "append": lambda md: md.append(6),
+            "appendleft": lambda md: md.appendleft(-1),
+            "extend": lambda md: md.extend([6, 7]),
+            "iadd": lambda md: md.__iadd__([6, 7]),
+            "extendleft": lambda md: md.extendleft([-1, -2]),
+            "insert": lambda md: md.insert(0, -1),
+            "pop": lambda md: md.pop(),
+            "popleft": lambda md: md.popleft(),
+            "remove": lambda md: md.remove(0),
+            "reverse": lambda md: md.reverse(),
+            "rotate": lambda md: md.rotate(2),
+            "clear": lambda md: md.clear(),
+        }
+        for maxlen in (None, 6):
+            for name, operation in operations.items():
+                if maxlen is not None and name == "insert":
+                    continue  # deque.insert raises on a full bounded deque
+                with self.subTest(name, maxlen=maxlen):
+                    md = urwid.MonitoredFocusDeque(range(6), maxlen, focus=2)
+                    seen = []
+                    md.set_modified_callback(lambda md=md, seen=seen: seen.append((list(md), md.focus)))
+                    operation(md)
+                    self.assertEqual([(list(md), md.focus)], seen)
+
+    def test_iadd_keeps_focused_item_like_extend(self) -> None:
+        """In-place addition evicts from a bounded deque and keeps the focused item, the same as extend."""
+        for maxlen in (None, 4):
+            with self.subTest(maxlen=maxlen):
+                extended = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
+                extended.extend("xyz")
+                added = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
+                added += "xyz"
+                self.assertIsInstance(added, urwid.MonitoredFocusDeque)
+                self.assertEqual((list(extended), extended.focus), (list(added), added.focus))
+                self.assertEqual("c", added[added.focus])
+
+    def test_focus_set_by_callback_is_kept(self) -> None:
+        """A focus set by the modified callback is not overwritten afterwards."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        md.set_modified_callback(lambda: setattr(md, "focus", 0) if md.focus else None)
+        md.appendleft(-1)
+        self.assertEqual(0, md.focus)
+
+    def test_insert_by_callback_keeps_focus_item(self) -> None:
+        """An insertion made by the modified callback keeps the focus on the same item."""
+        md = urwid.MonitoredFocusDeque(["a", "b", "c", "d"], focus=2)
+        md.set_modified_callback(lambda: md.appendleft("x") if len(md) == 3 else None)
+        md.popleft()
+        self.assertEqual(["x", "b", "c", "d"], list(md))
+        self.assertEqual("c", md[md.focus])
+
+    def test_walker_signal_sees_final_focus(self) -> None:
+        """A ListBox rendered from the walker's modified signal shows the new focus item."""
+        walker = urwid.SimpleFocusDequeWalker([urwid.Text(str(num)) for num in range(3)])
+        walker.focus = 2
+        listbox = urwid.ListBox(walker)
+        seen = []
+
+        def on_modified() -> None:
+            seen.append((walker.get_focus()[1], listbox.render((5, 1), focus=True).text))
+
+        urwid.connect_signal(walker, "modified", on_modified)
+        walker.pop()
+        self.assertEqual([(1, [b"1    "])], seen)
+
+
 class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
     def test_focus_evicted_by_append(self) -> None:
         mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=0)

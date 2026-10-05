@@ -1268,6 +1268,10 @@ class Columns(
             if w.move_cursor_to_coords(size_args[i], move_x, row) is False:
                 return False
 
+            # The child may have changed this Columns' contents while moving its cursor.
+            if i >= len(self.contents) or self.contents[i][0] is not w:
+                return False
+
         self.focus_position = i
         self.pref_col = col
         return True
@@ -1386,9 +1390,11 @@ class Columns(
             else:
                 return None
 
-        if self._command_map[key] not in {Command.LEFT, Command.RIGHT}:
+        if self._command_map[key] not in {Command.LEFT, Command.RIGHT} or not self.contents:
             return key
 
+        # The child may have changed this Columns' contents or focus while handling the key.
+        i = self.focus_position
         if self._command_map[key] == Command.LEFT:
             candidates = list(range(i - 1, -1, -1))  # count backwards to 0
         else:  # key == 'right'

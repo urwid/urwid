@@ -205,6 +205,74 @@ class GridFlowTest(unittest.TestCase):
         self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 35, 0, True))
         self.assertEqual(3, gf.focus_position)
 
+    def test_mouse_event_callback_can_shrink_contents(self):
+        """A click whose callback replaces the contents with fewer cells keeps the new focus."""
+        new_cells = [urwid.Button(f"n{idx}") for idx in range(3)]
+        gf = urwid.GridFlow(
+            [urwid.Button(f"b{idx}", lambda _btn: gf.contents.__setitem__(slice(None), new_items)) for idx in range(6)],
+            10,
+            1,
+            0,
+            "left",
+        )
+        new_items = [(cell, gf.options()) for cell in new_cells]
+        gf.focus_position = 0
+        gf.render((80,))
+
+        # column 60 is inside the sixth cell
+        self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 60, 0, True))
+        self.assertEqual(new_items, list(gf.contents))
+        self.assertEqual(0, gf.focus_position)
+
+    def test_mouse_event_callback_can_replace_contents_same_length(self):
+        """A click whose callback replaces the contents does not move the focus to the clicked index."""
+        new_cells = [urwid.Button(f"n{idx}") for idx in range(6)]
+        gf = urwid.GridFlow(
+            [urwid.Button(f"b{idx}", lambda _btn: gf.contents.__setitem__(slice(None), new_items)) for idx in range(6)],
+            10,
+            1,
+            0,
+            "left",
+        )
+        new_items = [(cell, gf.options()) for cell in new_cells]
+        gf.focus_position = 0
+        gf.render((80,))
+
+        self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 60, 0, True))
+        self.assertEqual(new_items, list(gf.contents))
+        self.assertEqual(0, gf.focus_position)
+
+    def _replacing_grid(self, new_count: int) -> tuple[urwid.GridFlow, list[tuple[urwid.Widget, tuple]]]:
+        """Build a GridFlow whose first cell replaces the contents and leaves the key unhandled."""
+
+        class Replacer(urwid.SelectableIcon):
+            """Selectable cell that replaces the GridFlow contents on any key."""
+
+            def keypress(self, size: tuple[int], key: str) -> str:
+                gf.contents[:] = new_items
+                return key
+
+        gf = urwid.GridFlow([Replacer("r"), *(urwid.Button(f"b{idx}") for idx in range(5))], 10, 1, 0, "left")
+        new_items = [(urwid.Button(f"n{idx}"), gf.options()) for idx in range(new_count)]
+        gf.focus_position = 0
+        return gf, new_items
+
+    def test_keypress_handler_can_shrink_contents(self):
+        """A key whose handler replaces the contents with fewer cells keeps the new focus."""
+        gf, new_items = self._replacing_grid(1)
+
+        self.assertEqual(gf.keypress((80,), "right"), None)
+        self.assertEqual(new_items, list(gf.contents))
+        self.assertEqual(0, gf.focus_position)
+
+    def test_keypress_handler_can_replace_contents_same_length(self):
+        """A key whose handler replaces the contents does not move the focus by the stale display widget."""
+        gf, new_items = self._replacing_grid(6)
+
+        self.assertEqual(gf.keypress((80,), "right"), None)
+        self.assertEqual(new_items, list(gf.contents))
+        self.assertEqual(0, gf.focus_position)
+
     def test_length(self):
         grid = urwid.GridFlow((urwid.Text(c) for c in "ABC"), 1, 0, 0, "left")
         self.assertEqual(3, len(grid))
