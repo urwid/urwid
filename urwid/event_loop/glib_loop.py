@@ -40,8 +40,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
     from types import FrameType
-
-    from typing_extensions import Literal, ParamSpec
+    from typing import Literal, ParamSpec
 
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")

@@ -33,13 +33,13 @@ from urwid.util import get_encoding
 from .common import AttrSpec, BaseScreen, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid import Canvas
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
 # replace control characters with ?'s
 _trans_table = str.maketrans(dict.fromkeys(range(32), "?"))

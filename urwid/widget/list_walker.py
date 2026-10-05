@@ -30,8 +30,7 @@ from .monitored_list import MonitoredFocusList, MonitoredList
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
-    from typing_extensions import Self
+    from typing import Self
 
     from .widget import AbstractWidget
 

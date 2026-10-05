@@ -27,7 +27,6 @@ import asyncio
 import functools
 import inspect
 import logging
-import sys
 import typing
 
 from .abstract_loop import EventLoop, ExitMainLoop
@@ -35,8 +34,7 @@ from .abstract_loop import EventLoop, ExitMainLoop
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor
-
-    from typing_extensions import ParamSpec
+    from typing import ParamSpec
 
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
@@ -48,11 +46,6 @@ class AsyncioEventLoop(EventLoop):
     """
     Event loop based on the standard library ``asyncio`` module.
 
-    .. warning::
-        Under Windows, AsyncioEventLoop globally enforces WindowsSelectorEventLoopPolicy
-        as a side-effect of creating a class instance.
-        Original event loop policy is restored in destructor method.
-
     .. note::
         If you make any changes to the urwid state outside of it
         handling input or responding to alarms (for example, from asyncio.Task
@@ -61,7 +54,7 @@ class AsyncioEventLoop(EventLoop):
         main loop manually.
 
         A good way to do this:
-            asyncio.get_event_loop().call_soon(main_loop.draw_screen)
+            asyncio.get_running_loop().call_soon(main_loop.draw_screen)
 
     .. note::
         :meth:`alarm`, :meth:`watch_file` and :meth:`enter_idle` accept an ``async def``
@@ -70,51 +63,23 @@ class AsyncioEventLoop(EventLoop):
     """
 
     def __init__(self, *, loop: asyncio.AbstractEventLoop | None = None, **kwargs: typing.Any) -> None:
-        """Wrap `loop`, or the current asyncio event loop when none is given."""
+        """Wrap `loop`, or the running asyncio event loop when none is given.
+
+        Without either, a new ``SelectorEventLoop`` is created in an ``asyncio.Runner`` owned by this instance.
+        """
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
-        if sys.version_info[:2] < (3, 11):
-            self._event_loop_policy_altered: bool = False
-            self._original_event_loop_policy: asyncio.AbstractEventLoopPolicy | None = None
+        self._runner: asyncio.Runner | None = None
 
-            if loop:
-                self._loop: asyncio.AbstractEventLoop = loop
-            else:
-                self._original_event_loop_policy = asyncio.get_event_loop_policy()
-                if sys.platform == "win32" and not isinstance(
-                    self._original_event_loop_policy, asyncio.WindowsSelectorEventLoopPolicy
-                ):
-                    self.logger.debug("Set WindowsSelectorEventLoopPolicy as asyncio event loop policy")
-                    asyncio.set_event_loop_policy(
-                        asyncio.WindowsSelectorEventLoopPolicy()  # pylint: disable=deprecated-class
-                    )
-                    self._event_loop_policy_altered = True
-                else:
-                    self._event_loop_policy_altered = False
-
-                try:
-                    self._loop = asyncio.get_event_loop()
-                except RuntimeError:
-                    # get_event_loop() only auto-creates a loop the first time it is ever called in
-                    # this thread (CPython's BaseDefaultEventLoopPolicy._set_called guard): once
-                    # something else has called set_event_loop() - e.g. a test fixture resetting it
-                    # to None during teardown - a later get_event_loop() call raises instead of
-                    # creating a replacement, even though nothing is currently running one.
-                    self._loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(self._loop)
-
+        if loop:
+            self._loop: asyncio.AbstractEventLoop = loop
         else:
-            self._runner: asyncio.Runner | None = None
-
-            if loop:
-                self._loop: asyncio.AbstractEventLoop = loop
-            else:
-                try:
-                    self._loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    self._runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
-                    self._loop = self._runner.get_loop()
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+                self._loop = self._runner.get_loop()
 
         self._exc: BaseException | None = None
 
@@ -124,11 +89,8 @@ class AsyncioEventLoop(EventLoop):
         self._background_tasks: set[asyncio.Task[typing.Any]] = set()
 
     def __del__(self) -> None:
-        """Restore the original event loop policy or close the runner, as appropriate for this Python version."""
-        if sys.version_info[:2] < (3, 11):
-            if self._event_loop_policy_altered:
-                asyncio.set_event_loop_policy(self._original_event_loop_policy)  # Restore default event loop policy
-        elif self._runner is not None:
+        """Close the runner created for a loop that was neither given nor running."""
+        if self._runner is not None:
             self._runner.close()
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T | None]:

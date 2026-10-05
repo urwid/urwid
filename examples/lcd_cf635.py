@@ -27,8 +27,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
-    from typing_extensions import Literal, TypeAlias
+    from typing import Literal, TypeAlias
 
     from urwid.display.lcd import CF635Screen
 

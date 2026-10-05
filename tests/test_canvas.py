@@ -8,7 +8,7 @@ import weakref
 from unittest import mock
 
 import urwid
-from tests.util import collect_and_count_alive
+from tests.util import GC_KEEPS_UNREACHABLE, SKIP_GC_REASON, collect_and_count_alive
 from urwid import canvas
 from urwid.util import get_encoding
 
@@ -162,6 +162,7 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
         urwid.CanvasCache.store(urwid.Widget, canv)
         return canv
 
+    @unittest.skipIf(GC_KEEPS_UNREACHABLE, SKIP_GC_REASON)
     def test_rebuilt_wrappers_around_a_persistent_child_are_released(self):
         """Wrappers rebuilt on every refresh around one cached child must not pile up in its dependants."""
         child = urwid.Text("static")
@@ -178,6 +179,7 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
         self.assertLessEqual(len(urwid.CanvasCache._children), 2)  # the last Padding and AttrMap
         self.assertIsNotNone(last_canvas)
 
+    @unittest.skipIf(GC_KEEPS_UNREACHABLE, SKIP_GC_REASON)
     def test_gridflow_focus_changes_release_old_display_widgets(self):
         """GridFlow rebuilds its display widgets on a focus change: the old ones must be released."""
         grid = urwid.GridFlow([urwid.Button(str(i)) for i in range(9)], 8, 1, 0, "left")
@@ -274,6 +276,7 @@ class CanvasCacheDependencyLeakTest(unittest.TestCase):
         self.assertNotIn(child, urwid.CanvasCache._deps)
         self.assertIsNotNone(canv)
 
+    @unittest.skipIf(GC_KEEPS_UNREACHABLE, SKIP_GC_REASON)
     def test_collected_child_is_released_by_a_dependant_cached_under_another_size(self):
         """A child whose last canvas is gone must not stay linked from a dependant that is still cached."""
         parent = urwid.Text("")
@@ -493,6 +496,7 @@ class ZeroColumnTextCanvasTest(unittest.TestCase):
 class FinalizedCanvasErrorTest(unittest.TestCase):
     """Errors raised on misuse of a finalized canvas."""
 
+    @unittest.skipIf(GC_KEEPS_UNREACHABLE, SKIP_GC_REASON)
     def test_repeated_misuse_does_not_keep_the_canvas_alive(self):
         """Each misuse of a finalized canvas raises its own error, so no traceback outlives its handler."""
         canv = urwid.TextCanvas([b"hi"])
@@ -502,7 +506,7 @@ class FinalizedCanvasErrorTest(unittest.TestCase):
             # Not assertRaises: it strips the traceback, which hides the accumulation.
             try:
                 canv.finalize(urwid.Text("hi"), (2,), False)
-            except urwid.CanvasError as exc:  # noqa: PERF203  # the repeated raise is what is under test
+            except urwid.CanvasError as exc:
                 tracebacks.append(len(traceback.extract_tb(exc.__traceback__)))
         canv_ref = weakref.ref(canv)
         del canv

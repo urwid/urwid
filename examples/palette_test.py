@@ -34,8 +34,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
 CHART_TRUE = """
 #e50000#e51000#e52000#e53000#e54000#e55000#e56000#e57000#e58000#e59000\

@@ -51,8 +51,7 @@ from urwid.widget import Sizing, Widget
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
-
-    from typing_extensions import Literal
+    from typing import Literal
 
 EOF = b""
 ESC = chr(27)

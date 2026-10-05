@@ -47,10 +47,10 @@ if typing.TYPE_CHECKING:
 
     from urwid.event_loop import EventLoop
 
-    SignalHandler = typing.Union[Callable[[int, typing.Union[FrameType, None]], typing.Any], int, None]
+    SignalHandler = Callable[[int, FrameType | None], typing.Any] | int | None
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
 
 # GPM event-type bits, as reported by the `mev` helper on its `Ax<hex>` field.
@@ -437,8 +437,7 @@ class Screen(_raw_display_base.Screen):
         if self.gpm_mev is None or self.gpm_mev.stdout is None:
             return []
 
-        s = self.gpm_mev.stdout.readline()
-        event_result = s.split(",")
+        event_result = self.gpm_mev.stdout.readline().split(",")
         if len(event_result) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()

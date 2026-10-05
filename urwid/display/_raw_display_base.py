@@ -50,16 +50,15 @@ from .common import (
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import FrameType
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid import Canvas, EventLoop
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
-    _DecodedInputWithReports = list[typing.Union[str, _MouseInput, _CursorPosition, _PrivateModeReport]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
+    _DecodedInputWithReports = list[str | _MouseInput | _CursorPosition | _PrivateModeReport]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())

@@ -23,8 +23,7 @@ from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from .widget import AbstractFlowWidget, AbstractWidget
 

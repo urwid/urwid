@@ -26,8 +26,7 @@ import typing
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Iterator
-
-    from typing_extensions import Concatenate, ParamSpec, Self
+    from typing import Concatenate, ParamSpec, Self
 
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
@@ -627,12 +626,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             lambda: super(MonitoredList, self).sort(key=key, reverse=reverse),
         )
 
-    if hasattr(list, "clear"):
-
-        def clear(self) -> None:
-            """Remove all items and reset focus to ``None``."""
-            focus = self._adjust_focus_on_contents_modified(slice(0, 0))
-            self._modify(focus, super(MonitoredList, self).clear)
+    def clear(self) -> None:
+        """Remove all items and reset focus to ``None``."""
+        focus = self._adjust_focus_on_contents_modified(slice(0, 0))
+        self._modify(focus, super(MonitoredList, self).clear)
 
 
 def _test() -> None:

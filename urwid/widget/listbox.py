@@ -47,8 +47,7 @@ from .widget import Widget, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterator
-
-    from typing_extensions import Literal, Self
+    from typing import Literal, Self
 
     from urwid.canvas import Canvas, CompositeCanvas
 

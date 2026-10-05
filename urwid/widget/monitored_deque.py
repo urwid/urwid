@@ -30,8 +30,7 @@ import warnings
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
-
-    from typing_extensions import Concatenate, ParamSpec
+    from typing import Concatenate, ParamSpec
 
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")

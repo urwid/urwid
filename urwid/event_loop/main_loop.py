@@ -44,8 +44,7 @@ from .select_loop import SelectEventLoop
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable
-
-    from typing_extensions import Literal, Self
+    from typing import Literal, Self
 
     from urwid.display import BaseScreen
     from urwid.display.common import PaletteEntry

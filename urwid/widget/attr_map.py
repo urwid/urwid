@@ -83,7 +83,7 @@ class AttrMap(
         """Return a copy of the attribute mapping dictionary."""
         # make a copy so ours is not accidentally modified
         # FIXME: a dictionary that detects modifications would be better
-        return dict(self._attr_map)
+        return self._attr_map.copy()
 
     def set_attr_map(self, attr_map: Hashable | Mapping[Hashable, Hashable]) -> None:
         """

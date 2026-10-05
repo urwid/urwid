@@ -11,7 +11,7 @@ from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
 from .widget import Widget
 
 
-class DividerSymbols(str, enum.Enum):
+class DividerSymbols(enum.StrEnum):
     """Common symbols for divider widgets."""
 
     # Lines

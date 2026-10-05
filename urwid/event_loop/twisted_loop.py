@@ -40,10 +40,10 @@ if typing.TYPE_CHECKING:
     import asyncio
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
+    from typing import ParamSpec
 
     from twisted.internet.base import DelayedCall, ReactorBase
     from twisted.internet.interfaces import IReactorFDSet, IReadDescriptor
-    from typing_extensions import ParamSpec
 
     _Spec = ParamSpec("_Spec")
 

@@ -32,7 +32,7 @@ from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import TypedDict
+    from typing import TypedDict
 
     from urwid.canvas import Canvas
 

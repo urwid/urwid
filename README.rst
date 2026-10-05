@@ -19,7 +19,7 @@ It includes many features useful for text console application developers includi
 - Display modules include raw, curses, and experimental LCD and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
 - 24-bit (true color), 256 color, and 88 color mode support
-- Compatible with Python 3.9+ and PyPy
+- Compatible with Python 3.11+ and PyPy
 
 Home Page:
   http://urwid.org/
@@ -80,10 +80,10 @@ To test code in all Python versions:
 .. code:: bash
 
     tox                           # Test all versions specified in tox.ini
-    tox -e py39                   # Test Python 3.9 only
+    tox -e py311                  # Test Python 3.11 only
     tox -e py313t                 # Test Python 3.13 with free-threading
     tox -e pypy3                  # Test PyPy3
-    tox -e py39,py310,pypy3       # Test specific versions
+    tox -e py311,py312,pypy3      # Test specific versions
 
 Testing different Python implementations
 ----------------------------------------
@@ -132,9 +132,9 @@ Supported Python versions
 
 Urwid supports:
 
-- CPython 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15
+- CPython 3.11, 3.12, 3.13, 3.14, 3.15
 - CPython 3.13+ with free-threading (PEP 703 ``--disable-gil``)
-- PyPy 3.x
+- PyPy 3.11
 - GraalPy 3.11, 3.12 (experimental)
 
 Python implementation notes
@@ -148,7 +148,7 @@ Full support for all optional features. All extras (``curses``, ``glib``, ``seri
 
 Urwid core and pure-Python event loops are fully supported. Some extras require C extensions that may not have free-threading wheels available:
 
-- ✅ Supported: core, tornado, trio, twisted (24.10.0+), serial, lcd
+- ✅ Supported: core, tornado, trio, twisted, serial, lcd
 - ❌ Unsupported: glib, zmq (require C extensions with free-threading wheel support)
 
 For free-threading Python, install with compatible extras:

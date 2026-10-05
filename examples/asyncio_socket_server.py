@@ -21,7 +21,7 @@ if typing.TYPE_CHECKING:
 
 logging.basicConfig()
 
-loop = asyncio.get_event_loop()
+loop = asyncio.new_event_loop()
 
 
 # -----------------------------------------------------------------------------

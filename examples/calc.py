@@ -41,8 +41,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable
-
-    from typing_extensions import Literal
+    from typing import Literal
 
 # use appropriate Screen class
 if urwid.display.web.is_web_request():
@@ -685,7 +684,7 @@ class CalcDisplay:
                 self.wrap_keypress(k)
                 self.event = None
                 self.view.footer = None
-            except CalcEvent as e:  # noqa: PERF203
+            except CalcEvent as e:
                 # display any message
                 self.event = e
                 self.view.footer = e.widget()

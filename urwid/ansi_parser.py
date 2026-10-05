@@ -359,7 +359,7 @@ class AnsiParser:
             bel=self._bel_count,
             title=self._title,
             leds=self._leds,
-            skipped=list(self._skipped),
+            skipped=self._skipped.copy(),
         )
         return (parsed,)
 

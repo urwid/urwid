@@ -22,10 +22,13 @@
 
 from __future__ import annotations
 
+import inspect
+import sys
 import typing
-from inspect import getfullargspec
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from urwid.widget import Widget
 
 
@@ -82,7 +85,7 @@ def normalize_repr(v: object) -> str:
     return repr(v)
 
 
-def remove_defaults(d: dict[str, object], fn: object) -> dict[str, object]:
+def remove_defaults(d: dict[str, object], fn: Callable[..., object]) -> dict[str, object]:
     """Remove keys in d that are set to the default values from fn.
 
     This method is used to unclutter the _repr_attrs() return value.
@@ -109,22 +112,20 @@ def remove_defaults(d: dict[str, object], fn: object) -> dict[str, object]:
     <Foo object a=10>
     >>> Foo()
     <Foo object>
+
+    :raises TypeError: *fn* is not callable. No signature can be read from *fn*.
     """
-    args, varargs, varkw, defaults, _, _, _ = getfullargspec(fn)
+    try:
+        if sys.version_info >= (3, 14):
+            import annotationlib
 
-    # ignore *varargs and **kwargs
-    if varkw:
-        del args[-1]
-    if varargs:
-        del args[-1]
-
-    # create a dictionary of args with default values
-    ddict = dict(
-        zip(
-            args[len(args) - len(typing.cast("tuple[object]", defaults)) :],
-            typing.cast("tuple[object]", defaults),
-        )
-    )
+            # Only the defaults are read: an annotation naming a type-checking-only import must not raise NameError.
+            parameters = inspect.signature(fn, annotation_format=annotationlib.Format.FORWARDREF).parameters
+        else:
+            parameters = inspect.signature(fn).parameters
+    except ValueError as exc:
+        raise TypeError(f"no signature to read defaults from: {fn!r}") from exc
+    ddict = {name: param.default for name, param in parameters.items() if param.default is not inspect.Parameter.empty}
 
     for k in list(d.keys()):
         if k in ddict and ddict[k] == d[k]:

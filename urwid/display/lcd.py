@@ -30,8 +30,7 @@ from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Sequence
-
-    from typing_extensions import Literal, SupportsIndex
+    from typing import Literal, SupportsIndex
 
     from urwid import Canvas
 
@@ -187,7 +186,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
                 self._unprocessed = unprocessed
-            except self.MoreDataRequired:  # noqa: PERF203
+            except self.MoreDataRequired:
                 return None
             except self.InvalidPacket:
                 # throw out a byte and try to parse again

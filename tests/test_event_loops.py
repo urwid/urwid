@@ -43,9 +43,6 @@ except ImportError:
 else:
     TRIO_AVAILABLE = True
 
-if sys.version_info < (3, 11):
-    from exceptiongroup import BaseExceptionGroup  # pylint: disable=redefined-builtin  # backport
-
 try:
     import zmq
 except ImportError:
@@ -346,17 +343,12 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatch
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
 class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     def setUp(self):
-        if sys.version_info[:2] < (3, 11):
-            self.loop = asyncio.get_event_loop_policy().get_event_loop()
-            self.evl_runner = None
-        else:
-            self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
-            self.loop = self.evl_runner.get_loop()
+        self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+        self.loop = self.evl_runner.get_loop()
         self.evl = urwid.AsyncioEventLoop(loop=self.loop)
 
     def tearDown(self):
-        if self.evl_runner is not None:
-            self.evl_runner.close()
+        self.evl_runner.close()
 
     _expected_idle_handle = None
 
@@ -455,8 +447,7 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
             evl.watch_file(rd.fileno(), step2)
             wr.send(b"hi")
             evl.run()
-            # De-register before the fd is closed and its number possibly reused by a later test:
-            # AsyncioEventLoopTest reuses the process-wide default loop on Python < 3.11.
+            # De-register before the fd is closed and its number possibly reused by a later test.
             evl.remove_watch_file(rd.fileno())
 
         self.assertEqual(["hi"], out)

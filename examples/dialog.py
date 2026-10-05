@@ -415,7 +415,7 @@ def show_usage() -> None:
     modelist = sorted((mode, help_mode) for (mode, (fn, help_mode)) in MODES.items())
 
     sys.stdout.write(
-        (__doc__ or "")
+        (__doc__ or "")  # noqa: FURB143  # __doc__ is None under python -OO
         + "\n".join([f"{mode:<15} {help_mode}" for (mode, help_mode) in modelist])
         + """
 

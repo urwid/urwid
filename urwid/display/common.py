@@ -35,8 +35,7 @@ from urwid.util import StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Sequence
-
-    from typing_extensions import Literal, Self
+    from typing import Literal, Self
 
     from urwid import Canvas
 
@@ -44,20 +43,19 @@ if typing.TYPE_CHECKING:
     # (name, like_other_name)
     # or the 3, 4 or 6 positional arguments of register_palette_entry().
     # A name is any hashable value, None being the default attribute.
-    # typing.Union rather than "|": the alias is evaluated by the checkers as Python 3.9 code.
-    PaletteEntry = typing.Union[
-        tuple[Hashable, Hashable],
-        tuple[Hashable, str, str],
-        tuple[Hashable, str, str, typing.Union[str, tuple[str, ...], None]],
-        tuple[
+    PaletteEntry = (
+        tuple[Hashable, Hashable]
+        | tuple[Hashable, str, str]
+        | tuple[Hashable, str, str, str | tuple[str, ...] | None]
+        | tuple[
             Hashable,
             str,
             str,
-            typing.Union[str, tuple[str, ...], None],
-            typing.Optional[str],
-            typing.Optional[str],
-        ],
-    ]
+            str | tuple[str, ...] | None,
+            str | None,
+            str | None,
+        ]
+    )
 
 IS_WINDOWS = sys.platform == "win32"
 

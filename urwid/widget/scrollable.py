@@ -34,8 +34,7 @@ from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid import Canvas, CompositeCanvas
 
@@ -74,7 +73,7 @@ SCROLLBAR_LEFT = "left"
 SCROLLBAR_RIGHT = "right"
 
 
-class ScrollbarSymbols(str, enum.Enum):
+class ScrollbarSymbols(enum.StrEnum):
     """Common symbols suitable for scrollbar."""
 
     FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
@@ -469,7 +468,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return self._rows_max_cached
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _ScrollbarLayout:
     """Geometry of a scrollbar rendered next to its wrapped widget.
 

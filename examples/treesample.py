@@ -39,8 +39,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-
-    from typing_extensions import NotRequired
+    from typing import NotRequired
 
 
 class SampleTree(typing.TypedDict):
