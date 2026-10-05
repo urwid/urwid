@@ -69,7 +69,7 @@ _URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
 _URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join([chr(x) for x in range(32, 256)])
+_trans_table = str.maketrans(dict.fromkeys(range(32), "?"))
 
 _css_style = CURRENT_DIR.joinpath("_web.css").read_text("utf-8")
 

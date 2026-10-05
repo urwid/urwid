@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import warnings
 
 import urwid
 from urwid.util import set_temporary_encoding
@@ -112,6 +113,86 @@ class TextTest(unittest.TestCase):
         ):
             with self.subTest(text=widget.text, wrap=widget.wrap):
                 self.assertEqual(expected, widget.pack(()))
+
+    def test_control_characters_are_drawn_in_the_columns_they_are_measured_as(self) -> None:
+        """A control character or escape sequence measured as zero columns is left out of the canvas.
+
+        The raw display then draws the text as wide as the layout measured it, and the neighbour stays in place.
+        """
+        for encoding in ("utf-8", "latin-1"):
+            for text, drawn in (
+                ("\x1b[31mred", "red"),
+                ("a\rb", "ab"),
+                ("a\x07b", "ab"),
+                ("\x9b31m", "31m"),
+                ("a\x1b]0;title\x07b", "ab"),
+                ("a\x7fb", "ab"),
+            ):
+                with self.subTest(encoding=encoding, text=text), set_temporary_encoding(encoding):
+                    widget = urwid.Text(text)
+                    columns = urwid.Columns([(urwid.PACK, widget), urwid.Text("XYZ")])
+                    screen = urwid.display.raw.Screen()
+                    written: list[str] = []
+                    screen.write = written.append
+                    screen.flush = lambda: None
+                    screen._started = True
+
+                    canvas = columns.render((20,))
+                    screen.draw_screen((20, canvas.rows()), canvas)
+
+                    self.assertEqual((len(drawn), 1), widget.pack())
+                    self.assertEqual([f"{drawn}XYZ".ljust(20).encode()], canvas.text)
+                    self.assertIn(f"{drawn}XYZ\x1b[K", "".join(written))
+                    self.assertEqual(text, widget.text)
+
+    def test_utf8_bytes_leave_out_control_characters(self) -> None:
+        """Bytes in UTF-8 are measured as decoded text, so an escape sequence in them takes no column either."""
+        self.assertEqual([b"ab"], urwid.Text(b"a\x1b[1mb").render(()).text)
+
+    def test_narrow_bytes_keep_control_characters(self) -> None:
+        """Bytes in a narrow encoding measure one column per byte, which the display's ``?`` takes as well."""
+        with set_temporary_encoding("latin-1"):
+            self.assertEqual([b"a\x1b[1mb"], urwid.Text(b"a\x1b[1mb").render(()).text)
+
+    def test_line_cut_inside_escape_sequence_draws_its_measured_columns(self) -> None:
+        """A line cut by screen column counts ESC as zero columns and the rest of the sequence as text, and draws so."""
+        self.assertEqual([b"ab[31", b"mcd  ", b"ef   "], urwid.Text("ab\x1b[31mcd ef").render((5,)).text)
+
+    def test_control_characters_keep_attributes_aligned(self) -> None:
+        """Each attribute run covers the characters drawn for it, without the control characters left out."""
+        canvas = urwid.Text([("x", "a\x1b[1m"), ("y", "bc\x07"), "d"]).render((6,))
+        self.assertEqual([[("x", None, b"a"), ("y", None, b"bc"), (None, None, b"d  ")]], list(canvas.content()))
+
+        # the text OSC 66 displays ends the sequence, and its parameters may hold the same characters
+        canvas = urwid.Text([("A", "\x1b]66;s=2;"), ("B", "2\x07x")]).render(())
+        self.assertEqual([[("B", None, b"2x")]], list(canvas.content()))
+
+    def test_segment_neither_measure_fits_is_drawn_unchanged(self) -> None:
+        """A segment no drop makes as wide as laid out is drawn as given, rather than raising or overflowing."""
+        for widget, width, expected in (
+            (urwid.Text(b"a\xc2\x9bb\xff"), 3, [b"a\xc2\x9bb\xff"]),  # bytes that are not valid UTF-8
+            (urwid.Text("\u200da\x07\u4e2d", wrap="clip"), 1, [b"\xe2\x80\x8da\x07 "]),
+        ):
+            with self.subTest(text=widget.text), warnings.catch_warnings():
+                warnings.simplefilter("ignore", UnicodeWarning)
+                canvas = widget.render((width,))
+                layout_widths = [
+                    urwid.text_layout.line_width(urwid.text_layout.trim_line(line, widget.text, 0, width))
+                    for line in widget.get_line_translation(width)
+                ]
+
+                self.assertEqual(expected, canvas.text)
+                self.assertEqual([width], layout_widths)
+                self.assertEqual(width, canvas.cols())
+
+    def test_layout_and_line_drawing_controls_unchanged(self) -> None:
+        """LF and TAB are laid out, and SO and SI select the DEC line-drawing set, rather than being left out."""
+        self.assertEqual([b"a        ", b"b       c"], urwid.Text("a\nb\tc").render(()).text)
+        with set_temporary_encoding("latin-1"):
+            canvas = urwid.Text("a\x0eq\x0fb").render(())
+
+            self.assertEqual([b"aqb"], canvas.text)
+            self.assertEqual([[None, "0", None]], [[cs for _, cs, _ in row] for row in canvas.content()])
 
 
 class EditTest(unittest.TestCase):

@@ -42,7 +42,7 @@ if typing.TYPE_CHECKING:
     _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join(chr(x) for x in range(32, 256))
+_trans_table = str.maketrans(dict.fromkeys(range(32), "?"))
 
 _default_foreground = "black"
 _default_background = "light gray"

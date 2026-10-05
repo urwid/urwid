@@ -62,7 +62,7 @@ if typing.TYPE_CHECKING:
 IS_WINDOWS = sys.platform == "win32"
 
 # for replacing unprintable bytes with '?'
-UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(range(32, 256))
+UNPRINTABLE_TRANS_TABLE = bytes.maketrans(bytes(range(32)), b"?" * 32)
 # for replacing decoded C1 control characters (U+0080-U+009F) with '?'
 UNPRINTABLE_C1_TRANS_TABLE = str.maketrans(dict.fromkeys(range(0x80, 0xA0), "?"))
 
