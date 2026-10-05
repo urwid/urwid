@@ -116,7 +116,9 @@ class TestRawDisplay(unittest.TestCase):
                 s.write = written.append
                 s.flush = lambda: None
 
-                canvas = urwid.Text("a\x1b]0;t\x07 \x9d52;c;SGVsbG8=\x9c \x9b2J \x85é").render((40,))
+                # a canvas built directly, as Text leaves control characters out of the canvas it renders
+                text = "a\x1b]0;t\x07 \x9d52;c;SGVsbG8=\x9c \x9b2J \x85é".encode(encoding)
+                canvas = urwid.TextCanvas([text], maxcol=40)
                 with mock.patch.object(s, "_started", True):
                     s.draw_screen((40, canvas.rows()), canvas)
 

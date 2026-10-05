@@ -7,6 +7,8 @@ Unreleased
 
 Bug fixes
 +++++++++
+* Leave control characters and escape sequences that ``Text`` and ``Edit`` measure as zero
+  columns out of the drawn text, so untrusted text no longer overflows into the next widget.
 * Stop ListBox from repeating items when a wrapping list walker is shorter than
   the available height (issue #464).
 

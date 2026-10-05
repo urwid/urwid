@@ -324,6 +324,19 @@ class EditTest(unittest.TestCase):
         canv = e.render((5,), focus=True)
         self.assertEqual(canv.cursor[0], 0)
 
+    def test_cursor_after_control_characters(self) -> None:
+        """The cursor sits where its character is drawn, with the control characters left out of the canvas."""
+        e = urwid.Edit("\x07> ", "a\x1b[1mb")
+
+        canv = e.render((10,), focus=True)
+        self.assertEqual([b"> ab      "], canv.text)
+        self.assertEqual((4, 0), canv.cursor)
+
+        e.set_edit_pos(1)
+        self.assertEqual((3, 0), e.render((10,), focus=True).cursor)
+        self.assertEqual("a\x1b[1mb", e.edit_text)
+        self.assertEqual(("\x07> a\x1b[1mb", []), e.get_text())
+
     def test_delete_highlighted_no_highlight(self) -> None:
         e = urwid.Edit("", "hi")
         self.assertFalse(e._delete_highlighted())

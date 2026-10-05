@@ -24,11 +24,15 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import itertools
+import re
 import typing
 import warnings
 import weakref
 
-from urwid.str_util import calc_text_pos, calc_width
+import wcwidth
+
+from urwid.str_util import calc_text_pos, calc_width, get_byte_encoding
 from urwid.text_layout import LayoutSegment, trim_line
 from urwid.util import (
     apply_target_encoding,
@@ -1540,6 +1544,58 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
     return joined_canvas
 
 
+# C0 and C1 control characters and DEL, other than TAB and LF, which the layout places,
+# and SO and SI, which select the DEC line-drawing character set
+_CONTROL_CHARS = "\x00-\x08\x0b-\x0d\x10-\x1f\x7f-\x9f"
+_CONTROL_RE = re.compile(f"[{_CONTROL_CHARS}]")
+_CONTROL_UTF8_RE = re.compile(rb"[\x00-\x08\x0b-\x0d\x10-\x1f\x7f]|\xc2[\x80-\x9f]")
+_DRAWN_RUN_RE = re.compile(f"[^{_CONTROL_CHARS}]+")
+
+
+def _drawn_ranges(text: str | bytes, start: int, end: int, sc: int) -> list[tuple[int, int]] | None:
+    """Return the ranges of text[start:end] to draw so that they take the *sc* screen columns the layout measured.
+
+    The layout measures a segment either with :func:`calc_width`, which takes every escape sequence and control
+    character as zero columns, or with :func:`calc_text_pos`, which takes the control characters as zero columns
+    and the rest of an escape sequence, such as ``[31m`` after ESC, as printable text.
+    Leaving out what the measure that gives *sc* takes as zero columns draws exactly *sc* columns,
+    and nothing reaches the display for it to draw as ``?`` or to run as a terminal command.
+
+    :returns: ``None`` to draw the segment unchanged: it has no control character,
+        it is a byte string in an encoding that measures every byte as one column, or neither measure gives *sc*.
+    """
+    if isinstance(text, bytes):
+        if get_byte_encoding() != "utf8" or not _CONTROL_UTF8_RE.search(text, start, end):
+            return None
+        try:
+            decoded = text[start:end].decode("utf-8")
+        except UnicodeDecodeError:
+            return None
+        offsets: Sequence[int] = list(
+            itertools.accumulate((len(char.encode("utf-8")) for char in decoded), initial=start)
+        )
+    else:
+        if not _CONTROL_RE.search(text, start, end):
+            return None
+        decoded = text[start:end]
+        offsets = range(start, end + 1)
+
+    whole: list[tuple[int, int]] = []
+    pos = 0
+    for part, is_sequence in wcwidth.iter_sequences(decoded):
+        # calc_width keeps the text a sequence displays, such as that of OSC 66 text sizing
+        kept = wcwidth.strip_sequences(part) if is_sequence else part
+        at = pos + part.rfind(kept)
+        whole.extend((at + found.start(), at + found.end()) for found in _DRAWN_RUN_RE.finditer(kept))
+        pos += len(part)
+    controls_only = [found.span() for found in _DRAWN_RUN_RE.finditer(decoded)]
+    for ranges in (whole, controls_only):
+        drawn = "".join(decoded[s:e] for s, e in ranges)
+        if calc_width(drawn, 0, len(drawn)) == sc:
+            return [(offsets[s], offsets[e]) for s, e in ranges]
+    return None
+
+
 @dataclasses.dataclass
 class _AttrWalk:
     counter: int = 0  # counter for moving through elements of a
@@ -1552,7 +1608,11 @@ def apply_text_layout(
     ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
     maxcol: int,
 ) -> TextCanvas:
-    """Build a :class:`TextCanvas` by encoding *text* and *attr* according to the line layout *ls*."""
+    """Build a :class:`TextCanvas` by encoding *text* and *attr* according to the line layout *ls*.
+
+    Control characters and escape sequences that the layout measured as zero columns are left out of the canvas,
+    so that each line is drawn in the screen columns the layout measured.
+    """
     t: list[bytes] = []
     a: list[list[tuple[Hashable, int]]] = []
     c: list[list[tuple[Literal["0", "U"] | None, int]]] = []
@@ -1585,6 +1645,9 @@ def apply_text_layout(
             aw.offset += run
         return o
 
+    # one search of the whole text spares the search of each segment for text without control characters
+    has_control = bool(_CONTROL_UTF8_RE.search(text) if isinstance(text, bytes) else _CONTROL_RE.search(text))
+
     for line_layout in ls:
         # trim the line to fit within maxcol
         line_layout = trim_line(line_layout, text, 0, maxcol)  # noqa: PLW2901
@@ -1593,24 +1656,37 @@ def apply_text_layout(
         linea: list[tuple[Hashable, int]] = []
         linec: list[tuple[Literal["0", "U"] | None, int]] = []
 
-        def attrrange(start_offs: int, end_offs: int, destw: int) -> None:
-            """Add attributes based on attributes between start_offs and end_offs."""
+        def attrrange(
+            start_offs: int,
+            end_offs: int,
+            destw: int,
+            *,
+            src: str | bytes = text,
+            runs: list[tuple[Hashable, int]] | None = None,
+        ) -> None:
+            """Add attributes based on attributes between start_offs and end_offs.
+
+            :param src: the text *start_offs* and *end_offs* index, which encodes to *destw* bytes
+            :param runs: the attributes of src[start_offs:end_offs], ``None`` to look them up in *attr*
+            """
             # pylint: disable=cell-var-from-loop
             if start_offs == end_offs:
                 [(at, run)] = arange(start_offs, end_offs)  # pylint: disable=unbalanced-tuple-unpacking
                 rle_append_modify(linea, (at, destw))  # noqa: B023
                 return
+            if runs is None:
+                runs = arange(start_offs, end_offs)
             if destw == end_offs - start_offs:
-                for at, run in arange(start_offs, end_offs):
+                for at, run in runs:
                     rle_append_modify(linea, (at, run))  # noqa: B023
                 return
             # encoded version has different width
             o = start_offs
-            for at, run in arange(start_offs, end_offs):
+            for at, run in runs:
                 if o + run == end_offs:
                     rle_append_modify(linea, (at, destw))  # noqa: B023
                     return
-                tseg = text[o : o + run]
+                tseg = src[o : o + run]
                 tseg, cs = apply_target_encoding(tseg)
                 segw = rle_len(cs)
 
@@ -1622,9 +1698,21 @@ def apply_text_layout(
             # if seg is None: assert 0, ls
             s = LayoutSegment(seg)
             if s.end:
-                tseg, cs = apply_target_encoding(text[s.offs : s.end])
+                offs = typing.cast("int", s.offs)  # s.end is set
+                if not has_control or (drawn := _drawn_ranges(text, offs, s.end, s.sc)) is None:
+                    tseg, cs = apply_target_encoding(text[offs : s.end])
+                    attrrange(offs, s.end, rle_len(cs))
+                else:
+                    seg_text = typing.cast("str", text[:0]).join(
+                        typing.cast("str", text[start:end]) for start, end in drawn
+                    )
+                    tseg, cs = apply_target_encoding(seg_text)
+                    runs: list[tuple[Hashable, int]] = []
+                    for start, end in drawn:
+                        for run in arange(start, end):
+                            rle_append_modify(runs, run)
+                    attrrange(0, len(seg_text), rle_len(cs), src=seg_text, runs=runs)
                 line.append(tseg)
-                attrrange(typing.cast("int", s.offs), s.end, rle_len(cs))  # s.end is set
                 rle_join_modify(linec, cs)  # type: ignore[arg-type]
             elif s.text:
                 tseg, cs = apply_target_encoding(s.text)
