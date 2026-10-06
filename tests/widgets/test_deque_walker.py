@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import collections
 import decimal
+import fractions
 import math
+import sys
 import unittest
 import warnings
 
 import urwid
+
+IS_PYPY = sys.implementation.name == "pypy"
 
 
 class MonitoredDequeConstructionTest(unittest.TestCase):
@@ -225,6 +229,13 @@ class _Index:
         return 1
 
 
+class _IntOnly:
+    """Object that supports only ``__int__``."""
+
+    def __int__(self) -> int:
+        return 1
+
+
 class MonitoredDequeInsertIndexTest(unittest.TestCase):
     """Check ``insert()`` index conversion against ``collections.deque.insert()``."""
 
@@ -244,15 +255,19 @@ class MonitoredDequeInsertIndexTest(unittest.TestCase):
 
     def test_non_integer_index_raises(self) -> None:
         """Raise ``TypeError`` for an index without ``__index__`` like ``deque`` does, with no change."""
+        strict = (1.5, "1", None, "abc", math.inf, b"1", 1j)
+        int_only = (decimal.Decimal(1), fractions.Fraction(7, 2), _IntOnly())
         for cls in self.classes:
-            for index in (1.5, decimal.Decimal(1), "1", None, "abc", math.inf):
+            for index in (*strict, *int_only):
                 with self.subTest(cls=cls.__name__, index=index):
-                    with self.assertRaises(TypeError):
-                        collections.deque([0, 1, 2]).insert(index, 9)
                     deq = cls([0, 1, 2])
                     with self.assertRaises(TypeError):
                         deq.insert(index, 9)
                     self.assertEqual([0, 1, 2], list(deq))
+                    if IS_PYPY and any(index is lenient for lenient in int_only):
+                        self.skipTest("PyPy deque.insert() converts an index that has only __int__")
+                    with self.assertRaises(TypeError):
+                        collections.deque([0, 1, 2]).insert(index, 9)
 
 
 class WrapAroundTest(unittest.TestCase):
