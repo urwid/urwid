@@ -132,6 +132,22 @@ class HtmlGeneratorTest(unittest.TestCase):
             HtmlGenerator.fragments,
         )
 
+    def test_draw_screen_inherits_the_container_background(self) -> None:
+        self.screen.register_palette([("red_fg", "dark red", "inherit"), ("blue_bg", "inherit", "dark blue")])
+        canvas = urwid.AttrMap(urwid.Text([("red_fg", "a"), "b"]), "blue_bg").render((2,))
+
+        self.screen.draw_screen((2, canvas.rows()), canvas)
+
+        self.assertEqual(
+            [
+                (
+                    '<pre><span style="color:#cd0000;background:#0000ee">a</span>'
+                    '<span style="color:#000000;background:#0000ee">b</span>\n</pre>'
+                )
+            ],
+            HtmlGenerator.fragments,
+        )
+
     def test_draw_screen_rejects_a_canvas_with_a_different_row_count(self) -> None:
         canvas = urwid.Text("hi").render((5,))
 

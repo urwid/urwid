@@ -28,12 +28,14 @@ import itertools
 import re
 import typing
 import weakref
+from collections.abc import Mapping
 
 import wcwidth
 
 from urwid.str_util import calc_text_pos, calc_width, get_byte_encoding
 from urwid.text_layout import LayoutSegment, trim_line
 from urwid.util import (
+    LayeredAttr,
     apply_target_encoding,
     get_encoding,
     rle_append_modify,
@@ -44,14 +46,13 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Iterator, Mapping, Sequence
+    from collections.abc import Hashable, Iterable, Iterator, Sequence
     from typing import Literal, NotRequired
 
-    from .display.common import AttrSpec
     from .widget import AbstractWidget
 
-    _ContentLine = list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]
-    _CView = tuple[int, int, int, int, dict[Hashable, Hashable] | None, "Canvas"]
+    _ContentLine = list[tuple[Hashable, Literal["0", "U"] | None, bytes]]
+    _CView = tuple[int, int, int, int, Mapping[Hashable, Hashable] | None, "Canvas"]
 
     _CanvasCoords = typing.TypedDict(
         "_CanvasCoords",
@@ -327,7 +328,7 @@ class Canvas:
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[_ContentLine]:
         """
         Return the canvas content as a list of rows of ``(attr, cs, text)`` tuples.
@@ -551,7 +552,7 @@ class TextCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[object, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[_ContentLine]:
         """Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
 
@@ -605,9 +606,75 @@ class TextCanvas(Canvas):
             for (a, cs), run in attr_cs:
                 if attr:
                     a = attr.get(a, a)  # noqa: PLW2901  # single lookup instead of `in` + `[]`
-                row.append((typing.cast("AttrSpec | str | None", a), cs, text[i : i + run]))
+                row.append((a, cs, text[i : i + run]))
                 i += run
             yield row
+
+
+class _AttrMapChain(Mapping["Hashable", "Hashable"]):
+    """Attribute maps applied one after another, innermost first, as nested :class:`AttrMap` widgets apply them.
+
+    Each map replaces the attributes it names, and places every attribute over its own ``None`` entry
+    (see :meth:`LayeredAttr.layer`), so a color left 'inherit' inside a map shows the color of the map.
+    A :class:`LayeredAttr` the map names as a whole is replaced; otherwise each of its layers is mapped.
+    An attribute, or a layer of a :class:`LayeredAttr`, that a map sends to ``None`` is dropped and shows
+    the map's ``None`` entry instead.
+
+    A lookup never raises: an attribute no map names is passed through, placed over the ``None`` entries,
+    so ``key in chain`` is true for every key. Iteration, ``len()`` and ``keys()`` list only the attributes
+    the maps name.
+    """
+
+    __slots__ = ("_mapped", "_maps")
+
+    def __init__(self, maps: tuple[Mapping[Hashable, Hashable], ...]) -> None:
+        """Chain *maps*, innermost first."""
+        self._maps = maps
+        self._mapped: dict[Hashable, Hashable] = {}
+
+    def append(self, mapping: Mapping[Hashable, Hashable]) -> _AttrMapChain:
+        """Return a new chain with *mapping* applied after the maps of this one."""
+        return _AttrMapChain((*self._maps, mapping))
+
+    def __getitem__(self, attr: Hashable) -> Hashable:
+        """Return *attr* passed through every map of the chain."""
+        try:
+            return self._mapped[attr]
+        except KeyError:
+            pass
+        result = attr
+        for mapping in self._maps:
+            outer = mapping.get(None)
+            if result is None:
+                result = outer
+                continue
+            if isinstance(result, LayeredAttr) and result not in mapping:
+                folded: Hashable = None
+                for layer in reversed(result.layers):
+                    if (mapped := mapping.get(layer, layer)) is not None:
+                        folded = mapped if folded is None else LayeredAttr.layer(mapped, folded)
+                if folded is None:
+                    result = outer
+                    continue
+                result = folded
+            elif (result := mapping.get(result, result)) is None:
+                result = outer
+                continue
+            result = LayeredAttr.layer(result, outer)
+        self._mapped[attr] = result
+        return result
+
+    def __iter__(self) -> Iterator[Hashable]:
+        """Iterate over the attributes named by any map of the chain."""
+        return iter({key: None for mapping in self._maps for key in mapping})
+
+    def __len__(self) -> int:
+        """Return the number of attributes named by any map of the chain."""
+        return len({key for mapping in self._maps for key in mapping})
+
+    def __bool__(self) -> bool:
+        """Return whether any map of the chain names an attribute."""
+        return any(self._maps)
 
 
 class BlankCanvas(Canvas):
@@ -624,7 +691,7 @@ class BlankCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[_ContentLine]:
         """Return (cols, rows) of spaces with default attributes."""
         def_attr = attr.get(None) if attr else None
@@ -684,7 +751,7 @@ class SolidCanvas(Canvas):
         trim_top: int = 0,
         cols: int | None = None,
         rows: int | None = None,
-        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[_ContentLine]:
         """Return the canvas content as rows of ``(attr, cs, text)`` tuples, each row filled with *fill_char*."""
         if cols is None:
@@ -786,7 +853,7 @@ class CompositeCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[_ContentLine]:
         """
         Return the canvas content as a list of rows where each row is a list of (attr, cs, text) tuples.
@@ -958,9 +1025,13 @@ class CompositeCanvas(Canvas):
         """
         self.fill_attr_apply({None: a})
 
-    def fill_attr_apply(self, mapping: dict[Hashable, Hashable]) -> None:
+    def fill_attr_apply(self, mapping: Mapping[Hashable, Hashable]) -> None:
         """
         Apply an attribute-mapping dictionary to the canvas.
+
+        Attributes not in *mapping* are kept, placed over ``mapping[None]`` when it is set,
+        so their 'inherit' colors show it (see :class:`LayeredAttr`).
+        An attribute *mapping* sends to ``None`` shows ``mapping[None]``.
 
         :param mapping: dictionary of original-attribute:new-attribute items
         :raises CanvasError: this canvas has already been finalized and can no longer be modified.
@@ -974,11 +1045,12 @@ class CompositeCanvas(Canvas):
             for cv in original_cviews:
                 # cv[4] == attr_map
                 if cv[4] is None:
-                    new_cviews.append((*cv[:4], mapping, *cv[5:]))
+                    chain = _AttrMapChain((mapping,))
+                elif isinstance(cv[4], _AttrMapChain):
+                    chain = cv[4].append(mapping)
                 else:
-                    combined = mapping.copy()
-                    combined.update((k, mapping.get(v, v)) for k, v in cv[4].items())
-                    new_cviews.append((*cv[:4], combined, *cv[5:]))
+                    chain = _AttrMapChain((cv[4], mapping))
+                new_cviews.append((*cv[:4], chain, *cv[5:]))
             shards.append((num_rows, new_cviews))
         self.shards = shards
 
@@ -1083,7 +1155,7 @@ def shard_body(
             if col_gap < 0:
                 raise CanvasError("cviews overflow gaps in shard_tail!")
             if create_iter and canv:
-                new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)  # type: ignore[arg-type]
+                new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)
             else:
                 new_iter = iter_default
             body.append((0, new_iter, cview))
@@ -1091,7 +1163,7 @@ def shard_body(
     for cview in cviews_iter:
         (trim_left, trim_top, cols, rows, attr_map, canv) = cview[:6]
         if create_iter and canv:
-            new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)  # type: ignore[arg-type]
+            new_iter = canv.content(trim_left, trim_top, cols, rows, attr_map)
         else:
             new_iter = iter_default
         body.append((0, new_iter, cview))

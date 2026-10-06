@@ -30,7 +30,7 @@ import sys
 import typing
 
 from urwid import signals
-from urwid.util import StoppingContext, int_scale
+from urwid.util import LayeredAttr, StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Sequence
@@ -168,7 +168,17 @@ _BLINK =           0x800000000000000
 _ITALICS =        0x1000000000000000
 _STRIKETHROUGH =  0x2000000000000000
 _FAINT =          0x4000000000000000
+_FG_INHERIT =     0x8000000000000000
+_BG_INHERIT =    0x10000000000000000
 # fmt: on
+
+# a setting turned off explicitly ('no-bold'), kept apart from "not mentioned" in every attribute, as a terminal
+# keeps an SGR reset;
+# the shift puts the off bits (65-71) above _BG_INHERIT (64)
+_SETTING_OFF_SHIFT = 9
+_SETTINGS_OFF_MASK = (
+    _STANDOUT | _UNDERLINE | _BOLD | _BLINK | _ITALICS | _STRIKETHROUGH | _FAINT
+) << _SETTING_OFF_SHIFT
 
 _FG_MASK = (
     _FG_COLOR_MASK
@@ -181,10 +191,15 @@ _FG_MASK = (
     | _ITALICS
     | _STRIKETHROUGH
     | _FAINT
+    | _FG_INHERIT
+    | _SETTINGS_OFF_MASK
 )
-_BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
+_BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR | _BG_INHERIT
+_INHERIT_MASK = _FG_INHERIT | _BG_INHERIT
 
 DEFAULT = "default"
+#: colour keyword taking the colour from the enclosing attribute (:meth:`AttrSpec.layered_over`)
+INHERIT = "inherit"
 BLACK = "black"
 DARK_RED = "dark red"
 DARK_GREEN = "dark green"
@@ -233,12 +248,16 @@ _ATTRIBUTES = {
     "strikethrough": _STRIKETHROUGH,
     "faint": _FAINT,
 }
+_SETTING_OFF_PREFIX = "no-"
+_ATTRIBUTES_OFF = {f"{_SETTING_OFF_PREFIX}{name}": flag << _SETTING_OFF_SHIFT for name, flag in _ATTRIBUTES.items()}
 
 # AttrSpec.__init__() and __set_foreground()/__set_background() are called
 # once per colored run of text an application constructs, so these are
 # hoisted to module scope rather than re-built as set literals on every call.
 _VALID_COLOR_COUNTS = frozenset({1, 16, 88, 256, 2**24})
 _DEFAULT_COLOR_NAMES = frozenset({"", "default"})
+# BaseScreen.resolve_attr() memo size: attrs built from AttrSpec instances (ANSI text, terminals) are unbounded
+_RESOLVED_ATTRS_LIMIT = 4096
 
 
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
@@ -590,6 +609,7 @@ class AttrSpec:
 
               Color values:
               'default' (use the terminal's default foreground),
+              'inherit' (take the color from the enclosing attribute, see :meth:`layered_over`),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray', 'dark gray',
               'light red', 'light green', 'yellow', 'light blue',
@@ -605,7 +625,9 @@ class AttrSpec:
               'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
-              'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint'
+              'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint';
+              with 'no-' in front ('no-bold') a setting is turned off rather than taken from the
+              enclosing attribute; it is part of the attribute, so 'red,no-bold' and 'red' are unequal
 
               Some terminals use 'bold' for bright colors.
               Most terminals ignore the 'blink' setting.
@@ -615,6 +637,7 @@ class AttrSpec:
 
               Color values:
               'default' (use the terminal's default background),
+              'inherit' (take the color from the enclosing attribute),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray'
 
@@ -638,6 +661,8 @@ class AttrSpec:
         AttrSpec('#dda', '#006')
         >>> AttrSpec("#ddb", "#004", 88)
         AttrSpec('#ccc', '#000', colors=88)
+        >>> AttrSpec("inherit,bold", "dark blue")
+        AttrSpec('inherit,bold', 'dark blue')
         """
         if colors not in _VALID_COLOR_COUNTS:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
@@ -656,7 +681,17 @@ class AttrSpec:
         bg: str | None = None,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
     ) -> Self:
-        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, and/or *colors* with the given values."""
+        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, and/or *colors* with the given values.
+
+        Without *colors*, the result uses 88 colors or true color when this specification was made for them,
+        else 256 colors, so a color can be added to a specification that has none.
+
+        :raises AttrSpecError: *colors* is not a supported palette size, or *fg* or *bg* is invalid or needs
+            more colors than the result has.
+
+        >>> AttrSpec("inherit,bold", "inherit").copy_modified(bg="dark blue")
+        AttrSpec('inherit,bold', 'dark blue')
+        """
         if fg is None:
             foreground = self.foreground
         else:
@@ -667,10 +702,15 @@ class AttrSpec:
         else:
             background = bg
 
-        if colors is None:
-            new_colors = self.colors
-        else:
+        new_colors: Literal[1, 16, 88, 256, 16777216]
+        if colors is not None:
             new_colors = colors
+        elif self.__value & _HIGH_88_COLOR:
+            new_colors = 88
+        elif self.__value & _HIGH_TRUE_COLOR:
+            new_colors = 16777216
+        else:
+            new_colors = 256
 
         return self.__class__(foreground, background, new_colors)
 
@@ -704,6 +744,11 @@ class AttrSpec:
         return self.__value & _FG_COLOR_MASK
 
     @property
+    def foreground_inherit(self) -> bool:
+        """Return whether the foreground color is taken from the enclosing attribute."""
+        return self.__value & _FG_INHERIT != 0
+
+    @property
     def background_basic(self) -> bool:
         """Return whether the background color is one of the 16 basic colors."""
         return self.__value & _BG_BASIC_COLOR != 0
@@ -722,6 +767,11 @@ class AttrSpec:
     def background_number(self) -> int:
         """Return the encoded background color number."""
         return (self.__value & _BG_COLOR_MASK) >> _BG_SHIFT
+
+    @property
+    def background_inherit(self) -> bool:
+        """Return whether the background color is taken from the enclosing attribute."""
+        return self.__value & _BG_INHERIT != 0
 
     @property
     def italics(self) -> bool:
@@ -785,6 +835,8 @@ class AttrSpec:
 
     def _foreground_color(self) -> str:
         """Return only the color component of the foreground."""
+        if self.foreground_inherit:
+            return INHERIT
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             return "default"
         if self.foreground_basic:
@@ -807,6 +859,7 @@ class AttrSpec:
             + ",underline" * self.underline
             + ",strikethrough" * self.strikethrough
             + ",faint" * self.faint
+            + "".join(f",{name}" for name, flag in _ATTRIBUTES_OFF.items() if self.__value & flag)
         )
 
     def __set_foreground(self, foreground: str) -> None:
@@ -822,15 +875,22 @@ class AttrSpec:
         # handle comma-separated foreground
         for part in foreground.split(","):
             part = part.strip()  # noqa: PLW2901
-            if (attribute_flag := _ATTRIBUTES.get(part)) is not None:
-                # parse and store "settings"/attributes in flags
-                if flags & attribute_flag:
-                    raise AttrSpecError(f"Setting {part!r} specified more than once in foreground ({foreground!r})")
+            if (on_flag := _ATTRIBUTES.get(part.removeprefix(_SETTING_OFF_PREFIX))) is not None:
+                # parse and store "settings"/attributes in flags, a setting and its "no-" form being one setting
+                off_flag = on_flag << _SETTING_OFF_SHIFT
+                attribute_flag = off_flag if part.startswith(_SETTING_OFF_PREFIX) else on_flag
+                if flags & (on_flag | off_flag):
+                    raise AttrSpecError(
+                        f"Setting {part!r} repeats or contradicts another in foreground ({foreground!r})"
+                    )
                 flags |= attribute_flag
                 continue
             # past this point we must be specifying a color
             if part in _DEFAULT_COLOR_NAMES:
                 scolor = 0
+            elif part == INHERIT:
+                scolor = 0
+                flags |= _FG_INHERIT
             elif (basic_color := _BASIC_COLOR_INDEX.get(part)) is not None:
                 scolor = basic_color
                 flags |= _FG_BASIC_COLOR
@@ -856,6 +916,8 @@ class AttrSpec:
     @property
     def background(self) -> str:
         """Return the background color."""
+        if self.background_inherit:
+            return INHERIT
         if not (self.background_basic or self.background_high or self.background_true):
             return "default"
         if self.background_basic:
@@ -876,6 +938,9 @@ class AttrSpec:
         color: int | None
         if background in _DEFAULT_COLOR_NAMES:
             color = 0
+        elif background == INHERIT:
+            color = 0
+            flags |= _BG_INHERIT
         elif (basic_color := _BASIC_COLOR_INDEX.get(background)) is not None:
             color = basic_color
             flags |= _BG_BASIC_COLOR
@@ -898,7 +963,7 @@ class AttrSpec:
         Each component is in the range 0-255.
         Values are taken from the XTerm defaults and may not exactly match the user's terminal.
 
-        If the foreground or background is 'default' then all their compenents will be returned as None.
+        If the foreground or background is 'default' or 'inherit' then all their components will be returned as None.
 
         >>> AttrSpec("yellow", "#ccf", colors=88).get_rgb_values()
         (255, 255, 0, 205, 205, 255)
@@ -934,6 +999,46 @@ class AttrSpec:
             return (*vals, *(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])))
 
         return (*vals, *_COLOR_VALUES_256[self.background_number])
+
+    def layered_over(
+        self,
+        outer: AttrSpec,
+        *,
+        colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+    ) -> AttrSpec:
+        """Return this attribute with its 'inherit' colors taken from *outer*.
+
+        An attribute with no 'inherit' color is opaque and returned unchanged.
+        Otherwise, each setting this attribute turns on ('bold') or off ('no-bold') is kept,
+        and a setting it does not mention is taken from *outer*.
+        The result may still inherit a color, when *outer* inherits it too.
+
+        :param outer: the enclosing attribute
+        :param colors: the color mode of the result, normally the terminal's;
+            ``None`` uses the larger color mode of the two attributes
+        :raises AttrSpecError: a color of either attribute needs more colors than *colors*.
+
+        >>> AttrSpec("dark red,bold", "inherit").layered_over(AttrSpec("inherit,underline", "dark blue"))
+        AttrSpec('dark red,bold,underline', 'dark blue')
+        >>> AttrSpec("dark red", "default").layered_over(AttrSpec("yellow", "dark blue"))
+        AttrSpec('dark red', 'default')
+        >>> AttrSpec("inherit,no-bold", "inherit").layered_over(AttrSpec("yellow,bold,underline", "dark blue"))
+        AttrSpec('yellow,underline,no-bold', 'dark blue')
+        """
+        if not self.__value & _INHERIT_MASK:
+            return self
+        fg = (outer if self.foreground_inherit else self).foreground.partition(",")[0]
+        bg = outer.background if self.background_inherit else self.background
+        own_settings = self.foreground.split(",")[1:]
+        outer_settings = outer.foreground.split(",")[1:]
+        settings = ""
+        for name, off_name in zip(_ATTRIBUTES, _ATTRIBUTES_OFF, strict=True):
+            # the inner attribute's own state, else the outer one's, else not mentioned
+            for state in (own_settings, outer_settings):
+                if name in state or off_name in state:
+                    settings += f",{name}" if name in state else f",{off_name}"
+                    break
+        return AttrSpec(fg + settings, bg, max(self.colors, outer.colors) if colors is None else colors)
 
     def __eq__(self, other: object) -> bool:
         """Return whether `other` is an :class:`AttrSpec` with the same underlying value."""
@@ -1108,6 +1213,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
         self._palette: dict[Hashable, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
+        self._resolved_attrs: dict[tuple[Hashable, int], AttrSpec] = {}
         self._started: bool = False
 
     @property
@@ -1191,7 +1297,9 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             name, like_name = item
             if like_name not in self._palette:
                 raise ScreenError(f"palette entry '{like_name}' doesn't exist")
+            signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *self._palette[like_name])
             self._palette[name] = self._palette[like_name]
+            self._resolved_attrs.clear()
 
     def register_palette_entry(
         self,
@@ -1211,6 +1319,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
             Color values:
             'default' (use the terminal's default foreground),
+            'inherit' (take the color from the enclosing attribute),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray', 'dark gray',
             'light red', 'light green', 'yellow', 'light blue',
@@ -1227,6 +1336,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
             Background color values:
             'default' (use the terminal's default background),
+            'inherit' (take the color from the enclosing attribute),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray'
 
@@ -1264,7 +1374,16 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             mono = ",".join(mono)
         if mono is None:
             mono = DEFAULT
-        mono_spec = AttrSpec(mono, DEFAULT, 1)
+        if basic.foreground_inherit or basic.background_inherit:
+            # monochrome has no colors to inherit, but the settings are combined the same way
+            mono_settings = [part for part in mono.split(",") if part.strip() not in _DEFAULT_COLOR_NAMES]
+            mono_spec = AttrSpec(
+                ",".join((INHERIT if basic.foreground_inherit else DEFAULT, *mono_settings)),
+                INHERIT if basic.background_inherit else DEFAULT,
+                1,
+            )
+        else:
+            mono_spec = AttrSpec(mono, DEFAULT, 1)
 
         if foreground_high is None:
             foreground_high = foreground
@@ -1292,6 +1411,49 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, basic, mono_spec, high_88, high_256, high_true)
         self._palette[name] = (basic, mono_spec, high_88, high_256, high_true)
+        self._resolved_attrs.clear()
+
+    def resolve_attr(self, attr: Hashable, index: int) -> AttrSpec:
+        """Return the :class:`AttrSpec` to draw a canvas run with display attribute *attr*.
+
+        Starting from the palette entry of ``None``, each layer of *attr* (a palette name, an :class:`AttrSpec`
+        or a :class:`LayeredAttr`), outermost first, is placed over the result so far with
+        :meth:`AttrSpec.layered_over`. A name missing from the palette is drawn with 'default' colors,
+        hiding the layers under it.
+
+        :param attr: display attribute of a canvas run
+        :param index: position in the palette entry tuple: 0 for 16 colors, 1 for monochrome,
+            2 for 88 colors, 3 for 256 colors, 4 for true color
+        :raises IndexError: *index* is outside 0-4 and a layer is a palette name.
+        """
+        key = (attr, index)
+        if (found := self._resolved_attrs.get(key)) is not None:
+            return found
+        if isinstance(attr, LayeredAttr):
+            layers: tuple[Hashable, ...] = (*attr.layers, None)
+        elif attr is None:
+            layers = (None,)
+        else:
+            layers = (attr, None)
+        result: AttrSpec | None = None
+        for layer in reversed(layers):
+            if isinstance(layer, AttrSpec):
+                spec = layer
+            elif (entry := self._palette.get(layer)) is not None:
+                spec = entry[index]
+            elif layer is None:
+                continue
+            else:
+                self.logger.debug(f"Undefined attribute: {layer!r}")
+                spec = AttrSpec(DEFAULT, DEFAULT)
+            # 88-color numbers differ from 256-color ones, so an 88-color screen keeps its own encoding
+            result = spec if result is None else spec.layered_over(result, colors=88 if index == 2 else None)
+        if result is None:
+            result = AttrSpec(DEFAULT, DEFAULT)
+        if len(self._resolved_attrs) >= _RESOLVED_ATTRS_LIMIT:
+            self._resolved_attrs.clear()
+        self._resolved_attrs[key] = result
+        return result
 
 
 def _test() -> None:

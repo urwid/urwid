@@ -52,7 +52,7 @@ import urwid
 from urwid.display.raw import Screen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable
+    from collections.abc import Callable
 
     from twisted.cred.checkers import ICredentialsChecker
     from twisted.internet.protocol import ProcessProtocol
@@ -226,10 +226,8 @@ class TwistedScreen(Screen):
         self._data: list[int] = []
         super().__init__()
         self.colors = 16
-        self._pal_escape = {}
         self.bright_is_bold = True
         self.register_palette_entry(None, "black", "white")
-        urwid.signals.connect_signal(self, urwid.UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
         # Don't need to wait for anything to start
         self._started = True
 
@@ -329,10 +327,6 @@ class TwistedScreen(Screen):
         self.terminal.write(data)
 
     # Private
-    def _on_update_palette_entry(self, name: Hashable, *attrspecs: urwid.AttrSpec) -> None:
-        # copy the attribute to a dictionary containing the escape sequences
-        self._pal_escape[name] = self._attrspec_to_escape(attrspecs[{16: 0, 1: 1, 88: 2, 256: 3}[self.colors]])
-
     def _attrspec_to_escape(self, a: urwid.AttrSpec) -> str:
         r"""Convert AttrSpec instance a to an escape sequence for the terminal.
 

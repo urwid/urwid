@@ -1226,11 +1226,67 @@ class CompositeCanvasFillAttrTest(unittest.TestCase):
         canv.fill_attr("a")
         self.assertEqual([[("a", None, b"hi")]], list(canv.content()))
 
-    def test_fill_attr_apply_combines_with_an_existing_mapping(self) -> None:
-        canv = urwid.CompositeCanvas(urwid.TextCanvas([b"hi"], [[("a", 2)]]))
-        canv.fill_attr_apply({"a": "b"})
-        canv.fill_attr_apply({"b": "c", "z": "z"})
-        self.assertEqual([[("c", None, b"hi")]], list(canv.content()))
+    def test_fill_attr_apply(self) -> None:
+        """Map the attribute of each run through every map applied, innermost first."""
+        layered = urwid.LayeredAttr
+        cases = (
+            (
+                # an outer map also maps what an inner map produced
+                "maps are combined",
+                b"hi",
+                [("a", 2)],
+                [{"a": "b"}, {"b": "c", "z": "z"}],
+                [("c", None, b"hi")],
+            ),
+            (
+                # an unnamed attribute is placed over the None attribute; one mapped to None shows it
+                "unmapped attributes over the default",
+                b"abcd",
+                [("fg", 1), (None, 1), ("old", 1), ("gone", 1)],
+                [{None: "bg", "old": "new", "gone": None}],
+                [
+                    (layered("fg", "bg"), None, b"a"),
+                    ("bg", None, b"b"),
+                    (layered("new", "bg"), None, b"c"),
+                    ("bg", None, b"d"),
+                ],
+            ),
+            (
+                # every layer goes through the outer map, then over the outer None attribute
+                "nested maps stack their defaults",
+                b"ab",
+                [("fg", 1)],
+                [{None: "inner"}, {None: "outer", "inner": "mapped"}],
+                [(layered("fg", "mapped", "outer"), None, b"a"), (layered("mapped", "outer"), None, b"b")],
+            ),
+            (
+                "layers mapped to None are dropped",
+                b"ab",
+                [(layered("x", "y"), 1), (layered("x", "x2"), 1)],
+                [{None: "bg", "x": None, "x2": None}],
+                [(layered("y", "bg"), None, b"a"), ("bg", None, b"b")],
+            ),
+            (
+                # a layer repeated next to itself is kept once, and a single remaining layer is unwrapped
+                "mapped layers are merged",
+                b"ab",
+                [(layered("a", "b"), 1), (layered("c", "b"), 1)],
+                [{"a": "x", "b": "x", "c": None}],
+                [("x", None, b"a"), ("x", None, b"b")],
+            ),
+        )
+        for name, text, runs, maps, expected in cases:
+            with self.subTest(name):
+                canv = urwid.CompositeCanvas(urwid.TextCanvas([text], [runs]))
+                for mapping in maps:
+                    canv.fill_attr_apply(mapping)
+                self.assertEqual([expected], list(canv.content()))
+
+    def test_solid_and_padding_take_the_default(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas("-", 2, 1))
+        canv.pad_trim_left_right(0, 1)
+        canv.fill_attr("bg")
+        self.assertEqual([[("bg", None, b"--"), ("bg", None, b" ")]], list(canv.content()))
 
 
 class CanvasPadTrimTopBottomTest(unittest.TestCase):

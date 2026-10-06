@@ -81,6 +81,7 @@ from urwid.signals import (
 from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char, within_double_byte
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
+    LayeredAttr,
     MetaSuper,
     TagMarkupException,
     apply_target_encoding,
@@ -107,6 +108,7 @@ from .display import (
     DARK_MAGENTA,
     DARK_RED,
     DEFAULT,
+    INHERIT,
     LIGHT_BLUE,
     LIGHT_CYAN,
     LIGHT_GRAY,
@@ -251,6 +253,7 @@ __all__: tuple[str, ...] = (
     "FIXED",
     "FLOW",
     "GIVEN",
+    "INHERIT",
     "LEFT",
     "LIGHT_BLUE",
     "LIGHT_CYAN",
@@ -319,6 +322,7 @@ __all__: tuple[str, ...] = (
     "HalfBlock7x7Font",
     "HalfBlockHeavy6x5Font",
     "IntEdit",
+    "LayeredAttr",
     "LayoutSegment",
     "LineBox",
     "ListBox",

@@ -16,6 +16,14 @@ GC_KEEPS_UNREACHABLE = sys.implementation.name == "graalpy" and sys.version_info
 SKIP_GC_REASON = "GraalPy for Python 3.11 keeps some unreachable objects through gc.collect()"
 
 
+class PaletteScreen(urwid.BaseScreen):
+    """Screen with a palette and no terminal, for resolving display attributes."""
+
+    def draw_screen(self, size: tuple[int, int], canvas: urwid.Canvas) -> None:
+        """Drawing is unsupported."""
+        raise NotImplementedError
+
+
 class SelectableText(urwid.Text):
     def selectable(self):
         return True

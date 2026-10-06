@@ -446,3 +446,143 @@ class TestTermModesSetFromCodes(unittest.TestCase):
         self.assertFalse(modes.focus_reporting)
         self.assertTrue(modes.synchronized_output)
         self.assertEqual({"bracketed_paste", "synchronized_output"}, newly_supported)
+
+
+class TestInheritedColors(unittest.TestCase):
+    """Render widgets whose attributes leave a color to 'inherit', and check the escapes each cell is drawn with."""
+
+    def setUp(self) -> None:
+        """Make a 16-color screen with fg-only, bg-only and opaque palette entries."""
+        self.screen = urwid.display.raw.Screen()
+        self.screen.set_terminal_properties(colors=16, bright_is_bold=False)
+        self.screen.register_palette(
+            [
+                ("red_fg", "dark red", "inherit"),
+                ("green_fg", "dark green", "inherit"),
+                ("brown_fg", "brown", "inherit"),
+                ("blue_bg", "inherit", "dark blue"),
+                ("panel_bg", "inherit", "dark cyan"),
+                ("focus_bg", "inherit", "light gray"),
+                ("error", "black", "dark red"),
+                ("opaque", "yellow", "default"),
+            ]
+        )
+
+    def cells(self, widget: urwid.Widget, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[str]:
+        """Return each row of *widget* as the SGR parameters of every cell, joined by spaces."""
+        rows = []
+        for row in widget.render(size, focus).content():
+            codes = []
+            for attr, _cs, text in row:
+                code = self.screen._attr_to_escape(attr).removeprefix("\x1b[0;").removesuffix("m")
+                codes.extend([code] * len(text))
+            rows.append(" ".join(codes))
+        return rows
+
+    def draw(self, canvas: urwid.Canvas) -> str:
+        """Draw *canvas* on the screen and return what is written to the terminal."""
+        written: list[str] = []
+        self.screen.write = written.append
+        self.screen.flush = lambda: None
+        self.screen._started = True
+        self.screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+        return "".join(written)
+
+    def test_draw_output_and_palette_change_repaint(self) -> None:
+        """Write the inherited colors, and after a palette change rewrite only the rows it gives other colors."""
+        canvas = urwid.Pile([urwid.AttrMap(urwid.Text(("red_fg", "x")), "blue_bg"), urwid.Text("other")]).render((5,))
+
+        self.assertIn("\x1b[0;31;44mx\x1b[0;39;44m", self.draw(canvas))
+        self.screen.register_palette_entry("blue_bg", "inherit", "dark green")
+        output = self.draw(canvas)
+        self.assertIn("\x1b[0;31;42mx", output)
+        self.assertNotIn("other", output)
+
+    def test_monochrome_draw_output(self) -> None:
+        """Combine monochrome settings of the layers in the drawn output."""
+        self.screen.set_terminal_properties(colors=1)
+        self.screen.register_palette(
+            [("bold_fg", "dark red", "inherit", "bold"), ("ul_bg", "inherit", "dark blue", "underline")]
+        )
+        canvas = urwid.AttrMap(urwid.Text(("bold_fg", "x")), "ul_bg").render((1,))
+
+        self.assertIn("\x1b[0;39;1;4;49mx", self.draw(canvas))
+
+    def test_cell_colors(self) -> None:
+        focus_rows = [
+            urwid.AttrMap(
+                urwid.Columns(
+                    [
+                        urwid.Text(("green_fg", "G")),
+                        urwid.Text(("error", "E")),
+                        urwid.Text(("brown_fg", "s")),
+                    ]
+                ),
+                None,
+                focus_map="focus_bg",
+            )
+            for _ in range(2)
+        ]
+        cases = (
+            (
+                # every cell of a Pile has the AttrMap background, each child keeps its foreground (#329)
+                "container background",
+                urwid.AttrMap(
+                    urwid.Pile(
+                        [
+                            urwid.Text(("red_fg", "a")),
+                            urwid.Divider("-"),
+                            urwid.Columns([urwid.Text("b"), urwid.Text(("green_fg", "c"))]),
+                        ]
+                    ),
+                    "panel_bg",
+                ),
+                (4,),
+                False,
+                [],
+                ["31;46 39;46 39;46 39;46", "39;46 39;46 39;46 39;46", "39;46 39;46 32;46 39;46"],
+            ),
+            (
+                # the focused row is highlighted behind fg-only attributes; a run with its own background keeps it
+                "focus highlight",
+                urwid.ListBox(urwid.SimpleFocusListWalker(focus_rows)),
+                (3, 2),
+                True,
+                [],
+                ["32;47 30;41 33;47", "32;49 30;41 33;49"],
+            ),
+            (
+                "nested markup returns to the outer background",
+                urwid.AttrMap(urwid.Text(("red_fg", ["a", ("blue_bg", "b"), "c"])), "panel_bg"),
+                (3,),
+                False,
+                [],
+                ["31;46 31;44 31;46"],
+            ),
+            (
+                "screen background from the None entry",
+                urwid.Text([("red_fg", "a"), "b"]),
+                (2,),
+                False,
+                [(None, "default", "dark magenta")],
+                ["31;45 39;45"],
+            ),
+        )
+        for name, widget, size, focus, palette, expected in cases:
+            with self.subTest(name):
+                self.screen.register_palette([(None, "default", "default"), *palette])
+                self.assertEqual(expected, self.cells(widget, size, focus=focus))
+
+    def test_redefined_alias_is_drawn_with_its_new_entry(self) -> None:
+        self.screen.register_palette([("alias", "red_fg")])
+        self.screen._attr_to_escape("alias")  # drawn once, so its escape is cached
+        self.screen.register_palette([("alias", "blue_bg")])
+
+        self.assertEqual("\x1b[0;39;44m", self.screen._attr_to_escape("alias"))
+
+    def test_opaque_attributes_ignore_enclosing_layers(self) -> None:
+        expected = self.screen._attrspec_to_escape(urwid.AttrSpec("yellow", "default", 16))
+
+        for attr in ("opaque", urwid.LayeredAttr("opaque", "panel_bg")):
+            with self.subTest(attr=attr):
+                self.assertEqual(expected, self.screen._attr_to_escape(attr))

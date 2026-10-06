@@ -118,10 +118,7 @@ class HtmlGenerator(BaseScreen):
 
             for a, _cs, run in row:
                 t_run = run.decode(get_encoding()).translate(_trans_table)
-                if isinstance(a, AttrSpec):
-                    aspec = a
-                else:
-                    aspec = self._palette[a][{1: 1, 16: 0, 88: 2, 256: 3}[self.colors]]
+                aspec = self.resolve_attr(a, {1: 1, 16: 0, 88: 2, 256: 3}[self.colors])
 
                 if y == cy and col <= cx:
                     run_width = str_util.calc_width(t_run, 0, len(t_run))

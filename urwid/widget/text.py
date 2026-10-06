@@ -130,7 +130,8 @@ class Text(Widget):
 
             *display attributes*
               run length encoded display attributes for *text*, eg.
-              ``[('attr1', 10), ('attr2', 5)]``
+              ``[('attr1', 10), ('attr2', 5)]``; nested markup gives a
+              :class:`~urwid.LayeredAttr` of the inner and the enclosing attributes
 
         >>> Text("Hello").get_text()
         ('Hello', [])
@@ -138,6 +139,8 @@ class Text(Widget):
         ('Headline', [('bright', 8)])
         >>> Text([("a", "one"), "two", ("b", "three")]).get_text()
         ('onetwothree', [('a', 3), (None, 3), ('b', 5)])
+        >>> Text(("a", ["one", ("b", "two")])).get_text()
+        ('onetwo', [('a', 3), (LayeredAttr('b', 'a'), 3)])
         """
         return self._text, self._attrib
 

@@ -505,13 +505,8 @@ class Screen(BaseScreen, RealTerminal):
         rows, cols = self.s.getmaxyx()
         return cols, rows
 
-    def _setattr(self, a: AttrSpec | str | None) -> None:
-        if a is None:
-            self.s.attrset(0)
-            return
-        if not isinstance(a, AttrSpec):
-            p = self._palette.get(a, (AttrSpec("default", "default"),))
-            a = p[0]
+    def _setattr(self, a: Hashable) -> None:
+        a = self.resolve_attr(a, 0)
 
         try:
             attr = self._curses_attr_cache[a]

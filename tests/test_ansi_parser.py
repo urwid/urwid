@@ -81,6 +81,21 @@ class StreamingFeedTest(unittest.TestCase):
         self.assertEqual([line.text for line in single], [line.text for line in streamed])
         self.assertEqual([line.attrib for line in single], [line.attrib for line in streamed])
 
+    def test_sgr_settings_reset_and_reenabled_across_feed_calls(self) -> None:
+        parser = AnsiParser(one_line=True)
+        for chunk in ("\x1b[3;9ma", "\x1b[23mb", "\x1b[3mc"):
+            parser.feed(chunk)
+        lines = parser.finalize()
+
+        self.assertEqual(
+            [
+                (AttrSpec("inherit,italics,strikethrough", "inherit"), 1),
+                (AttrSpec("inherit,strikethrough,no-italics", "inherit"), 1),
+                (AttrSpec("inherit,italics,strikethrough", "inherit"), 1),
+            ],
+            lines[0].attrib,
+        )
+
     def test_line_end_split_across_feed_calls(self) -> None:
         parser = AnsiParser(one_line=True)
         parser.feed("one\r")
@@ -314,7 +329,10 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         self.assertIsNone(reset)
 
     def test_default_default_is_none(self) -> None:
-        self.assertIsNone(sgi_params_to_attrspec([39, 49], None))
+        """Return no attribute for default colors, also after a reset of a setting that was never set."""
+        for params in ([39, 49], [22], [23], [29]):
+            with self.subTest(params=params):
+                self.assertIsNone(sgi_params_to_attrspec(params, None))
 
     def test_never_raises_on_charset_codes(self) -> None:
         # SGR 10/11/12 toggle vterm-only charset/display-control state;
@@ -325,40 +343,121 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         self.assertEqual(AttrSpec("dark red", "default"), result)
 
     def test_applied_on_top_of_previous(self) -> None:
-        """Keep each colour's own depth and brightness when other parameters change."""
-        for label, previous, params, expected in (
+        """Apply each step of SGR parameters on top of the attribute the steps before it produced.
+
+        Cases by unset_color:
+
+        - 'default': a color keeps its own depth and brightness, and a setting stays, when other parameters change.
+        - 'inherit': unset colors and settings are left to the enclosing attribute.
+          SGR 22, 23 and 29 are kept as 'no-' settings, and SGR 0 clears everything.
+        """
+        for label, unset_color, steps, expected in (
             (
-                "256-colour foreground beside a true-colour background",
-                None,
-                [38, 5, 100, 48, 2, 1, 2, 3],
+                "default: 256-color foreground beside a true-color background",
+                "default",
+                [[38, 5, 100, 48, 2, 1, 2, 3]],
                 AttrSpec("#878700", "#010203", colors=2**24),
             ),
             (
-                "basic foreground beside a true-colour background",
-                None,
-                [48, 2, 1, 2, 3, 31],
+                "default: basic foreground beside a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3, 31]],
                 AttrSpec("dark red", "#010203", colors=2**24),
             ),
             (
-                "basic foreground after a true-colour background",
-                [48, 2, 1, 2, 3],
-                [31],
+                "default: basic foreground after a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3], [31]],
                 AttrSpec("dark red", "#010203", colors=2**24),
             ),
             (
-                "256-colour foreground after a true-colour background",
-                [48, 2, 1, 2, 3],
-                [38, 5, 100],
+                "default: 256-color foreground after a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3], [38, 5, 100]],
                 AttrSpec("#878700", "#010203", colors=2**24),
             ),
-            ("bright foreground keeps its brightness", [91], [4], AttrSpec("light red,underline", "default")),
-            ("bright background keeps its brightness", [101], [4], AttrSpec("default,underline", "light red")),
-            ("bold brightening stays while bold", [1, 31], [4], AttrSpec("light red,bold,underline", "default")),
-            ("bold brightening goes with bold", [1, 31], [22], AttrSpec("dark red", "default")),
+            (
+                "default: bright foreground keeps its brightness",
+                "default",
+                [[91], [4]],
+                AttrSpec("light red,underline", "default"),
+            ),
+            (
+                "default: bright background keeps its brightness",
+                "default",
+                [[101], [4]],
+                AttrSpec("default,underline", "light red"),
+            ),
+            (
+                "default: bold brightening stays while bold",
+                "default",
+                [[1, 31], [4]],
+                AttrSpec("light red,bold,underline", "default"),
+            ),
+            ("default: bold brightening goes with bold", "default", [[1, 31], [22]], AttrSpec("dark red", "default")),
+            ("default: italics kept across a color", "default", [[3], [31]], AttrSpec("dark red,italics", "default")),
+            (
+                "default: strikethrough kept across a color",
+                "default",
+                [[9], [31]],
+                AttrSpec("dark red,strikethrough", "default"),
+            ),
+            ("inherit: foreground only", "inherit", [[31]], AttrSpec("dark red", "inherit")),
+            ("inherit: SGR 39 resets the foreground", "inherit", [[31, 44], [39]], AttrSpec("inherit", "dark blue")),
+            ("inherit: SGR 0 resets everything", "inherit", [[31, 44], [0]], None),
+            (
+                "inherit: SGR 22 turns bold off",
+                "inherit",
+                [[31, 1], [22]],
+                AttrSpec("dark red,no-bold,no-faint", "inherit"),
+            ),
+            (
+                "inherit: SGR 1 turns bold on again",
+                "inherit",
+                [[31, 1], [22], [1]],
+                AttrSpec("light red,bold,no-faint", "inherit"),
+            ),
+            ("inherit: SGR 0 clears a reset", "inherit", [[22], [0]], None),
+            (
+                "inherit: a reset survives explicit colors",
+                "inherit",
+                [[22], [31, 41], [39, 49]],
+                AttrSpec("inherit,no-bold,no-faint", "inherit"),
+            ),
+            ("inherit: SGR 3 italics", "inherit", [[3]], AttrSpec("inherit,italics", "inherit")),
+            (
+                "inherit: italics kept across colors",
+                "inherit",
+                [[3], [31, 44]],
+                AttrSpec("dark red,italics", "dark blue"),
+            ),
+            ("inherit: SGR 23 turns italics off", "inherit", [[3], [23]], AttrSpec("inherit,no-italics", "inherit")),
+            ("inherit: italics on again", "inherit", [[3], [23], [3]], AttrSpec("inherit,italics", "inherit")),
+            ("inherit: SGR 9 strikethrough", "inherit", [[9]], AttrSpec("inherit,strikethrough", "inherit")),
+            (
+                "inherit: strikethrough kept across colors",
+                "inherit",
+                [[9], [31, 44]],
+                AttrSpec("dark red,strikethrough", "dark blue"),
+            ),
+            (
+                "inherit: SGR 29 turns strikethrough off",
+                "inherit",
+                [[9], [29]],
+                AttrSpec("inherit,no-strikethrough", "inherit"),
+            ),
+            (
+                "inherit: strikethrough on again",
+                "inherit",
+                [[9], [29], [9]],
+                AttrSpec("inherit,strikethrough", "inherit"),
+            ),
         ):
             with self.subTest(label):
-                base = None if previous is None else sgi_params_to_attrspec(previous, None)
-                self.assertEqual(expected, sgi_params_to_attrspec(params, base))
+                attr = None
+                for params in steps:
+                    attr = sgi_params_to_attrspec(params, attr, unset_color=unset_color)
+                self.assertEqual(expected, attr)
 
 
 class ParsedLineDataclassTest(unittest.TestCase):
@@ -651,7 +750,7 @@ class OscTerminationTest(unittest.TestCase):
     def test_unterminated_osc_ends_at_escape(self) -> None:
         """End an OSC string at an ESC not followed by a backslash, unapplied, and parse what follows."""
         text = "a\x1b]0;title\x1b[31mred text\x07b"
-        red = sgi_params_to_attrspec([31], None)
+        red = sgi_params_to_attrspec([31], None, unset_color="inherit")
         for one_line in (True, False):
             for split in range(len(text) + 1):
                 with self.subTest(one_line=one_line, split=split):
@@ -680,7 +779,7 @@ class OscTerminationTest(unittest.TestCase):
 
     def test_overlong_osc_discard_ends_at_escape(self) -> None:
         """End the discarded remainder of an over-long OSC string at an ESC not followed by a backslash."""
-        red = sgi_params_to_attrspec([31], None)
+        red = sgi_params_to_attrspec([31], None, unset_color="inherit")
         for one_line in (True, False):
             with self.subTest(one_line=one_line):
                 line = self._parse_chunked(["a\x1b]0;" + "A" * 5000 + "\x1b", "[31mb"], one_line)

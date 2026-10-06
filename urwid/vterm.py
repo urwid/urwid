@@ -1296,7 +1296,7 @@ class TermCanvas(Canvas):
         trim_top: int = 0,
         cols: int = 0,
         rows: int = 0,
-        attr: Mapping[Hashable, AttrSpec | str | None] | None = None,
+        attr: Mapping[Hashable, Hashable] | None = None,
     ) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
         """Canvas content.
 
