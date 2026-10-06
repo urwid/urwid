@@ -202,6 +202,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
+
+        .. deprecated:: 4.0.2
+            Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
         """
         super().__init__()
         if isinstance(body, ListWalker):
@@ -247,6 +250,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """A ListWalker subclass such as :class:`SimpleFocusListWalker` that contains widgets.
 
         The widgets are to be displayed inside the list box.
+
+        .. deprecated:: 4.0.2
+            Assigning a body that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
         """
         return typing.cast("ListWalker[_K, AbstractFlowWidget]", self._body)
 
@@ -1835,6 +1841,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """Pass the event to the contained widgets.
 
         May change focus on button 1 press.
+
+        .. deprecated:: 2.6.5
+            Support for a contained widget that does not implement ``mouse_event`` is deprecated.
         """
         from urwid.util import is_mouse_press
 

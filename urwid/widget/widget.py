@@ -922,6 +922,9 @@ class WidgetWrap(
         users of the subclass.  The subclass may decide to expose some
         of the wrapped widgets by behaving like a ContainerWidget or
         WidgetDecoration, or it may hide them from outside access.
+
+        .. deprecated:: 2.4.0
+            Wrapping an object that does not implement the Widget API (see ``AbstractWidget``) is deprecated.
         """
         super().__init__()
         if not isinstance(w, AbstractWidget):

@@ -9,7 +9,8 @@ import weakref
 from unittest import mock
 
 import urwid
-from urwid import escape, signals
+from urwid import signals
+from urwid.display import escape
 from urwid.display._raw_display_base import TermModes, detect_terminal_properties
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec
 from urwid.util import set_temporary_encoding

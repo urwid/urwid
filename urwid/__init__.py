@@ -477,7 +477,6 @@ _moved_warn: dict[str, str] = {
     "curses_display": "urwid.display.curses",
     "escape": "urwid.display.escape",
 }
-# Before DeprecationWarning need to start PendingDeprecationWarning process.
 
 
 def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
@@ -535,11 +534,18 @@ class _MovedModuleWarn(_MovedModule):
     """Special class to handle moved modules.
 
     Produce DeprecationWarning messages for imports.
+
+    .. deprecated:: 2.4.0
+        This API will be removed in version 6.0.
     """
 
     __slots__ = ()
 
     def __getattr__(self, name: str) -> typing.Any:
+        if name.startswith("__") and name.endswith("__"):
+            # Introspection (for example `unittest` reading `__warningregistry__` of every module in `sys.modules`)
+            # must neither warn nor replace this stub with the real module.
+            raise AttributeError(name)
         warnings.warn(
             f"{self._moved_from} is moved to {self._moved_to} since urwid 2.4.0. API will be removed in version 6.0.",
             DeprecationWarning,
@@ -558,6 +564,11 @@ def __getattr__(name: str) -> typing.Any:
 
     :return: attribute by name
     :raises AttributeError: attribute is not defined for lazy load
+
+    .. deprecated:: 2.4.0
+        ``urwid.display_common``, ``urwid.raw_display``, ``urwid.curses_display`` and ``urwid.escape`` moved to
+        ``urwid.display.common``, ``urwid.display.raw``, ``urwid.display.curses`` and ``urwid.display.escape``.
+        This API will be removed in version 6.0.
     """
     if name in _moved_warn:
         warnings.warn(

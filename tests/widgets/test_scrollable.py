@@ -164,7 +164,8 @@ class TestScrollable(unittest.TestCase):
             def keypress(self, size, key):
                 return key  # never handles anything
 
-        widget = urwid.Scrollable(NoCursorCoordsWidget(), force_forward_keypress=True)
+        with self.assertWarns(DeprecationWarning):
+            widget = urwid.Scrollable(NoCursorCoordsWidget(), force_forward_keypress=True)
         size = (10, 3)
 
         widget.render(size, True)
@@ -189,7 +190,8 @@ class TestScrollable(unittest.TestCase):
             def keypress(self, size, key):
                 return key
 
-        widget = urwid.Scrollable(NoMouseWidget())
+        with self.assertWarns(DeprecationWarning):
+            widget = urwid.Scrollable(NoMouseWidget())
 
         self.assertFalse(widget.mouse_event((10, 3), "mouse press", 1, 0, 0, False))
 

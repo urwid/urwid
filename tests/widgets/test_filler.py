@@ -121,7 +121,7 @@ class FillerTest(unittest.TestCase):
         min_height: int | None = None,
     ) -> None:
         with self.subTest(desc):
-            f = urwid.Filler(None, valign, height, min_height)
+            f = urwid.Filler(urwid.SolidFill(), valign, height, min_height)
             t, b = f.filler_values((20, maxrow), False)
             self.assertEqual(
                 (t, b),
@@ -131,7 +131,7 @@ class FillerTest(unittest.TestCase):
 
     def fetest(self, desc: str, valign, height) -> None:
         with self.subTest(desc):
-            self.assertRaises(urwid.FillerError, urwid.Filler, None, valign, height)
+            self.assertRaises(urwid.FillerError, urwid.Filler, urwid.SolidFill(), valign, height)
 
     def test_create(self):
         self.fetest("invalid pad", 6, 5)

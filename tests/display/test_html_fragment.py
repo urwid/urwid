@@ -170,23 +170,24 @@ class ScreenshotInitTest(unittest.TestCase):
         raw.Screen = self._orig_raw_screen
 
     def test_rejects_a_non_positive_size(self) -> None:
-        with self.assertRaises(ValueError):
+        with self.assertWarns(DeprecationWarning), self.assertRaises(ValueError):
             html_fragment.screenshot_init([(80, 0)], [])
 
     def test_rejects_a_non_integer_size(self) -> None:
-        with self.assertRaises(TypeError):
+        with self.assertWarns(DeprecationWarning), self.assertRaises(TypeError):
             html_fragment.screenshot_init([(80.0, 25)], [])
 
     def test_rejects_keys_that_are_not_a_list_of_lists(self) -> None:
-        with self.assertRaises(TypeError):
+        with self.assertWarns(DeprecationWarning), self.assertRaises(TypeError):
             html_fragment.screenshot_init([(80, 25)], ["down"])
 
     def test_rejects_a_non_string_key(self) -> None:
-        with self.assertRaises(TypeError):
+        with self.assertWarns(DeprecationWarning), self.assertRaises(TypeError):
             html_fragment.screenshot_init([(80, 25)], [["down", 1]])
 
     def test_replaces_curses_and_raw_screen_with_html_generator(self) -> None:
-        html_fragment.screenshot_init([(80, 25)], [["Q"]])
+        with self.assertWarns(DeprecationWarning):
+            html_fragment.screenshot_init([(80, 25)], [["Q"]])
 
         if curses is not None:
             self.assertIs(curses.Screen, HtmlGenerator)

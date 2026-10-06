@@ -71,8 +71,9 @@ class LiarFooter(Widget):
 
 class FrameTest(unittest.TestCase):
     def ftbtest(self, desc: str, focus_part, header_rows, footer_rows, size, focus, top, bottom):
-        class FakeWidget:
+        class FakeWidget(urwid.Text):
             def __init__(self, rows, want_focus):
+                super().__init__("")
                 self.ret_rows = rows
                 self.want_focus = want_focus
 
