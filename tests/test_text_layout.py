@@ -537,6 +537,36 @@ class ZeroWidthLineTrimTest(unittest.TestCase):
                             self.assertEqual(1, edit.render((5,), focus=True).rows())
 
 
+class ZeroWidthBeforeBreakTest(unittest.TestCase):
+    """Zero-width characters in front of the space a ``"space"`` wrapped line breaks at."""
+
+    def test_layout(self):
+        layout = urwid.StandardTextLayout()
+        with set_temporary_encoding("utf-8"):
+            for name, chars in (("zero width space", "\u200b"), ("combining mark", "\u0301"), ("control", "\x01")):
+                with self.subTest(line=name):
+                    self.assertEqual(
+                        [[(0, 1)], [(2, 2, 4), (0, 4)]],
+                        layout.layout(f"{chars} bb", 2, urwid.Align.LEFT, urwid.WrapMode.SPACE),
+                    )
+
+    def test_layout_after_tab(self):
+        layout = urwid.StandardTextLayout()
+        with set_temporary_encoding("utf-8"):
+            for wrap, line in ((urwid.WrapMode.ANY, "\t\x01a"), (urwid.WrapMode.SPACE, "\t\x01 b")):
+                with self.subTest(wrap=wrap):
+                    for segments in layout.layout(line, 1, urwid.Align.LEFT, wrap):
+                        self.assertTrue(all(segment[0] > 0 for segment in segments if len(segment) == 3))
+
+    def test_render(self):
+        with set_temporary_encoding("utf-8"):
+            self.assertEqual(2, urwid.Text("\x01 bb", wrap=urwid.WrapMode.SPACE).render((2,)).rows())
+            for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                for wrap, line in ((urwid.WrapMode.ANY, "\t\x01a"), (urwid.WrapMode.SPACE, "\t\x01 b")):
+                    with self.subTest(align=align, wrap=wrap):
+                        urwid.Edit("", line, align=align, wrap=wrap).render((1,), focus=True)
+
+
 class NumericLayout(urwid.TextLayout):
     """
     TextLayout class for bottom-right aligned numbers

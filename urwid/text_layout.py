@@ -449,8 +449,8 @@ class StandardTextLayout(TextLayout):
                     line, column = [], 0
                     continue
 
-            if cut > pos:
-                line.append((calc_width(text, pos, cut), pos, cut))
+            if cut > pos and (chunk_width := calc_width(text, pos, cut)):
+                line.append((chunk_width, pos, cut))
             if resume > cut:
                 line.append((0, cut))  # removed character hint
             lines.append(line)
@@ -560,7 +560,7 @@ class StandardTextLayout(TextLayout):
                 if text[prev] == sp_o:
                     screen_columns = calc_width(text, idx, prev)
                     line: list[tuple[int, int, int | bytes] | tuple[int, int]] = [(0, prev)]
-                    if idx != prev:
+                    if screen_columns:
                         line = [(screen_columns, idx, prev), *line]
                     segments.append(line)
                     idx = prev + 1
