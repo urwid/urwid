@@ -914,7 +914,7 @@ class AttrSpec:
             if self.foreground_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.foreground_number!r}")
             vals = _COLOR_VALUES_88[self.foreground_number]
-        elif self.colors == 2**24:
+        elif self.foreground_true:
             h = f"{self.foreground_number:06x}"
             vals = typing.cast(
                 "tuple[int, int, int]",
@@ -929,7 +929,7 @@ class AttrSpec:
             if self.background_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
             return (*vals, *_COLOR_VALUES_88[self.background_number])
-        if self.colors == 2**24:
+        if self.background_true:
             h = f"{self.background_number:06x}"
             return (*vals, *(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])))
 

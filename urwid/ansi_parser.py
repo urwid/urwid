@@ -49,6 +49,8 @@ if typing.TYPE_CHECKING:
 
 
 __all__ = (
+    "MAX_CSI_LENGTH",
+    "MAX_OSC_LENGTH",
     "AnsiParser",
     "ParsedLine",
     "SkippedOp",
@@ -98,12 +100,12 @@ _MAX_CURSOR_POSITION = 1024
 #: CSI parameter strings of this length or longer are skipped unparsed. Real sequences are far shorter (a truecolour
 #: foreground and background SGR is under 50 characters). Staying below 640, the lowest limit
 #: :func:`sys.set_int_max_str_digits` accepts, guarantees ``int()`` never rejects a parameter.
-_MAX_CSI_LENGTH = 256
+MAX_CSI_LENGTH = 256
 
 #: OSC strings of this length or longer are skipped, and the rest of the string up to its terminator, or up to an ESC
 #: starting a new sequence, is discarded unbuffered, so an unterminated OSC costs neither memory nor quadratic string
 #: growth.
-_MAX_OSC_LENGTH = 4096
+MAX_OSC_LENGTH = 4096
 
 #: The most entries a ``skipped`` list holds, covering one 64 KiB raw display read of 2-byte sequences.
 _MAX_SKIPPED = 65536
@@ -500,7 +502,7 @@ class AnsiParser:
         if self._parsestate == 1:  # within CSI
             if ch in "0123456789;" or (not self._escbuf and ch == "?"):
                 # past the limit the parameters are dropped; _dispatch_csi skips the sequence by its length
-                if len(self._escbuf) < _MAX_CSI_LENGTH:
+                if len(self._escbuf) < MAX_CSI_LENGTH:
                     self._escbuf += ch
                 return
             self._dispatch_csi(ch, self._escbuf)
@@ -535,8 +537,8 @@ class AnsiParser:
 
     def _dispatch_csi(self, final: str, escbuf: str) -> None:
         raw = f"{ESC}[{escbuf}{final}"
-        if len(escbuf) >= _MAX_CSI_LENGTH:
-            self._skip("unknown", raw, f"CSI parameters of {_MAX_CSI_LENGTH} characters or more, truncated")
+        if len(escbuf) >= MAX_CSI_LENGTH:
+            self._skip("unknown", raw, f"CSI parameters of {MAX_CSI_LENGTH} characters or more, truncated")
             return
 
         qmark = escbuf.startswith("?")
@@ -648,9 +650,9 @@ class AnsiParser:
         if self._escbuf[-1:] == ESC and ch == "\\":
             self._finish_osc(self._escbuf[:-1])
             return
-        if len(self._escbuf) >= _MAX_OSC_LENGTH:
+        if len(self._escbuf) >= MAX_OSC_LENGTH:
             self._skip(
-                "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {_MAX_OSC_LENGTH} characters or more, truncated"
+                "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {MAX_OSC_LENGTH} characters or more, truncated"
             )
             self._parsestate = 4
             self._escbuf = ch
@@ -794,22 +796,25 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
         previous = None
 
     attributes: set[str] = set()
+    # fg/bg hold a palette index (0-255), or a 0xRRGGBB value when fg_rgb/bg_rgb is set.
+    fg_rgb = bg_rgb = False
     if previous is None:
         fg: int | None = None
         bg: int | None = None
         colors: int = 1
     else:
-        fg = None if "default" in previous.foreground else previous.foreground_number
-        if fg is not None and fg >= 8 and previous.colors == 16:
-            fg -= 8
-
-        bg = None if "default" in previous.background else previous.background_number
-        if bg is not None and bg >= 8 and previous.colors == 16:
-            bg -= 8
-
         for name in _SGR_ATTR_NAMES:
             if getattr(previous, name):
                 attributes.add(name)
+
+        fg = None if "default" in previous.foreground else previous.foreground_number
+        fg_rgb = previous.foreground_true
+        # undo the bold brightening applied below, so it can be reapplied or dropped with the new bold state
+        if fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
+            fg -= 8
+
+        bg = None if "default" in previous.background else previous.background_number
+        bg_rgb = previous.background_true
 
         colors = previous.colors
 
@@ -818,16 +823,16 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
     while idx < len(params):
         attr = params[idx]
         if 30 <= attr <= 37:
-            fg = attr - 30
+            fg, fg_rgb = attr - 30, False
             colors = max(16, colors)
         elif 40 <= attr <= 47:
-            bg = attr - 40
+            bg, bg_rgb = attr - 40, False
             colors = max(16, colors)
         elif 90 <= attr <= 97:
-            fg = attr - 90 + 8
+            fg, fg_rgb = attr - 90 + 8, False
             colors = max(16, colors)
         elif 100 <= attr <= 107:
-            bg = attr - 100 + 8
+            bg, bg_rgb = attr - 100 + 8, False
             colors = max(16, colors)
         elif attr in (38, 48):
             if idx + 2 < len(params) and params[idx + 1] == 5:
@@ -835,18 +840,18 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
                 if 0 <= color <= 255:
                     colors = max(256, colors)
                     if attr == 38:
-                        fg = color
+                        fg, fg_rgb = color, False
                     else:
-                        bg = color
+                        bg, bg_rgb = color, False
                 idx += 2
             elif idx + 4 < len(params) and params[idx + 1] == 2:
                 if all(0 <= component <= 255 for component in params[idx + 2 : idx + 5]):
                     color = (params[idx + 2] << 16) + (params[idx + 3] << 8) + params[idx + 4]
                     colors = 16777216  # 2 ** 24
                     if attr == 38:
-                        fg = color
+                        fg, fg_rgb = color, True
                     else:
-                        bg = color
+                        bg, bg_rgb = color, True
                 idx += 4
         elif attr == 39:
             fg = None
@@ -882,18 +887,19 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
     if "bold" in attributes and colors == 16 and fg is not None and fg < 8:
         fg += 8
 
-    def _defaulter(req_color: int | None) -> str:
+    def _defaulter(req_color: int | None, rgb: bool) -> str:
         if req_color is None:
             return "default"
-        # Note: 88-colour mode cannot be distinguished from 256-colour mode here
-        if req_color > 255 or colors == 2**24:
+        if rgb:
             return color_desc_true(req_color)
+        # Note: 88-colour mode cannot be distinguished from 256-colour mode here.
+        # A true-colour AttrSpec converts a palette name to its RGB value itself.
         if req_color > 15 or colors == 256:
             return color_desc_256(req_color)
         return BASIC_COLORS[req_color]
 
-    decoded_fg = _defaulter(fg)
-    decoded_bg = _defaulter(bg)
+    decoded_fg = _defaulter(fg, fg_rgb)
+    decoded_bg = _defaulter(bg, bg_rgb)
 
     if attributes:
         decoded_fg = ",".join((decoded_fg, *attributes))

@@ -31,6 +31,16 @@ class AttrSpecToCssTest(unittest.TestCase):
         self.assertEqual("#76b900", fg)
         self.assertEqual("#000000", bg)
 
+    def test_basic_colour_beside_true_colour_renders_its_palette_rgb(self) -> None:
+        for aspec, expected in (
+            (AttrSpec("dark red", "#010203", colors=16777216), ("#cd0000", "#010203")),
+            (AttrSpec("#010203", "dark blue", colors=16777216), ("#010203", "#0000ee")),
+        ):
+            with self.subTest(aspec=aspec):
+                fg, bg, _extra = attr_spec_to_css(aspec)
+
+                self.assertEqual(expected, (fg, bg))
+
     def test_standout_swaps_foreground_and_background(self) -> None:
         fg, bg, _extra = attr_spec_to_css(AttrSpec("white,standout", "black"))
 
