@@ -13,7 +13,7 @@ from .columns import Columns
 from .constants import Align, Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .divider import Divider
-from .monitored_list import MonitoredFocusList, MonitoredList
+from .monitored_list import MonitoredFocusList
 from .padding import Padding
 from .pile import Pile
 from .widget import AbstractFlowWidget, WidgetError, WidgetWarning, WidgetWrap
@@ -164,51 +164,6 @@ class GridFlow(
                 raise GridFlowError(f"added content invalid {item!r}").with_traceback(exc.__traceback__) from exc
 
     @property
-    def cells(self) -> MonitoredList[AbstractFlowWidget]:
-        """
-        A list of the widgets in this GridFlow.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You should use the new standard container property `contents` to modify GridFlow. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(w for w, t in self.contents)
-
-        def user_modified() -> None:
-            self.cells = ml
-
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    @cells.setter
-    def cells(self, widgets: MonitoredList[AbstractFlowWidget]) -> None:
-        """
-        Replace the widgets in this GridFlow, giving each of them the current cell width.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You should use the new standard container property `contents` to modify GridFlow. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        focus_position = self.focus_position
-        self.contents = [(new, (WHSettings.GIVEN, self._cell_width)) for new in widgets]
-        if focus_position < len(widgets):
-            self.focus_position = focus_position
-
-    @property
     def cell_width(self) -> int:
         """The width of each cell in the GridFlow.
 
@@ -260,113 +215,12 @@ class GridFlow(
             width_amount = self._cell_width
         return (WHSettings.GIVEN, width_amount)
 
-    def set_focus(self, cell: AbstractFlowWidget | int) -> None:
-        """
-        Set the cell in focus.
-
-        :param cell: contained element to focus
-        :raises IndexError: *cell* is an index with no child widget at it.
-        :raises ValueError: *cell* is a widget that is not in the contents.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus_position` to set the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if isinstance(cell, int):
-            try:
-                if cell < 0 or cell >= len(self.contents):
-                    raise IndexError(f"No GridFlow child widget at position {cell}")
-            except TypeError as exc:
-                raise IndexError(f"No GridFlow child widget at position {cell}").with_traceback(
-                    exc.__traceback__
-                ) from exc
-            self.contents.focus = cell
-            return
-
-        for i, (w, _options) in enumerate(self.contents):
-            if cell == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
-
     @property
     def focus(self) -> AbstractFlowWidget | None:
         """The child widget in focus or None when GridFlow is empty."""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
-
-    def get_focus(self) -> AbstractFlowWidget | None:
-        """
-        Return the widget in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property `focus` to get the focus. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
-    @property
-    def focus_cell(self) -> AbstractFlowWidget | None:
-        """
-        The cell in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` to read the cell in focus,
-            and :attr:`focus_position` to read or set it by index.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property "
-            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.focus
-
-    @focus_cell.setter
-    def focus_cell(self, cell: AbstractFlowWidget) -> None:
-        """
-        Set the cell in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` to read the cell in focus,
-            and :attr:`focus_position` to read or set it by index.
-            This API will be removed in version 5.0.
-
-        :raises ValueError: *cell* is a widget that is not in the contents.
-        """
-        warnings.warn(
-            "only for backwards compatibility. "
-            "You may also use the new standard container property "
-            "`focus` to get the focus and `focus_position` to get/set the cell in focus by index. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        for i, (w, _options) in enumerate(self.contents):
-            if cell == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in GridFlow contents: {cell!r}")
 
     @property
     def focus_position(self) -> int:

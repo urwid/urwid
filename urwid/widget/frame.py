@@ -124,42 +124,6 @@ class Frame(
             self.focus_part = "body"
         self._invalidate()
 
-    def get_header(self) -> HeaderWidget | None:
-        """
-        Return the header widget.
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`header` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.get_header` is deprecated, "
-            f"standard property `{self.__class__.__name__}.header` should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.header
-
-    def set_header(self, header: HeaderWidget | None) -> None:
-        """
-        Set the header widget.
-
-        :param header: the new header widget
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`header` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.set_header` is deprecated, "
-            f"standard property `{self.__class__.__name__}.header` should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.header = header
-
     @property
     def body(self) -> BodyWidget:
         """Return the body widget."""
@@ -170,42 +134,6 @@ class Frame(
         _check_widget_subclass(body)
         self._body = body
         self._invalidate()
-
-    def get_body(self) -> BodyWidget:
-        """
-        Return the body widget.
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`body` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.get_body` is deprecated, "
-            f"standard property {self.__class__.__name__}.body should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.body
-
-    def set_body(self, body: BodyWidget) -> None:
-        """
-        Set the body widget.
-
-        :param body: the new body widget
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`body` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.set_body` is deprecated, "
-            f"standard property `{self.__class__.__name__}.body` should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.body = body
 
     @property
     def footer(self) -> FooterWidget | None:
@@ -219,42 +147,6 @@ class Frame(
         if footer is None and self.focus_part == "footer":
             self.focus_part = "body"
         self._invalidate()
-
-    def get_footer(self) -> FooterWidget | None:
-        """
-        Return the footer widget.
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`footer` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.get_footer` is deprecated, "
-            f"standard property `{self.__class__.__name__}.footer` should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.footer
-
-    def set_footer(self, footer: FooterWidget | None) -> None:
-        """
-        Set the footer widget.
-
-        :param footer: the new footer widget
-
-        .. deprecated:: 2.2.0
-            Use the standard property :attr:`footer` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            f"method `{self.__class__.__name__}.set_footer` is deprecated, "
-            f"standard property `{self.__class__.__name__}.footer` should be used instead. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.footer = footer
 
     @property
     def focus_position(self) -> Literal["header", "footer", "body"]:
@@ -278,43 +170,6 @@ class Frame(
             raise IndexError(f"This Frame has no {part}")
         self.focus_part = part
         self._invalidate()
-
-    def get_focus(self) -> Literal["header", "footer", "body"]:
-        """Return which part of the frame is in focus: `'body', 'header'` or `'footer'`.
-
-        :returns: one of 'header', 'footer' or 'body'.
-
-        .. deprecated:: 1.1.0
-            Use the container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "included for backwards compatibility. "
-            "You should rather use the container property `.focus_position` to get this value. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.focus_position
-
-    def set_focus(self, part: Literal["header", "footer", "body"]) -> None:
-        """
-        Set the part of the frame that is in focus.
-
-        :param part: one of 'header', 'footer' or 'body'
-
-        .. deprecated:: 1.1.0
-            Use the container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "included for backwards compatibility. "
-            "You should rather use the container property `.focus_position` to set this value. "
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.focus_position = part
 
     @property
     def focus(self) -> BodyWidget | HeaderWidget | FooterWidget:

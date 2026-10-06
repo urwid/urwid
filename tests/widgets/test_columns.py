@@ -10,7 +10,6 @@ from tests.util import SelectableText
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection
-
     from typing import Literal
 
 
@@ -879,15 +878,6 @@ class ColumnsTest(unittest.TestCase):
     def test_init_with_a_generator(self):
         urwid.Columns(urwid.Text(c) for c in "ABC")
 
-    def test_old_attributes(self):
-        c = urwid.Columns([urwid.Text("a"), urwid.SolidFill("x")], box_columns=[1])
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(c.box_columns, [1])
-        with self.assertWarns(DeprecationWarning):
-            c.box_columns = []
-
-        self.assertEqual(c.box_columns, [])
-
     def test_box_column(self):
         c = urwid.Columns([urwid.Filler(urwid.Edit()), urwid.Text("")], box_columns=[0])
         c.keypress((10,), "x")
@@ -910,7 +900,7 @@ class ColumnsTest(unittest.TestCase):
 
         with self.subTest("Focus"):
             self.assertEqual(c.focus, None)
-            self.assertRaises(IndexError, lambda: getattr(c, "focus_position"))
+            self.assertRaises(IndexError, lambda: c.focus_position)
             self.assertRaises(IndexError, lambda: setattr(c, "focus_position", None))
             self.assertRaises(IndexError, lambda: setattr(c, "focus_position", 0))
 
@@ -960,53 +950,6 @@ class ColumnsTest(unittest.TestCase):
         c.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(c, "focus_position", -1))
         self.assertRaises(IndexError, lambda: setattr(c, "focus_position", 2))
-
-    def test_deprecated(self):
-        t1 = urwid.Text("one")
-        t2 = urwid.Text("two")
-        sf = urwid.SolidFill("x")
-        # old methods:
-        c = urwid.Columns([t1, ("weight", 3, t2), sf], box_columns=[2])
-        with self.subTest("Focus"):
-            c.set_focus(0)
-            self.assertRaises(IndexError, lambda: c.set_focus(-1))
-            self.assertRaises(IndexError, lambda: c.set_focus(3))
-            c.set_focus(t2)
-            self.assertEqual(c.focus_position, 1)
-            self.assertRaises(ValueError, lambda: c.set_focus("nonexistant"))
-
-        with self.subTest("Contents"):
-            self.assertEqual(c.widget_list, [t1, t2, sf])
-            self.assertEqual(c.column_types, [("weight", 1), ("weight", 3), ("weight", 1)])
-            self.assertEqual(c.box_columns, [2])
-
-        with self.subTest("Contents change"):
-            c.widget_list = [t2, t1, sf]
-            self.assertEqual(c.widget_list, [t2, t1, sf])
-            self.assertEqual(c.box_columns, [2])
-
-            self.assertEqual(
-                c.contents,
-                [(t2, ("weight", 1, False)), (t1, ("weight", 3, False)), (sf, ("weight", 1, True))],
-            )
-            self.assertEqual(c.focus_position, 1)  # focus unchanged
-            c.column_types = [("flow", None), ("weight", 2), ("fixed", 5)]  # use the old name
-            self.assertEqual(c.column_types, [("flow", None), ("weight", 2), ("fixed", 5)])
-            self.assertEqual(
-                c.contents,
-                [(t2, ("pack", None, False)), (t1, ("weight", 2, False)), (sf, ("given", 5, True))],
-            )
-            self.assertEqual(c.focus_position, 1)  # focus unchanged
-
-        with self.subTest("Contents change 2"):
-            c.widget_list = [t1]
-            self.assertEqual(len(c.contents), 1)
-            self.assertEqual(c.focus_position, 0)
-            c.widget_list.extend([t2, t1])
-            self.assertEqual(len(c.contents), 3)
-            self.assertEqual(c.column_types, [("flow", None), ("weight", 1), ("weight", 1)])
-            c.column_types[:] = [("weight", 2)]
-            self.assertEqual(len(c.contents), 1)
 
     def test_regression_columns_different_height(self):
         size = (20, 5)

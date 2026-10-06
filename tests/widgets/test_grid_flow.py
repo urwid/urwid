@@ -284,7 +284,7 @@ class GridFlowTest(unittest.TestCase):
         with self.subTest("Focus"):
             self.assertEqual(gf.focus, None)
             self.assertEqual(gf.contents, [])
-            self.assertRaises(IndexError, lambda: getattr(gf, "focus_position"))
+            self.assertRaises(IndexError, lambda: gf.focus_position)
             self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", None))
             self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", 0))
 
@@ -310,18 +310,6 @@ class GridFlowTest(unittest.TestCase):
         gf.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", -1))
         self.assertRaises(IndexError, lambda: setattr(gf, "focus_position", 3))
-
-    def test_deprecated(self):
-        t1 = urwid.Text("one")
-        t2 = urwid.Text("two")
-        gf = urwid.GridFlow([t1, t2], 5, 1, 0, "left")
-        # old methods:
-        gf.set_focus(0)
-        self.assertRaises(IndexError, lambda: gf.set_focus(-1))
-        self.assertRaises(IndexError, lambda: gf.set_focus(3))
-        gf.set_focus(t1)
-        self.assertEqual(gf.focus_position, 0)
-        self.assertRaises(ValueError, lambda: gf.set_focus("nonexistant"))
 
     def test_empty(self):
         """Test behaviour of empty widget."""

@@ -27,7 +27,6 @@ import dataclasses
 import itertools
 import re
 import typing
-import warnings
 import weakref
 
 import wcwidth
@@ -353,22 +352,6 @@ class Canvas:
         """
         raise NotImplementedError()
 
-    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
-        """Delta between two canvases.
-
-        :returns: a list of row deltas if other is None, otherwise an iterator of row deltas.
-        :raises NotImplementedError: the subclass does not implement the canvas content protocol.
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in version 5.0.
-        """
-        warnings.warn(
-            "content_delta is not used by the code base and will be removed in version 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        raise NotImplementedError()
-
     def get_cursor(self) -> tuple[int, int] | None:
         """Return the cursor position as ``(x, y)``, or ``None`` if no cursor is set."""
         if c := self.coords.get("cursor", None):
@@ -626,25 +609,6 @@ class TextCanvas(Canvas):
                 i += run
             yield row
 
-    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
-        """
-        Return the differences between other and this canvas.
-
-        If other is the same object as self this will return no differences,
-        otherwise this is the same as calling content().
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in version 5.0.
-        """
-        warnings.warn(
-            "content_delta is not used by the code base and will be removed in version 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if other is self:
-            return [self.cols()] * self.rows()
-        return self.content()
-
 
 class BlankCanvas(Canvas):
     """A canvas with nothing on it.
@@ -682,22 +646,6 @@ class BlankCanvas(Canvas):
 
         :raises NotImplementedError: a BlankCanvas does not know its own size.
         """
-        raise NotImplementedError("BlankCanvas doesn't know its own size!")
-
-    def content_delta(self, other: Canvas) -> typing.NoReturn:
-        """
-        Raise :exc:`NotImplementedError`: a BlankCanvas does not know its own size.
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in version 5.0.
-
-        :raises NotImplementedError: a BlankCanvas does not know its own size.
-        """
-        warnings.warn(
-            "content_delta is not used by the code base and will be removed in version 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         raise NotImplementedError("BlankCanvas doesn't know its own size!")
 
 
@@ -748,22 +696,6 @@ class SolidCanvas(Canvas):
         line = [(def_attr, self._cs, self._text * cols)]
         for _ in range(rows):
             yield line
-
-    def content_delta(self, other: Canvas) -> list[int] | Iterator[_ContentLine]:
-        """
-        Return the differences between other and this canvas.
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in version 5.0.
-        """
-        warnings.warn(
-            "content_delta is not used by the code base and will be removed in version 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if other is self:
-            return [self.cols()] * self.rows()
-        return self.content()
 
 
 class CompositeCanvas(Canvas):
@@ -872,40 +804,6 @@ class CompositeCanvas(Canvas):
 
             # prepare next shard tail
             shard_tail = shard_body_tail(num_rows, sbody)
-
-    def content_delta(self, other: Canvas) -> Iterator[_ContentLine]:
-        """
-        Return the differences between other and this canvas.
-
-        .. deprecated:: 4.0.3
-            Not used by the code base; there is no replacement. It will be removed in version 5.0.
-        """
-        warnings.warn(
-            "content_delta is not used by the code base and will be removed in version 5.0",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not hasattr(other, "shards"):
-            yield from self.content()
-
-        else:
-            shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
-            for num_rows, cviews in shards_delta(self.shards, other.shards):
-                # combine shard and shard tail
-                # broken contract, content_delta is deprecated and not used
-                sbody = shard_body(cviews, shard_tail)  # type: ignore[arg-type]
-
-                # output rows
-                row: _ContentLine = []
-                for _ in range(num_rows):
-                    # if whole shard is unchanged, don't keep
-                    # calling shard_body_row
-                    if len(row) != 1 or not isinstance(row[0], int):
-                        row = shard_body_row(sbody)
-                    yield row
-
-                # prepare next shard tail
-                shard_tail = shard_body_tail(num_rows, sbody)
 
     def trim(self, top: int, count: int | None = None) -> None:
         """Trim lines from the top and/or bottom of canvas.
@@ -1135,82 +1033,6 @@ def shard_body_tail(
     return shard_tail
 
 
-def shards_delta(
-    shards: list[tuple[int, list[_CView]]],
-    other_shards: list[tuple[int, list[_CView]]],
-) -> Iterator[tuple[int, Iterable[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]]]:
-    """
-    Yield shards1 with cviews that are the same as shards2 having canv = None.
-
-    .. deprecated:: 4.0.3
-        Not used by the code base; there is no replacement. It will be removed in version 5.0.
-    """
-    warnings.warn(
-        "shards_delta is not used by the code base and will be removed in version 5.0",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    # pylint: disable=stop-iteration-return
-    other_shards_iter = iter(other_shards)
-    other_num_rows = other_cviews = None
-    done = other_done = 0
-    for num_rows, cviews in shards:
-        if other_num_rows is None:
-            other_num_rows, other_cviews = next(other_shards_iter)
-        while other_done < done:
-            other_done += other_num_rows
-            other_num_rows, other_cviews = next(other_shards_iter)
-        if other_done > done:
-            yield (num_rows, cviews)
-            done += num_rows
-            continue
-        # top-aligned shards, compare each cview
-        yield (num_rows, shard_cviews_delta(cviews, other_cviews))  # type: ignore[arg-type]  # `list` is `Iterable`
-        other_done += other_num_rows
-        other_num_rows = None
-        done += num_rows
-
-
-def shard_cviews_delta(
-    cviews: Iterable[_CView],
-    other_cviews: Iterable[_CView],
-) -> Iterator[_CView | tuple[int, int, int, int, dict[Hashable, Hashable] | None, None]]:
-    """Return iterator of cviews with differences between shards.
-
-    If Canvas and shard tail are equal between shards, return None instead of canvas.
-
-    .. deprecated:: 4.0.3
-        Not used by the code base; there is no replacement. It will be removed in version 5.0.
-    """
-    warnings.warn(
-        "shard_cviews_delta is not used by the code base and will be removed in version 5.0",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    # pylint: disable=stop-iteration-return
-    other_cviews_iter = iter(other_cviews)
-    other_cv = None
-    cols = other_cols = 0
-    for cv in cviews:
-        if other_cv is None:
-            other_cv = next(other_cviews_iter)
-        while other_cols < cols:
-            other_cols += other_cv[2]
-            other_cv = next(other_cviews_iter)
-        if other_cols > cols:
-            yield cv
-            cols += cv[2]
-            continue
-        # top-left-aligned cviews, compare them
-        if cv[5] is other_cv[5] and cv[:5] == other_cv[:5]:
-            yield (*cv[:5], None, *cv[6:])
-        else:
-            yield cv
-        other_cols += other_cv[2]
-        other_cv = None
-        cols += cv[2]
-
-
 def shard_body(
     cviews: Iterable[_CView],
     shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]],
@@ -1221,7 +1043,7 @@ def shard_body(
     """
     Return a list of (done_rows, content_iter, cview) tuples for this shard and shard tail.
 
-    If a canvas in cviews is None (eg. when unchanged from shard_cviews_delta())
+    If a canvas in cviews is None
     or if create_iter is False
     then no iterator is created for content_iter.
 

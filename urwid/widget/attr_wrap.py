@@ -69,38 +69,6 @@ class AttrWrap(AttrMap[WrappedWidget]):
             d["focus_attr"] = self.focus_attr
         return d
 
-    @property
-    def w(self) -> WrappedWidget:
-        """
-        The wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    @w.setter
-    def w(self, new_widget: WrappedWidget) -> None:
-        """
-        Replace the wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_widget
-
     def get_attr(self) -> Hashable:
         """Return the attribute applied to the wrapped widget."""
         return typing.cast("Hashable", self.attr_map[None])

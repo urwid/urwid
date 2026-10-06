@@ -242,36 +242,16 @@ class MonitoredDequeInsertIndexTest(unittest.TestCase):
                     deq.insert(index, 9)
                     self.assertEqual(list(reference), list(deq))
 
-    def test_non_integer_index_warns(self) -> None:
-        """Insert at an index without ``__index__``, converted by ``int()``, with one deprecation warning."""
+    def test_non_integer_index_raises(self) -> None:
+        """Raise ``TypeError`` for an index without ``__index__`` like ``deque`` does, with no change."""
         for cls in self.classes:
-            for index in (1.5, decimal.Decimal(1), "1"):
+            for index in (1.5, decimal.Decimal(1), "1", None, "abc", math.inf):
                 with self.subTest(cls=cls.__name__, index=index):
+                    with self.assertRaises(TypeError):
+                        collections.deque([0, 1, 2]).insert(index, 9)
                     deq = cls([0, 1, 2])
-                    with warnings.catch_warnings(record=True) as caught:
-                        warnings.simplefilter("always")
+                    with self.assertRaises(TypeError):
                         deq.insert(index, 9)
-                    message = (
-                        f"{cls.__name__}.insert() with an index of type {type(index).__name__} is deprecated: "
-                        "pass an int or an object with __index__. "
-                        "Support will be removed in version 5.0, after which it raises TypeError like deque.insert()."
-                    )
-                    self.assertEqual(
-                        [(DeprecationWarning, message, __file__)],
-                        [(item.category, str(item.message), item.filename) for item in caught],
-                    )
-                    self.assertEqual([0, 9, 1, 2], list(deq))
-
-    def test_rejected_index_raises_as_before(self) -> None:
-        """Raise what ``int()`` raises for an index it rejects, unchained, with no warning and no change."""
-        for cls in self.classes:
-            for index, error in ((None, TypeError), ("abc", ValueError), (math.inf, OverflowError)):
-                with self.subTest(cls=cls.__name__, index=index), warnings.catch_warnings():
-                    warnings.simplefilter("error")
-                    deq = cls([0, 1, 2])
-                    with self.assertRaises(error) as raised:
-                        deq.insert(index, 9)
-                    self.assertIsNone(raised.exception.__context__)
                     self.assertEqual([0, 1, 2], list(deq))
 
 
