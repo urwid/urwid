@@ -47,6 +47,7 @@
 <li><strong>Windows 10+:</strong> Limited support
   <ul>
   <li>Curses display module requires additional setup (windows-curses package)</li>
+  <li>Curses display module is not available on PyPy for Windows (no <code>_curses</code> module and no windows-curses wheels)</li>
   <li>ANSI support required</li>
   <li>Not supported: Terminal widget, file descriptor operations (except sockets), ZMQ event loop</li>
   <li>ZMQ: Not available on Windows (platform limitation)</li>

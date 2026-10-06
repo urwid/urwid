@@ -89,7 +89,7 @@ jobs:
         # , "macos-latest"
         # enable macOS only if OS specific branch will be added
         # A "t" suffix selects the free-threaded (PEP 703, --disable-gil) build.
-        python-version: [ "3.11", "3.12", "3.13", "3.14", "3.13t", "3.14t" ]
+        python-version: [ "3.11", "3.12", "3.13", "3.14", "3.13t", "3.14t", "pypy3.11" ]
         exclude:
           # trio needs cffi on Windows, which publishes no 3.13t wheel and refuses to build for it.
           - os: "windows-latest"
@@ -112,8 +112,11 @@ jobs:
         run: uv pip install -r pytest_requirements.txt
       - name: Install package with all extras
         # pyzmq (zmq) and windows-curses (curses) publish no free-threaded wheels for every supported version.
+        # The PyPy extras match the pypy3 tox environment.
         run: >-
-          uv pip install -e ".[${{ endsWith(matrix.python-version, 't')
+          uv pip install -e ".[${{ startsWith(matrix.python-version, 'pypy')
+          && 'serial,tornado,trio'
+          || endsWith(matrix.python-version, 't')
           && 'serial,tornado,trio,twisted'
           || 'curses,serial,tornado,trio,twisted,zmq' }}]"
       - name: Test

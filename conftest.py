@@ -10,7 +10,6 @@ if typing.TYPE_CHECKING:
     from pathlib import Path
 
 IS_WINDOWS = sys.platform == "win32"
-IS_GRAALPY = sys.implementation.name == "graalpy"
 
 # Modules that import only on one platform. Urwid picks between them at runtime
 # (see `urwid/display/raw.py` and the `sys.platform` guards in `urwid/__init__.py`),
@@ -36,21 +35,19 @@ _OPTIONAL_BACKEND: typing.Final[dict[str, str]] = {
     "zmq_loop.py": "zmq",
 }
 
-# GraalPy ships a pure-Python `curses` package (so `find_spec("curses")` succeeds) but no compiled
-# `_curses` extension backing it, so importing `curses` itself raises
-# ModuleNotFoundError for `_curses` rather than failing to resolve up front. Treated as always
-# unavailable there rather than probed with `find_spec`, since a partial/shim module on a
-# non-CPython interpreter is not reliable evidence either way.
-_UNAVAILABLE_ON_GRAALPY: typing.Final[frozenset[str]] = frozenset({"_curses"})
-
 
 def _backend_available(name: str) -> bool:
-    if IS_GRAALPY and name in _UNAVAILABLE_ON_GRAALPY:
-        return False
+    """Return whether the module *name* can be imported.
+
+    Importing is the only reliable probe.
+    GraalPy and PyPy for Windows ship an ``_curses`` stub that ``find_spec`` resolves,
+    but the stub raises ``ModuleNotFoundError`` on import.
+    """
     try:
-        return importlib.util.find_spec(name) is not None
-    except (ImportError, ValueError):
+        importlib.import_module(name)
+    except ImportError:
         return False
+    return True
 
 
 def pytest_ignore_collect(collection_path: Path) -> bool | None:
