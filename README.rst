@@ -164,6 +164,8 @@ Urwid core is fully supported. Some extras may have compatibility issues:
 - ✅ Supported: core, tornado, trio, serial, lcd
 - ⚠️ Limited: twisted (may have issues, test before using)
 - ❌ Unsupported: glib, zmq (C extensions with limited PyPy support)
+- ❌ Unsupported: curses on Windows (PyPy for Windows ships no ``_curses`` module and ``windows-curses`` publishes
+  no PyPy wheels)
 
 **GraalPy (experimental)**
 
