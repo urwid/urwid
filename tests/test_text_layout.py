@@ -504,6 +504,39 @@ class TestEllipsis(unittest.TestCase):
                     self.assertEqual(width, sum(segment[0] for segment in segments[0]))
 
 
+class ZeroWidthLineTrimTest(unittest.TestCase):
+    """A line made only of zero-width characters, trimmed by the clip or ellipsis wrap mode."""
+
+    LINES = (
+        ("zero width space", "\u200b"),
+        ("lone combining mark", "\u0301"),
+        ("control character", "\x01"),
+    )
+
+    def test_layout(self):
+        layout = urwid.StandardTextLayout()
+        with set_temporary_encoding("utf-8"):
+            for wrap in (urwid.WrapMode.CLIP, urwid.WrapMode.ELLIPSIS):
+                for name, line in self.LINES:
+                    with self.subTest(wrap=wrap, line=name):
+                        self.assertEqual([[(0, 1)]], layout.layout(line, 5, urwid.Align.LEFT, wrap))
+                        self.assertEqual(
+                            [[(1, 0, 1), (0, 1)], [(0, 3)], [(1, 4, 5), (0, 5)]],
+                            layout.layout(f"a\n{line}\nb", 5, urwid.Align.LEFT, wrap),
+                        )
+
+    def test_render(self):
+        with set_temporary_encoding("utf-8"):
+            for wrap in (urwid.WrapMode.CLIP, urwid.WrapMode.ELLIPSIS):
+                for align in (urwid.Align.LEFT, urwid.Align.CENTER, urwid.Align.RIGHT):
+                    for name, line in self.LINES:
+                        with self.subTest(wrap=wrap, align=align, line=name):
+                            text = urwid.Text(f"a\n{line}\nb", align=align, wrap=wrap)
+                            self.assertEqual(3, text.render((5,)).rows())
+                            edit = urwid.Edit("", line, align=align, wrap=wrap)
+                            self.assertEqual(1, edit.render((5,), focus=True).rows())
+
+
 class NumericLayout(urwid.TextLayout):
     """
     TextLayout class for bottom-right aligned numbers

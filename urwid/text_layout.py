@@ -298,7 +298,7 @@ class StandardTextLayout(TextLayout):
                 pad_right = 0
 
             line: list[tuple[int, int, int | bytes] | tuple[int, int]] = []
-            if idx != end_off:
+            if idx != end_off and screen_columns:
                 line += [(screen_columns, idx, end_off)]
             if trimmed:
                 line += [(ellipsis_width, end_off, ellipsis_char)]
