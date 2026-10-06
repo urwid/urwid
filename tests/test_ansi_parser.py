@@ -324,6 +324,42 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         result = sgi_params_to_attrspec([31, 11], None)
         self.assertEqual(AttrSpec("dark red", "default"), result)
 
+    def test_applied_on_top_of_previous(self) -> None:
+        """Keep each colour's own depth and brightness when other parameters change."""
+        for label, previous, params, expected in (
+            (
+                "256-colour foreground beside a true-colour background",
+                None,
+                [38, 5, 100, 48, 2, 1, 2, 3],
+                AttrSpec("#878700", "#010203", colors=2**24),
+            ),
+            (
+                "basic foreground beside a true-colour background",
+                None,
+                [48, 2, 1, 2, 3, 31],
+                AttrSpec("dark red", "#010203", colors=2**24),
+            ),
+            (
+                "basic foreground after a true-colour background",
+                [48, 2, 1, 2, 3],
+                [31],
+                AttrSpec("dark red", "#010203", colors=2**24),
+            ),
+            (
+                "256-colour foreground after a true-colour background",
+                [48, 2, 1, 2, 3],
+                [38, 5, 100],
+                AttrSpec("#878700", "#010203", colors=2**24),
+            ),
+            ("bright foreground keeps its brightness", [91], [4], AttrSpec("light red,underline", "default")),
+            ("bright background keeps its brightness", [101], [4], AttrSpec("default,underline", "light red")),
+            ("bold brightening stays while bold", [1, 31], [4], AttrSpec("light red,bold,underline", "default")),
+            ("bold brightening goes with bold", [1, 31], [22], AttrSpec("dark red", "default")),
+        ):
+            with self.subTest(label):
+                base = None if previous is None else sgi_params_to_attrspec(previous, None)
+                self.assertEqual(expected, sgi_params_to_attrspec(params, base))
+
 
 class ParsedLineDataclassTest(unittest.TestCase):
     def test_fields_have_expected_defaults(self) -> None:

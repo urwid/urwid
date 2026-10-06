@@ -42,7 +42,13 @@ from contextlib import suppress
 from dataclasses import dataclass
 
 from urwid import event_loop, util
-from urwid.ansi_parser import led_state, resolve_osc_title, sgi_params_to_attrspec
+from urwid.ansi_parser import (
+    MAX_CSI_LENGTH,
+    MAX_OSC_LENGTH,
+    led_state,
+    resolve_osc_title,
+    sgi_params_to_attrspec,
+)
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec, RealTerminal
 from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
@@ -161,6 +167,9 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
 
 CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
 CHARSET_UTF8: Literal[2] = 2
+
+# Cell with no attributes, for the cells a resize adds and the padding of lines from the scrollback.
+_BLANK_CELL: tuple[AttrSpec | None, Literal["0", "U"] | None, bytes] = (None, None, b" ")
 
 
 @dataclass(eq=True, order=False)
@@ -282,7 +291,7 @@ class TermCanvas(Canvas):
 
         self.utf8_eat_bytes: int | None = None
         self.utf8_buffer = bytearray()
-        self.escbuf = b""
+        self._escbuf = bytearray()
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -307,6 +316,15 @@ class TermCanvas(Canvas):
         self.term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = []
 
         self.reset()
+
+    @property
+    def escbuf(self) -> bytes:
+        """Return the buffered bytes of the escape sequence being parsed."""
+        return bytes(self._escbuf)
+
+    @escbuf.setter
+    def escbuf(self, value: bytes) -> None:
+        self._escbuf = bytearray(value)
 
     def set_term_cursor(self, x: int | None = None, y: int | None = None) -> None:
         """Set terminal cursor to x/y and update canvas cursor.
@@ -360,7 +378,7 @@ class TermCanvas(Canvas):
 
     def reset(self) -> None:
         """Reset the terminal."""
-        self.escbuf = b""
+        self._escbuf = bytearray()
         self.within_escape = False
         self.parsestate = 0
 
@@ -441,12 +459,12 @@ class TermCanvas(Canvas):
 
         if width > self.width:
             # grow
-            for y in range(self.height):
-                self.term[y] += [self.empty_char()] * (width - self.width)
+            for row in range(self.height):
+                self.term[row] += [_BLANK_CELL] * (width - self.width)
         elif width < self.width:
             # shrink
-            for y in range(self.height):
-                self.term[y] = self.term[y][:width]
+            for row in range(self.height):
+                self.term[row] = self.term[row][:width]
 
         self.width = width
 
@@ -457,21 +475,23 @@ class TermCanvas(Canvas):
                     last_line = self.scrollback_buffer.pop()
                 except IndexError:
                     # nothing in scrollback buffer, append an empty line
-                    self.term.append(self.empty_line())
+                    self.term.append([_BLANK_CELL] * self.width)
                     self.scrollregion_end += 1
                     continue
 
                 # adjust x axis of scrollback buffer to the current width
                 if (padding := self.width - len(last_line)) > 0:
-                    last_line += [self.empty_char()] * padding
+                    last_line += [_BLANK_CELL] * padding
                 else:
                     last_line = last_line[: self.width]
 
                 self.term.insert(0, last_line)
+                y += 1
         elif height < self.height:
             # shrink
             for _y in range(height, self.height):
                 self.scrollback_buffer.append(self.term.pop(0))
+                y -= 1
 
         self.height = height
 
@@ -506,10 +526,10 @@ class TermCanvas(Canvas):
 
     def parse_csi(self, char: bytes) -> None:
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
-        qmark = self.escbuf.startswith(b"?")
+        qmark = self._escbuf.startswith(b"?")
 
         escbuf = []
-        for arg in self.escbuf[1 if qmark else 0 :].split(b";"):
+        for arg in self._escbuf[1 if qmark else 0 :].split(b";"):
             try:
                 num = int(arg)
             except ValueError:
@@ -576,7 +596,7 @@ class TermCanvas(Canvas):
 
         :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
         """
-        title = resolve_osc_title(buf.decode())
+        title = resolve_osc_title(buf.decode("utf-8", "replace"))
         if title is not None:
             self.widget.set_title(title)
 
@@ -585,50 +605,62 @@ class TermCanvas(Canvas):
         if self.parsestate == 1:
             # within CSI
             if char in CSI_COMMANDS:
-                self.parse_csi(char)
+                if len(self._escbuf) < MAX_CSI_LENGTH:
+                    self.parse_csi(char)
                 self.parsestate = 0
-            elif char in b"0123456789;" or (not self.escbuf and char == b"?"):
-                self.escbuf += char
+            elif char in b"0123456789;" or (not self._escbuf and char == b"?"):
+                # past the limit the parameters are dropped, and the sequence is skipped by its length
+                if len(self._escbuf) < MAX_CSI_LENGTH:
+                    self._escbuf += char
                 return
         elif self.parsestate == 0 and char == b"]":
             # start of OSC
-            self.escbuf = b""
+            self._escbuf = bytearray()
             self.parsestate = 2
             return
-        elif self.parsestate == 2 and self.escbuf[-1:] == ESC_B and char != b"\\":
+        elif self.parsestate in {2, 4} and self._escbuf[-1:] == ESC_B and char != b"\\":
             # ECMA-48 allows no ESC inside a command string other than in ST, so any other ESC ends the string
             # unapplied and starts a new escape sequence
             self.leave_escape()
             self.within_escape = True
             self.process_char(char)
             return
+        elif self.parsestate == 4 and (char == b"\a" or (self._escbuf == ESC_B and char == b"\\")):
+            # end of an over-long OSC string, discarded
+            pass
         elif self.parsestate == 2 and char == b"\a":
             # end of OSC
-            self.parse_osc(self.escbuf.lstrip(b"0"))
-        elif self.parsestate == 2 and self.escbuf[-1:] + char == f"{ESC}\\".encode("iso8859-1"):
+            self.parse_osc(bytes(self._escbuf.lstrip(b"0")))
+        elif self.parsestate == 2 and self._escbuf[-1:] + char == f"{ESC}\\".encode("iso8859-1"):
             # end of OSC
-            self.parse_osc(self.escbuf[:-1].lstrip(b"0"))
-        elif self.parsestate == 2 and self.escbuf.startswith(b"P") and len(self.escbuf) == 8:
+            self.parse_osc(bytes(self._escbuf[:-1].lstrip(b"0")))
+        elif self.parsestate == 2 and self._escbuf.startswith(b"P") and len(self._escbuf) == 8:
             # set palette (ESC]Pnrrggbb)
             pass
-        elif self.parsestate == 2 and not self.escbuf and char == b"R":
+        elif self.parsestate == 2 and not self._escbuf and char == b"R":
             # reset palette
             pass
-        elif self.parsestate == 2:
-            self.escbuf += char
+        elif self.parsestate in {2, 4}:
+            if self.parsestate == 2 and len(self._escbuf) < MAX_OSC_LENGTH:
+                self._escbuf += char
+            else:
+                # the rest of an over-long OSC string: only the last byte is kept,
+                # which is enough to recognise either terminator
+                self.parsestate = 4
+                self._escbuf = bytearray(char)
             return
         elif self.parsestate == 0 and char == b"[":
             # start of CSI
-            self.escbuf = b""
+            self._escbuf = bytearray()
             self.parsestate = 1
             return
         elif self.parsestate == 0 and char in {b"%", b"#", b"(", b")"}:
             # non-CSI sequence
-            self.escbuf = char
+            self._escbuf = bytearray(char)
             self.parsestate = 3
             return
         elif self.parsestate == 3:
-            self.parse_noncsi(char, self.escbuf)
+            self.parse_noncsi(char, bytes(self._escbuf))
         elif char in {b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"="}:
             self.parse_noncsi(char)
 
@@ -638,7 +670,7 @@ class TermCanvas(Canvas):
         """Reset the escape-sequence parser state, discarding any sequence being read."""
         self.within_escape = False
         self.parsestate = 0
-        self.escbuf = b""
+        self._escbuf = bytearray()
 
     def get_utf8_len(self, bytenum: int) -> int:
         """Process startbyte and return the number of bytes following it to get a valid UTF-8 multibyte sequence.
@@ -701,7 +733,7 @@ class TermCanvas(Canvas):
 
         dc = self.modes.display_ctrl
 
-        if char == ESC_B and self.parsestate != 2:  # escape
+        if char == ESC_B and self.parsestate not in {2, 4}:  # escape
             self.within_escape = True
         elif not dc and char == b"\r":  # carriage return CR
             self.carriage_return()
@@ -718,9 +750,8 @@ class TermCanvas(Canvas):
         elif not dc and char == b"\b":  # backspace BS
             if x > 0:
                 self.set_term_cursor(x - 1, y)
-        elif not dc and char == b"\a" and self.parsestate != 2:  # BEL
-            # we need to check if we're in parsestate 2, as an OSC can be
-            # terminated by the BEL character!
+        elif not dc and char == b"\a" and self.parsestate not in {2, 4}:  # BEL
+            # inside an OSC string (parsestate 2, or 4 once over-long) BEL is its terminator
             self.widget.beep()
         elif not dc and char in b"\x18\x1a":  # CAN/SUB
             self.leave_escape()
@@ -730,7 +761,7 @@ class TermCanvas(Canvas):
             self.parse_escape(char)
         elif not dc and char == b"\x9b":  # CSI (equivalent to "ESC [")
             self.within_escape = True
-            self.escbuf = b""
+            self._escbuf = bytearray()
             self.parsestate = 1
         else:
             self.push_cursor(char)
@@ -890,11 +921,10 @@ class TermCanvas(Canvas):
             self.attrspec, self.charset = (copy.copy(self.saved_attrs[0]), copy.copy(self.saved_attrs[1]))
 
     def tab(self, tabstop: int = 8) -> None:
-        """Move cursor to the next 'tabstop' filling everything in between with spaces."""
+        """Move cursor to the next 'tabstop', leaving the cells it passes unchanged."""
         x, y = self.term_cursor
 
         while x < self.width - 1:
-            self.set_char(b" ")
             x += 1
 
             if self.is_tabstop(x):
@@ -948,11 +978,9 @@ class TermCanvas(Canvas):
             char_spec = (self.attrspec, self.charset.current, char)
 
         x, y = position
-
-        while chars > 0:
-            self.term[y].insert(x, char_spec)
-            self.term[y].pop()
-            chars -= 1
+        line = self.term[y]
+        line[x:x] = [char_spec] * min(chars, self.width - x)
+        del line[self.width :]
 
     def remove_chars(self, position: tuple[int, int] | None = None, chars: int = 1) -> None:
         """Remove 'chars' number of empty characters from 'position'.
@@ -967,47 +995,48 @@ class TermCanvas(Canvas):
             chars = 1
 
         x, y = position
-
-        while chars > 0:
-            self.term[y].pop(x)
-            self.term[y].append(self.empty_char())
-            chars -= 1
+        chars = min(chars, self.width - x)
+        line = self.term[y]
+        del line[x : x + chars]
+        line += [self.empty_char()] * chars
 
     def insert_lines(self, row: int | None = None, lines: int = 1) -> None:
-        """Insert 'lines' of empty lines after the specified row, pushing all subsequent lines to the bottom.
+        """Insert 'lines' empty lines at 'row', or the cursor row, pushing the lines below down the scrolling region.
 
-        If no 'row' is specified, the current row is used.
+        Lines pushed past the bottom of the scrolling region are dropped.
+        Nothing happens when the row is outside the scrolling region.
         """
         if row is None:
             row = self.term_cursor[1]
-        else:
-            row = self.scrollregion_start
 
         if lines == 0:
             lines = 1
 
-        while lines > 0:
+        if not self.scrollregion_start <= row <= self.scrollregion_end:
+            return
+
+        for _ in range(min(lines, self.scrollregion_end - row + 1)):
             self.term.insert(row, self.empty_line())
-            self.term.pop(self.scrollregion_end)
-            lines -= 1
+            self.term.pop(self.scrollregion_end + 1)
 
     def remove_lines(self, row: int | None = None, lines: int = 1) -> None:
-        """Remove 'lines' number of lines at the specified row, pulling all subsequent lines to the top.
+        """Remove 'lines' lines at 'row', or the cursor row, pulling the lines below up the scrolling region.
 
-        If no 'row' is specified, the current row is used.
+        Empty lines fill the bottom of the scrolling region.
+        Nothing happens when the row is outside the scrolling region.
         """
         if row is None:
             row = self.term_cursor[1]
-        else:
-            row = self.scrollregion_start
 
         if lines == 0:
             lines = 1
 
-        while lines > 0:
+        if not self.scrollregion_start <= row <= self.scrollregion_end:
+            return
+
+        for _ in range(min(lines, self.scrollregion_end - row + 1)):
             self.term.pop(row)
             self.term.insert(self.scrollregion_end, self.empty_line())
-            lines -= 1
 
     def erase(
         self,
@@ -1223,8 +1252,8 @@ class TermCanvas(Canvas):
         """
         if mode == 0:
             self.erase(self.term_cursor, (self.width - 1, self.height - 1))
-        if mode == 1:
-            self.erase((0, 0), (self.term_cursor[0] - 1, self.term_cursor[1]))
+        elif mode == 1:
+            self.erase((0, 0), self.term_cursor)
         elif mode == 2:
             self.clear(cursor=self.term_cursor)
 
@@ -1277,7 +1306,8 @@ class TermCanvas(Canvas):
             yield from self.term
         else:
             viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
-            yield from (*self.scrollback_buffer, *self.term)[viewport_range]
+            for line in (*self.scrollback_buffer, *self.term)[viewport_range]:
+                yield line[: self.width] + [_BLANK_CELL] * (self.width - len(line))
 
 
 class Terminal(Widget):
@@ -1402,11 +1432,20 @@ class Terminal(Widget):
                         self.command()
                     except BaseException:  # noqa: BLE001  # special case
                         sys.stderr.write(traceback.format_exc())
-                        sys.stderr.flush()
+                    for stream in (sys.stderr, sys.stdout):
+                        with suppress(OSError, ValueError):
+                            stream.flush()
                 finally:
                     os._exit(0)
-            else:
+            try:
                 os.execvpe(self.command[0], self.command, env)  # noqa: S606
+            except (OSError, TypeError, ValueError) as exc:
+                reason = getattr(exc, "strerror", None) or exc
+                with suppress(OSError):
+                    os.write(2, f"{os.fsdecode(self.command[0])}: {reason}\r\n".encode(errors="replace"))
+            finally:
+                # 127 is the shell's "command not found" status
+                os._exit(127)
 
         if self.main_loop is None:
             fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
@@ -1414,30 +1453,59 @@ class Terminal(Widget):
         atexit.register(self.terminate)
 
     def terminate(self) -> None:
-        """Stop watching the pty and kill the child process, escalating through signals until it exits."""
+        """Stop watching the pty, end the child process and close the pty master.
+
+        Signals escalate from SIGHUP to SIGKILL until the child exits.
+        A child that may not be signalled, such as a setuid program, only gets the hangup from closing the master.
+        It is then waited for at most one second, and left unreaped if it keeps running.
+        """
         if self.terminated:
             return
 
         self.terminated = True
-        self.remove_watch()
-        self.change_focus(False)
+        atexit.unregister(self.terminate)
 
-        if typing.cast("int", self.pid) > 0:
+        if self.pid is not None and self.pid > 0:
+            self.remove_watch()
             self.set_termsize(0, 0)
-            for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
-                try:
-                    os.kill(typing.cast("int", self.pid), sig)
-                    pid, _status = os.waitpid(typing.cast("int", self.pid), os.WNOHANG)
-                except OSError:
-                    break
+            reaped = killed = False
+            try:
+                for sig in (signal.SIGHUP, signal.SIGCONT, signal.SIGINT, signal.SIGTERM, signal.SIGKILL):
+                    try:
+                        os.kill(self.pid, sig)
+                    except ProcessLookupError:
+                        # reaped by someone else: a further signal could hit a process that reuses the pid
+                        reaped = True
+                        break
+                    except PermissionError:
+                        # e.g. a setuid child: only the hangup from closing the master below reaches it
+                        break
+                    killed = sig == signal.SIGKILL
+                    if reaped := self._reap_child(0.1):
+                        break
+            finally:
+                os.close(typing.cast("int", self.master))
+            if killed and not reaped:
+                with suppress(ChildProcessError):
+                    os.waitpid(self.pid, 0)
+            elif not reaped:
+                self._reap_child(1.0)
 
-                if pid == 0:
-                    break
-                time.sleep(0.1)
-            with suppress(OSError):
-                os.waitpid(typing.cast("int", self.pid), 0)
+        # last, so a tty that is already gone cannot stop the cleanup above
+        if self.has_focus and self.old_tios:
+            RealTerminal().tty_signal_keys(*self.old_tios)
 
-            os.close(typing.cast("int", self.master))
+    def _reap_child(self, timeout: float) -> bool:
+        """Poll for the child's exit for up to *timeout* seconds, and return whether it is reaped."""
+        deadline = time.monotonic() + timeout
+        try:
+            while os.waitpid(typing.cast("int", self.pid), os.WNOHANG)[0] == 0:
+                if time.monotonic() >= deadline:
+                    return False
+                time.sleep(0.01)
+        except ChildProcessError:  # reaped by someone else
+            pass
+        return True
 
     def beep(self) -> None:
         """Emit a "beep" signal for anything listening on this widget."""
@@ -1497,11 +1565,15 @@ class Terminal(Widget):
         if self.terminated:
             return
 
+        focus_changed = has_focus != self.has_focus
         self.has_focus = has_focus
 
         if self.term is not None:
             self.term.has_focus = has_focus
             self.term.set_term_cursor()
+
+        if not focus_changed:
+            return
 
         if has_focus:
             self.old_tios = RealTerminal().tty_signal_keys()
@@ -1539,7 +1611,8 @@ class Terminal(Widget):
         with selectors.DefaultSelector() as selector:
             selector.register(typing.cast("int", self.master), selectors.EVENT_READ)
 
-            selector.select(timeout)
+            if not selector.select(timeout):
+                return
 
         self.feed()
 
@@ -1569,25 +1642,33 @@ class Terminal(Widget):
         # render() from ever handing out a half-painted mid-block canvas.
         # A child that never closes the block (CSI ?2026l) still gets control back
         # once _SYNCHRONIZED_OUTPUT_DRAIN_LIMIT is hit
-        # or the pty simply has nothing more buffered right now (EWOULDBLOCK).
-        drained = 0
-        while self.term_modes.synchronized_output and drained < self._SYNCHRONIZED_OUTPUT_DRAIN_LIMIT:
-            try:
-                more = os.read(typing.cast("int", self.master), 4096)
-            except OSError as e:
-                if e.errno == errno.EWOULDBLOCK:
-                    break
-                if e.errno == errno.EIO:
-                    self.terminate()
-                    self._emit("closed")
-                    return
-                raise
+        # or the pty simply has nothing more buffered right now.
+        if self.term_modes.synchronized_output:
+            # The master fd is blocking whenever there is a main loop, so read only what select() reports as ready.
+            with selectors.DefaultSelector() as selector:
+                selector.register(typing.cast("int", self.master), selectors.EVENT_READ)
+                drained = 0
+                while (
+                    self.term_modes.synchronized_output
+                    and drained < self._SYNCHRONIZED_OUTPUT_DRAIN_LIMIT
+                    and selector.select(0)
+                ):
+                    try:
+                        more = os.read(typing.cast("int", self.master), 4096)
+                    except OSError as e:
+                        if e.errno == errno.EWOULDBLOCK:
+                            break
+                        if e.errno != errno.EIO:
+                            raise
+                        more = EOF
 
-            if not more:
-                break
+                    if more == EOF:
+                        self.terminate()
+                        self._emit("closed")
+                        return
 
-            self.term.addstr(more)  # type: ignore[union-attr]
-            drained += len(more)
+                    self.term.addstr(more)  # type: ignore[union-attr]
+                    drained += len(more)
 
         self.flush_responses()
 
@@ -1658,10 +1739,11 @@ class Terminal(Widget):
         self.term.scroll_buffer(reset=True)  # type: ignore[union-attr]
 
         if key.startswith("ctrl "):
-            if key[-1].islower():
-                key = chr(ord(key[-1]) - ord("a") + 1)
-            else:
-                key = chr(ord(key[-1]) - ord("A") + 1)
+            # C0 control characters only exist for "@", "A"-"Z" and "[\]^_"
+            char = key.removeprefix("ctrl ").upper()
+            if len(char) != 1 or not "@" <= char <= "_":
+                return key
+            key = chr(ord(char) - ord("@"))
         else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
             if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
                 key = KEY_TRANSLATIONS_DECCKM[key]
