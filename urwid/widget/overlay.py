@@ -177,6 +177,9 @@ class Overlay(
         Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
         widgets when determining the size and position of *top_w*. *bottom_w* is
         always rendered the full size available "below" *top_w*.
+
+        .. deprecated:: 2.4.0
+            Passing a *top_w* or *bottom_w* that does not implement the Widget API is deprecated.
         """
         super().__init__()
 

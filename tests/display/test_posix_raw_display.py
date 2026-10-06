@@ -8,7 +8,8 @@ import sys
 import unittest
 from unittest import mock
 
-from urwid import escape, signals
+from urwid import signals
+from urwid.display import escape
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 
 # `_posix_raw_display` (and `fcntl`/`termios`) is not importable on Windows at all, so importing

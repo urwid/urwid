@@ -996,6 +996,9 @@ class Columns(
         """Send event to appropriate column. May change focus on button 1 press.
 
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+
+        .. deprecated:: 2.4.0
+            Support for a column that does not implement ``mouse_event`` is deprecated.
         """
         widths, _, size_args = self.get_column_sizes(size, focus=focus)
 

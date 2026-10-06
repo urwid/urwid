@@ -23,6 +23,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
     .. deprecated:: 0.9.9
         Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
+        This API will be removed in version 6.0.
     """
 
     def __init__(
@@ -39,6 +40,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
 
         .. deprecated:: 0.9.9
             Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
+            This API will be removed in version 6.0.
 
         >>> from urwid import Divider, Edit, Text
         >>> AttrWrap(Divider("!"), "bright")
@@ -55,7 +57,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         warnings.warn(
             "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead. "
             "API will be removed in version 6.0.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
         super().__init__(w, attr, focus_attr)

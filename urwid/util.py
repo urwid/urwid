@@ -68,6 +68,9 @@ def __getattr__(name: str) -> typing.Any:
     Resolve module attributes that moved to another module, warning about the move.
 
     :raises AttributeError: *name* is not defined in this module.
+
+    .. deprecated:: 2.6.0
+        Import the name from ``urwid`` instead of ``urwid.util``.
     """
     if hasattr(str_util, name):
         warnings.warn(
@@ -567,6 +570,7 @@ def is_mouse_press(ev: str) -> bool:
 
 
 # Former metaclass, now an alias of `type`: `metaclass=MetaSuper` keeps working, and so does a base list naming it last.
+# The name will be removed in version 7.0.
 MetaSuper = type
 
 

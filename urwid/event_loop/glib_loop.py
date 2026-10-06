@@ -63,7 +63,7 @@ class GLibEventLoop(EventLoop):
         """Initialize a fresh GLib.MainLoop with no alarms or watched files yet."""
         warnings.warn(
             "GLibEventLoop is deprecated. API will be removed in version 6.0.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
         super().__init__()

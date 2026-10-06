@@ -567,7 +567,7 @@ class Pile(
         warnings.warn(
             "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose. "
             "API will be removed in version 6.0.",
-            PendingDeprecationWarning,
+            DeprecationWarning,
             stacklevel=2,
         )
         _w, (f, height) = self.contents[i]
@@ -1067,6 +1067,9 @@ class Pile(
         May change focus on button 1 press.
 
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+
+        .. deprecated:: 2.4.0
+            Support for a child that does not implement ``mouse_event`` is deprecated.
         """
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)

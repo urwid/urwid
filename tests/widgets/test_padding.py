@@ -170,12 +170,12 @@ class PaddingTest(unittest.TestCase):
         self.assertEqual(width - 1, canvas.cols())
 
     def ptest(self, desc, align, width, maxcol, left, right, min_width=None):
-        p = urwid.Padding(None, align, width, min_width)
+        p = urwid.Padding(urwid.Text(""), align, width, min_width)
         l, r = p.padding_values((maxcol,), False)
         assert (l, r) == (left, right), f"{desc} expected {left, right} but got {l, r}"
 
     def petest(self, desc, align, width):
-        self.assertRaises(urwid.PaddingError, lambda: urwid.Padding(None, align, width))
+        self.assertRaises(urwid.PaddingError, lambda: urwid.Padding(urwid.Text(""), align, width))
 
     def test_create(self):
         self.petest("invalid pad", 6, 5)

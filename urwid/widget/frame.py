@@ -73,6 +73,9 @@ class Frame(
         :param footer: a flow widget for below the body (or None)
         :param focus_part:  'header', 'footer' or 'body'
         :raises ValueError: *focus_part* is not one of the three frame parts.
+
+        .. deprecated:: 2.4.0
+            Passing a header, body or footer that does not implement the Widget API is deprecated.
         """
         super().__init__()
 

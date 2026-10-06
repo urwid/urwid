@@ -66,7 +66,11 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
     expanded_icon = SelectableIcon("-", 0)
 
     def __init__(self, node: _Node) -> None:
-        """Build the widget representing `node`, expanded by default."""
+        """Build the widget representing `node`, expanded by default.
+
+        .. deprecated:: 4.0.4
+            Passing a *node* that is not a :class:`ParentNode` but defines ``get_first_child`` is deprecated.
+        """
         self._node = node
         self._innerwidget: Text | None = None
         if not isinstance(node, ParentNode):
