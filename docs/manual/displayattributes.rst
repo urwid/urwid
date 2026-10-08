@@ -81,9 +81,11 @@ display attribute ``'attr2'``.
 
     Text(('attr1', [u"nesting example ", ('attr2', u"inside"), u" outside"]))
 
-When markup is nested only the innermost attribute applies. Here ``"inside"``
+When markup is nested the inner attribute is placed over the outer one. Here ``"inside"``
 has attribute ``'attr2'`` and all the rest of the text has attribute
-``'attr1'``.
+``'attr1'``. A color that ``'attr2'`` leaves to ``'inherit'`` is taken from ``'attr1'``
+(see :ref:`inherit-foreground-background`). :meth:`Text.get_text` returns such a run as
+``LayeredAttr('attr2', 'attr1')``.
 
 
 Assigning Display Attributes with AttrMap
@@ -117,6 +119,17 @@ The :class:`AttrMap` widget will apply display attribute ``'attr2'`` to all part
 the :class:`Text` widget that are using ``'attr1'``.  The result is the ``"hello"``
 text appearing with display attribute ``'attr2'`` and all other text and whitespace
 appearing in the default display attribute.
+
+The attributes of the wrapped widget are placed over the attribute :class:`AttrMap` gives to
+``None``, so a color they leave to ``'inherit'`` is taken from it:
+
+::
+
+    AttrMap(Pile([Text(('red_fg', u"error")), Text(u"plain")]), 'panel_bg')
+
+With ``('red_fg', 'dark red', 'inherit')`` and ``('panel_bg', 'inherit', 'dark blue')`` in the
+palette, ``"error"`` is dark red and all other text and whitespace is in the default foreground,
+everything on dark blue.
 
 
 :class:`AttrMap` can also change display attributes differently when they are in focus.
@@ -251,6 +264,63 @@ way to tell what the default colors are, so it is best to use default
 foregrounds and backgrounds together (not with other colors) to ensure good
 contrast.
 
+.. _inherit-foreground-background:
+
+Inherited Foreground and Background
+-----------------------------------
+
+* ``'inherit'``
+
+``'inherit'`` may be specified as a foreground or background color (with settings:
+``'inherit,bold'``) to take that color from the enclosing display attribute: the
+attribute of the outer markup, or the attribute an :class:`AttrMap` around the widget gives to
+``None``. With nothing enclosing it, the color comes from the ``None`` palette entry, so
+registering ``(None, 'default', 'dark magenta')`` gives every attribute with an ``'inherit'``
+background a dark magenta background. A color is resolved separately for each run of text, so
+the text after a run with its own background shows the enclosing background again.
+
+This lets a few foreground-only and background-only palette entries replace an entry for every
+combination of them. To highlight the focused row of a list whose text uses many foreground
+colors, give those entries an ``'inherit'`` background and wrap each row:
+
+::
+
+    palette = [
+        ('method', 'light green', 'inherit'),
+        ('size', 'brown', 'inherit'),
+        ('focus_bg', 'inherit', 'dark blue'),
+    ]
+    row = AttrMap(Columns([Text(('method', u"GET")), Text(('size', u"1k"))]), None, focus_map='focus_bg')
+
+When an attribute inherits a color, a setting (``'bold'``, ``'underline'``, ...) it does not
+mention is taken from the enclosing attribute, and ``'no-'`` turns one off: with
+``('plain', 'inherit,no-bold', 'inherit')`` inside a bold attribute, the text is not bold. An
+attribute that sets both colors, including ``'default'`` and ``''``, hides the enclosing
+attribute completely, settings included. Attributes are combined from the outermost inward, so
+each one keeps what all of the attributes around it set. :class:`ANSIText` turns an SGR reset
+such as ``ESC[24m`` into ``'no-underline'``, so the reset also applies to the enclosing attribute.
+
+A change to a palette entry shows on the next :meth:`MainLoop.draw_screen`, and neither the
+widgets nor the screen have to be redrawn for it: the raw and web displays compare each drawn
+row by its resolved colors and write again only the rows whose colors changed, and curses
+writes every row on each draw.
+
+:meth:`AttrSpec.layered_over` combines two specifications. Canvases record the enclosing
+attributes as a :class:`LayeredAttr`; a custom display module turns any canvas attribute into an
+:class:`AttrSpec` with :meth:`BaseScreen.resolve_attr` instead of reading the palette itself.
+An :class:`AttrMap` can replace a :class:`LayeredAttr` as a whole by using it as a key.
+
+Code written for earlier releases sees these differences, also with palettes that never use
+``'inherit'``:
+
+* Nested markup and attributes inside an :class:`AttrMap` appear as :class:`LayeredAttr` in
+  :meth:`Text.get_text` and in canvas content, where they used to be the innermost name.
+* A display module that reads ``self._palette`` itself shows layered attributes in default
+  colors; it calls :meth:`BaseScreen.resolve_attr` instead.
+* An attribute an :class:`AttrMap` maps to ``None`` shows the map's ``None`` attribute.
+* :meth:`AttrSpec.copy_modified` without ``colors`` keeps the 88-color or true-color mode of the
+  specification, and uses 256 colors otherwise, instead of the fewest colors it needs.
+
 .. _bold-underline-standout:
 
 Bold, Underline, Standout
@@ -265,7 +335,8 @@ Bold, Underline, Standout
 * ``'faint'``
 
 These settings may be tagged on to foreground colors using commas, eg: ``'light
-gray,underline,bold,strikethrough'``
+gray,underline,bold,strikethrough'``. ``'no-'`` in front of one turns it off over an enclosing
+attribute (see :ref:`inherit-foreground-background`).
 
 For monochrome mode combinations of these are the only values that may be used.
 

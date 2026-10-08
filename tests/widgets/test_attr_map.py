@@ -47,6 +47,26 @@ class AttrMapTest(unittest.TestCase):
         self.assertEqual([("greeting", None, b"hi   ")], next(mapped.render(size, focus=False).content()))
         self.assertEqual([("fgreet", None, b"hi   ")], next(mapped.render(size, focus=True).content()))
 
+    def test_render_layers_unmapped_attributes_over_the_map(self) -> None:
+        mapped = urwid.AttrMap(urwid.Text([("fg", "a"), ("word", "b"), "c"]), {None: "bg", "word": "hot"})
+
+        self.assertEqual(
+            [
+                (urwid.LayeredAttr("fg", "bg"), None, b"a"),
+                (urwid.LayeredAttr("hot", "bg"), None, b"b"),
+                ("bg", None, b"c  "),
+            ],
+            next(mapped.render((5,)).content()),
+        )
+
+    def test_whole_layered_attribute_is_mapped(self) -> None:
+        stack = urwid.LayeredAttr("token", "highlight")
+        mapped = urwid.AttrMap(urwid.Text((stack, "x")), {stack: "normal"}, {stack: "focus"})
+
+        for focus, expected in ((False, "normal"), (True, "focus")):
+            with self.subTest(focus=focus):
+                self.assertEqual([(expected, None, b"x")], next(mapped.render((1,), focus=focus).content()))
+
     def test_wraps_listbox_original_widget(self) -> None:
         items = (urwid.Text("one"), urwid.Text("two"), urwid.Text("three"))
         listbox = urwid.ListBox(urwid.SimpleListWalker(items))

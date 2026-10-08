@@ -441,6 +441,30 @@ class ScreenPaletteTest(unittest.TestCase):
 
         self.assertIn("color:#ffffff;background-color:#000000\x01hi", output)
 
+    def test_fg_only_attribute_inherits_the_container_background(self) -> None:
+        self.screen.register_palette([("red_fg", "dark red", "inherit"), ("blue_bg", "inherit", "dark blue")])
+        canvas = urwid.AttrMap(urwid.Text(("red_fg", "a")), "blue_bg").render((2,))
+
+        output = self._draw(canvas)
+
+        for label, span in (
+            ("fg-only run", "color:#cd0000;background-color:#0000ee\x01a"),
+            ("padding", "color:#000000;background-color:#0000ee\x01 "),
+        ):
+            with self.subTest(label):
+                self.assertIn(span, output)
+
+    def test_palette_change_resends_only_changed_lines(self) -> None:
+        self.screen.register_palette_entry("focus", "white", "black")
+        canvas = urwid.Pile([urwid.AttrMap(urwid.Text("hi"), "focus"), urwid.Text("other")]).render((5,))
+        self._draw(canvas)
+        self.assertNotIn("hi", self._draw(canvas))
+
+        self.screen.register_palette_entry("focus", "white", "dark blue")
+        output = self._draw(canvas)
+        self.assertIn("hi", output)
+        self.assertNotIn("other", output)
+
     def test_register_palette_copies_an_existing_entry(self) -> None:
         self.screen.register_palette_entry("focus", "white", "black")
         self.screen.register_palette([("alias", "focus")])

@@ -883,6 +883,19 @@ class TermTest(unittest.TestCase):
             raw=True,
         )
 
+    def test_sgr_italics_and_strikethrough(self) -> None:
+        self.write(r"\e[3;9ma\e[23mb\e[29mc")
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("default,italics,strikethrough", "default"), None, b"a"),
+                    (urwid.AttrSpec("default,strikethrough", "default"), None, b"b"),
+                    (None, None, b"c"),
+                ]
+            ],
+            raw=True,
+        )
+
     def test_cursor_coords_follow_resize(self) -> None:
         """Report the cursor position constrained to the size being rendered."""
         self.write("abc")

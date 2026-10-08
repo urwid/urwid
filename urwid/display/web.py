@@ -130,7 +130,7 @@ class Screen(BaseScreen):
         self.has_underline = True  # ignored: the browser renders underline as requested
         self._colour_index = _COLOUR_INDEX[self.colors]
         self.update_method = ""
-        self.last_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        self.last_screen: dict[tuple[tuple[AttrSpec, str] | int | None, ...], list[int]] = {}
         self.last_screen_width = 0
         self.pipe_name = ""
         self.input_fd: int | None = None
@@ -330,16 +330,19 @@ class Screen(BaseScreen):
         else:
             cx = cy = None
 
-        new_screen: dict[tuple[tuple[AttrSpec | str | None, str] | int | None, ...], list[int]] = {}
+        new_screen: dict[tuple[tuple[AttrSpec, str] | int | None, ...], list[int]] = {}
 
         y = -1
         for row in canvas.content():
             y += 1
-            l_row = tuple((attr_, line.decode(encoding)) for attr_, _, line in row)
+            # resolved, so a row is sent again when a palette change gives it other colors
+            l_row = tuple(
+                (self.resolve_attr(attr_, self._colour_index), line.decode(encoding)) for attr_, _, line in row
+            )
 
             line = []
 
-            sig: tuple[tuple[AttrSpec | str | None, str] | int | None, ...] = l_row
+            sig: tuple[tuple[AttrSpec, str] | int | None, ...] = l_row
             if y == cy:
                 sig = (*sig, cx)
             new_screen.setdefault(sig, []).append(y)
@@ -353,12 +356,8 @@ class Screen(BaseScreen):
                 continue
 
             col = 0
-            for a, run in l_row:
+            for aspec, run in l_row:
                 t_run = run.translate(_trans_table)
-                if isinstance(a, AttrSpec):
-                    aspec = a
-                else:
-                    aspec = self._palette[a][self._colour_index]
                 if y == cy and col <= cx:
                     run_width = calc_width(t_run, 0, len(t_run))
                     if col + run_width > cx:

@@ -178,8 +178,14 @@ class TagMarkupTest(unittest.TestCase):
         (
             ["mix", [" it", ("high", [" up", ("ital", " a")])], " little"],
             "mix it up a little",
-            [(None, 6), ("high", 3), ("ital", 2)],
+            [(None, 6), ("high", 3), (urwid.LayeredAttr("ital", "high"), 2)],
         ),
+        (
+            ("red_fg", ["a", ("blue_bg", "b"), "c"]),
+            "abc",
+            [("red_fg", 1), (urwid.LayeredAttr("blue_bg", "red_fg"), 1), ("red_fg", 1)],
+        ),
+        ((None, ["a", ("x", ("x", "b")), (None, "c")]), "abc", [(None, 1), ("x", 1)]),
         (["££", "x££"], "££x££", []),
         ([b"\xc2\x80", b"\xc2\x80"], b"\xc2\x80\xc2\x80", []),
     ]
@@ -189,6 +195,19 @@ class TagMarkupTest(unittest.TestCase):
             restext, resattr = urwid.decompose_tagmarkup(input)
             assert restext == text, f"got: {restext!r} expected: {text!r}"
             assert resattr == attr, f"got: {resattr!r} expected: {attr!r}"
+
+    def test_layered_attr_is_flattened(self):
+        for label, built, expected in (
+            (
+                "constructor drops None and repeats",
+                urwid.LayeredAttr(urwid.LayeredAttr("a", "b"), None, "b", "c"),
+                urwid.LayeredAttr("a", "b", "c"),
+            ),
+            ("layer()", urwid.LayeredAttr.layer("a", urwid.LayeredAttr("b", "c")), urwid.LayeredAttr("a", "b", "c")),
+            ("layer() of one attribute", urwid.LayeredAttr.layer("a", "a"), "a"),
+        ):
+            with self.subTest(label):
+                self.assertEqual(expected, built)
 
     def test_bad_tuple(self):
         self.assertRaises(urwid.TagMarkupException, lambda: urwid.decompose_tagmarkup((1, 2, 3)))

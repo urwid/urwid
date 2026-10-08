@@ -40,6 +40,7 @@ import typing
 
 from urwid.display import AttrSpec
 from urwid.display.common import _BASIC_COLORS as BASIC_COLORS
+from urwid.display.common import _SETTING_OFF_PREFIX
 from urwid.display.common import _color_desc_256 as color_desc_256
 from urwid.display.common import _color_desc_true as color_desc_true
 from urwid.util import rle_append_modify
@@ -76,7 +77,26 @@ _LED_STATES: dict[int, str] = {
     3: "caps_lock",
 }
 
-_SGR_ATTR_NAMES: tuple[str, ...] = ("bold", "faint", "underline", "blink", "standout")
+_SGR_ATTR_NAMES: tuple[str, ...] = ("bold", "faint", "italics", "underline", "blink", "standout", "strikethrough")
+#: SGR parameter -> the setting it turns on
+_SGR_SETS: dict[int, str] = {
+    1: "bold",
+    2: "faint",
+    3: "italics",
+    4: "underline",
+    5: "blink",
+    7: "standout",
+    9: "strikethrough",
+}
+#: SGR parameter -> the settings it turns off
+_SGR_RESETS: dict[int, tuple[str, ...]] = {
+    22: ("bold", "faint"),
+    23: ("italics",),
+    24: ("underline",),
+    25: ("blink",),
+    27: ("standout",),
+    29: ("strikethrough",),
+}
 
 #: CSI final bytes that move the cursor vertically -- meaningless outside a
 #: two-dimensional screen buffer, so the whole operation is stripped and
@@ -547,7 +567,8 @@ class AnsiParser:
 
         if final == "m":
             ints = [p if p is not None else 0 for p in params] or [0]
-            self._attrspec = sgi_params_to_attrspec(ints, self._attrspec)
+            # a color the text leaves unset shows the background or foreground of the widget around it
+            self._attrspec = sgi_params_to_attrspec(ints, self._attrspec, unset_color="inherit")
         elif final == "C":
             n = params[0] if params and params[0] else 1
             self._col += min(n, _MAX_CURSOR_POSITION)
@@ -773,29 +794,40 @@ def resolve_osc_title(buf: str) -> str | None:
     return None
 
 
-def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> AttrSpec | None:
+def sgi_params_to_attrspec(
+    params: Sequence[int],
+    previous: AttrSpec | None,
+    *,
+    unset_color: typing.Literal["default", "inherit"] = "default",
+) -> AttrSpec | None:
     """Resolve a sequence of SGR (Select Graphic Rendition) numeric parameters against a previous attribute spec.
 
-    This is a pure extraction of the SGR-number-walking logic historically duplicated inside
-    ``vterm.TermCanvas.sgi_to_attrspec``. SGR 10/11/12 (which toggle vterm's charset/display-control state rather
-    than colour/attributes) are deliberately ignored here -- a caller that also needs that side effect applies it
-    itself; this function never raises for an unrecognised numeric code, it simply has no effect on the result.
-    An extended colour (``38``/``48``) whose index or component is outside ``0..255`` is consumed and ignored the same
-    way.
+    Ignore unsupported parameters and extended colors with an out-of-range value.
+    Charset parameters 10-12 are handled by the caller.
 
     :param params: the SGR numeric parameters to apply, in encounter order.
     :param previous: the :class:`~urwid.AttrSpec` in effect before ``params`` is applied, or ``None`` if none is
         in effect yet.
+    :param unset_color: the color given to a foreground or background no parameter has set, or SGR 39/49/0 reset:
+        'default' for the terminal default, 'inherit' for the color of the enclosing attribute.
+        With 'inherit', SGR 22/23/24/25/27/29 turn their settings off ('no-bold') rather than leaving them to the
+        enclosing attribute, and SGR 0 leaves every setting to it again.
     :returns: the resulting :class:`~urwid.AttrSpec`, or ``None`` for "no attributes".
 
     >>> sgi_params_to_attrspec([31], None)
     AttrSpec('dark red', 'default')
     >>> sgi_params_to_attrspec([0], AttrSpec("dark red", "default"))
+    >>> sgi_params_to_attrspec([31], None, unset_color="inherit")
+    AttrSpec('dark red', 'inherit')
+    >>> sgi_params_to_attrspec([24], None, unset_color="inherit")
+    AttrSpec('inherit,no-underline', 'inherit')
     """
     if params and params[-1] == 0:
         previous = None
 
     attributes: set[str] = set()
+    # settings an SGR reset turned off; with 'inherit' colors they stay off over the enclosing attribute
+    turned_off: set[str] = set()
     # fg/bg hold a palette index (0-255), or a 0xRRGGBB value when fg_rgb/bg_rgb is set.
     fg_rgb = bg_rgb = False
     if previous is None:
@@ -806,14 +838,21 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
         for name in _SGR_ATTR_NAMES:
             if getattr(previous, name):
                 attributes.add(name)
+        turned_off.update(
+            part.removeprefix(_SETTING_OFF_PREFIX)
+            for part in previous.foreground.split(",")
+            if part.startswith(_SETTING_OFF_PREFIX)
+        )
 
-        fg = None if "default" in previous.foreground else previous.foreground_number
+        has_fg = previous.foreground_basic or previous.foreground_high or previous.foreground_true
+        fg = previous.foreground_number if has_fg else None
         fg_rgb = previous.foreground_true
         # undo the bold brightening applied below, so it can be reapplied or dropped with the new bold state
         if fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
             fg -= 8
 
-        bg = None if "default" in previous.background else previous.background_number
+        has_bg = previous.background_basic or previous.background_high or previous.background_true
+        bg = previous.background_number if has_bg else None
         bg_rgb = previous.background_true
 
         colors = previous.colors
@@ -860,28 +899,16 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
         elif attr in (10, 11, 12):
             # vterm-only charset/display-control side effects; left to the caller
             pass
-        elif attr == 1:
-            attributes.add("bold")
-        elif attr == 2:
-            attributes.add("faint")
-        elif attr == 4:
-            attributes.add("underline")
-        elif attr == 5:
-            attributes.add("blink")
-        elif attr == 7:
-            attributes.add("standout")
-        elif attr == 22:
-            attributes.discard("bold")
-            attributes.discard("faint")
-        elif attr == 24:
-            attributes.discard("underline")
-        elif attr == 25:
-            attributes.discard("blink")
-        elif attr == 27:
-            attributes.discard("standout")
+        elif attr in _SGR_SETS:
+            attributes.add(_SGR_SETS[attr])
+            turned_off.discard(_SGR_SETS[attr])
+        elif attr in _SGR_RESETS:
+            attributes.difference_update(_SGR_RESETS[attr])
+            turned_off.update(_SGR_RESETS[attr])
         elif attr == 0:
             fg = bg = None
             attributes.clear()
+            turned_off.clear()
         idx += 1
 
     if "bold" in attributes and colors == 16 and fg is not None and fg < 8:
@@ -889,7 +916,7 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
 
     def _defaulter(req_color: int | None, rgb: bool) -> str:
         if req_color is None:
-            return "default"
+            return unset_color
         if rgb:
             return color_desc_true(req_color)
         # Note: 88-colour mode cannot be distinguished from 256-colour mode here.
@@ -901,10 +928,12 @@ def sgi_params_to_attrspec(params: Sequence[int], previous: AttrSpec | None) -> 
     decoded_fg = _defaulter(fg, fg_rgb)
     decoded_bg = _defaulter(bg, bg_rgb)
 
+    if unset_color == "inherit":
+        attributes.update(f"{_SETTING_OFF_PREFIX}{name}" for name in turned_off)
     if attributes:
-        decoded_fg = ",".join((decoded_fg, *attributes))
+        decoded_fg = ",".join((decoded_fg, *sorted(attributes)))
 
-    if decoded_fg == decoded_bg == "default":
+    if decoded_fg == decoded_bg == unset_color:
         return None
 
     if colors:

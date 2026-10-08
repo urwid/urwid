@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import typing
 
 import urwid
 
@@ -100,6 +101,16 @@ else:
         logging.captureWarnings(True)
 
 
+# Dark Monokai: (name, 16-color fg, 16-color bg, monochrome settings, high-color fg, high-color bg).
+# "key" and "mouse" set a foreground only and inherit the background of the list box around them.
+PALETTE: typing.Final = (
+    ("header", "black", "dark green", "standout", "#272822", "#a6e22e"),
+    ("listbox", "light gray", "black", None, "#f8f8f2", "#272822"),
+    ("key", "yellow,bold", "inherit", "bold", "#e6db74,bold", "inherit"),
+    ("mouse", "light cyan,bold", "inherit", "bold,underline", "#66d9ef,bold", "inherit"),
+)
+
+
 def key_test() -> None:
     """Run the main loop that echoes each keypress and its raw bytes to the screen."""
     screen = Screen()
@@ -133,7 +144,7 @@ def key_test() -> None:
                 for v in k:
                     if out:
                         out += [", "]
-                    out += [("key", repr(v))]
+                    out += [("mouse", repr(v))]
                 t += ["(", *out, ")"]
             else:
                 t += ["'", ("key", k), "' "]
@@ -147,11 +158,7 @@ def key_test() -> None:
 
     loop = urwid.MainLoop(
         top,
-        [
-            ("header", "black", "dark cyan", "standout"),
-            ("key", "yellow", "dark blue", "bold"),
-            ("listbox", "light gray", "black"),
-        ],
+        PALETTE,
         screen,
         input_filter=input_filter,
         event_loop=loop_cls() if loop_cls is not None else None,

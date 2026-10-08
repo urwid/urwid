@@ -476,6 +476,68 @@ def rle_product(
     return result
 
 
+class LayeredAttr:
+    """Display attribute made of other display attributes stacked innermost first.
+
+    A screen resolves it by placing each layer over the next one with :meth:`AttrSpec.layered_over`,
+    so a layer whose foreground or background is 'inherit' shows the color of the layer under it.
+    Layers are palette names or :class:`AttrSpec` instances.
+    """
+
+    __slots__ = ("_hash", "_layers")
+
+    def __init__(self, *layers: Hashable) -> None:
+        """Stack *layers*, innermost first.
+
+        A layer that is itself a :class:`LayeredAttr` is replaced by its layers, ``None`` (no attribute) is left out,
+        and a layer repeated next to itself is kept once.
+        """
+        flat: list[Hashable] = []
+        for attr in layers:
+            for layer in attr.layers if isinstance(attr, LayeredAttr) else (attr,):
+                if layer is not None and (not flat or flat[-1] != layer):
+                    flat.append(layer)
+        self._layers = tuple(flat)
+        self._hash = hash((LayeredAttr, self._layers))
+
+    @property
+    def layers(self) -> tuple[Hashable, ...]:
+        """Return the layers, innermost first."""
+        return self._layers
+
+    @classmethod
+    def layer(cls, inner: Hashable, outer: Hashable) -> Hashable:
+        """Return *inner* placed over *outer*.
+
+        ``None`` (no attribute) takes part in no stack: when either is ``None``, *inner* is returned.
+        The stack is built as the constructor builds it, and a single remaining layer is returned as it is
+        rather than wrapped.
+
+        >>> LayeredAttr.layer("red", None)
+        'red'
+        >>> LayeredAttr.layer("red", LayeredAttr.layer("bold", "blue_bg"))
+        LayeredAttr('red', 'bold', 'blue_bg')
+        >>> LayeredAttr.layer("red", "red")
+        'red'
+        """
+        if inner is None or outer is None:
+            return inner
+        stack = cls(inner, outer)
+        return stack.layers[0] if len(stack.layers) == 1 else stack
+
+    def __hash__(self) -> int:
+        """Return the hash of the layers."""
+        return self._hash
+
+    def __eq__(self, other: object) -> bool:
+        """Return whether *other* is a :class:`LayeredAttr` with the same layers."""
+        return isinstance(other, LayeredAttr) and self._layers == other.layers
+
+    def __repr__(self) -> str:
+        """Return an executable python representation."""
+        return f"{self.__class__.__name__}({', '.join(repr(layer) for layer in self._layers)})"
+
+
 class TagMarkupException(Exception):
     """Raised when tag markup passed to :func:`decompose_tagmarkup` is malformed."""
 
@@ -549,8 +611,8 @@ def _tagmarkup_recurse(
         if len(tm) != 2:
             raise TagMarkupException(f"Tuples must be in the form (attribute, tagmarkup): {tm!r}")
 
-        attr, element = tm
-        return _tagmarkup_recurse(element, attr)
+        inner_attr, element = tm
+        return _tagmarkup_recurse(element, LayeredAttr.layer(inner_attr, attr))
 
     if not isinstance(tm, (str, bytes)):
         raise TagMarkupException(f"Invalid markup element: {tm!r}")

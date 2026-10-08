@@ -41,7 +41,10 @@ class AttrMap(
         :param w: widget to wrap (stored as self.original_widget)
 
         :param attr_map: attribute to apply to *w*, or dict of old display
-            attribute: new display attribute mappings
+            attribute: new display attribute mappings;
+            the other attributes of *w* are placed over the attribute of ``None``,
+            so their 'inherit' colors are taken from it (see :class:`LayeredAttr`),
+            and an attribute mapped to ``None`` shows the attribute of ``None``
 
         :param focus_map: attribute to apply when in focus or dict of
             old display attribute: new display attribute mappings;
@@ -64,7 +67,7 @@ class AttrMap(
         >>> am2
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
         >>> next(am2.render(size).content())
-        [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
+        [(LayeredAttr('greeting', 'bg'), None, ...'hi'), ('bg', None, ...'   ')]
         """
         super().__init__(w)
         self._attr_map: dict[Hashable, Hashable] = {}

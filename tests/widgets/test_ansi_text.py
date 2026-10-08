@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
+from tests.util import PaletteScreen
 from urwid.ansi_parser import AnsiParser
 from urwid.util import get_encoding, rle_len
 
@@ -20,6 +21,28 @@ class ANSITextTest(unittest.TestCase):
     def test_sizing(self) -> None:
         widget = urwid.ANSIText("hello")
         self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
+
+    def test_reset_turns_off_inherited_italics_and_strikethrough(self) -> None:
+        screen = PaletteScreen()
+        screen.register_palette_entry("panel", "inherit,italics,strikethrough", "inherit")
+        for sgr, name in (("23", "italics"), ("29", "strikethrough")):
+            with self.subTest(name):
+                widget = urwid.AttrMap(urwid.ANSIText(f"\x1b[{sgr}mx"), "panel")
+                ((attr, _cs, _text),) = next(widget.render((1,)).content())
+
+                self.assertFalse(getattr(screen.resolve_attr(attr, 3), name))
+
+    def test_unset_colors_inherit_from_the_container(self) -> None:
+        widget = urwid.AttrMap(urwid.ANSIText("\x1b[31ma\x1b[39;44mb\x1b[0mc"), "panel")
+
+        self.assertEqual(
+            [
+                (urwid.LayeredAttr(urwid.AttrSpec("dark red", "inherit"), "panel"), None, b"a"),
+                (urwid.LayeredAttr(urwid.AttrSpec("inherit", "dark blue"), "panel"), None, b"b"),
+                ("panel", None, b"c"),
+            ],
+            next(widget.render((3,)).content()),
+        )
 
     def test_pack_and_render_fixed(self) -> None:
         ansi = urwid.ANSIText("\x1b[31mhello\nworld\x1b[0m")

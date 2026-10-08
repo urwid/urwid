@@ -39,6 +39,7 @@ from urwid import signals, str_util, util
 
 from . import escape
 from .common import (
+    _RESOLVED_ATTRS_LIMIT,
     UNPRINTABLE_C1_TRANS_TABLE,
     UNPRINTABLE_TRANS_TABLE,
     UPDATE_PALETTE_ENTRY,
@@ -359,8 +360,8 @@ class Screen(BaseScreen, RealTerminal):
 
         self._partial_codes: list[int] = []
         self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
+        # escape sequence per canvas run attribute, filled as attributes are drawn
         self._pal_escape: dict[Hashable, str] = {}
-        self._pal_attrspec: dict[Hashable, AttrSpec] = {}
         self._modified_palette_entries: set[int] = set()
         # Connected through a weak reference: a bound method would be a reference cycle back to this screen,
         # keeping its sockets open until the cyclic garbage collector happened to run.
@@ -374,7 +375,10 @@ class Screen(BaseScreen, RealTerminal):
         self.back_color_erase = properties.back_color_erase
         self.prev_input_resize = 0
         self.set_input_timeouts()
-        self.screen_buf: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] | None = None
+        self.screen_buf: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] | None = None
+        # screen_buf with each attribute as its escape sequence: rows are compared by what the terminal shows,
+        # so a palette change redraws only the rows it changes
+        self._drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
         self.maxrow: int | None = None
@@ -438,10 +442,9 @@ class Screen(BaseScreen, RealTerminal):
         return None
 
     def _on_update_palette_entry(self, name: Hashable, *attrspecs: AttrSpec) -> None:
-        # copy the attribute to a dictionary containing the escape seqences
-        a: AttrSpec = attrspecs[_ATTRSPEC_INDEX_BY_COLORS[self.colors]]
-        self._pal_attrspec[name] = a
-        self._pal_escape[name] = self._attrspec_to_escape(a)
+        # any drawn attribute may inherit colors from the changed entry; the next draw compares every row again
+        self._pal_escape.clear()
+        self._screen_buf_canvas = None
 
     def set_input_timeouts(
         self,
@@ -920,7 +923,7 @@ class Screen(BaseScreen, RealTerminal):
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
 
         def handle_row(
-            attr: AttrSpec | str | None,
+            attr: Hashable,
             charset: Literal["0", "U"] | None,
             run: bytes,
             last: bool,
@@ -1004,19 +1007,16 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"Drawing screen with size {size!r}")
 
-        last_attributes: AttrSpec | str | None = None  # Default = empty
+        last_attributes: Hashable = None  # Default = empty
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
 
         if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
 
-        osb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]
-        if self.screen_buf:
-            osb = self.screen_buf
-        else:
-            osb = []
-        sb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] = []
+        osb = self._drawn_rows if self.screen_buf else []
+        sb: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] = []
+        drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         cy = self._cy
         y = -1
 
@@ -1032,13 +1032,13 @@ class Screen(BaseScreen, RealTerminal):
 
         for row in canvas.content():
             y += 1
-            if osb and y < len(osb) and osb[y] == row:
+            drawn_row = [(self._attr_to_escape(a), cs, run) for a, cs, run in row]
+            sb.append(row)
+            drawn_rows.append(drawn_row)
+            if osb and y < len(osb) and osb[y] == drawn_row:
                 # this row of the screen buffer matches what is
                 # currently displayed, so we can skip this line
-                sb.append(osb[y])
                 continue
-
-            sb.append(row)
 
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
@@ -1063,8 +1063,8 @@ class Screen(BaseScreen, RealTerminal):
                     run[-1:] == b" "
                     and self.back_color_erase
                     and not (
-                        isinstance(pal_a := self._pal_attrspec.get(a, a), AttrSpec)
-                        and (pal_a.standout or pal_a.underline)
+                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])).standout
+                        or pal_a.underline
                     )
                 ):
                     whitespace_at_end = True
@@ -1111,15 +1111,16 @@ class Screen(BaseScreen, RealTerminal):
                 raise
 
         self.screen_buf = sb
+        self._drawn_rows = drawn_rows
         self._screen_buf_canvas = canvas
 
     def _last_row(
         self,
-        row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
+        row: list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
     ) -> tuple[
-        list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
+        list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes] | None,
+        tuple[Hashable, Literal["0", "U"] | None, bytes] | None,
     ]:
         """On the last row we need to slide the bottom right character into place.
 
@@ -1134,7 +1135,7 @@ class Screen(BaseScreen, RealTerminal):
         character on a two column screen, there is no Y to draw after Z.
         The row is then returned untouched and no insert sequence is produced.
         """
-        new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
+        new_row: list[tuple[Hashable, Literal["0", "U"] | None, bytes]] = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
         last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
@@ -1167,17 +1168,15 @@ class Screen(BaseScreen, RealTerminal):
         """Force the screen to be completely repainted on the next call to draw_screen()."""
         self.screen_buf = None
 
-    def _attr_to_escape(self, a: AttrSpec | str | None) -> str:
-        """Convert attribute instance a to an escape sequence for the terminal."""
+    def _attr_to_escape(self, a: Hashable) -> str:
+        """Convert canvas run attribute a to an escape sequence for the terminal."""
         if found := self._pal_escape.get(a):
             return found
-        if isinstance(a, AttrSpec):
-            return self._attrspec_to_escape(a)
-        if a is None:
-            return self._attrspec_to_escape(AttrSpec("default", "default"))
-        # undefined attributes use default/default
-        self.logger.debug(f"Undefined attribute: {a!r}")
-        return self._attrspec_to_escape(AttrSpec("default", "default"))
+        found = self._attrspec_to_escape(self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors]))
+        if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
+            self._pal_escape.clear()
+        self._pal_escape[a] = found
+        return found
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
         r"""Convert AttrSpec instance a to an escape sequence for the terminal.
@@ -1265,9 +1264,7 @@ class Screen(BaseScreen, RealTerminal):
         self.has_underline = has_underline
 
         self.clear()
-        self._pal_escape = {}
-        for p, v in self._palette.items():
-            self._on_update_palette_entry(p, *v)
+        self._pal_escape.clear()
 
     def reset_default_terminal_palette(self) -> None:
         """Attempt to set the terminal palette to default values as taken from xterm.
