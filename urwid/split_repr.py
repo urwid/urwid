@@ -61,8 +61,18 @@ def split_repr(self: Widget) -> str:
     words = self._repr_words()
     if not words and not alist:
         # if we're just going to print the classname fall back
-        # to the previous __repr__ implementation instead
-        return super(self.__class__, self).__repr__()
+        # to the __repr__ implementation that split_repr replaced
+        mro = type(self).__mro__
+        for idx, cls in enumerate(mro):
+            if vars(cls).get("__repr__") is split_repr:
+                # skip further split_repr levels; object is last in every MRO and defines __repr__
+                replaced: Callable[[object], str] = next(
+                    vars(base)["__repr__"]
+                    for base in mro[idx + 1 :]
+                    if vars(base).get("__repr__", split_repr) is not split_repr
+                )
+                return replaced(self)
+        return object.__repr__(self)
     if words and alist:
         words.append("")
     return f"<{self.__class__.__name__} {' '.join(words) + ' '.join([f'{k}={v}' for k, v in alist])}>"

@@ -172,7 +172,7 @@ class MainLoop:
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
-    ):
+    ) -> None:
         """
         Set up the main loop around a top-level widget, a screen and an event loop.
 
@@ -223,6 +223,7 @@ class MainLoop:
     def widget(self, widget: AbstractWidget) -> None:
         self._widget = widget
         if self.pop_ups and hasattr(self._topmost_widget, "original_widget"):
+            # pyrefly: ignore[missing-attribute]  # hasattr() does not narrow
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
@@ -788,11 +789,11 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
     class Reflect:
         """Callable stand-in that records its calls and returns a fixed value."""
 
-        def __init__(self, name: str, rval: _T | None = None) -> None:
+        def __init__(self, name: str, rval: typing.Any = None) -> None:
             self._name = name
             self._rval = rval
 
-        def __call__(self, *argl: typing.Any, **argd: typing.Any) -> _T | None:
+        def __call__(self, *argl: typing.Any, **argd: typing.Any) -> typing.Any:
             """
             Record the call and return the configured return value.
 

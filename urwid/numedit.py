@@ -58,7 +58,7 @@ class NumEdit(Edit):
         *,
         trim_leading_zeros: bool = True,
         allow_negative: bool = False,
-    ):
+    ) -> None:
         """Initialize a numeric edit widget restricted to the given set of characters.
 
         :param allowed: characters accepted by this widget
@@ -339,7 +339,7 @@ class FloatEdit(NumEdit):
             ...
         ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
         """
-        self.significance = None
+        self.significance: decimal.Decimal | None = None
         self._decimal_separator = decimal_separator
         if decimalSeparator is not None:
             warnings.warn(

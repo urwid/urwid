@@ -496,6 +496,7 @@ class Edit(WidgetWrap[Text]):
             text = self._edit_text
             tab, nl = ("\t", "\n") if isinstance(text, str) else (b"\t", b"\n")
             column = 0
+            # pyrefly: ignore[bad-argument-type, no-matching-overload]  # isinstance() does not narrow nl and tab
             for idx, chunk in enumerate(text[text.rfind(nl, 0, pos) + 1 : pos].split(tab)):
                 if idx:
                     column = layout.next_tab_stop(column)

@@ -394,10 +394,13 @@ class StandardTextLayout(TextLayout):
                 elif wrap == "space":
                     # the tab at the line end is the break itself: drop it, as a space is dropped
                     lines.append([*line, (0, pos)])
-                    line, column, pos = [], 0, pos + 1
+                    line = []
+                    column = 0
+                    pos += 1
                 else:
                     lines.append(line)
-                    line, column = [], 0
+                    line = []
+                    column = 0
                 continue
 
             # the tab found for an earlier display line still ends the chunk this one continues
@@ -446,7 +449,8 @@ class StandardTextLayout(TextLayout):
                 else:
                     # break right after the preceding tab
                     lines.append(line)
-                    line, column = [], 0
+                    line = []
+                    column = 0
                     continue
 
             if cut > pos and (chunk_width := calc_width(text, pos, cut)):
@@ -454,7 +458,9 @@ class StandardTextLayout(TextLayout):
             if resume > cut:
                 line.append((0, cut))  # removed character hint
             lines.append(line)
-            line, column, pos = [], 0, resume
+            line = []
+            column = 0
+            pos = resume
 
         lines.append([*line, (0, end)])  # removed character hint
         return lines
@@ -777,7 +783,7 @@ def trim_line(
     :param start: starting screen column
     :param end: ending screen column
     """
-    result = []
+    result: _LayoutLine = []
     x = 0
     for seg in segs:
         sc = seg[0]

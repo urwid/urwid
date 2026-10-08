@@ -199,6 +199,7 @@ class TrioEventLoop(EventLoop):
             # Callers run only while the nursery is open: its tasks, and the idle instrument, which checks.
             nursery = typing.cast("trio.Nursery", self._nursery)
             fn = functools.partial(callback, *args, **kwargs) if kwargs else callback
+            # pyrefly: ignore[bad-argument-type]  # ParamSpec callback or functools.partial
             nursery.start_soon(fn, *(() if kwargs else args))
             return None
         return callback(*args, **kwargs)

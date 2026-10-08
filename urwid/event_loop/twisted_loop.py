@@ -124,7 +124,9 @@ class TwistedEventLoop(EventLoop):
         if reactor is None:
             import twisted.internet.reactor
 
+            # pyrefly: ignore[bad-assignment]  # the reactor module is the ReactorBase instance
             reactor = twisted.internet.reactor
+        # pyrefly: ignore[bad-assignment]  # the reactor module is the ReactorBase instance
         self.reactor: ReactorBase = reactor
         self._watch_files: dict[int, _TwistedInputDescriptor[typing.Any]] = {}
         self._idle_handle: int = 0

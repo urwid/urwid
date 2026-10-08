@@ -24,5 +24,6 @@ jobs:
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r mypy-requirements.txt
+      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Type check with mypy
         run: uv run --no-project mypy urwid

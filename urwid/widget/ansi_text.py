@@ -184,7 +184,7 @@ class ANSIText(WidgetWrap[Text]):
         :param align: forwarded to the internal :class:`~urwid.Text`.
         :returns: a new :class:`ANSIText` wrapping ``parsed``.
         """
-        obj = cls.__new__(cls)
+        obj: ANSIText = cls.__new__(cls)
         obj._one_line = one_line
         WidgetWrap.__init__(obj, Text("", align=align, wrap=wrap))
         obj._set_parsed(parsed)

@@ -402,6 +402,33 @@ class SpanStyleTest(unittest.TestCase):
         )
 
 
+class ScreenPollingChildDrawTest(unittest.TestCase):
+    """The polling child answers the browser over its update socket, which takes bytes."""
+
+    def test_draw_screen_sends_utf8_update_and_closes_the_connection(self) -> None:
+        self.addCleanup(urwid.set_encoding, web.get_encoding())
+        # the canvas is in the configured encoding, the transport is always UTF-8
+        for encoding in ("utf-8", "latin-1"):
+            with self.subTest(encoding=encoding):
+                urwid.set_encoding(encoding)
+                screen = web.Screen()
+                screen.update_method = "polling child"
+                client = mock.Mock()
+                # a real socket rejects str the same way
+                client.sendall.side_effect = memoryview
+                screen.server_socket = mock.Mock(accept=mock.Mock(return_value=(client, None)))
+                canvas = urwid.Text("h\u00e9").render((5,))
+
+                with mock.patch.object(web.signal, "alarm", create=True):
+                    screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+
+                client.sendall.assert_called_once()
+                (data,) = client.sendall.call_args.args
+                self.assertIsInstance(data, bytes)
+                self.assertIn("h\u00e9".encode("utf-8"), data)
+                client.close.assert_called_once_with()
+
+
 class ScreenPaletteTest(unittest.TestCase):
     """Tests for Screen palette registration and draw_screen's attribute/colour resolution,
     which must honour the full AttrSpec feature set the way raw_display does.

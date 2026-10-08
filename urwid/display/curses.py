@@ -387,7 +387,7 @@ class Screen(BaseScreen, RealTerminal):
         key = self._getch(wait_tenths)
         resize = False
         raw = []
-        keys = []
+        keys: list[int] = []
 
         while key >= 0:
             raw.append(key)

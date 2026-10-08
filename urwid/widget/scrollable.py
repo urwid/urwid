@@ -693,7 +693,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """
         if side not in {SCROLLBAR_LEFT, SCROLLBAR_RIGHT}:
             raise ValueError(f'scrollbar_side must be "left" or "right", not {side!r}')
-        self._scrollbar_side = side
+        self._scrollbar_side: Literal["left", "right"] = side
         self._invalidate()
 
     @property

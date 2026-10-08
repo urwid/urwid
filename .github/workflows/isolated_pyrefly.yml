@@ -1,18 +1,18 @@
-name: Isolated PyLint check
+name: Isolated Pyrefly check
 
 on:
   pull_request:
     paths:
-      - "pylint-requirements.txt"
-      - ".github/workflows/isolated_pylint.yml"
+      - "pyrefly-requirements.txt"
+      - ".github/workflows/isolated_pyrefly.yml"
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  PyLint:
-    name: Check with pylint
+  Pyrefly:
+    name: Check with Pyrefly
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -23,7 +23,6 @@ jobs:
       - name: Install package with all extras
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
-        run: uv pip install --upgrade -r pylint-requirements.txt
-      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
-      - name: Lint with pylint
-        run: uv run --no-project pylint --output-format=github urwid
+        run: uv pip install --upgrade -r pyrefly-requirements.txt
+      - name: Type check with Pyrefly
+        run: uv run --no-project pyrefly check --output-format full-text-with-github

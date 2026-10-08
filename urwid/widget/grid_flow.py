@@ -55,6 +55,17 @@ class GridFlow(
             return frozenset((Sizing.FLOW, Sizing.FIXED))
         return frozenset((Sizing.FLOW,))
 
+    # Type checkers cannot see the WidgetWrap base built by delegate_to_widget_mixin(),
+    # so the two members below are spelled out to keep GridFlow instantiable for them.
+    def selectable(self) -> bool:
+        """Return whether the internal Pile (or Divider) is selectable."""
+        return self._w.selectable()
+
+    @property
+    def base_widget(self) -> GridFlow:
+        """Return self: GridFlow is a container, not a decoration."""
+        return self
+
     def __init__(
         self,
         cells: Iterable[AbstractFlowWidget],

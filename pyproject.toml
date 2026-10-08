@@ -47,6 +47,7 @@ dev = [
   { include-group = "mypy" },
   { include-group = "pre-commit" },
   { include-group = "pylint" },
+  { include-group = "pyrefly" },
   { include-group = "pytest" }
 ]
 build = [
@@ -63,12 +64,17 @@ lint = [
 ]
 mypy = [
   "mypy[faster-cache,reports]",
+  "types-pyserial",
 ]
 pre-commit = [
   "prek",
 ]
 pylint = [
   "pylint",
+]
+pyrefly = [
+  "pyrefly",
+  "types-pyserial",
 ]
 pytest = [
   "pytest",
@@ -82,17 +88,17 @@ ruff = [
 [tool.setuptools]
 platforms = [ "unix-like" ]
 zip-safe = false
-[tool.setuptools.dynamic]
-classifiers = { file = [ "classifiers.txt" ] }
-dependencies = { file = [ "requirements.txt" ] }
-[tool.setuptools.package-data]
-urwid = [ "py.typed" ]
 [tool.setuptools.packages.find]
 include = [
   "urwid",
   "urwid.*",
 ]
 namespaces = false
+[tool.setuptools.package-data]
+urwid = [ "py.typed" ]
+[tool.setuptools.dynamic]
+classifiers = { file = [ "classifiers.txt" ] }
+dependencies = { file = [ "requirements.txt" ] }
 
 [tool.distutils.bdist_wheel]
 universal = 0
@@ -108,63 +114,79 @@ skip = [ "pp*", "*-musllinux_*" ]
 [tool.ruff]
 target-version = "py311"
 line-length = 120
+# The test suite is not checked by ruff, mypy, pyrefly, pylint or refurb yet: it is not clean against their
+# rule sets, and that is a gap to close rather than a decision.
 extend-exclude = [ "tests" ]
 output-format = "full"
 [tool.ruff.format]
 docstring-code-format = true
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = [ "F401", "SIM105" ]
+"urwid/display/curses.py" = [ "A005" ]
+# Shown verbatim in the docs as numbered listings, wcur2.py from a fixed line (`:lines: 7-`).
+"docs/tutorial/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
+"docs/manual/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
+[tool.ruff.lint.isort]
+known-third-party = []
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+[tool.ruff.lint.pylint]
+allow-dunder-method-names = [
+  "__rich_repr__",
+  "_contents__delitem__", # class generation
+  "_contents__getitem__", # class generation
+  "_contents__setitem__", # class generation
+]
 [tool.ruff.lint]
 extend-select = [
-  "E",
-  "W",     # also pycodestyle warnings
-  "F",     # pyflakes
-  "PYI",   # flake8-pyi
-  "ASYNC", # flake8-async
-  "FA",    # from __future__ import annotations
-  "SLOT",  # flake8-slots
-  "TC",    # flake8-type-checking
-  "S",     # flake8-bandit
   "A",     # flake8-builtins
-  "B",
-  "T10",
-  "EXE",   # flake8-bugbear, flake8-debugger, flake8-executable
-  "ISC",   # flake8-implicit-str-concat
-  "RET",
-  "SIM",
-  "C4",    # flake8-return, flake8-simplify, flake8-comprehensions
-  "ICN",
-  "PGH",   # flake8-import-conventions, pygrep-hooks
-  "Q",     # quotes
-  "FLY",   # Flynt
-  "FURB",  # Refurb
-  "PIE",   # flake8-pie,
-  "TRY",
-  "UP",
-  "I",
-  "PL",
-  "PERF",
-  "RUF",   # tryceratops, pyupgrade, isort, pylint + perflint, Ruff-specific
+  "ASYNC", # flake8-async
+  "B",     # flake8-bugbear
+  "C4",    # flake8-comprehensions
   "D",     # pydocstyle
+  "E",     # pycodestyle errors
+  "EXE",   # flake8-executable
+  "F",     # pyflakes
+  "FA",    # flake8-future-annotations
+  "FLY",   # flynt
+  "FURB",  # refurb
+  "I",     # isort
+  "ICN",   # flake8-import-conventions
+  "ISC",   # flake8-implicit-str-concat
+  "PERF",  # perflint
+  "PGH",   # pygrep-hooks
+  "PIE",   # flake8-pie
+  "PL",    # pylint
+  "PYI",   # flake8-pyi
+  "Q",     # flake8-quotes
+  "RET",   # flake8-return
+  "RUF",   # Ruff-specific rules
+  "S",     # flake8-bandit
+  "SIM",   # flake8-simplify
+  "SLOT",  # flake8-slots
+  "T10",   # flake8-debugger
+  "TC",    # flake8-type-checking
+  "TRY",   # tryceratops
+  "UP",    # pyupgrade
+  "W",     # pycodestyle warnings
 ]
 extend-ignore = [
-  "E221",
+  "E203",    # handled by formatter
+  "E221",    # handled by formatter
   "E222",    # handled by formatter
-  "PLR6301",
-  "E203",
-  # refactor rules (too many statements/arguments/branches)
-  "PLR0904",
-  "PLR0911",
-  "PLR0912",
-  "PLR0913",
-  "PLR0914",
-  "PLR0915",
-  "PLR0917",
-  "PLR2004",
-  "PLC0415", # We have a lot of imports outside top-level
-  "RET504",  # Unnecessary variable assignment before a return statement
-  "SIM108",  # Use ternary operator,
-  "TRY003",  # long messages prepare outside, ...
-  "PYI063",  # MonitoredList is a list subclass, this expected to change
   "ISC001",  # conflicts with the formatter, which can produce single-line implicit concatenation
+  "PLC0415", # We have a lot of imports outside top-level
+  "PLR0904", # refactor rule: too many public methods
+  "PLR0911", # refactor rule: too many return statements
+  "PLR0912", # refactor rule: too many branches
+  "PLR0913", # refactor rule: too many arguments
+  "PLR0914", # refactor rule: too many locals
+  "PLR0915", # refactor rule: too many statements
+  "PLR0917", # refactor rule: too many positional arguments
+  "PLR2004", # magic value comparison
+  "PLR6301", # no-self-use
+  "PYI063",  # MonitoredList is a list subclass, this expected to change
+  "RET504",  # Unnecessary variable assignment before a return statement
   # suspicious-xml-*-usage: recommend defusedxml, which is not a dependency
   "S313",
   "S314",
@@ -173,27 +195,11 @@ extend-ignore = [
   "S317",
   "S318",
   "S319",
+  "SIM108",  # Use ternary operator,
+  "TRY003",  # long messages prepare outside, ...
 ]
 # Codes only standalone refurb implements, suppressed inline for refurb.
 external = [ "FURB123", "FURB143" ]
-[tool.ruff.lint.isort]
-known-third-party = []
-[tool.ruff.lint.per-file-ignores]
-"__init__.py" = [ "F401", "SIM105" ]
-"urwid/display/curses.py" = [ "A005" ]
-# Shown verbatim in the docs as numbered listings, wcur2.py from a fixed line (`:lines: 7-`).
-"docs/tutorial/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
-"docs/manual/*.py" = [ "D100", "D101", "D102", "D103", "D107" ]
-[tool.ruff.lint.pydocstyle]
-convention = "pep257"
-[tool.ruff.lint.pylint]
-allow-dunder-method-names = [
-  "__rich_repr__",
-  # class generation
-  "_contents__getitem__",
-  "_contents__setitem__",
-  "_contents__delitem__",
-]
 
 [tool.pylint]
 disable = [
@@ -249,28 +255,29 @@ max-line-length = 120
 py-version = "3.11"
 [tool.pylint.basic]
 good-names = [
+  "_",
+  "bar", # we draw bars
+  "ex",
   "i",
   "j",
   "k",
-  "ex",
   "Run",
-  "_",
-  "bar", # we draw bars
 ]
+[tool.pylint.format]
+ignore-long-lines = "^(\\s*(# )?<?https?://\\S+>?)|(.+# type: ignore\\[[\\w\\-\\,]+\\])$"
 [tool.pylint.classes]
 exclude-protected = [
   "_asdict",
   "_fields",
-  "_replace",
-  "_source",
+  "_invalidate",      # API
   "_make",
+  "_original_widget", # API
+  "_replace",
+  "_repr_attrs",      # API
+  "_repr_words",      # API
+  "_source",
+  "_w",               # API
   "os._exit",
-  # API
-  "_original_widget",
-  "_invalidate",
-  "_repr_attrs",
-  "_repr_words",
-  "_w",
 ]
 [tool.pylint.dunder]
 good-dunder-names = [
@@ -280,8 +287,6 @@ good-dunder-names = [
   "_contents__setitem__",
   "_contents__delitem__",
 ]
-[tool.pylint.format]
-ignore-long-lines = "^(\\s*(# )?<?https?://\\S+>?)|(.+# type: ignore\\[[\\w\\-\\,]+\\])$"
 
 [tool.pyproject-fmt]
 # After how many columns split arrays/dicts into multiple lines and wrap long strings;
@@ -323,7 +328,7 @@ disable_error_code = [
 ]
 
 [[tool.mypy.overrides]]
-module = [ "gi.*", "serial.*", "trio.*" ]
+module = [ "gi.*" ]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
@@ -335,79 +340,98 @@ disable_error_code = [
   "no-untyped-call",
 ]
 
+[tool.pyrefly]
+python-version = "3.11.0"
+# Docs are not checked; tests are not checked, see [tool.ruff] extend-exclude.
+project-includes = [ "examples", "urwid" ]
+check-unannotated-defs = true
+# PyGObject is only installed with the "glib" extra, which needs system libraries.
+ignore-missing-imports = [ "gi.*" ]
+infer-return-types = "never"
+preset = "legacy"
+[tool.pyrefly.errors]
+# mypy needs these casts, and its strict mode reports any that become redundant.
+redundant-cast = "ignore"
+no-any-return = "error"
+implicit-any-parameter = "error"
+unannotated-return = "error"
+implicit-any = "error"
+# A sub-config disables an error kind for a whole file, so it is kept for files where that is the design.
+# Anything narrower is an inline "# pyrefly: ignore[...]" comment on the expression.
+# Widgets override render, keypress, mouse_event and similar methods with narrower sizing signatures on purpose.
+[[tool.pyrefly.sub-config]]
+matches = "urwid/widget/**"
+[tool.pyrefly.sub-config.errors]
+bad-override = "ignore"
+[[tool.pyrefly.sub-config]]
+matches = "examples/**"
+[tool.pyrefly.sub-config.errors]
+bad-override = "ignore"
+[[tool.pyrefly.sub-config]]
+matches = "urwid/vterm.py"
+[tool.pyrefly.sub-config.errors]
+# CSI_COMMANDS is a table of lambdas, and Pyrefly does not type them from the CSICommand.callback field.
+implicit-any-lambda = "ignore"
+[[tool.pyrefly.sub-config]]
+matches = "urwid/display/curses.py"
+[tool.pyrefly.sub-config.errors]
+# The curses window is None until start(), and checking for that before each operation is too expensive.
+missing-attribute = "ignore"
+[[tool.pyrefly.sub-config]]
+matches = "urwid/display/_win32*.py"
+[tool.pyrefly.sub-config.errors]
+# ctypes.windll exists on Windows only, and so does this module.
+missing-module-attribute = "ignore"
+
 [tool.pytest.ini_options]
 minversion = "6.0"
+testpaths = [ "tests", "urwid" ]
 addopts = "-vvvv --doctest-modules -s --cov --cov-report=term"
 doctest_optionflags = [ "DONT_ACCEPT_TRUE_FOR_1", "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
-testpaths = [ "tests", "urwid" ]
 
-[tool.coverage.json]
-pretty_print = true
-[tool.coverage.report]
-exclude_lines = [
-  # Have to re-enable the standard pragma
-  "pragma: no cover",
-
-  # Don't complain about missing debug-only code:
-  "def __repr__",
-  "def __rich_repr__",
-  # own repr construct magic
-  "def _repr_words",
-  "def _repr_attrs",
-
-  # Don't complain if tests don't hit defensive assertion code:
-  "raise NotImplementedError",
-  "raise AssertionError",
-  "assert False",
-  "typing\\.assert_never",
-  "assert_never\\(",
-
-  # Exclude methods marked as abstract / overload stubs
-  "@abstractmethod",
-  "@abc.abstractmethod",
-  "@typing\\.overload",
-  "@overload",
-
-  # Exclude import statements
-  "^from\\b",
-  "^import\\b",
-
-  # Exclude variable declarations that are executed when file is loaded
-  "^[a-zA-Z_]+\\b\\s=",
-
-  # Code for static analysis / type narrowing is never covered at runtime:
-  "if TYPE_CHECKING:",
-  "if typing\\.TYPE_CHECKING:",
-  "typing\\.cast\\(",
-  "cast\\(",
-  "^\\s*\\.\\.\\.\\s*$",
-
-  # Protocols
-  "@runtime_checkable",
-  "@typing.runtime_checkable",
-  "class \\w*\\(Protocol\\):",
-  "class \\w*\\(typing.Protocol\\):",
-
-  # Fallback code with no installed deps is almost impossible to cover properly
-  "except ImportError:",
-
-  # Don't complain if non-runnable code isn't run:
-  "if __name__ == .__main__.:",
-
-  # OS Specific
-  "if platform.system()",
-  "if IS_WINDOWS",
-  "if os.name",
-  "if sys.platform",
-
-  # Manual test code
-  "class \\w*test:",
-  "def \\wtest():"
-]
 [tool.coverage.run]
 source_pkgs = [ "urwid" ]
-omit = [ "tests/*", ".tox/*", "setup.py", "urwid/version.py" ]
+omit = [ ".tox/*", "setup.py", "tests/*", "urwid/version.py" ]
 branch = true
+[tool.coverage.report]
+exclude_lines = [
+  "@abc.abstractmethod",              # abstract
+  "@abstractmethod",                  # abstract
+  "@overload",                        # overload stub
+  "@runtime_checkable",               # protocol
+  "@typing.runtime_checkable",        # protocol
+  "@typing\\.overload",               # overload stub
+  "^[a-zA-Z_]+\\b\\s=",               # module-level assignment, run on import
+  "^\\s*\\.\\.\\.\\s*$",              # stub body
+  "^from\\b",                         # import, run on import
+  "^import\\b",                       # import, run on import
+  "assert False",                     # defensive code tests do not reach
+  "assert_never\\(",                  # defensive code tests do not reach
+  "cast\\(",                          # static analysis only
+  "class \\w*\\(Protocol\\):",        # protocol
+  "class \\w*\\(typing.Protocol\\):", # protocol
+  "class \\w*test:",                  # manual test code
+  "def \\wtest():",                   # manual test code
+  "def __repr__",                     # debug-only repr
+  "def __rich_repr__",                # debug-only repr
+  "def _repr_attrs",                  # debug-only repr
+  "def _repr_words",                  # debug-only repr
+  "except ImportError:",              # fallback without optional dependencies
+  "if __name__ == .__main__.:",       # script entry point
+  "if IS_WINDOWS",                    # OS specific
+  "if os.name",                       # OS specific
+  "if platform.system()",             # OS specific
+  "if sys.platform",                  # OS specific
+  "if TYPE_CHECKING:",                # static analysis only
+  "if typing\\.TYPE_CHECKING:",       # static analysis only
+  "pragma: no cover",                 # standard pragma, re-enabled because this list replaces the default
+  "raise AssertionError",             # defensive code tests do not reach
+  "raise NotImplementedError",        # defensive code tests do not reach
+  "typing\\.assert_never",            # defensive code tests do not reach
+  "typing\\.cast\\(",                 # static analysis only
+]
+[tool.coverage.json]
+pretty_print = true
 
 [tool.refurb]
 python_version = "3.11"

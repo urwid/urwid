@@ -173,6 +173,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
     @_call_modified
     def sort(self, *, key: Callable[[_T], typing.Any] | None = None, reverse: bool = False) -> None:
         """Sort the list in place."""
+        # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
         super().sort(key=key, reverse=reverse)
 
     @_call_modified
@@ -623,6 +624,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         value = self[self._focus]
         return self._modify(
             lambda: self.index(value),
+            # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
             lambda: super(MonitoredList, self).sort(key=key, reverse=reverse),
         )
 

@@ -213,6 +213,7 @@ def _parse_force_color(value: str) -> _ColorCount:
 def _windows_version() -> tuple[int, int, int] | None:
     if sys.platform != "win32":
         return None
+    # pyrefly: ignore[missing-attribute]  # Windows only, behind a platform check
     version = sys.getwindowsversion()  # pylint: disable=no-member
     return (version.major, version.minor, version.build)
 
@@ -1014,7 +1015,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
 
-        osb = self._drawn_rows if self.screen_buf else []
+        osb: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = self._drawn_rows if self.screen_buf else []
         sb: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] = []
         drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         cy = self._cy

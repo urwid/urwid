@@ -66,7 +66,7 @@ OPERATORS: dict[str, typing.Callable[[int | float, int | float], int | float | N
 }
 
 # the uppercase versions of keys used to switch columns
-COLUMN_KEYS = list("?ABCDEF")
+COLUMN_KEYS: list[str] = list("?ABCDEF")
 
 # these lists are used to determine when to display errors
 EDIT_KEYS = list(OPERATORS.keys()) + COLUMN_KEYS + ["backspace", "delete"]
@@ -657,6 +657,7 @@ class CalcDisplay:
             view
         )  # for showing messages
         self.col_link: dict[CellColumn, tuple[Cell, CellColumn]] = {}
+        self.event: CalcEvent | None = None
 
     def main(self) -> None:
         """Run the Column Calculator application."""

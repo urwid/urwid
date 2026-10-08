@@ -707,6 +707,7 @@ class Overlay(
         """
 
         # noinspection PyMethodParameters
+        # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested class
         class OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
             """Two-item sequence view onto this Overlay's bottom and top widget entries."""
 
@@ -740,6 +741,7 @@ class Overlay(
                 for val in inner_self:
                     yield None, val
 
+            # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested class
             def __iter__(inner_self) -> Iterator[OverlayContentsItem[TopWidget, BottomWidget]]:
                 for idx in range(2):
                     yield inner_self[idx]  # type: ignore[arg-type]

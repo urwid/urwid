@@ -543,6 +543,7 @@ class TermCanvas(Canvas):
             elif isinstance(cmd_, CSICommand):
                 csi_cmd = cmd_
             elif cmd_[0] == "alias":  # fallback, hard deprecated
+                # pyrefly: ignore[bad-assignment]  # the alias resolves to a CSICommand
                 csi_cmd = CSI_COMMANDS[CSIAlias(*cmd_).alias]
             else:
                 csi_cmd = CSICommand(*cmd_)  # fallback, hard deprecated
@@ -1054,7 +1055,9 @@ class TermCanvas(Canvas):
         .XXX
         XX..
         """
+        # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         sx, sy = self.constrain_coords(*start)
+        # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         ex, ey = self.constrain_coords(*end)
 
         # within a single row
@@ -1333,7 +1336,7 @@ class Terminal(Widget):
         main_loop: event_loop.EventLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = "utf-8",
-    ):
+    ) -> None:
         """Initialize a terminal emulator widget.
 
         ``command`` is the command to execute inside the terminal,
@@ -1604,7 +1607,7 @@ class Terminal(Widget):
         """Unregister the pty from the main loop, when there is one."""
         if self.main_loop is None:
             return
-        self.main_loop.remove_watch_file(self.master)
+        self.main_loop.remove_watch_file(typing.cast("int", self.master))
 
     def wait_and_feed(self, timeout: float = 1.0) -> None:
         """Block up to *timeout* seconds for pty output, then read and process whatever has arrived."""
