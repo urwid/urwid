@@ -17,6 +17,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping, Sequence
     from typing import Literal
 
+    from urwid.canvas import Canvas
     from urwid.util import _TagMarkup
 
 
@@ -68,6 +69,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
 
     ignore_focus = True
 
+    # pyrefly: ignore[unsupported-operation]  # a str enum member is a str
     eighths = BAR_SYMBOLS.VERTICAL[:8]  # Full height is done by style
     hlines = "_⎺⎻─⎼⎽"
 
@@ -478,7 +480,7 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         (maxcol, maxrow) = size
         disp = self.calculate_display((maxcol, maxrow))
 
-        combinelist = []
+        combinelist: list[tuple[Canvas, typing.Any, bool]] = []
         for y_count, row in disp:
             widget_list = []
             for bar_type, width in row:

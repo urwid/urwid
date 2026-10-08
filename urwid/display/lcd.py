@@ -334,7 +334,7 @@ class CF635Screen(CFLCDScreen):
         repeat_delay: float = 0.5,
         repeat_next: float = 0.125,
         key_map: Iterable[str] = ("up", "down", "left", "right", "enter", "esc"),
-    ):
+    ) -> None:
         """Open the serial connection and set up key repeat handling.
 
         :param device_path: serial device to talk to, e.g. :file:`/dev/ttyUSB0`
@@ -359,7 +359,7 @@ class CF635Screen(CFLCDScreen):
 
     def get_input_descriptors(self) -> list[int]:
         """Return the fd from our serial device so we get called on input and responses."""
-        return [self._device.fd]
+        return [self._device.fileno()]
 
     def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
         """Return a ``(next_input_timeout, keys_pressed, raw_keycodes)`` tuple.
@@ -435,6 +435,7 @@ class CF635Screen(CFLCDScreen):
         if size != self.DISPLAY_SIZE:
             raise ValueError(size)
 
+        osb: list[list[bytes]]
         if self._screen_buf:
             osb = self._screen_buf
         else:

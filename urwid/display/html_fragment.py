@@ -111,7 +111,7 @@ class HtmlGenerator(BaseScreen):
         if canvas.cursor is not None:
             cx, cy = canvas.cursor
         else:
-            cx = cy = None
+            cx = cy = -1  # no cursor: matches no row
 
         for y, row in enumerate(canvas.content()):
             col = 0
@@ -257,5 +257,6 @@ def screenshot_init(
 
 def screenshot_collect() -> list[str]:
     """Return screenshots as a list of HTML fragments."""
-    fragments, HtmlGenerator.fragments = HtmlGenerator.fragments, []
+    fragments = HtmlGenerator.fragments
+    HtmlGenerator.fragments = []
     return fragments

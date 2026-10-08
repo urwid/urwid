@@ -20,6 +20,7 @@ class ProgressBar(Widget):
 
     _sizing = frozenset([Sizing.FLOW])
 
+    # pyrefly: ignore[unsupported-operation]  # a str enum member is a str
     eighths = BAR_SYMBOLS.HORISONTAL[:8]  # Full width line is made by style
 
     text_align = Align.CENTER
@@ -28,7 +29,7 @@ class ProgressBar(Widget):
         self,
         normal: Hashable,
         complete: Hashable,
-        current: int = 0,
+        current: float = 0,
         done: int = 100,
         satt: Hashable = None,
     ) -> None:
@@ -83,7 +84,7 @@ class ProgressBar(Widget):
         self._label: Text | None = None
         self._render_label: Callable[..., TextCanvas] | None = None
 
-    def set_completion(self, current: int) -> None:
+    def set_completion(self, current: float) -> None:
         """:param current: current progress"""
         self._current = current
         self._invalidate()

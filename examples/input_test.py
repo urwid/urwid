@@ -167,10 +167,12 @@ def key_test() -> None:
     old = ()
 
     try:
+        # pyrefly: ignore[missing-attribute]  # not on BaseScreen, but on every display offered here
         old = screen.tty_signal_keys("undefined", "undefined", "undefined", "undefined", "undefined")
         loop.run()
     finally:
         if old:
+            # pyrefly: ignore[missing-attribute]  # not on BaseScreen, but on every display offered here
             screen.tty_signal_keys(*old)
 
 

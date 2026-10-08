@@ -183,6 +183,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     _sizing = frozenset([Sizing.BOX])
 
     @typing.overload
+    # pyrefly: ignore[invalid-annotation]  # the walker position type is not followed
     def __init__(
         self: ListBox[_K],
         body: ListWalker[_K, AbstractFlowWidget],
@@ -217,6 +218,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
                 stacklevel=2,
             )
         else:
+            # pyrefly: ignore[not-a-type]  # a string type argument in an expression
             self._body = SimpleListWalker["AbstractFlowWidget"](body)
 
         self.body = self._body  # Initialization hack
@@ -770,6 +772,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             __getitem__ = self._contents__getitem__
 
             def __len__(inner_self) -> int:
+                # pyrefly: ignore[bad-argument-type]  # the walker position type is not followed
                 return len(self)
 
             def __repr__(inner_self) -> str:
@@ -787,6 +790,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """
         if hasattr(self._body, "__getitem__"):
             try:
+                # pyrefly: ignore[bad-index]  # the walker position type is not followed
                 return (self._body[key], None)
             except (IndexError, KeyError) as exc:
                 raise KeyError(f"ListBox.contents key not found: {key!r}").with_traceback(exc.__traceback__) from exc
@@ -1316,6 +1320,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             if widget is None:
                 self.shift_focus((maxcol, maxrow), row_offset)
                 return None
+            # pyrefly: ignore[bad-argument-type]  # pos is not None when widget is not None
             self.change_focus((maxcol, maxrow), pos, row_offset, "below")
             return None
 
@@ -1337,6 +1342,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
                     # must scroll further than 1 line
                     row_offset = -(rows - 1)
 
+                # pyrefly: ignore[bad-argument-type]  # pos is not None when widget is not None
                 self.change_focus((maxcol, maxrow), pos, row_offset, "below")
                 return None
 
@@ -1393,6 +1399,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             if widget is None:
                 self.shift_focus((maxcol, maxrow), row_offset - rows)
                 return None
+            # pyrefly: ignore[bad-argument-type]  # pos is not None when widget is not None
             self.change_focus((maxcol, maxrow), pos, row_offset - rows, "above")
             return None
 
@@ -1416,6 +1423,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
                 self.change_focus(
                     (maxcol, maxrow),
+                    # pyrefly: ignore[bad-argument-type]  # pos is not None when widget is not None
                     pos,
                     row_offset,
                     "above",

@@ -990,9 +990,9 @@ class CompositeCanvas(Canvas):
             raise ValueError(f"top canvas of overlay not the size expected!{(other.rows(), top, bottom, height)!r}")
 
         shards = self.shards
-        top_shards = []
+        top_shards: list[tuple[int, list[_CView]]] = []
         side_shards = self.shards
-        bottom_shards = []
+        bottom_shards: list[tuple[int, list[_CView]]] = []
         if top:
             side_shards = shards_trim_top(shards, top)
             top_shards = shards_trim_rows(shards, top)
@@ -1000,13 +1000,14 @@ class CompositeCanvas(Canvas):
             bottom_shards = shards_trim_top(side_shards, height)
             side_shards = shards_trim_rows(side_shards, height)
 
-        left_shards = []
-        right_shards = []
+        left_shards: list[list[tuple[int, list[_CView]]]] = []
+        right_shards: list[list[tuple[int, list[_CView]]]] = []
         if left > 0:
             left_shards = [shards_trim_sides(side_shards, 0, left)]
         if right > 0:
             right_shards = [shards_trim_sides(side_shards, max(0, left + width), right)]
 
+        middle_shards: list[tuple[int, list[_CView]]]
         if not self.rows():
             middle_shards = []
         elif left or right:

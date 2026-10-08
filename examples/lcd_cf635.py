@@ -176,6 +176,7 @@ class MenuOption(urwid.Button):
 
         self._w = urwid.Columns([(1, urwid.SelectableIcon("\xdf")), self._label])
 
+        # pyrefly: ignore[implicit-any-lambda]  # connect_signal() takes an untyped callback
         urwid.connect_signal(self, "click", lambda option: show_menu(submenu))
 
     def keypress(self, size: tuple[int], key: str) -> str | None:

@@ -60,6 +60,7 @@ jobs:
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r pylint-requirements.txt
+      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Lint with pylint
         run: uv run --no-project pylint --output-format=github urwid
 
@@ -76,11 +77,28 @@ jobs:
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r mypy-requirements.txt
+      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Type check with mypy
         run: uv run --no-project mypy urwid
 
+  Pyrefly:
+    name: Check with Pyrefly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+      - name: Create virtual environment
+        run: uv venv --python 3.14
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
+      - name: Install dependencies
+        run: uv pip install --upgrade -r pyrefly-requirements.txt
+      - name: Type check with Pyrefly
+        run: uv run --no-project pyrefly check --output-format full-text-with-github
+
   Test:
-    needs: [ Ruff-format, Ruff, PyLint, Mypy ]
+    needs: [ Ruff-format, Ruff, PyLint, Mypy, Pyrefly ]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6

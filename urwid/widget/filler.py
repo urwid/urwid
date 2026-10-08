@@ -151,6 +151,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         # PACK is reported as FLOW|PACK by normalize_height, while FLOW is not a valid Filler height type
         self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)  # type: ignore[assignment]
 
+        self.min_height: int | None
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
         else:

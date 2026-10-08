@@ -236,7 +236,7 @@ class Columns(
         focus_column: int | AbstractWidget | None = None,
         min_width: int = 1,
         box_columns: Iterable[int] | None = None,
-    ):
+    ) -> None:
         """Initialize a new Columns instance.
 
         :param widget_list: iterable of flow or box widgets
@@ -971,6 +971,7 @@ class Columns(
             if isinstance(col, int):
                 move_x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = min(max(0, col - x), end - x - 1)
             else:
+                # pyrefly: ignore[bad-assignment]  # comparing with Align members widens the Literal
                 move_x = col
 
             if w.move_cursor_to_coords(size_args[i], move_x, row) is False:
@@ -981,6 +982,7 @@ class Columns(
                 return False
 
         self.focus_position = i
+        # pyrefly: ignore[bad-assignment]  # comparing with Align members widens the Literal
         self.pref_col = col
         return True
 

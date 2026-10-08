@@ -305,7 +305,7 @@ class Screen(BaseScreen):
         if cols != self.last_screen_width:
             self.last_screen = {}
 
-        sendq = [self.content_head]
+        sendq: list[str] = [self.content_head]
 
         if self.update_method == "polling":
             send = sendq.append
@@ -315,7 +315,8 @@ class Screen(BaseScreen):
                 s, _addr = typing.cast("socket.socket", self.server_socket).accept()
             except TimeoutError:
                 sys.exit(0)
-            send = s.sendall  # type: ignore[assignment]  # use default flags
+            sendq = []
+            send = sendq.append
         else:
             signal.alarm(0)
             send = sendq.append
@@ -328,7 +329,7 @@ class Screen(BaseScreen):
         if canvas.cursor is not None:
             cx, cy = canvas.cursor
         else:
-            cx = cy = None
+            cx = cy = -1  # no cursor: matches no row
 
         new_screen: dict[tuple[tuple[AttrSpec, str] | int | None, ...], list[int]] = {}
 
@@ -378,6 +379,7 @@ class Screen(BaseScreen):
             sys.stdout.close()
             self._fork_child()
         elif self.update_method == "polling child":
+            s.sendall("".join(sendq).encode("utf-8"))  # handle_short_request() decodes UTF-8
             s.close()
         else:  # update_method == "multipart"
             send("\r\n--ZZ\r\n")

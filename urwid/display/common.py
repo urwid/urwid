@@ -988,17 +988,25 @@ class AttrSpec:
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
+        bg_vals: tuple[int | None, int | None, int | None]
         if not (self.background_basic or self.background_high or self.background_true):
-            return (*vals, None, None, None)
-        if self.colors == 88:
+            bg_vals = (None, None, None)
+        elif self.colors == 88:
             if self.background_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
-            return (*vals, *_COLOR_VALUES_88[self.background_number])
-        if self.background_true:
+            bg_vals = _COLOR_VALUES_88[self.background_number]
+        elif self.background_true:
             h = f"{self.background_number:06x}"
-            return (*vals, *(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])))
+            bg_vals = typing.cast(
+                "tuple[int, int, int]",
+                tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])),
+            )
+        else:
+            bg_vals = _COLOR_VALUES_256[self.background_number]
 
-        return (*vals, *_COLOR_VALUES_256[self.background_number])
+        fg_red, fg_green, fg_blue = vals
+        bg_red, bg_green, bg_blue = bg_vals
+        return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)
 
     def layered_over(
         self,
@@ -1290,6 +1298,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """
         for item in palette:
             if len(item) in {3, 4, 6}:
+                # pyrefly: ignore[bad-argument-type]  # a union of tuples of different lengths
                 self.register_palette_entry(*item)
                 continue
             if len(item) != 2:

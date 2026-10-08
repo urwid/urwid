@@ -65,7 +65,7 @@ class Frame(
         header: HeaderWidget | None = None,
         footer: FooterWidget | None = None,
         focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
-    ):
+    ) -> None:
         """Initialize a new Frame instance.
 
         :param body: a box widget for the body of the frame
@@ -216,6 +216,7 @@ class Frame(
         class FrameContents(
             MutableMapping[
                 str,
+                # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested signature
                 tuple[BodyWidget | HeaderWidget | FooterWidget, None],
             ]
         ):
@@ -408,6 +409,7 @@ class Frame(
                 (maxcol,),
                 focus and self.focus_part == "header",
             )
+            # pyrefly: ignore[missing-attribute]  # render() on the unnarrowed TypeVar leaves the declared None
             if head.rows() != hrows:
                 raise RuntimeError("rows, render mismatch")
         if head:
@@ -433,6 +435,7 @@ class Frame(
                 (maxcol,),
                 focus and self.focus_part == "footer",
             )
+            # pyrefly: ignore[missing-attribute]  # render() on the unnarrowed TypeVar leaves the declared None
             if foot.rows() != frows:
                 raise RuntimeError("rows, render mismatch")
         if foot:
@@ -450,19 +453,25 @@ class Frame(
         (maxcol, maxrow) = size
 
         if self.focus_part == "header" and self.header is not None:
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             if not self.header.selectable():
                 return key
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             return self.header.keypress((maxcol,), key)
         if self.focus_part == "footer" and self.footer is not None:
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             if not self.footer.selectable():
                 return key
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             return self.footer.keypress((maxcol,), key)
         if self.focus_part != "body":
             return key
         remaining = maxrow
         if self.header is not None:
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             remaining -= self.header.rows((maxcol,))
         if self.footer is not None:
+            # pyrefly: ignore[missing-attribute]  # TypeVar bound to "... | None" is not narrowed by a None check
             remaining -= self.footer.rows((maxcol,))
         if remaining <= 0:
             return key

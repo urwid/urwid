@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 import unittest
 
-from urwid.split_repr import remove_defaults
+from urwid.split_repr import remove_defaults, split_repr
 
 
 class RemoveDefaultsTest(unittest.TestCase):
@@ -44,3 +44,31 @@ class RemoveDefaultsTest(unittest.TestCase):
         exec(compile("def fn(self, a: Undefined = 1): ...", "<test>", "exec", dont_inherit=True), namespace)
 
         self.assertEqual({}, remove_defaults({"a": 1}, namespace["fn"]))
+
+
+class SplitReprTest(unittest.TestCase):
+    def test_empty_repr_falls_back_to_the_replaced_repr(self) -> None:
+        """Without words and attributes, use the __repr__ that split_repr replaced, also from a subclass."""
+
+        class Base:
+            def __repr__(self) -> str:
+                return "<base repr>"
+
+        class Foo(Base):
+            __repr__ = split_repr
+
+            def _repr_words(self) -> list[str]:
+                return []
+
+            def _repr_attrs(self) -> dict[str, object]:
+                return {}
+
+        class Bar(Foo):
+            pass
+
+        class Baz(Foo):
+            __repr__ = split_repr
+
+        for cls in (Foo, Bar, Baz):
+            with self.subTest(cls=cls.__name__):
+                self.assertEqual("<base repr>", repr(cls()))

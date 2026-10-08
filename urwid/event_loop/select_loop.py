@@ -171,6 +171,7 @@ class SelectEventLoop(EventLoop):
     def _loop(self) -> None:
         """Run a single iteration of the event loop."""
         tm: float | Literal["idle"] | None = None
+        ready: list[selectors.SelectorKey]
 
         with selectors.DefaultSelector() as selector:
             for fd, callback in self._watch_files.items():
