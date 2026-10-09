@@ -150,7 +150,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
         super().__init__(cols)
         self.callback = callback
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """Move the slider based on which arrow is focused, or delegate other keys to the wrapped columns."""
         # move the slider based on which arrow is focused
         if key == "enter":
@@ -159,7 +159,7 @@ class LCDHorizontalSlider(urwid.WidgetWrap[urwid.Columns]):
             self.callback(self.bar.value)
             return None
 
-        return typing.cast("str | None", super().keypress(size, key))
+        return super().keypress(size, key)
 
 
 class MenuOption(urwid.Button):
@@ -179,7 +179,7 @@ class MenuOption(urwid.Button):
         # pyrefly: ignore[implicit-any-lambda]  # connect_signal() takes an untyped callback
         urwid.connect_signal(self, "click", lambda option: show_menu(submenu))
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """Treat :kbd:`right` as :kbd:`enter` to open the submenu, then delegate to the button."""
         if key == "right":
             key = "enter"

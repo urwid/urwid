@@ -123,9 +123,7 @@ def key_test() -> None:
         urwid.ListBox(lw),
         "listbox",
     )
-    top: urwid.Frame[urwid.AttrMap[urwid.ListBox[urwid.Columns]], urwid.AttrMap[urwid.Text], None] = urwid.Frame(
-        listbox, header
-    )
+    top: urwid.Frame[urwid.AttrMap[urwid.ListBox[int]], urwid.AttrMap[urwid.Text], None] = urwid.Frame(listbox, header)
 
     def input_filter(
         keys: list[str | tuple[str, int, int, int]], raw: list[int]

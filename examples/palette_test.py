@@ -32,6 +32,8 @@ import typing
 
 import urwid
 
+_Widget = typing.TypeVar("_Widget", bound=urwid.AbstractWidget)
+
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Literal
@@ -369,7 +371,7 @@ def main() -> None:
     mode_radio_buttons: list[urwid.RadioButton] = []
     chart_radio_buttons: list[urwid.RadioButton] = []
 
-    def fcs(widget: urwid.AbstractWidget) -> urwid.AttrMap[urwid.AbstractWidget]:
+    def fcs(widget: _Widget) -> urwid.AttrMap[_Widget]:
         # wrap widgets that can take focus
         return urwid.AttrMap(widget, None, "focus")
 

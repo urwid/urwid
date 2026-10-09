@@ -146,7 +146,7 @@ class Cell:
 
     def setup_edit(self) -> None:
         """Create the standard edit widget for this cell."""
-        self.edit = urwid.IntEdit()
+        self.edit: urwid.IntEdit | ParentEdit = urwid.IntEdit()
         if not self.is_top:
             self.edit.set_caption(f"{self.op} ")
         self.edit.set_layout(self.edit.align, self.edit.wrap, CALC_LAYOUT)
@@ -211,7 +211,7 @@ class ParentEdit(urwid.Edit):
             caption = f"{self.op} {caption}"
         self.set_caption(caption)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """Disable usual editing, allow only removing of child.
 
         :raises ColumnDeleteEvent: when `key` is :kbd:`backspace`, to remove this column.
@@ -225,7 +225,12 @@ class ParentEdit(urwid.Edit):
         return key
 
 
-class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text]):
+class CellWalker(
+    urwid.ListWalker[
+        tuple[int, int],
+        urwid.Divider | urwid.AttrMap[urwid.IntEdit | ParentEdit] | urwid.Text,
+    ],
+):
     """ListWalker-compatible class for browsing the cells, dividers and results within a column.
 
     Positions are ``(cell index, sub-position)`` tuples, where sub-position is 0 for the cell's edit widget,
@@ -250,7 +255,13 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
     def _get_at_pos(
         self,
         pos: tuple[int, int],
-    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+    ) -> (
+        tuple[
+            urwid.Divider | urwid.AttrMap[urwid.IntEdit | ParentEdit] | urwid.Text,
+            tuple[int, int],
+        ]
+        | tuple[None, None]
+    ):
         """Return the widget and position passed, or (None, None) if `pos` is out of range."""
         i, sub = pos
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
@@ -266,7 +277,13 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
 
     def get_focus(
         self,
-    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+    ) -> (
+        tuple[
+            urwid.Divider | urwid.AttrMap[urwid.IntEdit | ParentEdit] | urwid.Text,
+            tuple[int, int],
+        ]
+        | tuple[None, None]
+    ):
         """Return the widget and position for the current focus."""
         return self._get_at_pos(self.focus)
 
@@ -277,7 +294,13 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
     def get_next(
         self,
         position: tuple[int, int],
-    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+    ) -> (
+        tuple[
+            urwid.Divider | urwid.AttrMap[urwid.IntEdit | ParentEdit] | urwid.Text,
+            tuple[int, int],
+        ]
+        | tuple[None, None]
+    ):
         """Return the widget and position after the given position."""
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
@@ -295,7 +318,13 @@ class CellWalker(urwid.ListWalker[tuple[int, int], urwid.Divider | urwid.AttrMap
     def get_prev(
         self,
         position: tuple[int, int],
-    ) -> tuple[urwid.Divider | urwid.AttrMap[urwid.IntEdit] | urwid.Text, tuple[int, int]] | tuple[None, None]:
+    ) -> (
+        tuple[
+            urwid.Divider | urwid.AttrMap[urwid.IntEdit | ParentEdit] | urwid.Text,
+            tuple[int, int],
+        ]
+        | tuple[None, None]
+    ):
         """Return the widget and position before the given position."""
         i, sub = position
         assert sub in {0, 1, 2}  # noqa: S101  # for examples "assert" is acceptable
@@ -353,7 +382,7 @@ class CellColumn(
         assert cell is not None  # noqa: S101  # for examples "assert" is acceptable
         return cell
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
+    def keypress(self, size: tuple[int, int], key: str) -> str | None:  # type: ignore[override]
         """Handle a keystroke within this column, splitting, combining or removing cells as needed.
 
         :raises UpdateParentEvent: when a cell's result changed, so any parent column can be refreshed.
@@ -852,6 +881,7 @@ class CalcDisplay:
             parent, pcol = self.get_parent(col)
             assert parent is not None  # noqa: S101  # for examples "assert" is acceptable
             # fix the parent cell
+            assert isinstance(parent.edit, ParentEdit)  # noqa: S101  # for examples "assert" is acceptable
             parent.edit.set_letter(COLUMN_KEYS[j])
 
     def update_parent_columns(self) -> None:

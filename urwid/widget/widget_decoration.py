@@ -13,6 +13,7 @@ if typing.TYPE_CHECKING:
     from typing import Literal
 
     from .constants import Sizing
+    from .widget import _DelegateToWidgetMixin
 
 
 __all__ = (
@@ -108,8 +109,14 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         return self._original_widget.sizing()
 
 
+if typing.TYPE_CHECKING:
+    _WidgetPlaceholderDelegate = _DelegateToWidgetMixin
+else:
+    _WidgetPlaceholderDelegate = delegate_to_widget_mixin("_original_widget")
+
+
 class WidgetPlaceholder(
-    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    _WidgetPlaceholderDelegate,
     WidgetDecoration[WrappedWidget],
 ):
     """Do-nothing decoration widget that can be used for swapping between widgets.

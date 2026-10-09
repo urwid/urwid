@@ -457,7 +457,7 @@ class Edit(WidgetWrap[Text]):
 
     def keypress(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """
@@ -615,7 +615,7 @@ class Edit(WidgetWrap[Text]):
 
     def mouse_event(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -649,7 +649,7 @@ class Edit(WidgetWrap[Text]):
 
     def render(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:
         """Render edit widget and return canvas.
@@ -763,7 +763,7 @@ class IntEdit(Edit):
 
     def keypress(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """

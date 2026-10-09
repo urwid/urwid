@@ -56,8 +56,9 @@ class FlagFileWidget(urwid.TreeWidget[_TreeNode]):
     def __init__(self, node: _TreeNode) -> None:
         """Initialize unflagged, wrapping the tree widget's display in an extra `AttrMap`."""
         super().__init__(node)
-        # insert an extra AttrWrap for our own use
-        self._w = urwid.AttrMap(self._w, None)
+        # insert an extra AttrWrap for our own use; TreeWidget declares its wrapped widget as the Padding
+        # pyrefly: ignore[bad-argument-type]
+        self._w = urwid.AttrMap(self._w, None)  # type: ignore[assignment]
         self.flagged = False
         self.update_w()
 
@@ -65,7 +66,7 @@ class FlagFileWidget(urwid.TreeWidget[_TreeNode]):
         """Return whether this widget can take focus."""
         return True
 
-    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:
+    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:  # type: ignore[override]
         """Handle a keypress, passing any unhandled key on to :meth:`unhandled_keys`.
 
         :param size: render size passed by the parent widget

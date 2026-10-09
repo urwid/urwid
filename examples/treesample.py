@@ -39,7 +39,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
-    from typing import NotRequired
+    from typing import NotRequired, Self
 
 
 class SampleTree(typing.TypedDict):
@@ -49,7 +49,10 @@ class SampleTree(typing.TypedDict):
     children: NotRequired[list[SampleTree]]
 
 
-class ExampleTreeWidget(urwid.TreeWidget["ExampleNode | ExampleParentNode"]):
+_ExampleNode = typing.TypeVar("_ExampleNode", bound="ExampleNode | ExampleParentNode")
+
+
+class ExampleTreeWidget(urwid.TreeWidget[_ExampleNode]):
     """Display widget for tree nodes."""
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
@@ -60,7 +63,7 @@ class ExampleTreeWidget(urwid.TreeWidget["ExampleNode | ExampleParentNode"]):
 class ExampleNode(urwid.TreeNode[SampleTree]):
     """Data storage object for leaf nodes."""
 
-    def load_widget(self) -> ExampleTreeWidget:
+    def load_widget(self) -> ExampleTreeWidget[Self]:
         """Return a new widget for this node."""
         return ExampleTreeWidget(self)
 
@@ -68,7 +71,7 @@ class ExampleNode(urwid.TreeNode[SampleTree]):
 class ExampleParentNode(urwid.ParentNode[SampleTree]):
     """Data storage object for interior/parent nodes."""
 
-    def load_widget(self) -> ExampleTreeWidget:
+    def load_widget(self) -> ExampleTreeWidget[Self]:
         """Return a new widget for this node."""
         return ExampleTreeWidget(self)
 

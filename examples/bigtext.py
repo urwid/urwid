@@ -74,20 +74,18 @@ class BigTextDisplay:
         g: list[urwid.RadioButton],
         name: str,
         font: urwid.Font,
-        fn: Callable[[urwid.RadioButton, bool], typing.Any],
+        fn: Callable[[urwid.RadioButton, bool, urwid.Font], typing.Any],
     ) -> urwid.AttrMap[urwid.RadioButton]:
         """Create a radio button for selecting a font.
 
         :param g: radio button group to add the new button to
         :param name: label for the radio button
         :param font: font this button selects
-        :param fn: callback connected to the button's ``change`` signal
+        :param fn: callback connected to the button's ``change`` signal, with *font* as its user data
         :returns: the radio button wrapped in an :class:`urwid.AttrMap`
         """
-        w = urwid.RadioButton(g, name, False, on_state_change=fn)
-        w.font = font
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        w = urwid.RadioButton(g, name, False, on_state_change=fn, user_data=font)
+        return urwid.AttrMap(w, "button normal", "button select")
 
     def create_disabled_radio_button(self, name: str) -> urwid.AttrMap[urwid.Text]:
         """Create a disabled placeholder shown for fonts unavailable in the current encoding mode.
@@ -95,9 +93,7 @@ class BigTextDisplay:
         :param name: name of the unavailable font
         :returns: the placeholder text wrapped in an :class:`urwid.AttrMap`
         """
-        w = urwid.Text(f"    {name} (UTF-8 mode required)")
-        w = urwid.AttrMap(w, "button disabled")
-        return w
+        return urwid.AttrMap(urwid.Text(f"    {name} (UTF-8 mode required)"), "button disabled")
 
     def create_edit(
         self,
@@ -115,18 +111,18 @@ class BigTextDisplay:
         w = urwid.Edit(label, text)
         urwid.connect_signal(w, "change", fn)
         fn(w, text)
-        w = urwid.AttrMap(w, "edit")
-        return w
+        return urwid.AttrMap(w, "edit")
 
-    def set_font_event(self, w: urwid.RadioButton, state: bool) -> None:
+    def set_font_event(self, w: urwid.RadioButton, state: bool, font: urwid.Font) -> None:
         """Switch the displayed :class:`urwid.BigText` to the selected font.
 
-        :param w: radio button whose state changed, carrying the ``font`` it selects
+        :param w: radio button whose state changed
         :param state: new state of the radio button
+        :param font: font the radio button selects
         """
         if state:
-            self.bigtext.set_font(w.font)
-            self.chars_avail.set_text(w.font.characters())
+            self.bigtext.set_font(font)
+            self.chars_avail.set_text(font.characters())
 
     def edit_change_event(self, widget: urwid.Edit, text: str) -> None:
         """Update the :class:`urwid.BigText` display with the edited text.
@@ -153,12 +149,14 @@ class BigTextDisplay:
         utf8 = urwid.get_encoding_mode() == "utf8"
         for name, fontcls in fonts:
             font = fontcls()
+            rb: urwid.AttrMap[urwid.RadioButton] | urwid.AttrMap[urwid.Text]
             if font.utf8_required and not utf8:
                 rb = self.create_disabled_radio_button(name)
             else:
-                rb = self.create_radio_button(group, name, font, self.set_font_event)
+                radio = self.create_radio_button(group, name, font, self.set_font_event)
+                rb = radio
                 if fontcls == urwid.Thin6x6Font:
-                    chosen_font_rb = rb
+                    chosen_font_rb = radio
                     exit_font = font
             self.font_buttons.append(rb)
 

@@ -108,11 +108,10 @@ class DialogDisplay:
 
     def add_buttons(self, buttons: Sequence[tuple[str, int]]) -> None:
         """Add a row of buttons to the dialog's footer, each raising `DialogExit` with its exit code."""
-        lines = []
-        for name, exitcode in buttons:
-            b = ExitButton(name, self.button_press, exitcode)
-            b = urwid.AttrMap(b, "selectable", "focus")
-            lines.append(b)
+        lines = [
+            urwid.AttrMap(ExitButton(name, self.button_press, exitcode), "selectable", "focus")
+            for name, exitcode in buttons
+        ]
         self.buttons = urwid.GridFlow(lines, 10, 3, 1, urwid.CENTER)
         self.frame.footer = urwid.Pile([urwid.Divider(), self.buttons], focus_item=1)
 
@@ -145,8 +144,7 @@ class InputDialogDisplay(DialogDisplay):
     def __init__(self, text: _TagMarkup | None, height: int | str, width: int | str) -> None:
         """Initialize with an empty single-line text entry field, focused."""
         self.edit = urwid.Edit()
-        body = urwid.ListBox(urwid.SimpleListWalker([self.edit]))
-        body = urwid.AttrMap(body, "selectable", "focustext")
+        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker([self.edit])), "selectable", "focustext")
 
         super().__init__(text, height, width, body)
 
@@ -177,8 +175,7 @@ class TextDialogDisplay(DialogDisplay):
             lines = [urwid.Text(line.rstrip()) for line in f]
         # read the whole file (being slow, not lazy this time)
 
-        body = urwid.ListBox(urwid.SimpleListWalker(lines))
-        body = urwid.AttrMap(body, "selectable", "focustext")
+        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines)), "selectable", "focustext")
 
         super().__init__(None, height, width, body)
 
@@ -223,8 +220,7 @@ class ListDialogDisplay(DialogDisplay):
             w = urwid.AttrMap(w, "selectable", "focus")
             lines.append(w)
 
-        lb = urwid.ListBox(urwid.SimpleListWalker(lines))
-        lb = urwid.AttrMap(lb, "selectable")
+        lb = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines)), "selectable")
         super().__init__(text, height, width, lb)
 
         self.frame.focus_position = "body"

@@ -298,8 +298,7 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
         :returns: the button wrapped in an :class:`urwid.AttrMap`
         """
         w = urwid.Button(t, fn)
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        return urwid.AttrMap(w, "button normal", "button select")
 
     def radio_button(
         self,
@@ -315,8 +314,7 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
         :returns: the radio button wrapped in an :class:`urwid.AttrMap`
         """
         w = urwid.RadioButton(g, label, False, on_state_change=fn)
-        w = urwid.AttrMap(w, "button normal", "button select")
-        return w
+        return urwid.AttrMap(w, "button normal", "button select")
 
     def progress_bar(self, smooth: bool = False) -> urwid.ProgressBar:
         """Create the animation progress bar widget.

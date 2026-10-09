@@ -813,10 +813,116 @@ def fixed_size(size: tuple[()]) -> None:
         raise ValueError(f"FixedWidget takes only () for size.passed: {size!r}")
 
 
+if typing.TYPE_CHECKING:
+
+    class _DelegateToWidgetMixin(Widget):
+        """Checker-only view of the class delegate_to_widget_mixin() builds, for a base listed before WidgetDecoration.
+
+        Runtime behaviour and the documented contract are on delegate_to_widget_mixin().
+        _DelegateToWidgetAfterDecorationMixin repeats these declarations for a base listed after WidgetDecoration,
+        because one typing class used in both positions gives a class inheriting from both an inconsistent MRO.
+        Edit both together.
+        """
+
+        def render(self, size: typing.Any, focus: bool = False) -> Canvas:
+            """Render the delegate and wrap its canvas in a CompositeCanvas."""
+
+        def selectable(self) -> bool:
+            """Return whether the delegate can take the input focus."""
+
+        def sizing(self) -> frozenset[Sizing]:
+            """Return the delegate's sizing modes."""
+
+        def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
+            """Return the delegate's preferred size."""
+
+        def keypress(self, size: typing.Any, key: str) -> str | None:
+            """Pass the keypress to the delegate."""
+
+        def mouse_event(
+            self,
+            size: typing.Any,
+            event: str,
+            button: int,
+            col: int,
+            row: int,
+            focus: bool,
+        ) -> bool | None:
+            """Pass the mouse event to the delegate."""
+
+        def rows(self, size: tuple[int], focus: bool = False) -> int:
+            """Return the delegate's number of rows."""
+
+        def get_cursor_coords(self, size: typing.Any, /) -> tuple[int, int] | None:
+            """Return the delegate's cursor position."""
+
+        def get_pref_col(self, size: typing.Any, /) -> int | None:
+            """Return the delegate's preferred cursor column."""
+
+        def move_cursor_to_coords(self, size: typing.Any, col: int, row: int, /) -> bool:
+            """Move the delegate's cursor."""
+
+    class _DelegateToWidgetAfterDecorationMixin(Widget):
+        """Same declarations as _DelegateToWidgetMixin, for a base listed after WidgetDecoration; edit both together."""
+
+        def render(self, size: typing.Any, focus: bool = False) -> Canvas:
+            """Render the delegate and wrap its canvas in a CompositeCanvas."""
+
+        def selectable(self) -> bool:
+            """Return whether the delegate can take the input focus."""
+
+        def sizing(self) -> frozenset[Sizing]:
+            """Return the delegate's sizing modes."""
+
+        def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
+            """Return the delegate's preferred size."""
+
+        def keypress(self, size: typing.Any, key: str) -> str | None:
+            """Pass the keypress to the delegate."""
+
+        def mouse_event(
+            self,
+            size: typing.Any,
+            event: str,
+            button: int,
+            col: int,
+            row: int,
+            focus: bool,
+        ) -> bool | None:
+            """Pass the mouse event to the delegate."""
+
+        def rows(self, size: tuple[int], focus: bool = False) -> int:
+            """Return the delegate's number of rows."""
+
+        def get_cursor_coords(self, size: typing.Any, /) -> tuple[int, int] | None:
+            """Return the delegate's cursor position."""
+
+        def get_pref_col(self, size: typing.Any, /) -> int | None:
+            """Return the delegate's preferred cursor column."""
+
+        def move_cursor_to_coords(self, size: typing.Any, col: int, row: int, /) -> bool:
+            """Move the delegate's cursor."""
+
+
 def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     """Return a mixin class that delegates all standard widget methods to an attribute given by attribute_name.
 
     This mixin is designed to be used as a superclass of another widget.
+    Each call returns a new class, and *attribute_name* may be a dotted path such as ``"holder.child"``.
+
+    The class forwards ``render``, ``selectable``, ``sizing``, ``pack``, ``keypress`` and ``mouse_event``
+    with the parameters of :class:`Widget`, and ``rows``, ``get_cursor_coords``, ``get_pref_col`` and
+    ``move_cursor_to_coords`` with the parameters of the delegate.
+    ``render`` returns the delegate's canvas wrapped in a :class:`CompositeCanvas`.
+    ``keypress`` calls the delegate's ``keypress``.
+    Every other name returns the delegate's own bound method, looked up when the attribute is read.
+    The last four raise :exc:`AttributeError` when the delegate does not define them,
+    so containers can probe for them with :func:`hasattr`.
+
+    Type checkers see ``get_pref_col`` as returning ``int | None``
+    and ``move_cursor_to_coords`` as taking an ``int`` column,
+    although :meth:`Edit.get_pref_col` may return ``'left'`` or ``'right'``
+    and :meth:`Edit.move_cursor_to_coords` accepts those values for the column.
     """
     # FIXME: this is so common, let's add proper support for it
     # when layout and rendering are separated
@@ -903,8 +1009,14 @@ class WidgetWrapError(Exception):
     """Error raised for invalid :class:`WidgetWrap` usage."""
 
 
+if typing.TYPE_CHECKING:
+    _WrappedWidgetDelegate = _DelegateToWidgetMixin
+else:
+    _WrappedWidgetDelegate = delegate_to_widget_mixin("_wrapped_widget")
+
+
 class WidgetWrap(
-    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+    _WrappedWidgetDelegate,
     typing.Generic[WrappedWidget],
 ):
     """Base class for widgets that compose another widget for their display and behaviour."""

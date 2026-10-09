@@ -16,14 +16,20 @@ if typing.TYPE_CHECKING:
     from collections.abc import Hashable
     from typing import Literal
 
-    from .widget import AbstractWidget, Widget
+    from .widget import AbstractWidget, Widget, _DelegateToWidgetAfterDecorationMixin
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
+if typing.TYPE_CHECKING:
+    _LineBoxDelegate = _DelegateToWidgetAfterDecorationMixin
+else:
+    _LineBoxDelegate = delegate_to_widget_mixin("_wrapped_widget")
+
+
 class LineBox(
     WidgetDecoration[WrappedWidget],
-    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+    _LineBoxDelegate,
 ):
     """Box widget decoration that draws a line border, with an optional title, around another widget."""
 
