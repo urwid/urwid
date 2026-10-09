@@ -11,7 +11,7 @@ from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from .widget import AbstractWidget
+    from .widget import AbstractWidget, _DelegateToWidgetMixin
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
@@ -21,8 +21,14 @@ class AttrMapError(WidgetError):
     """AttrMap related errors."""
 
 
+if typing.TYPE_CHECKING:
+    _AttrMapDelegate = _DelegateToWidgetMixin
+else:
+    _AttrMapDelegate = delegate_to_widget_mixin("_original_widget")
+
+
 class AttrMap(
-    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    _AttrMapDelegate,
     WidgetDecoration[WrappedWidget],
 ):
     """A decoration that maps one set of display attributes to another.

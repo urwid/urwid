@@ -47,6 +47,7 @@ if typing.TYPE_CHECKING:
     from urwid.util import _TagMarkup
 
     from .listbox import VisibleInfo
+    from .widget import Widget
 
 __all__ = ("ParentNode", "TreeListBox", "TreeNode", "TreeWalker", "TreeWidget", "TreeWidgetError")
 
@@ -62,8 +63,8 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
-    unexpanded_icon = SelectableIcon("+", 0)
-    expanded_icon = SelectableIcon("-", 0)
+    unexpanded_icon: Widget = SelectableIcon("+", 0)
+    expanded_icon: Widget = SelectableIcon("-", 0)
 
     def __init__(self, node: _Node) -> None:
         """Build the widget representing `node`, expanded by default.
@@ -177,11 +178,12 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
         if this_node.get_depth() == 0:
             return None
 
-        return this_node.get_parent().get_widget()
+        # TreeWidget is invariant in its node type, and the parent is a ParentNode.
+        return typing.cast("TreeWidget[TreeNode[typing.Any]]", this_node.get_parent().get_widget())
 
     def keypress(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Handle expand & collapse requests (non-leaf nodes)."""
@@ -197,13 +199,13 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
             self.update_expanded_icon()
             return None
         if self._w.selectable():
-            return typing.cast("str | None", super().keypress(size, key))
+            return super().keypress(size, key)
 
         return key
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         event: str,
         button: int,
         col: int,

@@ -36,7 +36,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas
 
-    from .widget import AbstractBoxWidget, AbstractWidget
+    from .widget import AbstractBoxWidget, AbstractWidget, _DelegateToWidgetMixin
 
     class PopUpParametersModel(TypedDict):
         """Position and box size a :class:`PopUpLauncher` requests for its pop-up."""
@@ -48,15 +48,23 @@ if typing.TYPE_CHECKING:
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
+# The launcher wraps a widget of any sizing; the pop-up target is a box widget.
+LauncherWidget = typing.TypeVar("LauncherWidget", bound="AbstractWidget")
+
+
+if typing.TYPE_CHECKING:
+    _PopUpLauncherDelegate = _DelegateToWidgetMixin
+else:
+    _PopUpLauncherDelegate = delegate_to_widget_mixin("_original_widget")
 
 
 class PopUpLauncher(
-    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
-    WidgetDecoration[WrappedWidget],
+    _PopUpLauncherDelegate,
+    WidgetDecoration[LauncherWidget],
 ):
     """Decoration that lets a wrapped widget open and close a pop-up widget above it."""
 
-    def __init__(self, original_widget: WrappedWidget) -> None:
+    def __init__(self, original_widget: LauncherWidget) -> None:
         """Wrap `original_widget`, with no pop-up open yet."""
         super().__init__(original_widget)
         self._pop_up_widget: AbstractWidget | None = None

@@ -278,7 +278,7 @@ class CheckBox(WidgetWrap[Columns]):
             ),
         )
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
         size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
@@ -299,7 +299,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> ml_cb.pack((), True)
         (12, 3)
         """
-        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
+        return super().pack(size or (), focus)
 
     def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self.label)]
@@ -400,7 +400,7 @@ class CheckBox(WidgetWrap[Columns]):
 
     state = property(get_state, set_state)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """
         Toggle state on 'activate' command.
 
@@ -450,7 +450,15 @@ class CheckBox(WidgetWrap[Columns]):
         elif self.state == "mixed":
             self.set_state(False)
 
-    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
         """
         Toggle state on button 1 press.
 
@@ -717,7 +725,7 @@ class Button(WidgetWrap[Columns]):
         if on_press:
             connect_signal(self, "click", on_press, user_data)
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
         size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
@@ -735,7 +743,7 @@ class Button(WidgetWrap[Columns]):
         >>> btn.pack((), True)
         (15, 1)
         """
-        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
+        return super().pack(size or (), focus)
 
     def _repr_words(self) -> list[str]:
         # include button.label in repr(button)
@@ -768,7 +776,7 @@ class Button(WidgetWrap[Columns]):
 
     label = property(get_label)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """
         Send 'click' signal on 'activate' command.
 
@@ -791,7 +799,15 @@ class Button(WidgetWrap[Columns]):
         self._emit("click")
         return None
 
-    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
         """
         Send 'click' signal on button 1 press.
 

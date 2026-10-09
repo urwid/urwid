@@ -116,6 +116,7 @@ target-version = "py311"
 line-length = 120
 # The test suite is not checked by ruff, mypy, pyrefly, pylint or refurb yet: it is not clean against their
 # rule sets, and that is a gap to close rather than a decision.
+# tests/type_checks is the exception for mypy and pyrefly: it is a fixture written for them, and they check it.
 extend-exclude = [ "tests" ]
 output-format = "full"
 [tool.ruff.format]
@@ -342,8 +343,8 @@ disable_error_code = [
 
 [tool.pyrefly]
 python-version = "3.11.0"
-# Docs are not checked; tests are not checked, see [tool.ruff] extend-exclude.
-project-includes = [ "examples", "urwid" ]
+# Docs are not checked; tests other than tests/type_checks are not checked, see [tool.ruff] extend-exclude.
+project-includes = [ "examples", "tests/type_checks", "urwid" ]
 check-unannotated-defs = true
 # PyGObject is only installed with the "glib" extra, which needs system libraries.
 ignore-missing-imports = [ "gi.*" ]

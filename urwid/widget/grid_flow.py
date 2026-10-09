@@ -55,8 +55,7 @@ class GridFlow(
             return frozenset((Sizing.FLOW, Sizing.FIXED))
         return frozenset((Sizing.FLOW,))
 
-    # Type checkers cannot see the WidgetWrap base built by delegate_to_widget_mixin(),
-    # so the two members below are spelled out to keep GridFlow instantiable for them.
+    # base_widget is typed as GridFlow rather than Widget.
     def selectable(self) -> bool:
         """Return whether the internal Pile (or Divider) is selectable."""
         return self._w.selectable()
@@ -149,7 +148,7 @@ class GridFlow(
 
     def _invalidate(self) -> None:
         self._cache_maxcol = None
-        super()._invalidate()  # type: ignore[safe-super]  # dynamic base
+        super()._invalidate()
 
     def _contents_changed(self) -> None:
         """Record a contents change and invalidate the cached display widget."""
@@ -376,7 +375,7 @@ class GridFlow(
 
     def keypress(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Pass keypress to display widget for handling.
@@ -387,7 +386,7 @@ class GridFlow(
         focus_before = self.contents.focus
         generation_before = self._contents_generation
 
-        if (processed := super().keypress(size, key)) is not None:  # type: ignore[safe-super]  # dynamic base
+        if (processed := super().keypress(size, key)) is not None:
             return processed
 
         # The display widget was built before the keypress was dispatched, so a callback that
@@ -397,14 +396,14 @@ class GridFlow(
             self._set_focus_from_display_widget()
         return None
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
         size: tuple[int] | tuple[()] = (),
         focus: bool = False,
     ) -> tuple[int, int]:
         """Return the number of screen columns and rows this widget requires."""
         if size:
-            return super().pack(size, focus)  # type: ignore[safe-super]  # dynamic base
+            return super().pack(size, focus)
         if self:
             cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
         else:
@@ -414,16 +413,16 @@ class GridFlow(
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Return the number of rows this widget requires for the given size."""
         self.get_display_widget(size)
-        return typing.cast("int", super().rows(size, focus=focus))  # int or Never - depends on kind
+        return super().rows(size, focus=focus)
 
     def render(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         focus: bool = False,
     ) -> Canvas:
         """Render this widget's current display widget at the given size."""
         self.get_display_widget(size)
-        return super().render(size, focus)  # type: ignore[safe-super]  # dynamic base
+        return super().render(size, focus)
 
     def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int]:
         """Get cursor from display widget."""
@@ -433,13 +432,13 @@ class GridFlow(
     def move_cursor_to_coords(self, size: tuple[int] | tuple[()], col: int, row: int) -> bool:
         """Set the widget in focus based on the col + row."""
         self.get_display_widget(size)
-        rval = typing.cast("bool", super().move_cursor_to_coords(size, col, row))
+        rval = super().move_cursor_to_coords(size, col, row)
         self._set_focus_from_display_widget()
         return rval
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],
+        size: tuple[int] | tuple[()],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -450,7 +449,7 @@ class GridFlow(
         self.get_display_widget(size)
         focus_before = self.contents.focus
         generation_before = self._contents_generation
-        super().mouse_event(size, event, button, col, row, focus)  # type: ignore[safe-super]  # dynamic base
+        super().mouse_event(size, event, button, col, row, focus)
         # Same as in keypress: a callback that set the focus or changed the contents wins
         # over the display widget, which was built before the event was dispatched.
         if self.contents.focus == focus_before and self._contents_generation == generation_before:
