@@ -43,7 +43,7 @@ def item_chosen(button: urwid.Button) -> None:
 
 
 def exit_program(button: urwid.Button) -> typing.NoReturn:
-    raise urwid.ExitMainLoop()
+    raise urwid.ExitMainLoop
 
 
 menu_top = menu(

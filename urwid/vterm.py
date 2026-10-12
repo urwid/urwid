@@ -1501,13 +1501,11 @@ class Terminal(Widget):
     def _reap_child(self, timeout: float) -> bool:
         """Poll for the child's exit for up to *timeout* seconds, and return whether it is reaped."""
         deadline = time.monotonic() + timeout
-        try:
+        with suppress(ChildProcessError):  # reaped by someone else
             while os.waitpid(typing.cast("int", self.pid), os.WNOHANG)[0] == 0:
                 if time.monotonic() >= deadline:
                     return False
                 time.sleep(0.01)
-        except ChildProcessError:  # reaped by someone else
-            pass
         return True
 
     def beep(self) -> None:

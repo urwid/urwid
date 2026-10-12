@@ -42,7 +42,7 @@ class Thing(urwid.WidgetWrap[ActionButton]):
 
 
 def exit_program(button: ActionButton) -> typing.NoReturn:
-    raise urwid.ExitMainLoop()
+    raise urwid.ExitMainLoop
 
 
 map_top = Place(

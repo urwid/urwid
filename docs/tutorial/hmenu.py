@@ -63,7 +63,7 @@ class Choice(urwid.WidgetWrap[MenuButton]):
 
 
 def exit_program(key: MenuButton) -> typing.NoReturn:
-    raise urwid.ExitMainLoop()
+    raise urwid.ExitMainLoop
 
 
 menu_top = SubMenu(

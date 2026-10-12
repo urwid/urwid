@@ -1134,7 +1134,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             elif coming_from == "below":
                 attempt_rows = range(pref_row, tgt_rows)
             else:
-                attempt_rows = [pref_row]
+                attempt_rows = range(pref_row, pref_row + 1)
 
         for row in attempt_rows:
             if target.move_cursor_to_coords((maxcol,), pref_col, row):

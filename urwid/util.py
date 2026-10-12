@@ -278,6 +278,7 @@ def calc_trim_text(
     """
     Calculate the result of trimming text.
 
+    :param text: text to trim
     :param start_offs: offset into text to treat as screen column 0
     :param end_offs: offset into text to treat as the end of the line
     :param start_col: screen column to trim at the left
@@ -571,7 +572,7 @@ def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashabl
                     new_run += len(converted_item)
                 al[i] = (attr, new_run)
     else:
-        text = ""
+        text = ""  # pylint: disable=redefined-variable-type  # declared union type
 
     if al and al[-1][0] is None:
         del al[-1]

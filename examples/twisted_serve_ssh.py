@@ -492,7 +492,7 @@ class UrwidRealm(TerminalRealm):
         for i in interfaces:
             if i is IConchUser:
                 return (IConchUser, self._getAvatar(avatarId), lambda: None)
-        raise NotImplementedError()
+        raise NotImplementedError
 
 
 def create_server_factory(urwid_mind_factory: type[UrwidMind]) -> ConchFactory:

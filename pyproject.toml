@@ -143,8 +143,10 @@ extend-select = [
   "A",     # flake8-builtins
   "ASYNC", # flake8-async
   "B",     # flake8-bugbear
+  "BLE",   # flake8-blind-except
   "C4",    # flake8-comprehensions
   "D",     # pydocstyle
+  "DTZ",   # flake8-datetimez
   "E",     # pycodestyle errors
   "EXE",   # flake8-executable
   "F",     # pyflakes
@@ -161,6 +163,7 @@ extend-select = [
   "PYI",   # flake8-pyi
   "Q",     # flake8-quotes
   "RET",   # flake8-return
+  "RSE",   # flake8-raise
   "RUF",   # Ruff-specific rules
   "S",     # flake8-bandit
   "SIM",   # flake8-simplify
@@ -247,9 +250,11 @@ load-plugins = [
   "pylint.extensions.check_elif",
   "pylint.extensions.code_style",
   "pylint.extensions.dict_init_mutate",
+  "pylint.extensions.docparams",
   "pylint.extensions.dunder",
   "pylint.extensions.for_any_all",
   "pylint.extensions.overlapping_exceptions",
+  "pylint.extensions.redefined_variable_type",
   "pylint.extensions.typing",
 ]
 max-line-length = 120

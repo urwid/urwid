@@ -336,7 +336,7 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
         :param w: button that was pressed
         :raises urwid.ExitMainLoop: always
         """
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
     def graph_controls(self) -> urwid.ListBox[int]:
         """Build the list of mode, animation and quit controls shown beside the graph.

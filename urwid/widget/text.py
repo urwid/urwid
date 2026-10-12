@@ -218,6 +218,7 @@ class Text(Widget):
     ) -> None:
         """Set the text layout object, alignment and wrapping modes at the same time.
 
+        :param align: typically 'left', 'center' or 'right'
         :param wrap: typically 'space', 'any', 'clip' or 'ellipsis'
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
 

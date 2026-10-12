@@ -405,7 +405,7 @@ def main() -> None:
         set_mode(screen.colors, state)
 
     def click_exit(button: urwid.Button) -> typing.NoReturn:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
     lb.extend(
         [
@@ -444,7 +444,7 @@ def main() -> None:
 
     def unhandled_input(key: str | tuple[str, int, int, int]) -> None:
         if key in {"Q", "q", "esc"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
     urwid.MainLoop(urwid.ListBox(lb), screen=screen, unhandled_input=unhandled_input).run()
 

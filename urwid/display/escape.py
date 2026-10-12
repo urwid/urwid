@@ -280,7 +280,7 @@ class KeyqueueTrie:
         if not keys:
             # get more keys
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
 
         if keys[0] not in root:
@@ -299,7 +299,7 @@ class KeyqueueTrie:
         """
         if len(keys) < 3:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
 
         b = keys[0] - _MOUSE_BYTE_OFFSET
@@ -358,7 +358,7 @@ class KeyqueueTrie:
         """
         if not keys:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
 
         # Anything other than "Pb;Px;Py" digits before the terminator, or a longer run, is not a report: it is
@@ -371,7 +371,7 @@ class KeyqueueTrie:
                 return None
         else:
             if more_available and len(keys) <= _SGR_MOUSE_MAX_LEN:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
 
         fields = bytes(keys[:pos_m]).split(b";")
@@ -426,13 +426,13 @@ class KeyqueueTrie:
         """
         if not keys:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if keys[0] != ord("["):
             return None
         if len(keys) < 2:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if keys[1] != ord("?"):
             return None
@@ -450,11 +450,11 @@ class KeyqueueTrie:
             mode += chr(k)
         else:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if not keys[i:]:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         # Ps: "0" is a valid value here (mode not recognized), unlike the mode number above.
         value = 0
@@ -469,13 +469,13 @@ class KeyqueueTrie:
             got_digit = True
         else:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if not got_digit:
             return None
         if not keys[i:]:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if keys[i] != ord("y"):
             return None
@@ -494,7 +494,7 @@ class KeyqueueTrie:
         """
         if not keys:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         if keys[0] != ord("["):
             return None
@@ -514,7 +514,7 @@ class KeyqueueTrie:
             y = y * 10 + k - _ORD_0
         if not keys[i:]:
             if more_available:
-                raise MoreInputRequired()
+                raise MoreInputRequired
             return None
         # read x value
         x = 0
@@ -530,7 +530,7 @@ class KeyqueueTrie:
                 return None
             x = x * 10 + k - _ORD_0
         if not keys[i:] and more_available:
-            raise MoreInputRequired()
+            raise MoreInputRequired
         return None
 
 
@@ -663,7 +663,7 @@ def process_keyqueue(
         for i in range(1, need_more + 1):
             if len(codes) <= i:
                 if more_available:
-                    raise MoreInputRequired()
+                    raise MoreInputRequired
 
                 return [f"<{code:d}>"], codes[1:]
 
@@ -688,7 +688,7 @@ def process_keyqueue(
         )
     ):
         if not codes[1:] and more_available:
-            raise MoreInputRequired()
+            raise MoreInputRequired
         if codes[1:] and codes[1] < 256:
             end_code = codes[1].to_bytes(1, "little")
 

@@ -5,7 +5,7 @@ import urwid
 
 def exit_on_q(key: str) -> None:
     if key in {"q", "Q"}:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
 
 class QuestionBox(urwid.Filler):

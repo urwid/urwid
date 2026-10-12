@@ -393,7 +393,7 @@ class CellColumn(
         if frame_key is None:
             changed = self.update_results()
             if changed:
-                raise UpdateParentEvent()
+                raise UpdateParentEvent
             return None
         key = frame_key
 
@@ -416,7 +416,7 @@ class CellColumn(
             self.move_focus_next(size)
             self.content[i + 1].edit.set_edit_pos(0)
             if changed:
-                raise UpdateParentEvent()
+                raise UpdateParentEvent
             return None
 
         if key == "backspace":
@@ -445,7 +445,7 @@ class CellColumn(
             del self.content[i]
             changed = self.update_results()
             if changed:
-                raise UpdateParentEvent()
+                raise UpdateParentEvent
             return None
 
         if key == "delete":
@@ -468,7 +468,7 @@ class CellColumn(
             del self.content[i + 1]
             changed = self.update_results()
             if changed:
-                raise UpdateParentEvent()
+                raise UpdateParentEvent
             return None
         return key
 
@@ -706,7 +706,7 @@ class CalcDisplay:
     ) -> list[str | tuple[str, int, int, int]]:
         """Handle every keystroke immediately and consume all input, leaving nothing for MainLoop to process."""
         if "q" in data or "Q" in data:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
         # handle other keystrokes
         for k in data:

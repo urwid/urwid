@@ -156,7 +156,7 @@ class HtmlGenerator(BaseScreen):
         :raises ExitMainLoop: the list of simulated key presses is exhausted.
         """
         if not self.keys:
-            raise ExitMainLoop()
+            raise ExitMainLoop
         if raw_keys:
             return (self.keys.pop(0), [])
         return self.keys.pop(0)

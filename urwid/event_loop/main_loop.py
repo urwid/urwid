@@ -618,7 +618,7 @@ class MainLoop:
         >>> scr.get_input_rval = [], []
         >>> ml = MainLoop(w, screen=scr)
         >>> def stop_now(loop, data):
-        ...     raise ExitMainLoop()
+        ...     raise ExitMainLoop
         >>> handle = ml.set_alarm_in(0, stop_now)
         >>> try:
         ...     ml._run_screen_event_loop()
@@ -805,7 +805,7 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
             args += ", ".join([f"{k}={v!r}" for k, v in argd.items()])
             print(f"{self._name}({args})")
             if loop_exit:
-                raise ExitMainLoop()
+                raise ExitMainLoop
             return self._rval
 
         def __getattr__(self, attr: str) -> Reflect:  # pylint: disable=undefined-variable
@@ -815,7 +815,7 @@ def _refl(name: str, rval: _T | None = None, loop_exit: bool = False) -> Callabl
             :raises AttributeError: *attr* names a return-value slot rather than a call.
             """
             if attr.endswith("_rval"):
-                raise AttributeError()
+                raise AttributeError
             # print(self._name+"."+attr)
             if hasattr(self, f"{attr}_rval"):
                 return Reflect(f"{self._name}.{attr}", getattr(self, f"{attr}_rval"))
