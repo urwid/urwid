@@ -22,7 +22,7 @@ class ConversationListBox(urwid.ListBox):
             return key
         name = self.focus[0].edit_text
         if not name:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
         # replace or add response
         self.focus.contents[1:] = [(answer(name), self.focus.options())]
         pos = self.focus_position

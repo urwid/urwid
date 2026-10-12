@@ -335,7 +335,7 @@ class Canvas:
 
         :raises NotImplementedError: the subclass does not implement the canvas content protocol.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def cols(self) -> int:
         """
@@ -343,7 +343,7 @@ class Canvas:
 
         :raises NotImplementedError: the subclass does not report its own width.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def rows(self) -> int:
         """
@@ -351,7 +351,7 @@ class Canvas:
 
         :raises NotImplementedError: the subclass does not report its own height.
         """
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def get_cursor(self) -> tuple[int, int] | None:
         """Return the cursor position as ``(x, y)``, or ``None`` if no cursor is set."""
@@ -641,8 +641,7 @@ class _AttrMapChain(Mapping["Hashable", "Hashable"]):
         try:
             return self._mapped[attr]
         except KeyError:
-            pass
-        result = attr
+            result = attr
         for mapping in self._maps:
             outer = mapping.get(None)
             if result is None:
@@ -670,7 +669,7 @@ class _AttrMapChain(Mapping["Hashable", "Hashable"]):
 
     def __len__(self) -> int:
         """Return the number of attributes named by any map of the chain."""
-        return len({key for mapping in self._maps for key in mapping})
+        return len(set(itertools.chain.from_iterable(self._maps)))
 
     def __bool__(self) -> bool:
         """Return whether any map of the chain names an attribute."""
@@ -1561,6 +1560,9 @@ def apply_text_layout(
         ) -> None:
             """Add attributes based on attributes between start_offs and end_offs.
 
+            :param start_offs: offset into *src* where the range starts
+            :param end_offs: offset into *src* where the range ends
+            :param destw: number of bytes the range encodes to
             :param src: the text *start_offs* and *end_offs* index, which encodes to *destw* bytes
             :param runs: the attributes of src[start_offs:end_offs], ``None`` to look them up in *attr*
             """

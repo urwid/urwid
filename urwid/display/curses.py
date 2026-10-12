@@ -168,7 +168,7 @@ class Screen(BaseScreen, RealTerminal):
                 | curses.BUTTON_CTRL
             )
         else:
-            raise NotImplementedError()
+            raise NotImplementedError
 
         self._mouse_tracking_enabled = enable
 

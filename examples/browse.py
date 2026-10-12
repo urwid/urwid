@@ -352,7 +352,7 @@ class DirectoryBrowser:
         """
         # update display of focus directory
         if k in {"q", "Q"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
 
 def main() -> None:

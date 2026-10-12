@@ -118,7 +118,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         # convert old flow mode parameters height=None and height='flow' to height='pack'
         elif height is None or height in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
-            normalized_height = WHSettings.PACK
+            normalized_height = WHSettings.PACK  # pylint: disable=redefined-variable-type  # declared union type
 
         else:
             normalized_height = height
@@ -139,7 +139,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
             raise FillerError(f"invalid valign: {valign!r}")
 
         else:
-            normalized_valign = VAlign(valign)
+            normalized_valign = VAlign(valign)  # pylint: disable=redefined-variable-type  # declared union type
 
         self.top = top
         self.bottom = bottom
@@ -379,6 +379,7 @@ def calculate_top_bottom_filler(
 ) -> tuple[int, int]:
     """Return the amount of filler (or clipping) on the top and bottom part of maxrow rows.
 
+    :param maxrow: number of rows available
     :param valign_type: 'top', 'middle', 'bottom', 'relative'
     :param valign_amount: a percentage when align_type=='relative'
     :param height_type: 'given', 'relative', 'clip'

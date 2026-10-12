@@ -779,6 +779,7 @@ def trim_line(
     """
     Return a trimmed line of a text layout structure.
 
+    :param segs: layout line to trim
     :param text: text to which this layout structure applies
     :param start: starting screen column
     :param end: ending screen column

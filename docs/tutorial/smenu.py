@@ -34,7 +34,7 @@ def item_chosen(button: urwid.Button, choice: str) -> None:
 
 
 def exit_program(button: urwid.Button) -> None:
-    raise urwid.ExitMainLoop()
+    raise urwid.ExitMainLoop
 
 
 main = urwid.Padding(menu("Pythons", choices), left=2, right=2)

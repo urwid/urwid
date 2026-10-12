@@ -233,7 +233,7 @@ class BigTextDisplay:
         if self.loop.widget != self.exit_view:
             return None
         if key in {"y", "Y"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
         if key in {"n", "N"}:
             self.loop.widget = self.view
             return True

@@ -336,8 +336,6 @@ class Edit(WidgetWrap[Text]):
         Set the character for masking text away.
 
         :param mask: hide text entered with this character, None:disable mask
-        :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
-            ``False``: a tab character
         """
         self._mask = mask
         self._sync_wrapped()

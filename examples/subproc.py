@@ -30,7 +30,7 @@ def exit_on_enter(key: str | tuple[str, int, int, int]) -> None:
     :raises urwid.ExitMainLoop: when the user presses :kbd:`enter`
     """
     if key == "enter":
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
 
 loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)

@@ -191,7 +191,7 @@ class EditDisplay:
         if k == "f5":
             self.save_file()
         elif k == "f8":
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
         elif k == "delete":
             # delete at end of line
             self.walker.combine_focus_with_next()

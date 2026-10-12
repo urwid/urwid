@@ -571,15 +571,25 @@ class Overlay(
                 # 'fixed left'/'fixed right' handled above, so only the relative form remains.
                 normalized_align = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", align)
         else:
-            normalized_align = Align(align)
+            normalized_align = Align(align)  # pylint: disable=redefined-variable-type  # declared union type
 
-        if isinstance(width, tuple):
+        normalized_width: int | Literal["pack", WHSettings.PACK] | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        if isinstance(width, tuple) and width[0] in {"fixed left", "fixed right"}:
             if width[0] == "fixed left":
                 left = width[1]
-                width = RELATIVE_100
-            elif width[0] == "fixed right":
+            else:
                 right = width[1]
-                width = RELATIVE_100
+            normalized_width = RELATIVE_100
+
+        elif isinstance(width, tuple):
+            # 'fixed left'/'fixed right' handled above, so only the relative form remains.
+            normalized_width = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", width)
+
+        elif width is None:  # more obsolete values accepted
+            normalized_width = WHSettings.PACK
+
+        else:
+            normalized_width = width
 
         normalized_valign: VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int]
         if isinstance(valign, tuple):
@@ -597,25 +607,30 @@ class Overlay(
             raise OverlayError(f"invalid valign: {valign!r}")
 
         else:
-            normalized_valign = VAlign(valign)
+            normalized_valign = VAlign(valign)  # pylint: disable=redefined-variable-type  # declared union type
 
-        if isinstance(height, tuple):
+        normalized_height: int | Literal["pack", WHSettings.PACK] | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        if isinstance(height, tuple) and height[0] in {"fixed top", "fixed bottom"}:
             if height[0] == "fixed bottom":
                 bottom = height[1]
-                height = RELATIVE_100
-            elif height[0] == "fixed top":
+            else:
                 top = height[1]
-                height = RELATIVE_100
+            normalized_height = RELATIVE_100
 
-        if width is None:  # more obsolete values accepted
-            width = WHSettings.PACK
-        if height is None:
-            height = WHSettings.PACK
+        elif isinstance(height, tuple):
+            # 'fixed top'/'fixed bottom' handled above, so only the relative form remains.
+            normalized_height = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", height)
+
+        elif height is None:  # more obsolete values accepted
+            normalized_height = WHSettings.PACK
+
+        else:
+            normalized_height = height
 
         align_type, align_amount = normalize_align(normalized_align, OverlayError)
-        width_type, width_amount = normalize_width(width, OverlayError)  # type: ignore[arg-type]
+        width_type, width_amount = normalize_width(normalized_width, OverlayError)
         valign_type, valign_amount = normalize_valign(normalized_valign, OverlayError)
-        height_type, height_amount = normalize_height(height, OverlayError)  # type: ignore[arg-type]
+        height_type, height_amount = normalize_height(normalized_height, OverlayError)
 
         if height_type in {WHSettings.GIVEN, WHSettings.PACK}:
             min_height = None

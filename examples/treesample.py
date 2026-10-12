@@ -161,7 +161,7 @@ class ExampleTreeBrowser:
         :raises urwid.ExitMainLoop: when the user presses :kbd:`q`
         """
         if k in {"q", "Q"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
 
 def get_example_tree() -> SampleTree:

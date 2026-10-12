@@ -211,7 +211,7 @@ class SimpleListWalker(
     def _modified(self) -> None:
         if self.focus >= len(self):
             self.focus = max(0, len(self) - 1)
-        ListWalker._modified(self)  # pylint: disable=protected-access
+        ListWalker._modified(self)
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
         """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.
@@ -294,7 +294,7 @@ class SimpleFocusListWalker(
 
     def _modified(self) -> None:
         # Prefer ListWalker's signal emission over MonitoredList's callback hook.
-        ListWalker._modified(self)  # pylint: disable=protected-access
+        ListWalker._modified(self)
 
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
         """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.

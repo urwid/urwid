@@ -60,7 +60,7 @@ class Screen(_raw_display_base.Screen):
 
     def __init__(
         self,
-        input: socket.socket | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
+        input: socket.socket | None = None,  # noqa: A002
         output: _raw_display_base.TextWriter = sys.stdout,
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,

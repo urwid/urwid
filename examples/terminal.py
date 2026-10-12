@@ -51,7 +51,7 @@ def main() -> None:
         mainframe.set_title(title)
 
     def execute_quit(*args: typing.Any, **kwargs: typing.Any) -> typing.NoReturn:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
     def handle_key(key: str | tuple[str, int, int, int]) -> None:
         if key in {"q", "Q"}:

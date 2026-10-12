@@ -104,7 +104,7 @@ def main() -> None:
 
     def exit_on_q(key: str | tuple[str, int, int, int]) -> None:
         if key in {"q", "Q"}:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
 
     listbox: urwid.ListBox[tuple[int, int]] = urwid.ListBox(FibonacciWalker())
     footer = urwid.AttrMap(urwid.Text(footer_text), "foot")
