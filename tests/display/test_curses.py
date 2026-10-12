@@ -43,3 +43,9 @@ class CursesSetAttrTest(unittest.TestCase):
         ):
             with self.subTest(label):
                 self.assertEqual(pair << 8, self.attr_of(attr))
+
+    def test_hyperlink_is_ignored(self) -> None:
+        linked = urwid.AttrSpec("dark red,bold", "dark blue", hyperlink="https://urwid.org")
+
+        self.assertEqual(self.attr_of(linked.style_only()), self.attr_of(linked))
+        self.assertEqual([linked.style_only()], list(self.screen._curses_attr_cache))

@@ -49,6 +49,34 @@ class HtmlSpanTest(unittest.TestCase):
             span,
         )
 
+    def test_hyperlink_wraps_the_span_in_an_anchor(self) -> None:
+        aspec = AttrSpec("white", "black", hyperlink='https://urwid.org/?a=1&b="2"')
+
+        self.assertEqual(
+            '<a href="https://urwid.org/?a=1&amp;b=&quot;2&quot;">'
+            '<span style="color:#ffffff;background:#000000">hi</span></a>',
+            html_span("hi", aspec),
+        )
+
+    def test_hyperlink_with_a_refused_scheme_is_plain_text(self) -> None:
+        for uri in (" javascript:alert(1)", "data:text/html,x", "urwid.org"):
+            with self.subTest(uri):
+                self.assertEqual(
+                    '<span style="color:#ffffff;background:#000000">hi</span>',
+                    html_span("hi", AttrSpec("white", "black", hyperlink=uri)),
+                )
+
+    def test_hyperlink_cursor_pieces(self) -> None:
+        """The empty piece after a cursor in the last column stays an empty span without an anchor."""
+        span = html_span("ab", AttrSpec("white", "black", hyperlink="https://urwid.org"), cursor=1)
+
+        self.assertEqual(
+            '<a href="https://urwid.org"><span style="color:#ffffff;background:#000000">a</span></a>'
+            '<a href="https://urwid.org"><span style="color:#000000;background:#ffffff">b</span></a>'
+            '<span style="color:#ffffff;background:#000000"></span>',
+            span,
+        )
+
     def test_cursor_splits_into_three_pieces_with_swapped_colours(self) -> None:
         span = html_span("abc", AttrSpec("white", "black"), cursor=1)
 
@@ -145,6 +173,18 @@ class HtmlGeneratorTest(unittest.TestCase):
                     '<span style="color:#000000;background:#0000ee">b</span>\n</pre>'
                 )
             ],
+            HtmlGenerator.fragments,
+        )
+
+    def test_draw_screen_in_true_color(self) -> None:
+        self.screen.set_terminal_properties(colors=2**24)
+        self.screen.register_palette_entry("green", "dark green", "black", foreground_high="#76b900")
+        canvas = urwid.Text(("green", "a")).render((1,))
+
+        self.screen.draw_screen((1, canvas.rows()), canvas)
+
+        self.assertEqual(
+            ['<pre><span style="color:#76b900;background:#000000">a</span>\n</pre>'],
             HtmlGenerator.fragments,
         )
 

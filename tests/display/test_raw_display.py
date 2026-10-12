@@ -1,19 +1,92 @@
 from __future__ import annotations
 
 import errno
+import itertools
 import gc
 import os
 import sys
+import typing
 import unittest
 import weakref
 from unittest import mock
 
 import urwid
 from urwid import signals
-from urwid.display import escape
+from urwid.display import _raw_display_base, escape
 from urwid.display._raw_display_base import TermModes, detect_terminal_properties
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, AttrSpec
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, NO_HYPERLINK, AttrSpec
 from urwid.util import set_temporary_encoding
+
+
+def draw(screen: urwid.display.raw.Screen, canvas: urwid.Canvas, *, windows: bool = False) -> str:
+    """Draw *canvas* on the started *screen* and return what is written to the terminal.
+
+    The output depends on the platform only in how the last cell of the screen is inserted,
+    so *windows* selects that form and the result is the same on every operating system.
+    """
+    written: list[str] = []
+    screen.write = written.append
+    screen.flush = lambda: None
+    screen._started = True
+    with mock.patch.object(_raw_display_base, "IS_WINDOWS", windows):
+        screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+    return "".join(written)
+
+
+def insert(text: str, *, windows: bool) -> str:
+    """Return how the raw display inserts *text*, one column wide, into the last cell of the screen."""
+    return f"\x1b[1@{text}" if windows else f"\x1b[4h{text}\x1b[4l"
+
+
+def raw_link_canvas() -> urwid.TextCanvas:
+    """Return a canvas carrying OSC 8 bytes in zero-width charset "U" runs, as applications inject them."""
+    raw_open = b"\x1b]8;;https://a.example\x1b\\"
+    raw_close = b"\x1b]8;;\x1b\\"
+    return urwid.TextCanvas(
+        [b"ab" + raw_open + b"cd" + raw_close + b"  ", b"xy  ", b"pqrstu"],
+        [
+            [("plain", 2), (None, len(raw_open)), ("plain", 2), (None, len(raw_close)), (None, 2)],
+            [("plain", 4)],
+            [("plain", 6)],
+        ],
+        [[(None, 2), ("U", len(raw_open)), (None, 2), ("U", len(raw_close)), (None, 2)], [(None, 4)], [(None, 6)]],
+        maxcol=6,
+        check_width=False,
+    )
+
+
+def link_screen(hyperlinks: bool = True) -> urwid.display.raw.Screen:
+    """Return a 16-color screen drawing OSC 8 hyperlinks when *hyperlinks* is set, with a "plain" palette entry."""
+    screen = urwid.display.raw.Screen()
+    screen.set_terminal_properties(colors=16, bright_is_bold=False, hyperlinks=hyperlinks)
+    screen.back_color_erase = True
+    screen.register_palette([("plain", "dark red", "default")])
+    return screen
+
+
+def runs_canvas(
+    rows: list[list[tuple[typing.Hashable, typing.Literal["0", "U"] | None, bytes]]],
+    cols: int,
+) -> urwid.TextCanvas:
+    """Return a canvas of *cols* columns made of (attribute, charset, bytes) runs, without measuring their width."""
+    return urwid.TextCanvas(
+        [b"".join(run for _attr, _cs, run in row) for row in rows],
+        [[(attr, len(run)) for attr, _cs, run in row] for row in rows],
+        [[(cs, len(run)) for _attr, cs, run in row] for row in rows],
+        maxcol=cols,
+        check_width=False,
+    )
+
+
+LINK_A = AttrSpec("dark red", "default", hyperlink="https://a.example")
+LINK_B = AttrSpec("dark red", "default", hyperlink="https://b.example")
+OPEN_A = "\x1b]8;;https://a.example\x1b\\"
+OPEN_B = "\x1b]8;;https://b.example\x1b\\"
+CLOSE = "\x1b]8;;\x1b\\"
+RED = "\x1b[0;31;49m"
+DEFAULT = "\x1b[0;39;49m"
+# written before the first row of every draw
+DRAW_START = "\x1b)0\x1b[?25l\x1b[0;39;49m\x1b[H\x1b[1;1H"
 
 
 class TestRawDisplay(unittest.TestCase):
@@ -126,6 +199,196 @@ class TestRawDisplay(unittest.TestCase):
                 output = "".join(written)
                 self.assertIn("a?]0;t? ?52;c;SGVsbG8=? ?2J ?é", output)
                 self.assertFalse(any("\x80" <= char <= "\x9f" for char in output))
+
+    def test_draw_screen_output_of_plain_and_raw_runs(self):
+        """Pin the bytes written for plain attributes and application-injected charset "U" runs."""
+        for windows in (False, True):
+            with self.subTest(windows=windows), set_temporary_encoding("utf-8"):
+                s = urwid.display.raw.Screen()
+                s.set_terminal_properties(colors=16, bright_is_bold=False)
+                s.back_color_erase = True
+                s.register_palette([("plain", "dark red", "default")])
+
+                self.assertEqual(
+                    "\x1b)0\x1b[?25l\x1b[0;39;49m\x1b[H\x1b[1;1H"
+                    "\x1b[0;31;49mab\x1b[0;39;49m\x1b]8;;https://a.example\x1b\\\x1b[0;31;49mcd\x1b[0;39;49m\x1b]8;;\x1b\\\x1b[K"
+                    "\x1b[2;1H\x1b[0;31;49mxy\x1b[K"
+                    f"\x1b[3;1Hpqrsu\x08{insert('t', windows=windows)}",
+                    draw(s, raw_link_canvas(), windows=windows),
+                )
+
+    def test_hyperlinks_off_write_no_osc_8(self):
+        """Adjacent runs that differ only by their hyperlink repeat their SGR once, and no OSC 8 is written."""
+        plain = AttrSpec("dark red", "default")
+        for windows in (False, True):
+            with self.subTest(windows=windows), set_temporary_encoding("utf-8"):
+                expected = draw(
+                    link_screen(False),
+                    runs_canvas([[("plain", None, b"ab"), (plain, None, b"cdef")]], 6),
+                    windows=windows,
+                )
+                output = draw(
+                    link_screen(False),
+                    runs_canvas([[("plain", None, b"ab"), (LINK_A, None, b"cd"), (LINK_B, None, b"ef")]], 6),
+                    windows=windows,
+                )
+
+                self.assertEqual(f"{DRAW_START}{RED}ab{RED}cdf\x08{insert('e', windows=windows)}", expected)
+                self.assertEqual(f"{DRAW_START}{RED}ab{RED}cd{RED}f\x08{insert('e', windows=windows)}", output)
+
+    def test_hyperlink_open_and_close(self):
+        cursor_canvas = runs_canvas([[(LINK_A, None, b"ab")], [(None, None, b"cd")]], 2)
+        cursor_canvas.cursor = (0, 1)
+        cases = (
+            (
+                "attribute change and row end",
+                runs_canvas(
+                    [[("plain", None, b"ab"), (LINK_A, None, b"cd"), (LINK_B, None, b"ef")], [(None, None, b"      ")]],
+                    6,
+                ),
+                f"{RED}ab{RED}{OPEN_A}cd{RED}{OPEN_B}ef{CLOSE}\x1b[2;1H{DEFAULT}\x1b[K",
+            ),
+            (
+                "linked trailing spaces keep their cells",
+                runs_canvas([[("plain", None, b"ab"), (LINK_A, None, b"  ")], [(None, None, b"    ")]], 4),
+                f"{RED}ab{RED}{OPEN_A}  {CLOSE}\x1b[2;1H{DEFAULT}\x1b[K",
+            ),
+            (
+                "each row reopens",
+                runs_canvas([[(LINK_A, None, b"ab")], [(LINK_A, None, b"cd")], [(None, None, b"  ")]], 2),
+                f"{RED}{OPEN_A}ab{CLOSE}\x1b[2;1H{RED}{OPEN_A}cd{CLOSE}\x1b[3;1H{DEFAULT}\x1b[K",
+            ),
+            (
+                "explicit no link closes once",
+                runs_canvas(
+                    [
+                        [
+                            (LINK_A, None, b"ab"),
+                            (AttrSpec(hyperlink=NO_HYPERLINK), None, b"cd"),
+                            ("plain", None, b"ef"),
+                        ],
+                        [(None, None, b"  ")],
+                    ],
+                    6,
+                ),
+                f"{RED}{OPEN_A}ab{CLOSE}{DEFAULT}cd{RED}ef\x1b[2;1H{DEFAULT}\x1b[K",
+            ),
+            (
+                "last row insert",
+                runs_canvas([[(None, None, b"abc")], [("plain", None, b"x"), (LINK_A, None, b"yz")]], 3),
+                f"abc\x1b[2;1H{RED}x{RED}{OPEN_A}z\x08{{y}}{CLOSE}",
+            ),
+            (
+                "cursor",
+                cursor_canvas,
+                f"{RED}{OPEN_A}ab{CLOSE}\x1b[2;1H{DEFAULT}d\x08{{c}}\x1b[2;1H\x1b[?25h",
+            ),
+        )
+        # {c} and {y} stand for the last cell of the screen, inserted as the platform does it
+        for (name, canvas, expected), windows in itertools.product(cases, (False, True)):
+            inserts = {cell: insert(cell, windows=windows) for cell in "cy"}
+            with self.subTest(name, windows=windows), set_temporary_encoding("utf-8"):
+                self.assertEqual(
+                    f"{DRAW_START}{expected.format_map(inserts)}",
+                    draw(link_screen(), canvas, windows=windows),
+                )
+
+    def test_hyperlinks_and_raw_runs(self):
+        """OSC 8 bytes of charset "U" runs are written unchanged, and urwid's own link is reopened after them."""
+        raw_open = OPEN_B.encode()
+        raw_close = CLOSE.encode()
+        cases = (
+            (
+                "raw link before an attribute link",
+                runs_canvas(
+                    [
+                        [
+                            (None, "U", raw_open),
+                            ("plain", None, b"ab"),
+                            (None, "U", raw_close),
+                            (LINK_A, None, b"cd"),
+                        ],
+                        [(None, None, b"    ")],
+                    ],
+                    4,
+                ),
+                f"{OPEN_B}{RED}ab{DEFAULT}{CLOSE}{RED}{OPEN_A}cd{CLOSE}\x1b[2;1H{DEFAULT}\x1b[K",
+            ),
+            (
+                "raw link across rows",
+                runs_canvas(
+                    [[("plain", None, b"ab"), (None, "U", raw_open)], [(None, "U", raw_close), ("plain", None, b"cd")]],
+                    2,
+                ),
+                f"{RED}ab{DEFAULT}{OPEN_B}\x1b[2;1H{DEFAULT}{CLOSE}{RED}d\x08{{c}}",
+            ),
+            (
+                "raw run inside an attribute link",
+                runs_canvas(
+                    [[(LINK_A, None, b"ab"), (LINK_A, "U", raw_open), (LINK_A, None, b"cd")], [(None, None, b"    ")]],
+                    4,
+                ),
+                f"{RED}{OPEN_A}ab{OPEN_B}{RED}{OPEN_A}cd{CLOSE}\x1b[2;1H{DEFAULT}\x1b[K",
+            ),
+        )
+        # {c} and {y} stand for the last cell of the screen, inserted as the platform does it
+        for (name, canvas, expected), windows in itertools.product(cases, (False, True)):
+            inserts = {cell: insert(cell, windows=windows) for cell in "cy"}
+            with self.subTest(name, windows=windows), set_temporary_encoding("utf-8"):
+                self.assertEqual(
+                    f"{DRAW_START}{expected.format_map(inserts)}",
+                    draw(link_screen(), canvas, windows=windows),
+                )
+
+    def test_linked_trailing_spaces_are_erased_with_hyperlinks_off(self):
+        output = draw(
+            link_screen(False),
+            runs_canvas([[("plain", None, b"ab"), (LINK_A, None, b"  ")], [(None, None, b"    ")]], 4),
+        )
+
+        self.assertEqual(f"{DRAW_START}{RED}ab{RED}\x1b[K\x1b[2;1H{DEFAULT}\x1b[K", output)
+
+    def test_screen_attrspec_shortcut_passes_the_hyperlink(self):
+        screen = link_screen()
+
+        self.assertEqual(
+            AttrSpec("dark red", "default", 16, hyperlink="https://a.example"),
+            screen.AttrSpec("dark red", "default", hyperlink="https://a.example"),
+        )
+
+    def test_hyperlink_change_redraws_only_its_row(self):
+        screen = link_screen()
+        draw(screen, runs_canvas([[(LINK_A, None, b"ab")], [("plain", None, b"cd")]], 2))
+
+        output = draw(screen, runs_canvas([[(LINK_B, None, b"ab")], [("plain", None, b"cd")]], 2))
+
+        self.assertEqual(f"\x1b[?25l{DEFAULT}\x1b[H\x1b[1;1H{RED}{OPEN_B}ab{CLOSE}", output)
+
+    def test_set_hyperlinks_alone_clears_the_caches(self):
+        screen = link_screen(False)
+        screen.screen_buf = []
+        self.assertEqual(RED, screen._attr_to_escape(LINK_A))
+
+        screen.set_terminal_properties(hyperlinks=True)
+
+        self.assertTrue(screen.hyperlinks)
+        self.assertIsNone(screen.screen_buf)
+        self.assertEqual(f"{RED}{OPEN_A}", screen._attr_to_escape(LINK_A))
+
+    def test_stop_closes_a_hyperlink_when_hyperlinks_are_on(self):
+        for hyperlinks in (False, True):
+            with self.subTest(hyperlinks=hyperlinks):
+                screen = link_screen(hyperlinks)
+                written: list[str] = []
+                screen.write = written.append
+                screen.flush = lambda: None
+
+                with mock.patch.object(screen, "_mouse_tracking"):
+                    screen._stop_mouse_restore_buffer()
+
+                output = "".join(written)
+                self.assertEqual(hyperlinks, output.startswith(CLOSE))
+                self.assertEqual(int(hyperlinks), output.count("\x1b]8"))
 
     def test_restart_after_stop_reconnects_input(self):
         """stop() followed by start() must leave the screen's input descriptors watchable again
@@ -292,7 +555,7 @@ class TestRawDisplay(unittest.TestCase):
 
         self.assertEqual(a, b)
         self.assertEqual(hash(a), hash(b))
-        self.assertEqual(hash((a.__class__, a._value)), hash(a))
+        self.assertEqual(hash((a.__class__, a._value, a.hyperlink)), hash(a))
 
     def test_attr_to_escape_uses_attrspec_as_dict_key(self):
         """_pal_escape.get(a) is looked up with an AttrSpec instance directly (not just by
@@ -479,22 +742,13 @@ class TestInheritedColors(unittest.TestCase):
             rows.append(" ".join(codes))
         return rows
 
-    def draw(self, canvas: urwid.Canvas) -> str:
-        """Draw *canvas* on the screen and return what is written to the terminal."""
-        written: list[str] = []
-        self.screen.write = written.append
-        self.screen.flush = lambda: None
-        self.screen._started = True
-        self.screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
-        return "".join(written)
-
     def test_draw_output_and_palette_change_repaint(self) -> None:
         """Write the inherited colors, and after a palette change rewrite only the rows it gives other colors."""
         canvas = urwid.Pile([urwid.AttrMap(urwid.Text(("red_fg", "x")), "blue_bg"), urwid.Text("other")]).render((5,))
 
-        self.assertIn("\x1b[0;31;44mx\x1b[0;39;44m", self.draw(canvas))
+        self.assertIn("\x1b[0;31;44mx\x1b[0;39;44m", draw(self.screen, canvas))
         self.screen.register_palette_entry("blue_bg", "inherit", "dark green")
-        output = self.draw(canvas)
+        output = draw(self.screen, canvas)
         self.assertIn("\x1b[0;31;42mx", output)
         self.assertNotIn("other", output)
 
@@ -506,7 +760,7 @@ class TestInheritedColors(unittest.TestCase):
         )
         canvas = urwid.AttrMap(urwid.Text(("bold_fg", "x")), "ul_bg").render((1,))
 
-        self.assertIn("\x1b[0;39;1;4;49mx", self.draw(canvas))
+        self.assertIn("\x1b[0;39;1;4;49mx", draw(self.screen, canvas))
 
     def test_cell_colors(self) -> None:
         focus_rows = [

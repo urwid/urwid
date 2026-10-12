@@ -60,12 +60,14 @@ bright foreground without bold YES [3]_    no
 88-/256-/24-bit color support  YES         no
 mouse dragging support         YES         no
 external event loop support    YES         no
+OSC 8 hyperlinks               YES [4]_    no
 ============================== =========== ==============
 
 .. [1] if the termcap entry exists and TERM environment variable is set
        correctly
 .. [2] if python is linked against the wide version of ncurses
 .. [3] when using xterm or gnome-terminal
+.. [4] after ``set_terminal_properties(hyperlinks=True)``, see :ref:`hyperlinks`
 
 
 Other Display Modules

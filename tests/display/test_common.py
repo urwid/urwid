@@ -4,7 +4,50 @@ import unittest
 
 from tests.util import PaletteScreen
 from urwid import LayeredAttr
-from urwid.display.common import AttrSpec, AttrSpecError, attr_spec_to_css
+from urwid.display import common
+from urwid.display.common import NO_HYPERLINK, AttrSpec, AttrSpecError, Hyperlink, _browser_href, attr_spec_to_css
+
+
+class HyperlinkTest(unittest.TestCase):
+    """Tests for the Hyperlink value type and the scheme check of the HTML-producing screens."""
+
+    def test_rejected_values(self) -> None:
+        for name, uri, link_id in (
+            ("non-ASCII URI", "https://urwid.org/\u00e9", ""),
+            ("escape in URI", "https://urwid.org/\x1b]8;;\x1b\\", ""),
+            ("DEL in URI", "https://urwid.org/\x7f", ""),
+            ("newline in id", "https://urwid.org", "a\nb"),
+            ("colon in id", "https://urwid.org", "a:b"),
+            ("semicolon in id", "https://urwid.org", "a;b"),
+            ("URI too long", "https://urwid.org/" + "a" * 2066, ""),
+            ("id too long", "https://urwid.org", "a" * 251),
+            ("id without URI", "", "x"),
+        ):
+            with self.subTest(name), self.assertRaises(ValueError):
+                Hyperlink(uri, id=link_id)
+
+    def test_accepted_values(self) -> None:
+        self.assertEqual(2083, len(Hyperlink("https://urwid.org/" + "a" * 2065).uri))
+        self.assertEqual(250, len(Hyperlink("https://urwid.org", id="a" * 250).id))
+        self.assertEqual(NO_HYPERLINK, Hyperlink(""))
+
+    def test_browser_href(self) -> None:
+        for uri, expected in (
+            (" javascript:alert(1)", None),
+            ("JaVaScRiPt:alert(1)", None),
+            ("data:text/html,<script>alert(1)</script>", None),
+            ("vbscript:msgbox(1)", None),
+            ("blob:https://urwid.org/1", None),
+            ("ftp://urwid.org/file", None),
+            ("urwid.org", None),
+            ("", None),
+            (" https://urwid.org/?q=javascript:x ", "https://urwid.org/?q=javascript:x"),
+            ("MAILTO:a@b", "MAILTO:a@b"),
+            ("sftp://urwid.org/file", "sftp://urwid.org/file"),
+            ("file:///tmp/a.txt", "file:///tmp/a.txt"),
+        ):
+            with self.subTest(uri):
+                self.assertEqual(expected, _browser_href(Hyperlink(uri)))
 
 
 class AttrSpecToCssTest(unittest.TestCase):
@@ -69,6 +112,14 @@ class AttrSpecToCssTest(unittest.TestCase):
 
         self.assertEqual("", extra)
 
+    def test_hyperlinks_share_the_cache_entry_of_their_style(self) -> None:
+        common._style_to_css.cache_clear()
+        expected = attr_spec_to_css(AttrSpec("white", "black"))
+
+        for number in range(10):
+            self.assertEqual(expected, attr_spec_to_css(AttrSpec("white", "black", hyperlink=f"https://a.b/{number}")))
+        self.assertEqual(1, common._style_to_css.cache_info().currsize)
+
 
 class AttrSpecInheritTest(unittest.TestCase):
     """Tests for the 'inherit' color of AttrSpec and AttrSpec.layered_over."""
@@ -125,6 +176,96 @@ class AttrSpecInheritTest(unittest.TestCase):
         ):
             with self.subTest(name):
                 self.assertEqual(expected, spec.copy_modified(**changes))
+
+    def test_defaults_to_inherit(self) -> None:
+        self.assertEqual(AttrSpec("inherit", "inherit"), AttrSpec())
+
+    def test_hyperlink_is_part_of_the_value(self) -> None:
+        plain = AttrSpec("dark red", "default")
+        linked = AttrSpec("dark red", "default", hyperlink="https://urwid.org")
+        same = AttrSpec("dark red", "default", hyperlink=Hyperlink("https://urwid.org"))
+
+        self.assertEqual(Hyperlink("https://urwid.org"), linked.hyperlink)
+        self.assertIsNone(plain.hyperlink)
+        self.assertEqual(same, linked)
+        self.assertEqual(hash(same), hash(linked))
+        self.assertNotEqual(plain, linked)
+        self.assertNotEqual(hash(plain), hash(linked))
+        self.assertNotEqual(linked, AttrSpec("dark red", "default", hyperlink=NO_HYPERLINK))
+        self.assertEqual(
+            "AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://urwid.org', id='x'))",
+            repr(plain.copy_modified(hyperlink=Hyperlink("https://urwid.org", id="x"))),
+        )
+        self.assertIs(plain, plain.style_only())
+        self.assertEqual(plain, linked.style_only())
+        with self.assertRaises(ValueError):
+            AttrSpec(hyperlink="https://urwid.org/\x1b")
+
+    def test_copy_modified_hyperlink(self) -> None:
+        linked = AttrSpec("dark red", "inherit", hyperlink="https://urwid.org")
+
+        for name, changes, expected in (
+            ("kept", {"bg": "dark blue"}, AttrSpec("dark red", "dark blue", hyperlink="https://urwid.org")),
+            ("replaced", {"hyperlink": "https://a.b"}, AttrSpec("dark red", "inherit", hyperlink="https://a.b")),
+            ("explicit off", {"hyperlink": NO_HYPERLINK}, AttrSpec("dark red", "inherit", hyperlink=NO_HYPERLINK)),
+            ("inherit", {"hyperlink": None}, AttrSpec("dark red", "inherit")),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, linked.copy_modified(**changes))
+
+    def test_subclass_with_three_parameter_constructor(self) -> None:
+        class Spec(AttrSpec):
+            def __init__(self, fg: str, bg: str, colors: int = 256) -> None:
+                super().__init__(fg, bg, colors)
+
+        spec = Spec("dark red", "inherit")
+        changed = spec.copy_modified(bg="dark blue")
+        layered = spec.layered_over(AttrSpec("inherit", "brown", hyperlink="https://urwid.org"))
+
+        self.assertIsInstance(changed, Spec)
+        self.assertEqual(AttrSpec("dark red", "dark blue"), changed)
+        self.assertEqual(AttrSpec("dark red", "brown", hyperlink="https://urwid.org"), layered)
+        opaque = Spec("dark red", "default").layered_over(AttrSpec("inherit", "brown", hyperlink="https://urwid.org"))
+        self.assertEqual(AttrSpec("dark red", "default", hyperlink="https://urwid.org"), opaque)
+        with self.assertRaises(TypeError):
+            spec.copy_modified(hyperlink="https://urwid.org")
+
+    def test_layered_over_hyperlink(self) -> None:
+        inner_link, outer_link = "https://inner.example", "https://outer.example"
+        for name, inner, outer, expected in (
+            (
+                "inner wins",
+                AttrSpec("inherit", "inherit", hyperlink=inner_link),
+                AttrSpec("dark red", "black", hyperlink=outer_link),
+                AttrSpec("dark red", "black", hyperlink=inner_link),
+            ),
+            (
+                "outer taken",
+                AttrSpec("inherit,bold", "inherit"),
+                AttrSpec("dark red", "black", hyperlink=outer_link),
+                AttrSpec("dark red,bold", "black", hyperlink=outer_link),
+            ),
+            (
+                "opaque inner gains only the link",
+                AttrSpec("dark red", "default"),
+                AttrSpec("yellow,bold", "dark blue", hyperlink=outer_link),
+                AttrSpec("dark red", "default", hyperlink=outer_link),
+            ),
+            (
+                "explicit off hides the outer link",
+                AttrSpec("inherit", "inherit", hyperlink=NO_HYPERLINK),
+                AttrSpec("dark red", "black", hyperlink=outer_link),
+                AttrSpec("dark red", "black", hyperlink=NO_HYPERLINK),
+            ),
+            (
+                "true color mode kept by an opaque inner attribute",
+                AttrSpec("dark red", "default", 2**24),
+                AttrSpec("inherit", "inherit", hyperlink=outer_link),
+                AttrSpec("dark red", "default", 2**24, hyperlink=outer_link),
+            ),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, inner.layered_over(outer))
 
     def test_opaque_attribute_is_returned_unchanged(self) -> None:
         inner = AttrSpec("dark red", "default")
@@ -250,6 +391,18 @@ class ResolveAttrTest(unittest.TestCase):
         for name, attr, index, expected in cases:
             with self.subTest(name):
                 self.assertEqual(expected, self.screen.resolve_attr(attr, index))
+
+    def test_hyperlink_resolution(self) -> None:
+        link = AttrSpec(hyperlink="https://urwid.org")
+
+        self.assertEqual(
+            AttrSpec("dark red", "dark blue", hyperlink="https://urwid.org"),
+            self.screen.resolve_attr(LayeredAttr("red_fg", link, "blue_bg"), 0),
+        )
+        self.assertEqual(
+            AttrSpec("dark red", "black", hyperlink="https://urwid.org"),
+            self.screen.resolve_attr(LayeredAttr(link, "red_fg"), 0),
+        )
 
     def test_palette_changes_are_seen(self) -> None:
         attr = LayeredAttr("red_fg", "blue_bg")

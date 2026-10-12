@@ -5,4 +5,8 @@ Raw Display Attributes
 
 .. autoclass:: AttrSpec
 
+.. autoclass:: Hyperlink
+
+.. autodata:: NO_HYPERLINK
+
 .. autoclass:: LayeredAttr

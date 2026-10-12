@@ -30,7 +30,7 @@ from urwid import str_util
 from urwid.event_loop import ExitMainLoop
 from urwid.util import get_encoding
 
-from .common import AttrSpec, BaseScreen, attr_spec_to_css
+from .common import AttrSpec, BaseScreen, _browser_href, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
     from typing import Literal
@@ -118,7 +118,7 @@ class HtmlGenerator(BaseScreen):
 
             for a, _cs, run in row:
                 t_run = run.decode(get_encoding()).translate(_trans_table)
-                aspec = self.resolve_attr(a, {1: 1, 16: 0, 88: 2, 256: 3}[self.colors])
+                aspec = self.resolve_attr(a, {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}[self.colors])
 
                 if y == cy and col <= cx:
                     run_width = str_util.calc_width(t_run, 0, len(t_run))
@@ -163,13 +163,21 @@ class HtmlGenerator(BaseScreen):
 
 
 def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
-    """Wrap *s* in an HTML ``<span>`` styled from *aspec*, splitting it around *cursor* when given a valid index."""
+    """Wrap *s* in an HTML ``<span>`` styled from *aspec*, splitting it around *cursor* when given a valid index.
+
+    Each non-empty piece is also wrapped in an ``<a>`` element when *aspec* has a hyperlink
+    with a scheme a browser may follow (see :ref:`hyperlinks`).
+    """
     html_fg, html_bg, extra = attr_spec_to_css(aspec)
+    href = _browser_href(aspec.hyperlink) if aspec.hyperlink is not None else None
 
     def _span(fg: str, bg: str, string: str) -> str:
         if not s:
             return ""
-        return f'<span style="color:{fg};background:{bg}{extra}">{html.escape(string)}</span>'
+        span = f'<span style="color:{fg};background:{bg}{extra}">{html.escape(string)}</span>'
+        if href is None or not string:
+            return span
+        return f'<a href="{html.escape(href, quote=True)}">{span}</a>'
 
     if cursor >= 0:
         c_off, _ign = str_util.calc_text_pos(s, 0, len(s), cursor)

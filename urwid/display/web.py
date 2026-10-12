@@ -41,7 +41,7 @@ from email.message import Message
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import StoppingContext, get_encoding
 
-from .common import AttrSpec, BaseScreen, attr_spec_to_css
+from .common import AttrSpec, BaseScreen, _browser_href, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
     from types import FrameType
@@ -475,17 +475,24 @@ class Screen(BaseScreen):
         return pending_input
 
 
-# the separator between a span's inline CSS and its text content in the wire format;
-# safe because control characters in the text have already been replaced by _trans_table
+# the separator between the fields of a span in the wire format: inline CSS, the optional link URL, and the text;
+# safe because control characters in the text have already been replaced by _trans_table,
+# and a Hyperlink URI is printable ASCII
 _STYLE_SEP = "\x01"
 
 
 def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
-    """Return `s` wrapped in an HTML ``<code>`` span styled per `aspec`, with the cursor column highlighted."""
+    """Return `s` wrapped in an HTML ``<code>`` span styled per `aspec`, with the cursor column highlighted.
+
+    A piece is sent as ``css SEP text``, or as ``css SEP url SEP text`` when *aspec* has a hyperlink
+    with a scheme a browser may follow (see :ref:`hyperlinks`).
+    """
     fg, bg, extra = attr_spec_to_css(aspec)
+    href = _browser_href(aspec.hyperlink) if aspec.hyperlink is not None else None
+    link = "" if href is None else f"{href}{_STYLE_SEP}"
 
     def _piece(fg_: str, bg_: str, text: str) -> str:
-        return f"color:{fg_};background-color:{bg_}{extra}{_STYLE_SEP}{text}\n"
+        return f"color:{fg_};background-color:{bg_}{extra}{_STYLE_SEP}{link}{text}\n"
 
     if cursor >= 0:
         c_off, _ign = calc_text_pos(s, 0, len(s), cursor)

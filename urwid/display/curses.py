@@ -506,7 +506,8 @@ class Screen(BaseScreen, RealTerminal):
         return cols, rows
 
     def _setattr(self, a: Hashable) -> None:
-        a = self.resolve_attr(a, 0)
+        # curses cannot draw hyperlinks, so attributes differing only by one share a cache entry
+        a = self.resolve_attr(a, 0).style_only()
 
         try:
             attr = self._curses_attr_cache[a]
