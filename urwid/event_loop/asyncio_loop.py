@@ -78,8 +78,10 @@ class AsyncioEventLoop(EventLoop):
             try:
                 self._loop = asyncio.get_running_loop()
             except RuntimeError:
-                self._runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
-                self._loop = self._runner.get_loop()
+                runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+                self._loop = runner.get_loop()
+                # Kept only once the loop exists: __del__ reads the loop of every runner it holds.
+                self._runner = runner
 
         self._exc: BaseException | None = None
 
@@ -90,7 +92,8 @@ class AsyncioEventLoop(EventLoop):
 
     def __del__(self) -> None:
         """Close the runner created for a loop that was neither given nor running."""
-        if self._runner is not None:
+        # In a reference cycle the loop's own finalizer can run first and close the loop already.
+        if self._runner is not None and not self._loop.is_closed():
             self._runner.close()
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T | None]:
