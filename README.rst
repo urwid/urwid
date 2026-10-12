@@ -143,6 +143,7 @@ Python implementation notes
 **CPython (standard Python)**
 
 Full support for all optional features. All extras (``curses``, ``glib``, ``serial``, ``tornado``, ``trio``, ``twisted``, ``zmq``) can be installed.
+On Windows, the ``curses`` extra cannot be installed on Python 3.15 yet: ``windows-curses`` publishes no 3.15 wheel.
 
 **CPython with Free-Threading (3.13, 3.14, 3.15+)**
 
