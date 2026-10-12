@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import errno
+import gc
 import socket
 import sys
 import time
 import typing
 import unittest
+from unittest import mock
 
 import urwid
 
@@ -351,6 +354,26 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         self.evl_runner.close()
 
     _expected_idle_handle = None
+
+    def test_finalizer_tolerates_an_already_closed_owned_loop(self):
+        """The finalizer does not fail when the owned loop was closed first, as a cycle collection can do."""
+        evl = urwid.AsyncioEventLoop()
+        # The loop's own finalizer closes it when it runs first; no public API exposes the owned loop.
+        evl._loop.close()  # pylint: disable=protected-access
+        # A direct call fixes the finalizer order a cycle collection is free to pick.
+        evl.__del__()  # pylint: disable=unnecessary-dunder-call
+
+    def test_finalizer_tolerates_a_failed_loop_creation(self):
+        """The finalizer of an instance whose loop could not be created reports nothing."""
+        with (
+            mock.patch.object(asyncio, "SelectorEventLoop", side_effect=OSError(errno.EMFILE, "Too many open files")),
+            mock.patch.object(sys, "unraisablehook") as unraisablehook,
+        ):
+            with self.assertRaises(OSError):
+                urwid.AsyncioEventLoop()
+            gc.collect()
+
+        unraisablehook.assert_not_called()
 
     def test_error(self):
         evl = self.evl
