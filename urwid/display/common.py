@@ -23,6 +23,8 @@
 from __future__ import annotations
 
 import abc
+import dataclasses
+import enum
 import functools
 import logging
 import os
@@ -258,6 +260,11 @@ _VALID_COLOR_COUNTS = frozenset({1, 16, 88, 256, 2**24})
 _DEFAULT_COLOR_NAMES = frozenset({"", "default"})
 # BaseScreen.resolve_attr() memo size: attrs built from AttrSpec instances (ANSI text, terminals) are unbounded
 _RESOLVED_ATTRS_LIMIT = 4096
+# urwid's own caps on Hyperlink fields: VTE and iTerm2 refuse longer URIs, and VTE refuses longer ids
+_HYPERLINK_URI_MAX_LEN = 2083
+_HYPERLINK_ID_MAX_LEN = 250
+# URI schemes an HTML-producing screen turns into a link, none of which can run script in the page
+_BROWSER_SCHEMES = frozenset({"file", "http", "https", "mailto", "sftp"})
 
 
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
@@ -593,16 +600,93 @@ class AttrSpecError(Exception):
     """Raised when an :class:`AttrSpec` is constructed with an invalid color specification."""
 
 
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
+class Hyperlink:
+    """Terminal hyperlink (OSC 8) carried by an :class:`AttrSpec`.
+
+    The fields keep the names of the OSC 8 specification.
+    Only printable ASCII is accepted, so a link cannot inject other escape sequences.
+    The URI is limited to 2083 characters and the id to 250: these are urwid's compatibility limits,
+    taken from the terminals that refuse longer values (VTE and iTerm2 for the URI, VTE for the id).
+    The specification itself sets no limit.
+
+    An empty URI is the explicit "no link" state, :data:`NO_HYPERLINK`:
+    it hides the link of an enclosing attribute.
+
+    :param uri: the link target
+    :param id: groups the cells of one link that the terminal highlights together,
+        when the link is drawn in several separate runs
+    :raises ValueError: *uri* or *id* holds a character outside printable ASCII or is too long,
+        *id* holds ``:`` or ``;``, or *id* is given with an empty *uri*.
+
+    >>> Hyperlink("https://urwid.org", id="home")
+    Hyperlink(uri='https://urwid.org', id='home')
+    """
+
+    uri: str
+    _: dataclasses.KW_ONLY
+    id: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate the fields as the class docstring describes."""
+        for name, value, limit in (
+            ("uri", self.uri, _HYPERLINK_URI_MAX_LEN),
+            ("id", self.id, _HYPERLINK_ID_MAX_LEN),
+        ):
+            if not (value.isascii() and value.isprintable()):
+                raise ValueError(f"Hyperlink {name} must be printable ASCII: {value!r}")
+            if len(value) > limit:
+                raise ValueError(
+                    f"Hyperlink {name} is {len(value):d} characters long, "
+                    f"over urwid's compatibility limit of {limit:d}, as some terminals refuse longer values"
+                )
+        if ":" in self.id or ";" in self.id:
+            raise ValueError(f"Hyperlink id must not contain ':' or ';': {self.id!r}")
+        if not self.uri and self.id:
+            raise ValueError(f"Hyperlink id {self.id!r} given without a URI")
+
+
+#: hyperlink of an attribute that hides the link of the enclosing attribute
+NO_HYPERLINK = Hyperlink("")
+
+
+def _browser_href(link: Hyperlink) -> str | None:
+    """Return the URI of *link* to use as an HTML ``href``, or ``None`` when a browser must not follow it.
+
+    The URI is stripped of spaces the way the WHATWG URL parser strips it before reading the scheme
+    (the control characters it also strips cannot occur in a :class:`Hyperlink`).
+    Only the schemes in ``_BROWSER_SCHEMES`` are allowed, so a link can never run script in the page.
+
+    >>> _browser_href(Hyperlink(" https://urwid.org"))
+    'https://urwid.org'
+    >>> _browser_href(Hyperlink("JaVaScRiPt:alert(1)")) is None
+    True
+    """
+    href = link.uri.strip(" ")
+    scheme, sep, _rest = href.partition(":")
+    if sep and scheme.lower() in _BROWSER_SCHEMES:
+        return href
+    return None
+
+
+class _Keep(enum.Enum):
+    """Default of :meth:`AttrSpec.copy_modified` arguments for which ``None`` is a real value."""
+
+    KEEP = enum.auto()
+
+
 class AttrSpec:
     """Text attribute specification, encoding foreground and background colors and display settings."""
 
-    __slots__ = ("__hash_value", "__value")
+    __slots__ = ("__hash_value", "__hyperlink", "__value")
 
     def __init__(
         self,
-        fg: str,
-        bg: str,
+        fg: str = INHERIT,
+        bg: str = INHERIT,
         colors: Literal[1, 16, 88, 256, 16777216] = 256,
+        *,
+        hyperlink: Hyperlink | str | None = None,
     ) -> None:
         """
         :param fg: a string containing a comma-separated foreground color and settings
@@ -647,11 +731,15 @@ class AttrSpec:
               An empty string will be treated the same as 'default'.
 
         :param colors: the maximum colors available for the specification
-        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*/*bg* need more colours than *colors*.
 
                    Valid values include: 1, 16, 88, 256, and 2**24.  High-color
                    values are only usable with 88, 256, or 2**24 colors.  With
                    1 color only the foreground settings may be used.
+
+        :param hyperlink: the terminal hyperlink of the text, a string being its URI;
+            ``None`` takes the link of the enclosing attribute, and :data:`NO_HYPERLINK` hides it.
+        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*/*bg* need more colours than *colors*.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
 
         >>> AttrSpec("dark red", "light gray", 16)
         AttrSpec('dark red', 'light gray')
@@ -663,6 +751,8 @@ class AttrSpec:
         AttrSpec('#ccc', '#000', colors=88)
         >>> AttrSpec("inherit,bold", "dark blue")
         AttrSpec('inherit,bold', 'dark blue')
+        >>> AttrSpec(hyperlink="https://urwid.org")
+        AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))
         """
         if colors not in _VALID_COLOR_COUNTS:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
@@ -673,24 +763,36 @@ class AttrSpec:
             raise AttrSpecError(
                 f"foreground/background ({fg!r}/{bg!r}) require more colors than have been specified ({colors:d})."
             )
-        self.__hash_value = hash((self.__class__, self.__value))
+        self.__hyperlink = Hyperlink(hyperlink) if isinstance(hyperlink, str) else hyperlink
+        self.__hash_value = hash((self.__class__, self.__value, self.__hyperlink))
 
     def copy_modified(
         self,
         fg: str | None = None,
         bg: str | None = None,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+        *,
+        hyperlink: Hyperlink | str | Literal[_Keep.KEEP] | None = _Keep.KEEP,
     ) -> Self:
-        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, and/or *colors* with the given values.
+        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, *colors* and/or *hyperlink* with the given values.
 
         Without *colors*, the result uses 88 colors or true color when this specification was made for them,
         else 256 colors, so a color can be added to a specification that has none.
+        The hyperlink is kept unless *hyperlink* is given; ``None`` makes the result take the enclosing one.
+
+        The result is built with this object's class.
+        The *hyperlink* keyword is passed to its constructor only when the result has a link,
+        so a subclass whose constructor takes only *fg*, *bg* and *colors* works for every other change.
 
         :raises AttrSpecError: *colors* is not a supported palette size, or *fg* or *bg* is invalid or needs
             more colors than the result has.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
+        :raises TypeError: the result has a link and the constructor of this object's class does not accept it.
 
         >>> AttrSpec("inherit,bold", "inherit").copy_modified(bg="dark blue")
         AttrSpec('inherit,bold', 'dark blue')
+        >>> AttrSpec(hyperlink="https://urwid.org").copy_modified(hyperlink=None)
+        AttrSpec('inherit', 'inherit')
         """
         if fg is None:
             foreground = self.foreground
@@ -702,17 +804,18 @@ class AttrSpec:
         else:
             background = bg
 
-        new_colors: Literal[1, 16, 88, 256, 16777216]
-        if colors is not None:
-            new_colors = colors
-        elif self.__value & _HIGH_88_COLOR:
-            new_colors = 88
-        elif self.__value & _HIGH_TRUE_COLOR:
-            new_colors = 16777216
-        else:
-            new_colors = 256
+        new_colors = self.__color_mode() if colors is None else colors
+        if (link := self.__hyperlink if hyperlink is _Keep.KEEP else hyperlink) is None:
+            return self.__class__(foreground, background, new_colors)
+        return self.__class__(foreground, background, new_colors, hyperlink=link)
 
-        return self.__class__(foreground, background, new_colors)
+    def __color_mode(self) -> Literal[88, 256, 16777216]:
+        """Return the color mode this specification was made for: 88 colors, true color, or else 256 colors."""
+        if self.__value & _HIGH_88_COLOR:
+            return 88
+        if self.__value & _HIGH_TRUE_COLOR:
+            return 16777216
+        return 256
 
     def __hash__(self) -> int:
         """Instance is immutable and hashable."""
@@ -722,6 +825,21 @@ class AttrSpec:
     def _value(self) -> int:
         """Read-only value access."""
         return self.__value
+
+    @property
+    def hyperlink(self) -> Hyperlink | None:
+        """Return the terminal hyperlink, ``None`` when it is taken from the enclosing attribute."""
+        return self.__hyperlink
+
+    def style_only(self) -> AttrSpec:
+        """Return this attribute without its hyperlink, for code that only draws colors and settings.
+
+        >>> AttrSpec("yellow", "dark blue", hyperlink="https://urwid.org").style_only()
+        AttrSpec('yellow', 'dark blue')
+        """
+        if self.__hyperlink is None:
+            return self
+        return self.copy_modified(hyperlink=None)
 
     @property
     def foreground_basic(self) -> bool:
@@ -831,6 +949,8 @@ class AttrSpec:
         if self.colors == 88:
             # 88-color mode is the only one that is handled differently
             args = f"{args}, colors=88"
+        if self.__hyperlink is not None:
+            args = f"{args}, hyperlink={self.__hyperlink!r}"
         return f"{self.__class__.__name__}({args})"
 
     def _foreground_color(self) -> str:
@@ -1014,12 +1134,14 @@ class AttrSpec:
         *,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
     ) -> AttrSpec:
-        """Return this attribute with its 'inherit' colors taken from *outer*.
+        """Return this attribute with its 'inherit' colors and its missing hyperlink taken from *outer*.
 
-        An attribute with no 'inherit' color is opaque and returned unchanged.
+        An attribute with no 'inherit' color is opaque: its colors and settings are kept unchanged.
         Otherwise, each setting this attribute turns on ('bold') or off ('no-bold') is kept,
         and a setting it does not mention is taken from *outer*.
         The result may still inherit a color, when *outer* inherits it too.
+        The hyperlink is resolved on its own: without one, this attribute takes the hyperlink of *outer*.
+        The result is a plain :class:`AttrSpec` whenever it differs from this attribute.
 
         :param outer: the enclosing attribute
         :param colors: the color mode of the result, normally the terminal's;
@@ -1032,9 +1154,14 @@ class AttrSpec:
         AttrSpec('dark red', 'default')
         >>> AttrSpec("inherit,no-bold", "inherit").layered_over(AttrSpec("yellow,bold,underline", "dark blue"))
         AttrSpec('yellow,underline,no-bold', 'dark blue')
+        >>> AttrSpec("dark red", "default").layered_over(AttrSpec("yellow,bold", "dark blue", hyperlink="https://a.b"))
+        AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://a.b', id=''))
         """
+        link = self.__hyperlink if self.__hyperlink is not None else outer.hyperlink
         if not self.__value & _INHERIT_MASK:
-            return self
+            if link is self.__hyperlink:
+                return self
+            return AttrSpec(self.foreground, self.background, self.__color_mode(), hyperlink=link)
         fg = (outer if self.foreground_inherit else self).foreground.partition(",")[0]
         bg = outer.background if self.background_inherit else self.background
         own_settings = self.foreground.split(",")[1:]
@@ -1046,11 +1173,16 @@ class AttrSpec:
                 if name in state or off_name in state:
                     settings += f",{name}" if name in state else f",{off_name}"
                     break
-        return AttrSpec(fg + settings, bg, max(self.colors, outer.colors) if colors is None else colors)
+        return AttrSpec(
+            fg + settings,
+            bg,
+            max(self.colors, outer.colors) if colors is None else colors,
+            hyperlink=link,
+        )
 
     def __eq__(self, other: object) -> bool:
-        """Return whether `other` is an :class:`AttrSpec` with the same underlying value."""
-        return isinstance(other, AttrSpec) and self.__value == other._value
+        """Return whether `other` is an :class:`AttrSpec` with the same underlying value and hyperlink."""
+        return isinstance(other, AttrSpec) and self.__value == other._value and self.__hyperlink == other.hyperlink
 
     def __ne__(self, other: object) -> bool:
         """Return whether `other` is not equal to this :class:`AttrSpec`."""
@@ -1064,7 +1196,6 @@ _default_fg_rgb = _default_aspec.get_rgb_values()[:3]
 _default_bg_rgb = _default_aspec.get_rgb_values()[3:]
 
 
-@functools.cache
 def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     """Return the (foreground, background, extra CSS declarations) hex colors for *aspec*.
 
@@ -1073,7 +1204,14 @@ def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
     foreground and background), ``underline``/``strikethrough`` (combined into one
     ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation, since the
     ``text-decoration:blink`` value browsers used to support has been dropped) and ``faint``.
+    The hyperlink is not part of the style.
     """
+    return _style_to_css(aspec.style_only())
+
+
+@functools.lru_cache(maxsize=_RESOLVED_ATTRS_LIMIT)
+def _style_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
+    """Return :func:`attr_spec_to_css` for an attribute without a hyperlink, cached per style."""
     fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
     if fg_r is None:
         fg_r, fg_g, fg_b = _default_fg_rgb

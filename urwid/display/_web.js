@@ -19,9 +19,7 @@
 
 "use strict";
 
-// Separates a span's inline CSS from its text content within a wire-format line
-// (see urwid.display.web._STYLE_SEP). Safe because urwid.display.web._trans_table
-// has already replaced any control character in the text with '?'.
+// Separates the fields of a span within a wire-format line (see urwid.display.web._STYLE_SEP).
 const style_separator = "";
 
 // KeyboardEvent.key values that urwid knows under a different name.
@@ -274,12 +272,23 @@ function place_line(container, line, row) {
     }
 }
 
-function make_span(s, style) {
+// rest is "text", or "url<separator>text" for a hyperlink
+function make_span(rest, style) {
+    const sep = rest.indexOf(style_separator);
     const d = document.createElement('span');
     d.style.cssText = style;
-    d.appendChild(document.createTextNode(s));
+    d.appendChild(document.createTextNode(sep < 0 ? rest : rest.slice(sep + 1)));
+    if (sep < 0) {
+        return d;
+    }
 
-    return d;
+    // a new tab, so following the link does not end the session drawn in this one
+    const a = document.createElement('a');
+    a.href = rest.slice(0, sep);
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.appendChild(d);
+    return a;
 }
 
 function set_status(status) {

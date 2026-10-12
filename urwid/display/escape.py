@@ -34,6 +34,8 @@ from urwid import str_util
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
 
+    from .common import Hyperlink
+
     _KeyQueueData = dict[int, str | "_KeyQueueData"]
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
@@ -49,8 +51,6 @@ SI = "\x0f"
 _SO_BYTES = SO.encode("ascii")
 _SI_BYTES = SI.encode("ascii")
 _SI_SO = SI + SO
-IBMPC_ON = "\x1b[11m"
-IBMPC_OFF = "\x1b[10m"
 
 DEC_TAG = "0"
 DEC_SPECIAL_CHARS = "▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
@@ -726,6 +726,13 @@ def process_keyqueue(
 ####################
 
 ESC = "\x1b"
+# control sequence introducer
+CSI = f"{ESC}["
+# operating system command, and the string terminator ending it
+OSC = f"{ESC}]"
+ST = f"{ESC}\\"
+# OSC 8 with an empty URI ends the hyperlink the text is drawn with
+HYPERLINK_CLOSE = f"{OSC}8;;{ST}"
 
 
 class PrivateMode(enum.StrEnum):
@@ -747,20 +754,20 @@ class PrivateMode(enum.StrEnum):
     @functools.cached_property
     def query(self) -> str:
         """Return the DECRQM query (CSI ? Pd $ p) asking the terminal to report *mode*'s state."""
-        return f"{ESC}[?{self}$p"
+        return f"{CSI}?{self}$p"
 
     @functools.cached_property
     def enable_seq(self) -> str:
         """Enable sequence."""
-        return f"{ESC}[?{self}h"
+        return f"{CSI}?{self}h"
 
     @functools.cached_property
     def disable_seq(self) -> str:
         """Disable sequence."""
-        return f"{ESC}[?{self}l"
+        return f"{CSI}?{self}l"
 
 
-CURSOR_HOME = f"{ESC}[H"
+CURSOR_HOME = f"{CSI}H"
 CURSOR_HOME_COL = "\r"
 
 APP_KEYPAD_MODE = f"{ESC}="
@@ -779,15 +786,19 @@ DISABLE_FOCUS_REPORTING = PrivateMode.FOCUS_REPORTING.disable_seq
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
 
-REPORT_STATUS = f"{ESC}[5n"
-REPORT_CURSOR_POSITION = f"{ESC}[6n"
+REPORT_STATUS = f"{CSI}5n"
+REPORT_CURSOR_POSITION = f"{CSI}6n"
 
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
 # Ps: 0 = not recognized, 1-4 = recognized.
 DECRQM_RECOGNIZED_VALUES = frozenset({1, 2, 3, 4})
 
-INSERT_ON = f"{ESC}[4h"
-INSERT_OFF = f"{ESC}[4l"
+INSERT_ON = f"{CSI}4h"
+INSERT_OFF = f"{CSI}4l"
+
+# select the IBM PC character set for a charset "U" run, and back
+IBMPC_ON = f"{CSI}11m"
+IBMPC_OFF = f"{CSI}10m"
 
 
 def set_cursor_position(x: int, y: int) -> str:
@@ -801,32 +812,43 @@ def set_cursor_position(x: int, y: int) -> str:
     if not isinstance(y, int):
         raise TypeError(y)
 
-    return ESC + f"[{y + 1:d};{x + 1:d}H"
+    return f"{CSI}{y + 1:d};{x + 1:d}H"
 
 
 def move_cursor_right(x: int) -> str:
     """Return the escape sequence that moves the cursor right by *x* columns, or "" when *x* is not positive."""
     if x < 1:
         return ""
-    return ESC + f"[{x:d}C"
+    return f"{CSI}{x:d}C"
 
 
 def move_cursor_up(x: int) -> str:
     """Return the escape sequence that moves the cursor up by *x* rows, or "" when *x* is not positive."""
     if x < 1:
         return ""
-    return ESC + f"[{x:d}A"
+    return f"{CSI}{x:d}A"
 
 
 def move_cursor_down(x: int) -> str:
     """Return the escape sequence that moves the cursor down by *x* rows, or "" when *x* is not positive."""
     if x < 1:
         return ""
-    return ESC + f"[{x:d}B"
+    return f"{CSI}{x:d}B"
 
 
-HIDE_CURSOR = f"{ESC}[?25l"
-SHOW_CURSOR = f"{ESC}[?25h"
+def hyperlink_open(link: Hyperlink) -> str:
+    r"""Return the OSC 8 sequence that draws the following text as hyperlink *link*.
+
+    >>> from urwid.display.common import Hyperlink
+    >>> hyperlink_open(Hyperlink("https://urwid.org", id="home"))
+    '\x1b]8;id=home;https://urwid.org\x1b\\'
+    """
+    params = f"id={link.id}" if link.id else ""
+    return f"{OSC}8;{params};{link.uri}{ST}"
+
+
+HIDE_CURSOR = f"{CSI}?25l"
+SHOW_CURSOR = f"{CSI}?25h"
 
 _MOUSE_MODES = (PrivateMode.MOUSE_REPORTING, PrivateMode.MOUSE_BUTTON_TRACKING, PrivateMode.MOUSE_SGR_MODE)
 MOUSE_TRACKING_ON = "".join(mode.enable_seq for mode in _MOUSE_MODES)
@@ -834,4 +856,4 @@ MOUSE_TRACKING_OFF = "".join(mode.disable_seq for mode in reversed(_MOUSE_MODES)
 
 DESIGNATE_G1_SPECIAL = f"{ESC})0"
 
-ERASE_IN_LINE_RIGHT = f"{ESC}[K"
+ERASE_IN_LINE_RIGHT = f"{CSI}K"

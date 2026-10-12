@@ -4,6 +4,7 @@ import unittest
 import warnings
 
 import urwid
+from tests.util import PaletteScreen
 from urwid.util import set_temporary_encoding
 
 
@@ -91,6 +92,22 @@ class TextTest(unittest.TestCase):
         self.assertEqual(b"XXXXXXXXXX END", rendered)
         self.assertIn("a", attrs)
         self.assertIn("c", attrs)
+
+    def test_nested_markup_with_a_hyperlink(self) -> None:
+        """A hyperlink attribute nested in markup layers over the enclosing palette entry."""
+        screen = PaletteScreen()
+        screen.register_palette([(None, "default", "default"), ("bold", "dark red,bold", "inherit")])
+        link = urwid.AttrSpec(hyperlink="https://urwid.org")
+
+        (row,) = urwid.Text(["a", ("bold", (link, "x"))]).render(()).content()
+        attr, _cs, text = row[-1]
+
+        self.assertEqual(b"x", text)
+        self.assertIsInstance(attr, urwid.LayeredAttr)
+        self.assertEqual(
+            urwid.AttrSpec("dark red,bold", "default", hyperlink="https://urwid.org"),
+            screen.resolve_attr(attr, 0),
+        )
 
     def test_markup_tuple_and_set_text(self) -> None:
         widget = urwid.Text(("title", "Hello"))

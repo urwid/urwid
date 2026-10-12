@@ -391,6 +391,14 @@ class SpanStyleTest(unittest.TestCase):
 
         self.assertEqual("color:#ffffff;background-color:#000000\x01hi\n", span)
 
+    def test_code_span_sends_the_hyperlink_as_a_third_field(self) -> None:
+        for uri, expected in (
+            ("https://urwid.org", "color:#ffffff;background-color:#000000\x01https://urwid.org\x01hi\n"),
+            (" javascript:alert(1)", "color:#ffffff;background-color:#000000\x01hi\n"),
+        ):
+            with self.subTest(uri):
+                self.assertEqual(expected, web.code_span("hi", AttrSpec("white", "black", hyperlink=uri)))
+
     def test_code_span_cursor_splits_into_three_pieces_with_swapped_colours(self) -> None:
         span = web.code_span("abc", AttrSpec("white", "black"), cursor=1)
 

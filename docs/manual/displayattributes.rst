@@ -18,6 +18,7 @@ on your screen instance), you may specify attributes for 16-color, monochrome
 and high color modes. You can then switch between these modes with
 :meth:`screen.set_terminal_properties() <raw_display.Screen.set_terminal_properties>`,
 where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
+The same method turns on terminal hyperlinks with ``hyperlinks=True`` (see :ref:`hyperlinks`).
 
 .. seealso::
    :meth:`register_palette() reference <BaseScreen.register_palette>`,
@@ -347,6 +348,57 @@ specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
 :meth:`BaseScreen.set_terminal_properties`, but it is not always supported.
 
 ``'standout'`` is usually displayed as the foreground and background colors reversed.
+
+.. _hyperlinks:
+
+Hyperlinks
+----------
+
+Text can be drawn as a terminal hyperlink (OSC 8), which the user opens by clicking it.
+A link is not part of a palette entry: it belongs to a run of text, so it is an :class:`AttrSpec`
+with the ``hyperlink`` keyword.
+Its colors default to ``'inherit'``, so it can be placed inside any other display attribute:
+
+::
+
+    Text([("bold", (AttrSpec(hyperlink="https://urwid.org"), "urwid"))])
+
+The text keeps the colors and settings of ``"bold"`` and gains the link.
+An attribute without a link takes the link of the attribute around it, and
+:data:`NO_HYPERLINK` turns it off: ``AttrSpec(hyperlink=NO_HYPERLINK)`` inside a link is drawn unlinked.
+:class:`Hyperlink` also takes an ``id``, which makes the terminal highlight several separate runs as one link.
+A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.
+
+The raw display draws links only after
+:meth:`screen.set_terminal_properties(hyperlinks=True) <raw_display.Screen.set_terminal_properties>`.
+No terminal query for OSC 8 support exists, and a terminal without it may show the link sequences as text,
+so an application turns links on when it knows its terminal supports them.
+These terminals support OSC 8:
+
+* VTE 0.50 and later (GNOME Terminal, Tilix and others)
+* iTerm2 3.1 and later
+* kitty 0.19 and later
+* WezTerm
+* foot 1.7 and later
+* Alacritty 0.11 and later
+* Windows Terminal 1.4 and later
+* Konsole, when turned on in its settings
+* Ghostty
+* mintty 2.9.7 and later
+* the VS Code terminal 1.72 and later
+* tmux 3.4 and later, with ``set -as terminal-features "*:hyperlinks"``
+
+GNU screen does not support it.
+
+The curses and LCD displays draw linked text without the link.
+The HTML screenshot and web displays turn a link into an ``<a>`` element when its scheme is
+``http``, ``https``, ``mailto``, ``sftp`` or ``file``, and draw any other link as plain text,
+since a scheme such as ``javascript`` would run script in the page.
+
+An application can also write OSC 8 bytes itself, in a canvas run with the ``"U"`` character set.
+The raw display writes such a run unchanged: the link it opens belongs to the application, which also closes it.
+urwid's own links wrap only the runs whose attribute has a link, and the next such run after a ``"U"`` run
+opens its link again.
 
 .. _bright-background:
 

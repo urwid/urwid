@@ -55,6 +55,8 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, EventLoop
 
+    from .common import Hyperlink
+
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
@@ -374,6 +376,8 @@ class Screen(BaseScreen, RealTerminal):
         self.fg_bright_is_bold = properties.fg_bright_is_bold
         self.bg_bright_is_blink = properties.bg_bright_is_blink
         self.back_color_erase = properties.back_color_erase
+        # OSC 8 hyperlinks are drawn only when the application turns them on: no query exists
+        self.hyperlinks = False
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] | None = None
@@ -581,7 +585,9 @@ class Screen(BaseScreen, RealTerminal):
             move_cursor = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         elif self.maxrow is not None:
             move_cursor = escape.set_cursor_position(0, self.maxrow)
-        self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
+        # an application's own "U" run, or a partly written frame, can leave a hyperlink open
+        close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
+        self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
 
     def _stop_restore_palette(self) -> None:
@@ -595,7 +601,7 @@ class Screen(BaseScreen, RealTerminal):
             return
 
         indexes = ";".join(str(index) for index in sorted(self._modified_palette_entries))
-        self.write(f"\x1b]104;{indexes}\x1b\\")
+        self.write(f"{escape.OSC}104;{indexes}{escape.ST}")
         self.flush()
         self._modified_palette_entries.clear()
 
@@ -931,10 +937,13 @@ class Screen(BaseScreen, RealTerminal):
         ) -> None:
             """Append the escape sequences and text of one canvas run to the output.
 
+            The bytes of a charset "U" run are written unchanged, OSC 8 sequences included:
+            they belong to the application, and urwid's own hyperlinks only wrap attribute-linked runs.
+
             :raises TypeError: *run* is not a byte string.
             :raises ValueError: *charset* is not a known character set flag.
             """
-            nonlocal last_charset_flag, last_attributes, first  # type: ignore[misc]
+            nonlocal last_charset_flag, last_attributes, first, link_open  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes
                 raise TypeError(run)
@@ -943,7 +952,14 @@ class Screen(BaseScreen, RealTerminal):
                 run = run.translate(UNPRINTABLE_TRANS_TABLE)
 
             if last_attributes != attr:
-                output.append(self._attr_to_escape(attr))
+                attr_escape = self._attr_to_escape(attr)
+                if self.hyperlinks:
+                    # only an escape that opens a hyperlink ends with ST, and an open replaces any open link
+                    opens = attr_escape.endswith(escape.ST)
+                    if link_open and not opens:
+                        output.append(escape.HYPERLINK_CLOSE)
+                    link_open = opens
+                output.append(attr_escape)
                 last_attributes = attr
 
             if last:
@@ -976,10 +992,14 @@ class Screen(BaseScreen, RealTerminal):
                 if not IS_WINDOWS:
                     output.extend((escape.INSERT_ON, line_text, escape.INSERT_OFF))
                 else:
-                    output.extend((f"{escape.ESC}[{str_util.calc_width(line_text, 0, len(line_text))}@", line_text))
+                    output.extend((f"{escape.CSI}{str_util.calc_width(line_text, 0, len(line_text))}@", line_text))
 
                 if encoding != "utf-8" and charset == "U":
                     output.append(escape.IBMPC_OFF)
+
+            if self.hyperlinks and charset == "U":
+                # the run may have closed or replaced urwid's hyperlink, so the next run reopens its own
+                last_attributes = link_closed
 
             first = False
 
@@ -1009,6 +1029,10 @@ class Screen(BaseScreen, RealTerminal):
         logger.debug(f"Drawing screen with size {size!r}")
 
         last_attributes: Hashable = None  # Default = empty
+        # last_attributes after a hyperlink is closed: unequal to every attribute, so the next run reopens its link
+        link_closed = object()
+        # whether the output has a hyperlink open that urwid opened
+        link_open = False
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
 
@@ -1066,6 +1090,7 @@ class Screen(BaseScreen, RealTerminal):
                     and not (
                         (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])).standout
                         or pal_a.underline
+                        or (self.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
                     )
                 ):
                     whitespace_at_end = True
@@ -1081,6 +1106,12 @@ class Screen(BaseScreen, RealTerminal):
             if ins:
                 (a, cs, run) = ins
                 handle_row(a, cs, run, last=True)
+
+            if link_open:
+                # a hyperlink left open would cover the cursor moves and erased cells up to the next run
+                output.append(escape.HYPERLINK_CLOSE)
+                link_open = False
+                last_attributes = link_closed
 
             if whitespace_at_end:
                 output.append(escape.ERASE_IN_LINE_RIGHT)
@@ -1170,10 +1201,16 @@ class Screen(BaseScreen, RealTerminal):
         self.screen_buf = None
 
     def _attr_to_escape(self, a: Hashable) -> str:
-        """Convert canvas run attribute a to an escape sequence for the terminal."""
+        """Convert canvas run attribute a to an escape sequence for the terminal.
+
+        With :attr:`hyperlinks` on, the escape of an attribute with a hyperlink ends with the OSC 8 sequence opening it.
+        """
         if found := self._pal_escape.get(a):
             return found
-        found = self._attrspec_to_escape(self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors]))
+        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])
+        found = self._attrspec_to_escape(spec)
+        if self.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
+            found += escape.hyperlink_open(spec.hyperlink)
         if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
             self._pal_escape.clear()
         self._pal_escape[a] = found
@@ -1192,8 +1229,8 @@ class Screen(BaseScreen, RealTerminal):
         '\x1b[0;38;5;229;4;48;5;164m'
         """
         if self.term == "fbterm":
-            fg = escape.ESC + f"[1;{a.foreground_number:d}}}"
-            bg = escape.ESC + f"[2;{a.background_number:d}}}"
+            fg = f"{escape.CSI}1;{a.foreground_number:d}}}"
+            bg = f"{escape.CSI}2;{a.background_number:d}}}"
             return fg + bg
 
         if a.foreground_true:
@@ -1234,13 +1271,14 @@ class Screen(BaseScreen, RealTerminal):
                 bg = f"{a.background_number + _SGR_BG_BASE:d}"
         else:
             bg = "49"
-        return f"{escape.ESC}[0;{fg};{st}{bg}m"
+        return f"{escape.CSI}0;{fg};{st}{bg}m"
 
     def set_terminal_properties(
         self,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
+        hyperlinks: bool | None = None,
     ) -> None:
         """Set the terminal's color and attribute-rendering properties.
 
@@ -1249,6 +1287,9 @@ class Screen(BaseScreen, RealTerminal):
             8-15), set to False if this Terminal can create bright colors without bold or None to leave unchanged
         :param has_underline: set to True if this terminal can use the underline setting, False if it cannot or None to
             leave unchanged
+        :param hyperlinks: set to True to draw the hyperlinks of display attributes as OSC 8 links,
+            False to draw them as plain text, or None to leave unchanged.
+            Off by default: no query for OSC 8 support exists, so applications that know their terminal set it.
         """
         if colors is None:
             colors = self.colors
@@ -1256,13 +1297,21 @@ class Screen(BaseScreen, RealTerminal):
             bright_is_bold = self.fg_bright_is_bold
         if has_underline is None:
             has_underline = self.has_underline
+        if hyperlinks is None:
+            hyperlinks = self.hyperlinks
 
-        if colors == self.colors and bright_is_bold == self.fg_bright_is_bold and has_underline == self.has_underline:
+        if (
+            colors == self.colors
+            and bright_is_bold == self.fg_bright_is_bold
+            and has_underline == self.has_underline
+            and hyperlinks == self.hyperlinks
+        ):
             return
 
         self.colors = colors
         self.fg_bright_is_bold = bright_is_bold
         self.has_underline = has_underline
+        self.hyperlinks = hyperlinks
 
         self.clear()
         self._pal_escape.clear()
@@ -1301,15 +1350,22 @@ class Screen(BaseScreen, RealTerminal):
         """
         if self.term == "fbterm":
             modify = [f"{index:d};{red:d};{green:d};{blue:d}" for index, red, green, blue in entries]
-            self.write(f"\x1b[3;{';'.join(modify)}}}")
+            self.write(f"{escape.CSI}3;{';'.join(modify)}}}")
         else:
             modify = [f"{index:d};rgb:{red:02x}/{green:02x}/{blue:02x}" for index, red, green, blue in entries]
-            self.write(f"\x1b]4;{';'.join(modify)}\x1b\\")
+            self.write(f"{escape.OSC}4;{';'.join(modify)}{escape.ST}")
         self.flush()
         self._modified_palette_entries.update(index for index, _red, _green, _blue in entries)
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
-    def AttrSpec(self, fg: str, bg: str) -> AttrSpec:
-        """Create an :class:`AttrSpec` using this screen's number of colors."""
-        return AttrSpec(fg, bg, self.colors)
+    def AttrSpec(self, fg: str, bg: str, *, hyperlink: Hyperlink | str | None = None) -> AttrSpec:
+        """Create an :class:`AttrSpec` using this screen's number of colors.
+
+        :param fg: the foreground color and settings, as for :class:`AttrSpec`
+        :param bg: the background color, as for :class:`AttrSpec`
+        :param hyperlink: the terminal hyperlink of the text, as for :class:`AttrSpec`
+        :raises AttrSpecError: *fg* or *bg* is invalid or needs more colors than this screen has.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
+        """
+        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink)
