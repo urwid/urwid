@@ -82,8 +82,8 @@ To test code in all Python versions:
     tox                           # Test all versions specified in tox.ini
     tox -e py311                  # Test Python 3.11 only
     tox -e py313t                 # Test Python 3.13 with free-threading
-    tox -e pypy3                  # Test PyPy3
-    tox -e py311,py312,pypy3      # Test specific versions
+    tox -e pypy311                # Test PyPy 3.11
+    tox -e py311,py312,pypy311    # Test specific versions
 
 Testing different Python implementations
 ----------------------------------------
@@ -106,13 +106,14 @@ Tests with compatible extras (tornado, trio, twisted, serial). Excludes C extens
     tox -e py314t        # Python 3.14 free-threaded
     tox -e py315t        # Python 3.15 free-threaded
 
-**PyPy3**
+**PyPy**
 
 Tests with compatible extras (tornado, trio, serial). Excludes problematic C extensions.
 
 .. code:: bash
 
-    tox -e pypy3
+    tox -e pypy311       # PyPy 3.11
+    tox -e pypy312       # PyPy 3.12
 
 **GraalPy**
 
@@ -126,6 +127,7 @@ so its tests are skipped rather than run.
 
     tox -e graalpy311      # GraalPy 3.11
     tox -e graalpy312      # GraalPy 3.12
+    tox -e graalpy313      # GraalPy 3.13
 
 Supported Python versions
 =========================
