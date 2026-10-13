@@ -45,7 +45,10 @@ from urwid import event_loop, util
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
+    OSC_IGNORED_CONTROLS,
+    attrspec_with_hyperlink,
     led_state,
+    resolve_osc_hyperlink,
     resolve_osc_title,
     sgi_params_to_attrspec,
 )
@@ -61,6 +64,17 @@ if typing.TYPE_CHECKING:
 EOF = b""
 ESC = chr(27)
 ESC_B = b"\x1b"
+
+#: :data:`urwid.ansi_parser.OSC_IGNORED_CONTROLS` as bytes
+_OSC_IGNORED = frozenset(char.encode("ascii") for char in OSC_IGNORED_CONTROLS)
+
+#: the control characters :meth:`TermCanvas.process_char` executes, also after an ESC inside an OSC string
+_EXECUTED_CONTROLS = frozenset((b"\r", b"\x0f", b"\x0e", b"\n", b"\v", b"\f", b"\t", b"\b"))
+
+#: the C0 control characters :meth:`TermCanvas.process_char` ignores: all but ESC, BEL, CAN, SUB and the executed ones
+_IGNORED_CONTROLS = (
+    frozenset(bytes((code,)) for code in range(0x20)) - {ESC_B, b"\a", b"\x18", b"\x1a"} - _EXECUTED_CONTROLS
+)
 
 KEY_TRANSLATIONS = {
     "enter": "\r",
@@ -441,8 +455,14 @@ class TermCanvas(Canvas):
         return [self.empty_char(char)] * self.width
 
     def empty_char(self, char: bytes = b" ") -> tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]:
-        """Return one empty terminal cell holding *char*, with the canvas's current attributes and charset."""
-        return (self.attrspec, self.charset.current, char)
+        """Return one empty terminal cell holding *char*, with the canvas's current attributes and charset.
+
+        The cell does not take the current hyperlink: as in a terminal, erased and scrolled-in cells are not linked.
+        """
+        attrspec = self.attrspec
+        if attrspec is not None and attrspec.hyperlink is not None:
+            attrspec = attrspec_with_hyperlink(attrspec, None, unset_color="default")
+        return (attrspec, self.charset.current, char)
 
     def addstr(self, data: Iterable[int]) -> None:
         """Feed a sequence of input bytes through the terminal parser, one byte at a time."""
@@ -590,16 +610,39 @@ class TermCanvas(Canvas):
             self.restore_cursor(with_attrs=True)
 
     def parse_osc(self, buf: bytes) -> None:
-        """Parse operating system command.
+        """Parse operating system command: a window title, or an OSC 8 hyperlink for the text written after it.
 
-        OSC-title-prefix recognition (``;``/``0;``/``2;``) is delegated to the shared
-        :func:`urwid.ansi_parser.resolve_osc_title`, so the rule is maintained in exactly one place.
+        The OSC bodies are recognised by :func:`urwid.ansi_parser.resolve_osc_title` and
+        :func:`urwid.ansi_parser.resolve_osc_hyperlink`, shared with :class:`~urwid.ANSIText`.
+        An invalid OSC 8 command ends the current link, so the text after it does not point at the previous target;
+        :meth:`parse_escape` ends it for an over-long one, which never reaches this method.
+        The body is in the encoding :meth:`addbyte` passes characters on in, and as in tmux, a title that is not
+        valid in it is not set.
 
         :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
         """
-        title = resolve_osc_title(buf.decode("utf-8", "replace"))
+        encoding = util.get_encoding()
+        try:
+            body = buf.decode(encoding)
+        except UnicodeDecodeError:
+            # still recognised, so an OSC 8 command ends the current link below
+            body = buf.decode(encoding, "replace")
+            valid = False
+        else:
+            valid = True
+        title = resolve_osc_title(body)
         if title is not None:
-            self.widget.set_title(title)
+            if valid:
+                self.widget.set_title(title)
+            return
+        try:
+            link = resolve_osc_hyperlink(body)
+        except ValueError:
+            link = None
+        else:
+            if link is None:
+                return
+        self.attrspec = attrspec_with_hyperlink(self.attrspec, link, unset_color="default")
 
     def parse_escape(self, char: bytes) -> None:
         """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
@@ -645,6 +688,9 @@ class TermCanvas(Canvas):
             if self.parsestate == 2 and len(self._escbuf) < MAX_OSC_LENGTH:
                 self._escbuf += char
             else:
+                if self.parsestate == 2 and self._escbuf.lstrip(b"0").startswith(b"8;"):
+                    # an over-long OSC 8 is refused like any other invalid one, ending the current link
+                    self.attrspec = attrspec_with_hyperlink(self.attrspec, None, unset_color="default")
                 # the rest of an over-long OSC string: only the last byte is kept,
                 # which is enough to recognise either terminator
                 self.parsestate = 4
@@ -736,6 +782,16 @@ class TermCanvas(Canvas):
 
         if char == ESC_B and self.parsestate not in {2, 4}:  # escape
             self.within_escape = True
+        elif self.parsestate in {2, 4} and char in b"\x18\x1a":  # CAN/SUB abort an OSC string, also with display_ctrl
+            self.leave_escape()
+        elif (
+            self.parsestate in {2, 4}
+            and char in _OSC_IGNORED
+            and (self._escbuf[-1:] != ESC_B or dc or char not in _EXECUTED_CONTROLS)
+        ):
+            # as in a terminal, such a control character inside an OSC string is neither executed nor part of its body;
+            # after an ESC, one of _EXECUTED_CONTROLS is executed by the branches below, and the ESC stays pending
+            pass
         elif not dc and char == b"\r":  # carriage return CR
             self.carriage_return()
         elif not dc and char == b"\x0f":  # activate G0
@@ -756,8 +812,9 @@ class TermCanvas(Canvas):
             self.widget.beep()
         elif not dc and char in b"\x18\x1a":  # CAN/SUB
             self.leave_escape()
-        elif not dc and char in b"\x00\x7f":  # NUL/DEL
-            pass  # this is ignored
+        elif not dc and (char in _IGNORED_CONTROLS or (char == b"\x7f" and self.parsestate not in {2, 4})):
+            # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
+            pass
         elif self.within_escape:
             self.parse_escape(char)
         elif not dc and char == b"\x9b":  # CSI (equivalent to "ESC [")

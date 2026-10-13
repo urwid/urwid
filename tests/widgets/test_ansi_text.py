@@ -44,6 +44,20 @@ class ANSITextTest(unittest.TestCase):
             next(widget.render((3,)).content()),
         )
 
+    def test_hyperlink_reaches_the_screen(self) -> None:
+        """Draw OSC 8 linked text with the link, over the colors of the container."""
+        screen = PaletteScreen()
+        screen.register_palette_entry("panel", "light green", "dark blue")
+        widget = urwid.AttrMap(urwid.ANSIText("\x1b]8;;https://urwid.org\x07a\x1b]8;;\x07b"), "panel")
+        (linked, _cs, text), (plain, _cs2, _text2) = next(widget.render((2,)).content())
+
+        self.assertEqual(b"a", text)
+        self.assertEqual(
+            urwid.AttrSpec("light green", "dark blue", hyperlink="https://urwid.org"),
+            screen.resolve_attr(linked, 3),
+        )
+        self.assertEqual(urwid.AttrSpec("light green", "dark blue"), screen.resolve_attr(plain, 3))
+
     def test_pack_and_render_fixed(self) -> None:
         ansi = urwid.ANSIText("\x1b[31mhello\nworld\x1b[0m")
         plain = urwid.Text("hello\nworld")

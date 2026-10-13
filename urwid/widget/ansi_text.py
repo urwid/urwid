@@ -56,11 +56,12 @@ class ANSIText(WidgetWrap[Text]):
     :class:`~urwid.ansi_parser.AnsiParser`'s ``one_line`` flag for the underlying parsing semantics. In this mode,
     line ends and vertical cursor movement are treated as meaningless outside a single line (stripped/split rather
     than resolved into rows): since the underlying parser always
-    returns a ``tuple[ParsedLine, ...]`` in this mode (line-end characters are structural split points, never
-    silently discarded), constructing an :class:`ANSIText` directly from text containing an embedded line end only
-    surfaces the *first* resulting line -- no data is lost (the full split is always computed), but only the first
-    line is exposed by this widget instance. Use :meth:`from_lines` to turn arbitrary multi-line (or arbitrarily
-    chunked) raw text into a complete sequence of :class:`ANSIText` instances, in either mode.
+    returns a ``tuple[ParsedLine, ...]`` in this mode (line ends, VT and FF outside an OSC string are structural
+    split points, never silently discarded), constructing an :class:`ANSIText` directly from text containing an
+    embedded line end only surfaces the *first* resulting line -- no data is lost (the full split is always
+    computed), but only the first line is exposed by this widget instance. Use :meth:`from_lines` to turn arbitrary
+    multi-line (or arbitrarily chunked) raw text into a complete sequence of :class:`ANSIText` instances, in either
+    mode.
 
     >>> ANSIText("hello")
     <ANSIText fixed/flow widget 'hello'>

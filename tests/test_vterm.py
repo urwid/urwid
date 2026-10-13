@@ -605,9 +605,116 @@ class TermTest(unittest.TestCase):
         self.write("\\e];stupid title\\e\\\\e[0G\\e[2Ktest2")
         self.expect("test2")
         self.expect_signal("stupid title")
+        self._sig_response = None
         self.write("\\e]0;bad \xff\007\\e[0G\\e[2Ktest3")
         self.expect("test3")
-        self.expect_signal("bad \ufffd")
+        self.assertIsNone(self._sig_response, "a title that is not valid UTF-8 is not set, as in tmux")
+        self.disconnect_signal("title")
+
+    def test_hyperlink(self):
+        """Link the text after an OSC 8 command through SGR changes, and end the link at an empty or invalid one."""
+        link = urwid.Hyperlink("https://urwid.org", id="a")
+        self.write(
+            "\\e]8;id=a;https://urwid.org\\e\\\\e[1mab\\e[0mc\\e]8;;\\e\\d"
+            "\\e]8;;https://b.org\007e\\e]8;;bad\x7fbad\x18f\\e]8;;https://b.org\007g\\e]8;;bad\xff\007h"
+        )
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"a"),
+                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"b"),
+                    (urwid.AttrSpec("default", "default", hyperlink=link), None, b"c"),
+                    (None, None, b"d"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"e"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"f"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"g"),
+                    (None, None, b"h"),
+                ]
+            ],
+            raw=True,
+        )
+
+    def test_hyperlink_not_in_blank_cells(self):
+        """Leave erased cells unlinked, and end the link at an over-long OSC 8 command."""
+        self.resize(4, 2)
+        self.write("\\e[31m\\e]8;;https://urwid.org\\e\\ab\\e[K\n\\e[2K")
+        self.write(f"\\e]8;;{'u' * urwid.vterm.MAX_OSC_LENGTH}\\e\\c")
+        self.drain()
+        blank = (urwid.AttrSpec("dark red", "default"), None, b" ")
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("dark red", "default", hyperlink="https://urwid.org"), None, b"a"),
+                    (urwid.AttrSpec("dark red", "default", hyperlink="https://urwid.org"), None, b"b"),
+                    *[blank] * 2,
+                ],
+                [(urwid.AttrSpec("dark red", "default"), None, b"c"), *[blank] * 3],
+            ],
+            raw=True,
+        )
+
+    def test_control_characters_in_osc_are_ignored(self):
+        """Neither execute a control character inside an OSC string nor take it into the body, as a terminal does."""
+        self.connect_signal("title")
+        self.write("a\\e]8;;https://ur\nwid.org\007L\\e]8;;\007\\e]0;t\r\x01i\b\ttle\007c")
+        self.expect(
+            [
+                [
+                    (None, None, b"a"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://urwid.org"), None, b"L"),
+                    (None, None, b"c"),
+                ]
+            ],
+            raw=True,
+        )
+        self.expect_signal("title")
+        self.disconnect_signal("title")
+
+    def test_osc_controls_after_escape_and_in_display_ctrl_mode(self):
+        """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl."""
+        self.connect_signal("title")
+        self.write("a\\e]0;t\\e\n\\b")
+        self.expect("a\nb")
+        self.expect_signal("t")
+        self.write("\\e]0;u\\e\t\\c")
+        self.expect("a\nb       c")
+        self.expect_signal("u")
+        self.write("\\e]0;v\\e\x01\\")
+        self.expect("a\nb       c")
+        self.expect_signal("v")
+        self.write("\\e]0;ti\x7ftle\007")
+        self.expect("a\nb       c")
+        self.expect_signal("ti\x7ftle")
+        self._sig_response = None
+        self.term.term.modes.display_ctrl = True
+        self.write("\\e]0;x\x18y\007")
+        self.read()
+        self.assertIsNone(self._sig_response)
+        self.disconnect_signal("title")
+
+    def test_other_controls_are_ignored(self):
+        """Ignore C0 control characters a terminal ignores, in text and inside an escape sequence, which continues."""
+        self.write("a\x01b\\e[3\x011mR\\e\x01[0mc")
+        red = urwid.AttrSpec("dark red", "default")
+        self.expect([[(None, None, b"a"), (None, None, b"b"), (red, None, b"R"), (None, None, b"c")]], raw=True)
+
+    def test_title_in_output_encoding(self):
+        """Decode a title from the encoding UTF-8 input is converted to, so it survives a non-UTF-8 locale."""
+        old_encoding = urwid.util.get_encoding()
+        urwid.set_encoding("latin-1")
+        self.addCleanup(urwid.set_encoding, old_encoding)
+        self.connect_signal("title")
+        self.write("\\e%G\\e]0;caf\xc3\xa9\007")
+        self.read()
+        self.expect_signal("caf\xe9")
+        self.disconnect_signal("title")
+
+    def test_c1_characters_in_title_are_kept(self):
+        """Keep U+0080 to U+009F inside an OSC string as part of the title, as tmux does with UTF-8 input."""
+        self.connect_signal("title")
+        self.write("\\e]0;t\xc2\x9c\xc2\x9ble\007")
+        self.read()
+        self.expect_signal("t\x9c\x9ble")
         self.disconnect_signal("title")
 
     def test_unterminated_osc_ends_at_escape(self):
