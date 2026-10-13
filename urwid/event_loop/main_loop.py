@@ -259,12 +259,22 @@ class MainLoop:
         if inspect.iscoroutinefunction(callback):
 
             async def cb() -> None:
-                await callback(self, user_data)
+                try:
+                    await callback(self, user_data)
+                except ExitMainLoop:
+                    raise
+                except Exception:
+                    self.logger.exception("Unhandled exception in alarm callback %r", callback)
 
         else:
 
             def cb() -> None:  # type: ignore[misc]  # intentionally the sync variant of the branch above
-                callback(self, user_data)
+                try:
+                    callback(self, user_data)
+                except ExitMainLoop:
+                    raise
+                except Exception:
+                    self.logger.exception("Unhandled exception in alarm callback %r", callback)
 
         return cb
 
@@ -284,6 +294,13 @@ class MainLoop:
         .. note::
             *callback* may be an ``async def`` function on an :attr:`event_loop`
             implementation that supports one; see the note on :class:`MainLoop`.
+
+        .. note::
+            *callback* is called as ``callback(loop, user_data)``.
+            Exceptions raised by *callback* (for example from a callback
+            declared with the wrong signature) are logged with their
+            traceback, naming the callback, and do not stop the loop.
+            :exc:`ExitMainLoop` still exits the loop as usual.
         """
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")
         return self.event_loop.alarm(sec, self._make_alarm_callback(callback, user_data))
@@ -306,6 +323,11 @@ class MainLoop:
         .. note::
             *callback* may be an ``async def`` function on an :attr:`event_loop`
             implementation that supports one; see the note on :class:`MainLoop`.
+
+        .. note::
+            Exceptions raised by *callback* are logged with their traceback,
+            naming the callback, and do not stop the loop.
+            :exc:`ExitMainLoop` still exits the loop as usual.
         """
         sec = tm - time.time()
         self.logger.debug(f"Setting alarm in {sec!r} seconds with callback {callback!r}")

@@ -354,6 +354,26 @@ class TestMainLoop(unittest.TestCase):
 
         self.assertEqual([2, 1, 0], ticks)
 
+    def test_set_alarm_in_callback_error_logged(self):
+        """A mis-shaped alarm callback logs its traceback and does not kill the loop."""
+        calls: list[str] = []
+
+        def mis_shaped(rect: object) -> None:
+            raise AssertionError("must not run: set_alarm_in passes (loop, user_data)")
+
+        def healthy(loop: urwid.MainLoop, _user_data: object) -> typing.NoReturn:
+            calls.append("healthy")
+            raise urwid.ExitMainLoop
+
+        with dummy_raw_main_loop() as evl, self.assertLogs(evl.logger, level="ERROR") as logs:
+            evl.set_alarm_in(0.01, typing.cast("typing.Callable[..., None]", mis_shaped))
+            evl.set_alarm_in(0.02, healthy)
+            evl.run()
+
+        self.assertEqual(["healthy"], calls)
+        self.assertTrue(any("mis_shaped" in output for output in logs.output))
+        self.assertTrue(any("TypeError" in output for output in logs.output))
+
     def test_draw_screen_from_alarm(self):
         """Update widgets then call draw_screen."""
         text = urwid.Text("wait")
