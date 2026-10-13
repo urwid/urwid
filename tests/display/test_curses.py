@@ -51,7 +51,7 @@ class CursesSetAttrTest(unittest.TestCase):
         self.assertEqual([linked.style_only()], list(self.screen._curses_attr_cache))
 
 
-@unittest.skipIf(curses_display is None, "the curses module is not available")
+@unittest.skipIf(curses_display is None or curses_display.IS_WINDOWS, "halfdelay waits are POSIX curses only")
 class CursesInputTimeoutTest(unittest.TestCase):
     """Tests for the halfdelay waits of ``_getch``, which curses limits to 255 tenths each."""
 
