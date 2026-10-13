@@ -49,3 +49,67 @@ class CursesSetAttrTest(unittest.TestCase):
 
         self.assertEqual(self.attr_of(linked.style_only()), self.attr_of(linked))
         self.assertEqual([linked.style_only()], list(self.screen._curses_attr_cache))
+
+
+@unittest.skipIf(curses_display is None or curses_display.IS_WINDOWS, "halfdelay waits are POSIX curses only")
+class CursesInputTimeoutTest(unittest.TestCase):
+    """Tests for the halfdelay waits of ``_getch``, which curses limits to 255 tenths each."""
+
+    def setUp(self) -> None:
+        """Make an unstarted screen whose ``getch`` timeouts add the current halfdelay to ``elapsed``."""
+        self.screen = curses_display.Screen()
+        self.screen.s = mock.Mock()
+        self.elapsed = 0
+        self.delay = 0
+        self.halfdelay = self.enterContext(
+            mock.patch.object(curses_display.curses, "halfdelay", side_effect=self.set_delay)
+        )
+        self.cbreak = self.enterContext(mock.patch.object(curses_display.curses, "cbreak"))
+
+    def set_delay(self, tenths: int) -> None:
+        """Record the halfdelay value, rejecting the values real curses rejects."""
+        if not 1 <= tenths <= 255:
+            raise OverflowError("halfdelay is limited to 255 tenths")
+        self.delay = tenths
+
+    def timeout(self) -> int:
+        """Let the current halfdelay expire with no input."""
+        self.elapsed += self.delay
+        return -1
+
+    def test_finite_waits_expire_after_the_requested_duration(self) -> None:
+        for tenths in (1, 255, 256, 510, 511, 1000):
+            with self.subTest(tenths=tenths):
+                self.elapsed = 0
+                self.screen.s.getch.side_effect = self.timeout
+                self.assertEqual(-1, self.screen._getch(tenths))
+                self.assertEqual(tenths, self.elapsed)
+
+    def test_input_interrupts_a_long_wait(self) -> None:
+        for preceding_timeouts in (0, 1):
+            with self.subTest(preceding_timeouts=preceding_timeouts):
+                self.elapsed = 0
+                calls = 0
+
+                def getch() -> int:
+                    nonlocal calls
+                    calls += 1
+                    return self.timeout() if calls <= preceding_timeouts else ord("q")
+
+                self.screen.s.getch.side_effect = getch
+                self.assertEqual(ord("q"), self.screen._getch(1000))
+                self.assertLess(self.elapsed, 1000)
+                self.assertEqual(preceding_timeouts + 1, calls)
+
+    def test_zero_wait_is_nonblocking(self) -> None:
+        self.screen.s.getch.return_value = -1
+        self.assertEqual(-1, self.screen._getch(0))
+        self.screen.s.nodelay.assert_called_once_with(True)
+        self.halfdelay.assert_not_called()
+
+    def test_none_wait_is_blocking(self) -> None:
+        self.screen.s.getch.return_value = ord("q")
+        self.assertEqual(ord("q"), self.screen._getch(None))
+        self.screen.s.nodelay.assert_called_once_with(False)
+        self.cbreak.assert_called_once_with()
+        self.halfdelay.assert_not_called()

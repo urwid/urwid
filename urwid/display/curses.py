@@ -250,13 +250,21 @@ class Screen(BaseScreen, RealTerminal):
         if wait_tenths == 0:
             return self._getch_nodelay()
 
+        self.s.nodelay(False)
         if not IS_WINDOWS:
             if wait_tenths is None:
                 curses.cbreak()
             else:
+                # halfdelay accepts at most 255 tenths; keep waiting after each
+                # chunk expires, but return immediately when input arrives.
+                while wait_tenths > 255:
+                    curses.halfdelay(255)
+                    key = self.s.getch()
+                    if key != -1:
+                        return key
+                    wait_tenths -= 255
                 curses.halfdelay(wait_tenths)
 
-        self.s.nodelay(False)
         return self.s.getch()
 
     def _getch_nodelay(self) -> int:
@@ -280,8 +288,8 @@ class Screen(BaseScreen, RealTerminal):
         """Set the get_input timeout values.
 
         All values have a granularity of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
-        0.1 and any value less than 0.05 will be treated as 0.  The
-        maximum timeout value for this module is 25.5 seconds.
+        0.1 and any value less than 0.05 will be treated as 0.  Waits
+        longer than 25.5 seconds are split into multiple curses waits.
 
         :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
             None
