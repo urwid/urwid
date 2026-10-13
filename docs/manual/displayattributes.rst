@@ -369,6 +369,10 @@ An attribute without a link takes the link of the attribute around it, and
 :class:`Hyperlink` also takes an ``id``, which makes the terminal highlight several separate runs as one link.
 A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.
 
+:class:`ANSIText` and :class:`Terminal` turn the OSC 8 sequences in their input into such attributes.
+SGR sequences, ``ESC[0m`` included, leave the link in place, as they do in a terminal.
+An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.
+
 The raw display draws links only after
 :meth:`screen.set_terminal_properties(hyperlinks=True) <raw_display.Screen.set_terminal_properties>`.
 No terminal query for OSC 8 support exists, and a terminal without it may show the link sequences as text,

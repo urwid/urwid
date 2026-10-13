@@ -4,14 +4,17 @@ import unittest
 
 from urwid.ansi_parser import (
     LOGGER,
+    MAX_OSC_LENGTH,
     AnsiParser,
     ParsedLine,
     SkippedOp,
+    attrspec_with_hyperlink,
     parse_ansi_line,
     parse_ansi_text,
+    resolve_osc_hyperlink,
     sgi_params_to_attrspec,
 )
-from urwid.display import AttrSpec
+from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
 from urwid.util import rle_len
 
 
@@ -284,6 +287,96 @@ class SideChannelTest(unittest.TestCase):
         lines = parse_ansi_line("\x1b[3qa\nb")
         self.assertEqual("caps_lock", lines[0].leds)
         self.assertIsNone(lines[1].leds)
+
+
+class HyperlinkTest(unittest.TestCase):
+    """OSC 8 sets the hyperlink of the text written after it, independently of SGR."""
+
+    LINK = Hyperlink("https://urwid.org", id="home")
+
+    def test_link_opened_and_closed(self) -> None:
+        """Link the text between the opening and the closing OSC 8, with either terminator."""
+        for terminator in ("\x07", "\x1b\\"):
+            with self.subTest(terminator=terminator):
+                line = parse_ansi_text(f"a\x1b]8;id=home;https://urwid.org{terminator}link\x1b]8;;{terminator}b")
+                self.assertEqual("alinkb", line.text)
+                self.assertEqual(
+                    [(None, 1), (AttrSpec(hyperlink=self.LINK), 4), (None, 1)],
+                    line.attrib,
+                )
+                self.assertEqual([], line.skipped)
+                self.assertIsNone(line.last_attr)
+
+    def test_sgr_does_not_end_link(self) -> None:
+        """Keep the link through SGR changes and SGR 0, as terminals do."""
+        line = parse_ansi_text("\x1b]8;;https://urwid.org\x07\x1b[31ma\x1b[0mb\x1b]8;;\x07\x1b[31mc")
+        link = Hyperlink("https://urwid.org")
+        self.assertEqual(
+            [
+                (AttrSpec("dark red", "inherit", hyperlink=link), 1),
+                (AttrSpec(hyperlink=link), 1),
+                (AttrSpec("dark red", "inherit"), 1),
+            ],
+            line.attrib,
+        )
+
+    def test_link_carried_to_next_line(self) -> None:
+        """Carry the link across line ends and into a parser seeded with ``last_attr``."""
+        first, second = parse_ansi_line("\x1b]8;id=home;https://urwid.org\x07a\nb")
+        self.assertEqual([(AttrSpec(hyperlink=self.LINK), 1)], second.attrib)
+        (continued,) = parse_ansi_line("c\x1b]8;;\x07d", first.last_attr)
+        self.assertEqual([(AttrSpec(hyperlink=self.LINK), 1), (None, 1)], continued.attrib)
+
+    def test_invalid_link_ends_current_link(self) -> None:
+        """Skip an OSC 8 command urwid cannot draw, and draw the text after it without the previous link."""
+        for body in ("8;;https://urwid.org/\u00e9", "8;id=x", f"8;;{'u' * 2084}"):
+            with self.subTest(body=body[:20]):
+                line = parse_ansi_text(f"\x1b]8;;https://urwid.org\x07a\x1b]{body}\x07b")
+                self.assertEqual("ab", line.text)
+                self.assertEqual([(AttrSpec(hyperlink="https://urwid.org"), 1), (None, 1)], line.attrib)
+                self.assertEqual(
+                    [SkippedOp("unknown", f"\x1b]{body}", "invalid OSC 8 hyperlink, current link ended")],
+                    line.skipped,
+                )
+
+    def test_overlong_link_ends_current_link(self) -> None:
+        """End the current link at an OSC 8 command too long to buffer, as at any other refused one."""
+        line = parse_ansi_text(f"\x1b]8;;https://urwid.org\x07a\x1b]8;;{'u' * MAX_OSC_LENGTH}\x07b")
+        self.assertEqual("ab", line.text)
+        self.assertEqual([(AttrSpec(hyperlink="https://urwid.org"), 1), (None, 1)], line.attrib)
+
+    def test_link_on_attrspec_subclass(self) -> None:
+        """Set a link over a ``previous_attr`` whose class constructor takes no ``hyperlink`` keyword."""
+
+        class LegacyAttrSpec(AttrSpec):
+            def __init__(self, fg: str, bg: str, colors: int = 256) -> None:  # type: ignore[override]
+                super().__init__(fg, bg, colors)  # type: ignore[arg-type]
+
+        (line,) = parse_ansi_line("\x1b]8;;https://urwid.org\x07a", LegacyAttrSpec("dark red", "inherit"))
+        self.assertEqual([(AttrSpec("dark red", "inherit", hyperlink="https://urwid.org"), 1)], line.attrib)
+
+    def test_resolve_osc_hyperlink(self) -> None:
+        """Take the id parameter, ignore other parameters, and keep ``;`` inside the URI."""
+        cases = {
+            "8;;https://urwid.org": Hyperlink("https://urwid.org"),
+            "8;foo=bar:id=home:baz;https://urwid.org/a;b": Hyperlink("https://urwid.org/a;b", id="home"),
+            "08;;https://urwid.org": Hyperlink("https://urwid.org"),
+            "8;id=home;": NO_HYPERLINK,
+            "2;title": None,
+            "666": None,
+        }
+        for body, expected in cases.items():
+            with self.subTest(body=body):
+                self.assertEqual(expected, resolve_osc_hyperlink(body))
+
+    def test_attrspec_with_hyperlink_removal(self) -> None:
+        """Return ``None`` for an attribute left with nothing but unset colors, and keep any other attribute."""
+        linked = AttrSpec("default", "default", hyperlink=self.LINK)
+        self.assertIsNone(attrspec_with_hyperlink(linked, NO_HYPERLINK, unset_color="default"))
+        self.assertEqual(
+            AttrSpec("default,bold", "default"),
+            attrspec_with_hyperlink(linked.copy_modified(fg="default,bold"), None, unset_color="default"),
+        )
 
 
 class SgiParamsToAttrspecTest(unittest.TestCase):
@@ -777,6 +870,74 @@ class OscTerminationTest(unittest.TestCase):
                 self.assertEqual("tle", line.title)
                 self.assertEqual("x", line.text)
 
+    def test_control_characters_in_osc_are_ignored(self) -> None:
+        """Neither execute a control character inside an OSC string nor take it into the body, as a terminal does."""
+        link = AttrSpec(hyperlink="https://urwid.org")
+        for control in ("\n", "\r", "\r\n", "\n\r", "\x00", "\x01", "\b", "\t"):
+            text = f"a\x1b]8;;https://ur{control}wid.org\x07b\x1b]0;ti{control}tle\x07\x1b]8;;\x07c"
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(control=control, one_line=one_line, split=split):
+                        line = self._parse_chunked([text[:split], text[split:]], one_line)
+                        self.assertEqual("abc", line.text)
+                        self.assertEqual([(None, 1), (link, 1), (None, 1)], line.attrib)
+                        self.assertEqual("title", line.title)
+                        self.assertEqual([], line.skipped)
+
+    def test_osc_cancelled_by_can_and_sub(self) -> None:
+        """Abort an OSC string unapplied at CAN or SUB, and parse what follows as text."""
+        for cancel in ("\x18", "\x1a"):
+            text = f"a\x1b]0;ti{cancel}tle\x07b"
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(cancel=cancel, one_line=one_line, split=split):
+                        line = self._parse_chunked([text[:split], text[split:]], one_line)
+                        self.assertEqual("atleb", line.text)
+                        self.assertIsNone(line.title)
+                        self.assertEqual(1, line.bel)
+                        self.assertEqual([("unknown", "\x1b]0;ti")], [(op.kind, op.raw) for op in line.skipped])
+
+    def test_delete_in_osc_is_kept(self) -> None:
+        """Keep DEL inside an OSC string as part of it, as a terminal does."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;ti\x7ftle\x07b"], one_line)
+                self.assertEqual("ab", line.text)
+                self.assertEqual("ti\x7ftle", line.title)
+
+    def test_control_after_escape_in_osc_is_executed(self) -> None:
+        """Execute a control character between an ESC and the rest of an OSC string, as a terminal does."""
+        for control, text in (("\n", "a\nb"), ("\t", "a       b"), ("\x00", "ab"), ("\x01", "ab"), ("\b", "b")):
+            with self.subTest(control=control):
+                line = parse_ansi_text(f"a\x1b]0;t\x1b{control}\\b")
+                self.assertEqual(text, line.text)
+                self.assertEqual("t", line.title)
+                self.assertEqual([], line.skipped)
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;tx\x1b\tbc"], one_line)
+                self.assertEqual("a       c", line.text)
+                self.assertIsNone(line.title)
+                self.assertEqual(["\x1b]0;tx", "\x1bb"], [op.raw for op in line.skipped])
+
+    def test_unterminated_osc_hides_the_rest(self) -> None:
+        """Hide all text after an OSC string left unterminated, line ends included, and record it once."""
+        for text, raw in (("a\x1b]0;x\nb\nc", "\x1b]0;xbc"), ("a\x1b]0;x\nb\x1b", "\x1b]0;xb")):
+            for one_line in (True, False):
+                with self.subTest(text=text, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    lines = parser.finalize()
+                    self.assertEqual(["a"], [line.text for line in lines])
+                    self.assertEqual([("unknown", raw)], [(op.kind, op.raw) for op in lines[0].skipped])
+
+    def test_overlong_osc_discard_ignores_line_end(self) -> None:
+        """Keep discarding an over-long OSC string over a line end inside it, up to its terminator."""
+        lines = parse_ansi_line("a\x1b]0;" + "A" * 5000 + "\nB\x07b\nc")
+        self.assertEqual(["ab", "c"], [line.text for line in lines])
+        self.assertEqual([None, None], [line.title for line in lines])
+        self.assertEqual([1, 0], [len(line.skipped) for line in lines])
+
     def test_overlong_osc_discard_ends_at_escape(self) -> None:
         """End the discarded remainder of an over-long OSC string at an ESC not followed by a backslash."""
         red = sgi_params_to_attrspec([31], None, unset_color="inherit")
@@ -786,6 +947,69 @@ class OscTerminationTest(unittest.TestCase):
                 self.assertEqual("ab", line.text)
                 self.assertEqual([(None, 1), (red, 1)], line.attrib)
                 self.assertIsNone(line.title)
+
+
+class ControlCharacterTest(unittest.TestCase):
+    """C0 control characters are executed as in a terminal, and an escape sequence around them continues."""
+
+    RED = AttrSpec("dark red", "inherit")
+
+    def test_escape_continues_on_the_next_line(self) -> None:
+        """Apply an escape sequence split by a line end to the next line in one_line mode, also across chunks."""
+        cases = (
+            ("a\x1b[3\n1mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b[3\x0b1mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b\r\n[31mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b(\nBb", [[(None, 1)], [(None, 1)]], ["a", "b"]),
+        )
+        for text, attribs, texts in cases:
+            for split in range(len(text) + 1):
+                with self.subTest(text=text, split=split):
+                    parser = AnsiParser(one_line=True)
+                    parser.feed(text[:split])
+                    parser.feed(text[split:])
+                    lines = parser.finalize()
+                    self.assertEqual(texts, [line.text for line in lines])
+                    self.assertEqual(attribs, [line.attrib for line in lines])
+                    self.assertEqual([None, self.RED if "R" in texts else None], [line.last_attr for line in lines])
+
+    def test_osc_title_after_escape_and_line_end(self) -> None:
+        """End an OSC string at ESC, line end, backslash, setting the title on the next line in one_line mode."""
+        lines = parse_ansi_line("a\x1b]0;t\x1b\n\\b")
+        self.assertEqual(["a", "b"], [line.text for line in lines])
+        self.assertEqual([None, "t"], [line.title for line in lines])
+
+    def test_vertical_tab_and_form_feed_are_line_feeds(self) -> None:
+        """Move one row down in the same column, or complete the line in one_line mode, also inside an escape."""
+        for control in ("\v", "\f"):
+            with self.subTest(control=control):
+                self.assertEqual("ab\n  c", parse_ansi_text(f"ab{control}c").text)
+                self.assertEqual(["ab", "c"], [line.text for line in parse_ansi_line(f"ab{control}c")])
+                line = parse_ansi_text(f"a\x1b{control}[31mR")
+                self.assertEqual("a\n R", line.text)
+                self.assertEqual([(None, 3), (self.RED, 1)], line.attrib)
+                self.assertEqual([], line.skipped)
+
+    def test_other_controls_are_ignored(self) -> None:
+        """Ignore other C0 control characters in text and inside an escape sequence, which continues."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                parser = AnsiParser(one_line=one_line)
+                parser.feed("a\x01b\x1b[3\x0e1mR\x1b\x0f[0mc")
+                (line,) = parser.finalize()
+                self.assertEqual("abRc", line.text)
+                self.assertEqual([(None, 2), (self.RED, 1), (None, 1)], line.attrib)
+                self.assertEqual([], line.skipped)
+
+    def test_c1_characters_in_osc_are_kept(self) -> None:
+        """Keep U+0080 to U+009F inside an OSC string as part of it, as tmux does with UTF-8 input."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                parser = AnsiParser(one_line=one_line)
+                parser.feed("a\x1b]0;t\x9c\x9b\x80le\x07b")
+                (line,) = parser.finalize()
+                self.assertEqual("ab", line.text)
+                self.assertEqual("t\x9c\x9b\x80le", line.title)
 
 
 if __name__ == "__main__":

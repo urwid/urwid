@@ -21,7 +21,7 @@
 This module extracts the platform-independent portion of the escape-sequence
 grammar historically embedded inside :mod:`urwid.vterm`'s ``TermCanvas`` --
 SGR colour/attribute interpretation, horizontal cursor movement, BEL, OSC
-title and keyboard-LED recognition -- into a form that can be used to
+title, OSC 8 hyperlink and keyboard-LED recognition -- into a form that can be used to
 interpret a single string (or a stream of chunks) of ANSI-coloured text
 without instantiating a pty-backed :class:`~urwid.Terminal` widget.
 
@@ -38,7 +38,7 @@ import dataclasses
 import logging
 import typing
 
-from urwid.display import AttrSpec
+from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
 from urwid.display.common import _BASIC_COLORS as BASIC_COLORS
 from urwid.display.common import _SETTING_OFF_PREFIX
 from urwid.display.common import _color_desc_256 as color_desc_256
@@ -52,12 +52,15 @@ if typing.TYPE_CHECKING:
 __all__ = (
     "MAX_CSI_LENGTH",
     "MAX_OSC_LENGTH",
+    "OSC_IGNORED_CONTROLS",
     "AnsiParser",
     "ParsedLine",
     "SkippedOp",
+    "attrspec_with_hyperlink",
     "led_state",
     "parse_ansi_line",
     "parse_ansi_text",
+    "resolve_osc_hyperlink",
     "resolve_osc_title",
     "sgi_params_to_attrspec",
 )
@@ -107,6 +110,17 @@ _VERTICAL_MOVE_CSI = frozenset("ABEFdHf")
 #: erase, insert/delete, device queries, tabstops, ...) -- again meaningless
 #: for a single, canvas-less line of text.
 _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
+
+#: CAN and SUB, which abort an escape sequence in progress.
+_CANCEL = frozenset("\x18\x1a")
+
+#: Control characters a terminal ignores inside an OSC string, unless they follow an ESC there: they are neither
+#: executed nor part of the string. DEL is not among them: a terminal keeps it in the string.
+OSC_IGNORED_CONTROLS = frozenset(map(chr, range(0x20))) - {BEL, ESC, *_CANCEL}
+
+#: C0 control characters and DEL passed to ``AnsiParser._execute_control()`` wherever they appear outside an OSC
+#: string, also inside another escape sequence, which then continues; ESC, CAN, SUB and the line ends are handled apart.
+_INLINE_CONTROLS = frozenset(map(chr, (*range(0x20), 0x7F))) - {ESC, *_CANCEL, "\r", "\n"}
 
 #: Line-end byte pairs that collapse into a single structural split point.
 _LINE_END_PAIR: dict[str, str] = {"\r": "\n", "\n": "\r"}
@@ -199,19 +213,22 @@ class AnsiParser:
     Internally, a :class:`AnsiParser` always maintains a two-dimensional grid of rows (one cell buffer per screen
     row) plus a cursor (``row``, ``col``). The two constructor modes below share the *overwhelming majority* of
     their behaviour -- printable characters, horizontal cursor movement (``CSI n C/D/G``), backspace, tab, SGR
-    colour/attribute handling (``CSI ... m``), BEL, OSC window-title recognition, keyboard-LED requests
+    colour/attribute handling (``CSI ... m``), BEL, OSC window-title recognition, OSC 8 hyperlinks (carried in
+    :attr:`AttrSpec.hyperlink <urwid.AttrSpec.hyperlink>` of the written text), keyboard-LED requests
     (``CSI n q``) and terminal-wide setting sequences (stripped and logged, see :class:`SkippedOp`) are interpreted
     identically regardless of mode. They differ only in how a **line end** and **vertical cursor movement** are
     treated, and in whether the side channels (``bel``, ``title``, ``leds``, ``skipped``) are reset per line or
     aggregated over the whole input:
 
     * ``one_line=True``: a line-end sequence (``\n``, ``\r``, ``\r\n`` or ``\n\r``, the latter two pairs
-      collapsing into a single event) is a **structural split point**, not discarded data -- the moment one is
-      seen, the current row is completed into a :class:`ParsedLine` and pushed onto an internal completed-lines
-      queue, and a fresh row is started for what follows, carrying the SGR/colour state
+      collapsing into a single event; VT and FF too, see below) is a **structural split point**, not discarded
+      data -- the moment one is seen, the current row is completed into a :class:`ParsedLine` and pushed onto an
+      internal completed-lines queue, and a fresh row is started for what follows, carrying the SGR/colour state
       (:attr:`ParsedLine.last_attr`) forward but resetting the per-line side channels. Vertical cursor movement
       (``CSI n A/B/E/F/d`` and ``CSI r;c H``/``f``) is meaningless outside a single line, so it is stripped and
-      logged as a :class:`SkippedOp` rather than reinterpreted.
+      logged as a :class:`SkippedOp` rather than reinterpreted. An escape sequence in progress at a line end
+      continues on the next line, as in a terminal, so the attributes it sets apply there.
+      A line end inside an OSC string is the exception, as described below.
     * ``one_line=False`` (the default): a full newline (``\n``, or a collapsed ``\r\n``/``\n\r`` pair) genuinely
       moves to a fresh row, resetting the column, while everything keeps accumulating in the same persistent grid
       -- nothing is split off. A **bare** ``\r`` (not part of a ``\r\n``/``\n\r`` pair) is carriage-return-only:
@@ -221,6 +238,16 @@ class AnsiParser:
       channels are aggregated over the *entire* input rather than reset per row: ``bel`` is the total BEL count,
       ``title``/``leds`` are the last value seen anywhere, and ``skipped`` lists the :class:`SkippedOp`
       entries in encounter order.
+
+    C0 control characters and DEL are executed as in a terminal, also inside an escape sequence, which then
+    continues: BEL is counted, tab and backspace move the cursor, VT and FF are line feeds (completing the line in
+    ``one_line`` mode, else moving one row down in the same column), CAN and SUB abort the sequence, and the others
+    are ignored, so none of them is part of the resolved text.
+
+    Inside an OSC string, in both modes, a control character in :data:`OSC_IGNORED_CONTROLS`, line ends included,
+    is ignored as in a terminal: it is neither executed nor part of the string, and a line end there splits no line.
+    Right after an ESC inside the string, a control character is executed instead, and the ESC stays pending, so a
+    following backslash still ends the string. An OSC string left unterminated hides the rest of the input.
 
     Deliberately out of scope in both modes (stripped and logged as :class:`SkippedOp` with
     ``kind="terminal-setting"`` or ``kind="unknown"``): erase (``CSI J``/``K``), scroll regions, save/restore
@@ -324,8 +351,13 @@ class AnsiParser:
         while i < n:
             ch = text[i]
             if ch in _LINE_END_PAIR:
+                if self._parsestate in {2, 4} and self._escbuf[-1:] != ESC:
+                    # a line end inside an OSC string is ignored, see _step()
+                    i += 1
+                    continue
                 if self._one_line:
-                    self._handle_line_end()
+                    # an escape sequence in progress continues on the next line, as in a terminal
+                    self._complete_line()
                     if i + 1 < n and text[i + 1] == _LINE_END_PAIR[ch]:
                         i += 2
                     else:
@@ -357,9 +389,13 @@ class AnsiParser:
         (its ``text`` joining every resolved row with ``"\n"``) and returned as a 1-tuple.
 
         This is a terminal operation: construct a new :class:`AnsiParser` to parse a fresh "session" of input.
+        An OSC string the input leaves unterminated hides all text after it, as in a terminal; unless it was already
+        recorded as over-long, it is recorded as a :class:`SkippedOp` of the last line.
 
         :returns: a uniform ``tuple[ParsedLine, ...]``, shaped as described above.
         """
+        if self._parsestate == 2:
+            self._skip("unknown", f"{ESC}]{self._escbuf.removesuffix(ESC)}", "unterminated OSC string")
         if self._one_line:
             self._complete_line()
             return tuple(self._completed)
@@ -386,18 +422,6 @@ class AnsiParser:
         return (parsed,)
 
     # -- internal: line/row completion and cursor management -------------
-
-    def _handle_line_end(self) -> None:
-        r"""Complete the current line, aborting any in-flight escape sequence.
-
-        Only called in one_line mode: a line end always aborts any in-flight escape sequence, since real escape
-        sequences never legitimately contain a raw \r or \n. In screen mode a newline is instead handled directly
-        in :meth:`feed` without touching escape-framing state.
-        """
-        self._within_escape = False
-        self._parsestate = 0
-        self._escbuf = ""
-        self._complete_line()
 
     def _complete_line(self) -> None:
         row = self._rows[0]
@@ -452,20 +476,22 @@ class AnsiParser:
 
     def _step(self, ch: str) -> None:
         if self._parsestate in {2, 4}:
-            self._handle_osc_char(ch)
+            if ch in _CANCEL:
+                # CAN/SUB abort the string unapplied
+                if self._parsestate == 2:
+                    self._skip("unknown", f"{ESC}]{self._escbuf.removesuffix(ESC)}", "unterminated OSC string")
+                self._leave_escape()
+            elif ch not in OSC_IGNORED_CONTROLS:
+                self._handle_osc_char(ch)
+            elif self._escbuf[-1:] == ESC:
+                # after an ESC, as in a terminal and urwid.vterm, the control character is executed and the ESC stays
+                # pending, so a following backslash still ends the string; line ends are handled so in feed()
+                self._execute_control(ch)
             return
-        if ch == BEL:
-            self._bel_count += 1
+        if ch in _INLINE_CONTROLS:
+            self._execute_control(ch)
             return
-        if ch == "\t":
-            self._handle_tab()
-            return
-        if ch == "\b":
-            self._col = max(0, self._col - 1)
-            return
-        if ch in ("\x00", "\x7f"):  # NUL/DEL -- ignored, matching vterm
-            return
-        if ch in ("\x18", "\x1a"):  # CAN/SUB -- abort any escape in progress
+        if ch in _CANCEL:  # CAN/SUB -- abort any escape in progress
             self._within_escape = False
             self._parsestate = 0
             self._escbuf = ""
@@ -477,6 +503,25 @@ class AnsiParser:
             self._parse_escape(ch)
             return
         self._write_char(ch, self._attrspec)
+
+    def _execute_control(self, ch: str) -> None:
+        """Execute C0 control character or DEL *ch* as a terminal does, leaving any escape sequence in progress.
+
+        BEL is counted, tab and backspace move the cursor, and VT and FF are line feeds: in one_line mode they
+        complete the line, otherwise they move the cursor one row down, keeping its column. The others are ignored.
+        """
+        if ch == BEL:
+            self._bel_count += 1
+        elif ch == "\t":
+            self._handle_tab()
+        elif ch == "\b":
+            self._col = max(0, self._col - 1)
+        elif ch in {"\v", "\f"}:
+            if self._one_line:
+                self._complete_line()
+            else:
+                self._last_move = ch
+                self._move_to_row(self._row + 1, ch)
 
     def _handle_tab(self, tabstop: int = 8) -> None:
         target = ((self._col // tabstop) + 1) * tabstop
@@ -672,6 +717,9 @@ class AnsiParser:
             self._finish_osc(self._escbuf[:-1])
             return
         if len(self._escbuf) >= MAX_OSC_LENGTH:
+            if self._escbuf.lstrip("0").startswith("8;"):
+                # an over-long OSC 8 is refused like any other invalid one, ending the current link
+                self._attrspec = attrspec_with_hyperlink(self._attrspec, None, unset_color="inherit")
             self._skip(
                 "unknown", f"{ESC}]{self._escbuf}", f"OSC string of {MAX_OSC_LENGTH} characters or more, truncated"
             )
@@ -692,6 +740,16 @@ class AnsiParser:
         title = resolve_osc_title(buf)
         if title is not None:
             self._title = title
+            return
+        try:
+            link = resolve_osc_hyperlink(buf)
+        except ValueError:
+            # the text after it must not keep pointing at the previous link
+            self._attrspec = attrspec_with_hyperlink(self._attrspec, None, unset_color="inherit")
+            self._skip("unknown", raw, "invalid OSC 8 hyperlink, current link ended")
+            return
+        if link is not None:
+            self._attrspec = attrspec_with_hyperlink(self._attrspec, link, unset_color="inherit")
         else:
             self._skip("terminal-setting", raw, "unrecognised OSC prefix")
 
@@ -704,10 +762,11 @@ class AnsiParser:
 def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[ParsedLine, ...]:
     r"""Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=True``) and return its finalised result.
 
-    Returns one :class:`ParsedLine` per line found in ``text`` (split on ``\n``/``\r``/``\r\n``/``\n\r``), plus
-    a trailing entry for a final unterminated fragment, if any -- never fewer than one element, even for empty
-    input, and every character of the original data is preserved across the returned lines (line-end characters are
-    structural split points, not stripped content).
+    Returns one :class:`ParsedLine` per line found in ``text`` (split on ``\n``/``\r``/``\r\n``/``\n\r``, VT
+    and FF), plus a trailing entry for a final unterminated fragment, if any -- never fewer than one element, even for
+    empty input. Line ends are structural split points, not stripped content, except inside an OSC string, where
+    they are ignored; other control characters and escape sequences are not part of the text, see
+    :class:`AnsiParser`.
 
     :param text: the text to parse.
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from a
@@ -794,6 +853,76 @@ def resolve_osc_title(buf: str) -> str | None:
     return None
 
 
+def resolve_osc_hyperlink(buf: str) -> Hyperlink | None:
+    """Resolve the hyperlink an OSC 8 command body starts or ends.
+
+    The body is ``8;params;URI`` after leading zeros are stripped, as :func:`resolve_osc_title` strips them.
+    *params* are ``key=value`` pairs separated by ``:``; ``id`` is used and other keys are ignored,
+    as the OSC 8 specification asks.
+
+    :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
+    :returns: the link the following text is drawn with, :data:`~urwid.NO_HYPERLINK` when the body ends the link
+        (an empty URI), or ``None`` when ``buf`` is not an OSC 8 command.
+    :raises ValueError: ``buf`` is an OSC 8 command without the URI field,
+        or with a URI or id :class:`~urwid.Hyperlink` refuses.
+
+    >>> resolve_osc_hyperlink("8;id=home;https://urwid.org")
+    Hyperlink(uri='https://urwid.org', id='home')
+    >>> resolve_osc_hyperlink("8;;") is NO_HYPERLINK
+    True
+    >>> resolve_osc_hyperlink("2;title") is None
+    True
+    """
+    stripped = buf.lstrip("0")
+    if not stripped.startswith("8;"):
+        return None
+    params, sep, uri = stripped[2:].partition(";")
+    if not sep:
+        raise ValueError(f"OSC 8 command without a URI field: {buf!r}")
+    if not uri:
+        return NO_HYPERLINK
+    link_id = ""
+    for param in params.split(":"):
+        key, _, value = param.partition("=")
+        if key == "id":
+            link_id = value
+    return Hyperlink(uri, id=link_id)
+
+
+def attrspec_with_hyperlink(
+    attrspec: AttrSpec | None,
+    link: Hyperlink | None,
+    *,
+    unset_color: typing.Literal["default", "inherit"],
+) -> AttrSpec | None:
+    """Return *attrspec* with its hyperlink replaced by *link*, in the form :func:`sgi_params_to_attrspec` returns.
+
+    :data:`~urwid.NO_HYPERLINK` and ``None`` both mean that the text has no link of its own.
+    The result is a plain :class:`~urwid.AttrSpec`, as from :func:`sgi_params_to_attrspec`, so a subclass of
+    *attrspec* whose constructor takes no *hyperlink* keyword cannot make parsing raise.
+
+    :param attrspec: the attribute in effect, or ``None`` for "no attributes".
+    :param link: the link to set, :data:`~urwid.NO_HYPERLINK` or ``None`` to remove the link.
+    :param unset_color: the color of a foreground or background no SGR parameter has set, as for
+        :func:`sgi_params_to_attrspec`.
+    :returns: the resulting attribute, or ``None`` when it sets neither colors, settings nor a link.
+
+    >>> attrspec_with_hyperlink(None, Hyperlink("https://urwid.org"), unset_color="inherit")
+    AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))
+    >>> attrspec_with_hyperlink(AttrSpec(hyperlink="https://urwid.org"), None, unset_color="inherit") is None
+    True
+    """
+    if link == NO_HYPERLINK:
+        link = None
+    if attrspec is None:
+        if link is None:
+            return None
+        return AttrSpec(unset_color, unset_color, hyperlink=link)
+    if link is None and attrspec.foreground == attrspec.background == unset_color:
+        return None
+    return AttrSpec(attrspec.foreground, attrspec.background, attrspec.colors, hyperlink=link)
+
+
 def sgi_params_to_attrspec(
     params: Sequence[int],
     previous: AttrSpec | None,
@@ -804,6 +933,7 @@ def sgi_params_to_attrspec(
 
     Ignore unsupported parameters and extended colors with an out-of-range value.
     Charset parameters 10-12 are handled by the caller.
+    The hyperlink of *previous* is kept, also through SGR 0, since OSC 8 sets it independently of SGR.
 
     :param params: the SGR numeric parameters to apply, in encounter order.
     :param previous: the :class:`~urwid.AttrSpec` in effect before ``params`` is applied, or ``None`` if none is
@@ -822,6 +952,7 @@ def sgi_params_to_attrspec(
     >>> sgi_params_to_attrspec([24], None, unset_color="inherit")
     AttrSpec('inherit,no-underline', 'inherit')
     """
+    hyperlink = None if previous is None else previous.hyperlink
     if params and params[-1] == 0:
         previous = None
 
@@ -933,13 +1064,18 @@ def sgi_params_to_attrspec(
     if attributes:
         decoded_fg = ",".join((decoded_fg, *sorted(attributes)))
 
-    if decoded_fg == decoded_bg == unset_color:
+    if decoded_fg == decoded_bg == unset_color and hyperlink is None:
         return None
 
     if colors:
         # `colors` is only ever assigned one of AttrSpec's accepted literals above (1, 16, 88 -- via
         # `previous.colors` --, 256 or 16777216), but the running total is tracked as a plain `int`
         # through the `max()` calls, so the literal type is lost to mypy; the cast restores it.
-        return AttrSpec(decoded_fg, decoded_bg, colors=typing.cast("typing.Literal[1, 16, 88, 256, 16777216]", colors))
+        return AttrSpec(
+            decoded_fg,
+            decoded_bg,
+            colors=typing.cast("typing.Literal[1, 16, 88, 256, 16777216]", colors),
+            hyperlink=hyperlink,
+        )
 
-    return AttrSpec(decoded_fg, decoded_bg)
+    return AttrSpec(decoded_fg, decoded_bg, hyperlink=hyperlink)
