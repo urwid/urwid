@@ -296,6 +296,7 @@ class MainLoop:
             implementation that supports one; see the note on :class:`MainLoop`.
 
         .. note::
+            *callback* is called as ``callback(loop, user_data)``.
             Exceptions raised by *callback* (for example from a callback
             declared with the wrong signature) are logged with their
             traceback, naming the callback, and do not stop the loop.
