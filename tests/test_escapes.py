@@ -30,6 +30,20 @@ class EscapeModifierTest(unittest.TestCase):
 class InputEscapeSequenceParserTest(unittest.TestCase):
     """Tests for parser of input escape sequences"""
 
+    def test_st_editing_keys(self):
+        for sequence, key in ((b"\x1b[4h", "insert"), (b"\x1b[P", "delete")):
+            with self.subTest(key=key):
+                actual, rest = escape.process_keyqueue(list(sequence) + [ord("x")], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_st_editing_keys_wait_for_complete_sequence(self):
+        for sequence in (b"\x1b[4h", b"\x1b[P"):
+            for length in range(1, len(sequence)):
+                with self.subTest(sequence=sequence, length=length):
+                    with self.assertRaises(escape.MoreInputRequired):
+                        escape.process_keyqueue(list(sequence[:length]), more_available=True)
+
     def test_bare_escape(self):
         codes = [27]
         expected = ["esc"]
