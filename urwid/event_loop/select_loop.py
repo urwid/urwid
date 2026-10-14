@@ -37,7 +37,7 @@ from .abstract_loop import EventLoop, ExitMainLoop
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterator
     from concurrent.futures import Executor, Future
-    from typing import Literal, ParamSpec
+    from typing import ParamSpec
 
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")
@@ -170,7 +170,7 @@ class SelectEventLoop(EventLoop):
 
     def _loop(self) -> None:
         """Run a single iteration of the event loop."""
-        tm: float | Literal["idle"] | None = None
+        entering_idle = False
         ready: list[selectors.SelectorKey]
 
         with selectors.DefaultSelector() as selector:
@@ -182,12 +182,11 @@ class SelectEventLoop(EventLoop):
 
                 if self._alarms:
                     timeout_ = self._alarms[0][0]
-                    tm = timeout_
                     timeout = max(timeout, timeout_ - time.time())
 
                 if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                     timeout = 0.0
-                    tm = "idle"
+                    entering_idle = True
 
                 self.logger.debug(f"Waiting for input: timeout={timeout!r}")
                 if self._watch_files:
@@ -204,17 +203,10 @@ class SelectEventLoop(EventLoop):
             else:
                 ready = []
 
-        if not ready:
-            if tm == "idle":
-                self.logger.debug("No input, entering IDLE")
-                self._entering_idle()
-                self._did_something = False
-            elif tm is not None:
-                # must have been a timeout
-                tm, _tie_break, alarm_callback = heapq.heappop(self._alarms)
-                self.logger.debug(f"No input in timeout, calling scheduled {alarm_callback!r}")
-                alarm_callback()
-                self._did_something = True
+        if not ready and entering_idle:
+            self.logger.debug("No input, entering IDLE")
+            self._entering_idle()
+            self._did_something = False
 
         self.logger.debug("Processing input")
         for record in ready:
@@ -224,4 +216,11 @@ class SelectEventLoop(EventLoop):
             if watch_callback is None or watch_callback is not record.data:
                 continue
             watch_callback()
+            self._did_something = True
+
+        # A continuously readable descriptor must not prevent expired alarms from running.
+        if self._alarms and self._alarms[0][0] <= time.time():
+            _alarm_time, _tie_break, alarm_callback = heapq.heappop(self._alarms)
+            self.logger.debug(f"Calling scheduled {alarm_callback!r}")
+            alarm_callback()
             self._did_something = True
