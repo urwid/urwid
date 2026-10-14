@@ -323,14 +323,7 @@ class StaleReadyWatchTestMixin:
         self.assertNotIn("replacement", called)
 
 
-class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin):
-    def setUp(self):
-        self.evl = urwid.SelectEventLoop()
-
-    def _poll_once(self) -> None:
-        """Run one iteration of the loop."""
-        self.evl._loop()
-
+class AlarmFairnessTestMixin:
     def test_expired_alarm_runs_while_a_descriptor_stays_readable(self):
         """A due alarm runs in the first poll even if input remains readable."""
         called = []
@@ -382,6 +375,15 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatch
             self._poll_once()
 
         self.assertEqual(["ready", "first", "ready", "second"], called)
+
+
+class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin, AlarmFairnessTestMixin):
+    def setUp(self):
+        self.evl = urwid.SelectEventLoop()
+
+    def _poll_once(self) -> None:
+        """Run one iteration of the loop."""
+        self.evl._loop()
 
     def test_watch_registered_with_a_file_object_is_called(self):
         """A watch registered with an object that has fileno() is found again when its descriptor is ready."""
@@ -994,13 +996,63 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
 @unittest.skipUnless(ZMQ_AVAILABLE, "ZMQ is not available")
 @unittest.skipIf(IS_WINDOWS, "ZMQEventLoop is not supported under windows")
-class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin):
+class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin, AlarmFairnessTestMixin):
     def setUp(self):
         self.evl = urwid.ZMQEventLoop()
 
     def _poll_once(self) -> None:
         """Run one iteration of the loop."""
         asyncio.run(self.evl._loop())
+
+    def test_fractional_poll_timeout_does_not_busy_spin(self):
+        called = []
+        self.evl._did_something = False
+        with (
+            mock.patch("urwid.event_loop.zmq_loop.time.time", return_value=100.0),
+            mock.patch.object(self.evl._poller, "poll", new_callable=mock.AsyncMock, return_value=[]) as poll,
+        ):
+            self.evl.alarm(0.0005, lambda: called.append("alarm"))
+            self._poll_once()
+
+        poll.assert_awaited_once_with(1)
+        self.assertEqual([], called)
+
+    def test_expired_alarm_runs_while_a_queue_stays_readable(self):
+        called = []
+        ctx = zmq.Context.instance()
+        pull = ctx.socket(zmq.PULL)
+        push = ctx.socket(zmq.PUSH)
+        try:
+            address = f"inproc://{self.id()}"
+            pull.bind(address)
+            push.connect(address)
+            push.send(b"x")
+            self.assertTrue(pull.poll(1000, zmq.POLLIN))
+            self.evl.watch_queue(pull, lambda: called.append("ready"))
+            self.evl.alarm(0, lambda: called.append("alarm"))
+
+            self._poll_once()
+
+            self.assertEqual(["ready", "alarm"], called)
+        finally:
+            self.evl.remove_watch_queue(pull)
+            pull.close(linger=0)
+            push.close(linger=0)
+
+    def test_async_expired_alarm_runs_while_a_descriptor_stays_readable(self):
+        called = []
+
+        async def on_alarm() -> None:
+            called.append("alarm")
+
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: called.append("ready"))
+            wr.send(b"x")
+            self.evl.alarm(0, on_alarm)
+
+            self._poll_once()
+
+        self.assertEqual(["ready", "alarm"], called)
 
     def test_watch_queue_and_remove_watch_queue(self):
         evl = self.evl
