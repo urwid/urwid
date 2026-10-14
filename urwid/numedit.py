@@ -155,6 +155,7 @@ class IntegerEdit(NumEdit):
 
         :param caption: caption markup
         :param default: default edit value
+        :param allow_negative: accept a leading minus sign in string defaults and input
         :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
             consist of digits valid for *base*.
 
@@ -220,7 +221,8 @@ class IntegerEdit(NumEdit):
             if isinstance(default, str) and len(default):
                 # check if it is a valid initial value
                 validation_re = f"^[{allowed_chars}]+$"
-                if not re.match(validation_re, str(default), re.IGNORECASE):
+                digits = default[1:] if allow_negative and default.startswith("-") else default
+                if not re.match(validation_re, digits, re.IGNORECASE):
                     raise ValueError(f"invalid value: {default} for base {base}")
 
             elif isinstance(default, decimal.Decimal) and default.as_tuple()[2] != 0:
