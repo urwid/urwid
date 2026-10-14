@@ -29,6 +29,7 @@ import errno
 import heapq
 import inspect
 import logging
+import math
 import time
 import typing
 from itertools import count
@@ -312,28 +313,22 @@ class ZMQEventLoop(EventLoop):
 
     async def _loop(self) -> None:
         """Run a single iteration of the event loop."""
-        state = "wait"  # default state not expecting any action
+        entering_idle = False
         polled_callbacks = self._queue_callbacks.copy()
         if self._alarms or self._did_something:
             timeout = 0.0
             if self._alarms:
-                state = "alarm"
                 timeout = max(0.0, self._alarms[0][0] - time.time())
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
-                state = "idle"
+                entering_idle = True
                 timeout = 0
-            ready = dict(await self._poller.poll(int(timeout * 1000)))
+            ready = dict(await self._poller.poll(math.ceil(timeout * 1000)))
         else:
             ready = dict(await self._poller.poll())
 
-        if not ready:
-            if state == "idle":
-                self._entering_idle()
-                self._did_something = False
-            elif state == "alarm":
-                _due, _tie_break, callback = heapq.heappop(self._alarms)
-                self._run_callback(callback)
-                self._did_something = True
+        if not ready and entering_idle:
+            self._entering_idle()
+            self._did_something = False
 
         for queue in ready:
             # A callback earlier in this pass, or another task during the poll, may have removed or replaced the
@@ -341,6 +336,12 @@ class ZMQEventLoop(EventLoop):
             if queue in polled_callbacks and self._queue_callbacks.get(queue) is not polled_callbacks[queue]:
                 continue
             self._run_callback(self._queue_callbacks[queue])
+            self._did_something = True
+
+        # A continuously ready queue or descriptor must not prevent expired alarms from running.
+        if self._alarms and self._alarms[0][0] <= time.time():
+            _due, _tie_break, callback = heapq.heappop(self._alarms)
+            self._run_callback(callback)
             self._did_something = True
 
         # zmq.asyncio.Poller.poll() resolves synchronously (no checkpoint) whenever
