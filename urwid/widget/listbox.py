@@ -77,6 +77,33 @@ class ListBoxError(Exception):
     """ListBox related errors."""
 
 
+def _snap_offset_inset(
+    offset_inset: int,
+    target_rows: int,
+    maxrow: int,
+    coming_from: Literal["above", "below"] | None,
+    snap_rows: int,
+) -> int:
+    """Snap a selectable target into view without changing its cursor."""
+    align_top = 0
+    align_bottom = maxrow - target_rows
+    if coming_from == "above" and offset_inset > align_bottom:
+        if snap_rows >= offset_inset - align_bottom:
+            offset_inset = align_bottom
+        elif snap_rows >= offset_inset - align_top:
+            offset_inset = align_top
+        else:
+            offset_inset -= snap_rows
+    if coming_from == "below" and offset_inset < align_top:
+        if snap_rows >= align_top - offset_inset:
+            offset_inset = align_top
+        elif snap_rows >= align_bottom - offset_inset:
+            offset_inset = align_bottom
+        else:
+            offset_inset += snap_rows
+    return offset_inset
+
+
 class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
@@ -710,6 +737,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """
         Set the focus position and try to keep the old focus in view.
 
+        Without *coming_from*, preserve the target widget's cursor and nested focus.
+        With *coming_from*, move its cursor from the indicated edge.
+
         :param position: a position compatible with :meth:`self._body.set_focus`
         :param coming_from: set to 'above' or 'below' if you know that
                             old position is above or below the new position.
@@ -941,13 +971,18 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         for _widget, pos, rows in fill_above:
             offset -= rows
             if pos == position:
-                self.change_focus((maxcol, maxrow), pos, offset, "below")
+                # An undirected focus change must preserve the target's cursor and nested focus.
+                if coming_from is None and _widget.selectable():
+                    offset = _snap_offset_inset(offset, _widget.rows((maxcol,), True), maxrow, "below", maxrow - 1)
+                self.change_focus((maxcol, maxrow), pos, offset, "below" if coming_from is not None else None)
                 return None
 
         offset = focus_offset + focus_rows
         for _widget, pos, rows in fill_below:
             if pos == position:
-                self.change_focus((maxcol, maxrow), pos, offset, "above")
+                if coming_from is None and _widget.selectable():
+                    offset = _snap_offset_inset(offset, _widget.rows((maxcol,), True), maxrow, "above", maxrow - 1)
+                self.change_focus((maxcol, maxrow), pos, offset, "above" if coming_from is not None else None)
                 return None
             offset += rows
 
@@ -1071,25 +1106,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         if snap_rows is None:
             snap_rows = maxrow - 1
 
-        # "snap" to selectable widgets
-        align_top = 0
-        align_bottom = maxrow - tgt_rows
-
-        if coming_from == "above" and target.selectable() and offset_inset > align_bottom:
-            if snap_rows >= offset_inset - align_bottom:
-                offset_inset = align_bottom
-            elif snap_rows >= offset_inset - align_top:
-                offset_inset = align_top
-            else:
-                offset_inset -= snap_rows
-
-        if coming_from == "below" and target.selectable() and offset_inset < align_top:
-            if snap_rows >= align_top - offset_inset:
-                offset_inset = align_top
-            elif snap_rows >= align_bottom - offset_inset:
-                offset_inset = align_bottom
-            else:
-                offset_inset += snap_rows
+        if target.selectable():
+            offset_inset = _snap_offset_inset(offset_inset, tgt_rows, maxrow, coming_from, snap_rows)
 
         # convert offset_inset to offset_rows or inset_fraction
         if offset_inset >= 0:

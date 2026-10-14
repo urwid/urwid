@@ -2559,6 +2559,128 @@ class ListBoxFirstSelectableTest(unittest.TestCase):
 
 
 class ListBoxSetFocusCompleteTest(unittest.TestCase):
+    def test_explicit_nested_focus_survives_render(self) -> None:
+        for use_focus_path in (False, True):
+            for target_position, child_position in ((2, 2), (0, 0)):
+                with self.subTest(focus_path=use_focus_path, target=target_position):
+                    first = urwid.Pile([urwid.Edit(edit_text="first") for _ in range(3)])
+                    last = urwid.Pile([urwid.Edit(edit_text="last") for _ in range(3)])
+                    lbox = urwid.ListBox(urwid.SimpleListWalker([first, urwid.Divider(), last]))
+                    size = (20, 10)
+                    lbox.render(size, focus=True)
+                    if target_position == 0:
+                        lbox.focus_position = 2
+                        lbox.render(size, focus=True)
+
+                    if use_focus_path:
+                        lbox.set_focus_path([target_position, child_position])
+                    else:
+                        lbox.focus_position = target_position
+                        lbox.focus.focus_position = child_position
+                    lbox.focus.focus.edit_pos = 1
+
+                    lbox.render(size, focus=True)
+
+                    self.assertEqual([target_position, child_position], lbox.get_focus_path())
+                    self.assertEqual(1, lbox.focus.focus.edit_pos)
+
+    def test_nested_focus_with_clipping_wrappers_and_cursorless_children(self) -> None:
+        for size in ((20, 5), (20, 10)):
+            for with_cursor in (False, True):
+                for target_position in (0, 2):
+                    with self.subTest(size=size, cursor=with_cursor, target=target_position):
+                        def make_pile():
+                            children = [
+                                urwid.Edit(edit_text="abc") if with_cursor else SelectableText("abc")
+                                for _ in range(3)
+                            ]
+                            return urwid.Pile(children)
+
+                        first, last = make_pile(), make_pile()
+                        lbox = urwid.ListBox(urwid.SimpleListWalker([
+                            urwid.AttrMap(first, None), urwid.Divider(), urwid.Padding(last, width=18)
+                        ]))
+                        lbox.render(size, focus=True)
+                        if target_position == 0:
+                            lbox.focus_position = 2
+                            lbox.render(size, focus=True)
+                        target = first if target_position == 0 else last
+                        lbox.focus_position = target_position
+                        target.focus_position = 1
+                        for _ in range(2):
+                            lbox.render(size, focus=True)
+                            self.assertEqual(1, target.focus_position)
+
+    def test_undirected_focus_preserves_plain_edit_cursor(self) -> None:
+        first = urwid.Edit(edit_text="abcdef", edit_pos=5)
+        target = urwid.Edit(edit_text="uvwxyz", edit_pos=2)
+        lbox = urwid.ListBox(urwid.SimpleListWalker([first, target]))
+        lbox.render((20, 5), focus=True)
+        lbox.focus_position = 1
+        lbox.render((20, 5), focus=True)
+        self.assertEqual(2, target.edit_pos)
+
+    def test_tall_target_keeps_its_cursor_visible(self) -> None:
+        target = urwid.Edit(edit_text="\n".join(str(i) for i in range(8)), edit_pos=12)
+        lbox = urwid.ListBox(urwid.SimpleListWalker([SelectableText("prefix\nprefix"), target]))
+        size = (20, 5)
+        lbox.render(size, focus=True)
+        lbox.focus_position = 1
+        canvas = lbox.render(size, focus=True)
+        self.assertEqual(12, target.edit_pos)
+        self.assertIsNotNone(canvas.cursor)
+        self.assertGreaterEqual(canvas.cursor[1], 0)
+        self.assertLess(canvas.cursor[1], size[1])
+
+    def test_undirected_focus_still_snaps_cursorless_widgets_into_view(self) -> None:
+        for at_bottom, expected in ((True, (3, 0)), (False, (0, 0))):
+            with self.subTest(bottom=at_bottom):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([
+                    SelectableText(f"{i}\n{i}") for i in range(4)
+                ]))
+                size = (20, 5)
+                if not at_bottom:
+                    lbox.set_focus(3, "above")
+                lbox.render(size, focus=True)
+                lbox.focus_position = 2 if at_bottom else 1
+                canvas = lbox.render(size, focus=True)
+                self.assertEqual(expected, lbox.get_focus_offset_inset(size))
+                text = [line.strip() for line in canvas.text]
+                self.assertEqual(2, text.count(b"2" if at_bottom else b"1"))
+
+    def test_directed_focus_still_moves_to_nearest_edge(self) -> None:
+        for position, direction, expected in ((2, "above", 0), (0, "below", 2)):
+            with self.subTest(direction=direction):
+                first = urwid.Pile([urwid.Edit(edit_text="first") for _ in range(3)])
+                last = urwid.Pile([urwid.Edit(edit_text="last") for _ in range(3)])
+                lbox = urwid.ListBox(urwid.SimpleListWalker([first, urwid.Divider(), last]))
+                size = (20, 10)
+                lbox.render(size, focus=True)
+                if position == 0:
+                    lbox.set_focus(2, "above")
+                    lbox.render(size, focus=True)
+                target = first if position == 0 else last
+                target.focus_position = 1
+                lbox.set_focus(position, direction)
+                lbox.render(size, focus=True)
+                self.assertEqual(expected, target.focus_position)
+
+    def test_focus_completion_preserves_change_focus_override_signature(self) -> None:
+        class CustomListBox(urwid.ListBox):
+            def change_focus(
+                self, size, position, offset_inset=0, coming_from=None, cursor_coords=None, snap_rows=None
+            ):
+                return super().change_focus(size, position, offset_inset, coming_from, cursor_coords, snap_rows)
+
+        for direction in (None, "above", "below"):
+            with self.subTest(direction=direction):
+                lbox = CustomListBox(urwid.SimpleListWalker([urwid.Edit(edit_text=str(i)) for i in range(3)]))
+                size = (20, 5)
+                lbox.render(size, focus=True)
+                lbox.set_focus(2, direction)
+                lbox.render(size, focus=True)
+                self.assertEqual(2, lbox.focus_position)
+
     def test_type_error_when_body_loses_set_focus(self):
         class FlakyWalker(urwid.ListWalker):
             def __init__(self, widgets):
