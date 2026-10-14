@@ -367,13 +367,14 @@ class FloatEdit(NumEdit):
 
             if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
+                default = default.replace(self._decimal_separator, ".")
                 float(default)
                 default = decimal.Decimal(default)
 
             if preserve_significance and isinstance(default, decimal.Decimal):
                 self.significance = default
 
-            val = str(default)
+            val = str(default).replace(".", self._decimal_separator)
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 

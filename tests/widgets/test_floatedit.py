@@ -47,3 +47,26 @@ class FloatEditDeprecatedArgumentsTest(unittest.TestCase):
             f = FloatEdit(decimalSeparator=",")
         f.set_edit_text("1,5")
         self.assertEqual(Decimal("1.5"), f.value())
+
+
+class FloatEditDefaultSeparatorTest(unittest.TestCase):
+    def test_defaults_use_the_configured_separator(self):
+        for default in ("1,250", "1.250", Decimal("1.250")):
+            for preserve_significance in (False, True):
+                with self.subTest(default=default, preserve_significance=preserve_significance):
+                    edit = FloatEdit(
+                        default=default, decimal_separator=",", preserve_significance=preserve_significance
+                    )
+                    self.assertEqual("1,250", edit.edit_text)
+                    self.assertEqual(Decimal("1.250"), edit.value())
+                    self.assertEqual(1.25, float(edit))
+                    edit.set_edit_text("2,5")
+                    self.assertEqual(
+                        Decimal("2.500" if preserve_significance else "2.5").as_tuple(), edit.value().as_tuple()
+                    )
+
+    def test_deprecated_separator_applies_to_default(self):
+        with self.assertWarns(DeprecationWarning):
+            edit = FloatEdit(default="1,25", decimalSeparator=",")
+        self.assertEqual("1,25", edit.edit_text)
+        self.assertEqual(Decimal("1.25"), edit.value())
