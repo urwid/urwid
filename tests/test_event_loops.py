@@ -331,6 +331,58 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatch
         """Run one iteration of the loop."""
         self.evl._loop()
 
+    def test_expired_alarm_runs_while_a_descriptor_stays_readable(self):
+        """A due alarm runs in the first poll even if input remains readable."""
+        called = []
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: called.append("ready"))
+            wr.send(b"x")
+            self.evl.alarm(0, lambda: called.append("alarm"))
+
+            self._poll_once()
+
+        self.assertEqual(["ready", "alarm"], called)
+
+    def test_future_alarm_waits_while_a_descriptor_is_readable(self):
+        """Readable input does not fire an alarm before its deadline."""
+        called = []
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: called.append("ready"))
+            wr.send(b"x")
+            self.evl.alarm(60, lambda: called.append("alarm"))
+
+            self._poll_once()
+
+        self.assertEqual(["ready"], called)
+
+    def test_ready_callback_can_cancel_an_expired_alarm(self):
+        """Use the current alarm heap after an input callback cancels an alarm."""
+        called = []
+        handle = self.evl.alarm(0, lambda: called.append("cancelled"))
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: self.evl.remove_alarm(handle))
+            wr.send(b"x")
+
+            self._poll_once()
+
+        self.assertEqual([], called)
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_only_one_expired_alarm_runs_per_poll_with_readable_input(self):
+        """Keep input processing between callbacks when several alarms are due."""
+        called = []
+        with ClosingSocketPair() as (rd, wr):
+            self.evl.watch_file(rd, lambda: called.append("ready"))
+            wr.send(b"x")
+            self.evl.alarm(0, lambda: called.append("first"))
+            self.evl.alarm(0, lambda: called.append("second"))
+
+            self._poll_once()
+            self.assertEqual(["ready", "first"], called)
+            self._poll_once()
+
+        self.assertEqual(["ready", "first", "ready", "second"], called)
+
     def test_watch_registered_with_a_file_object_is_called(self):
         """A watch registered with an object that has fileno() is found again when its descriptor is ready."""
         called = []
