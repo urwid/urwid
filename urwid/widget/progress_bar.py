@@ -5,12 +5,16 @@ from __future__ import annotations
 import math
 import typing
 
+from urwid.str_util import calc_text_pos
+from urwid.util import get_encoding_mode, rle_subseg
+
 from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
 from .text import Text
 from .widget import Widget, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
+    from typing import Literal
 
     from urwid.canvas import TextCanvas
 
@@ -42,7 +46,7 @@ class ProgressBar(Widget):
         :param satt: display attribute for smoothed part of bar where the
                      foreground of satt corresponds to the normal part and the
                      background corresponds to the complete part.
-                     If satt is ``None`` then no smoothing will be done.
+                     Smoothing requires UTF-8 encoding. If satt is ``None`` then no smoothing will be done.
 
         >>> from urwid import LineBox
         >>> pb = ProgressBar("a", "b")
@@ -153,27 +157,40 @@ class ProgressBar(Widget):
         c = render_label((maxcol,))
 
         cf = self._scaled_completion(maxcol)
-        ccol_dirty = int(cf)
-        ccol = len(c._text[0][:ccol_dirty].decode("utf-8", "ignore").encode("utf-8"))
-        cs = 0
-        if self.satt is not None:
-            cs = int((cf - ccol) * 8)
-        if ccol == cs == 0:
-            c._attr = [[(self.normal, maxcol)]]
-        elif ccol >= maxcol:
-            c._attr = [[(self.complete, maxcol)]]
-        elif cs and c._text[0][ccol] == 32:
-            t = c._text[0]
-            cenc = self.eighths[cs].encode("utf-8")
-            c._text[0] = t[:ccol] + cenc + t[ccol + 1 :]
-            a = []
-            if ccol > 0:
-                a.append((self.complete, ccol))
-            a.append((self.satt, len(cenc)))
-            if maxcol - ccol - 1 > 0:
-                a.append((self.normal, maxcol - ccol - 1))
-            c._attr = [a]
-            c._cs = [[(None, len(c._text[0]))]]
+        completed_cols = int(cf)
+        t = c._text[0]
+        if t.isascii():
+            completed_bytes = completed_cols
         else:
-            c._attr = [[(self.complete, ccol), (self.normal, maxcol - ccol)]]
+            completed_bytes, _ = calc_text_pos(t, 0, len(t), completed_cols)
+        smoothing = 0
+        if self.satt is not None and get_encoding_mode() == "utf8":
+            smoothing = int((cf - completed_cols) * 8)
+        if completed_bytes == smoothing == 0:
+            c._attr = [[(self.normal, len(t))]]
+        elif cf >= maxcol:
+            c._attr = [[(self.complete, len(t))]]
+        elif smoothing and completed_bytes < len(t) and t[completed_bytes] == 32:
+            cenc = self.eighths[smoothing].encode("utf-8")
+            c._text[0] = t[:completed_bytes] + cenc + t[completed_bytes + 1 :]
+            a = []
+            if completed_bytes > 0:
+                a.append((self.complete, completed_bytes))
+            a.append((self.satt, len(cenc)))
+            if len(t) - completed_bytes - 1 > 0:
+                a.append((self.normal, len(t) - completed_bytes - 1))
+            c._attr = [a]
+            # rle_subseg preserves the input charset tags.
+            c._cs = [
+                typing.cast(
+                    "list[tuple[Literal['0', 'U'] | None, int]]",
+                    [
+                        *rle_subseg(c._cs[0], 0, completed_bytes),
+                        (None, len(cenc)),
+                        *rle_subseg(c._cs[0], completed_bytes + 1, len(t)),
+                    ],
+                )
+            ]
+        else:
+            c._attr = [[(self.complete, completed_bytes), (self.normal, len(t) - completed_bytes)]]
         return c
