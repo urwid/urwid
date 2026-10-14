@@ -24,11 +24,10 @@ from __future__ import annotations
 
 import operator
 import typing
-import warnings
 from collections.abc import Container, Iterable, Sized
 from contextlib import suppress
 
-from urwid import signals
+from urwid import _deprecation, signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 
 from .constants import Sizing, VAlign, WHSettings, normalize_valign
@@ -206,16 +205,17 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
+            Support will be removed in version 7.0.
         """
         super().__init__()
         if isinstance(body, ListWalker):
             self._body: ListWalker[typing.Any, AbstractFlowWidget] = body
         elif getattr(body, "get_focus", None):
             self._body = typing.cast("ListWalker[typing.Any, AbstractFlowWidget]", body)
-            warnings.warn(
-                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}",
-                DeprecationWarning,
-                stacklevel=2,
+            _deprecation.warn(
+                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}.",
+                since="4.0.2",
+                removed_in="7.0",
             )
         else:
             # pyrefly: ignore[not-a-type]  # a string type argument in an expression
@@ -255,6 +255,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
         .. deprecated:: 4.0.2
             Assigning a body that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
+            Support will be removed in version 7.0.
         """
         return typing.cast("ListWalker[_K, AbstractFlowWidget]", self._body)
 
@@ -268,10 +269,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             self._body = body
         elif getattr(body, "get_focus", None):
             self._body = typing.cast("ListWalker[typing.Any, AbstractFlowWidget]", body)
-            warnings.warn(
-                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}",
-                DeprecationWarning,
-                stacklevel=2,
+            _deprecation.warn(
+                f"ListWalker or Iterable[Widget] argument expected, got: {type(body)}.",
+                since="4.0.2",
+                removed_in="7.0",
             )
         else:
             self._body = SimpleListWalker(body)
@@ -1850,8 +1851,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
         May change focus on button 1 press.
 
-        .. deprecated:: 2.6.5
+        .. deprecated:: 2.4.0
             Support for a contained widget that does not implement ``mouse_event`` is deprecated.
+            Support will be removed in version 7.0.
         """
         from urwid.util import is_mouse_press
 
@@ -1880,10 +1882,10 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             self.change_focus((maxcol, maxrow), w_pos, wrow)
 
         if not hasattr(w, "mouse_event"):
-            warnings.warn(
-                f"{w.__class__.__module__}.{w.__class__.__name__} is  not implementing Widget API",
-                DeprecationWarning,
-                stacklevel=2,
+            _deprecation.warn(
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API.",
+                since="2.4.0",
+                removed_in="7.0",
             )
             return False
 

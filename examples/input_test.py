@@ -42,8 +42,6 @@ else:
     }
     if hasattr(urwid, "TornadoEventLoop"):
         event_loops["tornado"] = urwid.TornadoEventLoop
-    if hasattr(urwid, "GLibEventLoop"):
-        event_loops["glib"] = urwid.GLibEventLoop
     if hasattr(urwid, "TwistedEventLoop"):
         event_loops["twisted"] = urwid.TwistedEventLoop
     if hasattr(urwid, "TrioEventLoop"):

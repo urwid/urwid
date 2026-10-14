@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import typing
-import warnings
 
+from urwid import _deprecation
 from urwid.canvas import CompositeCanvas
 
 from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
@@ -53,15 +53,12 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
 
         .. deprecated:: 2.4.0
             Wrapping an object that does not implement the Widget API (see ``AbstractWidget``) is deprecated.
+            Support will be removed in version 7.0.
         """
         super().__init__()
         if not isinstance(original_widget, AbstractWidget):
             obj_class_path = f"{original_widget.__class__.__module__}.{original_widget.__class__.__name__}"
-            warnings.warn(
-                f"{obj_class_path} is not implementing Widget API",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+            _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
         self._original_widget = original_widget
 
     def _repr_words(self) -> list[str]:

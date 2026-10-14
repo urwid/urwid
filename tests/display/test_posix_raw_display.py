@@ -63,7 +63,7 @@ class TestStartStop(unittest.TestCase):
         s.stop()
         output = "".join(written)
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.disable_seq, output)
-        self.assertIn(escape.DISABLE_FOCUS_REPORTING, output)
+        self.assertIn(escape.PrivateMode.FOCUS_REPORTING.disable_seq, output)
 
     @mock.patch("termios.tcsetattr")
     @mock.patch("termios.tcgetattr")
@@ -598,7 +598,7 @@ class TestApplyPrivateModeReports(unittest.TestCase):
         s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
 
         self.assertTrue(s.modes.bracketed_paste)
-        self.assertIn(escape.ENABLE_BRACKETED_PASTE_MODE, "".join(written))
+        self.assertIn(escape.PrivateMode.BRACKETED_PASTE.enable_seq, "".join(written))
 
     def test_unrecognized_reply_resolves_the_sentinel_to_false_without_enabling(self):
         s, written = self._screen(bracketed_paste=None)

@@ -569,6 +569,21 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual("sentinel escape", s._attr_to_escape(a))
         self.assertEqual("sentinel escape", s._attr_to_escape(s.AttrSpec("brown", "dark green")))
 
+    def test_legacy_get_input_nonblocking_warns_and_still_polls(self):
+        class LegacyScreen(urwid.display.raw.Screen):
+            def get_input_nonblocking(self):
+                return None, ["a"], [97]
+
+        s = LegacyScreen()
+        received = []
+        with self.assertWarns(DeprecationWarning) as ctx:
+            wrapper = s._make_legacy_input_wrapper(mock.Mock(), lambda keys, raw: received.append((keys, raw)))
+        self.assertEqual(__file__, ctx.filename)
+        self.assertIn("will be removed in version 7.0", str(ctx.warning))
+
+        wrapper()
+        self.assertEqual([(["a"], [97])], received)
+
 
 class TestTerminalProperties(unittest.TestCase):
     def test_term_families(self) -> None:

@@ -27,8 +27,8 @@ import importlib.util
 import sys
 import types
 import typing
-import warnings
 
+from urwid import _deprecation
 from urwid.canvas import (
     BlankCanvas,
     Canvas,
@@ -544,7 +544,7 @@ class _MovedModuleWarn(_MovedModule):
     Produce DeprecationWarning messages for imports.
 
     .. deprecated:: 2.4.0
-        This API will be removed in version 6.0.
+        This API will be removed in version 7.0.
     """
 
     __slots__ = ()
@@ -554,11 +554,7 @@ class _MovedModuleWarn(_MovedModule):
             # Introspection (for example `unittest` reading `__warningregistry__` of every module in `sys.modules`)
             # must neither warn nor replace this stub with the real module.
             raise AttributeError(name)
-        warnings.warn(
-            f"{self._moved_from} is moved to {self._moved_to} since urwid 2.4.0. API will be removed in version 6.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        _deprecation.warn(f"{self._moved_from} is moved to {self._moved_to}.", since="2.4.0", removed_in="7.0")
         return super().__getattr__(name)
 
 
@@ -576,14 +572,10 @@ def __getattr__(name: str) -> typing.Any:
     .. deprecated:: 2.4.0
         ``urwid.display_common``, ``urwid.raw_display``, ``urwid.curses_display`` and ``urwid.escape`` moved to
         ``urwid.display.common``, ``urwid.display.raw``, ``urwid.display.curses`` and ``urwid.display.escape``.
-        This API will be removed in version 6.0.
+        This API will be removed in version 7.0.
     """
     if name in _moved_warn:
-        warnings.warn(
-            f"{name} is moved to {_moved_warn[name]} since urwid 2.4.0. API will be removed in version 6.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        _deprecation.warn(f"urwid.{name} is moved to {_moved_warn[name]}.", since="2.4.0", removed_in="7.0")
 
         try:
             mod = importlib.import_module(_moved_warn[name])

@@ -49,6 +49,7 @@ from twisted.python.components import Adapter, Componentized
 from zope.interface import Attribute, Interface, implementer  # type: ignore[import-untyped]
 
 import urwid
+from urwid.display import escape
 from urwid.display.raw import Screen
 
 if typing.TYPE_CHECKING:
@@ -271,9 +272,9 @@ class TwistedScreen(Screen):
         :param enable: whether to enable or disable mouse tracking.
         """
         if enable:
-            self.write(urwid.escape.MOUSE_TRACKING_ON)
+            self.write(escape.MOUSE_TRACKING_ON)
         else:
-            self.write(urwid.escape.MOUSE_TRACKING_OFF)
+            self.write(escape.MOUSE_TRACKING_OFF)
 
     # twisted handles polling, so we don't need the loop to do it, we just
     # push what we get to the loop from dataReceived.
@@ -361,7 +362,7 @@ class TwistedScreen(Screen):
                 bg = f"{a.background_number + 40:d}"
         else:
             bg = "49"
-        return f"{urwid.escape.ESC}[0;{fg};{st}{bg}m"
+        return f"{escape.ESC}[0;{fg};{st}{bg}m"
 
 
 class UrwidTerminalProtocol(TerminalProtocol):

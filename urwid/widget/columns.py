@@ -9,6 +9,7 @@ import warnings
 from typing import Literal
 
 import urwid
+from urwid import _deprecation
 from urwid.canvas import Canvas, CanvasJoin, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
@@ -254,6 +255,9 @@ class Columns(
 
         (*given_width*, *widget*)
             make this column *given_width* screen columns wide, where *given_width* is an int
+        (``'given'``, *given_width*, *widget*)
+            the same as (*given_width*, *widget*), in the expanded form that repeats the :attr:`contents` options.
+            ``'fixed'`` is accepted as an older name for ``'given'``.
         (``'pack'``, *widget*)
             call :meth:`pack() <Widget.pack>` to calculate the width of this column
         (``'weight'``, *weight*, *widget*)
@@ -319,7 +323,9 @@ class Columns(
                         )
                     )
 
-            elif w[0] in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility: FIXED -> GIVEN
+            # Not deprecated: the expanded form of (width, widget) repeating the internal storage (GIVEN, width).
+            # "fixed" is its older name, kept for backward compatibility.
+            elif w[0] in {Sizing.FIXED, WHSettings.GIVEN}:
                 width, w = w[-2:]
                 self.contents.append((w, (WHSettings.GIVEN, typing.cast("int", width), i in box_columns)))
 
@@ -480,6 +486,42 @@ class Columns(
         ],
     ) -> None:
         self._contents[:] = c
+
+    @typing.overload
+    @staticmethod
+    def options(
+        width_type: Literal["pack", WHSettings.PACK],
+        width_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+        box_widget: bool = ...,
+    ) -> tuple[Literal[WHSettings.PACK], None, bool]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        width_type: Literal["given", WHSettings.GIVEN],
+        width_amount: int = ...,
+        box_widget: bool = ...,
+    ) -> tuple[Literal[WHSettings.GIVEN], int, bool]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        width_type: Literal["weight", WHSettings.WEIGHT] = ...,
+        width_amount: int | float = ...,  # noqa: PYI041  # provide explicit for IDEs
+        box_widget: bool = ...,
+    ) -> tuple[Literal[WHSettings.WEIGHT], int | float, bool]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        width_type: Literal["pack", "given", "weight", WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT] = ...,
+        width_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+        box_widget: bool = ...,
+    ) -> (
+        tuple[Literal[WHSettings.PACK], None, bool]
+        | tuple[Literal[WHSettings.GIVEN], int, bool]
+        | tuple[Literal[WHSettings.WEIGHT], int | float, bool]
+    ): ...
 
     @staticmethod
     def options(
@@ -1001,6 +1043,7 @@ class Columns(
 
         .. deprecated:: 2.4.0
             Support for a column that does not implement ``mouse_event`` is deprecated.
+            Support will be removed in version 7.0.
         """
         widths, _, size_args = self.get_column_sizes(size, focus=focus)
 
@@ -1020,10 +1063,10 @@ class Columns(
                 self.focus_position = i
 
             if not hasattr(w, "mouse_event"):
-                warnings.warn(
-                    f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API",
-                    DeprecationWarning,
-                    stacklevel=2,
+                _deprecation.warn(
+                    f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API.",
+                    since="2.4.0",
+                    removed_in="7.0",
                 )
                 return False
 

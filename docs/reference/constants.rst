@@ -209,7 +209,7 @@ Constants are not defined for these colors.
 .. seealso::
 
    :ref:`high-colors`
- 
+
 
 
 Signal Names
@@ -218,16 +218,16 @@ Signal Names
 .. data:: UPDATE_PALETTE_ENTRY
    :annotation: = 'update palette entry'
 
-   sent by :class:`BaseScreen` (and subclasses like 
-   :class:`raw_display.Screen`) when a palette entry is changed.
+   sent by :class:`BaseScreen` (and subclasses like
+   :class:`display.raw.Screen`) when a palette entry is changed.
    :class:`MainLoop` handles this signal by redrawing the whole
    screen.
 
 .. data:: INPUT_DESCRIPTORS_CHANGED
    :annotation: = 'input descriptors changed'
 
-   sent by :class:`BaseScreen` (and subclasses like 
-   :class:`raw_display.Screen`) when the list of input file descriptors
+   sent by :class:`BaseScreen` (and subclasses like
+   :class:`display.raw.Screen`) when the list of input file descriptors
    has changed.  :class:`MainLoop` handles this signal by updating
    the file descriptors being watched by its event loop.
 
@@ -315,4 +315,3 @@ included in Urwid.
    Default associated keypress: 'end'
 
    Move the cursor or selection to the rightmost column.
-

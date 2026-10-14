@@ -6,6 +6,7 @@ import math
 import typing
 from collections import deque
 
+from urwid import _deprecation
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.util import get_encoding_mode
 
@@ -26,8 +27,7 @@ class BarGraphMeta(WidgetMeta):
     Detect subclass get_data() method and dynamic change to get_data() method and disable caching in these cases.
 
     .. deprecated:: 4.0.10
-        Overriding ``get_data()`` in a :class:`BarGraph` subclass is supported for backwards compatibility only.
-        Call :meth:`BarGraph.set_data` instead, so that the rendered canvas can be cached.
+        Both cases are deprecated, see :class:`BarGraph`.
     """
 
     def __init__(  # noqa: D107 -- BarGraphMeta is deprecated for backwards compatibility only
@@ -41,7 +41,12 @@ class BarGraphMeta(WidgetMeta):
         super().__init__(name, bases, d)
 
         if "get_data" in d:
-            cls.render = nocache_widget_render(cls)
+            _deprecation.warn(
+                f"{cls.__module__}.{cls.__qualname__} overrides BarGraph.get_data(). Call BarGraph.set_data() instead.",
+                since="4.0.10",
+                removed_in="7.0",
+            )
+            setattr(cls, "render", nocache_widget_render(cls))  # noqa: B010  # see WidgetMeta.__init__
             cls._get_data = cls.get_data  # type: ignore[has-type]
         cls.get_data = property(lambda self: self._get_data, nocache_bargraph_get_data)
 
@@ -54,6 +59,11 @@ def nocache_bargraph_get_data(
     ],
 ) -> None:
     """Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data."""
+    _deprecation.warn(
+        "Assigning BarGraph.get_data is deprecated. Call BarGraph.set_data() instead.",
+        since="4.0.10",
+        removed_in="7.0",
+    )
     self.render = nocache_widget_render_instance(self)  # type: ignore[assignment]
     self._get_data = get_data_fn  # type: ignore[assignment]  # pylint: disable=protected-access
 
@@ -63,7 +73,14 @@ class BarGraphError(WidgetError):
 
 
 class BarGraph(Widget, metaclass=BarGraphMeta):
-    """Box widget that renders a bar graph from a sequence of data values."""
+    """Box widget that renders a bar graph from a sequence of data values.
+
+    .. deprecated:: 4.0.10
+        Overriding ``get_data()`` in a subclass, or assigning ``get_data`` on an instance,
+        is supported for backwards compatibility only.
+        Call :meth:`set_data` instead, so that the rendered canvas can be cached.
+        This API will be removed in version 7.0.
+    """
 
     _sizing = frozenset([Sizing.BOX])
 

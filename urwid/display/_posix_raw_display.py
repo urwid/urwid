@@ -343,6 +343,10 @@ class Screen(_raw_display_base.Screen):
         The callback should be passed a list of processed keys and a list of unprocessed keycodes.
 
         Subclasses may wish to use parse_input to wrap the callback.
+
+        .. deprecated:: 5.0
+            A subclass that defines ``get_input_nonblocking()`` is still polled through it.
+            Override :meth:`get_available_raw_input` instead. This API will be removed in version 7.0.
         """
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)

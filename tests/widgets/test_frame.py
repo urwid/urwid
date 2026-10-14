@@ -388,7 +388,8 @@ class FrameMouseEventTest(unittest.TestCase):
 
     def test_mouse_event_header_no_mouse_event_attr(self):
         header = NoMouseEventWidget(rows=1)
-        f = urwid.Frame(urwid.SolidFill(), header)
+        with self.assertWarns(DeprecationWarning):
+            f = urwid.Frame(urwid.SolidFill(), header)
         f.render((10, 5), focus=True)
         result = f.mouse_event((10, 5), "mouse press", 1, 0, 0, True)
         self.assertFalse(result)
@@ -403,7 +404,8 @@ class FrameMouseEventTest(unittest.TestCase):
 
     def test_mouse_event_footer_no_mouse_event_attr(self):
         footer = NoMouseEventWidget(rows=1)
-        f = urwid.Frame(urwid.SolidFill(), None, footer)
+        with self.assertWarns(DeprecationWarning):
+            f = urwid.Frame(urwid.SolidFill(), None, footer)
         f.render((10, 5), focus=True)
         result = f.mouse_event((10, 5), "mouse press", 1, 0, 4, True)
         self.assertFalse(result)
@@ -419,7 +421,8 @@ class FrameMouseEventTest(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_mouse_event_body_no_mouse_event_attr(self):
-        f = urwid.Frame(NoMouseEventBoxWidget())
+        with self.assertWarns(DeprecationWarning):
+            f = urwid.Frame(NoMouseEventBoxWidget())
         f.render((10, 5), focus=True)
         result = f.mouse_event((10, 5), "mouse press", 1, 0, 0, True)
         self.assertFalse(result)

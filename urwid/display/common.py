@@ -1348,7 +1348,7 @@ class ScreenError(Exception):
 
 
 class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
-    """Base class for Screen classes (raw_display.Screen, ..., etc.)."""
+    """Base class for Screen classes (display.raw.Screen, ..., etc.)."""
 
     signals: typing.ClassVar[list[str]] = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 

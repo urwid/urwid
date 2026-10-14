@@ -30,7 +30,8 @@ Features:
 from __future__ import annotations
 
 import typing
-import warnings
+
+from urwid import _deprecation
 
 from .columns import Columns
 from .constants import WHSettings
@@ -76,10 +77,10 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
         self._innerwidget: Text | None = None
         if not isinstance(node, ParentNode):
             if hasattr(node, "get_first_child"):
-                warnings.warn(
-                    f"get_first_child is defined, but node is not a ParentNode instance: {type(node)}",
-                    DeprecationWarning,
-                    stacklevel=2,
+                _deprecation.warn(
+                    f"get_first_child is defined, but node is not a ParentNode instance: {type(node)}.",
+                    since="4.0.4",
+                    removed_in=None,
                 )
                 self.is_leaf = False
             else:

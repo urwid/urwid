@@ -29,8 +29,15 @@ import warnings
 
 import wcwidth
 
+from urwid import _deprecation
+
 if typing.TYPE_CHECKING:
     from typing import Literal
+
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 SAFE_ASCII_RE = re.compile(r"^[ -~]*$")
 SAFE_ASCII_BYTES_RE = re.compile(rb"^[ -~]*$")
@@ -38,6 +45,11 @@ SAFE_ASCII_BYTES_RE = re.compile(rb"^[ -~]*$")
 _byte_encoding: Literal["utf8", "narrow", "wide"] = "narrow"
 
 
+@deprecated(
+    "get_char_width is deprecated in favor of wcwidth.width. "
+    "Deprecated since urwid 3.0.4, will be removed in version 6.0.",
+    category=None,
+)
 def get_char_width(char: str) -> Literal[0, 1, 2]:
     """
     Return the screen column width for a single character.
@@ -45,17 +57,17 @@ def get_char_width(char: str) -> Literal[0, 1, 2]:
     .. deprecated:: 3.0.4
         Use :func:`wcwidth.wcwidth` instead. This API will be removed in version 6.0.
     """
-    warnings.warn(
-        "get_char_width is deprecated in favor of wcwidth.width. API will be removed in version 6.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    _deprecation.warn("get_char_width is deprecated in favor of wcwidth.width.", since="3.0.4", removed_in="6.0")
     if (width := wcwidth.wcwidth(char)) >= 0:
         return typing.cast("Literal[0, 1, 2]", width)
 
     return 0
 
 
+@deprecated(
+    "get_width is deprecated in favor of wcwidth.width. Deprecated since urwid 3.0.4, will be removed in version 6.0.",
+    category=None,
+)
 def get_width(o: int) -> Literal[0, 1, 2]:
     """
     Return the screen column width for unicode ordinal o.
@@ -63,11 +75,7 @@ def get_width(o: int) -> Literal[0, 1, 2]:
     .. deprecated:: 3.0.4
         Use :func:`wcwidth.wcwidth` instead. This API will be removed in version 6.0.
     """
-    warnings.warn(
-        "get_width is deprecated in favor of wcwidth.width. API will be removed in version 6.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    _deprecation.warn("get_width is deprecated in favor of wcwidth.width.", since="3.0.4", removed_in="6.0")
     if (width := wcwidth.wcwidth(chr(o))) >= 0:
         return typing.cast("Literal[0, 1, 2]", width)
 
@@ -201,6 +209,10 @@ def decode_one(text: bytes | str, pos: int) -> tuple[int, int]:
     return error
 
 
+@deprecated(
+    "decode_one_uni is not used by the urwid code base. Deprecated since urwid 4.1.4, will be removed in version 6.0.",
+    category=None,
+)
 def decode_one_uni(text: str, i: int) -> tuple[int, int]:
     """
     decode_one implementation for unicode strings.
@@ -209,14 +221,15 @@ def decode_one_uni(text: str, i: int) -> tuple[int, int]:
         Not used by the urwid code base; there is no replacement.
         This API will be removed in version 6.0.
     """
-    warnings.warn(
-        "decode_one_uni is not used by the urwid code base. API will be removed in version 6.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    _deprecation.warn("decode_one_uni is not used by the urwid code base.", since="4.1.4", removed_in="6.0")
     return ord(text[i]), i + 1
 
 
+@deprecated(
+    "decode_one_right is not used by the urwid code base. "
+    "Deprecated since urwid 4.1.4, will be removed in version 6.0.",
+    category=None,
+)
 def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
     """Return (ordinal at pos, next position) for UTF-8 encoded text.
 
@@ -228,11 +241,7 @@ def decode_one_right(text: bytes, pos: int) -> tuple[int, int] | None:
         Not used by the urwid code base; there is no replacement.
         This API will be removed in version 6.0.
     """
-    warnings.warn(
-        "decode_one_right is not used by the urwid code base. API will be removed in version 6.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
+    _deprecation.warn("decode_one_right is not used by the urwid code base.", since="4.1.4", removed_in="6.0")
     if not isinstance(text, bytes):
         raise TypeError(text)
     error = ord("?"), pos - 1

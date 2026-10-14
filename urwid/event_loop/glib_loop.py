@@ -30,9 +30,10 @@ import functools
 import logging
 import signal
 import typing
-import warnings
 
 from gi.repository import GLib
+
+from urwid import _deprecation
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -44,6 +45,10 @@ if typing.TYPE_CHECKING:
 
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 __all__ = ("GLibEventLoop",)
 
@@ -52,6 +57,10 @@ def _ignore_handler(_sig: int, _frame: FrameType | None = None) -> None:
     return None
 
 
+@deprecated(
+    "GLibEventLoop is deprecated. Deprecated since urwid 4.1.7, will be removed in version 6.0.",
+    category=None,
+)
 class GLibEventLoop(EventLoop):
     """Event loop based on GLib.MainLoop.
 
@@ -61,11 +70,7 @@ class GLibEventLoop(EventLoop):
 
     def __init__(self) -> None:
         """Initialize a fresh GLib.MainLoop with no alarms or watched files yet."""
-        warnings.warn(
-            "GLibEventLoop is deprecated. API will be removed in version 6.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
+        _deprecation.warn("GLibEventLoop is deprecated.", since="4.1.7", removed_in="6.0")
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._alarms: list[int] = []

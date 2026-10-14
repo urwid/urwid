@@ -62,22 +62,28 @@ class CursorWidget(urwid.Widget):
         return self.mouse_result
 
 
-class PlainBoxWidget:
-    """A box widget that implements only the bare minimum, lacking cursor-related methods entirely.
+class PlainBoxWidget(urwid.Widget):
+    """A box widget without the optional cursor methods.
 
-    Unlike a :class:`urwid.Widget` subclass (which inherits default ``mouse_event``/``keypress`` implementations),
-    this class has no ``get_cursor_coords``, ``get_pref_col``, ``move_cursor_to_coords``, or ``mouse_event``
-    attribute at all, so ``hasattr`` checks on it are ``False``.
+    :class:`urwid.Widget` does not define ``get_cursor_coords``, ``get_pref_col`` or ``move_cursor_to_coords``,
+    so ``hasattr`` checks for them are ``False``.
     """
+
+    _sizing = frozenset([urwid.BOX])
+
+    def render(self, size: tuple[int, int], focus: bool = False) -> urwid.TextCanvas:
+        maxcol, maxrow = size
+        return urwid.TextCanvas([b" " * maxcol for _ in range(maxrow)], maxcol=maxcol)
+
+
+class NonWidgetBox:
+    """A box widget-like object that does not derive from :class:`urwid.Widget` and has no ``mouse_event``."""
 
     def sizing(self) -> frozenset[urwid.Sizing]:
         return frozenset((urwid.BOX,))
 
     def selectable(self) -> bool:
         return False
-
-    def pack(self, size: tuple[int, int], focus: bool = False) -> tuple[int, int]:
-        return size
 
     def render(self, size: tuple[int, int], focus: bool = False) -> urwid.TextCanvas:
         maxcol, maxrow = size
@@ -445,8 +451,9 @@ class FillerTest(unittest.TestCase):
 
         self.assertFalse(widget.move_cursor_to_coords((10, 5), 2, 2))
 
-    def test_mouse_event_no_cursor_api(self) -> None:
-        widget = urwid.Filler(PlainBoxWidget(), height=3)
+    def test_mouse_event_non_widget_body(self) -> None:
+        with self.assertWarns(DeprecationWarning):
+            widget = urwid.Filler(NonWidgetBox(), height=3)  # type: ignore[arg-type]
 
         self.assertFalse(widget.mouse_event((10, 5), "mouse press", 1, 0, 0, False))
 

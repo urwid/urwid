@@ -8,9 +8,9 @@
 
 .. currentmodule:: urwid
 
-All input from the user is parsed by a display module, and returned from either
-the :meth:`get_input() <raw_display.Screen.get_input>` or
-:meth:`get_input_nonblocking() <raw_display.Screen.get_input_nonblocking>` methods as a list.
+All input from the user is parsed by a display module, and returned as a list,
+either from the :meth:`get_input() <display.raw.Screen.get_input>` method or to the callback registered with
+:meth:`hook_event_loop() <display.raw.Screen.hook_event_loop>`, which :class:`MainLoop` uses.
 Window resize events are also included in the user input.
 
 The :class:`MainLoop` class will take this input and pass each
