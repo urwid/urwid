@@ -1345,6 +1345,58 @@ class CanvasCombineTest(unittest.TestCase):
 
 
 class CanvasOverlayFunctionTest(unittest.TestCase):
+    def test_text_canvases_can_be_overlaid(self) -> None:
+        top = urwid.TextCanvas([b"a"])
+        bottom = urwid.TextCanvas([b"xyz"])
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 0, 0)
+
+        self.assertEqual([b"ayz"], overlayed.text)
+        self.assertEqual([b"a"], top.text)
+        self.assertEqual([b"xyz"], bottom.text)
+
+    def test_finalized_text_canvas_preserves_cursor_and_attributes(self) -> None:
+        top = urwid.TextCanvas([b"ab"], [[("foreground", 1), (None, 1)]], cursor=(1, 0))
+        top.finalize(urwid.Text("ab"), (2,), True)
+        bottom = urwid.SolidCanvas(".", 5, 3)
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 1, 1)
+
+        self.assertEqual([b".....", b".ab..", b"....."], overlayed.text)
+        self.assertEqual((2, 1), overlayed.cursor)
+        self.assertEqual((1, 0), top.cursor)
+        self.assertEqual(
+            [(None, None, b"."), ("foreground", None, b"a"), (None, None, b"b"), (None, None, b"..")],
+            list(overlayed.content())[1],
+        )
+        self.assertIs(top, overlayed.children[0][2].children[0][2])
+
+    def test_plain_foreground_widget_invalidates_cached_overlay(self) -> None:
+        foreground = urwid.Text("a")
+        background = urwid.Text("xyz")
+        owner = urwid.Text("overlay")
+        overlayed = canvas.CanvasOverlay(foreground.render((1,)), background.render((3,)), 0, 0)
+        overlayed.finalize(owner, (3,), False)
+        urwid.CanvasCache.store(type(owner), overlayed)
+        self.assertIs(overlayed, urwid.CanvasCache.fetch(owner, type(owner), (3,), False))
+
+        foreground.set_text("b")
+
+        self.assertIsNone(urwid.CanvasCache.fetch(owner, type(owner), (3,), False))
+
+    def test_solid_foreground_canvas_at_an_offset(self) -> None:
+        top = urwid.SolidCanvas("#", 2, 2)
+        top.shortcuts["k"] = "original"
+        bottom = urwid.SolidCanvas(".", 5, 3)
+        bottom.shortcuts["b"] = "background"
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 1, 1)
+
+        self.assertEqual([b".....", b".##..", b".##.."], overlayed.text)
+        self.assertEqual({"k": "fg"}, overlayed.shortcuts)
+        self.assertEqual({"k": "original"}, top.shortcuts)
+        self.assertEqual({"b": "background"}, bottom.shortcuts)
+
     def test_shortcuts_from_the_top_canvas_are_marked_fg(self) -> None:
         top = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 2))
         top.shortcuts["k"] = "original"
@@ -1354,6 +1406,7 @@ class CanvasOverlayFunctionTest(unittest.TestCase):
 
         self.assertEqual({"k": "fg"}, overlayed.shortcuts)
         self.assertEqual((5, 5), (overlayed.cols(), overlayed.rows()))
+        self.assertIs(top, overlayed.children[0][2])
 
 
 class CanvasPadTrimTest(unittest.TestCase):
