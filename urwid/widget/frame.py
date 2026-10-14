@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import typing
-import warnings
 from collections.abc import MutableMapping
 from typing import Literal
 
+from urwid import _deprecation
 from urwid.canvas import CanvasCombine, CompositeCanvas
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
@@ -37,11 +37,7 @@ def _check_widget_subclass(widget: AbstractWidget | None) -> None:
 
     if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
-        warnings.warn(
-            f"{obj_class_path} is not implementing Widget API",
-            DeprecationWarning,
-            stacklevel=3,
-        )
+        _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
 
 
 class Frame(
@@ -76,6 +72,7 @@ class Frame(
 
         .. deprecated:: 2.4.0
             Passing a header, body or footer that does not implement the Widget API is deprecated.
+            Support will be removed in version 7.0.
         """
         super().__init__()
 

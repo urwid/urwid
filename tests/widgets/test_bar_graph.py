@@ -531,5 +531,25 @@ class ScaleBarValuesTest(unittest.TestCase):
         self.assertEqual(bar_graph.scale_bar_values([math.nan], 10, 4), [4])
 
 
+class DeprecatedGetDataTest(unittest.TestCase):
+    def test_overriding_get_data_warns(self) -> None:
+        with self.assertWarns(DeprecationWarning) as ctx:
+
+            class Graph(urwid.BarGraph):
+                def get_data(self, size: tuple[int, int]) -> tuple[list[list[int]], int, None]:
+                    return [[1]], 1, None
+
+        self.assertEqual(__file__, ctx.filename)
+        self.assertIn("will be removed in version 7.0", str(ctx.warning))
+        self.assertEqual(([[1]], 1, None), Graph(["bg", "fg"]).get_data((1, 1)))
+
+    def test_assigning_get_data_warns(self) -> None:
+        g = urwid.BarGraph(["bg", "fg"])
+        with self.assertWarns(DeprecationWarning) as ctx:
+            g.get_data = lambda size: ([[1]], 1, None)
+        self.assertEqual(__file__, ctx.filename)
+        self.assertEqual(([[1]], 1, None), g.get_data((1, 1)))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -191,7 +191,7 @@ __all__ = (
     "simplify_width",
 )
 
-# Backward compatibility
+# Backward compatibility aliases of the enum members. Not deprecated: too widely used to be removed.
 FLOW: typing.Literal[Sizing.FLOW] = Sizing.FLOW
 BOX: typing.Literal[Sizing.BOX] = Sizing.BOX
 FIXED: typing.Literal[Sizing.FIXED] = Sizing.FIXED

@@ -29,7 +29,7 @@ import typing
 import warnings
 from operator import attrgetter
 
-from urwid import signals
+from urwid import _deprecation, signals
 from urwid.canvas import Canvas, CanvasCache, CompositeCanvas
 from urwid.command_map import command_map
 from urwid.split_repr import split_repr
@@ -91,15 +91,17 @@ class WidgetMeta(
 
         super().__init__(name, bases, d)
 
+        # setattr() rather than `cls.render = ...`: Pyright reads an assignment to `cls` in a metaclass as a declaration
+        # of that attribute on every widget, with the wrapper's Callable type, which is not bound to the instance.
         if "render" in d:
             if "render" not in no_cache:
                 render_fn = cache_widget_render(cls)
             else:
                 render_fn = nocache_widget_render(cls)
-            cls.render = render_fn
+            setattr(cls, "render", render_fn)  # noqa: B010  # see the comment above
 
         if "rows" in d and "rows" not in no_cache:
-            cls.rows = cache_widget_rows(cls)
+            setattr(cls, "rows", cache_widget_rows(cls))  # noqa: B010  # see the comment above
         if "no_cache" in d:
             del cls.no_cache
         if "ignore_focus" in d:
@@ -333,7 +335,7 @@ def cache_widget_render(
 ) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """Return a function that wraps the cls.render() method and fetches and stores canvases with CanvasCache."""
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
-    fn = cls.render
+    fn: Callable[..., Canvas] = cls.render
 
     @functools.wraps(fn)
     def cached_render(
@@ -346,7 +348,7 @@ def cache_widget_render(
         if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv
 
-        canv = fn(self, size, focus=focus)  # type: ignore[call-arg]
+        canv = fn(self, size, focus=focus)
         validate_size(self, size, canv)
         if canv.widget_info:
             canv = CompositeCanvas(canv)
@@ -362,7 +364,7 @@ def nocache_widget_render(
     cls: WidgetMeta,
 ) -> Callable[[AbstractWidget, tuple[()] | tuple[int] | tuple[int, int], bool], Canvas]:
     """Return a function that wraps the cls.render() method and finalizes the canvas that it returns."""
-    fn = cls.render
+    fn: Callable[..., Canvas] = cls.render
     if hasattr(fn, "original_fn"):
         fn = fn.original_fn
 
@@ -372,7 +374,7 @@ def nocache_widget_render(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        canv = fn(self, size, focus=focus)  # type: ignore[call-arg]
+        canv = fn(self, size, focus=focus)
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         validate_size(self, size, canv)
@@ -407,7 +409,7 @@ def nocache_widget_render_instance(
 def cache_widget_rows(cls: WidgetMeta) -> Callable[[AbstractWidget, tuple[int], bool], int]:
     """Return a function that wraps the cls.rows() method and returns rows from the CanvasCache if available."""
     ignore_focus = bool(getattr(cls, "ignore_focus", False))
-    fn = cls.rows
+    fn: Callable[..., int] = cls.rows
 
     @functools.wraps(fn)
     def cached_rows(
@@ -1037,15 +1039,12 @@ class WidgetWrap(
 
         .. deprecated:: 2.4.0
             Wrapping an object that does not implement the Widget API (see ``AbstractWidget``) is deprecated.
+            Support will be removed in version 7.0.
         """
         super().__init__()
         if not isinstance(w, AbstractWidget):
             obj_class_path = f"{w.__class__.__module__}.{w.__class__.__name__}"
-            warnings.warn(
-                f"{obj_class_path} is not implementing Widget API",
-                DeprecationWarning,
-                stacklevel=2,
-            )
+            _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
         self._wrapped_widget = w
 
     @property

@@ -26,10 +26,9 @@ import contextlib
 import itertools
 import sys
 import typing
-import warnings
 from contextlib import suppress
 
-from urwid import str_util
+from urwid import _deprecation, str_util
 
 if typing.TYPE_CHECKING:
     from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence
@@ -70,16 +69,16 @@ def __getattr__(name: str) -> typing.Any:
     :raises AttributeError: *name* is not defined in this module.
 
     .. deprecated:: 2.6.0
-        Import the name from ``urwid`` instead of ``urwid.util``.
+        Import the name from ``urwid`` instead of ``urwid.util``. This API will be removed in version 6.0.
     """
     if hasattr(str_util, name):
-        warnings.warn(
-            f"Do not import {name!r} from {__package__}.{__name__}, import it from 'urwid'.",
-            DeprecationWarning,
-            stacklevel=3,
+        _deprecation.warn(
+            f"Do not import {name!r} from {__name__}, import it from 'urwid'.",
+            since="2.6.0",
+            removed_in="6.0",
         )
         return getattr(str_util, name)
-    raise AttributeError(f"{name} is not defined in {__package__}.{__name__}")
+    raise AttributeError(f"{name} is not defined in {__name__}")
 
 
 def detect_encoding() -> str:

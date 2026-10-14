@@ -9,6 +9,7 @@ import typing
 import warnings
 from typing import Literal
 
+from urwid import _deprecation
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
@@ -29,6 +30,11 @@ from .widget import (
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
+
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 
 # Flag combinations tested on every element of every ``Pile.sizing()`` call, hoisted out of the loop
@@ -209,6 +215,9 @@ class Pile(
 
         (*given_height*, *widget*)
             always treat *widget* as a box widget and give it *given_height* rows, where given_height is an int
+        (``'given'``, *given_height*, *widget*)
+            the same as (*given_height*, *widget*), in the expanded form that repeats the :attr:`contents` options.
+            ``'fixed'`` is accepted as an older name for ``'given'``.
         (``'pack'``, *widget*)
             allow *widget* to calculate its own height by calling its :meth:`rows` method,
             i.e. treat it as a flow widget.
@@ -266,7 +275,9 @@ class Pile(
                     )
             elif len(original) == 3:
                 settings, height, w = original  # type: ignore[assignment]
-                if settings in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility
+                # Not deprecated: the expanded form of (height, widget) repeating the internal storage (GIVEN, height).
+                # "fixed" is its older name, kept for backward compatibility.
+                if settings in {Sizing.FIXED, WHSettings.GIVEN}:
                     self.contents.append(
                         (
                             typing.cast("AbstractBoxWidget", w),
@@ -453,6 +464,38 @@ class Pile(
     ) -> None:
         self._contents[:] = c
 
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["pack", WHSettings.PACK],
+        height_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> tuple[Literal[WHSettings.PACK], None]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["given", WHSettings.GIVEN],
+        height_amount: int = ...,
+    ) -> tuple[Literal[WHSettings.GIVEN], int]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["weight", WHSettings.WEIGHT] = ...,
+        height_amount: int | float = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["pack", "given", "weight"] | WHSettings = ...,
+        height_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> (
+        tuple[Literal[WHSettings.PACK], None]
+        | tuple[Literal[WHSettings.GIVEN], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float]
+    ): ...
+
     @staticmethod
     def options(
         height_type: Literal["pack", "given", "weight"] | WHSettings = WHSettings.WEIGHT,
@@ -473,7 +516,7 @@ class Pile(
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
         if height_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and height_amount is not None:
-            return (height_type, height_amount)  # type: ignore[return-value]
+            return (WHSettings(height_type), height_amount)  # type: ignore[return-value]
         raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 
     @property
@@ -547,6 +590,11 @@ class Pile(
         self._update_pref_col_from_focus(size_args[self.focus_position])
         return self.pref_col
 
+    @deprecated(
+        "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose. "
+        "Deprecated since urwid 4.1.4, will be removed in version 7.0.",
+        category=None,
+    )
     def get_item_size(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
@@ -562,13 +610,12 @@ class Pile(
 
         .. deprecated:: 4.1.4
             Not used by the urwid code base. Use :meth:`get_rows_sizes` instead.
-            This API will be removed in version 6.0.
+            This API will be removed in version 7.0.
         """
-        warnings.warn(
-            "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose. "
-            "API will be removed in version 6.0.",
-            DeprecationWarning,
-            stacklevel=2,
+        _deprecation.warn(
+            "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose.",
+            since="4.1.4",
+            removed_in="7.0",
         )
         _w, (f, height) = self.contents[i]
         if f == WHSettings.PACK:
@@ -894,7 +941,7 @@ class Pile(
     def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
         """Return the number of rows used by each widget in self.contents.
 
-        This method is a normally used only by `get_item_size` for the BOX case..
+        The result is the heights part of :meth:`get_rows_sizes`.
         """
         return list(self.get_rows_sizes(size, focus)[1])
 
@@ -1070,6 +1117,7 @@ class Pile(
 
         .. deprecated:: 2.4.0
             Support for a child that does not implement ``mouse_event`` is deprecated.
+            Support will be removed in version 7.0.
         """
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)
@@ -1086,10 +1134,10 @@ class Pile(
             self.focus_position = i
 
         if not hasattr(w, "mouse_event"):
-            warnings.warn(
-                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API",
-                DeprecationWarning,
-                stacklevel=2,
+            _deprecation.warn(
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API.",
+                since="2.4.0",
+                removed_in="7.0",
             )
             return False
 

@@ -138,8 +138,8 @@ class CSICommand(typing.NamedTuple):
 CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # possible values:
     #     None -> ignore sequence
-    #     (<minimum number of args>, <fallback if no argument>, callback)
-    #     ('alias', <symbol>)
+    #     CSICommand(<minimum number of args>, <fallback if no argument>, callback)
+    #     CSIAlias("alias", <symbol>)
     #
     # while callback is executed as:
     #     callback(<instance of TermCanvas>, arguments, has_question_mark)
@@ -560,13 +560,8 @@ class TermCanvas(Canvas):
         if (cmd_ := CSI_COMMANDS[char]) is not None:
             if isinstance(cmd_, CSIAlias):
                 csi_cmd: CSICommand = CSI_COMMANDS[cmd_.alias]  # type: ignore[assignment]
-            elif isinstance(cmd_, CSICommand):
-                csi_cmd = cmd_
-            elif cmd_[0] == "alias":  # fallback, hard deprecated
-                # pyrefly: ignore[bad-assignment]  # the alias resolves to a CSICommand
-                csi_cmd = CSI_COMMANDS[CSIAlias(*cmd_).alias]
             else:
-                csi_cmd = CSICommand(*cmd_)  # fallback, hard deprecated
+                csi_cmd = cmd_
 
             number_of_args, default_value, cmd = csi_cmd
             while len(escbuf) < number_of_args:
@@ -577,8 +572,7 @@ class TermCanvas(Canvas):
 
             with suppress(ValueError):
                 cmd(self, typing.cast("list[int]", escbuf), qmark)
-                # ignore commands that don't match the
-                # unpacked tuples in CSI_COMMANDS.
+                # ignore arguments that the command's callback rejects.
 
     def parse_noncsi(self, char: bytes, mod: bytes = b"") -> None:
         """Parse escape sequences which are not CSI."""

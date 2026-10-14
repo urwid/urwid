@@ -16,7 +16,7 @@ Deprecated Import Paths
 
 .. deprecated:: 2.4.0
     The display modules moved into the :mod:`urwid.display` package.
-    The old names will be removed in version 6.0.
+    The old names will be removed in version 7.0.
 
     .. list-table::
        :header-rows: 1
@@ -35,3 +35,17 @@ Deprecated Import Paths
 .. deprecated:: 2.6.0
     Names defined in ``urwid.str_util`` and reachable as attributes of ``urwid.util`` (``from urwid.util import ...``)
     have to be imported from ``urwid`` instead.
+    The old import path will be removed in version 6.0.
+
+Deprecated Extension Points
+---------------------------
+
+.. deprecated:: 4.0.10
+    Overriding ``get_data()`` in a :class:`BarGraph` subclass, or assigning ``get_data`` on an instance.
+    Call :meth:`BarGraph.set_data` instead.
+    Support will be removed in version 7.0.
+
+.. deprecated:: 5.0
+    Defining ``get_input_nonblocking()`` in a subclass of :class:`display.raw.Screen`.
+    Override ``get_available_raw_input()`` instead.
+    Support will be removed in version 7.0.

@@ -24,9 +24,8 @@ from __future__ import annotations
 
 import html
 import typing
-import warnings
 
-from urwid import str_util
+from urwid import _deprecation, str_util
 from urwid.event_loop import ExitMainLoop
 from urwid.util import get_encoding
 
@@ -40,6 +39,10 @@ if typing.TYPE_CHECKING:
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 # replace control characters with ?'s
 _trans_table = str.maketrans(dict.fromkeys(range(32), "?"))
@@ -191,14 +194,20 @@ def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     return _span(html_fg, html_bg, s)
 
 
+@deprecated(
+    "screenshot_init patches curses.Screen and raw.Screen in place. "
+    "Assign HtmlGenerator to your application's screen manually instead. "
+    "Deprecated since urwid 4.1.8, will be removed in version 6.0.",
+    category=None,
+)
 def screenshot_init(
     sizes: list[tuple[int, int]],
     keys: list[_DecodedInput],
 ) -> None:
-    """Replace curses_display.Screen and raw_display.Screen class with HtmlGenerator.
+    """Replace display.curses.Screen and display.raw.Screen class with HtmlGenerator.
 
     Call this function before executing an application that uses
-    curses_display.Screen to have that code use HtmlGenerator instead.
+    display.curses.Screen to have that code use HtmlGenerator instead.
 
     :param sizes: list of ( columns, rows ) tuples to be returned by each call to HtmlGenerator.get_cols_rows()
     :param keys: list of lists of keys to be returned by each call to HtmlGenerator.get_input()
@@ -222,14 +231,14 @@ def screenshot_init(
         [ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
 
     .. deprecated:: 4.1.8
-        Patching ``curses_display.Screen``/``raw_display.Screen`` in place is deprecated and will stop working in
+        Patching ``display.curses.Screen``/``display.raw.Screen`` in place is deprecated and will stop working in
         version 6.0. Assign :class:`HtmlGenerator` to your application's screen manually instead.
     """
-    warnings.warn(
-        "screenshot_init patches curses.Screen and raw.Screen in place; this will stop working in version 6.0. "
+    _deprecation.warn(
+        "screenshot_init patches curses.Screen and raw.Screen in place. "
         "Assign HtmlGenerator to your application's screen manually instead.",
-        DeprecationWarning,
-        stacklevel=2,
+        since="4.1.8",
+        removed_in="6.0",
     )
     for row, col in sizes:
         if not isinstance(row, int):

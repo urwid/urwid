@@ -108,7 +108,7 @@ class MainLoop:
 
     :param palette: initial palette for screen
 
-    :param screen: screen to use, default is a new :class:`raw_display.Screen`
+    :param screen: screen to use, default is a new :class:`display.raw.Screen`
                    instance; stored as :attr:`screen`
 
     :param handle_mouse: ``True`` to ask :attr:`.screen` to process mouse events
@@ -659,8 +659,7 @@ class MainLoop:
         This method is called automatically from the :meth:`run` method when
         there is input, but may also be called to simulate input from the user.
 
-        *keys* is a list of input returned from :attr:`screen`'s get_input()
-        or get_input_nonblocking() methods.
+        *keys* is a list of input returned from :attr:`screen`'s get_input() method or its event loop hook.
 
         Returns ``True`` if any key was handled by a widget or the
         :meth:`unhandled_input` method.

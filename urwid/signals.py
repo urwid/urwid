@@ -70,7 +70,7 @@ class Key:
 if typing.TYPE_CHECKING:
     # ``weak_args`` (converted to weakrefs) and ``user_args`` as prepared by ``_prepare_user_args``.
     _UserArgs = tuple[Collection[weakref.ReferenceType[typing.Any]], Collection[typing.Any]]
-    # A single connected handler: (key, callback, deprecated user_arg, prepared args).
+    # A single connected handler: (key, callback, legacy user_arg, prepared args).
     _SignalHandler = tuple[Key, Callable[..., typing.Any], typing.Any, _UserArgs]
     # Per-sender storage attached to ``obj`` under ``Signals._signal_attr``.
     # Each signal's handlers are stored as a tuple rather than a list, and replaced
@@ -117,9 +117,12 @@ class Signals:
         :param name: the signal to listen for, typically a string
         :param callback: the function to call when that signal is sent
         :param user_arg: additional argument to callback
-                         (appended  after the arguments passed when the signal is emitted).
+                         (appended after the arguments passed when the signal is emitted).
                          If None no arguments will be added.
-                         Don't use this argument, use user_args instead.
+                         This is the legacy form of passing user data, and new code should use user_args.
+                         It is not deprecated: it is too widely used to be removed,
+                         and the widgets' own ``user_data`` arguments (``Button(on_press=..., user_data=...)``)
+                         rely on its order.
         :param weak_args: additional arguments passed to the callback
                           (before any arguments passed when the signal
                           is emitted and before any user_args).
@@ -130,21 +133,15 @@ class Signals:
                           any objects referenced (indirectly) from
                           weak_args from being kept alive just because
                           they are referenced by this signal handler.
-
-                          Use this argument only as a keyword argument,
-                          since user_arg might be removed in the future.
         :param user_args: additional arguments to pass to the callback,
                           (before any arguments passed when the signal
                           is emitted but after any weak_args).
-
-                          Use this argument only as a keyword argument,
-                          since user_arg might be removed in the future.
         :raises NameError: *obj* does not support a signal called *name*.
 
         When a matching signal is sent, callback will be called. The
-        arguments it receives will be the user_args passed at connect
+        arguments it receives will be the weak_args and user_args passed at connect
         time (as individual arguments) followed by all the positional
-        parameters sent with the signal.
+        parameters sent with the signal, and then by user_arg when it is not None.
 
         As an example of using weak_args, consider the following snippet:
 
@@ -246,7 +243,7 @@ class Signals:
         :param callback: the callback function passed to connect_signal
         :param user_arg: the user_arg parameter passed to connect_signal
         :param weak_args: the weak_args parameter passed to connect_signal
-        :param user_args: the weak_args parameter passed to connect_signal
+        :param user_args: the user_args parameter passed to connect_signal
         """
         signals: _SignalStore = setdefaultattr(obj, self._signal_attr, {})
         if name not in signals:
@@ -322,8 +319,7 @@ class Signals:
                 # de-referenced
                 return False
 
-        # The deprecated user_arg argument was added to the end
-        # instead of the beginning.
+        # The legacy user_arg argument is added to the end instead of the beginning.
         args = itertools.chain(args_to_pass, user_args, emit_args, (user_arg,) if user_arg is not None else ())
 
         return bool(callback(*args))

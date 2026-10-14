@@ -1,1 +1,3 @@
 wcwidth>=0.4,!=0.9.0,!=0.9.1
+# @deprecated (PEP 702) where warnings.deprecated is missing; the floor is the first release that has it.
+typing_extensions>=4.5.0; python_version < "3.13"

@@ -26,9 +26,8 @@ from __future__ import annotations
 import decimal
 import re
 import typing
-import warnings
 
-from urwid import Edit
+from urwid import Edit, _deprecation
 
 if typing.TYPE_CHECKING:
     from collections.abc import Container
@@ -70,7 +69,7 @@ class NumEdit(Edit):
 
         .. deprecated:: 2.2.3
             The ``trimLeadingZeros`` argument is deprecated, use the ``trim_leading_zeros``
-            keyword argument instead.
+            keyword argument instead. The argument will be removed in version 7.0.
         """
         super().__init__(caption, default)
         self._allowed = allowed
@@ -78,10 +77,10 @@ class NumEdit(Edit):
         self._allow_negative = allow_negative
 
         if trimLeadingZeros is not None:
-            warnings.warn(
-                "'trimLeadingZeros' argument is deprecated. Use 'trim_leading_zeros' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'trimLeadingZeros' argument is deprecated. Use 'trim_leading_zeros' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             self._trim_leading_zeros = trimLeadingZeros
 
@@ -294,6 +293,7 @@ class FloatEdit(NumEdit):
         .. deprecated:: 2.2.3
             The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,
             use the ``preserve_significance`` and ``decimal_separator`` keyword arguments instead.
+            The arguments will be removed in version 7.0.
 
         >>> FloatEdit("", "1.065434")
         <FloatEdit selectable flow widget '1.065434' edit_pos=8>
@@ -342,10 +342,10 @@ class FloatEdit(NumEdit):
         self.significance: decimal.Decimal | None = None
         self._decimal_separator = decimal_separator
         if decimalSeparator is not None:
-            warnings.warn(
-                "'decimalSeparator' argument is deprecated. Use 'decimal_separator' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'decimalSeparator' argument is deprecated. Use 'decimal_separator' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             self._decimal_separator = decimalSeparator
 
@@ -353,10 +353,10 @@ class FloatEdit(NumEdit):
             raise ValueError(f"invalid decimal separator: {self._decimal_separator}")
 
         if preserveSignificance is not None:
-            warnings.warn(
-                "'preserveSignificance' argument is deprecated. Use 'preserve_significance' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'preserveSignificance' argument is deprecated. Use 'preserve_significance' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             preserve_significance = preserveSignificance
 

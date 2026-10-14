@@ -16,7 +16,7 @@ or other interfaces to switch modes.
 When setting up a palette with :class:`MainLoop` (or directly
 on your screen instance), you may specify attributes for 16-color, monochrome
 and high color modes. You can then switch between these modes with
-:meth:`screen.set_terminal_properties() <raw_display.Screen.set_terminal_properties>`,
+:meth:`screen.set_terminal_properties() <display.raw.Screen.set_terminal_properties>`,
 where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
 The same method turns on terminal hyperlinks with ``hyperlinks=True`` (see :ref:`hyperlinks`).
 
@@ -374,7 +374,7 @@ SGR sequences, ``ESC[0m`` included, leave the link in place, as they do in a ter
 An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.
 
 The raw display draws links only after
-:meth:`screen.set_terminal_properties(hyperlinks=True) <raw_display.Screen.set_terminal_properties>`.
+:meth:`screen.set_terminal_properties(hyperlinks=True) <display.raw.Screen.set_terminal_properties>`.
 No terminal query for OSC 8 support exists, and a terminal without it may show the link sequences as text,
 so an application turns links on when it knows its terminal supports them.
 These terminals support OSC 8:
@@ -494,11 +494,11 @@ RGB Palette Setting
 -------------------
 
 A few terminals have the ability to customize the terminal palette's RGB
-values with :meth:`raw_display.Screen.modify_terminal_palette`.
+values with :meth:`display.raw.Screen.modify_terminal_palette`.
 There is no automatic way to tell if this is supported by a user's
 terminal, so this feature shouldn't be relied on.
 
-:meth:`raw_display.Screen.reset_default_terminal_palette` is used to
+:meth:`display.raw.Screen.reset_default_terminal_palette` is used to
 reset the palette in the ``palette_test.py`` example program when switching modes.
 
 

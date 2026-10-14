@@ -209,8 +209,11 @@ class PaddingTest(unittest.TestCase):
         self.ptest("center relative 70 grow 8", "center", ("relative", 70), 10, 1, 1, 8)
 
     def mctest(self, desc, left, right, size, cx, innercx):
-        class Inner:
+        class Inner(urwid.Widget):
+            _sizing = frozenset([urwid.FLOW])
+
             def __init__(self, desc, innercx):
+                super().__init__()
                 self.desc = desc
                 self.innercx = innercx
 
@@ -398,7 +401,8 @@ class PaddingTest(unittest.TestCase):
         class NoMouse:
             """Plain object without a mouse_event method (unlike urwid.Widget)."""
 
-        widget = urwid.Padding(NoMouse())
+        with self.assertWarns(DeprecationWarning):
+            widget = urwid.Padding(NoMouse())
         self.assertFalse(widget.mouse_event((10,), "mouse press", 1, 0, 0, True))
 
     def test_mouse_event_outside_padding(self) -> None:

@@ -35,7 +35,7 @@ import socket
 import sys
 import typing
 
-from urwid import signals, str_util, util
+from urwid import _deprecation, signals, str_util, util
 
 from . import escape
 from .common import (
@@ -742,6 +742,10 @@ class Screen(BaseScreen, RealTerminal):
         The callback should be passed a list of processed keys and a list of unprocessed keycodes.
 
         Subclasses may wish to use parse_input to wrap the callback.
+
+        .. deprecated:: 5.0
+            A subclass that defines ``get_input_nonblocking()`` is still polled through it.
+            Override :meth:`get_available_raw_input` instead. This API will be removed in version 7.0.
         """
 
     _input_timeout: typing.Any = None
@@ -752,6 +756,12 @@ class Screen(BaseScreen, RealTerminal):
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> Callable[[], None]:
         """Support old Screen classes that still have a get_input_nonblocking and expect it to work."""
+        _deprecation.warn(
+            f"{self.__class__.__module__}.{self.__class__.__qualname__} defines get_input_nonblocking(). "
+            "Override get_available_raw_input() instead.",
+            since="5.0",
+            removed_in="7.0",
+        )
 
         @functools.wraps(callback)
         def wrapper() -> None:
@@ -759,7 +769,6 @@ class Screen(BaseScreen, RealTerminal):
                 event_loop.remove_alarm(self._input_timeout)
                 self._input_timeout = None
 
-            # should we deprecate?
             timeout, keys, raw = self.get_input_nonblocking()  # type: ignore[attr-defined]  # pylint: disable=no-member
             if timeout is not None:
                 self._input_timeout = event_loop.alarm(timeout, wrapper)

@@ -7,6 +7,7 @@ import warnings
 from collections.abc import MutableSequence
 from typing import Literal
 
+from urwid import _deprecation
 from urwid.canvas import CanvasOverlay, CompositeCanvas
 from urwid.split_repr import remove_defaults
 
@@ -51,11 +52,7 @@ class OverlayWarning(WidgetWarning):
 def _check_widget_subclass(widget: AbstractWidget) -> None:
     if not isinstance(widget, AbstractWidget):
         obj_class_path = f"{widget.__class__.__module__}.{widget.__class__.__name__}"
-        warnings.warn(
-            f"{obj_class_path} is not implementing Widget API",
-            DeprecationWarning,
-            stacklevel=3,
-        )
+        _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
 
 
 class OverlayOptions(typing.NamedTuple):
@@ -180,6 +177,7 @@ class Overlay(
 
         .. deprecated:: 2.4.0
             Passing a *top_w* or *bottom_w* that does not implement the Widget API is deprecated.
+            Support will be removed in version 7.0.
         """
         super().__init__()
 

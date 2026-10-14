@@ -832,13 +832,7 @@ specified) then this method must move the cursor to that position and return
 Widget Metaclass
 ================
 
-The :class:`Widget` base class has a metaclass defined that
-creates a ``__super`` attribute for calling your superclass:
-``self.__super`` is the same as the usual ``super(MyClassName, self)``.
-This shortcut is of little use with Python 3's new ``super()`` syntax, but
-will likely be retained for backwards compatibility in future versions.
-
-This metaclass also uses :class:`MetaSignal`
+The :class:`Widget` base class has a metaclass defined that uses :class:`MetaSignals`
 to allow signals to be defined as a list of signal names
 in a ``signals`` class attribute.  This is equivalent to calling
 :func:`register_signal` with the class name and list of signals and all those
@@ -847,5 +841,3 @@ defined in superclasses after the class definition.
 .. seealso::
 
     :class:`Widget metaclass WidgetMeta <WidgetMeta>`
-
-
