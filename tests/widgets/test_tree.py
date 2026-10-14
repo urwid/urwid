@@ -862,3 +862,28 @@ class TestTreeListBox(unittest.TestCase):
         self.widget.keypress(size, "left")
 
         self.assertIs(self.root.get_child_node("2/"), self.widget.focus_position)
+
+    def test_navigation_to_offscreen_parent_above_nested_siblings(self):
+        for key in ("left", "-"):
+            with self.subTest(key=key):
+                inner = SelfRegisteringParent(
+                    "inner", key="inner", children=(SelfRegisteringChild(str(idx), key=str(idx)) for idx in range(2))
+                )
+                target = SelfRegisteringChild("target", key="target")
+                outer = SelfRegisteringParent("outer", key="outer", children=(inner, target))
+                root = SelfRegisteringParent("root", key="root", children=(outer,))
+                widget = urwid.TreeListBox(urwid.TreeWalker(root))
+                size = (30, 3)
+                widget.change_focus(size, target, offset_inset=2, snap_rows=0)
+                widget.render(size)
+                visible = widget.calculate_visible(size)
+                self.assertEqual(
+                    [inner.get_child_node("1"), inner.get_child_node("0")],
+                    [node for _widget, node, _rows in visible.top.fill],
+                )
+
+                widget.keypress(size, key)
+
+                self.assertIs(outer, widget.focus_position)
+                self.assertEqual(key == "left", outer.get_widget().expanded)
+                self.assertTrue(inner.get_widget().expanded)

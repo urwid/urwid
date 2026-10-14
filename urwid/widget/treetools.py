@@ -623,7 +623,7 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
                 self.change_focus(size, pos, row_offset)
                 return
 
-        self.change_focus(size, typing.cast("TreeNode[typing.Any]", pos).get_parent())
+        self.change_focus(size, parentpos)
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
         self.focus_home(size)
