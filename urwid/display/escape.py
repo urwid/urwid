@@ -98,6 +98,9 @@ input_sequences: list[tuple[str, str]] = [
     ("[1~", "home"),
     ("[2~", "insert"),
     ("[3~", "delete"),
+    # st in normal keypad mode
+    ("[4h", "insert"),
+    ("[P", "delete"),
     ("[4~", "end"),
     ("[5~", "page up"),
     ("[6~", "page down"),
