@@ -24,6 +24,7 @@ from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from typing import Literal
 
+    from .constants import Align
     from .widget import AbstractFlowWidget, AbstractWidget
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
@@ -148,8 +149,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         self.height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
         self.height_amount: int | None
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
-        # PACK is reported as FLOW|PACK by normalize_height, while FLOW is not a valid Filler height type
-        self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)  # type: ignore[assignment]
+        self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)
 
         self.min_height: int | None
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
@@ -267,7 +267,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     def keypress(
         self,
-        size: tuple[int, int] | tuple[()],  # type: ignore[override]
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]  # box and flow only, no fixed size
         key: str,
     ) -> str | None:
         """Pass keypress to self.original_widget."""
@@ -296,28 +296,37 @@ class Filler(WidgetDecoration[WrappedWidget]):
             y = maxrow - 1
         return x, y + top
 
-    def get_pref_col(self, size: tuple[int, int] | tuple[int]) -> int | None:
+    def get_pref_col(
+        self,
+        size: tuple[int, int] | tuple[int],
+    ) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
         """Return pref_col from self.original_widget if any."""
         maxcol, maxrow = self.pack(size, True)
         if not hasattr(self._original_widget, "get_pref_col"):
             return None
 
+        x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None
         if self.height_type == WHSettings.PACK:
-            x = typing.cast("int | None", self._original_widget.get_pref_col((maxcol,)))
+            x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
-            x = typing.cast("int| None", self._original_widget.get_pref_col((maxcol, maxrow - top - bottom)))
+            x = self._original_widget.get_pref_col((maxcol, maxrow - top - bottom))
 
         return x
 
-    def move_cursor_to_coords(self, size: tuple[int, int] | tuple[int], col: int, row: int) -> bool:
+    def move_cursor_to_coords(
+        self,
+        size: tuple[int, int] | tuple[int],
+        col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
+        row: int,
+    ) -> bool:
         """Pass to self.original_widget."""
         maxcol, maxrow = self.pack(size, True)
         if not hasattr(self._original_widget, "move_cursor_to_coords"):
             return True
 
         top, bottom = self.filler_values(size, True)
-        if row < top or row >= maxcol - bottom:
+        if row < top or row >= maxrow - bottom:
             return False
 
         if self.height_type == WHSettings.PACK:

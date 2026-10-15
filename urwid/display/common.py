@@ -1245,27 +1245,28 @@ class RealTerminal:
         """Initialize with no signal keys saved yet."""
         super().__init__()
         self._signal_keys_set = False
-        self._old_signal_keys: tuple[int, int, int, int, int] | None = None
+        self._old_signal_keys: tuple[bytes, bytes, bytes, bytes, bytes] | None = None
 
     if IS_WINDOWS:
 
         def tty_signal_keys(
             self,
-            intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
-            start: Literal["undefined"] | int | None = None,
-            stop: Literal["undefined"] | int | None = None,
-            susp: Literal["undefined"] | int | None = None,
+            intr: Literal["undefined"] | int | bytes | None = None,
+            quit: Literal["undefined"] | int | bytes | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
+            start: Literal["undefined"] | int | bytes | None = None,
+            stop: Literal["undefined"] | int | bytes | None = None,
+            susp: Literal["undefined"] | int | bytes | None = None,
             fileno: int | None = None,
-        ) -> tuple[int, int, int, int, int] | None:
-            """Read and/or set the tty's signal character settings.
+        ) -> tuple[bytes, bytes, bytes, bytes, bytes] | None:
+            r"""Read and/or set the tty's signal character settings.
 
-            This function returns the current settings as a tuple.
+            This function returns the current settings as a tuple of one-byte strings,
+            as termios reports them, which may be passed back to restore them.
 
             Use the string 'undefined' to unmap keys from their signals.
             The value None is used when no change is being made.
             Setting signal keys is done using the integer ascii
-            code for the key, eg.  3 for CTRL+C.
+            code for the key, eg.  3 for CTRL+C, or its one-byte string, eg. b"\x03".
 
             If this function is called after start() has been called
             then the original settings will be restored when stop()
@@ -1277,21 +1278,22 @@ class RealTerminal:
 
         def tty_signal_keys(
             self,
-            intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
-            start: Literal["undefined"] | int | None = None,
-            stop: Literal["undefined"] | int | None = None,
-            susp: Literal["undefined"] | int | None = None,
+            intr: Literal["undefined"] | int | bytes | None = None,
+            quit: Literal["undefined"] | int | bytes | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
+            start: Literal["undefined"] | int | bytes | None = None,
+            stop: Literal["undefined"] | int | bytes | None = None,
+            susp: Literal["undefined"] | int | bytes | None = None,
             fileno: int | None = None,
-        ) -> tuple[int, int, int, int, int] | None:
-            """Read and/or set the tty's signal character settings.
+        ) -> tuple[bytes, bytes, bytes, bytes, bytes] | None:
+            r"""Read and/or set the tty's signal character settings.
 
-            This function returns the current settings as a tuple.
+            This function returns the current settings as a tuple of one-byte strings,
+            as termios reports them, which may be passed back to restore them.
 
             Use the string 'undefined' to unmap keys from their signals.
             The value None is used when no change is being made.
             Setting signal keys is done using the integer ascii
-            code for the key, eg.  3 for CTRL+C.
+            code for the key, eg.  3 for CTRL+C, or its one-byte string, eg. b"\x03".
 
             If this function is called after start() has been called
             then the original settings will be restored when stop()
@@ -1314,15 +1316,18 @@ class RealTerminal:
                 sattr[termios.VSUSP],
             )
 
-            if intr == "undefined":
+            # termios reports these keys as bytes, and the tuple returned below is passed back
+            # here to restore them, so check the type first: comparing bytes with str raises
+            # BytesWarning under `python -bb`.
+            if isinstance(intr, str) and intr == "undefined":
                 intr = 0
-            if quit == "undefined":
+            if isinstance(quit, str) and quit == "undefined":
                 quit = 0  # noqa: A001
-            if start == "undefined":
+            if isinstance(start, str) and start == "undefined":
                 start = 0
-            if stop == "undefined":
+            if isinstance(stop, str) and stop == "undefined":
                 stop = 0
-            if susp == "undefined":
+            if isinstance(susp, str) and susp == "undefined":
                 susp = 0
 
             if intr is not None:

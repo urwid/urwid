@@ -376,10 +376,14 @@ class FloatEdit(NumEdit):
                 float(default)
                 default = decimal.Decimal(default)
 
+            if isinstance(default, decimal.Decimal) and not default.is_finite():
+                raise ValueError("default: must be a finite decimal value")
+
             if preserve_significance and isinstance(default, decimal.Decimal):
                 self.significance = default
 
-            val = str(default).replace(".", self._decimal_separator)
+            val = format(default, "f") if isinstance(default, decimal.Decimal) else str(default)
+            val = val.replace(".", self._decimal_separator)
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
@@ -388,7 +392,20 @@ class FloatEdit(NumEdit):
         if self.edit_text:
             normalized = decimal.Decimal(self.edit_text.replace(self._decimal_separator, "."))
             if self.significance is not None:
-                return normalized.quantize(self.significance)
+                normalized_tuple = normalized.as_tuple()
+                significance_tuple = self.significance.as_tuple()
+                # as_tuple().exponent is typed as a union with the non-finite
+                # markers; derive both exponents from adjusted() instead, which
+                # is always a plain int: exponent == adjusted() - len(digits) + 1.
+                normalized_exponent = normalized.adjusted() - len(normalized_tuple.digits) + 1
+                significance_exponent = self.significance.adjusted() - len(significance_tuple.digits) + 1
+                precision = max(
+                    len(normalized_tuple.digits) + max(0, normalized_exponent - significance_exponent),
+                    len(significance_tuple.digits),
+                )
+                with decimal.localcontext() as context:
+                    context.prec = max(context.prec, precision)
+                    return normalized.quantize(self.significance)
             return normalized
 
         return None

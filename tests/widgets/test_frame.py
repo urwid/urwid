@@ -256,6 +256,15 @@ class FrameContentsTest(unittest.TestCase):
         f = urwid.Frame(urwid.SolidFill(), header, footer)
         self.assertEqual(["body", "header", "footer"], f._contents_keys())
 
+        # an empty container is falsy, but it is still a header and a footer
+        f = urwid.Frame(urwid.SolidFill(), urwid.Pile([]), urwid.Pile([]))
+        self.assertEqual(["body", "header", "footer"], list(f.contents))
+        self.assertEqual(["header", "body", "footer"], list(f))
+        self.assertEqual(["footer", "body", "header"], list(reversed(f)))
+        f.focus_position = "header"
+        self.assertEqual((f.header, None), f.contents["header"])
+        self.assertEqual(3, f.render((10, 3)).rows())
+
     def test_options(self):
         f = urwid.Frame(urwid.SolidFill())
         self.assertIsNone(f.options())
@@ -432,6 +441,12 @@ class FrameCursorCoordsTest(unittest.TestCase):
     def test_get_cursor_coords_not_selectable(self):
         f = urwid.Frame(urwid.SolidFill())
         self.assertIsNone(f.get_cursor_coords((10, 5)))
+
+    def test_get_cursor_coords_focus_part_widget_missing(self):
+        for part in ("header", "footer"):
+            with self.subTest(part=part):
+                f = urwid.Frame(urwid.SolidFill(), focus_part=part)
+                self.assertIsNone(f.get_cursor_coords((10, 5)))
 
     def test_get_cursor_coords_no_support(self):
         header = urwid.Text("header")

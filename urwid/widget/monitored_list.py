@@ -22,14 +22,18 @@
 from __future__ import annotations
 
 import functools
+import operator
 import typing
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Iterator
     from typing import Concatenate, ParamSpec, Self
 
+    from _typeshed import SupportsRichComparison, SupportsRichComparisonT
+
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
+    _ML = typing.TypeVar("_ML", bound="MonitoredList[typing.Any]")
 
 __all__ = ("MonitoredFocusList", "MonitoredList")
 
@@ -38,11 +42,11 @@ _S = typing.TypeVar("_S")
 
 
 def _call_modified(
-    fn: Callable[Concatenate[MonitoredList[typing.Any], ArgSpec], Ret],
-) -> Callable[Concatenate[MonitoredList[typing.Any], ArgSpec], Ret]:
+    fn: Callable[Concatenate[_ML, ArgSpec], Ret],
+) -> Callable[Concatenate[_ML, ArgSpec], Ret]:
     @functools.wraps(fn)
     def call_modified_wrapper(
-        self: MonitoredList[typing.Any],
+        self: _ML,
         /,
         *args: ArgSpec.args,
         **kwargs: ArgSpec.kwargs,
@@ -112,10 +116,10 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         """Delete the item or slice at `__key`."""
         super().__delitem__(__key)
 
-    @_call_modified
-    def __iadd__(self, __value: Iterable[_T]) -> Self:  # type: ignore[override]
-        """Extend the list in place with the items from `__value`."""
-        return super().__iadd__(__value)
+    def __iadd__(self, __value: Iterable[_T]) -> Self:  # type: ignore[misc,override]  # in-place += accepts any iterable, + only a list
+        """Extend the list in place with the items from `__value`, through :meth:`extend`."""
+        self.extend(__value)
+        return self
 
     def __rmul__(self, __value: typing.SupportsIndex) -> list[_T]:
         """Return a new list with this list's items repeated `__value` times."""
@@ -170,11 +174,17 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         """Reverse the list in place."""
         super().reverse()
 
-    @_call_modified
-    def sort(self, *, key: Callable[[_T], typing.Any] | None = None, reverse: bool = False) -> None:
+    @typing.overload
+    def sort(self: MonitoredList[SupportsRichComparisonT], *, key: None = None, reverse: bool = False) -> None: ...
+
+    @typing.overload
+    def sort(self, *, key: Callable[[_T], SupportsRichComparison], reverse: bool = False) -> None: ...
+
+    def sort(self, *, key: Callable[[_T], SupportsRichComparison] | None = None, reverse: bool = False) -> None:
         """Sort the list in place."""
         # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
         super().sort(key=key, reverse=reverse)
+        self._modified()
 
     @_call_modified
     def clear(self) -> None:
@@ -191,7 +201,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
 
-    def __init__(self, *args: typing.Any, focus: int = 0, **kwargs: typing.Any) -> None:
+    def __init__(self, iterable: Iterable[_T] = (), /, *, focus: int = 0) -> None:
         """Initialize a list that tracks one item as the focus item.
 
         If items are inserted or removed it will update the focus.
@@ -211,9 +221,18 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml[:] = []
         >>> ml
         MonitoredFocusList([], focus=None)
-        """
-        super().__init__(*args, **kwargs)
 
+        :raises TypeError: *focus* is not an integer.
+        :raises IndexError: *focus* is not an index of *iterable*'s items, which is ignored when there are none.
+        """
+        super().__init__(iterable)
+        if not self:
+            self._focus = 0
+            return
+        if not isinstance(focus, int):
+            raise TypeError("index must be an integer")
+        if focus < 0 or focus >= len(self):
+            raise IndexError(f"focus index is out of range: {focus}")
         self._focus = focus
 
     def __repr__(self) -> str:
@@ -436,8 +455,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            idx = int(y)
-            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None))
+            y = operator.index(y)
+            focus = self._adjust_focus_on_contents_modified(slice(y, y + 1 or None))
         self._modify(focus, super(MonitoredList, self).__delitem__, y)
 
     @typing.overload
@@ -482,8 +501,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             self._modify(focus, super(MonitoredList, self).__setitem__, i, new_items)
         else:
             item = typing.cast("_T", y)
-            idx = int(i)
-            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None), [item])
+            i = operator.index(i)
+            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [item])
             self._modify(focus, super(MonitoredList, self).__setitem__, i, item)
 
     def __imul__(self, n: typing.SupportsIndex) -> Self:
@@ -502,7 +521,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> print(ml.focus)
         None
         """
-        multiplier = int(n)
+        multiplier = operator.index(n)
         if multiplier > 0:
             focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (multiplier - 1))
         else:  # all contents are being removed
@@ -575,7 +594,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([0, 1], focus=1)
         """
-        focus = self._adjust_focus_on_contents_modified(slice(index, int(index) + 1 or None))
+        index = operator.index(index)
+        focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
         return self._modify(focus, super(MonitoredList, self).pop, index)
 
     def remove(self, value: _T) -> None:
@@ -606,13 +626,19 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """
         self._modify(max(0, len(self) - self._focus - 1), super(MonitoredList, self).reverse)
 
+    @typing.overload
+    def sort(self: MonitoredFocusList[SupportsRichComparisonT], *, key: None = None, reverse: bool = False) -> None: ...
+
+    @typing.overload
+    def sort(self, *, key: Callable[[_T], SupportsRichComparison], reverse: bool = False) -> None: ...
+
     def sort(
         self,
         *,
-        key: Callable[[_T], typing.Any] | None = None,
+        key: Callable[[_T], SupportsRichComparison] | None = None,
         reverse: bool = False,
     ) -> None:
-        """Sort the list in place, adjusting focus accordingly.
+        """Sort the list in place, keeping focus on the same object rather than an equal item.
 
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
@@ -623,7 +649,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             return None
         value = self[self._focus]
         return self._modify(
-            lambda: self.index(value),
+            lambda: next(index for index, item in enumerate(self) if item is value),
             # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
             lambda: super(MonitoredList, self).sort(key=key, reverse=reverse),
         )

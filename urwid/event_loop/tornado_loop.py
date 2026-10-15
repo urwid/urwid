@@ -164,7 +164,7 @@ class TornadoEventLoop(EventLoop):
 
         return True
 
-    def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
+    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """Call *callback* whenever *fd* is readable and return a handle for :meth:`remove_watch_file`."""
 
         @self._also_call_idle

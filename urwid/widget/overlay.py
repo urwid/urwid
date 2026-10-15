@@ -672,10 +672,7 @@ class Overlay(
 
     @property
     def focus(self) -> TopWidget:
-        """Return the child widget in focus for container widgets.
-
-        This default implementation always returns ``None``, indicating that this widget has no children.
-        """
+        """Return the top widget, which always has the focus."""
         return self.top_w
 
     @property
@@ -863,6 +860,10 @@ class Overlay(
                 raise OverlayError(f"top_options is invalid: {value_options!r}").with_traceback(
                     exc.__traceback__
                 ) from exc
+            if WHSettings(width_type) not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE}:
+                raise OverlayError(f"Overlay does not support width type {width_type!r}")
+            if WHSettings(height_type) not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE}:
+                raise OverlayError(f"Overlay does not support height type {height_type!r}")
             # normalize first, this is where errors are raised
             align_type, align_amount = normalize_align(simplify_align(align_type, align_amount), OverlayError)
             width_type, width_amount = normalize_width(
@@ -876,7 +877,6 @@ class Overlay(
             )
             self.align_type = align_type
             self.align_amount = align_amount
-            # normalize_width also allows CLIP, while Overlay supports only PACK, GIVEN and RELATIVE widths
             self.width_type = typing.cast(
                 "Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]",
                 width_type,
@@ -905,9 +905,14 @@ class Overlay(
         if not hasattr(self.top_w, "get_cursor_coords"):
             return None
         real_size = self.pack(size, True)
-        (maxcol, maxrow) = real_size
+        maxrow = real_size[1]
         left, right, top, bottom = self.calculate_padding_filler(real_size, True)
-        x, y = self.top_w.get_cursor_coords((maxcol - left - right, maxrow - top - bottom))
+        coords: tuple[int, int] | None = self.top_w.get_cursor_coords(
+            self.top_w_size(real_size, left, right, top, bottom)
+        )
+        if coords is None:
+            return None
+        x, y = coords
         if y >= maxrow:  # required??
             y = maxrow - 1
         return x + left, y + top

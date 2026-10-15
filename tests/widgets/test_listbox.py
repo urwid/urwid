@@ -2042,6 +2042,20 @@ class ListBoxConsumerApiTest(unittest.TestCase):
         self.assertEqual(3, len(listbox))
         self.assertEqual([items[2]], listbox.get_focus_widgets())
 
+    def test_focus_position_setter_calls_overridden_set_focus(self) -> None:
+        calls: list[int] = []
+
+        class RecordingListBox(urwid.ListBox):
+            def set_focus(self, position, coming_from=None):
+                calls.append(position)
+                super().set_focus(position, coming_from)
+
+        listbox = RecordingListBox(urwid.SimpleFocusListWalker([urwid.Text(str(idx)) for idx in range(3)]))
+        listbox.focus_position = 1
+        listbox.keypress((10, 3), "end")
+        self.assertEqual([1, 2], calls)
+        self.assertEqual(2, listbox.focus_position)
+
 
 class DuckTypedWalker:
     """Minimal duck-typed ListWalker-like object (not a ListWalker subclass)."""
@@ -2098,33 +2112,6 @@ class V1ProtocolWalker(urwid.ListWalker):
     def set_focus(self, position):
         self.focus = position
         self._modified()
-
-
-class _LeafNode(urwid.TreeNode):
-    pass
-
-
-class _RootNode(urwid.ParentNode):
-    """Minimal tree used to build a real urwid.TreeWalker, which (like a few other ListWalker implementations)
-    has no positions() method -- unlike inventing a throwaway stand-in,
-    this exercises ListBox's "no positions()" fallback paths with an existing ListWalker subclass from the codebase.
-    """
-
-    def __init__(self, n_children):
-        self._n_children = n_children
-        super().__init__("root", key="root", depth=0)
-
-    def load_child_keys(self):
-        return list(range(self._n_children))
-
-    def load_child_node(self, key):
-        return _LeafNode(f"item{key}", parent=self, key=key, depth=1)
-
-
-def make_tree_walker(n_children=4, focus_key=0):
-    root = _RootNode(n_children)
-    walker = urwid.TreeWalker(root.get_child_node(focus_key))
-    return walker, root
 
 
 class EmptyNoPositionsWalker(urwid.ListWalker):
@@ -2488,8 +2475,8 @@ class ListBoxContentsTest(unittest.TestCase):
         lbox = urwid.ListBox(V1ProtocolWalker(widgets))
         contents = lbox.contents
 
-        widget = contents[1]
-        self.assertIs(widgets[1], widget)
+        self.assertEqual((widgets[1], None), contents[1])
+        self.assertIs(widgets[1], lbox[1])
         self.assertEqual(0, lbox.body.focus)
 
         with self.assertRaises(KeyError):
@@ -3001,14 +2988,12 @@ class ListBoxKeypressEdgeTest(unittest.TestCase):
         self.assertEqual(9, lbox.focus_position)
 
     def test_keypress_max_left_no_positions(self):
-        walker, _root = make_tree_walker(3)
-        lbox = urwid.ListBox(walker)
+        lbox = urwid.ListBox(V1ProtocolWalker([urwid.Text(str(i)) for i in range(4)]))
         with self.assertRaises(TypeError):
             lbox.keypress((20, 5), "home")
 
     def test_keypress_max_right_no_positions(self):
-        walker, _root = make_tree_walker(3)
-        lbox = urwid.ListBox(walker)
+        lbox = urwid.ListBox(V1ProtocolWalker([urwid.Text(str(i)) for i in range(4)]))
         with self.assertRaises(TypeError):
             lbox.keypress((20, 5), "end")
 
@@ -3192,28 +3177,16 @@ class ListBoxIterTest(unittest.TestCase):
         self.assertEqual(list(range(4, -1, -1)), list(reversed(lbox)))
 
     def test_iter_without_positions(self):
-        walker, root = make_tree_walker(4, focus_key=1)
+        walker = V1ProtocolWalker([urwid.Text(str(i)) for i in range(5)])
+        walker.focus = 2
         lbox = urwid.ListBox(walker)
-        expected = [
-            root.get_child_node(1),
-            root.get_child_node(2),
-            root.get_child_node(3),
-            root.get_child_node(0),
-            root,
-        ]
-        self.assertEqual(expected, list(iter(lbox)))
+        self.assertEqual([2, 3, 4, 1, 0], list(iter(lbox)))
 
     def test_reversed_without_positions(self):
-        walker, root = make_tree_walker(4, focus_key=1)
+        walker = V1ProtocolWalker([urwid.Text(str(i)) for i in range(5)])
+        walker.focus = 2
         lbox = urwid.ListBox(walker)
-        expected = [
-            root.get_child_node(0),
-            root,
-            root.get_child_node(1),
-            root.get_child_node(2),
-            root.get_child_node(3),
-        ]
-        self.assertEqual(expected, list(reversed(lbox)))
+        self.assertEqual([1, 0, 2, 3, 4], list(reversed(lbox)))
 
     def test_iter_empty_without_positions(self):
         lbox = urwid.ListBox(EmptyNoPositionsWalker())

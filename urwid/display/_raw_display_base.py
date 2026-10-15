@@ -654,17 +654,9 @@ class Screen(BaseScreen, RealTerminal):
         * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
         * Window events:  ``"window resize"``
 
-        When a narrow encoding is not enabled:
+        Other characters, decoded from the terminal encoding (UTF-8, or a single- or double-byte encoding):
 
-        * "Extended ASCII" characters:  "\xa1", "\xb2", "\xfe"
-
-        When a wide encoding is enabled:
-
-        * Double-byte characters:  "\xa1\xea", "\xb2\xd4"
-
-        When utf8 encoding is enabled:
-
-        * Unicode characters: u"\u00a5", u'\u253c"
+        * Unicode characters: "\u00a5", "\u253c", "\u4e2d"
 
         Examples of mouse events returned:
 
@@ -836,8 +828,7 @@ class Screen(BaseScreen, RealTerminal):
         the screen or event loop look like; it only deals with parsing keycodes
         and setting a timeout when an incomplete one is detected.
 
-        `codes` should be a sequence of keycodes, i.e. bytes.  A bytearray is
-        appropriate, but beware of using bytes, which only iterates as integers on Python 3.
+        `codes` is a list of keycodes: the integer values of the input bytes, or curses key codes.
         """
         logger = self.logger.getChild("parse_input")
 
@@ -1136,7 +1127,7 @@ class Screen(BaseScreen, RealTerminal):
         try:
             # A single write() call, rather than one per output fragment, avoids paying the
             # per-call overhead (and, for a real file, a separate write syscall) once per row.
-            frame = "".join(line.decode(encoding, "replace") if isinstance(line, bytes) else line for line in output)
+            frame = "".join(output)
             if self.modes.synchronized_output:
                 # Confirmed supported; the terminal defers painting until END_SYNCHRONIZED_UPDATE.
                 frame = (

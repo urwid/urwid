@@ -276,6 +276,36 @@ class SimpleFocusListWalkerFocusTest(unittest.TestCase):
             walker.prev_position(0)
 
 
+class MonitoredFocusListConstructionTest(unittest.TestCase):
+    def test_focus_out_of_range_rejected(self) -> None:
+        for focus in (3, -1):
+            with self.subTest(focus=focus), self.assertRaises(IndexError):
+                urwid.MonitoredFocusList([1, 2, 3], focus=focus)
+        with self.assertRaises(TypeError):
+            urwid.MonitoredFocusList([1, 2, 3], focus="1")
+
+    def test_focus_ignored_when_empty(self) -> None:
+        ml = urwid.MonitoredFocusList([], focus=5)
+        ml.append(1)
+        self.assertEqual(0, ml.focus)
+
+
+class MonitoredFocusListValidationTest(unittest.TestCase):
+    def test_iadd_is_validated(self) -> None:
+        pile = urwid.Pile([urwid.Text("a")])
+        contents = pile.contents
+        with self.assertRaises(urwid.PileError):
+            contents += ["bad"]
+        self.assertEqual(1, len(pile.contents))
+
+    def test_clear_reports_removed_range(self) -> None:
+        ml = urwid.MonitoredFocusList([1, 2, 3])
+        seen = []
+        ml.set_validate_contents_modified(lambda indices, new_items: seen.append(indices))
+        ml.clear()
+        self.assertEqual([(0, 3, 1)], seen)
+
+
 class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
     """The modified callback runs once, after both the contents and the focus are updated."""
 
@@ -287,6 +317,7 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
             "set item": lambda ml: ml.__setitem__(2, 7),
             "set slice": lambda ml: ml.__setitem__(slice(0, 1), [8, 9]),
             "imul": lambda ml: ml.__imul__(0),
+            "iadd": lambda ml: ml.__iadd__([6, 7]),
             "append": lambda ml: ml.append(6),
             "extend": lambda ml: ml.extend([6, 7]),
             "insert": lambda ml: ml.insert(0, -1),
@@ -365,6 +396,38 @@ class MonitoredFocusListClearValidationTest(unittest.TestCase):
         self.assertEqual([1, 2, 3], items)
         self.assertEqual(1, items.focus)
         self.assertEqual([], modified)
+
+
+class PositionsArgumentTest(unittest.TestCase):
+    """``positions()`` of the sequence-backed walkers still accepts a deprecated positional *reverse*."""
+
+    walker_classes = (
+        urwid.SimpleListWalker,
+        urwid.SimpleFocusListWalker,
+        urwid.SimpleDequeWalker,
+        urwid.SimpleFocusDequeWalker,
+    )
+
+    def test_positional_reverse_warns(self) -> None:
+        """A positional *reverse* gives the same order as the keyword, with a warning at the caller."""
+        for walker_class in self.walker_classes:
+            for reverse, expected in ((True, [2, 1, 0]), (False, [0, 1, 2])):
+                with self.subTest(walker=walker_class.__name__, reverse=reverse):
+                    walker = walker_class([0, 1, 2])
+                    with self.assertWarns(DeprecationWarning) as ctx:
+                        positions = list(walker.positions(reverse))  # type: ignore[deprecated]
+
+                    self.assertEqual(expected, positions)
+                    self.assertEqual(__file__, ctx.filename)
+
+    def test_invalid_arguments(self) -> None:
+        """Arguments that the keyword-or-positional signature rejected still raise :exc:`TypeError`."""
+        for walker_class in self.walker_classes:
+            for args, kwargs in (((True, True), {}), ((True,), {"reverse": True}), ((True,), {"reverse": None})):
+                with self.subTest(walker=walker_class.__name__, args=args, kwargs=kwargs):
+                    walker = walker_class([0, 1, 2])
+                    with self.assertRaises(TypeError):
+                        walker.positions(*args, **kwargs)  # type: ignore[call-overload]
 
 
 if __name__ == "__main__":

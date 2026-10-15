@@ -53,12 +53,12 @@ __all__ = ("TwistedEventLoop",)
 _T = typing.TypeVar("_T")
 
 
-class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
+class _TwistedInputDescriptor(FileDescriptor):
     def __init__(
         self,
         reactor: ReactorBase,
         fd: int,
-        cb: Callable[[], _T],
+        cb: Callable[[], typing.Any],
     ) -> None:
         self._fileno = fd
         self.cb = cb
@@ -67,8 +67,10 @@ class _TwistedInputDescriptor(FileDescriptor, typing.Generic[_T]):
     def fileno(self) -> int:
         return self._fileno
 
-    def doRead(self) -> _T:
-        return self.cb()
+    def doRead(self) -> None:
+        # The callback's return value is dropped: the reactor stops watching a descriptor whose doRead() returns
+        # a true value, which it takes as the reason the connection was lost.
+        self.cb()
 
     def getHost(self) -> typing.NoReturn:
         """
@@ -128,7 +130,7 @@ class TwistedEventLoop(EventLoop):
             reactor = twisted.internet.reactor
         # pyrefly: ignore[bad-assignment]  # the reactor module is the ReactorBase instance
         self.reactor: ReactorBase = reactor
-        self._watch_files: dict[int, _TwistedInputDescriptor[typing.Any]] = {}
+        self._watch_files: dict[int, _TwistedInputDescriptor] = {}
         self._idle_handle: int = 0
         self._twisted_idle_enabled = False
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
@@ -180,7 +182,7 @@ class TwistedEventLoop(EventLoop):
 
         return True
 
-    def watch_file(self, fd: int, callback: Callable[[], _T]) -> int:
+    def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """Call callback() when fd has some data to read.
 
         No parameters are passed to callback. Returns a handle that may be passed to remove_watch_file().

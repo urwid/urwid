@@ -843,14 +843,10 @@ class TermTest(unittest.TestCase):
                 self.expect(screen)
 
     def test_huge_counts_are_bounded_by_the_screen(self) -> None:
-        """Apply an ICH, DCH, IL or DL count larger than the screen at once instead of once per unit."""
+        """Apply an ICH, DCH, IL or DL count larger than the screen at once instead of once per unit.
 
-        def timeout(_signum: int, _frame: object) -> typing.NoReturn:
-            msg = "control sequence count was applied one unit at a time"
-            raise TimeoutError(msg)
-
-        self.addCleanup(signal.signal, signal.SIGALRM, signal.signal(signal.SIGALRM, timeout))
-        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        A count applied one unit at a time does not finish, and the project-wide pytest timeout fails the test.
+        """
         count = 10**15
         for label, size, output, screen in (
             ("ICH", (80, 24), rf"abcdef\e[3G\e[{count}@x", "abx"),
@@ -860,10 +856,8 @@ class TermTest(unittest.TestCase):
         ):
             with self.subTest(label):
                 self.restart(*size)
-                signal.setitimer(signal.ITIMER_REAL, 5)
                 self.write(output)
                 self.expect(screen)
-                signal.setitimer(signal.ITIMER_REAL, 0)
 
     def test_overlong_sequences_are_bounded_and_skipped(self) -> None:
         """Skip a CSI or OSC sequence over the shared length limit, without buffering more than the limit."""

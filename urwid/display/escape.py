@@ -29,7 +29,7 @@ import sys
 import typing
 from collections.abc import MutableMapping
 
-from urwid import str_util
+from urwid import str_util, util
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -41,33 +41,33 @@ if typing.TYPE_CHECKING:
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
 
-IS_WINDOWS = sys.platform == "win32"
+IS_WINDOWS: typing.Final = sys.platform == "win32"
 
 within_double_byte = str_util.within_double_byte
 
-SO = "\x0e"
-SI = "\x0f"
+SO: typing.Final = "\x0e"
+SI: typing.Final = "\x0f"
 # Encoded once here, because `urwid.util.apply_target_encoding` splits on them for every rendered text segment.
-_SO_BYTES = SO.encode("ascii")
-_SI_BYTES = SI.encode("ascii")
-_SI_SO = SI + SO
+_SO_BYTES: typing.Final = SO.encode("ascii")
+_SI_BYTES: typing.Final = SI.encode("ascii")
+_SI_SO: typing.Final = SI + SO
 
-DEC_TAG = "0"
-DEC_SPECIAL_CHARS = "▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
-ALT_DEC_SPECIAL_CHARS = "_`abcdefghijklmnopqrstuvwxyz{|}~"
+DEC_TAG: typing.Final = "0"
+DEC_SPECIAL_CHARS: typing.Final = "▮◆▒␉␌␍␊°±␤␋┘┐┌└┼⎺⎻─⎼⎽├┤┴┬│≤≥π≠£·"
+ALT_DEC_SPECIAL_CHARS: typing.Final = "_`abcdefghijklmnopqrstuvwxyz{|}~"
 
-DEC_SPECIAL_CHARMAP = {}
+DEC_SPECIAL_CHARMAP: typing.Final[dict[int, str]] = {}
 for c, alt in zip(DEC_SPECIAL_CHARS, ALT_DEC_SPECIAL_CHARS, strict=True):
     DEC_SPECIAL_CHARMAP[ord(c)] = SO + alt + SI
 
-SAFE_ASCII_DEC_SPECIAL_RE = re.compile(f"^[ -~{DEC_SPECIAL_CHARS}]*$")
-DEC_SPECIAL_RE = re.compile(f"[{DEC_SPECIAL_CHARS}]")
+SAFE_ASCII_DEC_SPECIAL_RE: typing.Final = re.compile(f"^[ -~{DEC_SPECIAL_CHARS}]*$")
+DEC_SPECIAL_RE: typing.Final = re.compile(f"[{DEC_SPECIAL_CHARS}]")
 
 # the most common ord() calls used for numeric decode, pre-calculate once
-_ORD_0 = ord("0")
-_ORD_9 = ord("9")
+_ORD_0: typing.Final = ord("0")
+_ORD_9: typing.Final = ord("9")
 # longest "Pb;Px;Py" body of an SGR mouse report accepted before its "M"/"m" terminator
-_SGR_MOUSE_MAX_LEN = 32
+_SGR_MOUSE_MAX_LEN: typing.Final = 32
 
 ###################
 # Input sequences
@@ -539,37 +539,37 @@ class KeyqueueTrie:
 
 # This is added to button value to signal mouse release by curses_display
 # and raw_display when we know which button was released.  NON-STANDARD
-MOUSE_RELEASE_FLAG = 2048
+MOUSE_RELEASE_FLAG: typing.Final = 2048
 
 # This 2-bit mask is used to check if the mouse release from curses or gpm
 # is a double or triple release. 00 means single click, 01 double,
 # 10 triple. NON-STANDARD
-MOUSE_MULTIPLE_CLICK_MASK = 1536
+MOUSE_MULTIPLE_CLICK_MASK: typing.Final = 1536
 
 # This is added to button value at mouse release to differentiate between
 # single, double and triple press. Double release adds this times one,
 # triple release adds this times two.  NON-STANDARD
-MOUSE_MULTIPLE_CLICK_FLAG = 512
+MOUSE_MULTIPLE_CLICK_FLAG: typing.Final = 512
 
 # xterm adds this to the button value to signal a mouse drag event
-MOUSE_DRAG_FLAG = 32
+MOUSE_DRAG_FLAG: typing.Final = 32
 
 # Bits of the X10/SGR mouse report's button byte, per xterm's ctlseqs documentation of the
 # "normal tracking mode" and "SGR mouse mode" reports.
-_MOUSE_SHIFT_FLAG = 4
-_MOUSE_META_FLAG = 8
-_MOUSE_CTRL_FLAG = 16
-_MOUSE_HIGH_BUTTON_FLAG = 64  # set to report buttons 4-7 (e.g. a wheel)
-_MOUSE_EXTRA_BUTTON_FLAG = 128  # set to report buttons 8-11 (e.g. side buttons)
-_MOUSE_BUTTON_MASK = 3  # low two bits: the button offset within its group
+_MOUSE_SHIFT_FLAG: typing.Final = 4
+_MOUSE_META_FLAG: typing.Final = 8
+_MOUSE_CTRL_FLAG: typing.Final = 16
+_MOUSE_HIGH_BUTTON_FLAG: typing.Final = 64  # set to report buttons 4-7 (e.g. a wheel)
+_MOUSE_EXTRA_BUTTON_FLAG: typing.Final = 128  # set to report buttons 8-11 (e.g. side buttons)
+_MOUSE_BUTTON_MASK: typing.Final = 3  # low two bits: the button offset within its group
 # button_bits == 3 with neither flag set means "released" (X10 report only); with either flag
 # set it is the group's 4th button (7 or 11), which has no release encoding.
 
 # The X10 report encodes the button byte and the two coordinate bytes by adding an offset to
 # keep them in the printable ASCII range; coordinates are further offset by 1 since they are
 # reported 1-based.
-_MOUSE_BYTE_OFFSET = 32
-_MOUSE_COORD_OFFSET = 33
+_MOUSE_BYTE_OFFSET: typing.Final = 32
+_MOUSE_COORD_OFFSET: typing.Final = 33
 
 
 #################################################
@@ -696,10 +696,16 @@ def process_keyqueue(
             end_code = codes[1].to_bytes(1, "little")
 
             if str_util.within_double_byte(start_code + end_code, 0, 1):
-                return [chr(code) + chr(codes[1])], codes[2:]
+                try:
+                    return [(start_code + end_code).decode(util.get_encoding())], codes[2:]
+                except UnicodeDecodeError:
+                    pass  # not a character of the encoding: decode the bytes one by one
 
     if 127 < code < 256:
-        key = chr(code)
+        try:
+            key = code.to_bytes(1, "little").decode(util.get_encoding())
+        except UnicodeDecodeError:
+            key = chr(code)  # not a character of the encoding (always for "ascii"): read the byte as Latin-1
         return [key], codes[1:]
     if code != 27:
         return [f"<{code:d}>"], codes[1:]
@@ -728,14 +734,14 @@ def process_keyqueue(
 # Output sequences
 ####################
 
-ESC = "\x1b"
+ESC: typing.Final = "\x1b"
 # control sequence introducer
-CSI = f"{ESC}["
+CSI: typing.Final = f"{ESC}["
 # operating system command, and the string terminator ending it
-OSC = f"{ESC}]"
-ST = f"{ESC}\\"
+OSC: typing.Final = f"{ESC}]"
+ST: typing.Final = f"{ESC}\\"
 # OSC 8 with an empty URI ends the hyperlink the text is drawn with
-HYPERLINK_CLOSE = f"{OSC}8;;{ST}"
+HYPERLINK_CLOSE: typing.Final = f"{OSC}8;;{ST}"
 
 
 class PrivateMode(enum.StrEnum):
@@ -770,28 +776,28 @@ class PrivateMode(enum.StrEnum):
         return f"{CSI}?{self}l"
 
 
-CURSOR_HOME = f"{CSI}H"
-CURSOR_HOME_COL = "\r"
+CURSOR_HOME: typing.Final = f"{CSI}H"
+CURSOR_HOME_COL: typing.Final = "\r"
 
-APP_KEYPAD_MODE = f"{ESC}="
-NUM_KEYPAD_MODE = f"{ESC}>"
+APP_KEYPAD_MODE: typing.Final = f"{ESC}="
+NUM_KEYPAD_MODE: typing.Final = f"{ESC}>"
 
 # RESET_SCROLL_REGION = ESC+"[;r"
 # RESET = ESC+"c"
 
-REPORT_STATUS = f"{CSI}5n"
-REPORT_CURSOR_POSITION = f"{CSI}6n"
+REPORT_STATUS: typing.Final = f"{CSI}5n"
+REPORT_CURSOR_POSITION: typing.Final = f"{CSI}6n"
 
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
 # Ps: 0 = not recognized, 1-4 = recognized.
-DECRQM_RECOGNIZED_VALUES = frozenset({1, 2, 3, 4})
+DECRQM_RECOGNIZED_VALUES: typing.Final = frozenset({1, 2, 3, 4})
 
-INSERT_ON = f"{CSI}4h"
-INSERT_OFF = f"{CSI}4l"
+INSERT_ON: typing.Final = f"{CSI}4h"
+INSERT_OFF: typing.Final = f"{CSI}4l"
 
 # select the IBM PC character set for a charset "U" run, and back
-IBMPC_ON = f"{CSI}11m"
-IBMPC_OFF = f"{CSI}10m"
+IBMPC_ON: typing.Final = f"{CSI}11m"
+IBMPC_OFF: typing.Final = f"{CSI}10m"
 
 
 def set_cursor_position(x: int, y: int) -> str:
@@ -840,13 +846,17 @@ def hyperlink_open(link: Hyperlink) -> str:
     return f"{OSC}8;{params};{link.uri}{ST}"
 
 
-HIDE_CURSOR = f"{CSI}?25l"
-SHOW_CURSOR = f"{CSI}?25h"
+HIDE_CURSOR: typing.Final = f"{CSI}?25l"
+SHOW_CURSOR: typing.Final = f"{CSI}?25h"
 
-_MOUSE_MODES = (PrivateMode.MOUSE_REPORTING, PrivateMode.MOUSE_BUTTON_TRACKING, PrivateMode.MOUSE_SGR_MODE)
-MOUSE_TRACKING_ON = "".join(mode.enable_seq for mode in _MOUSE_MODES)
-MOUSE_TRACKING_OFF = "".join(mode.disable_seq for mode in reversed(_MOUSE_MODES))
+_MOUSE_MODES: typing.Final = (
+    PrivateMode.MOUSE_REPORTING,
+    PrivateMode.MOUSE_BUTTON_TRACKING,
+    PrivateMode.MOUSE_SGR_MODE,
+)
+MOUSE_TRACKING_ON: typing.Final = "".join(mode.enable_seq for mode in _MOUSE_MODES)
+MOUSE_TRACKING_OFF: typing.Final = "".join(mode.disable_seq for mode in reversed(_MOUSE_MODES))
 
-DESIGNATE_G1_SPECIAL = f"{ESC})0"
+DESIGNATE_G1_SPECIAL: typing.Final = f"{ESC})0"
 
-ERASE_IN_LINE_RIGHT = f"{CSI}K"
+ERASE_IN_LINE_RIGHT: typing.Final = f"{CSI}K"

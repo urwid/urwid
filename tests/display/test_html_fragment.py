@@ -211,6 +211,20 @@ class HtmlGeneratorTest(unittest.TestCase):
             HtmlGenerator.fragments,
         )
 
+    def test_draw_screen_replaces_bytes_the_encoding_cannot_decode(self) -> None:
+        """A charset "U" run carries the application's bytes unchanged, so they may not be valid in the encoding."""
+        old_encoding = urwid.util.get_encoding()
+        self.addCleanup(urwid.set_encoding, old_encoding)
+        urwid.set_encoding("ascii")
+        canvas = TextCanvas(text=[b"a\xffb"], cs=[[("U", 3)]], maxcol=3)
+
+        self.screen.draw_screen((3, canvas.rows()), canvas)
+
+        self.assertEqual(
+            ['<pre><span style="color:#000000;background:#e5e5e5">a�b</span>\n</pre>'],
+            HtmlGenerator.fragments,
+        )
+
 
 class ScreenshotInitTest(unittest.TestCase):
     def setUp(self) -> None:

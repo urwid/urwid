@@ -161,6 +161,23 @@ class NoDescendantParent(SelfRegisteringParent):
         return NoDescendantWidget(self)
 
 
+class CollapsedBelowRootWidget(urwid.TreeWidget[typing.Any]):
+    """Widget that starts collapsed on every node except the root."""
+
+    def is_initially_expanded(self) -> bool:
+        """Expand only the root."""
+        depth: int = self.get_node().get_depth()
+        return depth == 0
+
+
+class CollapsedBelowRootParent(SelfRegisteringParent):
+    """Parent rendered with a :class:`CollapsedBelowRootWidget`."""
+
+    def load_widget(self) -> CollapsedBelowRootWidget:
+        """Create the overriding widget."""
+        return CollapsedBelowRootWidget(self)
+
+
 def build_chain(depth: int) -> SelfRegisteringParent:
     """Build a single-branch tree ``depth`` levels deep bottom-up, so no node knows its depth yet."""
     node: SelfRegisteringParent | SelfRegisteringChild = SelfRegisteringChild("leaf", key="leaf")
@@ -647,6 +664,54 @@ class TestTreeWidget(unittest.TestCase):
         self.assertTrue(widget.expanded)
         self.assertEqual(("   - 1/: nested_1   ",), widget.render((20,)).decoded_text)
 
+    def test_expand_collapse_and_toggle(self) -> None:
+        """Each state change updates both the flag and the icon."""
+        widget = self.root.get_child_node("1/").get_widget()
+        cases = (
+            (widget.collapse, False, "+"),
+            (widget.expand, True, "-"),
+            (widget.toggle_expanded, False, "+"),
+            (widget.toggle_expanded, True, "-"),
+        )
+        for change, expanded, icon in cases:
+            with self.subTest(change=change.__name__, expanded=expanded):
+                change()
+
+                self.assertEqual(expanded, widget.expanded)
+                self.assertEqual((f"   {icon} 1/: nested_1   ",), widget.render((20,)).decoded_text)
+
+    def test_expand_collapse_and_toggle_ignore_leaf(self) -> None:
+        """A leaf keeps its state and its text, as it does for the expand and collapse keys."""
+        widget = self.root.get_child_node("1/").get_child_node("1").get_widget()
+        for change in (widget.collapse, widget.expand, widget.toggle_expanded):
+            with self.subTest(change=change.__name__):
+                change()
+
+                self.assertTrue(widget.expanded)
+                self.assertEqual(("      1: child_11   ",), widget.render((20,)).decoded_text)
+
+    def test_is_initially_expanded_override(self) -> None:
+        """A subclass decides the starting state of each node."""
+        root = CollapsedBelowRootParent(
+            "root",
+            key="/",
+            children=(
+                CollapsedBelowRootParent("nested", key="1/", children=(SelfRegisteringChild("child", key="1"),)),
+            ),
+        )
+        size = (20, 3)
+
+        self.assertTrue(root.get_widget().expanded)
+        self.assertFalse(root.get_child_node("1/").get_widget().expanded)
+        self.assertEqual(
+            (
+                "- /: root           ",
+                "   + 1/: nested     ",
+                "                    ",
+            ),
+            urwid.TreeListBox(urwid.TreeWalker(root)).render(size).decoded_text,
+        )
+
     def test_mouse_event_ignored(self):
         widget = self.root.get_child_node("1/").get_widget()
 
@@ -841,6 +906,8 @@ class TestTreeListBox(unittest.TestCase):
         self.widget.keypress(self.size, "end")
 
         self.assertIs(self.root.get_child_node("2/").get_child_node("2"), self.widget.focus_position)
+        # the last node is placed on the bottom row before the next render, not on a row counted from the width
+        self.assertEqual((self.size[1] - 1, 0), self.widget.get_focus_offset_inset(self.size))
 
     def test_focus_home(self):
         self.widget.keypress(self.size, "end")
@@ -887,3 +954,111 @@ class TestTreeListBox(unittest.TestCase):
                 self.assertIs(outer, widget.focus_position)
                 self.assertEqual(key == "left", outer.get_widget().expanded)
                 self.assertTrue(inner.get_widget().expanded)
+
+    def test_positions(self) -> None:
+        """Positions follow the display order and skip the children of a collapsed node."""
+        self.root.get_child_node("1/").get_widget().collapse()
+        nested_2 = typing.cast("SelfRegisteringParent", self.root.get_child_node("2/"))
+        expected = [
+            self.root,
+            self.root.get_child_node("1/"),
+            nested_2,
+            nested_2.get_child_node("1"),
+            nested_2.get_child_node("2"),
+        ]
+
+        walker = urwid.TreeWalker(nested_2)
+        self.assertEqual(expected, list(walker.positions()))
+        self.assertEqual(expected[::-1], list(walker.positions(reverse=True)))
+        with self.assertRaises(TypeError):
+            walker.positions(True)  # type: ignore[call-arg]  # pylint: disable=too-many-function-args
+
+    def test_positions_of_collapsed_root(self) -> None:
+        """A collapsed root is the only visible node, whatever node is in focus."""
+        self.root.get_widget().collapse()
+        walker = urwid.TreeWalker(self.root.get_child_node("2/"))
+
+        self.assertEqual([self.root], list(walker.positions()))
+        self.assertEqual([self.root], list(walker.positions(reverse=True)))
+
+    def test_plain_listbox_home_and_end(self) -> None:
+        """A plain ListBox over a TreeWalker moves to the first and last visible node."""
+        listbox = urwid.ListBox(urwid.TreeWalker(self.root))
+
+        listbox.keypress(self.size, "end")
+        self.assertIs(self.root.get_child_node("2/").get_child_node("2"), listbox.focus_position)
+
+        listbox.keypress(self.size, "home")
+        self.assertIs(self.root, listbox.focus_position)
+
+    def test_iteration_follows_display_order_from_any_focus(self) -> None:
+        """Iterating the ListBox starts at the root whatever node is in focus."""
+        self.widget.set_focus(self.root.get_child_node("2/"))
+        expected = ["/", "1/", "1", "2", "2/", "1", "2"]
+
+        self.assertEqual(expected, [node.get_key() for node in self.widget])
+        self.assertEqual(expected[::-1], [node.get_key() for node in reversed(self.widget)])
+
+    def test_focus_tree_navigation(self) -> None:
+        """Each focus method moves to its target, or keeps the focus when there is none."""
+        nested_1 = typing.cast("SelfRegisteringParent", self.root.get_child_node("1/"))
+        nested_2 = typing.cast("SelfRegisteringParent", self.root.get_child_node("2/"))
+        cases = (
+            ("focus_first_child", self.root, nested_1),
+            ("focus_last_child", self.root, nested_2),
+            ("focus_next_sibling", nested_1, nested_2),
+            ("focus_prev_sibling", nested_2, nested_1),
+            ("focus_first_child", nested_1.get_child_node("1"), nested_1.get_child_node("1")),
+            ("focus_last_child", nested_2.get_child_node("2"), nested_2.get_child_node("2")),
+            ("focus_next_sibling", nested_2, nested_2),
+            ("focus_next_sibling", self.root, self.root),
+            ("focus_prev_sibling", nested_1, nested_1),
+            ("focus_prev_sibling", self.root, self.root),
+        )
+        for method, start, expected in cases:
+            with self.subTest(method=method, start=start.get_value()):
+                self.widget.set_focus(start)
+                self.widget.render(self.size)
+
+                getattr(self.widget, method)()
+
+                self.assertIs(expected, self.widget.focus_position)
+
+    def test_focus_child_of_collapsed_node_keeps_focus(self) -> None:
+        """The hidden children of a collapsed node cannot take the focus."""
+        nested_1 = self.root.get_child_node("1/")
+        nested_1.get_widget().collapse()
+        for method in ("focus_first_child", "focus_last_child"):
+            with self.subTest(method=method):
+                self.widget.set_focus(nested_1)
+
+                getattr(self.widget, method)()
+
+                self.assertIs(nested_1, self.widget.focus_position)
+
+    def test_focus_prev_sibling_keeps_visible_target_on_its_row(self) -> None:
+        """A visible target is focused where it is drawn, without scrolling."""
+        self.widget.set_focus(self.root.get_child_node("2/"))
+        self.widget.render(self.size)
+
+        self.widget.focus_prev_sibling()
+        self.widget.render(self.size)
+
+        self.assertIs(self.root.get_child_node("1/"), self.widget.focus_position)
+        self.assertEqual((1, 0), self.widget.get_focus_offset_inset(self.size))
+
+    def test_focus_last_child_scrolls_offscreen_target_into_view(self) -> None:
+        """A target below the view is scrolled up to the bottom row."""
+        size = (21, 3)
+        self.widget.render(size)
+
+        self.widget.focus_last_child()
+
+        self.assertEqual(
+            (
+                "      1: child_11    ",
+                "      2: child_12    ",
+                "   - 2/: nested_2    ",
+            ),
+            self.widget.render(size).decoded_text,
+        )

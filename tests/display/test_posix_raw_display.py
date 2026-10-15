@@ -26,6 +26,17 @@ if not IS_WINDOWS:
     from urwid.display._posix_raw_display import _GPM_B_LEFT, _GPM_MOD_SHIFT, Screen
 
 
+class _StrictBytes(bytes):
+    """A termios key that fails on comparison with a str, as `python -bb` makes every bytes object do."""
+
+    __hash__ = bytes.__hash__
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, str):
+            raise BytesWarning(f"comparison of {self!r} with {other!r}")
+        return super().__eq__(other)
+
+
 def _make_screen(input_fd: int | None = None) -> Screen:
     """Build a Screen over a pipe (or /dev/null) so tests never touch a real tty."""
     if input_fd is None:
@@ -96,6 +107,46 @@ class TestStartStop(unittest.TestCase):
 
         s.stop()
         mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
+
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr")
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_start_stop_restores_bytes_signal_keys_without_comparing_them_to_str(
+        self,
+        mock_isatty,
+        mock_setcbreak,
+        mock_tcgetattr,
+        mock_tcsetattr,
+    ):
+        """termios reports the signal keys as bytes, and `stop()` passes them back to `tty_signal_keys()`.
+
+        Comparing them with the str "undefined" raises BytesWarning under `python -bb` (#512), so the keys
+        here fail on any comparison with a str, which needs no interpreter flag.
+        """
+        cc = [_StrictBytes(b"\0")] * 32
+        keys = {
+            termios.VINTR: _StrictBytes(b"\x03"),
+            termios.VQUIT: _StrictBytes(b"\x1c"),
+            termios.VSTART: _StrictBytes(b"\x11"),
+            termios.VSTOP: _StrictBytes(b"\x13"),
+            termios.VSUSP: _StrictBytes(b"\x1a"),
+        }
+        for index, key in keys.items():
+            cc[index] = key
+        mock_tcgetattr.side_effect = lambda fd: [0, 0, 0, 0, 0, 0, cc.copy()]
+        s = _make_screen()
+        s.write = lambda data: None
+        s.flush = lambda: None
+
+        s.start()
+        self.addCleanup(s.stop)
+        self.assertEqual(tuple(keys.values()), s._old_signal_keys)
+
+        s.stop()
+        restored = mock_tcsetattr.call_args_list[-1].args
+        self.assertEqual((s._input_fileno(), termios.TCSADRAIN), restored[:2])
+        self.assertEqual(cc, restored[2][6])
 
     def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
         """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so

@@ -32,7 +32,7 @@ from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from typing import TypedDict
+    from typing import Literal, TypedDict
 
     from urwid.canvas import Canvas
 
@@ -219,9 +219,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         return self._current_widget.get_cursor_coords(size)  # type: ignore[no-any-return]
 
-    def get_pref_col(self, size: tuple[int, int]) -> int:
+    def get_pref_col(self, size: tuple[int, int]) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
         """
-        Return the preferred cursor column of the current widget.
+        Return the preferred cursor column of the current widget, or None if it has none.
 
         :raises TypeError: the current widget has no ``get_pref_col`` method.
         """
@@ -230,7 +230,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         if not hasattr(self._current_widget, "get_pref_col"):
             raise TypeError(f"widget {type(self._current_widget)} has no get_pref_col method")
 
-        return typing.cast("int", self._current_widget.get_pref_col(size))
+        pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None = self._current_widget.get_pref_col(
+            size
+        )
+        return pref_col
 
     def keypress(
         self,

@@ -81,3 +81,27 @@ class FloatEditDefaultSeparatorTest(unittest.TestCase):
             edit = FloatEdit(default="1,25", decimalSeparator=",")
         self.assertEqual("1,25", edit.edit_text)
         self.assertEqual(Decimal("1.25"), edit.value())
+
+
+class FloatEditDefaultValidationTest(unittest.TestCase):
+    def test_exponent_string_default_uses_editable_characters(self):
+        for default in ("1e5", Decimal("1E+5")):
+            with self.subTest(default=default):
+                edit = FloatEdit(default=default)
+
+                self.assertEqual("100000", edit.edit_text)
+                self.assertEqual(Decimal("100000"), edit.value())
+
+    def test_non_finite_defaults_are_rejected(self):
+        for default in ("inf", "-inf", "nan", Decimal("Infinity"), Decimal("NaN")):
+            with self.subTest(default=default), self.assertRaises(ValueError):
+                FloatEdit(default=default)
+
+    def test_long_value_preserves_significance(self):
+        edit = FloatEdit(default="1.0000", preserve_significance=True)
+        edit.set_edit_text("123456789012345678901234567890")
+
+        self.assertEqual(
+            Decimal("123456789012345678901234567890.0000").as_tuple(),
+            edit.value().as_tuple(),
+        )

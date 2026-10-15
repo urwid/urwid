@@ -80,6 +80,7 @@ pytest = [
   "pytest",
   "pytest-asyncio",
   "pytest-cov",
+  "pytest-timeout",
 ]
 ruff = [
   "ruff",
@@ -394,6 +395,10 @@ minversion = "6.0"
 testpaths = [ "tests", "urwid" ]
 addopts = "-vvvv --doctest-modules -s --cov --cov-report=term"
 doctest_optionflags = [ "DONT_ACCEPT_TRUE_FOR_1", "ELLIPSIS", "IGNORE_EXCEPTION_DETAIL" ]
+# The timeout is in seconds per test, so a hang fails that one test instead of the whole CI job. The slowest test
+# takes about 1 s on a workstation and about 10 s on CI with CPython, but about 95 s on CI with free-threaded 3.13,
+# where coverage traces in Python.
+timeout = 300
 
 [tool.coverage.run]
 source_pkgs = [ "urwid" ]

@@ -123,3 +123,5 @@ class CommonContainerTest(unittest.TestCase):
         self.assertRaises(IndexError, lambda: f.set_focus_path(["body", 2, 2]))
         f.set_focus_path(["body", 2])  # focus the overlay
         self.assertEqual(f.get_focus_path(), ["body", 2, 1])
+        # a focus position naming a missing part ends the path there
+        self.assertEqual(["header"], urwid.Frame(s, focus_part="header").get_focus_path())

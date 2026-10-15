@@ -21,21 +21,71 @@
 
 from __future__ import annotations
 
+import operator
 import typing
+from collections import deque
 from collections.abc import Iterable
 
-from .list_walker import ListWalker, ListWalkerError
+from .list_walker import _REVERSE_NOT_GIVEN, ListWalker, ListWalkerError, _positions_reverse
 from .monitored_deque import MonitoredDeque, MonitoredFocusDeque
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Self
+
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 _T = typing.TypeVar("_T")
 
 __all__ = ("SimpleDequeWalker", "SimpleFocusDequeWalker")
 
 
+class _DequeWalker(deque[_T]):
+    """Construct walker results without treating their capacity as a wrap setting."""
+
+    wrap_around: bool
+
+    def copy(self) -> Self:
+        """Return a shallow copy with the same capacity and wrapping setting."""
+        result = type(self)(self) if self.maxlen is None else type(self)(self, maxlen=self.maxlen)
+        result.wrap_around = self.wrap_around
+        return result
+
+    __copy__ = copy
+
+    def __add__(self, other: deque[_T]) -> Self:
+        """Concatenate deques, retaining this walker's capacity and wrapping setting."""
+        if not isinstance(other, deque):
+            return NotImplemented
+        result = self.copy()
+        deque.__iadd__(result, other)
+        return result
+
+    def __mul__(self, multiplier: typing.SupportsIndex) -> Self:
+        """Repeat contents in a new walker with the same capacity and wrapping setting."""
+        try:
+            count = operator.index(multiplier)
+        except TypeError:
+            return NotImplemented
+        result = self.copy()
+        deque.__imul__(result, count)
+        return result
+
+    __rmul__ = __mul__
+
+    def __reduce__(self) -> tuple[typing.Any, ...]:
+        """Pass the capacity in its walker constructor position when reconstructing."""
+        factory, args, *rest = super().__reduce__()
+        contents = args[0] if args else ()
+        walker_args = (contents,) if self.maxlen is None else (contents, self.wrap_around, self.maxlen)
+        return factory, walker_args, *rest
+
+
 class SimpleDequeWalker(
+    _DequeWalker[_T],
     MonitoredDeque[_T],
     ListWalker[int, _T],
 ):
@@ -129,19 +179,36 @@ class SimpleDequeWalker(
             raise IndexError
         return position - 1
 
-    def positions(self, reverse: bool = False) -> Iterable[int]:
+    @typing.overload
+    def positions(self, *, reverse: bool = False) -> Iterable[int]: ...
+
+    @typing.overload
+    @deprecated(
+        "Passing reverse to positions() positionally is deprecated. Pass it by keyword instead. "
+        "Deprecated since urwid 5.0.0, will be removed in version 8.0.",
+        category=None,
+    )
+    def positions(self, reverse: bool, /) -> Iterable[int]: ...
+
+    def positions(self, *args: bool, reverse: object = _REVERSE_NOT_GIVEN) -> Iterable[int]:
         """Return an iterable of positions. Optional method.
 
+        :param args: *reverse* passed positionally, the deprecated form
         :param reverse: if true, return positions in reverse order
+        :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+
+        .. deprecated:: 5.0.0
+            Passing *reverse* positionally is deprecated. Pass it by keyword.
         """
-        if reverse:
+        if _positions_reverse(args, reverse=reverse):
             return range(len(self) - 1, -1, -1)
         return range(len(self))
 
 
 class SimpleFocusDequeWalker(
+    _DequeWalker[_T],
     MonitoredFocusDeque[_T],
-    ListWalker[typing.SupportsIndex, _T],
+    ListWalker[int, _T],
 ):
     """A :class:`ListWalker` backed by a :class:`MonitoredFocusDeque`.
 
@@ -221,11 +288,27 @@ class SimpleFocusDequeWalker(
             raise IndexError
         return pos - 1
 
-    def positions(self, reverse: bool = False) -> Iterable[int]:
+    @typing.overload
+    def positions(self, *, reverse: bool = False) -> Iterable[int]: ...
+
+    @typing.overload
+    @deprecated(
+        "Passing reverse to positions() positionally is deprecated. Pass it by keyword instead. "
+        "Deprecated since urwid 5.0.0, will be removed in version 8.0.",
+        category=None,
+    )
+    def positions(self, reverse: bool, /) -> Iterable[int]: ...
+
+    def positions(self, *args: bool, reverse: object = _REVERSE_NOT_GIVEN) -> Iterable[int]:
         """Return an iterable of positions. Optional method.
 
+        :param args: *reverse* passed positionally, the deprecated form
         :param reverse: if true, return positions in reverse order
+        :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+
+        .. deprecated:: 5.0.0
+            Passing *reverse* positionally is deprecated. Pass it by keyword.
         """
-        if reverse:
+        if _positions_reverse(args, reverse=reverse):
             return range(len(self) - 1, -1, -1)
         return range(len(self))

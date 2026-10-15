@@ -575,6 +575,22 @@ class PileTest(unittest.TestCase):
                     pile.contents.append((urwid.SolidFill(), (kind, amount)))
                 self.assertEqual(0, len(pile.contents))
 
+    def test_given_size_not_int_rejected(self) -> None:
+        """A given height is a number of rows, so a float is rejected even when it is integral."""
+        for amount in (1.5, 3.0):
+            with self.subTest(amount=amount):
+                with self.assertRaises(urwid.PileError):
+                    urwid.Pile([(urwid.GIVEN, amount, urwid.SolidFill())])
+                with self.assertRaises(urwid.PileError):
+                    urwid.Pile([(amount, urwid.SolidFill())])
+                pile = urwid.Pile([])
+                with self.assertRaises(urwid.PileError):
+                    pile.contents.append((urwid.SolidFill(), (urwid.GIVEN, amount)))
+                with self.assertRaises(urwid.PileError):
+                    pile.contents = [(urwid.SolidFill(), (urwid.GIVEN, amount))]
+                self.assertEqual(0, len(pile.contents))
+        self.assertEqual(1, len(urwid.Pile([(urwid.WEIGHT, 1.5, urwid.SolidFill())]).contents))
+
     def test_huge_finite_weights_render(self) -> None:
         """Split rows by weight ratio even when the weights, their sum or rows * weight overflow a float."""
         for weights, expected in (
@@ -836,6 +852,8 @@ class PileTest(unittest.TestCase):
         self.assertEqual((urwid.WEIGHT, 2), urwid.Pile.options(urwid.WEIGHT, 2))
         with self.assertRaises(urwid.PileError):
             urwid.Pile.options(urwid.GIVEN, None)
+        with self.assertRaises(urwid.PileError):
+            urwid.Pile.options(urwid.GIVEN, 1.5)
 
     def test_focus_setter_widget_not_found(self) -> None:
         pile = urwid.Pile([urwid.Text("one")])
