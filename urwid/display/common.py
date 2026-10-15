@@ -1314,15 +1314,18 @@ class RealTerminal:
                 sattr[termios.VSUSP],
             )
 
-            if intr == "undefined":
+            # termios reports these keys as bytes, and the tuple returned below is passed back
+            # here to restore them, so check the type first: comparing bytes with str raises
+            # BytesWarning under `python -bb`.
+            if isinstance(intr, str) and intr == "undefined":
                 intr = 0
-            if quit == "undefined":
+            if isinstance(quit, str) and quit == "undefined":
                 quit = 0  # noqa: A001
-            if start == "undefined":
+            if isinstance(start, str) and start == "undefined":
                 start = 0
-            if stop == "undefined":
+            if isinstance(stop, str) and stop == "undefined":
                 stop = 0
-            if susp == "undefined":
+            if isinstance(susp, str) and susp == "undefined":
                 susp = 0
 
             if intr is not None:
