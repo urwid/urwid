@@ -116,6 +116,19 @@ class ScriptedInputScreen(NonExternalLoopScreen):
         return [], []
 
 
+class LimitedInputScreen(ScriptedInputScreen):
+    """Scripted screen that fails a test reading input after the script, instead of letting it wait forever."""
+
+    def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+        """Return the next scripted input, or empty input up to a limit.
+
+        :raises AssertionError: input was read 20 times and the script is used up.
+        """
+        if not self._responses and self.input_calls >= 20:
+            raise AssertionError("still waiting for input")
+        return super().get_input(raw_keys)
+
+
 class RecordingWidget:
     """Duck-typed widget recording keypress/mouse calls with a scripted response."""
 
@@ -614,8 +627,29 @@ class TestMainLoop(unittest.TestCase):
         evl.run()
         self.assertEqual(["a", "b"], order)
 
-    def test_run_screen_event_loop_clears_next_alarm_when_queue_empty(self):
-        """_run_screen_event_loop resets next_alarm to None once the alarm queue drains."""
+    def test_run_screen_event_loop_input_changes_pending_alarms(self):
+        """Input handled while an alarm is pending can remove that alarm and add an earlier one."""
+        removed: list[bool] = []
+
+        def late(loop: urwid.MainLoop, data: object) -> None:
+            raise AssertionError("removed alarm fired")
+
+        def exit_clean(loop: urwid.MainLoop, data: object) -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        def unhandled(data: str) -> bool:
+            removed.append(evl.remove_alarm(late_handle))
+            evl.set_alarm_in(0, exit_clean)
+            return True
+
+        screen = LimitedInputScreen([(["x"], [])])
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        late_handle = evl.set_alarm_in(60, late)
+        evl.run()
+        self.assertEqual([True], removed)
+
+    def test_run_screen_event_loop_keeps_reading_input_once_the_alarm_queue_drains(self):
+        """_run_screen_event_loop keeps reading input once the alarm queue drains."""
         order: list[str] = []
 
         def cb_a(loop: urwid.MainLoop, data: object) -> None:

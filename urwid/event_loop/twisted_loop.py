@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import functools
 import logging
-import sys
 import typing
 
 from twisted.internet.abstract import FileDescriptor
@@ -189,7 +188,10 @@ class TwistedEventLoop(EventLoop):
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
+
+        A watch already set on *fd* is replaced.
         """
+        self.remove_watch_file(fd)
         ind = _TwistedInputDescriptor(self.reactor, fd, self.handle_exit(callback))
         self._watch_files[fd] = ind
         self.reactor.addReader(typing.cast("IReadDescriptor", ind))
@@ -233,9 +235,13 @@ class TwistedEventLoop(EventLoop):
         self._twisted_idle_enabled = True
 
     def _twisted_idle_callback(self) -> None:
-        for callback in self._idle_callbacks.values():
-            callback()
-        self._twisted_idle_enabled = False
+        try:
+            # A callback may add or remove idle callbacks.
+            for callback in list(self._idle_callbacks.values()):
+                callback()
+        finally:
+            # Reset even when a callback raises, or no idle callback would be scheduled again.
+            self._twisted_idle_enabled = False
 
     def remove_enter_idle(self, handle: int) -> bool:
         """
@@ -268,7 +274,9 @@ class TwistedEventLoop(EventLoop):
     def handle_exit(self, f: Callable[_Spec, _T], enable_idle: bool = True) -> Callable[_Spec, _T | None]:
         """Wrap *f* so that :exc:`ExitMainLoop` raised inside it exits the :class:`TwistedEventLoop` cleanly.
 
-        Store the exception info if some other exception occurs, it will be reraised after the loop quits.
+        Another exception is stored and raised from :meth:`run` once the reactor stops,
+        when this loop manages the reactor.
+        Otherwise it is logged, since :meth:`run` has already returned.
 
         *f* -- function to be wrapped
         """
@@ -281,11 +289,13 @@ class TwistedEventLoop(EventLoop):
             except ExitMainLoop:
                 if self.manage_reactor:
                     self.reactor.stop()
-            except BaseException as exc:  # noqa: BLE001  # we will crash if needed
-                print(sys.exc_info())
-                self._exc = exc
+            except BaseException as exc:
                 if self.manage_reactor:
+                    self._exc = exc
                     self.reactor.crash()
+                else:
+                    # run() returns at once without a managed reactor, so nothing would raise the exception later.
+                    self.logger.exception("Unhandled exception in callback %r", f)
             if enable_idle:
                 self._enable_twisted_idle()
             return rval

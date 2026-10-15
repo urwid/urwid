@@ -94,8 +94,22 @@ class ZMQEventLoop(EventLoop):
             task = asyncio.get_running_loop().create_task(callback(*args, **kwargs))
             self._background_tasks.add(task)
             task.add_done_callback(self._background_tasks.discard)
+            task.add_done_callback(self._background_task_done)
             return None
         return callback(*args, **kwargs)
+
+    def _background_task_done(self, task: asyncio.Task[typing.Any]) -> None:
+        """Pass a background task's exception to :meth:`_exception_handler` as soon as the task finishes.
+
+        Without this, asyncio reports the exception only from ``Task.__del__``,
+        which a tracing garbage collector (PyPy, GraalPy) runs at an unpredictable time.
+
+        :param task: finished background task scheduled by :meth:`_run_callback`
+        """
+        if task.cancelled():
+            return
+        if exc := task.exception():
+            self._exception_handler(task.get_loop(), {"exception": exc})
 
     def run_in_executor(
         self,
@@ -125,7 +139,7 @@ class ZMQEventLoop(EventLoop):
         :param callback:
             function to call from event loop.
         """
-        handle = (time.time() + seconds, next(self._alarm_break), callback)
+        handle = (time.monotonic() + seconds, next(self._alarm_break), callback)
         heapq.heappush(self._alarms, handle)
         return handle
 
@@ -266,11 +280,10 @@ class ZMQEventLoop(EventLoop):
             self._run_callback(callback)
 
     def _exception_handler(self, loop: asyncio.AbstractEventLoop, context: dict[str, typing.Any]) -> None:
-        """Handle an exception from a background task scheduled by :meth:`_run_callback`.
+        """Stop the loop on an exception from a background task scheduled by :meth:`_run_callback`.
 
-        A background task is never awaited directly, so its exception would otherwise only
-        surface through this handler once the task is garbage collected - store it and cancel
-        :attr:`_main_task` to stop the loop right away instead of waiting on that.
+        The exception is stored to be raised from :meth:`run`, unless it is :exc:`ExitMainLoop`,
+        and :attr:`_main_task` is cancelled to stop the loop.
 
         :param loop: the loop the exception occurred on
         :param context: exception context, as passed by :mod:`asyncio` to an exception handler
@@ -318,7 +331,7 @@ class ZMQEventLoop(EventLoop):
         if self._alarms or self._did_something:
             timeout = 0.0
             if self._alarms:
-                timeout = max(0.0, self._alarms[0][0] - time.time())
+                timeout = max(0.0, self._alarms[0][0] - time.monotonic())
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                 entering_idle = True
                 timeout = 0
@@ -339,7 +352,7 @@ class ZMQEventLoop(EventLoop):
             self._did_something = True
 
         # A continuously ready queue or descriptor must not prevent expired alarms from running.
-        if self._alarms and self._alarms[0][0] <= time.time():
+        if self._alarms and self._alarms[0][0] <= time.monotonic():
             _due, _tie_break, callback = heapq.heappop(self._alarms)
             self._run_callback(callback)
             self._did_something = True

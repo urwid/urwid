@@ -207,6 +207,8 @@ class GLibEventLoop(EventLoop):
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
+
+        A watch already set on *fd* is replaced.
         """
 
         @self.handle_exit
@@ -215,6 +217,7 @@ class GLibEventLoop(EventLoop):
             self._enable_glib_idle()
             return True
 
+        self.remove_watch_file(fd)
         self._watch_files[fd] = GLib.io_add_watch(fd, GLib.IO_IN, io_callback)
         return fd
 
@@ -243,13 +246,17 @@ class GLibEventLoop(EventLoop):
     def _enable_glib_idle(self) -> None:
         if self._glib_idle_enabled:
             return
-        GLib.idle_add(self._glib_idle_callback)
+        GLib.idle_add(self.handle_exit(self._glib_idle_callback))
         self._glib_idle_enabled = True
 
     def _glib_idle_callback(self) -> bool:
-        for callback in self._idle_callbacks.values():
-            callback()
-        self._glib_idle_enabled = False
+        try:
+            # A callback may add or remove idle callbacks.
+            for callback in list(self._idle_callbacks.values()):
+                callback()
+        finally:
+            # Reset even when a callback raises, or no idle callback would be scheduled again.
+            self._glib_idle_enabled = False
         return False  # ask glib not to call again (or we would be called
 
     def remove_enter_idle(self, handle: int) -> bool:

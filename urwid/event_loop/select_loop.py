@@ -88,7 +88,7 @@ class SelectEventLoop(EventLoop):
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
         """
-        tm = time.time() + seconds
+        tm = time.monotonic() + seconds
         handle = (tm, next(self._tie_break), callback)
         heapq.heappush(self._alarms, handle)
         return handle
@@ -154,7 +154,8 @@ class SelectEventLoop(EventLoop):
 
     def _entering_idle(self) -> None:
         """Call all the registered idle callbacks."""
-        for callback in self._idle_callbacks.values():
+        # A callback may add or remove idle callbacks.
+        for callback in list(self._idle_callbacks.values()):
             callback()
 
     def run(self) -> None:
@@ -182,7 +183,7 @@ class SelectEventLoop(EventLoop):
 
                 if self._alarms:
                     timeout_ = self._alarms[0][0]
-                    timeout = max(timeout, timeout_ - time.time())
+                    timeout = max(timeout, timeout_ - time.monotonic())
 
                 if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                     timeout = 0.0
@@ -219,7 +220,7 @@ class SelectEventLoop(EventLoop):
             self._did_something = True
 
         # A continuously readable descriptor must not prevent expired alarms from running.
-        if self._alarms and self._alarms[0][0] <= time.time():
+        if self._alarms and self._alarms[0][0] <= time.monotonic():
             _alarm_time, _tie_break, alarm_callback = heapq.heappop(self._alarms)
             self.logger.debug(f"Calling scheduled {alarm_callback!r}")
             alarm_callback()

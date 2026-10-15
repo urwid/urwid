@@ -183,6 +183,147 @@ class EventLoopTestMixin:
         evl.run()
         self.assertEqual([2, 1, 0], ticks)
 
+    def test_idle_callback_exit_main_loop_stops_the_loop(self) -> None:
+        """ExitMainLoop raised by an idle callback stops the loop cleanly, as from an alarm callback."""
+        evl = self.evl
+        out: list[str] = []
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(exit_clean)
+        self._exit_once_seen(out, guard_exit, "clean exit")
+        evl.run()
+        self.assertEqual(["clean exit"], out)
+
+    def test_idle_callback_may_change_the_idle_callbacks(self) -> None:
+        """An idle callback that removes itself and adds another does not break the loop."""
+        evl = self.evl
+        out: list[str] = []
+        handles: list[int] = []
+
+        def once() -> None:
+            out.append("once")
+            evl.remove_enter_idle(handles[0])
+            handles.append(evl.enter_idle(lambda: out.append("waiting")))
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        handles.append(evl.enter_idle(once))
+        self._exit_once_seen(out, exit_clean, "waiting")
+        evl.run()
+        self.assertEqual("once", out[0])
+        self.assertIn("waiting", out)
+        self.assertEqual("clean exit", out[-1])
+
+    def test_idle_callback_error_is_raised_from_run(self) -> None:
+        """An exception raised by an idle callback stops the loop and is raised from run()."""
+        evl = self.evl
+        out: list[str] = []
+
+        def exit_error() -> typing.NoReturn:
+            out.append("error")
+            raise ZeroDivisionError
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(exit_error)
+        self._exit_once_seen(out, guard_exit, "error")
+        self.assertRaises(ZeroDivisionError, evl.run)
+        self.assertEqual(["error"], out)
+
+    def test_alarm_set_by_idle_callback_runs_on_time(self) -> None:
+        """An alarm set by an idle callback fires when due, without waiting for another event."""
+        evl = self.evl
+        out: list[str] = []
+
+        def set_exit_alarm() -> None:
+            # Set once the loop has nothing due before the guard alarm.
+            if "ready" in out and "alarm set" not in out:
+                out.append("alarm set")
+                evl.alarm(0.01, exit_clean)
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(set_exit_alarm)
+        evl.alarm(0.005, lambda: out.append("ready"))
+        evl.alarm(5, guard_exit)
+        evl.run()
+        self.assertEqual(["ready", "alarm set", "clean exit"], out)
+
+    def test_idle_callback_setting_an_alarm_does_not_repeat_idle(self) -> None:
+        """An idle callback that sets an alarm on each pass does not cause another idle pass by that alone."""
+        evl = self.evl
+        idle_passes: list[None] = []
+
+        def set_alarm() -> None:
+            idle_passes.append(None)
+            evl.alarm(10, lambda: None)
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(set_alarm)
+        evl.alarm(0.2, exit_clean)
+        evl.run()
+        self.assertLess(len(idle_passes), 10)
+
+    def test_remove_alarm_after_it_fired(self) -> None:
+        """Removing an alarm that has already fired reports that it was not pending."""
+        evl = self.evl
+        out: list[bool] = []
+        fired = evl.alarm(0, lambda: None)
+
+        def check() -> typing.NoReturn:
+            out.append(evl.remove_alarm(fired))
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0.01, check)
+        evl.run()
+        self.assertEqual([False], out)
+
+    def test_watch_file_twice_replaces_the_watch(self) -> None:
+        """A second watch on one descriptor replaces the first one."""
+        evl = self.evl
+        out: list[str] = []
+
+        with ClosingSocketPair() as (rd, wr):
+
+            def first() -> None:
+                out.append("first")
+
+            def second() -> typing.NoReturn:
+                out.append(rd.recv(2).decode("ascii"))
+                raise urwid.ExitMainLoop
+
+            def guard_exit() -> typing.NoReturn:
+                out.append("guard exit")
+                raise urwid.ExitMainLoop
+
+            evl.watch_file(rd.fileno(), first)
+            handle = evl.watch_file(rd.fileno(), second)
+            evl.alarm(5, guard_exit)
+            wr.send(b"hi")
+            evl.run()
+            evl.remove_watch_file(handle)
+
+        self.assertEqual(["hi"], out)
+
     _expected_idle_handle = 1
 
     def test_run(self):
@@ -325,6 +466,16 @@ class StaleReadyWatchTestMixin:
 
 
 class AlarmFairnessTestMixin:
+    def test_alarm_ignores_a_wall_clock_step(self):
+        """An alarm does not run early when the wall clock is set forward after it was scheduled."""
+        called = []
+        self.evl._did_something = True  # pylint: disable=protected-access  # poll without waiting for the alarm
+        self.evl.alarm(10, lambda: called.append("alarm"))
+        with mock.patch("time.time", return_value=time.time() + 3600):
+            self._poll_once()
+
+        self.assertEqual([], called)
+
     def test_expired_alarm_runs_while_a_descriptor_stays_readable(self):
         """A due alarm runs in the first poll even if input remains readable."""
         called = []
@@ -576,6 +727,53 @@ class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
 
 @unittest.skipUnless(GLIB_AVAILABLE, "GLIB unavailable")
+class GLibWithoutRunningLoopTest(unittest.TestCase):
+    """Idle callback and watch handling, exercised without running the GLib main loop."""
+
+    # pylint: disable=protected-access  # the loop's state is read and driven directly instead of by a running loop
+
+    def setUp(self) -> None:
+        """Create the event loop under test."""
+        self.evl = urwid.GLibEventLoop()
+
+    def test_idle_callback_may_change_the_idle_callbacks(self) -> None:
+        """An idle callback that removes itself and adds another does not break the idle pass."""
+        evl = self.evl
+        out: list[str] = []
+        handles: list[int] = []
+
+        def once() -> None:
+            out.append("once")
+            evl.remove_enter_idle(handles[0])
+            handles.append(evl.enter_idle(lambda: out.append("waiting")))
+
+        handles.append(evl.enter_idle(once))
+        evl._glib_idle_callback()
+        evl._glib_idle_callback()
+        self.assertEqual(["once", "waiting"], out)
+
+    def test_watch_file_twice_replaces_the_watch(self) -> None:
+        """A second watch on one descriptor removes the first watch's GLib source."""
+        from gi.repository import GLib
+
+        with ClosingSocketPair() as (rd, _wr):
+            self.evl.watch_file(rd.fileno(), lambda: None)
+            first_source = self.evl._watch_files[rd.fileno()]
+            handle = self.evl.watch_file(rd.fileno(), lambda: None)
+            try:
+                self.assertIsNone(GLib.MainContext.default().find_source_by_id(first_source))
+            finally:
+                self.evl.remove_watch_file(handle)
+
+    def test_idle_callback_error_keeps_idle_scheduling(self) -> None:
+        """An idle callback that raises does not leave idle scheduling switched off."""
+        evl = self.evl
+        evl.enter_idle(lambda: 1 / 0)
+        self.assertRaises(ZeroDivisionError, evl._glib_idle_callback)
+        self.assertFalse(evl._glib_idle_enabled)
+
+
+@unittest.skipUnless(GLIB_AVAILABLE, "GLIB unavailable")
 @unittest.skipIf(IS_WINDOWS, "GLib.unix_signal_add is POSIX-only")
 class GLibSignalHandlerTest(unittest.TestCase):
     def test_invalid_handler_is_rejected_and_keeps_the_previous_one(self) -> None:
@@ -699,6 +897,81 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
     def test_alarm_reschedule(self):
         pass
+
+    def test_idle_callback_exit_main_loop_stops_the_loop(self) -> None:
+        """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def test_idle_callback_error_is_raised_from_run(self) -> None:
+        """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def test_alarm_set_by_idle_callback_runs_on_time(self) -> None:
+        """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def test_idle_callback_setting_an_alarm_does_not_repeat_idle(self) -> None:
+        """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def test_remove_alarm_after_it_fired(self) -> None:
+        """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def test_watch_file_twice_replaces_the_watch(self) -> None:
+        """A second watch on one descriptor replaces the first one in the reactor."""
+        from twisted.internet.selectreactor import SelectReactor
+
+        # The epoll reactor keeps one reader per descriptor by itself; the select reactor keeps every one added.
+        reactor = SelectReactor()
+        self.addCleanup(reactor.waker.connectionLost, None)
+        evl = urwid.TwistedEventLoop(reactor=reactor, manage_reactor=False)
+        with ClosingSocketPair() as (rd, _wr):
+            evl.watch_file(rd.fileno(), lambda: None)
+            handle = evl.watch_file(rd.fileno(), lambda: None)
+            try:
+                watching = [reader for reader in reactor.getReaders() if reader.fileno() == rd.fileno()]
+                self.assertEqual(1, len(watching))
+            finally:
+                evl.remove_watch_file(handle)
+
+    def test_idle_callback_may_change_the_idle_callbacks(self) -> None:
+        """An idle callback that removes itself and adds another does not break idle handling."""
+        from twisted.internet.task import Clock
+
+        clock = Clock()
+        evl = urwid.TwistedEventLoop(reactor=clock, manage_reactor=False)
+        out: list[str] = []
+        handles: list[int] = []
+
+        def once() -> None:
+            out.append("once")
+            evl.remove_enter_idle(handles[0])
+            handles.append(evl.enter_idle(lambda: out.append("waiting")))
+
+        handles.append(evl.enter_idle(once))
+        with self.assertNoLogs(evl.logger):
+            clock.advance(1)
+            evl.alarm(0, lambda: None)
+            clock.advance(1)
+            clock.advance(1)
+        self.assertEqual(["once", "waiting"], out)
+
+    def test_idle_callback_error_keeps_idle_callbacks_running(self) -> None:
+        """An idle callback that raises is logged and does not stop later idle passes."""
+        from twisted.internet.task import Clock
+
+        clock = Clock()
+        evl = urwid.TwistedEventLoop(reactor=clock, manage_reactor=False)
+        out: list[str] = []
+
+        def fail_once() -> None:
+            out.append("idle")
+            if len(out) == 1:
+                raise ZeroDivisionError
+
+        evl.enter_idle(fail_once)
+        with self.assertLogs(evl.logger, "ERROR"):
+            clock.advance(1)
+        evl.alarm(0, lambda: None)
+        clock.advance(1)
+        clock.advance(1)
+        self.assertEqual(["idle", "idle"], out)
 
     def test_run(self):
         from twisted.internet import threads
@@ -858,6 +1131,182 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         evl.run()
         self.assertIn("waiting", out)
 
+    def test_idle_pass_follows_later_work_of_a_task_an_idle_callback_started(self) -> None:
+        """A task started by an idle callback causes an idle pass once it does work after waiting."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        out: list[str] = []
+
+        async def worker() -> None:
+            await trio.sleep(0.05)
+            out.append("updated")
+
+        def idle() -> None:
+            out.append("idle")
+            if out == ["idle"]:
+                evl._nursery.start_soon(worker)  # pylint: disable=protected-access  # as user code holding it
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(idle)
+        # The only other event: an idle pass after "updated" can only come from the worker's own step.
+        evl.alarm(0.5, exit_clean)
+        evl.run()
+        self.assertEqual(["idle", "updated", "idle"], out)
+
+    def _replace_watch_in_one_batch(self) -> list[str]:
+        """Make two descriptors ready at once, and replace the second one's watch from the first one's callback.
+
+        :returns: the events in order: "replaced", and "old" or "new" for each call of the second descriptor's watch.
+        """
+        evl = self.evl = urwid.TrioEventLoop()
+        out: list[str] = []
+        with ClosingSocketPair() as (rd1, wr1), ClosingSocketPair() as (rd2, wr2):
+
+            def replace() -> None:
+                rd1.recv(1)
+                if "replaced" not in out:
+                    out.append("replaced")
+                    evl.watch_file(rd2.fileno(), new)
+
+            def old() -> None:
+                out.append("old")
+                rd2.recv(1)
+
+            def new() -> None:
+                out.append("new")
+                rd2.recv(1)
+
+            def exit_clean() -> typing.NoReturn:
+                raise urwid.ExitMainLoop
+
+            evl.watch_file(rd1.fileno(), replace)
+            evl.watch_file(rd2.fileno(), old)
+            wr1.send(b"x")
+            wr2.send(b"x")
+            self._exit_once_seen(out, exit_clean, "replaced")
+            evl.run()
+        return out
+
+    def test_replaced_watch_does_not_run_after_replacement(self) -> None:
+        """A watch replaced by a callback woken in the same batch does not run its old callback afterwards."""
+        # Trio runs the tasks of one batch in random order, so the race is repeated to meet both orders.
+        for _ in range(20):
+            out = self._replace_watch_in_one_batch()
+            self.assertNotIn("old", out[out.index("replaced") :], out)
+
+    def test_job_posted_during_an_idle_pass_causes_an_idle_pass(self) -> None:
+        """A run_sync_soon job, as posted from another thread, is work even when the idle pass wakes the loop."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        out: list[str] = []
+
+        async def started_by_idle() -> None:
+            await trio.sleep(10)
+
+        def idle() -> None:
+            out.append("idle")
+            if out == ["idle", "ready", "idle"]:
+                trio.lowlevel.current_trio_token().run_sync_soon(out.append, "updated")
+                evl._nursery.start_soon(started_by_idle)  # pylint: disable=protected-access  # as user code holding it
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(idle)
+        evl.alarm(0.05, lambda: out.append("ready"))
+        # The only other event: an idle pass after "updated" can only come from the posted job.
+        evl.alarm(0.5, exit_clean)
+        evl.run()
+        self.assertEqual(["idle", "ready", "idle", "updated", "idle"], out)
+
+    def test_work_started_or_woken_by_idle_callbacks_does_not_repeat_idle(self) -> None:
+        """Tasks that idle callbacks start or wake, directly or through other idle work, cause no idle pass."""
+        cases: dict[str, Callable[[urwid.TrioEventLoop, list[None]], None]] = {
+            "nursery in an async idle callback": self._idle_starts_a_nursery,
+            "alarm from an async idle callback": self._idle_sets_an_alarm_from_a_task,
+            "task woken by a sync idle callback": self._idle_wakes_a_task,
+        }
+        for name, set_up in cases.items():
+            with self.subTest(name):
+                evl = urwid.TrioEventLoop()
+                idle_passes: list[None] = []
+                set_up(evl, idle_passes)
+                evl.alarm(0.2, self._exit_clean)
+                evl.run()
+                self.assertLess(len(idle_passes), 10)
+
+    def test_embedded_loops_do_not_repeat_each_others_idle(self) -> None:
+        """Two loops embedded in one Trio run do not count each other's idle work as work."""
+        idle_passes: list[list[None]] = [[], []]
+        loops = [urwid.TrioEventLoop(), urwid.TrioEventLoop()]
+        for evl, passes in zip(loops, idle_passes, strict=True):
+            self._idle_starts_a_nursery(evl, passes)
+            evl.alarm(0.2, self._exit_clean)
+
+        async def body() -> None:
+            async with trio.open_nursery() as nursery:
+                nursery.start_soon(loops[1].run_async)
+                await loops[0].run_async()
+
+        trio.run(body)
+        self.assertLess(len(idle_passes[0]), 10)
+        self.assertLess(len(idle_passes[1]), 10)
+
+    @staticmethod
+    def _exit_clean() -> typing.NoReturn:
+        raise urwid.ExitMainLoop
+
+    @staticmethod
+    def _idle_starts_a_nursery(evl: urwid.TrioEventLoop, idle_passes: list[None]) -> None:
+        async def idle() -> None:
+            idle_passes.append(None)
+            async with trio.open_nursery() as nursery:
+                nursery.start_soon(trio.lowlevel.checkpoint)
+
+        evl.enter_idle(idle)
+
+    @staticmethod
+    def _idle_sets_an_alarm_from_a_task(evl: urwid.TrioEventLoop, idle_passes: list[None]) -> None:
+        async def idle() -> None:
+            idle_passes.append(None)
+            evl.alarm(10, lambda: None)
+
+        evl.enter_idle(idle)
+
+    @staticmethod
+    def _idle_wakes_a_task(evl: urwid.TrioEventLoop, idle_passes: list[None]) -> None:
+        events = [trio.Event()]
+
+        async def worker() -> typing.NoReturn:
+            while True:
+                await events[0].wait()
+                events[0] = trio.Event()
+
+        def idle() -> None:
+            idle_passes.append(None)
+            events[0].set()
+
+        evl.enter_idle(idle)
+        evl.alarm(0, worker)
+
+    def test_async_idle_callback_does_not_repeat_idle(self) -> None:
+        """An async idle callback runs at once, and its task does not cause another idle pass by that alone."""
+        evl = self.evl
+        out: list[str] = []
+
+        async def say_waiting() -> None:
+            out.append("waiting")
+
+        def exit_clean() -> typing.NoReturn:
+            out.append("clean exit")
+            raise urwid.ExitMainLoop
+
+        evl.enter_idle(say_waiting)
+        evl.alarm(0.2, exit_clean)
+        evl.run()
+        self.assertEqual("clean exit", out[-1])
+        self.assertLess(out.count("waiting"), 10)
+
     def test_idle_callbacks_run_only_while_the_nursery_is_open(self) -> None:
         """Idle callbacks, which need the nursery when async, are not run while Trio polls after it closed."""
         evl = typing.cast("urwid.TrioEventLoop", self.evl)
@@ -876,64 +1325,6 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
         self.assertIn("waiting", out)
         self.assertNotIn("idle after exit", out)
-
-    def test_idle_callback_exit_main_loop_stops_the_loop(self) -> None:
-        """ExitMainLoop raised by an idle callback stops the loop cleanly, as from an alarm callback."""
-        evl = self.evl
-        out: list[str] = []
-
-        def exit_clean() -> typing.NoReturn:
-            out.append("clean exit")
-            raise urwid.ExitMainLoop
-
-        def guard_exit() -> typing.NoReturn:
-            out.append("guard exit")
-            raise urwid.ExitMainLoop
-
-        evl.enter_idle(exit_clean)
-        self._exit_once_seen(out, guard_exit, "clean exit")
-        evl.run()
-        self.assertEqual(["clean exit"], out)
-
-    def test_idle_callback_may_change_the_idle_callbacks(self) -> None:
-        """An idle callback that removes itself and adds another does not break the loop."""
-        evl = self.evl
-        out: list[str] = []
-        handles: list[int] = []
-
-        def once() -> None:
-            out.append("once")
-            evl.remove_enter_idle(handles[0])
-            handles.append(evl.enter_idle(lambda: out.append("waiting")))
-
-        def exit_clean() -> typing.NoReturn:
-            out.append("clean exit")
-            raise urwid.ExitMainLoop
-
-        handles.append(evl.enter_idle(once))
-        self._exit_once_seen(out, exit_clean, "waiting")
-        evl.run()
-        self.assertEqual("once", out[0])
-        self.assertIn("waiting", out)
-        self.assertEqual("clean exit", out[-1])
-
-    def test_idle_callback_error_is_raised_from_run(self) -> None:
-        """An exception raised by an idle callback stops the loop and is raised from run()."""
-        evl = self.evl
-        out: list[str] = []
-
-        def exit_error() -> typing.NoReturn:
-            out.append("error")
-            raise ZeroDivisionError
-
-        def guard_exit() -> typing.NoReturn:
-            out.append("guard exit")
-            raise urwid.ExitMainLoop
-
-        evl.enter_idle(exit_error)
-        self._exit_once_seen(out, guard_exit, "error")
-        self.assertRaises(ZeroDivisionError, evl.run)
-        self.assertEqual(["error"], out)
 
     def test_async_alarm_callback_error(self):
         evl = self.evl
@@ -1027,7 +1418,7 @@ class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTes
         called = []
         self.evl._did_something = False
         with (
-            mock.patch("urwid.event_loop.zmq_loop.time.time", return_value=100.0),
+            mock.patch("urwid.event_loop.zmq_loop.time.monotonic", return_value=100.0),
             mock.patch.object(self.evl._poller, "poll", new_callable=mock.AsyncMock, return_value=[]) as poll,
         ):
             self.evl.alarm(0.0005, lambda: called.append("alarm"))
@@ -1072,6 +1463,25 @@ class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTes
             self._poll_once()
 
         self.assertEqual(["ready", "alarm"], called)
+
+    def test_async_callback_error_stops_the_loop_while_its_task_is_referenced(self):
+        """A failing async callback stops the loop without waiting for its task to be garbage collected."""
+        evl = self.evl
+        tasks: list[asyncio.Task[typing.Any] | None] = []
+        out: list[str] = []
+
+        async def error_coro() -> typing.NoReturn:
+            tasks.append(asyncio.current_task())
+            raise ZeroDivisionError
+
+        def guard_exit() -> typing.NoReturn:
+            out.append("guard exit")
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0, error_coro)
+        evl.alarm(5, guard_exit)
+        self.assertRaises(ZeroDivisionError, evl.run)
+        self.assertEqual([], out)
 
     def test_watch_queue_and_remove_watch_queue(self):
         evl = self.evl

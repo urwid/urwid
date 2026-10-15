@@ -89,6 +89,7 @@ class AsyncioEventLoop(EventLoop):
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
         self._background_tasks: set[asyncio.Task[typing.Any]] = set()
+        self._pending_alarms: set[asyncio.TimerHandle] = set()
 
     def __del__(self) -> None:
         """Close the runner created for a loop that was neither given nor running."""
@@ -141,7 +142,8 @@ class AsyncioEventLoop(EventLoop):
     def _entering_idle(self) -> None:
         """Call all the registered idle callbacks."""
         try:
-            for callback in self._idle_callbacks.values():
+            # A callback may add or remove idle callbacks.
+            for callback in list(self._idle_callbacks.values()):
                 self._run_callback(callback)
         finally:
             self._idle_asyncio_handle = None
@@ -171,17 +173,28 @@ class AsyncioEventLoop(EventLoop):
         :param seconds: time in seconds to wait before calling callback
         :param callback: function to call from event loop
         """
-        return self._loop.call_later(seconds, self._also_call_idle(callback))
+        call_idle = self._also_call_idle(callback)
+
+        def fire() -> None:
+            self._pending_alarms.discard(handle)
+            call_idle()
+
+        handle = self._loop.call_later(seconds, fire)
+        self._pending_alarms.add(handle)
+        return handle
 
     def remove_alarm(self, handle: asyncio.TimerHandle) -> bool:
         """
         Remove an alarm.
 
-        Returns True if the alarm exists, False otherwise
+        Returns True if the alarm was still pending, False if it has fired or was removed already.
         """
-        existed = not handle.cancelled()
         handle.cancel()
-        return existed
+        try:
+            self._pending_alarms.remove(handle)
+        except KeyError:
+            return False
+        return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """Call callback() when fd has some data to read.

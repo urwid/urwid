@@ -25,10 +25,13 @@ Trio library is required.
 
 from __future__ import annotations
 
+import contextlib
 import functools
 import inspect
 import logging
+import socket
 import typing
+import weakref
 
 import trio
 
@@ -51,27 +54,94 @@ async def _reraise(exc: BaseException) -> typing.NoReturn:
     raise exc
 
 
-class _TrioIdleCallbackInstrument(trio.abc.Instrument):
-    """IDLE callbacks emulation helper."""
+class _IdleWork:
+    """Tasks of every urwid loop in one Trio run whose steps are not work for an idle pass."""
 
-    __slots__ = ("_event_loop",)
+    __slots__ = ("__weakref__", "idle_tasks", "in_idle", "wake_drains")
+
+    def __init__(self) -> None:
+        # Weak: a finished task is never woken again, so nothing else removes it.
+        self.idle_tasks: weakref.WeakSet[trio.lowlevel.Task] = weakref.WeakSet()
+        self.wake_drains: weakref.WeakSet[trio.lowlevel.Task] = weakref.WeakSet()
+        self.in_idle = False
+
+
+# Shared by all urwid loops embedded in one Trio run: one loop's idle work must not count as work for another.
+_IDLE_WORK: trio.lowlevel.RunVar[_IdleWork] = trio.lowlevel.RunVar("urwid_idle_work")
+
+
+def _idle_work() -> _IdleWork:
+    """Return the idle work record of the current Trio run, creating it on first use."""
+    try:
+        return _IDLE_WORK.get()
+    except LookupError:
+        work = _IdleWork()
+        _IDLE_WORK.set(work)
+        return work
+
+
+class _TrioIdleCallbackInstrument(trio.abc.Instrument):
+    """IDLE callbacks emulation helper.
+
+    Idle callbacks run before Trio waits for I/O, when a task has done work since the previous idle pass.
+    A task started or woken by an idle pass, or by other idle work, is idle work and not counted,
+    until something else wakes it: I/O, a deadline, or a task that is not idle work.
+    So idle callbacks that start or wake tasks do not cause the next idle pass on their own.
+    """
+
+    __slots__ = ("_event_loop", "_stepping", "_work")
 
     def __init__(self, event_loop: TrioEventLoop) -> None:
         self._event_loop = event_loop
+        self._stepping: trio.lowlevel.Task | None = None
+        self._work: _IdleWork | None = None
+
+    def before_run(self) -> None:
+        self._work = _idle_work()
+
+    def task_spawned(self, task: trio.lowlevel.Task) -> None:
+        self.task_scheduled(task)
+
+    def before_task_step(self, task: trio.lowlevel.Task) -> None:
+        self._stepping = task
+
+    def task_scheduled(self, task: trio.lowlevel.Task) -> None:
+        work = typing.cast("_IdleWork", self._work)
+        # A checkpoint reschedules a task during its own step, so a task that only yields stays idle work.
+        if work.in_idle or self._stepping in work.idle_tasks:
+            work.idle_tasks.add(task)
+        else:
+            work.idle_tasks.discard(task)
+
+    def after_task_step(self, task: trio.lowlevel.Task) -> None:
+        # pylint: disable=protected-access  # cooperating class
+        work = typing.cast("_IdleWork", self._work)
+        self._stepping = None
+        if task not in work.idle_tasks and task not in work.wake_drains:
+            self._event_loop._did_something = True
 
     def before_io_wait(self, timeout: float) -> None:
         # pylint: disable=protected-access  # cooperating class
+        event_loop = self._event_loop
         # Trio keeps polling while the main task's nursery is cancelled and after it has closed: the loop is exiting.
-        nursery = self._event_loop._nursery
-        if timeout > 0 and nursery is not None and not nursery.cancel_scope.cancel_called:
-            try:
-                for idle_callback in list(self._event_loop._idle_callbacks.values()):
-                    self._event_loop._run_callback(idle_callback)
-            # Trio logs an exception raised by an instrument hook and then disables the instrument.
-            except BaseException as exc:  # noqa: BLE001  # re-raised in the nursery
-                nursery.start_soon(_reraise, exc)
-                # The wait this hook precedes would otherwise run its full timeout before the new task.
-                trio.lowlevel.current_trio_token().run_sync_soon(lambda: None)
+        nursery = event_loop._nursery
+        if timeout <= 0 or nursery is None or nursery.cancel_scope.cancel_called or not event_loop._did_something:
+            return
+        event_loop._did_something = False
+        work = typing.cast("_IdleWork", self._work)
+        work.in_idle = True
+        try:
+            for idle_callback in list(event_loop._idle_callbacks.values()):
+                event_loop._run_callback(idle_callback)
+        # Trio logs an exception raised by an instrument hook and then disables the instrument.
+        except BaseException as exc:  # noqa: BLE001  # re-raised in the nursery
+            nursery.start_soon(_reraise, exc)
+        finally:
+            work.in_idle = False
+        # Trio computed the timeout of the coming wait before this hook, so a task started above would wait for it.
+        if trio.lowlevel.current_statistics().tasks_runnable:
+            with contextlib.suppress(BlockingIOError):  # a full buffer already holds a pending wake-up
+                typing.cast("socket.socket", event_loop._wake_wr).send(b"\0")
 
 
 class TrioEventLoop(EventLoop):
@@ -102,6 +172,12 @@ class TrioEventLoop(EventLoop):
         ] = []
 
         self._nursery: trio.Nursery | None = None
+        # Whether a task did work since the last idle pass; see _TrioIdleCallbackInstrument.
+        self._did_something = True
+        self._pending_alarms: set[trio.CancelScope] = set()
+        self._watch_scopes: dict[int, trio.CancelScope] = {}
+        # Write end of the socket pair that wakes the loop after an idle pass; set while the nursery is open.
+        self._wake_wr: socket.socket | None = None
 
         self._sleep = trio.sleep
         self._wait_readable = trio.lowlevel.wait_readable
@@ -135,7 +211,9 @@ class TrioEventLoop(EventLoop):
 
         No parameters are passed to the callback.
         """
-        return self._start_task(self._alarm_task, seconds, callback)
+        scope = self._start_task(self._alarm_task, seconds, callback)
+        self._pending_alarms.add(scope)
+        return scope
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """Call `callback()` when the event loop enters the idle state.
@@ -151,8 +229,15 @@ class TrioEventLoop(EventLoop):
         """Remove an alarm.
 
         :param handle: the handle of the alarm to remove
+        :returns: True if the alarm was still pending, False if it has fired or was removed already
         """
-        return self._cancel_scope(handle)
+        try:
+            self._pending_alarms.remove(handle)
+        except KeyError:
+            return False
+        finally:
+            handle.cancel()
+        return True
 
     def remove_enter_idle(self, handle: int) -> bool:
         """Remove an idle callback.
@@ -236,6 +321,7 @@ class TrioEventLoop(EventLoop):
         emulate_idle_callbacks = _TrioIdleCallbackInstrument(self)
 
         try:
+            emulate_idle_callbacks.before_run()  # added to a run that has started already
             trio.lowlevel.add_instrument(emulate_idle_callbacks)
             try:
                 await self._main_task()
@@ -256,8 +342,16 @@ class TrioEventLoop(EventLoop):
         :param fd: file descriptor to watch for input
         :param callback: function to call when some input is available
         :returns: a handle that may be passed to `remove_watch_file()`
+
+        A watch already set on the descriptor is replaced, and its handle is no longer valid.
         """
-        return self._start_task(self._watch_task, fd, callback)
+        fileno = fd if isinstance(fd, int) else fd.fileno()
+        if (old_scope := self._watch_scopes.get(fileno)) is not None:
+            # Trio refuses a second task waiting on one descriptor; cancelling stops the old wait at once.
+            old_scope.cancel()
+        scope = self._start_task(self._watch_task, fd, callback)
+        self._watch_scopes[fileno] = scope
+        return scope
 
     async def _alarm_task(
         self,
@@ -272,7 +366,12 @@ class TrioEventLoop(EventLoop):
         :param callback: the callback to call
         """
         with scope:
-            await self._sleep(seconds)
+            try:
+                await self._sleep(seconds)
+            finally:
+                # Also when the loop exits: an alarm left over from a closed nursery never fires.
+                self._pending_alarms.discard(scope)
+            self._did_something = True
             self._run_callback(callback)
 
     def _handle_main_loop_exception(self, exc: BaseException) -> None:
@@ -294,12 +393,31 @@ class TrioEventLoop(EventLoop):
 
     async def _main_task(self) -> None:
         """Open a nursery and sleep until the user exits the app by raising ExitMainLoop."""
+        self._did_something = True
+        wake_rd, self._wake_wr = socket.socketpair()
         try:
+            wake_rd.setblocking(False)
+            self._wake_wr.setblocking(False)
             async with trio.open_nursery() as self._nursery:
+                self._nursery.start_soon(self._drain_wake_ups, wake_rd)
                 self._schedule_pending_tasks()
                 await trio.sleep_forever()
         finally:
             self._nursery = None
+            self._wake_wr.close()
+            self._wake_wr = None
+            wake_rd.close()
+
+    async def _drain_wake_ups(self, wake_rd: socket.socket) -> typing.NoReturn:
+        """Read the wake-ups written after an idle pass, which only end Trio's wait for I/O.
+
+        :param wake_rd: read end of the wake-up socket pair
+        """
+        _idle_work().wake_drains.add(trio.lowlevel.current_task())
+        while True:
+            await trio.lowlevel.wait_readable(wake_rd)
+            with contextlib.suppress(BlockingIOError):
+                wake_rd.recv(4096)
 
     def _schedule_pending_tasks(self) -> None:
         """Schedule pending tasks created before the nursery opened to run on it soon.
@@ -349,6 +467,15 @@ class TrioEventLoop(EventLoop):
             # We check for the scope being cancelled before calling
             # wait_readable because if callback cancels the scope, fd might be
             # closed and calling wait_readable with a closed fd does not work.
-            while not scope.cancel_called:
-                await self._wait_readable(fd)
-                self._run_callback(callback)
+            try:
+                while not scope.cancel_called:
+                    await self._wait_readable(fd)
+                    # A task woken in the same batch may have removed or replaced this watch: no checkpoint follows.
+                    if scope.cancel_called:
+                        break
+                    self._did_something = True
+                    self._run_callback(callback)
+            finally:
+                # Found by its scope: a file object closed by now no longer reports its descriptor.
+                for fileno in [key for key, watch_scope in self._watch_scopes.items() if watch_scope is scope]:
+                    del self._watch_scopes[fileno]
