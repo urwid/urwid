@@ -151,8 +151,14 @@ class MonitoredList(list[_T], typing.Generic[_T]):
 
     @_call_modified
     def extend(self, __iterable: Iterable[_T]) -> None:
-        """Extend the list with items from ``__iterable``."""
-        super().extend(__iterable)
+        """Extend with ``__iterable``, notifying even if it raises after appending items."""
+        original_length = len(self)
+        try:
+            super().extend(__iterable)
+        except BaseException:
+            if len(self) != original_length:
+                self._modified()
+            raise
 
     @_call_modified
     def pop(self, __index: typing.SupportsIndex = -1) -> _T:
