@@ -234,9 +234,9 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         super().reverse()
 
     @_call_modified
-    def rotate(self, __n: int = 1) -> None:
+    def rotate(self, __n: typing.SupportsIndex = 1) -> None:
         """Rotate the deque ``__n`` steps to the right (or left, for negative ``__n``)."""
-        super().rotate(__n)
+        super().rotate(operator.index(__n))
 
     @_call_modified
     def clear(self) -> None:
@@ -497,11 +497,12 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([], focus=None)
         """
-        idx = int(index)
+        position = operator.index(index)
+        idx = position
         if idx < 0:
             idx += len(self)
         focus = self._adjust_focus_on_single_change(idx, 1, 0)
-        self._modify(focus, super(MonitoredDeque, self).__delitem__, index)
+        self._modify(focus, super(MonitoredDeque, self).__delitem__, position)
 
     def append(self, item: _T) -> None:
         """Append ``item`` to the right end of the deque.
@@ -722,7 +723,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         """
         self._modify(max(0, len(self) - self._focus - 1), super(MonitoredDeque, self).reverse)
 
-    def rotate(self, n: int = 1) -> None:
+    def rotate(self, n: typing.SupportsIndex = 1) -> None:
         """Rotate the deque ``n`` steps to the right (or left, for negative ``n``).
 
         Carries the focus item along with the rotation -- there is no list precedent for this
@@ -738,7 +739,10 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([1, 2, 3, 4, 0], focus=4)
         """
-        self._modify((self._focus + n) % len(self) if self else self._focus, super(MonitoredDeque, self).rotate, n)
+        steps = operator.index(n)
+        self._modify(
+            (self._focus + steps) % len(self) if self else self._focus, super(MonitoredDeque, self).rotate, steps
+        )
 
     def clear(self) -> None:
         """Remove all items and reset focus to ``None``.

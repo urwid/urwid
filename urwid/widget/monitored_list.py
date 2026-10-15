@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import functools
+import operator
 import typing
 
 if typing.TYPE_CHECKING:
@@ -454,8 +455,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if isinstance(y, slice):
             focus = self._adjust_focus_on_contents_modified(y)
         else:
-            idx = int(y)
-            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None))
+            y = operator.index(y)
+            focus = self._adjust_focus_on_contents_modified(slice(y, y + 1 or None))
         self._modify(focus, super(MonitoredList, self).__delitem__, y)
 
     @typing.overload
@@ -500,8 +501,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             self._modify(focus, super(MonitoredList, self).__setitem__, i, new_items)
         else:
             item = typing.cast("_T", y)
-            idx = int(i)
-            focus = self._adjust_focus_on_contents_modified(slice(idx, idx + 1 or None), [item])
+            i = operator.index(i)
+            focus = self._adjust_focus_on_contents_modified(slice(i, i + 1 or None), [item])
             self._modify(focus, super(MonitoredList, self).__setitem__, i, item)
 
     def __imul__(self, n: typing.SupportsIndex) -> Self:
@@ -520,7 +521,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> print(ml.focus)
         None
         """
-        multiplier = int(n)
+        multiplier = operator.index(n)
         if multiplier > 0:
             focus = self._adjust_focus_on_contents_modified(slice(len(self), len(self)), list(self) * (multiplier - 1))
         else:  # all contents are being removed
@@ -593,7 +594,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([0, 1], focus=1)
         """
-        focus = self._adjust_focus_on_contents_modified(slice(index, int(index) + 1 or None))
+        index = operator.index(index)
+        focus = self._adjust_focus_on_contents_modified(slice(index, index + 1 or None))
         return self._modify(focus, super(MonitoredList, self).pop, index)
 
     def remove(self, value: _T) -> None:
