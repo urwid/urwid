@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import codecs
 import dataclasses
 import glob
 import html
@@ -59,6 +60,8 @@ POLL_CONNECT = 3
 MAX_COLS = 200
 MAX_ROWS = 100
 MAX_READ = 4096
+# encoding of the keyboard input pipe, written by handle_short_request() and read by Screen.get_input()
+_PIPE_ENCODING: typing.Final = "utf-8"
 BUF_SZ = 16384
 
 # Characters that may appear in an id produced by secrets.token_urlsafe():
@@ -135,6 +138,8 @@ class Screen(BaseScreen):
         self.pipe_name = ""
         self.input_fd: int | None = None
         self.input_tail = ""
+        # keeps a character split between two reads of the input pipe until its last byte arrives
+        self._input_decoder = codecs.getincrementaldecoder(_PIPE_ENCODING)("replace")
         self.content_head = ""
         self.screen_size: tuple[int, int] | None = None
         self.server_socket: socket.socket | None = None
@@ -239,6 +244,7 @@ class Screen(BaseScreen):
 
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
+        self._input_decoder.reset()
         self.content_head = (
             f"Content-type: multipart/x-mixed-replace;boundary=ZZ\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n--ZZ\r\n"
         )
@@ -338,7 +344,8 @@ class Screen(BaseScreen):
             y += 1
             # resolved, so a row is sent again when a palette change gives it other colors
             l_row = tuple(
-                (self.resolve_attr(attr_, self._colour_index), line.decode(encoding)) for attr_, _, line in row
+                (self.resolve_attr(attr_, self._colour_index), line.decode(encoding, "replace"))
+                for attr_, _, line in row
             )
 
             line = []
@@ -454,7 +461,7 @@ class Screen(BaseScreen):
                 return [], []
             return []
 
-        keydata = os.read(input_fd, MAX_READ).decode(get_encoding())
+        keydata = self._input_decoder.decode(os.read(input_fd, MAX_READ))
         os.close(input_fd)
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         # sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
@@ -581,8 +588,8 @@ def handle_short_request() -> bool:
 
     try:
         try:
-            keydata = sys.stdin.read(MAX_READ)
-            encoded_keydata = keydata.encode(_request_charset())
+            keydata = sys.stdin.buffer.read(MAX_READ)
+            encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             return True

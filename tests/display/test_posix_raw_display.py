@@ -5,7 +5,6 @@ import signal
 import struct
 import subprocess
 import sys
-import textwrap
 import unittest
 from unittest import mock
 
@@ -25,6 +24,17 @@ if not IS_WINDOWS:
     import termios
 
     from urwid.display._posix_raw_display import _GPM_B_LEFT, _GPM_MOD_SHIFT, Screen
+
+
+class _StrictBytes(bytes):
+    """A termios key that fails on comparison with a str, as `python -bb` makes every bytes object do."""
+
+    __hash__ = bytes.__hash__
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, str):
+            raise BytesWarning(f"comparison of {self!r} with {other!r}")
+        return super().__eq__(other)
 
 
 def _make_screen(input_fd: int | None = None) -> Screen:
@@ -98,37 +108,45 @@ class TestStartStop(unittest.TestCase):
         s.stop()
         mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
 
-    def test_start_stop_on_a_pty_without_bytes_warning(self):
-        """termios reports the signal keys as bytes and `stop()` passes them back to
-        `tty_signal_keys()`, which must not compare them with the str "undefined": under
-        `python -bb` that comparison raises BytesWarning (#512). Run in a child interpreter,
-        since the flag can only be set at startup."""
-        code = textwrap.dedent(
-            """
-            import os
-            import pty
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr")
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_start_stop_restores_bytes_signal_keys_without_comparing_them_to_str(
+        self,
+        mock_isatty,
+        mock_setcbreak,
+        mock_tcgetattr,
+        mock_tcsetattr,
+    ):
+        """termios reports the signal keys as bytes, and `stop()` passes them back to `tty_signal_keys()`.
 
-            from urwid.display._posix_raw_display import Screen
-            from urwid.display.common import RealTerminal
+        Comparing them with the str "undefined" raises BytesWarning under `python -bb` (#512), so the keys
+        here fail on any comparison with a str, which needs no interpreter flag.
+        """
+        cc = [_StrictBytes(b"\0")] * 32
+        keys = {
+            termios.VINTR: _StrictBytes(b"\x03"),
+            termios.VQUIT: _StrictBytes(b"\x1c"),
+            termios.VSTART: _StrictBytes(b"\x11"),
+            termios.VSTOP: _StrictBytes(b"\x13"),
+            termios.VSUSP: _StrictBytes(b"\x1a"),
+        }
+        for index, key in keys.items():
+            cc[index] = key
+        mock_tcgetattr.side_effect = lambda fd: [0, 0, 0, 0, 0, 0, cc.copy()]
+        s = _make_screen()
+        s.write = lambda data: None
+        s.flush = lambda: None
 
-            master, slave = pty.openpty()
-            keys = RealTerminal().tty_signal_keys(fileno=slave)
-            assert keys is not None
-            assert RealTerminal().tty_signal_keys(*keys, fileno=slave) == keys
+        s.start()
+        self.addCleanup(s.stop)
+        self.assertEqual(tuple(keys.values()), s._old_signal_keys)
 
-            screen = Screen(input=os.fdopen(slave, "rb", buffering=0), output=open(os.devnull, "w"))
-            screen.start()
-            screen.stop()
-            """
-        )
-        result = subprocess.run(
-            [sys.executable, "-bb", "-c", code],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=60,
-        )
-        self.assertEqual(0, result.returncode, result.stderr)
+        s.stop()
+        restored = mock_tcsetattr.call_args_list[-1].args
+        self.assertEqual((s._input_fileno(), termios.TCSADRAIN), restored[:2])
+        self.assertEqual(cc, restored[2][6])
 
     def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
         """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so

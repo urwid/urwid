@@ -1447,7 +1447,7 @@ class Terminal(Widget):
         self.height: int | None = None
         self.term: TermCanvas | None = None
         self.has_focus = False
-        self.old_tios: tuple[int, int, int, int, int] | None = None
+        self.old_tios: tuple[bytes, bytes, bytes, bytes, bytes] | None = None
         self.terminated = False
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:

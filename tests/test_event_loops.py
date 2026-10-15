@@ -4,6 +4,7 @@ import asyncio
 import concurrent.futures
 import errno
 import gc
+import signal
 import socket
 import sys
 import time
@@ -574,6 +575,22 @@ class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         self.assertRaises(ZeroDivisionError, evl.run)
 
 
+@unittest.skipUnless(GLIB_AVAILABLE, "GLIB unavailable")
+@unittest.skipIf(IS_WINDOWS, "GLib.unix_signal_add is POSIX-only")
+class GLibSignalHandlerTest(unittest.TestCase):
+    def test_invalid_handler_is_rejected_and_keeps_the_previous_one(self) -> None:
+        """Reject a handler that is neither callable nor SIG_IGN/SIG_DFL at once, as `signal.signal()` does."""
+        evl = urwid.GLibEventLoop()
+        evl.set_signal_handler(signal.SIGUSR1, signal.SIG_IGN)
+        self.addCleanup(evl.set_signal_handler, signal.SIGUSR1, signal.SIG_DFL)
+        source = evl._signal_handlers[signal.SIGUSR1]
+
+        with self.assertRaises(TypeError):
+            evl.set_signal_handler(signal.SIGUSR1, 5)
+
+        self.assertEqual(source, evl._signal_handlers[signal.SIGUSR1])
+
+
 @unittest.skipUnless(TORNADO_AVAILABLE, "Tornado not available")
 @unittest.skipIf(
     IS_WINDOWS,
@@ -691,8 +708,10 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
         wr: socket.socket
         rd: socket.socket
 
-        def step2():
-            out.append(rd.recv(2).decode("ascii"))
+        def step2() -> str:
+            data = rd.recv(2).decode("ascii")
+            out.append(data)
+            return data  # the watch must stay: Twisted stops watching when the descriptor's doRead() returns this
 
         def say_hello():
             out.append("hello")

@@ -94,7 +94,7 @@ class EventLoop(abc.ABC):
         """
 
     @abc.abstractmethod
-    def enter_idle(self, callback: typing.Any) -> typing.Any:
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> typing.Any:
         """
         Add a callback for entering idle.
 
@@ -165,7 +165,7 @@ class EventLoop(abc.ABC):
         and returns the resulting value.
 
         :param signum: signal number
-        :param handler: function (taking signum as its single argument),
+        :param handler: function taking the signal number and the current stack frame,
             or `signal.SIG_IGN`, or `signal.SIG_DFL`
         """
         return signal.signal(signum, handler)

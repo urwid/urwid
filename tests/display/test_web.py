@@ -22,7 +22,8 @@ class HandleShortRequestTest(unittest.TestCase):
         }
 
     def test_keyboard_input_uses_request_charset(self) -> None:
-        stdin = io.StringIO("é\n")
+        """The request body is decoded with its own charset and written to the pipe as UTF-8."""
+        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
         environ = {**self.environ, "CONTENT_TYPE": 'text/plain; charset="iso-8859-1"'}
 
@@ -36,12 +37,12 @@ class HandleShortRequestTest(unittest.TestCase):
         ):
             self.assertTrue(web.handle_short_request())
 
-        write.assert_called_once_with(42, b"\xe9\n")
+        write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
 
     def test_keyboard_encoding_error_closes_pipe(self) -> None:
-        stdin = io.StringIO("é\n")
+        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
         environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=ascii"}
 
@@ -294,6 +295,25 @@ class ScreenGetInputTest(unittest.TestCase):
 
         self.assertEqual(result, ["key1"])
         self.assertEqual(self.screen.input_tail, "incompl")
+
+    def test_get_input_decodes_the_pipe_as_utf8_across_reads(self) -> None:
+        """The pipe carries UTF-8 whatever the screen's encoding, and a character may be split between two reads."""
+        old_encoding = urwid.util.get_encoding()
+        self.addCleanup(urwid.set_encoding, old_encoding)
+        urwid.set_encoding("iso-8859-1")
+        selector_mock = self._make_selector_mock(has_input=True)
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", side_effect=[b"a\n\xc3", b"\xa9\n"]),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            first = self.screen.get_input(raw_keys=False)
+            second = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(["a"], first)
+        self.assertEqual(["é"], second)
 
 
 class ScreenStartTest(unittest.TestCase):
