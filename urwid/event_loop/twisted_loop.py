@@ -231,7 +231,7 @@ class TwistedEventLoop(EventLoop):
         self._twisted_idle_enabled = True
 
     def _twisted_idle_callback(self) -> None:
-        for callback in self._idle_callbacks.values():
+        for callback in list(self._idle_callbacks.values()):
             callback()
         self._twisted_idle_enabled = False
 

@@ -14,7 +14,7 @@ from unittest import mock
 import urwid
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Iterator
     from concurrent.futures import Future
     from types import TracebackType
 
@@ -77,6 +77,69 @@ class ClosingSocketPair(typing.ContextManager[tuple[socket.socket, socket.socket
             self.rd_s.close()
         if self.wr_s is not None:
             self.wr_s.close()
+
+
+class IdleCallbackMutationTest(unittest.TestCase):
+    """Idle dispatch tolerates changes to the callback registry."""
+
+    def _event_loops(self) -> Iterator[tuple[urwid.EventLoop, Callable[[], object]]]:
+        evl = urwid.SelectEventLoop()
+        yield evl, evl._entering_idle
+
+        runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
+        self.addCleanup(runner.close)
+        evl = urwid.AsyncioEventLoop(loop=runner.get_loop())
+        yield evl, evl._entering_idle
+
+        if GLIB_AVAILABLE:
+            evl = urwid.GLibEventLoop()
+            yield evl, evl._glib_idle_callback
+
+        if TORNADO_AVAILABLE:
+            from tornado.ioloop import IOLoop
+
+            loop = IOLoop()
+            self.addCleanup(loop.close)
+            evl = urwid.TornadoEventLoop(loop)
+            yield evl, evl._entering_idle
+
+        if TWISTED_AVAILABLE:
+            evl = urwid.TwistedEventLoop()
+            yield evl, evl._twisted_idle_callback
+
+    def _check_mutation(self, evl: urwid.EventLoop, dispatch: Callable[[], object], *, replace: bool) -> None:
+        out: list[str] = []
+
+        def once() -> None:
+            out.append("once")
+            self.assertTrue(evl.remove_enter_idle(handle))
+            if replace:
+                replacement = evl.enter_idle(lambda: out.append("replacement"))
+                self.addCleanup(evl.remove_enter_idle, replacement)
+
+        handle = evl.enter_idle(once)
+        self.addCleanup(evl.remove_enter_idle, handle)
+        other = evl.enter_idle(lambda: out.append("other"))
+        self.addCleanup(evl.remove_enter_idle, other)
+        dispatch()
+        self.assertEqual(["once", "other"], out)
+        self.assertFalse(evl.remove_enter_idle(handle))
+
+        dispatch()
+        expected = ["once", "other", "other"]
+        if replace:
+            expected.append("replacement")
+        self.assertEqual(expected, out)
+
+    def test_idle_callback_may_remove_itself(self):
+        for evl, dispatch in self._event_loops():
+            with self.subTest(event_loop=type(evl).__name__):
+                self._check_mutation(evl, dispatch, replace=False)
+
+    def test_idle_callback_may_replace_itself(self):
+        for evl, dispatch in self._event_loops():
+            with self.subTest(event_loop=type(evl).__name__):
+                self._check_mutation(evl, dispatch, replace=True)
 
 
 class EventLoopTestMixin:

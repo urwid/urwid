@@ -154,7 +154,7 @@ class SelectEventLoop(EventLoop):
 
     def _entering_idle(self) -> None:
         """Call all the registered idle callbacks."""
-        for callback in self._idle_callbacks.values():
+        for callback in list(self._idle_callbacks.values()):
             callback()
 
     def run(self) -> None:

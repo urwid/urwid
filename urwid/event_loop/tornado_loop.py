@@ -114,7 +114,7 @@ class TornadoEventLoop(EventLoop):
     def _entering_idle(self) -> None:
         """Call all the registered idle callbacks."""
         try:
-            for callback in self._idle_callbacks.values():
+            for callback in list(self._idle_callbacks.values()):
                 self._run_callback(callback)
         finally:
             self._idle_asyncio_handle = None
