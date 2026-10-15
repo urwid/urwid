@@ -90,7 +90,7 @@ class TornadoEventLoop(EventLoop):
         @functools.wraps(callback)
         def wrapper(*args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
             if not self._idle_asyncio_handle:
-                self._idle_asyncio_handle = self._loop.call_later(0, self._entering_idle)
+                self._idle_asyncio_handle = self._loop.call_later(0, self.handle_exit(self._entering_idle))
             return self._run_callback(callback, *args, **kwargs)
 
         return wrapper
@@ -114,7 +114,8 @@ class TornadoEventLoop(EventLoop):
     def _entering_idle(self) -> None:
         """Call all the registered idle callbacks."""
         try:
-            for callback in self._idle_callbacks.values():
+            # A callback may add or remove idle callbacks.
+            for callback in list(self._idle_callbacks.values()):
                 self._run_callback(callback)
         finally:
             self._idle_asyncio_handle = None
@@ -165,12 +166,17 @@ class TornadoEventLoop(EventLoop):
         return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
-        """Call *callback* whenever *fd* is readable and return a handle for :meth:`remove_watch_file`."""
+        """Call *callback* whenever *fd* is readable and return a handle for :meth:`remove_watch_file`.
+
+        A watch already set on *fd* is replaced, and its handle is no longer valid.
+        """
 
         @self._also_call_idle
         def handler(_fd: int, _events: int) -> None:
             self.handle_exit(callback)()
 
+        for old_handle in [old for old, watched_fd in self._watch_handles.items() if watched_fd == fd]:
+            self.remove_watch_file(old_handle)
         self._loop.add_handler(fd, handler, ioloop.IOLoop.READ)
         self._max_watch_handle += 1
         handle = self._max_watch_handle

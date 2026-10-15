@@ -595,39 +595,29 @@ class MainLoop:
         screen = typing.cast("_ExternalLoopScreen", self.screen)
         event_loop = typing.cast("_EventLoopWithAlarmsStore", self.event_loop)
 
-        next_alarm: tuple[float, int, Callable[[], typing.Any]] | None = None
+        # The alarms stay in the heap until they run, so a callback can add an earlier alarm or remove a pending one.
+        alarms = event_loop._alarms
 
         while True:
             self.draw_screen()
 
-            if not next_alarm and event_loop._alarms:
-                next_alarm = heapq.heappop(event_loop._alarms)
-
             keys: list[str | tuple[str, int, int, int]] = []
             raw: list[int] = []
             while not keys:
-                if next_alarm:
-                    sec = max(0.0, next_alarm[0] - time.time())
-                    screen.set_input_timeouts(sec)
+                if alarms:
+                    screen.set_input_timeouts(max(0.0, alarms[0][0] - time.monotonic()))
                 else:
                     screen.set_input_timeouts(None)
                 keys, raw = screen.get_input(True)
-                if not keys and next_alarm and next_alarm[0] - time.time() <= 0:
+                if not keys and alarms and alarms[0][0] <= time.monotonic():
                     break
 
             if keys := self.input_filter(keys, raw):
                 self.process_input(keys)
 
-            while next_alarm:
-                if (next_alarm[0] - time.time()) > 0:
-                    break
-                _tm, _tie_break, callback = next_alarm
+            while alarms and alarms[0][0] <= time.monotonic():
+                _tm, _tie_break, callback = heapq.heappop(alarms)
                 callback()
-
-                if event_loop._alarms:
-                    next_alarm = heapq.heappop(event_loop._alarms)
-                else:
-                    next_alarm = None
 
             if "window resize" in keys:
                 self.screen_size = None
