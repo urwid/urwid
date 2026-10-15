@@ -630,7 +630,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     def clear(self) -> None:
         """Remove all items and reset focus to ``None``."""
-        focus = self._adjust_focus_on_contents_modified(slice(0, 0))
+        focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
         self._modify(focus, super(MonitoredList, self).clear)
 
 

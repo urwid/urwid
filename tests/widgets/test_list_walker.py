@@ -334,5 +334,38 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
         self.assertEqual([(1, [b"1    "])], seen)
 
 
+class MonitoredFocusListClearValidationTest(unittest.TestCase):
+    def test_clear_reports_removed_contents(self) -> None:
+        for contents in ([], [1, 2, 3]):
+            with self.subTest(contents=contents):
+                items = urwid.MonitoredFocusList(contents)
+                seen = []
+
+                def validate(indices, new_items):
+                    seen.append((indices, list(new_items), list(items)))
+
+                items.set_validate_contents_modified(validate)
+                items.clear()
+                self.assertEqual([((0, len(contents), 1), [], contents)], seen)
+                self.assertEqual([], items)
+                self.assertIsNone(items.focus)
+
+    def test_clear_respects_removal_rejection(self) -> None:
+        items = urwid.MonitoredFocusList([1, 2, 3], focus=1)
+        modified = []
+        items.set_modified_callback(lambda: modified.append(True))
+
+        def validate(indices, new_items):
+            if indices[0] < indices[1]:
+                raise ValueError("cannot remove items")
+
+        items.set_validate_contents_modified(validate)
+        with self.assertRaisesRegex(ValueError, "cannot remove items"):
+            items.clear()
+        self.assertEqual([1, 2, 3], items)
+        self.assertEqual(1, items.focus)
+        self.assertEqual([], modified)
+
+
 if __name__ == "__main__":
     unittest.main()
