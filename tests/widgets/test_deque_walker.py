@@ -233,8 +233,8 @@ class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
         self.assertEqual(0, mfd.focus)
 
     def test_imul_bounded_by_maxlen(self) -> None:
-        """A huge count on a bounded deque keeps only maxlen items, as deque does, without building the repetition."""
-        for focus, count in ((2, 2), (0, 2), (2, 2**61)):
+        """A bounded deque keeps only maxlen items; a huge count is not repeated item by item on any interpreter."""
+        for focus, count in ((2, 2), (0, 2), (2, 5)):
             with self.subTest(focus=focus, count=count):
                 mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=focus)
                 expected = collections.deque([1, 2, 3], maxlen=4)
@@ -242,6 +242,14 @@ class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
                 mfd *= count
                 self.assertEqual(list(expected), list(mfd))
                 self.assertEqual(max(0, focus - (3 * count - 4)), mfd.focus)
+
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=2)
+        mfd *= 2**61
+        self.assertEqual([3, 1, 2, 3], list(mfd))
+        self.assertEqual(0, mfd.focus)
+        md = urwid.MonitoredDeque([1, 2, 3], maxlen=4)
+        md *= 2**61
+        self.assertEqual([3, 1, 2, 3], list(md))
 
     def test_focus_out_of_range_rejected(self) -> None:
         for focus in (3, -1):

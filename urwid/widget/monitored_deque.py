@@ -56,6 +56,23 @@ def _call_modified(
     return call_modified_wrapper
 
 
+def _bounded_repeat_count(length: int, maxlen: int | None, count: int) -> int:
+    """Return a repeat count no larger than *count* that leaves a deque with the same items as *count* would.
+
+    A bounded deque keeps only the last *maxlen* items of the repetition, so repeating beyond filling *maxlen* changes
+    nothing. ``collections.deque`` does not stop early on every interpreter: PyPy repeats *count* times.
+
+    :param length: number of items in the deque
+    :param maxlen: the deque's ``maxlen``, ``None`` for an unbounded deque
+    :param count: requested repeat count
+    """
+    if count <= 1 or maxlen is None:
+        return count
+    if length == 0:
+        return 1
+    return min(count, max(1, -(-maxlen // length)))
+
+
 class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     """Trigger a callback any time its contents are changed with the usual deque operations append, extend, etc.
 
@@ -160,7 +177,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     @_call_modified
     def __imul__(self, __value: typing.SupportsIndex) -> Self:
         """Repeat the deque's contents `__value` times in place."""
-        return super().__imul__(operator.index(__value))
+        return super().__imul__(_bounded_repeat_count(len(self), self.maxlen, operator.index(__value)))
 
     @_call_modified
     def append(self, __object: _T) -> None:
@@ -588,11 +605,11 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         if count <= 0:
             self.clear()
             return self
-        # deque itself limits the repetition to maxlen; only the number of evicted items is computed here
+        # the evicted count follows from the full repetition; the deque is only repeated as often as maxlen keeps
         total = len(self) * count
         evicted = total - self.maxlen if self.maxlen is not None and total > self.maxlen else 0
         focus = max(0, self._focus - evicted) if self else 0
-        self._modify(focus, super(MonitoredDeque, self).__imul__, count)
+        self._modify(focus, super(MonitoredDeque, self).__imul__, _bounded_repeat_count(len(self), self.maxlen, count))
         return self
 
     def extendleft(self, items: Iterable[_T]) -> None:
