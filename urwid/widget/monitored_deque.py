@@ -62,9 +62,8 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     narrower API. Deliberate differences from :class:`MonitoredList`:
 
     * ``sort()`` is not provided -- ``deque`` itself has no such method.
-    * ``__add__``/``__rmul__``/``__imul__`` are not provided -- ``deque``
-      itself raises ``TypeError`` for concatenation/repetition, so there is
-      nothing meaningful to wrap.
+    * Nonmutating concatenation and repetition are inherited directly from
+      ``deque`` and do not notify this deque's callback.
     * ``maxlen`` needs no dedicated property: it is already a read-only
       attribute inherited from ``deque``.
 
@@ -156,6 +155,11 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     def __iadd__(self, __value: Iterable[_T]) -> MonitoredDeque[_T]:
         """Extend the deque in place with the items from `__value`."""
         return super().__iadd__(__value)
+
+    @_call_modified
+    def __imul__(self, __value: typing.SupportsIndex) -> MonitoredDeque[_T]:
+        """Repeat the deque's contents in place, notifying once."""
+        return super().__imul__(operator.index(__value))
 
     @_call_modified
     def append(self, __object: _T) -> None:
@@ -556,6 +560,30 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         MonitoredFocusDeque([2, 6, 7, 8], maxlen=4, focus=0)
         """
         self.extend(items)
+        return self
+
+    def __imul__(self, n: typing.SupportsIndex) -> MonitoredFocusDeque[_T]:
+        """Repeat the deque in place, adjusting focus like extending its contents.
+
+        If repetition evicts the focused item from a bounded deque, focus moves to the head.
+
+        >>> bounded = MonitoredFocusDeque([0, 1, 2], maxlen=5, focus=1)
+        >>> bounded *= 2
+        >>> bounded
+        MonitoredFocusDeque([1, 2, 0, 1, 2], maxlen=5, focus=0)
+        >>> bounded *= 0
+        >>> bounded
+        MonitoredFocusDeque([], maxlen=5, focus=None)
+        """
+        multiplier = operator.index(n)
+        if multiplier <= 0 or not self:
+            focus = 0
+        elif self.maxlen is None:
+            focus = self._focus
+        else:
+            evicted = max(0, len(self) * multiplier - self.maxlen)
+            focus = max(0, self._focus - evicted)
+        self._modify(focus, super(MonitoredDeque, self).__imul__, multiplier)
         return self
 
     def extendleft(self, items: Iterable[_T]) -> None:
