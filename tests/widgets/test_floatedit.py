@@ -31,7 +31,9 @@ class FloatEditPreservePrecicionTest(unittest.TestCase):
         for v, sig, sep in product(("1.010", "2.500", "300.000", "4.100", "5.001"), (0, 1, 2, 3), (".", ",")):
             precision_template = "0." + "0" * sig
             expected = Decimal(v).quantize(Decimal(precision_template))
-            f = FloatEdit(preserve_significance=True, default=precision_template, decimal_separator=sep)
+            f = FloatEdit(
+                preserve_significance=True, default=precision_template.replace(".", sep), decimal_separator=sep
+            )
 
             f.set_edit_text(v.replace(".", sep))
             self.assertEqual(expected, f.value(), f"{f.value()} != {expected} (significance={sig!r})")
@@ -47,3 +49,35 @@ class FloatEditDeprecatedArgumentsTest(unittest.TestCase):
             f = FloatEdit(decimalSeparator=",")
         f.set_edit_text("1,5")
         self.assertEqual(Decimal("1.5"), f.value())
+
+
+class FloatEditDefaultSeparatorTest(unittest.TestCase):
+    def test_defaults_use_the_configured_separator(self):
+        for default in ("1,250", Decimal("1.250")):
+            for preserve_significance in (False, True):
+                with self.subTest(default=default, preserve_significance=preserve_significance):
+                    edit = FloatEdit(
+                        default=default, decimal_separator=",", preserve_significance=preserve_significance
+                    )
+                    self.assertEqual("1,250", edit.edit_text)
+                    self.assertEqual(Decimal("1.250"), edit.value())
+                    self.assertEqual(1.25, float(edit))
+                    edit.set_edit_text("2,5")
+                    self.assertEqual(
+                        Decimal("2.500" if preserve_significance else "2.5").as_tuple(), edit.value().as_tuple()
+                    )
+
+    def test_string_defaults_reject_the_wrong_separator(self):
+        for separator, default in ((",", "1.250"), (".", "1,250"), (",", "1.2,50")):
+            for preserve_significance in (False, True):
+                with (
+                    self.subTest(separator=separator, default=default, preserve_significance=preserve_significance),
+                    self.assertRaises(ValueError),
+                ):
+                    FloatEdit(default=default, decimal_separator=separator, preserve_significance=preserve_significance)
+
+    def test_deprecated_separator_applies_to_default(self):
+        with self.assertWarns(DeprecationWarning):
+            edit = FloatEdit(default="1,25", decimalSeparator=",")
+        self.assertEqual("1,25", edit.edit_text)
+        self.assertEqual(Decimal("1.25"), edit.value())

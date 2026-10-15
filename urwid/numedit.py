@@ -286,7 +286,7 @@ class FloatEdit(NumEdit):
         """Initialize a decimal edit widget.
 
         :param caption: caption markup
-        :param default: default edit value
+        :param default: default edit value. Strings must use the configured decimal separator.
         :param preserve_significance: return value has the same signif. as default
         :param decimal_separator: use '.' as separator by default, optionally a ','
         :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`, or *decimal_separator* is
@@ -369,13 +369,17 @@ class FloatEdit(NumEdit):
 
             if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
+                invalid_separator = "," if self._decimal_separator == "." else "."
+                if invalid_separator in default:
+                    raise ValueError(f"invalid decimal separator in default value: {invalid_separator}")
+                default = default.replace(self._decimal_separator, ".")
                 float(default)
                 default = decimal.Decimal(default)
 
             if preserve_significance and isinstance(default, decimal.Decimal):
                 self.significance = default
 
-            val = str(default)
+            val = str(default).replace(".", self._decimal_separator)
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
