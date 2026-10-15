@@ -426,6 +426,23 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         finally:
             urwid.set_encoding(old_encoding)
 
+    def test_narrow_and_wide_encoding_decoding(self):
+        old_encoding = util.get_encoding()
+        try:
+            for encoding, codes, expected, expected_rest in (
+                ("koi8-r", [0xC1], ["а"], []),  # single byte of a narrow encoding
+                ("iso-8859-1", [0xE9], ["é"], []),
+                ("gbk", [0xD6, 0xD0, ord("A")], ["中"], [ord("A")]),  # double byte of a wide encoding
+                ("ascii", [0xE9], ["é"], []),  # not a character of the encoding: read as Latin-1
+            ):
+                with self.subTest(encoding=encoding, codes=codes):
+                    urwid.set_encoding(encoding)
+                    actual, rest = escape.process_keyqueue(codes, more_available=False)
+                    self.assertEqual(expected, actual)
+                    self.assertListEqual(expected_rest, rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
     def test_nul_byte_fallback(self):
         old_encoding = util.get_encoding()
         try:

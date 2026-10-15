@@ -337,17 +337,9 @@ class Screen(BaseScreen, RealTerminal):
         * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
         * Window events:  ``"window resize"``
 
-        When a narrow encoding is not enabled:
+        Other characters, decoded from the terminal encoding (UTF-8, or a single- or double-byte encoding):
 
-        * "Extended ASCII" characters:  "\xa1", "\xb2", "\xfe"
-
-        When a wide encoding is enabled:
-
-        * Double-byte characters:  "\xa1\xea", "\xb2\xd4"
-
-        When utf8 encoding is enabled:
-
-        * Unicode characters: u"\u00a5", u'\u253c"
+        * Unicode characters: "\u00a5", "\u253c", "\u4e2d"
 
         Examples of mouse events returned:
 
@@ -589,10 +581,10 @@ class Screen(BaseScreen, RealTerminal):
 
             aborted = False
             for nr, (a, cs, seg) in enumerate(row):
+                if not isinstance(seg, bytes):  # canvases render with bytes
+                    raise TypeError(seg)
                 if cs != "U":
                     seg = seg.translate(UNPRINTABLE_TRANS_TABLE)  # noqa: PLW2901
-                    if not isinstance(seg, bytes):
-                        raise TypeError(seg)
 
                 if first or lasta != a:
                     self._setattr(a)
@@ -604,9 +596,7 @@ class Screen(BaseScreen, RealTerminal):
                     else:
                         if cs is not None:
                             raise ValueError(f"cs not in ('0', 'U' ,'None'): {cs!r}")
-                        if not isinstance(seg, bytes):
-                            raise TypeError(seg)
-                        self.s.addstr(seg.decode(util.get_encoding()))
+                        self.s.addstr(seg.decode(util.get_encoding(), "replace"))
                 except curses.error:
                     # it's OK to get out of the
                     # screen on the lower right
@@ -677,7 +667,7 @@ class _test:
         keys = None
         while keys != ["q"]:
             r = TextCanvas(
-                text=([t.encode(encoding).ljust(cols) for t in text] + [b""] * rows)[:rows],
+                text=([t.encode(encoding, "replace").ljust(cols) for t in text] + [b""] * rows)[:rows],
                 attr=(attr + [[] for _ in range(rows)])[:rows],
             )
             self.ui.draw_screen((cols, rows), r)
@@ -689,11 +679,10 @@ class _test:
             t = ""
             a = []
             for k in keys:
-                if isinstance(k, str):
-                    k = k.encode(encoding)  # type: ignore[assignment]  # noqa: PLW2901
-
-                t += f"'{k}' "
-                a += [(None, 1), ("yellow on dark blue", len(k)), (None, 2)]
+                shown = k if isinstance(k, str) else repr(k)
+                t += f"'{shown}' "
+                # canvas attribute runs are measured in bytes of the encoded text
+                a += [(None, 1), ("yellow on dark blue", len(shown.encode(encoding, "replace"))), (None, 2)]
 
             text.append(f"{t}: {raw!r}")
             attr.append(a)

@@ -142,8 +142,9 @@ class GLibEventLoop(EventLoop):
         ..
 
         :param signum: signal number
-        :param handler: function (taking signum as its single argument),
+        :param handler: function taking the signal number and the current stack frame (always None here),
             or `signal.SIG_IGN`, or `signal.SIG_DFL`
+        :raises TypeError: *handler* is neither callable nor `signal.SIG_IGN` or `signal.SIG_DFL`.
         """
         glib_signals = [
             signal.SIGHUP,
@@ -161,17 +162,24 @@ class GLibEventLoop(EventLoop):
             # The GLib event loop supports only the signals listed above
             return
 
+        callback: Callable[[int, FrameType | None], typing.Any] | None
+        if handler == signal.Handlers.SIG_DFL:
+            callback = None
+        elif handler == signal.Handlers.SIG_IGN:
+            callback = _ignore_handler
+        elif callable(handler):
+            callback = handler
+        else:
+            raise TypeError(f"signal handler must be signal.SIG_IGN, signal.SIG_DFL, or a callable, not {handler!r}")
+
         if signum in self._signal_handlers:
             GLib.source_remove(self._signal_handlers.pop(signum))
 
-        if handler == signal.Handlers.SIG_IGN:
-            handler = _ignore_handler
-        elif handler == signal.Handlers.SIG_DFL:
+        if callback is None:
             return
 
         def final_handler(signal_number: int) -> bool:
-            # MyPy False-negative: signal.Handlers casted
-            handler(signal_number, None)  # type: ignore[operator]
+            callback(signal_number, None)
             return GLib.SOURCE_CONTINUE  # type: ignore[no-any-return]
 
         source = GLib.unix_signal_add(GLib.PRIORITY_DEFAULT, signum, final_handler, signum)

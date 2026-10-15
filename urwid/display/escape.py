@@ -29,7 +29,7 @@ import sys
 import typing
 from collections.abc import MutableMapping
 
-from urwid import str_util
+from urwid import str_util, util
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -696,10 +696,16 @@ def process_keyqueue(
             end_code = codes[1].to_bytes(1, "little")
 
             if str_util.within_double_byte(start_code + end_code, 0, 1):
-                return [chr(code) + chr(codes[1])], codes[2:]
+                try:
+                    return [(start_code + end_code).decode(util.get_encoding())], codes[2:]
+                except UnicodeDecodeError:
+                    pass  # not a character of the encoding: decode the bytes one by one
 
     if 127 < code < 256:
-        key = chr(code)
+        try:
+            key = code.to_bytes(1, "little").decode(util.get_encoding())
+        except UnicodeDecodeError:
+            key = chr(code)  # not a character of the encoding (always for "ascii"): read the byte as Latin-1
         return [key], codes[1:]
     if code != 27:
         return [f"<{code:d}>"], codes[1:]

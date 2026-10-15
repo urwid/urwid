@@ -209,7 +209,8 @@ class MainLoop:
             # signal handlers
             typing.cast("_ExternalLoopScreen", self.screen).signal_handler_setter = self.event_loop.set_signal_handler
 
-        self._watch_pipes: dict[int, tuple[Callable[[], typing.Any], int]] = {}
+        # write end -> (event loop watch handle, read end)
+        self._watch_pipes: dict[int, tuple[typing.Any, int]] = {}
 
     @property
     def widget(self) -> AbstractWidget:
