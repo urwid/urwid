@@ -638,7 +638,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         key: Callable[[_T], SupportsRichComparison] | None = None,
         reverse: bool = False,
     ) -> None:
-        """Sort the list in place, adjusting focus accordingly.
+        """Sort the list in place, keeping focus on the same object rather than an equal item.
 
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
@@ -649,7 +649,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             return None
         value = self[self._focus]
         return self._modify(
-            lambda: self.index(value),
+            lambda: next(index for index, item in enumerate(self) if item is value),
             # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
             lambda: super(MonitoredList, self).sort(key=key, reverse=reverse),
         )
