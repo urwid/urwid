@@ -5,6 +5,7 @@ import signal
 import struct
 import subprocess
 import sys
+import textwrap
 import unittest
 from unittest import mock
 
@@ -96,6 +97,38 @@ class TestStartStop(unittest.TestCase):
 
         s.stop()
         mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
+
+    def test_start_stop_on_a_pty_without_bytes_warning(self):
+        """termios reports the signal keys as bytes and `stop()` passes them back to
+        `tty_signal_keys()`, which must not compare them with the str "undefined": under
+        `python -bb` that comparison raises BytesWarning (#512). Run in a child interpreter,
+        since the flag can only be set at startup."""
+        code = textwrap.dedent(
+            """
+            import os
+            import pty
+
+            from urwid.display._posix_raw_display import Screen
+            from urwid.display.common import RealTerminal
+
+            master, slave = pty.openpty()
+            keys = RealTerminal().tty_signal_keys(fileno=slave)
+            assert keys is not None
+            assert RealTerminal().tty_signal_keys(*keys, fileno=slave) == keys
+
+            screen = Screen(input=os.fdopen(slave, "rb", buffering=0), output=open(os.devnull, "w"))
+            screen.start()
+            screen.stop()
+            """
+        )
+        result = subprocess.run(
+            [sys.executable, "-bb", "-c", code],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=60,
+        )
+        self.assertEqual(0, result.returncode, result.stderr)
 
     def test_alternate_buffer_flag_is_set_before_later_start_steps_can_fail(self):
         """`stop()` still calls `_stop()` after `_start()` raises (`_started` is set first), so
