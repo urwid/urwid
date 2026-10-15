@@ -28,6 +28,7 @@ import functools
 import inspect
 import logging
 import typing
+import weakref
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -89,6 +90,7 @@ class AsyncioEventLoop(EventLoop):
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
         self._background_tasks: set[asyncio.Task[typing.Any]] = set()
+        self._pending_alarms: weakref.WeakSet[asyncio.TimerHandle] = weakref.WeakSet()
 
     def __del__(self) -> None:
         """Close the runner created for a loop that was neither given nor running."""
@@ -171,15 +173,26 @@ class AsyncioEventLoop(EventLoop):
         :param seconds: time in seconds to wait before calling callback
         :param callback: function to call from event loop
         """
-        return self._loop.call_later(seconds, self._also_call_idle(callback))
+
+        @self._also_call_idle
+        def wrapped() -> None:
+            if (handle := handle_ref()) is not None:
+                self._pending_alarms.discard(handle)
+            self._run_callback(callback)
+
+        handle = self._loop.call_later(seconds, wrapped)
+        handle_ref = weakref.ref(handle)
+        self._pending_alarms.add(handle)
+        return handle
 
     def remove_alarm(self, handle: asyncio.TimerHandle) -> bool:
         """
         Remove an alarm.
 
-        Returns True if the alarm exists, False otherwise
+        Returns True if the alarm was still pending, False otherwise
         """
-        existed = not handle.cancelled()
+        existed = handle in self._pending_alarms and not handle.cancelled()
+        self._pending_alarms.discard(handle)
         handle.cancel()
         return existed
 
