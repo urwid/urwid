@@ -239,7 +239,7 @@ class GLibEventLoop(EventLoop):
         self._glib_idle_enabled = True
 
     def _glib_idle_callback(self) -> bool:
-        for callback in self._idle_callbacks.values():
+        for callback in list(self._idle_callbacks.values()):
             callback()
         self._glib_idle_enabled = False
         return False  # ask glib not to call again (or we would be called
