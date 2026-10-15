@@ -21,7 +21,9 @@
 
 from __future__ import annotations
 
+import operator
 import typing
+from collections import deque
 from collections.abc import Iterable
 
 from .list_walker import ListWalker, ListWalkerError
@@ -29,13 +31,56 @@ from .monitored_deque import MonitoredDeque, MonitoredFocusDeque
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
+    from typing import Self
 
 _T = typing.TypeVar("_T")
 
 __all__ = ("SimpleDequeWalker", "SimpleFocusDequeWalker")
 
 
+class _DequeWalker(deque[_T]):
+    """Construct walker results without treating their capacity as a wrap setting."""
+
+    wrap_around: bool
+
+    def copy(self) -> Self:
+        """Return a shallow copy with the same capacity and wrapping setting."""
+        result = type(self)(self) if self.maxlen is None else type(self)(self, maxlen=self.maxlen)
+        result.wrap_around = self.wrap_around
+        return result
+
+    __copy__ = copy
+
+    def __add__(self, other: deque[_T]) -> Self:
+        """Concatenate deques, retaining this walker's capacity and wrapping setting."""
+        if not isinstance(other, deque):
+            return NotImplemented
+        result = self.copy()
+        deque.__iadd__(result, other)
+        return result
+
+    def __mul__(self, multiplier: typing.SupportsIndex) -> Self:
+        """Repeat contents in a new walker with the same capacity and wrapping setting."""
+        try:
+            count = operator.index(multiplier)
+        except TypeError:
+            return NotImplemented
+        result = self.copy()
+        deque.__imul__(result, count)
+        return result
+
+    __rmul__ = __mul__
+
+    def __reduce__(self) -> tuple[typing.Any, ...]:
+        """Pass the capacity in its walker constructor position when reconstructing."""
+        factory, args, *rest = super().__reduce__()
+        contents = args[0] if args else ()
+        walker_args = (contents,) if self.maxlen is None else (contents, self.wrap_around, self.maxlen)
+        return factory, walker_args, *rest
+
+
 class SimpleDequeWalker(
+    _DequeWalker[_T],
     MonitoredDeque[_T],
     ListWalker[int, _T],
 ):
@@ -140,6 +185,7 @@ class SimpleDequeWalker(
 
 
 class SimpleFocusDequeWalker(
+    _DequeWalker[_T],
     MonitoredFocusDeque[_T],
     ListWalker[typing.SupportsIndex, _T],
 ):
