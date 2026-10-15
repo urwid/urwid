@@ -365,5 +365,37 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
         self.assertEqual([(1, [b"1    "])], seen)
 
 
+class PositionsArgumentTest(unittest.TestCase):
+    """``positions()`` of the sequence-backed walkers still accepts a deprecated positional *reverse*."""
+
+    walker_classes = (
+        urwid.SimpleListWalker,
+        urwid.SimpleFocusListWalker,
+        urwid.SimpleDequeWalker,
+        urwid.SimpleFocusDequeWalker,
+    )
+
+    def test_positional_reverse_warns(self) -> None:
+        """A positional *reverse* gives the same order as the keyword, with a warning at the caller."""
+        for walker_class in self.walker_classes:
+            for reverse, expected in ((True, [2, 1, 0]), (False, [0, 1, 2])):
+                with self.subTest(walker=walker_class.__name__, reverse=reverse):
+                    walker = walker_class([0, 1, 2])
+                    with self.assertWarns(DeprecationWarning) as ctx:
+                        positions = list(walker.positions(reverse))  # type: ignore[deprecated]
+
+                    self.assertEqual(expected, positions)
+                    self.assertEqual(__file__, ctx.filename)
+
+    def test_invalid_arguments(self) -> None:
+        """Arguments that the keyword-or-positional signature rejected still raise :exc:`TypeError`."""
+        for walker_class in self.walker_classes:
+            for args, kwargs in (((True, True), {}), ((True,), {"reverse": True}), ((True,), {"reverse": None})):
+                with self.subTest(walker=walker_class.__name__, args=args, kwargs=kwargs):
+                    walker = walker_class([0, 1, 2])
+                    with self.assertRaises(TypeError):
+                        walker.positions(*args, **kwargs)  # type: ignore[call-overload]
+
+
 if __name__ == "__main__":
     unittest.main()

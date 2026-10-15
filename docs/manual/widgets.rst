@@ -653,9 +653,11 @@ There is an optional iteration helper method that may be defined in any list wal
 When this is defined it will be used by :meth:`ListBox.__iter__` and
 :meth:`ListBox.__reversed__`:
 
-.. method:: positions(reverse=False)
+.. method:: positions(*, reverse=False)
 
-   return a forward or reverse iterable of positions
+   return a forward or reverse iterable of positions.
+   :class:`ListBox` always passes *reverse* by keyword, so a custom walker may accept it
+   either positionally or as keyword-only.
 
 .. currentmodule:: urwid
 
