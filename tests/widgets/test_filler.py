@@ -439,6 +439,14 @@ class FillerTest(unittest.TestCase):
 
         self.assertFalse(widget.move_cursor_to_coords((10, 5), 0, 0))
 
+    def test_move_cursor_to_coords_bottom_row_of_narrow_box(self) -> None:
+        """The last row is measured from the height of the box, not from its width."""
+        widget = urwid.Filler(urwid.Edit("", "abc"), valign=urwid.BOTTOM)
+
+        self.assertTrue(widget.move_cursor_to_coords((5, 10), 2, 9))
+        self.assertEqual(2, widget.original_widget.edit_pos)
+        self.assertFalse(widget.move_cursor_to_coords((10, 5), 2, 3))
+
     def test_move_cursor_to_coords_pack_height(self) -> None:
         body = CursorWidget([urwid.FLOW], num_rows=1)
         widget = urwid.Filler(body)

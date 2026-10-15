@@ -15,7 +15,7 @@ from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Sizing, WHSettings
+from .constants import Align, Sizing, WHSettings
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
 from .monitored_list import MonitoredFocusList
 from .widget import (
@@ -274,7 +274,7 @@ class Pile(
                         )
                     )
             elif len(original) == 3:
-                settings, height, w = original  # type: ignore[assignment]
+                settings, amount, w = original
                 # Not deprecated: the expanded form of (height, widget) repeating the internal storage (GIVEN, height).
                 # "fixed" is its older name, kept for backward compatibility.
                 if settings in {Sizing.FIXED, WHSettings.GIVEN}:
@@ -283,7 +283,7 @@ class Pile(
                             typing.cast("AbstractBoxWidget", w),
                             (
                                 WHSettings.GIVEN,
-                                typing.cast("int", height),
+                                typing.cast("int", amount),
                             ),
                         )
                     )
@@ -293,7 +293,7 @@ class Pile(
                             w,
                             (
                                 WHSettings.WEIGHT,
-                                typing.cast("int | float", height),
+                                amount,
                             ),
                         )
                     )
@@ -310,7 +310,7 @@ class Pile(
         if self.contents and focus_item is not None:
             self.focus = focus_item
 
-        self.pref_col = 0
+        self.pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = 0
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
@@ -333,16 +333,16 @@ class Pile(
             | tuple[Literal[WHSettings.WEIGHT], int | float, AbstractWidget]
         ] = []
 
-        for w_instance, (sizing, amount) in self._contents:
-            if sizing == WHSettings.GIVEN:
-                widget_list.append((typing.cast("int", amount), w_instance))
-            elif sizing == WHSettings.PACK:
+        for w_instance, options in self._contents:
+            if options[0] == WHSettings.GIVEN:
+                widget_list.append((options[1], w_instance))
+            elif options[0] == WHSettings.PACK:
                 widget_list.append((WHSettings.PACK, w_instance))
-            elif sizing == WHSettings.WEIGHT:
-                if amount == 1:
+            elif options[0] == WHSettings.WEIGHT:
+                if options[1] == 1:
                     widget_list.append(w_instance)
                 else:
-                    widget_list.append((WHSettings.WEIGHT, typing.cast("int | float", amount), w_instance))
+                    widget_list.append((WHSettings.WEIGHT, options[1], w_instance))
 
         yield "widget_list", widget_list
         yield "focus_item", self.focus_position if self._contents else None
@@ -388,6 +388,7 @@ class Pile(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
                         (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(float(n)))),
+                        t == WHSettings.GIVEN and not isinstance(n, int),
                     )
                 ):
                     invalid_items.append(item)
@@ -510,13 +511,15 @@ class Pile(
 
         :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
         :param height_amount: ``None`` for ``'pack'``, a number of rows for
-            ``'fixed'`` or a weight value (number) for ``'weight'``
+            ``'given'`` or a weight value (number) for ``'weight'``
         :raises PileError: *height_type* and *height_amount* are not a valid combination.
         """
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
-        if height_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and height_amount is not None:
-            return (WHSettings(height_type), height_amount)  # type: ignore[return-value]
+        if height_type == WHSettings.GIVEN and isinstance(height_amount, int):
+            return (WHSettings.GIVEN, height_amount)
+        if height_type == WHSettings.WEIGHT and height_amount is not None:
+            return (WHSettings.WEIGHT, height_amount)
         raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 
     @property
@@ -575,7 +578,10 @@ class Pile(
             raise IndexError(f"No Pile child widget at position {position}").with_traceback(exc.__traceback__) from exc
         self.contents.focus = position
 
-    def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
+    def get_pref_col(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+    ) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
         """Return the preferred column for the cursor, or None.
 
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
@@ -617,7 +623,8 @@ class Pile(
             since="4.1.4",
             removed_in="7.0",
         )
-        _w, (f, height) = self.contents[i]
+        _w, options = self.contents[i]
+        f = options[0]
         if f == WHSettings.PACK:
             if not size:
                 return ()
@@ -628,8 +635,8 @@ class Pile(
 
         maxcol = size[0]
 
-        if f == WHSettings.GIVEN:
-            return (maxcol, typing.cast("int", height))
+        if options[0] == WHSettings.GIVEN:
+            return (maxcol, options[1])
 
         if f == WHSettings.WEIGHT:
             if len(size) == 2:
@@ -665,10 +672,11 @@ class Pile(
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
 
-        for idx, (widget, (size_kind, size_weight)) in enumerate(self.contents):
+        for idx, (widget, options) in enumerate(self.contents):
+            size_kind = options[0]
             w_sizing = widget.sizing()
             focused = focus and self.focus == widget
-            if size_kind == WHSettings.PACK:
+            if options[0] == WHSettings.PACK:
                 if Sizing.FIXED in w_sizing:
                     widths[idx], heights[idx] = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                     w_h_args[idx] = ()
@@ -678,14 +686,14 @@ class Pile(
                 if not w_sizing & {Sizing.FIXED, Sizing.FLOW}:
                     raise PileError(f"Unsupported sizing {w_sizing} for {size_kind.upper()}")
 
-            elif size_kind == WHSettings.GIVEN:
-                heights[idx] = typing.cast("int", size_weight)
+            elif options[0] == WHSettings.GIVEN:
+                heights[idx] = options[1]
                 if Sizing.BOX in w_sizing:
                     box.append(idx)
                 else:
                     raise PileError(f"Unsupported sizing {w_sizing} for {size_kind.upper()}")
 
-            elif typing.cast("int | float", size_weight) <= 0:
+            elif options[1] <= 0:
                 widths[idx] = 0
                 heights[idx] = 0
                 if Sizing.FLOW in w_sizing:
@@ -698,7 +706,7 @@ class Pile(
                 widths[idx] = width  # We're fitting everything in case of FIXED
 
                 if Sizing.BOX in w_sizing:
-                    size_weight = typing.cast("int | float", size_weight)
+                    size_weight = options[1]
                     weighted.setdefault(size_weight, []).append(idx)
                     weights.append(size_weight)
 
@@ -768,7 +776,8 @@ class Pile(
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
         focus_position = self.focus_position
 
-        for i, (w, (f, height)) in enumerate(self.contents):
+        for i, (w, options) in enumerate(self.contents):
+            f = options[0]
             if isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
@@ -777,8 +786,8 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == WHSettings.GIVEN:
-                height = typing.cast("int", height)
+            if options[0] == WHSettings.GIVEN:
+                height = options[1]
                 heights.append(height)
                 w_h_args.append((maxcol, height))
             elif Sizing.FLOW in w_sizing:
@@ -825,7 +834,8 @@ class Pile(
         w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
         focus_position = self.focus_position
 
-        for i, (w, (f, height)) in enumerate(self.contents):
+        for i, (w, options) in enumerate(self.contents):
+            f = options[0]
             if isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
@@ -834,12 +844,12 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == WHSettings.GIVEN:
-                height = typing.cast("int", height)
+            if options[0] == WHSettings.GIVEN:
+                height = options[1]
                 heights[i] = height
                 w_h_args[i] = (maxcol, height)
                 remaining -= height
-            elif f == WHSettings.PACK or len(size) == 1:
+            elif options[0] == WHSettings.PACK or len(size) == 1:
                 if Sizing.FLOW in w_sizing:
                     w_h_arg: tuple[int] | tuple[()] = (maxcol,)
                 elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
@@ -858,8 +868,8 @@ class Pile(
                 heights[i] = item_height
                 w_h_args[i] = w_h_arg
                 remaining -= item_height
-            elif height:
-                weighted[i] = height
+            elif options[1]:
+                weighted[i] = options[1]
             else:
                 heights[i] = 0
                 w_h_args[i] = (maxcol, 0)  # zero-weighted items treated as ('given', 0)
@@ -1067,7 +1077,7 @@ class Pile(
     def move_cursor_to_coords(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        col: int,
+        col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
         row: int,
     ) -> bool:
         """Capture pref col and set new focus.

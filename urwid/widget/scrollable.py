@@ -69,8 +69,8 @@ SCROLL_TO_TOP = "to top"
 SCROLL_TO_END = "to end"
 
 # Scrollbar positions
-SCROLLBAR_LEFT = "left"
-SCROLLBAR_RIGHT = "right"
+SCROLLBAR_LEFT: typing.Final = "left"
+SCROLLBAR_RIGHT: typing.Final = "right"
 
 
 class ScrollbarSymbols(enum.StrEnum):
@@ -503,7 +503,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         widget: WrappedScrollableWidget,
         thumb_char: str = ScrollbarSymbols.FULL_BLOCK,
         trough_char: str = " ",
-        side: Literal["left", "right"] = SCROLLBAR_RIGHT,  # type: ignore[assignment]  # constant
+        side: Literal["left", "right"] = SCROLLBAR_RIGHT,
         width: int = 1,
     ) -> None:
         """Box widget that adds a scrollbar to `widget`.
@@ -697,14 +697,14 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self._invalidate()
 
     @property
-    def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
+    def scrolling_base_widget(self) -> SupportsScroll:
         """Nearest `original_widget` that is compatible with the scrolling API.
 
         :raises ScrollableError: no wrapped widget supports the scrolling protocol.
         """
-        w = self
+        w: AbstractWidget = self
 
-        for w in orig_iter(self):  # type: ignore[assignment]
+        for w in orig_iter(self):
             if isinstance(w, SupportsScroll):
                 return w
 

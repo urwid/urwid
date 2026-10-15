@@ -31,7 +31,7 @@ from contextlib import suppress
 from urwid import _deprecation, str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence
+    from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence, Sequence
     from types import TracebackType
     from typing import Literal, Protocol, Self
 
@@ -60,6 +60,9 @@ if typing.TYPE_CHECKING:
             """Reverse the list of tag markup elements in place."""
 
     _TagMarkup = str | bytes | tuple[Hashable, "_TagMarkup"] | _TagMarkupList
+
+    _HashableT = typing.TypeVar("_HashableT", bound=Hashable)
+    _HashableS = typing.TypeVar("_HashableS", bound=Hashable)
 
 
 def __getattr__(name: str) -> typing.Any:
@@ -239,18 +242,18 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
         if len(sl) == 1:
             sin = sl[0]
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))  # type: ignore[arg-type]
+            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
             continue
 
         sin, son = sl
         son = son.replace(SI, b"")
         if sin:
             sout.append(sin)
-            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))  # type: ignore[arg-type]
+            rle_append_modify(cout, (escape.DEC_TAG, len(sin)))
 
         if son:
             sout.append(son)
-            rle_append_modify(cout, (None, len(son)))  # type: ignore[arg-type]
+            rle_append_modify(cout, (None, len(son)))
 
     outstr = b"".join(sout)
     return outstr, cout
@@ -303,15 +306,15 @@ def calc_trim_text(
 
 def trim_text_attr_cs(
     text: bytes,
-    attr: MutableSequence[tuple[Hashable, int]],
-    cs: MutableSequence[tuple[Hashable, int]],
+    attr: Sequence[tuple[_HashableT, int]],
+    cs: Sequence[tuple[_HashableS, int]],
     start_col: int,
     end_col: int,
-) -> tuple[bytes, list[tuple[Hashable, int]], list[tuple[Hashable, int]]]:
+) -> tuple[bytes, list[tuple[_HashableT | None, int]], list[tuple[_HashableS | None, int]]]:
     """Return ( trimmed text, trimmed attr, trimmed cs )."""
     spos, epos, pad_left, pad_right = calc_trim_text(text, 0, len(text), start_col, end_col)
-    attrtr = rle_subseg(attr, spos, epos)
-    cstr = rle_subseg(cs, spos, epos)
+    attrtr: list[tuple[_HashableT | None, int]] = rle_subseg(attr, spos, epos)
+    cstr: list[tuple[_HashableS | None, int]] = rle_subseg(cs, spos, epos)
     if pad_left:
         al = rle_get_at(attr, spos - 1)
         rle_prepend_modify(attrtr, (al, 1))
@@ -325,9 +328,9 @@ def trim_text_attr_cs(
 
 
 def rle_get_at(
-    rle: Iterable[tuple[Hashable, int]],
+    rle: Iterable[tuple[_HashableT, int]],
     pos: int,
-) -> Hashable | None:
+) -> _HashableT | None:
     """Return the attribute at offset pos."""
     x = 0
     if pos < 0:
@@ -340,10 +343,10 @@ def rle_get_at(
 
 
 def rle_subseg(
-    rle: Iterable[tuple[Hashable, int]],
+    rle: Iterable[tuple[_HashableT, int]],
     start: int,
     end: int,
-) -> list[tuple[Hashable, int]]:
+) -> list[tuple[_HashableT, int]]:
     """Return a sub segment of a rle list."""
     sub_segment = []
     x = 0
@@ -382,8 +385,8 @@ def rle_len(
 
 
 def rle_prepend_modify(
-    rle: MutableSequence[tuple[Hashable, int]],
-    a_r: tuple[Hashable, int],
+    rle: MutableSequence[tuple[_HashableT, int]],
+    a_r: tuple[_HashableT, int],
 ) -> None:
     """Append (a, r) (unpacked from *a_r*) to BEGINNING of rle.
 
@@ -403,8 +406,8 @@ def rle_prepend_modify(
 
 
 def rle_append_modify(
-    rle: MutableSequence[tuple[Hashable, int]],
-    a_r: tuple[Hashable, int],
+    rle: MutableSequence[tuple[_HashableT, int]],
+    a_r: tuple[_HashableT, int],
 ) -> None:
     """Append (a, r) (unpacked from *a_r*) to the rle list rle.
 
@@ -421,8 +424,8 @@ def rle_append_modify(
 
 
 def rle_join_modify(
-    rle: MutableSequence[tuple[Hashable, int]],
-    rle2: MutableSequence[tuple[Hashable, int]],
+    rle: MutableSequence[tuple[_HashableT, int]],
+    rle2: Sequence[tuple[_HashableT, int]],
 ) -> None:
     """Append attribute list rle2 to rle.
 
@@ -438,9 +441,9 @@ def rle_join_modify(
 
 
 def rle_product(
-    rle1: MutableSequence[tuple[Hashable, int]],
-    rle2: MutableSequence[tuple[Hashable, int]],
-) -> list[tuple[tuple[Hashable, Hashable], int]]:
+    rle1: Sequence[tuple[_HashableT, int]],
+    rle2: Sequence[tuple[_HashableS, int]],
+) -> list[tuple[tuple[_HashableT, _HashableS], int]]:
     """Merge the runs of rle1 and rle2.
 
     eg.
@@ -456,7 +459,7 @@ def rle_product(
     a1, r1 = rle1[0]
     a2, r2 = rle2[0]
 
-    result: list[tuple[tuple[Hashable, Hashable], int]] = []
+    result: list[tuple[tuple[_HashableT, _HashableS], int]] = []
     while True:
         # Skip zero-length runs (e.g. produced by empty markup segments): they carry no
         # columns but must not stop the merge early, otherwise following runs are dropped.
@@ -470,7 +473,7 @@ def rle_product(
             break
 
         r = min(r1, r2)
-        rle_append_modify(result, ((a1, a2), r))  # type: ignore[arg-type]
+        rle_append_modify(result, ((a1, a2), r))
         r1 -= r
         r2 -= r
     return result

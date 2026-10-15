@@ -28,10 +28,11 @@ import typing
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Iterable, Iterator
-    from typing import Concatenate, ParamSpec
+    from typing import Concatenate, ParamSpec, Self
 
     ArgSpec = ParamSpec("ArgSpec")
     Ret = typing.TypeVar("Ret")
+    _MD = typing.TypeVar("_MD", bound="MonitoredDeque[typing.Any]")
 
 __all__ = ("MonitoredDeque", "MonitoredFocusDeque")
 
@@ -39,11 +40,11 @@ _T = typing.TypeVar("_T")
 
 
 def _call_modified(
-    fn: Callable[Concatenate[MonitoredDeque[typing.Any], ArgSpec], Ret],
-) -> Callable[Concatenate[MonitoredDeque[typing.Any], ArgSpec], Ret]:
+    fn: Callable[Concatenate[_MD, ArgSpec], Ret],
+) -> Callable[Concatenate[_MD, ArgSpec], Ret]:
     @functools.wraps(fn)
     def call_modified_wrapper(
-        self: MonitoredDeque[typing.Any],
+        self: _MD,
         /,
         *args: ArgSpec.args,
         **kwargs: ArgSpec.kwargs,
@@ -55,6 +56,23 @@ def _call_modified(
     return call_modified_wrapper
 
 
+def _bounded_repeat_count(length: int, maxlen: int | None, count: int) -> int:
+    """Return a repeat count no larger than *count* that leaves a deque with the same items as *count* would.
+
+    A bounded deque keeps only the last *maxlen* items of the repetition, so repeating beyond filling *maxlen* changes
+    nothing. ``collections.deque`` does not stop early on every interpreter: PyPy repeats *count* times.
+
+    :param length: number of items in the deque
+    :param maxlen: the deque's ``maxlen``, ``None`` for an unbounded deque
+    :param count: requested repeat count
+    """
+    if count <= 1 or maxlen is None:
+        return count
+    if length == 0:
+        return 1
+    return min(count, max(1, -(-maxlen // length)))
+
+
 class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     """Trigger a callback any time its contents are changed with the usual deque operations append, extend, etc.
 
@@ -62,9 +80,8 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     narrower API. Deliberate differences from :class:`MonitoredList`:
 
     * ``sort()`` is not provided -- ``deque`` itself has no such method.
-    * ``__add__``/``__rmul__``/``__imul__`` are not provided -- ``deque``
-      itself raises ``TypeError`` for concatenation/repetition, so there is
-      nothing meaningful to wrap.
+    * ``__add__``/``__mul__``/``__rmul__`` are not wrapped -- they return a
+      new deque and leave this one unchanged, so there is nothing to notify.
     * ``maxlen`` needs no dedicated property: it is already a read-only
       attribute inherited from ``deque``.
 
@@ -153,9 +170,14 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         super().__delitem__(__key)
 
     @_call_modified
-    def __iadd__(self, __value: Iterable[_T]) -> MonitoredDeque[_T]:
+    def __iadd__(self, __value: Iterable[_T]) -> Self:
         """Extend the deque in place with the items from `__value`."""
         return super().__iadd__(__value)
+
+    @_call_modified
+    def __imul__(self, __value: typing.SupportsIndex) -> Self:
+        """Repeat the deque's contents `__value` times in place."""
+        return super().__imul__(_bounded_repeat_count(len(self), self.maxlen, operator.index(__value)))
 
     @_call_modified
     def append(self, __object: _T) -> None:
@@ -178,7 +200,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         super().extendleft(__iterable)
 
     @_call_modified
-    def pop(self) -> _T:  # type: ignore[override]  # deque.pop takes no argument, unlike list.pop
+    def pop(self) -> _T:  # type: ignore[override]  # as on deque.pop in typeshed: no index, unlike MutableSequence.pop
         """Remove and return the item at the right end of the deque."""
         return super().pop()
 
@@ -304,8 +326,18 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd.clear()
         >>> mfd
         MonitoredFocusDeque([], focus=None)
+
+        :raises TypeError: *focus* is not an integer.
+        :raises IndexError: *focus* is not an index of the items kept, which is ignored when there are none.
         """
         super().__init__(iterable, maxlen)
+        if not self:
+            self._focus = 0
+            return
+        if not isinstance(focus, int):
+            raise TypeError("index must be an integer")
+        if focus < 0 or focus >= len(self):
+            raise IndexError(f"focus index is out of range: {focus}")
         self._focus = focus
 
     def __repr__(self) -> str:
@@ -547,7 +579,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         focus = max(0, self._focus - evicted) if self else 0
         self._modify(focus, super(MonitoredDeque, self).extend, items_list)
 
-    def __iadd__(self, items: Iterable[_T]) -> MonitoredFocusDeque[_T]:
+    def __iadd__(self, items: Iterable[_T]) -> Self:
         """Extend the deque in place with ``items``, adjusting the focus like :meth:`extend`.
 
         >>> bounded = MonitoredFocusDeque([0, 1, 2], maxlen=4, focus=2)
@@ -556,6 +588,28 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         MonitoredFocusDeque([2, 6, 7, 8], maxlen=4, focus=0)
         """
         self.extend(items)
+        return self
+
+    def __imul__(self, n: typing.SupportsIndex) -> Self:
+        """Repeat the deque's contents ``n`` times in place, adjusting the focus like :meth:`extend`.
+
+        >>> bounded = MonitoredFocusDeque([0, 1, 2], maxlen=4, focus=2)
+        >>> bounded *= 2
+        >>> bounded
+        MonitoredFocusDeque([2, 0, 1, 2], maxlen=4, focus=0)
+        >>> bounded *= 0
+        >>> bounded
+        MonitoredFocusDeque([], maxlen=4, focus=None)
+        """
+        count = operator.index(n)
+        if count <= 0:
+            self.clear()
+            return self
+        # the evicted count follows from the full repetition; the deque is only repeated as often as maxlen keeps
+        total = len(self) * count
+        evicted = total - self.maxlen if self.maxlen is not None and total > self.maxlen else 0
+        focus = max(0, self._focus - evicted) if self else 0
+        self._modify(focus, super(MonitoredDeque, self).__imul__, _bounded_repeat_count(len(self), self.maxlen, count))
         return self
 
     def extendleft(self, items: Iterable[_T]) -> None:
@@ -578,7 +632,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = min(focus, self.maxlen - 1)
         self._modify(focus, super(MonitoredDeque, self).extendleft, items_list)
 
-    def pop(self) -> _T:  # type: ignore[override]  # deque.pop takes no argument, unlike list.pop
+    def pop(self) -> _T:  # type: ignore[override]  # as on deque.pop in typeshed: no index, unlike MutableSequence.pop
         """Remove and return the tail item.
 
         Focus is unaffected unless it pointed at the tail item, in which case it moves to the

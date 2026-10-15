@@ -719,9 +719,27 @@ class OverlayTest(unittest.TestCase):
         with self.subTest("invalid index"), self.assertRaises(IndexError):
             ovl.contents[5] = (urwid.SolidFill("z"), ovl.contents[1][1])
 
+        top_options = ovl.contents[1][1]
+        for name, changes in (
+            ("clip width", {"width_type": urwid.CLIP, "width_amount": None}),
+            ("weight width", {"width_type": urwid.WEIGHT, "width_amount": 1}),
+            ("flow height", {"height_type": urwid.FLOW, "height_amount": None}),
+            ("weight height", {"height_type": urwid.WEIGHT, "height_amount": 1}),
+        ):
+            with self.subTest(name), self.assertRaises(overlay_mod.OverlayError):
+                ovl.contents[1] = (urwid.SolidFill("y"), top_options._replace(**changes))
+
     def test_get_cursor_coords_none_without_support(self) -> None:
         ovl = urwid.Overlay(urwid.SolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
         self.assertIsNone(ovl.get_cursor_coords((20, 10)))
+        # the top widget supports cursors but has none to show
+        ovl = urwid.Overlay(urwid.Filler(urwid.Text("x")), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, 5)
+        self.assertIsNone(ovl.get_cursor_coords((20, 10)))
+
+    def test_get_cursor_coords_flow_top_widget(self) -> None:
+        """A flow top widget gets a flow size, as it does for render."""
+        ovl = urwid.Overlay(urwid.Edit("", "ab"), urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, urwid.PACK)
+        self.assertEqual((7, 2), ovl.get_cursor_coords((20, 5)))
 
     def test_get_cursor_coords_clamped_to_last_row(self) -> None:
         ovl = urwid.Overlay(FixedCursorSolidFill("*"), urwid.SolidFill("#"), urwid.CENTER, 5, urwid.MIDDLE, 5)

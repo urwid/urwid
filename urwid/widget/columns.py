@@ -250,6 +250,7 @@ class Columns(
             whose height is set to the maximum of the rows
             required by columns not listed in *box_columns*.
         :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
+        :raises ValueError: *focus_column* is a widget that is not in *widget_list*.
 
         *widget_list* may also contain tuples such as:
 
@@ -294,14 +295,15 @@ class Columns(
         box_columns = set(box_columns or ())
 
         width: Literal["pack", WHSettings.PACK] | int | float | None
+        w: AbstractBoxWidget | AbstractFlowWidget | AbstractFixedWidget
 
         for i, original in enumerate(widget_list):
-            w = original
-            if not isinstance(w, tuple):
+            if not isinstance(original, tuple):
+                w = original
                 self.contents.append((w, (WHSettings.WEIGHT, 1, i in box_columns)))
 
-            elif len(w) == 2:
-                width, w = w  # type: ignore[assignment]  # we match later
+            elif len(original) == 2:
+                width, w = original
                 if width in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
                     if i in box_columns:
                         warnings.warn(
@@ -325,18 +327,18 @@ class Columns(
 
             # Not deprecated: the expanded form of (width, widget) repeating the internal storage (GIVEN, width).
             # "fixed" is its older name, kept for backward compatibility.
-            elif w[0] in {Sizing.FIXED, WHSettings.GIVEN}:
-                width, w = w[-2:]
+            elif original[0] in {Sizing.FIXED, WHSettings.GIVEN}:
+                width, w = original[-2:]
                 self.contents.append((w, (WHSettings.GIVEN, typing.cast("int", width), i in box_columns)))
 
-            elif w[0] == WHSettings.WEIGHT:
-                _ignored, width, w = w
+            elif original[0] == WHSettings.WEIGHT:
+                _ignored, width, w = original
                 self.contents.append((w, (WHSettings.WEIGHT, width, i in box_columns)))
 
             else:
                 raise ColumnsError(f"initial widget list item invalid: {original!r}")
 
-            if focus_column == w or (focus_column is None and w.selectable()):  # type: ignore[union-attr]
+            if focus_column == w or (focus_column is None and w.selectable()):
                 focus_column = i
 
             if not isinstance(w, AbstractWidget):
@@ -345,7 +347,9 @@ class Columns(
         self.dividechars = dividechars
 
         if self.contents and focus_column is not None:
-            self.focus_position = typing.cast("int", focus_column)
+            if not isinstance(focus_column, int):
+                raise ValueError(f"Widget not found in Columns contents: {focus_column!r}")
+            self.focus_position = focus_column
         self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         self.min_width = min_width
         self._cache_maxcol: int | None = None
@@ -377,17 +381,17 @@ class Columns(
             | tuple[Literal[WHSettings.WEIGHT], int | float, AbstractWidget]
         ] = []
         box_columns: list[int] = []
-        for idx, (w_instance, (sizing, amount, is_box)) in enumerate(self._contents):
-            if sizing == WHSettings.GIVEN:
-                widget_list.append((typing.cast("int", amount), w_instance))
-            elif sizing == WHSettings.PACK:
+        for idx, (w_instance, options) in enumerate(self._contents):
+            if options[0] == WHSettings.GIVEN:
+                widget_list.append((options[1], w_instance))
+            elif options[0] == WHSettings.PACK:
                 widget_list.append((WHSettings.PACK, w_instance))
-            elif amount == 1:
+            elif options[1] == 1:
                 widget_list.append(w_instance)
             else:
-                widget_list.append((WHSettings.WEIGHT, typing.cast("int | float", amount), w_instance))
+                widget_list.append((WHSettings.WEIGHT, options[1], w_instance))
 
-            if is_box:
+            if options[2]:
                 box_columns.append(idx)
 
         yield "widget_list", widget_list
@@ -439,6 +443,7 @@ class Columns(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
                         (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(float(n)))),
+                        t == WHSettings.GIVEN and not isinstance(n, int),
                         not isinstance(b, bool),
                     )
                 ):
@@ -558,8 +563,10 @@ class Columns(
         """
         if width_type == WHSettings.PACK:
             return (WHSettings.PACK, None, box_widget)
-        if width_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and width_amount is not None:
-            return (WHSettings(width_type), width_amount, box_widget)  # type: ignore[return-value]
+        if width_type == WHSettings.GIVEN and isinstance(width_amount, int):
+            return (WHSettings.GIVEN, width_amount, box_widget)
+        if width_type == WHSettings.WEIGHT and width_amount is not None:
+            return (WHSettings.WEIGHT, width_amount, box_widget)
         raise ColumnsError(f"invalid combination: width_type={width_type!r}, width_amount={width_amount!r}")
 
     def _invalidate(self) -> None:
@@ -665,10 +672,10 @@ class Columns(
 
         static_w: int
 
-        for i, (_w, (t, width, _b)) in enumerate(self.contents):
-            if t == WHSettings.GIVEN:
-                static_w = typing.cast("int", width)
-            elif t == WHSettings.PACK:
+        for i, (_w, options) in enumerate(self.contents):
+            if options[0] == WHSettings.GIVEN:
+                static_w = options[1]
+            elif options[0] == WHSettings.PACK:
                 static_w = pack_widths[i]
             else:
                 static_w = self.min_width
@@ -678,8 +685,8 @@ class Columns(
 
             widths.append(static_w)
             shared -= static_w + self.dividechars
-            if t not in {WHSettings.GIVEN, WHSettings.PACK}:
-                weighted.append((typing.cast("int | float", width), i))
+            if options[0] not in {WHSettings.GIVEN, WHSettings.PACK}:
+                weighted.append((options[1], i))
 
         # drop columns on the left until we fit
         for i, width_ in enumerate(widths):
@@ -729,28 +736,31 @@ class Columns(
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
 
-        for i, (widget, (size_kind, size_weight, is_box)) in enumerate(self.contents):
+        for i, (widget, options) in enumerate(self.contents):
+            size_kind, is_box = options[0], options[2]
             w_sizing = widget.sizing()
             focused = focus and i == self.focus_position
 
-            if size_kind == WHSettings.GIVEN:
-                size_weight = typing.cast("int", size_weight)
-                widths[i] = size_weight
+            if options[0] == WHSettings.GIVEN:
+                given_width = options[1]
+                widths[i] = given_width
                 if is_box:
                     box.append(i)
                 elif Sizing.FLOW in w_sizing:
-                    heights[i] = typing.cast("AbstractFlowWidget", widget).rows((size_weight,), focused)
-                    w_h_args[i] = (size_weight,)
+                    heights[i] = typing.cast("AbstractFlowWidget", widget).rows((given_width,), focused)
+                    w_h_args[i] = (given_width,)
                 else:
                     raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
 
-            elif size_kind == WHSettings.PACK and Sizing.FIXED in w_sizing and not is_box:
+            elif options[0] == WHSettings.PACK:
+                if Sizing.FIXED not in w_sizing or is_box:
+                    raise ColumnsError(f"Unsupported combination of {size_kind} box={is_box!r} for {widget}")
                 width, height = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                 widths[i] = width
                 heights[i] = height
                 w_h_args[i] = ()
 
-            elif typing.cast("int | float", size_weight) <= 0:
+            elif options[1] <= 0:
                 widths[i] = 0
                 heights[i] = 1
                 if is_box:
@@ -764,7 +774,7 @@ class Columns(
                 else:
                     width = self.min_width
 
-                size_weight = typing.cast("int | float", size_weight)
+                size_weight = options[1]
 
                 weighted.setdefault(size_weight, []).append((widget, i, is_box, focused))
                 weights.append(size_weight)
@@ -992,17 +1002,24 @@ class Columns(
         for i, (width, (w, _options)) in enumerate(zip(widths, self.contents, strict=False)):
             end: int = x + width
             if w.selectable():
-                if col != Align.RIGHT and (col == Align.LEFT or x > col) and best is None:  # type: ignore[operator]
-                    # no other choice
+                if not isinstance(col, int):
+                    best = i, x, end, w
+                    if col == Align.LEFT:
+                        # the first selectable column
+                        break
+                elif x > col:
+                    # past the column: keep the one on the left if it is closer
+                    if best is not None:
+                        _best_i, _best_x, best_end, _best_w = best
+                        if col - best_end < x - col:
+                            break
                     best = i, x, end, w
                     break
-                if col != Align.RIGHT and x > col and col - best[2] < x - col:  # type: ignore[index,operator]
-                    # choose one on left
-                    break
-                best = i, x, end, w
-                if col != Align.RIGHT and col < end:  # type: ignore[operator]
-                    # choose this one
-                    break
+                else:
+                    best = i, x, end, w
+                    if col < end:
+                        # choose this one
+                        break
             x = end + self.dividechars
 
         if best is None:
@@ -1087,7 +1104,7 @@ class Columns(
         w, _ = self.contents[self.focus_position]
         if len(widths) <= self.focus_position:
             return 0
-        col = None
+        col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         cwidth = widths[self.focus_position]
 
         if hasattr(w, "get_pref_col"):
@@ -1102,7 +1119,7 @@ class Columns(
             col = cwidth // 2
             col += self.focus_position * self.dividechars
             col += sum(widths[: self.focus_position])
-        return typing.cast("Literal['left', 'right', Align.LEFT, Align.RIGHT] | int | None", col)
+        return col
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Return the number of rows required by the columns.
@@ -1128,7 +1145,7 @@ class Columns(
         :param key: a single keystroke value
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
-        if self.focus_position is None:
+        if not self.contents:
             return key
 
         widths, _, size_args = self.get_column_sizes(size, focus=True)

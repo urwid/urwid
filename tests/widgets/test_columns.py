@@ -504,6 +504,21 @@ class ColumnsTest(unittest.TestCase):
             widget.keypress((), "left")
             self.assertEqual(1, widget.focus_position)
 
+        with self.subTest("Widget not in the list, as Pile does"), self.assertRaises(ValueError):
+            urwid.Columns(widget_list, focus_column=urwid.Text("Other"))
+
+    def test_keypress_empty_contents(self) -> None:
+        self.assertEqual("x", urwid.Columns([]).keypress((10,), "x"))
+
+    def test_pack_fixed_pack_item_not_fixed(self) -> None:
+        widget = urwid.Columns([(urwid.PACK, urwid.Text("x")), (urwid.PACK, urwid.ProgressBar(None, None))])
+        with self.assertRaises(urwid.ColumnsError):
+            widget.pack(())
+
+    def test_options_given_amount_not_int(self) -> None:
+        with self.assertRaises(urwid.ColumnsError):
+            urwid.Columns.options(urwid.GIVEN, 1.5)
+
     def test_pack_not_enough_info(self):
         """Test special case for not official fixed pack and render support."""
         widget = urwid.Columns(
@@ -1057,6 +1072,22 @@ class ColumnsTest(unittest.TestCase):
                         columns.contents.append((urwid.Text("a"), options))
                     with self.assertRaises(urwid.ColumnsError):
                         columns.contents = [(urwid.Text("a"), options)]
+
+    def test_given_width_not_int_rejected(self) -> None:
+        """A given width is a number of columns, so a float is rejected even when it is integral."""
+        for amount in (1.5, 3.0):
+            with self.subTest(amount=amount):
+                with self.assertRaises(urwid.ColumnsError):
+                    urwid.Columns([(urwid.GIVEN, amount, urwid.Text("a"))])
+                with self.assertRaises(urwid.ColumnsError):
+                    urwid.Columns([(amount, urwid.Text("a"))])
+                columns = urwid.Columns([])
+                with self.assertRaises(urwid.ColumnsError):
+                    columns.contents.append((urwid.Text("a"), (urwid.GIVEN, amount, False)))
+                with self.assertRaises(urwid.ColumnsError):
+                    columns.contents = [(urwid.Text("a"), (urwid.GIVEN, amount, False))]
+                self.assertEqual(0, len(columns.contents))
+        self.assertEqual(1, len(urwid.Columns([(urwid.WEIGHT, 1.5, urwid.Text("a"))]).contents))
 
     def test_huge_finite_weights(self) -> None:
         """Weights whose sum exceeds the float range still divide the width between them."""

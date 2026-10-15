@@ -183,7 +183,8 @@ class StandardTextLayout(TextLayout):
         """Return a layout structure for text."""
         try:
             segs = self.calculate_text_segments(text, width, wrap)
-            return self.align_layout(text, width, segs, wrap, align)  # type: ignore[arg-type]  # segs is narrowed
+            # list is invariant: the unaligned lines hold int offsets where a layout line allows None
+            return self.align_layout(text, width, segs, wrap, align)  # type: ignore[arg-type]
         except CanNotDisplayText:
             return [[]]
 
@@ -713,7 +714,7 @@ class LayoutSegment:
             if self.end:
                 # use text passed as parameter (text)
                 spos, epos, pad_left, pad_right = calc_trim_text(text, self.offs, self.end, start, end)
-                lines: list[tuple[int, int, int] | tuple[int, int]] = []
+                lines: _LayoutLine = []
                 if pad_left:
                     lines.append((1, move_prev_char(text, self.offs, spos)))
                 # A window that both starts and ends inside wide characters has
@@ -723,7 +724,7 @@ class LayoutSegment:
                     lines.append((seg_cols, spos, epos))
                 if pad_right:
                     lines.append((1, epos))
-                return lines  # type: ignore[return-value]  # we're narrowing return type
+                return lines
 
         return [(end - start, self.offs)]
 

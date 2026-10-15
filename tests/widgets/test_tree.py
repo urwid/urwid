@@ -841,6 +841,8 @@ class TestTreeListBox(unittest.TestCase):
         self.widget.keypress(self.size, "end")
 
         self.assertIs(self.root.get_child_node("2/").get_child_node("2"), self.widget.focus_position)
+        # the last node is placed on the bottom row before the next render, not on a row counted from the width
+        self.assertEqual((self.size[1] - 1, 0), self.widget.get_focus_offset_inset(self.size))
 
     def test_focus_home(self):
         self.widget.keypress(self.size, "end")
