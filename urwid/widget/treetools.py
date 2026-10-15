@@ -42,7 +42,7 @@ from .widget import WidgetWrap
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Sequence
+    from collections.abc import Hashable, Iterator, Sequence
     from typing import Self
 
     from urwid.util import _TagMarkup
@@ -68,7 +68,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
     expanded_icon: Widget = SelectableIcon("-", 0)
 
     def __init__(self, node: _Node) -> None:
-        """Build the widget representing `node`, expanded by default.
+        """Build the widget representing `node`, expanded as :meth:`is_initially_expanded` says.
 
         .. deprecated:: 4.0.4
             Passing a *node* that is not a :class:`ParentNode` but defines ``get_first_child`` is deprecated.
@@ -88,9 +88,50 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
         else:
             self.is_leaf = False
 
-        self.expanded = True
+        self.expanded = self.is_initially_expanded()
         widget = self.get_indented_widget()
         super().__init__(widget)
+
+    def is_initially_expanded(self) -> bool:
+        """Return whether the widget starts expanded.
+
+        The default starts every node expanded.
+        Override it to start collapsed, for example below a given depth.
+        It is called from ``__init__`` once the node is set, before the display widget is built.
+        """
+        return True
+
+    def expand(self) -> None:
+        """Show the children of this node and update the icon.
+
+        A leaf has no children and no icon, so nothing changes for it.
+        """
+        if self.is_leaf:
+            return
+        self.expanded = True
+        self.update_expanded_icon()
+
+    def collapse(self) -> None:
+        """Hide the children of this node and update the icon.
+
+        A leaf has no children and no icon, so nothing changes for it.
+        A descendant in focus keeps the focus although it is hidden.
+        Move the focus first, for example with :meth:`TreeListBox.move_focus_to_parent`.
+        """
+        if self.is_leaf:
+            return
+        self.expanded = False
+        self.update_expanded_icon()
+
+    def toggle_expanded(self) -> None:
+        """Switch this node between expanded and collapsed.
+
+        Nothing changes for a leaf.
+        """
+        if self.expanded:
+            self.collapse()
+        else:
+            self.expand()
 
     def selectable(self) -> bool:
         """Allow selection of non-leaf nodes so children may be (un)expanded."""
@@ -195,12 +236,10 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
             return key
 
         if key in {"+", "right"}:
-            self.expanded = True
-            self.update_expanded_icon()
+            self.expand()
             return None
         if key == "-":
-            self.expanded = False
-            self.update_expanded_icon()
+            self.collapse()
             return None
         if self._w.selectable():
             return super().keypress(size, key)
@@ -221,8 +260,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
             return False
 
         if row == 0 and col == self.get_indent_cols():
-            self.expanded = not self.expanded
-            self.update_expanded_icon()
+            self.toggle_expanded()
             return True
 
         return False
@@ -585,6 +623,27 @@ class TreeWalker(ListWalker[TreeNode[typing.Any], TreeWidget[TreeNode[typing.Any
 
     # pylint: enable=arguments-renamed
 
+    def positions(self, *, reverse: bool = False) -> Iterator[TreeNode[typing.Any]]:
+        """Yield the visible nodes of the focused node's tree in display order.
+
+        The children of a collapsed node are not visible, so they are not yielded.
+
+        :param reverse: yield from the last visible node up to the root instead.
+        """
+        root_widget = self.focus.get_root().get_widget()
+        widget: TreeWidget[TreeNode[typing.Any]] | None
+        if reverse:
+            if (widget := root_widget.last_child()) is None:
+                widget = root_widget
+            while widget is not None:
+                yield widget.get_node()
+                widget = widget.prev_inorder()
+        else:
+            widget = root_widget
+            while widget is not None:
+                yield widget.get_node()
+                widget = widget.next_inorder()
+
 
 class TreeListBox(ListBox[TreeNode[typing.Any]]):
     """A ListBox with special handling for navigation and collapsing of TreeWidgets."""
@@ -639,6 +698,30 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
                 return
 
         self.change_focus(size, parentpos)
+
+    def focus_first_child(self) -> None:
+        """Move focus to the first child of the widget in focus, if it is expanded."""
+        widget, _pos = self.body.get_focus()
+        if (child := typing.cast("TreeWidget[TreeNode[typing.Any]]", widget).first_child()) is not None:
+            self.set_focus(child.get_node(), coming_from="above")
+
+    def focus_last_child(self) -> None:
+        """Move focus to the last child of the widget in focus, if it is expanded."""
+        widget, pos = self.body.get_focus()
+        if typing.cast("TreeWidget[TreeNode[typing.Any]]", widget).first_child() is not None:
+            self.set_focus(typing.cast("ParentNode[typing.Any]", pos).get_last_child(), coming_from="above")
+
+    def focus_next_sibling(self) -> None:
+        """Move focus to the next sibling of the node in focus, if there is one."""
+        _widget, pos = self.body.get_focus()
+        if (sibling := typing.cast("TreeNode[typing.Any]", pos).next_sibling()) is not None:
+            self.set_focus(sibling, coming_from="above")
+
+    def focus_prev_sibling(self) -> None:
+        """Move focus to the previous sibling of the node in focus, if there is one."""
+        _widget, pos = self.body.get_focus()
+        if (sibling := typing.cast("TreeNode[typing.Any]", pos).prev_sibling()) is not None:
+            self.set_focus(sibling, coming_from="below")
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
         self.focus_home(size)
