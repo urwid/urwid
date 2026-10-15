@@ -141,7 +141,7 @@ class SimpleDequeWalker(
 
 class SimpleFocusDequeWalker(
     MonitoredFocusDeque[_T],
-    ListWalker[typing.SupportsIndex, _T],
+    ListWalker[int, _T],
 ):
     """A :class:`ListWalker` backed by a :class:`MonitoredFocusDeque`.
 

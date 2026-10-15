@@ -14,7 +14,6 @@ from .widget import Widget, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
-    from typing import Literal
 
     from urwid.canvas import TextCanvas
 
@@ -180,16 +179,12 @@ class ProgressBar(Widget):
             if len(t) - completed_bytes - 1 > 0:
                 a.append((self.normal, len(t) - completed_bytes - 1))
             c._attr = [a]
-            # rle_subseg preserves the input charset tags.
             c._cs = [
-                typing.cast(
-                    "list[tuple[Literal['0', 'U'] | None, int]]",
-                    [
-                        *rle_subseg(c._cs[0], 0, completed_bytes),
-                        (None, len(cenc)),
-                        *rle_subseg(c._cs[0], completed_bytes + 1, len(t)),
-                    ],
-                )
+                [
+                    *rle_subseg(c._cs[0], 0, completed_bytes),
+                    (None, len(cenc)),
+                    *rle_subseg(c._cs[0], completed_bytes + 1, len(t)),
+                ]
             ]
         else:
             c._attr = [[(self.complete, completed_bytes), (self.normal, len(t) - completed_bytes)]]

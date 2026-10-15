@@ -192,9 +192,9 @@ class GridFlow(
     def contents(self) -> MonitoredFocusList[GridFlowContentsItem]:
         """The contents of this GridFlow as a list of (widget, options) tuples.
 
-        options is currently a tuple in the form `('fixed', number)`.
+        options is currently a tuple in the form `('given', number)`.
         number is the number of screen columns to allocate to this cell.
-        'fixed' is the only type accepted at this time.
+        'given' is the only type accepted at this time.
 
         This list may be modified like a normal list and the GridFlow
         widget will update automatically.
@@ -313,24 +313,21 @@ class GridFlow(
             if c is None or maxcol - used_space < width_amount:
                 # starting a new row
                 if self.v_sep:
-                    p.contents.append((divider, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
+                    p.contents.append((divider, p.options()))
                 c = Columns([], self.h_sep)
                 column_focused = False
                 pad = Padding(c, self.align)
                 self.first_position[pad] = i
-                p.contents.append((pad, typing.cast("tuple[Literal[WHSettings.WEIGHT], int]", p.options())))
+                p.contents.append((pad, p.options()))
 
             # Use width == maxcol in case of maxcol < width amount
             # Columns will use empty widget in case of GIVEN width > maxcol
             c.contents.append(
                 (
                     w,
-                    typing.cast(
-                        "tuple[Literal[WHSettings.GIVEN], int, Literal[False]]",
-                        c.options(
-                            WHSettings.GIVEN,
-                            min(width_amount, maxcol),
-                        ),
+                    c.options(
+                        WHSettings.GIVEN,
+                        min(width_amount, maxcol),
                     ),
                 )
             )
@@ -375,7 +372,7 @@ class GridFlow(
 
     def keypress(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],  # type: ignore[override]  # flow and fixed only, no box size
         key: str,
     ) -> str | None:
         """Pass keypress to display widget for handling.
@@ -396,7 +393,7 @@ class GridFlow(
             self._set_focus_from_display_widget()
         return None
 
-    def pack(  # type: ignore[override]
+    def pack(  # type: ignore[override]  # flow and fixed only, no box size
         self,
         size: tuple[int] | tuple[()] = (),
         focus: bool = False,
@@ -417,17 +414,17 @@ class GridFlow(
 
     def render(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],  # type: ignore[override]  # flow and fixed only, no box size
         focus: bool = False,
     ) -> Canvas:
         """Render this widget's current display widget at the given size."""
         self.get_display_widget(size)
         return super().render(size, focus)
 
-    def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int]:
-        """Get cursor from display widget."""
+    def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int] | None:
+        """Get cursor from display widget, or None if the widget in focus shows no cursor."""
         self.get_display_widget(size)
-        return typing.cast("tuple[int, int]", super().get_cursor_coords(size))
+        return super().get_cursor_coords(size)
 
     def move_cursor_to_coords(self, size: tuple[int] | tuple[()], col: int, row: int) -> bool:
         """Set the widget in focus based on the col + row."""
@@ -438,7 +435,7 @@ class GridFlow(
 
     def mouse_event(
         self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
+        size: tuple[int] | tuple[()],  # type: ignore[override]  # flow and fixed only, no box size
         event: str,
         button: int,
         col: int,
@@ -456,7 +453,7 @@ class GridFlow(
             self._set_focus_from_display_widget()
         return True  # at a minimum we adjusted our focus
 
-    def get_pref_col(self, size: tuple[int] | tuple[()]) -> int:
-        """Return pref col from display widget."""
+    def get_pref_col(self, size: tuple[int] | tuple[()]) -> int | None:
+        """Return pref col from display widget, or None if the widget in focus has no preferred column."""
         self.get_display_widget(size)
-        return typing.cast("int", super().get_pref_col(size))
+        return super().get_pref_col(size)

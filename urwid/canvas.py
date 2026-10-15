@@ -313,7 +313,7 @@ class Canvas:
 
     @property
     def text(self) -> list[bytes]:
-        """Return the text content of the canvas as a list of strings, one for each row."""
+        """Return the text content of the canvas as a list of byte strings in the screen encoding, one for each row."""
         return [b"".join(text for (attr, cs, text) in row) for row in self.content()]
 
     @property
@@ -523,7 +523,7 @@ class TextCanvas(Canvas):
             if cs_gap < 0:
                 raise CanvasError(f"Character Set extends beyond text \n{t!r}\n{cs_row!r}")
             if cs_gap:
-                rle_append_modify(cs_row, (None, cs_gap))  # type: ignore[arg-type]  # str|None is Hashable
+                rle_append_modify(cs_row, (None, cs_gap))
 
         self._attr = attr
         self._cs = cs
@@ -589,18 +589,16 @@ class TextCanvas(Canvas):
 
         for text, a_row, cs_row in text_attr_cs:
             if trim_left or cols < self._maxcol:
-                text, a_row, cs_row = trim_text_attr_cs(  # type: ignore[assignment]  # noqa: PLW2901
+                # each row is replaced by its trimmed form before the attributes are combined below
+                text, a_row, cs_row = trim_text_attr_cs(  # noqa: PLW2901
                     text,
                     a_row,
-                    cs_row,  # type: ignore[arg-type]  # str|None is Hashable
+                    cs_row,
                     trim_left,
                     trim_left + cols,
                 )
 
-            attr_cs = typing.cast(
-                "list[tuple[tuple[Hashable, Literal['0', 'U'] | None], int]]",
-                rle_product(a_row, cs_row),  # type: ignore[arg-type]  # str|None is Hashable
-            )
+            attr_cs = rle_product(a_row, cs_row)
             i = 0
             row = []
             for (a, cs), run in attr_cs:
@@ -694,9 +692,9 @@ class BlankCanvas(Canvas):
     ) -> Iterator[_ContentLine]:
         """Return (cols, rows) of spaces with default attributes."""
         def_attr = attr.get(None) if attr else None
-        line = [(def_attr, None, b"".rjust(cols))]
+        line: _ContentLine = [(def_attr, None, b"".rjust(cols))]
         for _ in range(rows):
-            yield line  # type: ignore[misc]  # Yes, list is invariant, but we return it
+            yield line
 
     def cols(self) -> typing.NoReturn:
         """
@@ -1067,7 +1065,7 @@ class CompositeCanvas(Canvas):
         self.depends_on = widget_list
 
 
-def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]]) -> _ContentLine:
+def shard_body_row(sbody: Iterable[tuple[int, Iterator[_ContentLine] | None, _CView]]) -> _ContentLine:
     """
     Return one row, advancing the iterators in sbody.
 
@@ -1088,7 +1086,7 @@ def shard_body_row(sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]
 
 def shard_body_tail(
     num_rows: int,
-    sbody: list[tuple[int, Iterator[_ContentLine] | None, _CView]],
+    sbody: Iterable[tuple[int, Iterator[_ContentLine] | None, _CView]],
 ) -> list[tuple[int, int, Iterator[_ContentLine] | None, _CView]]:
     """Return a new shard tail that follows this shard body."""
     shard_tail = []
@@ -1107,7 +1105,7 @@ def shard_body_tail(
 
 def shard_body(
     cviews: Iterable[_CView],
-    shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]],
+    shard_tail: Iterable[tuple[int, int, Iterator[_ContentLine] | None, _CView]],
     create_iter: bool = True,
     iter_default: Iterator[_ContentLine] | None = None,
     num_rows: int | None = None,
@@ -1211,7 +1209,7 @@ def shards_trim_top(
 
 
 def shards_trim_rows(
-    shards: list[tuple[int, list[_CView]]],
+    shards: Iterable[tuple[int, list[_CView]]],
     keep_rows: int,
 ) -> list[tuple[int, list[_CView]]]:
     """
@@ -1244,7 +1242,7 @@ def shards_trim_rows(
 
 
 def shards_trim_sides(
-    shards: list[tuple[int, list[_CView]]],
+    shards: Iterable[tuple[int, list[_CView]]],
     left: int,
     cols: int,
 ) -> list[tuple[int, list[_CView]]]:
@@ -1286,7 +1284,7 @@ def shards_trim_sides(
     return new_shards
 
 
-def shards_join(shard_lists: Iterable[list[tuple[int, list[_CView]]]]) -> list[tuple[int, list[_CView]]]:
+def shards_join(shard_lists: Iterable[Iterable[tuple[int, list[_CView]]]]) -> list[tuple[int, list[_CView]]]:
     """Return the result of joining shard lists horizontally.
 
     All shards lists must have the same number of rows.
@@ -1353,7 +1351,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
 
     combined_canvas = CompositeCanvas()
     shards = []
-    children = []
+    children: list[tuple[int, int, Canvas, typing.Any]] = []
     row = 0
     focus_index = 0
 
@@ -1371,7 +1369,7 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
         children = [children[focus_index], *children[:focus_index], *children[focus_index + 1 :]]
 
     combined_canvas.shards = shards
-    combined_canvas.children = children  # type: ignore[assignment]  # `CompositeCanvas` is subtype of `Canvas`
+    combined_canvas.children = children
     return combined_canvas
 
 
@@ -1414,7 +1412,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
         l2.append((canv, pos, pad_right, rows))
 
     shard_lists = []
-    children = []
+    children: list[tuple[int, int, Canvas, typing.Any]] = []
     joined_canvas = CompositeCanvas()
     col = 0
     for canv, pos, pad_right, rows in l2:
@@ -1434,7 +1432,7 @@ def CanvasJoin(canvas_info: Iterable[tuple[Canvas, typing.Any, bool, int]]) -> C
         children = [children[focus_item], *children[:focus_item], *children[focus_item + 1 :]]
 
     joined_canvas.shards = shards_join(shard_lists)
-    joined_canvas.children = children  # type: ignore[assignment]  # `CompositeCanvas` is subtype of `Canvas`
+    joined_canvas.children = children
     return joined_canvas
 
 
@@ -1498,8 +1496,8 @@ class _AttrWalk:
 
 def apply_text_layout(
     text: str | bytes,
-    attr: list[tuple[Hashable, int]],
-    ls: list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
+    attr: Sequence[tuple[Hashable, int]],
+    ls: Iterable[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
     maxcol: int,
 ) -> TextCanvas:
     """Build a :class:`TextCanvas` by encoding *text* and *attr* according to the line layout *ls*.
@@ -1600,9 +1598,11 @@ def apply_text_layout(
                     tseg, cs = apply_target_encoding(text[offs : s.end])
                     attrrange(offs, s.end, rle_len(cs))
                 else:
-                    seg_text = typing.cast("str", text[:0]).join(
-                        typing.cast("str", text[start:end]) for start, end in drawn
-                    )
+                    seg_text: str | bytes
+                    if isinstance(text, bytes):
+                        seg_text = b"".join(text[start:end] for start, end in drawn)
+                    else:
+                        seg_text = "".join(text[start:end] for start, end in drawn)
                     tseg, cs = apply_target_encoding(seg_text)
                     runs: list[tuple[Hashable, int]] = []
                     for start, end in drawn:
@@ -1610,12 +1610,12 @@ def apply_text_layout(
                             rle_append_modify(runs, run)
                     attrrange(0, len(seg_text), rle_len(cs), src=seg_text, runs=runs)
                 line.append(tseg)
-                rle_join_modify(linec, cs)  # type: ignore[arg-type]
+                rle_join_modify(linec, cs)
             elif s.text:
                 tseg, cs = apply_target_encoding(s.text)
                 line.append(tseg)
                 attrrange(typing.cast("int", s.offs), typing.cast("int", s.offs), len(tseg))  # s.text is set
-                rle_join_modify(linec, cs)  # type: ignore[arg-type]
+                rle_join_modify(linec, cs)
             elif s.offs:
                 if s.sc:
                     line.append(b"".rjust(s.sc))

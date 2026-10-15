@@ -151,7 +151,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
         depth = this_node.get_depth()
         while next_node is None and depth > 0:
             # keep going up the tree until we find an ancestor next sibling
-            this_node = this_node.get_parent()
+            this_node = this_node._require_parent()  # pylint: disable=protected-access
             next_node = this_node.next_sibling()
             depth -= 1
             if depth != this_node.get_depth():
@@ -180,7 +180,10 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
             return None
 
         # TreeWidget is invariant in its node type, and the parent is a ParentNode.
-        return typing.cast("TreeWidget[TreeNode[typing.Any]]", this_node.get_parent().get_widget())
+        return typing.cast(
+            "TreeWidget[TreeNode[typing.Any]]",
+            this_node._require_parent().get_widget(),  # pylint: disable=protected-access
+        )
 
     def keypress(
         self,
@@ -340,7 +343,7 @@ class TreeNode(typing.Generic[_T]):
         if self.get_depth() == 0:
             return None
 
-        return self.get_parent().get_child_index(self.get_key())
+        return self._require_parent().get_child_index(self.get_key())
 
     def get_key(self) -> Hashable:
         """Return this node's key."""
@@ -351,14 +354,26 @@ class TreeNode(typing.Generic[_T]):
         self._key = key
 
     def change_key(self, key: Hashable) -> None:
-        """Rename this node to ``key``, updating the parent's reference to it as well."""
-        self.get_parent().change_child_key(self._key, key)
+        """Rename this node to ``key``, updating the parent's reference to it as well.
 
-    def get_parent(self) -> ParentNode[typing.Any]:
-        """Return this node's parent, loading it with :meth:`load_parent` if necessary."""
+        :raises TreeWidgetError: this node is the root.
+        """
+        self._require_parent().change_child_key(self._key, key)
+
+    def get_parent(self) -> ParentNode[typing.Any] | None:
+        """Return this node's parent, loading it with :meth:`load_parent` if necessary, or None for the root."""
         if self._parent is None and self.get_depth() > 0:
             self._parent = self.load_parent()
-        return typing.cast("ParentNode[typing.Any]", self._parent)
+        return self._parent
+
+    def _require_parent(self) -> ParentNode[typing.Any]:
+        """Return the parent of a node that is not the root.
+
+        :raises TreeWidgetError: this node has no parent.
+        """
+        if (parent := self.get_parent()) is None:
+            raise TreeWidgetError(f"Node {self.get_key()!r} has no parent")
+        return parent
 
     def load_parent(self) -> ParentNode[typing.Any]:
         """Provide TreeNode with a parent for the current node.
@@ -381,23 +396,23 @@ class TreeNode(typing.Generic[_T]):
     def next_sibling(self) -> TreeNode[typing.Any] | None:
         """Return the next sibling of this node, or None if there is none."""
         if self.get_depth() > 0:
-            return self.get_parent().next_child(self.get_key())
+            return self._require_parent().next_child(self.get_key())
 
         return None
 
     def prev_sibling(self) -> TreeNode[typing.Any] | None:
         """Return the previous sibling of this node, or None if there is none."""
         if self.get_depth() > 0:
-            return self.get_parent().prev_child(self.get_key())
+            return self._require_parent().prev_child(self.get_key())
 
         return None
 
-    def get_root(self) -> ParentNode[typing.Any]:
+    def get_root(self) -> TreeNode[typing.Any]:
         """Return the root node of the tree this node belongs to."""
-        root = self
-        while root.get_parent() is not None:
-            root = root.get_parent()
-        return typing.cast("ParentNode[typing.Any]", root)
+        root: TreeNode[typing.Any] = self
+        while (parent := root.get_parent()) is not None:
+            root = parent
+        return root
 
 
 class ParentNode(TreeNode[_T]):
@@ -639,7 +654,7 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
 
     def focus_end(self, size: tuple[int, int]) -> None:
         """Move focus to far bottom."""
-        maxrow, _maxcol = size
+        _maxcol, maxrow = size
         _widget, pos = self.body.get_focus()
 
         if lastwidget := typing.cast("TreeNode[typing.Any]", pos).get_root().get_widget().last_child():

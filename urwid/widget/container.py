@@ -116,11 +116,15 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         w = self
         while True:
             try:
+                # pyrefly: ignore[missing-attribute]  # AbstractWidget does not declare focus_position
                 p = w.focus_position
             except IndexError:
                 return out
             out.append(p)
-            w = w.focus.base_widget  # type: ignore[union-attr,assignment]
+            if w.focus is None:
+                return out
+            # a child is not known to be a container; a leaf ends the loop through IndexError above
+            w = w.focus.base_widget  # type: ignore[assignment]
 
     def set_focus_path(self, positions: Iterable[int | str]) -> None:
         """Set the .focus_position property starting from this container widget.
@@ -149,12 +153,13 @@ class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):
         (i.e., on which this method is called), but does include the
         lowest leaf widget.
         """
-        out = []
-        w = self
-        while (w := w.base_widget.focus) is not None:  # type: ignore[assignment]
-            out.append(w)
+        out: list[WidgetContainerMixin[typing.Any] | AbstractWidget] = []
+        w: AbstractWidget = self
+        while (focus := w.base_widget.focus) is not None:
+            out.append(focus)
+            w = focus
 
-        return out  # type: ignore[return-value]
+        return out
 
     @property
     @abc.abstractmethod

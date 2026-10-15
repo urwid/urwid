@@ -130,13 +130,20 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         super().__init__(w)
 
         # convert obsolete parameters 'fixed left' and 'fixed right':
+        normalized_align: (
+            Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
+        )
         if isinstance(align, tuple) and align[0] in {"fixed left", "fixed right"}:
             if align[0] == "fixed left":
                 left = align[1]
-                align = Align.LEFT
             else:
                 right = align[1]
-                align = Align.RIGHT
+            normalized_align = Align.LEFT if align[0] == "fixed left" else Align.RIGHT
+        elif isinstance(align, tuple):
+            # 'fixed left'/'fixed right' handled above, so only the relative form remains.
+            normalized_align = typing.cast("tuple[Literal['relative', WHSettings.RELATIVE], int]", align)
+        else:
+            normalized_align = align
         normalized_width: (
             int
             | Literal["pack", "clip", WHSettings.PACK, WHSettings.CLIP]
@@ -167,7 +174,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         self._width_type: Literal[WHSettings.CLIP, WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
         self._width_amount: int | None
 
-        self._align_type, self._align_amount = normalize_align(align, PaddingError)  # type: ignore[arg-type]
+        self._align_type, self._align_amount = normalize_align(normalized_align, PaddingError)
         self._width_type, self._width_amount = normalize_width(normalized_width, PaddingError)
         self.min_width = min_width
 
@@ -463,7 +470,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     def move_cursor_to_coords(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        x: int,
+        x: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
         y: int,
     ) -> bool:
         """Set the cursor position with (x,y) coordinates of self._original_widget.
@@ -514,7 +521,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
         return self._original_widget.mouse_event(maxvals, event, button, col - left, row, focus)
 
-    def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
+    def get_pref_col(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+    ) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
         """Return the preferred column from self._original_widget, or None."""
         if not hasattr(self._original_widget, "get_pref_col"):
             return None
@@ -525,7 +535,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         else:
             maxvals = ()
 
-        x = typing.cast("int | None", self._original_widget.get_pref_col(maxvals))
+        x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None = self._original_widget.get_pref_col(maxvals)
         if isinstance(x, int):
             return x + left
         return x

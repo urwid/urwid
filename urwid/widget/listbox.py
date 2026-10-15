@@ -209,9 +209,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     _sizing = frozenset([Sizing.BOX])
 
     @typing.overload
-    # pyrefly: ignore[invalid-annotation]  # the walker position type is not followed
     def __init__(
-        self: ListBox[_K],
+        self,
         body: ListWalker[_K, AbstractFlowWidget],
     ) -> None: ...
 
@@ -245,8 +244,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
                 removed_in="7.0",
             )
         else:
-            # pyrefly: ignore[not-a-type]  # a string type argument in an expression
-            self._body = SimpleListWalker["AbstractFlowWidget"](body)
+            self._body = SimpleListWalker(body)
 
         self.body = self._body  # Initialization hack
 
@@ -782,16 +780,23 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         # the walker reports position `None` only together with the widget
         return typing.cast("_K", pos)
 
-    focus_position = property(
-        _get_focus_position,
-        set_focus,
-        doc="""
-        the position of child widget in focus. The valid values for this
-        position depend on the list walker in use.
-        :exc:`IndexError` will be raised by reading this property when the
-        ListBox is empty or setting this property to an invalid position.
-        """,
-    )
+    @property  # type: ignore[override]  # walker positions are not limited to int | str
+    def focus_position(self) -> _K:
+        """Return the position of the child widget in focus.
+
+        The valid values for this position depend on the list walker in use.
+
+        :raises IndexError: the ListBox is empty.
+        """
+        return self._get_focus_position()
+
+    @focus_position.setter
+    def focus_position(self, position: _K) -> None:
+        """Set the focus to *position* through :meth:`set_focus`, so an override in a subclass applies.
+
+        :raises IndexError: *position* is not valid for the list walker.
+        """
+        self.set_focus(position)
 
     def _contents(self) -> ListBoxContentsProto[_K]:
         # noinspection PyMethodParameters
@@ -803,8 +808,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             __getitem__ = self._contents__getitem__
 
             def __len__(inner_self) -> int:
-                # pyrefly: ignore[bad-argument-type]  # the walker position type is not followed
-                return len(self)
+                return self.__len__()
 
             def __repr__(inner_self) -> str:
                 return f"<{inner_self.__class__.__name__} for {self!r} at 0x{id(inner_self):X}>"
@@ -821,7 +825,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         """
         if hasattr(self._body, "__getitem__"):
             try:
-                # pyrefly: ignore[bad-index]  # the walker position type is not followed
+                # pyrefly: ignore[bad-index]  # pyrefly does not narrow on hasattr(..., "__getitem__")
                 return (self._body[key], None)
             except (IndexError, KeyError) as exc:
                 raise KeyError(f"ListBox.contents key not found: {key!r}").with_traceback(exc.__traceback__) from exc
@@ -833,12 +837,14 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
 
         try:
             self._body.set_focus(key)
-            # protocol v1 walkers produce the widget only, without the options placeholder
-            return self._body.get_focus()[0]  # type: ignore[return-value]
+            widget, _pos = self._body.get_focus()
         except (IndexError, KeyError) as exc:
             raise KeyError(f"ListBox.contents key not found: {key!r}").with_traceback(exc.__traceback__) from exc
         finally:
             self._body.set_focus(old_focus)
+        if widget is None:
+            raise KeyError(f"ListBox.contents key not found: {key!r}")
+        return (widget, None)
 
     @property
     def contents(self) -> ListBoxContentsProto[_K]:
@@ -1930,7 +1936,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         of the list are visible
         """
         (maxcol, maxrow) = size
-        result = []
+        result: list[Literal["top", "bottom"]] = []
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
         if middle is None or top is None or bottom is None:  # empty listbox
             return ["top", "bottom"]
@@ -1952,7 +1958,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             if self._body.get_prev(pos) == (None, None):
                 result.insert(0, "top")
 
-        return result  # type: ignore[return-value]
+        return result
 
     def __iter__(self) -> Iterator[_K]:
         """

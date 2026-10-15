@@ -350,9 +350,16 @@ def normalize_height(
 
 @typing.overload
 def normalize_height(
-    height: Literal["flow", "pack", WHSettings.FLOW, WHSettings.PACK],
+    height: Literal["flow", WHSettings.FLOW],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.FLOW, WHSettings.PACK], None]: ...
+) -> tuple[Literal[WHSettings.FLOW], None]: ...
+
+
+@typing.overload
+def normalize_height(
+    height: Literal["pack", WHSettings.PACK],
+    err: type[BaseException],
+) -> tuple[Literal[WHSettings.PACK], None]: ...
 
 
 @typing.overload

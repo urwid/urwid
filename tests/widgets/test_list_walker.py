@@ -276,6 +276,36 @@ class SimpleFocusListWalkerFocusTest(unittest.TestCase):
             walker.prev_position(0)
 
 
+class MonitoredFocusListConstructionTest(unittest.TestCase):
+    def test_focus_out_of_range_rejected(self) -> None:
+        for focus in (3, -1):
+            with self.subTest(focus=focus), self.assertRaises(IndexError):
+                urwid.MonitoredFocusList([1, 2, 3], focus=focus)
+        with self.assertRaises(TypeError):
+            urwid.MonitoredFocusList([1, 2, 3], focus="1")
+
+    def test_focus_ignored_when_empty(self) -> None:
+        ml = urwid.MonitoredFocusList([], focus=5)
+        ml.append(1)
+        self.assertEqual(0, ml.focus)
+
+
+class MonitoredFocusListValidationTest(unittest.TestCase):
+    def test_iadd_is_validated(self) -> None:
+        pile = urwid.Pile([urwid.Text("a")])
+        contents = pile.contents
+        with self.assertRaises(urwid.PileError):
+            contents += ["bad"]
+        self.assertEqual(1, len(pile.contents))
+
+    def test_clear_reports_removed_range(self) -> None:
+        ml = urwid.MonitoredFocusList([1, 2, 3])
+        seen = []
+        ml.set_validate_contents_modified(lambda indices, new_items: seen.append(indices))
+        ml.clear()
+        self.assertEqual([(0, 3, 1)], seen)
+
+
 class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
     """The modified callback runs once, after both the contents and the focus are updated."""
 
@@ -287,6 +317,7 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
             "set item": lambda ml: ml.__setitem__(2, 7),
             "set slice": lambda ml: ml.__setitem__(slice(0, 1), [8, 9]),
             "imul": lambda ml: ml.__imul__(0),
+            "iadd": lambda ml: ml.__iadd__([6, 7]),
             "append": lambda ml: ml.append(6),
             "extend": lambda ml: ml.extend([6, 7]),
             "insert": lambda ml: ml.insert(0, -1),

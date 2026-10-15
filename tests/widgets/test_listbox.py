@@ -2042,6 +2042,20 @@ class ListBoxConsumerApiTest(unittest.TestCase):
         self.assertEqual(3, len(listbox))
         self.assertEqual([items[2]], listbox.get_focus_widgets())
 
+    def test_focus_position_setter_calls_overridden_set_focus(self) -> None:
+        calls: list[int] = []
+
+        class RecordingListBox(urwid.ListBox):
+            def set_focus(self, position, coming_from=None):
+                calls.append(position)
+                super().set_focus(position, coming_from)
+
+        listbox = RecordingListBox(urwid.SimpleFocusListWalker([urwid.Text(str(idx)) for idx in range(3)]))
+        listbox.focus_position = 1
+        listbox.keypress((10, 3), "end")
+        self.assertEqual([1, 2], calls)
+        self.assertEqual(2, listbox.focus_position)
+
 
 class DuckTypedWalker:
     """Minimal duck-typed ListWalker-like object (not a ListWalker subclass)."""
@@ -2488,8 +2502,8 @@ class ListBoxContentsTest(unittest.TestCase):
         lbox = urwid.ListBox(V1ProtocolWalker(widgets))
         contents = lbox.contents
 
-        widget = contents[1]
-        self.assertIs(widgets[1], widget)
+        self.assertEqual((widgets[1], None), contents[1])
+        self.assertIs(widgets[1], lbox[1])
         self.assertEqual(0, lbox.body.focus)
 
         with self.assertRaises(KeyError):

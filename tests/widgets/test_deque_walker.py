@@ -103,6 +103,13 @@ class MonitoredDequeModifiedCallbackTest(unittest.TestCase):
         md.clear()
         self.assertEqual(8, counter["count"])
 
+        md.extend([1, 2])
+        md *= 2
+        self.assertEqual(10, counter["count"])
+        expected = collections.deque([1, 2], maxlen=3)
+        expected *= 2
+        self.assertEqual(list(expected), list(md))
+
 
 class MonitoredFocusDequeModifiedCallbackTest(unittest.TestCase):
     """The modified callback runs once, after both the contents and the focus are updated."""
@@ -213,6 +220,37 @@ class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
         mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=1)
         mfd.clear()
         self.assertIsNone(mfd.focus)
+
+    def test_imul(self) -> None:
+        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=2)
+        seen = []
+        mfd.set_modified_callback(lambda: seen.append((list(mfd), mfd.focus)))
+        mfd *= 2
+        self.assertEqual([([1, 2, 3, 1, 2, 3], 2)], seen)
+        mfd *= 0
+        self.assertEqual([([1, 2, 3, 1, 2, 3], 2), ([], None)], seen)
+        mfd.append(1)
+        self.assertEqual(0, mfd.focus)
+
+    def test_imul_bounded_by_maxlen(self) -> None:
+        """A huge count on a bounded deque keeps only maxlen items, as deque does, without building the repetition."""
+        for focus, count in ((2, 2), (0, 2), (2, 2**61)):
+            with self.subTest(focus=focus, count=count):
+                mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=focus)
+                expected = collections.deque([1, 2, 3], maxlen=4)
+                expected *= count
+                mfd *= count
+                self.assertEqual(list(expected), list(mfd))
+                self.assertEqual(max(0, focus - (3 * count - 4)), mfd.focus)
+
+    def test_focus_out_of_range_rejected(self) -> None:
+        for focus in (3, -1):
+            with self.subTest(focus=focus), self.assertRaises(IndexError):
+                urwid.MonitoredFocusDeque([1, 2, 3], focus=focus)
+        with self.assertRaises(IndexError):
+            urwid.MonitoredFocusDeque([1, 2, 3], maxlen=2, focus=2)  # only two items are kept
+        with self.assertRaises(TypeError):
+            urwid.MonitoredFocusDeque([1, 2, 3], focus="1")
 
     def test_maxlen_zero(self) -> None:
         mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=0)

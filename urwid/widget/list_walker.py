@@ -77,19 +77,19 @@ class ListWalkerError(Exception):
 
 
 @typing.runtime_checkable
-class ScrollSupportingBody(typing.Protocol):
+class ScrollSupportingBody(typing.Protocol[_K]):
     """Protocol for ListWalkers."""
 
-    def get_focus(self) -> tuple[AbstractWidget, _K]:
-        """Return the ``(widget, position)`` currently in focus."""
+    def get_focus(self) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` currently in focus, or ``(None, None)`` if the body is empty."""
 
-    def set_focus(self, position: _K) -> None:
+    def set_focus(self, position: _K, /) -> None:
         """Set the focus to *position*."""
 
-    def get_next(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+    def get_next(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
         """Return the ``(widget, position)`` after *position*, or ``(None, None)`` if there is none."""
 
-    def get_prev(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+    def get_prev(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
         """Return the ``(widget, position)`` before *position*, or ``(None, None)`` if there is none."""
 
 
@@ -270,7 +270,7 @@ class SimpleListWalker(
 
 class SimpleFocusListWalker(
     MonitoredFocusList[_T],
-    ListWalker[typing.SupportsIndex, _T],
+    ListWalker[int, _T],
 ):
     """ListWalker like :class:`SimpleListWalker` that also keeps focus tracking items across edits."""
 
