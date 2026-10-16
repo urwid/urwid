@@ -88,7 +88,8 @@ class ScrollbarSymbols(enum.StrEnum):
     Only these members are also drawn on terminals without UTF-8, where the others are drawn as ``?``:
 
     - ASCII: :attr:`ARROW_ASCII_UP` and :attr:`ARROW_ASCII_DOWN`.
-    - DEC special graphics: :attr:`MEDIUM_SHADE` and :attr:`DRAWING_LIGHT`.
+    - DEC special graphics: :attr:`MEDIUM_SHADE`, :attr:`DRAWING_LIGHT`, :attr:`BLACK_VERTICAL_RECTANGLE`
+      and :attr:`MIDDLE_DOT`.
     """
 
     FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
@@ -107,6 +108,9 @@ class ScrollbarSymbols(enum.StrEnum):
     DRAWING_HEAVY_4_DASH = BOX_SYMBOLS.HEAVY.VERTICAL_4_DASH
 
     DRAWING_DOUBLE = BOX_SYMBOLS.DOUBLE.VERTICAL
+
+    BLACK_VERTICAL_RECTANGLE = "▮"
+    MIDDLE_DOT = "·"
 
     ARROW_TRIANGLE_UP = "▲"
     ARROW_TRIANGLE_DOWN = "▼"

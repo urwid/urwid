@@ -700,7 +700,17 @@ class TestScrollBarScrollable(unittest.TestCase):
             kept = {symbol.name for symbol in urwid.ScrollBar.Symbols if apply_target_encoding(symbol)[0] != b"?"}
         finally:
             urwid.set_encoding(old_encoding)
-        self.assertEqual({"MEDIUM_SHADE", "DRAWING_LIGHT", "ARROW_ASCII_UP", "ARROW_ASCII_DOWN"}, kept)
+        self.assertEqual(
+            {
+                "MEDIUM_SHADE",
+                "DRAWING_LIGHT",
+                "BLACK_VERTICAL_RECTANGLE",
+                "MIDDLE_DOT",
+                "ARROW_ASCII_UP",
+                "ARROW_ASCII_DOWN",
+            },
+            kept,
+        )
 
     def test_end_markers_mouse(self):
         """A click on an end marker scrolls one step, and its release does not move the thumb."""
