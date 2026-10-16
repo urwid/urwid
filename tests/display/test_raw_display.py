@@ -7,6 +7,7 @@ import os
 import pathlib
 import shutil
 import signal
+import stat
 import struct
 import sys
 import tempfile
@@ -18,7 +19,7 @@ from unittest import mock
 import urwid
 from urwid import signals
 from urwid.display import _raw_display_base, escape
-from urwid.display._raw_display_base import TermModes, detect_terminal_properties
+from urwid.display._raw_display_base import TermModes, detect_term_colors, detect_terminal_properties
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, NO_HYPERLINK, AttrSpec
 from urwid.util import set_temporary_encoding
 
@@ -763,7 +764,7 @@ class TestTerminalProperties(unittest.TestCase):
         xterm = "xterm-256color"
 
         def colors(term: str, environ: dict[str, str]) -> int:
-            return detect_terminal_properties(term, environ, windows_version=(0, 0, 0)).colors
+            return detect_term_colors(term, environ, windows_version=(0, 0, 0))
 
         self.assertEqual(1, colors(xterm, {"NO_COLOR": "1"}))
         self.assertEqual(1, colors(xterm, {"CLICOLOR": "0"}))
@@ -780,6 +781,7 @@ class TestTerminalProperties(unittest.TestCase):
         # Empty NO_COLOR is unset per the spec
         self.assertEqual(256, colors(xterm, {"NO_COLOR": ""}))
 
+    @unittest.skipIf(sys.platform == "win32", "native Windows has no terminfo lookup")
     def test_terminfo_colors(self) -> None:
         """Check that the ``colors`` of a terminfo entry raises the colour count the TERM name gives."""
         terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
@@ -813,9 +815,9 @@ class TestTerminalProperties(unittest.TestCase):
         )
         for term, case_environ, colors in cases:
             with self.subTest(term=term, environ=case_environ):
-                props = detect_terminal_properties(term, case_environ, windows_version=(0, 0, 0))
-                self.assertEqual(colors, props.colors)
+                self.assertEqual(colors, detect_term_colors(term, case_environ, windows_version=(0, 0, 0)))
 
+    @unittest.skipIf(sys.platform == "win32", "native Windows has no terminfo lookup")
     def test_terminfo_search_order(self) -> None:
         """Check that terminfo entries are searched in ncurses' directory order."""
         terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
@@ -834,13 +836,13 @@ class TestTerminalProperties(unittest.TestCase):
         )
         for environ, colors in cases:
             with self.subTest(environ=environ):
-                self.assertEqual(colors, detect_terminal_properties("fancy", environ, windows_version=(0, 0, 0)).colors)
+                self.assertEqual(colors, detect_term_colors("fancy", environ, windows_version=(0, 0, 0)))
         with mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", (first,)):
-            self.assertEqual(16777216, detect_terminal_properties("fancy", {}, windows_version=(0, 0, 0)).colors)
+            self.assertEqual(16777216, detect_term_colors("fancy", {}, windows_version=(0, 0, 0)))
 
     @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs are POSIX only")
-    def test_terminfo_fifo_is_not_read(self) -> None:
-        """Check that a FIFO named like a terminfo entry is passed over instead of blocking."""
+    def test_terminfo_fifo_is_not_opened(self) -> None:
+        """Check that a FIFO named like a terminfo entry is passed over without being opened."""
         fifo = self.root / "terminfo/f/fancy"
         fifo.parent.mkdir(parents=True)
         os.mkfifo(fifo)
@@ -854,7 +856,57 @@ class TestTerminalProperties(unittest.TestCase):
         self.addCleanup(signal.signal, signal.SIGALRM, signal.signal(signal.SIGALRM, blocked))
         self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
         signal.setitimer(signal.ITIMER_REAL, 5)
-        self.assertEqual(256, detect_terminal_properties("fancy", environ, windows_version=(0, 0, 0)).colors)
+        with mock.patch.object(os, "open", wraps=os.open) as os_open:
+            self.assertEqual(256, detect_term_colors("fancy", environ, windows_version=(0, 0, 0)))
+        # Only the valid entry is opened, not the FIFO in front of it.
+        self.assertEqual(1, sum(pathlib.PurePath(call.args[0]).name == "fancy" for call in os_open.call_args_list))
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs are POSIX only")
+    def test_terminfo_entry_replaced_after_stat_is_not_opened(self) -> None:
+        """Check that an entry swapped for a symlink after its stat() is not followed to what the link names."""
+        terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
+        entry = self.root / "terminfo/f/fancy"
+        device = self.root / "device"  # a FIFO stands in for a device, which a test cannot create
+        os.mkfifo(device)
+        real_stat = os.stat
+
+        def stat_then_swap(path: str | os.PathLike[str], *, follow_symlinks: bool = True) -> os.stat_result:
+            result = real_stat(path, follow_symlinks=follow_symlinks)
+            if pathlib.Path(path) == entry:
+                entry.unlink()
+                entry.symlink_to(device)
+            return result
+
+        real_open = os.open
+        opened_fifos = []
+
+        def open_and_record(path: str | os.PathLike[str], flags: int, *, dir_fd: int | None = None) -> int:
+            fd = real_open(path, flags, dir_fd=dir_fd)
+            if stat.S_ISFIFO(os.fstat(fd).st_mode):
+                opened_fifos.append(path)
+            return fd
+
+        with (
+            mock.patch.object(os, "stat", side_effect=stat_then_swap),
+            mock.patch.object(os, "open", side_effect=open_and_record),
+        ):
+            colors = detect_term_colors("fancy", {"TERMINFO": terminfo}, windows_version=(0, 0, 0))
+        self.assertEqual(16, colors)
+        self.assertTrue(entry.is_symlink())
+        self.assertEqual([], opened_fifos)
+
+    def test_terminfo_not_read_on_windows(self) -> None:
+        """Check that nothing is opened on Windows, where a file name such as COM1 can name a device."""
+        terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
+        with (
+            mock.patch.object(_raw_display_base, "IS_WINDOWS", new=True),
+            mock.patch.object(os, "stat", wraps=os.stat) as os_stat,
+            mock.patch.object(os, "open", wraps=os.open) as os_open,
+        ):
+            colors = detect_term_colors("fancy", {"TERMINFO": terminfo}, windows_version=(0, 0, 0))
+        self.assertEqual(16, colors)
+        os_stat.assert_not_called()
+        os_open.assert_not_called()
 
     def test_windows_console_vt(self) -> None:
         win7 = (6, 1, 7601)
