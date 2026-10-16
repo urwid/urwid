@@ -328,12 +328,20 @@ ScrollBar Widget
 ----------------
 The :class:`ScrollBar` widget draw optional scrollbar on the right or left side of widget if scrolling is required
 (widget not fit in the desired amount of rows).
+With ``visible=True`` the scrollbar is drawn even when no scrolling is required,
+so the wrapped widget keeps the same width whatever its content.
+With ``visible=False`` it is never drawn: the wrapped widget gets the full width and still scrolls by keys and wheel.
 The widget is always rendered BOX and wrapped widget is also should be BOX.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
 * :class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
 * :class:`ListBox` can be used with :class:`ScrollBar` directly,
-  all input is always handled by :class:`ListBox` and it's widgets.
+  all input outside the scrollbar and the mouse wheel over it are handled by :class:`ListBox` and it's widgets.
+  By default a click or drag on the scrollbar does nothing.
+  With ``scroll_by_focus=True`` a click or drag on the scrollbar scrolls the :class:`ListBox` by moving its focus
+  to the widget at the top of the new view (at the end of the list the view may shift to fill the rows);
+  the focus stays when the view does.
+  It is off by default, because this focus change does not pass through the :class:`ListBox` input methods.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.
