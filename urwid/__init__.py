@@ -52,6 +52,7 @@ from urwid.command_map import (
     CURSOR_RIGHT,
     CURSOR_UP,
     REDRAW_SCREEN,
+    CommandInfo,
     CommandMap,
     command_map,
 )
@@ -305,6 +306,7 @@ __all__: tuple[str, ...] = (
     "CheckBoxError",
     "Columns",
     "ColumnsError",
+    "CommandInfo",
     "CommandMap",
     "CompositeCanvas",
     "Divider",
