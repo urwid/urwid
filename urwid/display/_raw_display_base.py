@@ -309,6 +309,49 @@ def _parse_terminfo_colors(data: bytes) -> int | None:
     return colors if colors > 0 else None
 
 
+def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
+    """Return the start of the regular file at *path*.
+
+    Opening a device, even briefly, can disturb its other users: a serial port asserts DTR.
+    So a device is never opened, even if the entry is replaced while it is being read:
+
+    - The path is resolved with realpath(), which reads links without opening anything.
+    - stat() checks that the resolved path is a regular file.
+    - Each component is opened through the previous directory with O_NOFOLLOW, so a symlink planted afterwards fails.
+    - O_NONBLOCK and O_NOCTTY stop a FIFO from blocking and a tty from becoming the controlling terminal.
+
+    :returns: up to ``_TERMINFO_MAX_SIZE`` bytes, or None when *path* is missing, unreadable or not a regular file.
+    """
+    try:
+        real = os.path.realpath(path, strict=True)
+        if not stat.S_ISREG(pathlib.Path(real).stat().st_mode):
+            return None
+        *directories, name = pathlib.PurePath(real).parts
+        fd = os.open(directories[0], os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for directory in directories[1:]:
+                parent, fd = fd, -1
+                try:
+                    fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+                finally:
+                    os.close(parent)
+            entry = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY | os.O_NOFOLLOW, dir_fd=fd)
+        finally:
+            if fd >= 0:
+                os.close(fd)
+    # ValueError: a directory from the environment holds NUL or a lone surrogate.
+    # RecursionError: realpath() before Python 3.13 recurses once per link of a long symlink chain.
+    # NotImplementedError: dir_fd is unavailable at run time, as on macOS 10.9.
+    except (OSError, ValueError, RecursionError, NotImplementedError):
+        return None
+    try:
+        return os.read(entry, _TERMINFO_MAX_SIZE) if stat.S_ISREG(os.fstat(entry).st_mode) else None
+    except OSError:
+        return None
+    finally:
+        os.close(entry)
+
+
 def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
     """Return the colour count the terminfo entry of *term* allows.
 
@@ -319,10 +362,15 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
     In each one the entry is looked up under its first letter, and under that letter's hexadecimal code as on macOS.
     The first valid entry found is used, and a malformed one is passed over as ncurses does.
 
+    Native Windows has no terminfo database, and a Win32 path can name a device such as ``COM1`` by its file name,
+    so nothing is looked up there.
+
     :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
     """
+    if IS_WINDOWS:
+        return None
     # TERM comes from the environment and becomes a file name. Only the characters terminal names use are accepted,
-    # so it cannot name another directory, a Windows drive, or a path the file system cannot encode.
+    # so it cannot name another directory or a path the file system cannot encode.
     if not term or not term.isascii() or not all(char.isalnum() or char in "+-._" for char in term):
         return None
     directories: list[pathlib.Path] = []
@@ -332,26 +380,72 @@ def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | Non
         directories.append(pathlib.Path(home, ".terminfo"))
     directories.extend(pathlib.Path(entry) for entry in environ.get("TERMINFO_DIRS", "").split(os.pathsep) if entry)
     directories.extend(pathlib.Path(directory) for directory in _TERMINFO_SYSTEM_DIRS)
-    # A FIFO or a device named like an entry would block a plain open() or read(), so only a regular file is read.
-    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
     for directory in directories:
         for subdirectory in (term[0], f"{ord(term[0]):x}"):
-            try:
-                fd = os.open(directory / subdirectory / term, flags)
-            except (OSError, ValueError):  # ValueError: a directory from the environment holds NUL or a lone surrogate
+            if (data := _read_terminfo_entry(directory / subdirectory / term)) is None:
                 continue
             try:
-                if not stat.S_ISREG(os.fstat(fd).st_mode):
-                    continue
-                colors = _parse_terminfo_colors(os.read(fd, _TERMINFO_MAX_SIZE))
-            except (OSError, ValueError):
+                colors = _parse_terminfo_colors(data)
+            except ValueError:  # malformed: ncurses passes over it too
                 continue
-            finally:
-                os.close(fd)
             if colors is None:
                 return None
             return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
     return None
+
+
+def detect_term_colors(
+    term: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    *,
+    windows_version: tuple[int, int, int] | None = None,
+) -> _ColorCount:
+    """Detect the colour count of the terminal.
+
+    Sources, the first that decides wins:
+
+    - ``NO_COLOR``, then ``FORCE_COLOR`` / ``CLICOLOR_FORCE``, then ``CLICOLOR=0``.
+    - A monochrome TERM such as ``dumb``.
+    - A 24-bit host: ``COLORTERM=truecolor``, Windows Terminal, ConEmu, VS Code, or Windows 10 from build 14931.
+    - Any other ``COLORTERM``, which means at least 256 colours.
+    - The Windows 10 console from build 10586, which has 256 colours.
+    - TERM itself.
+
+    TERM gives a count by its name, matched by family so ``gnome-256color``, ``konsole-direct``
+    and ``rxvt-unicode-256color`` are recognized.
+    The ``colors`` capability of its terminfo entry raises that count and never lowers it.
+    The entry is searched in the ``TERMINFO``, ``$HOME/.terminfo`` and ``TERMINFO_DIRS`` directories of *environ*,
+    then in the system terminfo directories; native Windows has no terminfo lookup.
+
+    :param term: the terminal name; ``TERM`` from *environ* when None.
+    :param environ: the environment; :data:`os.environ` when None.
+    :param windows_version: the Windows version as (major, minor, build); the running system's when None.
+    :returns: the colour count: 1, 16, 88, 256 or 16777216.
+
+    >>> detect_term_colors("xterm", {"FORCE_COLOR": "3"})
+    16777216
+    >>> detect_term_colors("xterm-256color", {"NO_COLOR": "1"})
+    1
+    """
+    env = os.environ if environ is None else environ
+    force = env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE")
+    if env.get("NO_COLOR") or (env.get("CLICOLOR") == "0" and not force):
+        return 1
+    if force:
+        return _parse_force_color(force)
+    term_value = env.get("TERM", "") if term is None else term
+    term_colors = _colors_from_term(term_value, _term_families(term_value))
+    # The name rules know hosts whose entries understate them, such as the truecolor families.
+    if (terminfo_colors := _terminfo_colors(term_value, env)) is not None:
+        term_colors = max(term_colors, terminfo_colors)
+    if term_colors == 1:
+        return 1
+    win_colors = _windows_console_colors(_windows_version() if windows_version is None else windows_version)
+    if _truecolor_host(env) or win_colors == 16777216:
+        return 16777216
+    # Any other COLORTERM, or the Windows console, sets the minimum.
+    minimum: _ColorCount = 256 if env.get("COLORTERM") else win_colors or 1
+    return max(term_colors, minimum)
 
 
 def detect_terminal_properties(
@@ -360,50 +454,23 @@ def detect_terminal_properties(
     *,
     windows_version: tuple[int, int, int] | None = None,
 ) -> TerminalProperties:
-    """Detect raw-display capabilities from TERM, its terminfo entry and standard colour environment variables.
+    """Detect raw-display capabilities from TERM and standard colour environment variables.
 
-    Environment handling follows the NO_COLOR spec and common COLORTERM / FORCE_COLOR / CLICOLOR_FORCE /
-    CLICOLOR conventions.
-    TERM names are matched by family so ``gnome-256color``, ``konsole-direct``
-    and ``rxvt-unicode-256color`` are recognized.
-    The ``colors`` capability of the TERM terminfo entry raises the colour count the name gives,
-    and never lowers it.
-    The entry is searched in the ``TERMINFO``, ``$HOME/.terminfo`` and ``TERMINFO_DIRS`` directories of *environ*,
-    then in the system terminfo directories.
+    The colour count comes from :func:`detect_term_colors`.
+    TERM names are matched by family, so ``screen.xterm-256color`` is treated as both screen and xterm.
 
-    On Windows 10 and later the console VT host is used when TERM is empty or generic:
-    256 colors from build 10586, 24-bit color from build 14931. Windows Terminal
-    (``WT_SESSION``), ConEmu and VS Code's terminal are treated as 24-bit hosts even
+    On Windows 10 and later the console VT host is used when TERM is empty or generic.
+    Windows Terminal (``WT_SESSION``), ConEmu and VS Code's terminal are treated as VT hosts even
     when TERM still reports ``xterm-256color``.
     """
     env = os.environ if environ is None else environ
     term_value = env.get("TERM", "") if term is None else term
     families = _term_families(term_value)
     term_l = term_value.lower()
-    term_colors = _colors_from_term(term_value, families)
-    # The name rules know hosts whose entries understate them, such as the truecolor families.
-    if (terminfo_colors := _terminfo_colors(term_value, env)) is not None:
-        term_colors = max(term_colors, terminfo_colors)
     if windows_version is None:
         windows_version = _windows_version()
     win_colors = _windows_console_colors(windows_version)
-    vt_truecolor = _truecolor_host(env) or win_colors == 16777216
-    vt_host = vt_truecolor or win_colors in {256, 16777216}
-
-    if env.get("NO_COLOR"):
-        colors: _ColorCount = 1
-    elif force := env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE"):
-        colors = _parse_force_color(force)
-    elif env.get("CLICOLOR") == "0" or term_colors == 1:
-        colors = 1
-    elif vt_truecolor:
-        colors = 16777216
-    elif env.get("COLORTERM") and term_colors < 256:
-        colors = 256
-    elif win_colors is not None and term_colors < win_colors:
-        colors = win_colors
-    else:
-        colors = term_colors
+    vt_host = _truecolor_host(env) or win_colors in {256, 16777216}
 
     has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
     linux_console = _is_linux_console(term_value)
@@ -415,7 +482,7 @@ def detect_terminal_properties(
     back_color_erase = "bce" in term_l or not families & {"screen", "dumb", "unknown"}
 
     return TerminalProperties(
-        colors=colors,
+        colors=detect_term_colors(term_value, env, windows_version=windows_version),
         has_underline=has_underline,
         fg_bright_is_bold=fg_bright_is_bold,
         bg_bright_is_blink=bg_bright_is_blink,
@@ -474,8 +541,8 @@ class Screen(BaseScreen, RealTerminal):
         # keeping its sockets open until the cyclic garbage collector happened to run.
         signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
+        self.colors = detect_term_colors(self.term, os.environ)
         properties = detect_terminal_properties(self.term, os.environ)
-        self.colors = properties.colors
         self.has_underline = properties.has_underline
         self.fg_bright_is_bold = properties.fg_bright_is_bold
         self.bg_bright_is_blink = properties.bg_bright_is_blink
