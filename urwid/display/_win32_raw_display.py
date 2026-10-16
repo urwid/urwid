@@ -182,12 +182,10 @@ class Screen(_raw_display_base.Screen):
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
-        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
-        # After the signal: a main loop still connected to it re-hooks the screen, which starts a reader.
         self._stop_input_thread()
 
-        self._stop_mouse_restore_buffer()
         self._stop_restore_palette()
+        self._stop_mouse_restore_buffer()
 
         if self._dwOriginalOutMode is not None and self._dwOriginalInMode is not None:
             handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
@@ -229,7 +227,8 @@ class Screen(_raw_display_base.Screen):
             A subclass that defines ``get_input_nonblocking()`` is still polled through it.
             Override :meth:`get_available_raw_input` instead. This API will be removed in version 7.0.
         """
-        self._start_input_thread()
+        if self._started:  # a stopped screen has no input to read, and the next console user must get it
+            self._start_input_thread()
 
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)

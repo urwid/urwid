@@ -437,32 +437,146 @@ class TestRawDisplay(unittest.TestCase):
         """Palette entries modified with modify_terminal_palette() must be reset when the screen stops,
         so urwid doesn't leave the user's terminal with a custom palette after the process exits
         (urwid/urwid#458).
+
+        The Linux console has neither OSC 4 nor OSC 104, and fbterm has no reset sequence.
         """
-        s = urwid.display.raw.Screen()
-        written: list[str] = []
-        s.write = written.append
-        s.flush = lambda: None
-        s._started = True
+        osc4 = ("\x1b]4;1;rgb:ff/00/00;2;rgb:00/ff/00\x1b\\", "\x1b]104;1;2\x1b\\")
+        linux = ("\x1b]P1ff0000\x1b]P200ff00", "\x1b]R")
+        for term, (expected_set, expected_restore) in {
+            "xterm-256color": osc4,
+            # GNU screen interprets the sequences itself, whatever terminal it runs in
+            "screen.linux": osc4,
+            "fbterm": ("\x1b[3;1;255;0;0;2;0;255;0}", ""),
+            "linux": linux,
+            "linux-16color": linux,
+            "linux.utf8": linux,
+        }.items():
+            with self.subTest(term=term):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
 
-        s.modify_terminal_palette([(1, 255, 0, 0), (2, 0, 255, 0)])
-        self.assertEqual({1, 2}, s._modified_palette_entries)
+                s.modify_terminal_palette([(1, 255, 0, 0), (2, 0, 255, 0)])
+                self.assertEqual(expected_set, "".join(written))
+                self.assertEqual({1, 2}, s._modified_palette_entries)
 
-        s._stop_restore_palette()
+                written.clear()
+                s._stop_restore_palette()
 
-        self.assertIn("\x1b]104;1;2\x1b\\", "".join(written))
-        self.assertEqual(set(), s._modified_palette_entries)
+                self.assertEqual(expected_restore, "".join(written))
+                self.assertEqual(set(), s._modified_palette_entries)
+
+    def test_modify_terminal_palette_rejects_unrepresentable_entries(self) -> None:
+        """An entry the terminal's sequence cannot carry raises before anything is written.
+
+        A None component is rejected by every terminal. The Linux console sequence has one hex digit
+        for the index and two per component, so a wider value would end the sequence early.
+        """
+        for term, entry, error in (
+            ("xterm-256color", (1, None, 0, 0), TypeError),
+            ("fbterm", (1, 0, None, 0), TypeError),
+            ("linux", (1, 0, 0, None), TypeError),
+            ("linux", (256, 0, 0, 0), ValueError),
+            ("linux", (-1, 0, 0, 0), ValueError),
+            ("linux", (1, 256, 0, 0), ValueError),
+            ("linux", (1, 0, -1, 0), ValueError),
+        ):
+            with self.subTest(term=term, entry=entry):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                with self.assertRaises(error):
+                    s.modify_terminal_palette([(0, 0, 0, 0), entry])
+
+                self.assertEqual([], written)
+                self.assertEqual(set(), s._modified_palette_entries)
+
+    def test_modify_terminal_palette_linux_console_skips_missing_entries(self) -> None:
+        """The Linux console has entries 0-15 only: the others are skipped, and not reset on stop."""
+        for entries, expected, modified in (
+            ([(1, 255, 0, 0), (16, 0, 255, 0), (255, 0, 0, 255)], "\x1b]P1ff0000", {1}),
+            ([(16, 0, 255, 0), (255, 0, 0, 255)], "", set()),
+        ):
+            with self.subTest(entries=entries):
+                s = urwid.display.raw.Screen()
+                s.term = "linux"
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                s.modify_terminal_palette(entries)
+
+                self.assertEqual(expected, "".join(written))
+                self.assertEqual(modified, s._modified_palette_entries)
+
+    def test_reset_default_terminal_palette_linux_console(self) -> None:
+        """The Linux console gets the same 16 basic colors whatever the color mode, since its palette has no more."""
+        outputs: set[str] = set()
+        for colors in (16, 88, 256, 2**24):
+            with self.subTest(colors=colors):
+                s = urwid.display.raw.Screen()
+                s.term = "linux"
+                s.set_terminal_properties(colors=colors)
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                s.reset_default_terminal_palette()
+
+                output = "".join(written)
+                self.assertEqual(16, output.count("\x1b]P"))
+                self.assertTrue(output.startswith("\x1b]P0000000"))
+                self.assertEqual(set(range(16)), s._modified_palette_entries)
+                outputs.add(output)
+        self.assertEqual(1, len(outputs))
 
     def test_stop_restore_palette_noop_when_untouched(self):
         """No reset escape should be sent if the palette was never modified."""
-        s = urwid.display.raw.Screen()
+        for term in ("xterm-256color", "linux"):
+            with self.subTest(term=term):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                s._stop_restore_palette()
+
+                self.assertEqual([], written)
+
+    def test_linux_palette_reset_is_not_the_last_write_on_stop(self):
+        """A terminal that only claims TERM=linux reads ESC ] R as an unterminated OSC string.
+
+        The sequences written after it on stop end that string, so it cannot swallow the shell prompt.
+        """
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = urwid.display.raw.Screen(input=os.fdopen(read_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+        self.addCleanup(s._term_input_file.close)
+        self.addCleanup(s._term_output_file.close)
+        s.start()
+        s.term = "linux"
         written: list[str] = []
         s.write = written.append
         s.flush = lambda: None
-        s._started = True
+        s.modify_terminal_palette([(1, 255, 0, 0)])
+        written.clear()
 
-        s._stop_restore_palette()
+        s.stop()
 
-        self.assertEqual([], written)
+        output = "".join(written)
+        self.assertIn(escape.LINUX_RESET_PALETTE, output)
+        self.assertIn(escape.ESC, output.partition(escape.LINUX_RESET_PALETTE)[2])
 
     def test_draw_screen_ignores_eintr(self):
         """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""

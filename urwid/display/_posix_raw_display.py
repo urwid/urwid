@@ -289,12 +289,10 @@ class Screen(_raw_display_base.Screen):
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
-        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
-
         self.signal_restore()
 
-        self._stop_mouse_restore_buffer()
         self._stop_restore_palette()
+        self._stop_mouse_restore_buffer()
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:

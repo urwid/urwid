@@ -1395,10 +1395,18 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """Perform the actual setup of the screen. Subclasses should override this method."""
 
     def stop(self) -> None:
-        """Tear down the screen if it has been started. You shouldn't override this method; override :meth:`_stop`."""
-        if self._started:
-            self._stop()
+        """Tear down the screen if it has been started.
+
+        Emits ``INPUT_DESCRIPTORS_CHANGED`` once the screen is marked stopped,
+        so an event loop hooked to the screen stops watching its input.
+
+        You shouldn't override this method; override :meth:`_stop`.
+        """
+        if not self._started:
+            return
+        self._stop()
         self._started = False
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _stop(self) -> None:
         """Perform actual teardown of the screen. Subclasses should override this method."""
