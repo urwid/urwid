@@ -140,6 +140,75 @@ class PopUpTargetTest(unittest.TestCase):
         self.assertEqual(target.pack((10, 5)), (10, 5))
 
 
+class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
+    """A one-row launcher whose pop-up is anchored to it by default, so PopUpTarget keeps the pop-up off its row."""
+
+    def __init__(self, pop_up_height: int, *, anchor_height: int | None = 1, left: int = 0, top: int = 1) -> None:
+        super().__init__(urwid.Text("L"))
+        self.pop_up_height = pop_up_height
+        self.anchor_height = anchor_height
+        self.left = left
+        self.top = top
+
+    def create_pop_up(self) -> urwid.SolidFill:
+        return urwid.SolidFill("p")
+
+    def get_pop_up_parameters(self) -> dict:
+        parameters = {"left": self.left, "top": self.top, "overlay_width": 3, "overlay_height": self.pop_up_height}
+        if self.anchor_height is not None:
+            parameters["anchor_height"] = self.anchor_height
+        return parameters
+
+
+class NegativePopUpPositionTest(unittest.TestCase):
+    def test_negative_position(self) -> None:
+        """A pop-up may open left of and above its launcher; past a screen edge it is moved, or shrunk, to fit."""
+        for description, launcher_row, left, top, pop_up_height, expected_col, expected_rows in (
+            ("over the launcher", 2, 1, -1, 2, 1, range(1, 3)),
+            ("past the top left screen corner", 0, -2, -1, 2, 0, range(2)),
+            ("taller than the screen", 2, 0, -1, 9, 0, range(5)),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(pop_up_height, anchor_height=None, left=left, top=top)
+                pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), launcher_row), launcher])
+                target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+                launcher.open_pop_up()
+                rows = [line.decode() for line in target.render((6, 5)).text]
+
+                self.assertEqual(
+                    [(row, expected_col) for row in expected_rows],
+                    [(index, line.index("ppp")) for index, line in enumerate(rows) if "ppp" in line],
+                )
+
+
+class AnchoredPopUpTest(unittest.TestCase):
+    def test_placement(self) -> None:
+        """Below if it fits, else above if it fits, else the larger side clipped; never over the launcher."""
+        maxrow = 11
+        for description, launcher_row, pop_up_height, expected_rows in (
+            ("fits below", 2, 4, range(3, 7)),
+            ("fits above only", 8, 4, range(4, 8)),
+            ("clipped below, more rows below", 4, 10, range(5, 11)),
+            ("clipped above, more rows above", 6, 10, range(6)),
+            ("clipped below on equal sides", 5, 10, range(6, 11)),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(pop_up_height)
+                pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), launcher_row), launcher])
+                target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+                launcher.open_pop_up()
+                rows = [line.decode() for line in target.render((3, maxrow)).text]
+
+                self.assertEqual("L  ", rows[launcher_row])
+                self.assertEqual(list(expected_rows), [index for index, line in enumerate(rows) if line == "ppp"])
+
+    def test_no_room_on_either_side_falls_back_to_overlay_placement(self) -> None:
+        launcher = AnchoredLauncher(2)
+        target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+        launcher.open_pop_up()
+        self.assertEqual([b"ppp"], target.render((3, 1)).text)
+
+
 class NestedDialog(urwid.PopUpLauncher[urwid.Filler[urwid.Edit]]):
     """A pop-up launcher whose own pop-up is another :class:`NestedDialog`.
 
@@ -213,6 +282,49 @@ class NestedPopUpTest(unittest.TestCase):
 
         target.keypress((20, 10), "x")
         self.assertEqual(innermost.original_widget.original_widget.edit_text, "level 2x")
+
+
+class DialogWithLauncher(urwid.PopUpLauncher[urwid.Text]):
+    """A launcher whose pop-up is a dialog at (6, 4) holding `inner` under a title row."""
+
+    def __init__(self, inner: urwid.Widget, *, dialog_height: int = 4, valign: str = "top") -> None:
+        super().__init__(urwid.Text("O"))
+        self.inner = inner
+        self.dialog_height = dialog_height
+        self.valign = valign
+
+    def create_pop_up(self) -> urwid.Filler[urwid.Pile]:
+        return urwid.Filler(urwid.Pile([urwid.Text("dlg"), self.inner]), valign=self.valign)
+
+    def get_pop_up_parameters(self) -> dict:
+        return {"left": 6, "top": 4, "overlay_width": 5, "overlay_height": self.dialog_height}
+
+
+class NestedPopUpOffsetTest(unittest.TestCase):
+    def test_nested_pop_up_is_placed_relative_to_its_launcher(self) -> None:
+        """A nested pop-up's position is relative to the pop-up containing its launcher, not to the screen."""
+        for description, dialog, pop_up_height, anchor_height, expected_rows in (
+            ("plain, below", {}, 3, None, range(6, 9)),
+            ("anchored, below", {}, 4, 1, range(6, 10)),
+            ("anchored, flipped above", {}, 5, 1, range(5)),
+            # The dialog is too tall for the screen, so the Overlay shrinks it to the 10 screen rows and the
+            # Filler centres its 2 rows there: the launcher is on screen row 5, not where a 14-row dialog has it.
+            ("dialog shrunk to the screen", {"dialog_height": 14, "valign": "middle"}, 2, None, range(6, 8)),
+        ):
+            with self.subTest(description):
+                inner = AnchoredLauncher(pop_up_height, anchor_height=anchor_height)
+                outer = DialogWithLauncher(inner, **dialog)
+                target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+                outer.open_pop_up()
+                inner.open_pop_up()
+
+                rows = [line.decode() for line in target.render((12, 10)).text]
+
+                self.assertEqual("L", rows[5][6])
+                self.assertEqual(
+                    list(expected_rows),
+                    [index for index, line in enumerate(rows) if line[6:9] == "ppp"],
+                )
 
 
 if __name__ == "__main__":

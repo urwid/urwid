@@ -63,6 +63,11 @@ RadioButton
 
 .. autoclass:: RadioButton
 
+DropDown
+~~~~~~~~
+
+.. autoclass:: DropDown
+
 TreeWidget
 ~~~~~~~~~~
 

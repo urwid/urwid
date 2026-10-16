@@ -32,7 +32,7 @@ from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from typing import Literal, TypedDict
+    from typing import Literal, NotRequired, TypedDict
 
     from urwid.canvas import Canvas
 
@@ -45,6 +45,7 @@ if typing.TYPE_CHECKING:
         top: int
         overlay_width: int
         overlay_height: int
+        anchor_height: NotRequired[int]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
@@ -89,6 +90,10 @@ class PopUpLauncher(
 
         Subclass must override this method. It is called each time this widget is rendered.
 
+        The optional ``anchor_height`` key makes :class:`PopUpTarget` move the pop-up above the launcher, or clip
+        its height, when it does not fit below;
+        see :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+
         :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
@@ -114,6 +119,37 @@ class PopUpLauncher(
             canv = CompositeCanvas(canv)
             canv.set_pop_up(self._pop_up_widget, **self.get_pop_up_parameters())
         return canv
+
+
+def _place_anchored(maxrow: int, top: int, height: int, anchor_height: int) -> tuple[int, int]:
+    """Return the (top, height) of a pop-up kept off the `anchor_height` launcher rows directly above `top`.
+
+    The pop-up goes below the launcher when it fits there, above it when it fits there, and otherwise on the side
+    with more rows (below on a tie), clipped to that side. When neither side has a row, the position is returned
+    unchanged and :class:`Overlay` shifts the pop-up over the launcher, as it does for a pop-up without an anchor.
+
+    >>> _place_anchored(24, 5, 10, 1)  # fits below
+    (5, 10)
+    >>> _place_anchored(24, 20, 10, 1)  # flips above
+    (9, 10)
+    >>> _place_anchored(24, 12, 30, 1)  # clipped below: 12 rows below, 11 above
+    (12, 12)
+    >>> _place_anchored(24, 13, 30, 1)  # clipped above: 11 rows below, 12 above
+    (0, 12)
+    >>> _place_anchored(24, 20, 10, 3)  # flips above a 3-row launcher on rows 17-19
+    (7, 10)
+    """
+    rows_below = maxrow - top
+    rows_above = top - anchor_height
+    if height <= rows_below:
+        return top, height
+    if height <= rows_above:
+        return rows_above - height, height
+    if max(rows_below, rows_above) < 1:
+        return top, height
+    if rows_below >= rows_above:
+        return top, rows_below
+    return 0, rows_above
 
 
 class PopUpTarget(WidgetDecoration[WrappedWidget]):
@@ -147,7 +183,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         :class:`PopUpLauncher` with its own pop-up open; and so on. Each level's pop-up widget
         is rendered directly to discover whether it declares a further nested pop-up, rather
         than inspecting the wrapping Overlay's merged canvas, whose "pop up" coordinate can go
-        stale once nothing re-declares it.
+        stale once nothing re-declares it. A nested pop-up's position is relative to the pop-up
+        widget that declares it, so it is offset by where that widget was placed.
 
         :param size: box size to render :attr:`_original_widget` and every pop-up level at.
         :param focus: whether this widget is in focus.
@@ -163,9 +200,17 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         rebuilding = False
 
         pop_up = canv.get_pop_up()
+        anchor_height = canv.get_pop_up_anchor_height()
+        # Position of the widget that declared the current pop-up; the original widget fills this widget.
+        offset_left = offset_top = 0
         while pop_up:
             left, top, (w, overlay_width, overlay_height) = pop_up
+            left += offset_left
+            top += offset_top
+            if anchor_height is not None:
+                top, overlay_height = _place_anchored(size[1], top, overlay_height, anchor_height)
             level = len(new_levels)
+            overlay: Overlay[AbstractWidget, AbstractWidget]
             if not rebuilding and level < len(old_levels) and old_levels[level][0] == w:
                 overlay = old_levels[level][1]
                 overlay.set_overlay_parameters(
@@ -191,8 +236,14 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             new_levels.append((w, overlay))
             bottom_widget = overlay
 
-            # Check w itself for a further nested pop-up; see the docstring for why.
-            pop_up = w.render((overlay_width, overlay_height), focus=focus).get_pop_up()
+            # Check w itself for a further nested pop-up; see the docstring for why. Render it where and at the
+            # size the Overlay puts it, which differs from the request when it does not fit.
+            pad_left, pad_right, pad_top, pad_bottom = overlay.calculate_padding_filler(size, focus)
+            offset_left, offset_top = pad_left, pad_top
+            w_size = overlay.top_w_size(size, pad_left, pad_right, pad_top, pad_bottom)
+            w_canv = w.render(w_size, focus=focus)
+            pop_up = w_canv.get_pop_up()
+            anchor_height = w_canv.get_pop_up_anchor_height()
 
         self._pop_up_levels = new_levels
         self._current_widget = bottom_widget

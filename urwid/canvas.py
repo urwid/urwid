@@ -58,6 +58,8 @@ if typing.TYPE_CHECKING:
         "_CanvasCoords",
         {
             "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, int, int]]],
+            # Same (x, y) as "pop up", so both move together; the data part is the anchor height.
+            "pop up anchor": NotRequired[tuple[int, int, int]],
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
@@ -379,6 +381,15 @@ class Canvas:
         """Return the pop-up info set on this canvas, or ``None`` if none was set."""
         return self.coords.get("pop up", None)
 
+    def get_pop_up_anchor_height(self) -> int | None:
+        """Return the anchor height set with the pop-up on this canvas, or ``None`` if none was set."""
+        pop_up = self.coords.get("pop up", None)
+        anchor = self.coords.get("pop up anchor", None)
+        # A merged canvas can hold the anchor of one pop-up and the position of another: use only a matching pair.
+        if pop_up is None or anchor is None or anchor[:2] != pop_up[:2]:
+            return None
+        return anchor[2]
+
     def set_pop_up(
         self,
         w: AbstractWidget,
@@ -386,6 +397,8 @@ class Canvas:
         top: int,
         overlay_width: int,
         overlay_height: int,
+        *,
+        anchor_height: int | None = None,
     ) -> None:
         """Add pop-up information to the canvas.
 
@@ -393,19 +406,24 @@ class Canvas:
         display a pop-up at the given (left, top) position relative to the
         current canvas.
 
+        A negative position opens the pop-up to the left of or above this canvas, for example over a launcher
+        with the current item on the launcher's row. A pop-up that would extend past an edge of the
+        :class:`PopUpTarget <urwid.PopUpTarget>` is moved, and shrunk when it is larger, to fit inside it.
+
         :param w: widget to use for the pop-up
-        :param left: x position for left edge of pop-up >= 0
-        :param top: y position for top edge of pop-up >= 0
+        :param left: x position for left edge of pop-up, may be negative
+        :param top: y position for top edge of pop-up, may be negative
         :param overlay_width: width of overlay in screen columns > 0
         :param overlay_height: height of overlay in screen rows > 0
-        :raises CanvasError: the canvas is already finalised, the position is negative
+        :param anchor_height: rows of the launcher directly above the pop-up, >= 0, or ``None`` to place the pop-up
+            exactly as given. With an anchor, :class:`PopUpTarget <urwid.PopUpTarget>` keeps the pop-up off those
+            rows: it goes below them when it fits there, above them when it fits there, and otherwise on the side
+            with more rows, with its height clipped to that side.
+        :raises CanvasError: the canvas is already finalised, the anchor height is negative
             or the overlay size is not positive
         """
         if self.widget_info and self.cacheable:
             raise CanvasError(self._finalized_message)
-
-        if left < 0 or top < 0:
-            raise CanvasError(f"Pop-up position must not be negative, got left={left!r} and top={top!r}")
 
         if overlay_width <= 0 or overlay_height <= 0:
             raise CanvasError(
@@ -413,7 +431,14 @@ class Canvas:
                 f"got overlay_width={overlay_width!r} and overlay_height={overlay_height!r}"
             )
 
+        if anchor_height is not None and anchor_height < 0:
+            raise CanvasError(f"Pop-up anchor height must not be negative, got {anchor_height!r}")
+
         self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
+        if anchor_height is None:
+            self.coords.pop("pop up anchor", None)
+        else:
+            self.coords["pop up anchor"] = (left, top, anchor_height)
 
     def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
         """Return coords shifted by (dx, dy)."""
