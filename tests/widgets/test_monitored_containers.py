@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import copy
 import functools
 import operator
+import pickle
 import typing
 import unittest
 
@@ -184,6 +186,117 @@ class MonitoredFocusListFillEmptyTest(unittest.TestCase):
         items.set_validate_contents_modified(lambda indices, new: 0)
         items[:] = ["a", "b", "c"]
         self.assertEqual(0, items.focus)
+
+
+def _pickle_round_trip(obj: object, protocol: int) -> typing.Any:
+    return pickle.loads(pickle.dumps(obj, protocol=protocol))
+
+
+COPY_OPERATIONS: Mapping[str, Callable[[typing.Any], typing.Any]] = {
+    **{
+        f"pickle{protocol}": functools.partial(_pickle_round_trip, protocol=protocol)
+        for protocol in range(pickle.HIGHEST_PROTOCOL + 1)
+    },
+    "copy": copy.copy,
+    "deepcopy": copy.deepcopy,
+}
+
+
+class SlottedFocusList(urwid.MonitoredFocusList[str]):
+    """Focus list with a slot, whose default pickle state carries the slot values separately."""
+
+    __slots__ = ("extra",)
+    extra: str
+
+
+class OwnStateList(urwid.MonitoredList[str]):
+    """Monitored list that restores its own attributes from the default pickle state."""
+
+    extra: str
+
+    def __setstate__(self, state: dict[str, typing.Any]) -> None:
+        """Restore the attributes from the instance dictionary."""
+        vars(self).update(state)
+
+
+class PlainReduceList(urwid.MonitoredList[str]):
+    """Monitored list that pickles and copies as a plain list through its own ``__reduce__``."""
+
+    def __reduce__(self) -> tuple[typing.Any, ...]:
+        """Rebuild as a plain list, appending the items."""
+        return list, (), None, iter(self)
+
+
+class MonitoredListPickleTest(unittest.TestCase):
+    """Pickling and copying restore a monitored list without calling its monitoring methods on a partial object."""
+
+    def test_pickle_and_copy_restore_items_and_focus(self) -> None:
+        """Check every pickle protocol and both copies, which restore items and attributes in different orders."""
+        lists: dict[str, Callable[[list[urwid.Text]], urwid.MonitoredList[urwid.Text]]] = {
+            "MonitoredList": urwid.MonitoredList,
+            "MonitoredFocusList": urwid.MonitoredFocusList,
+            "SimpleListWalker": lambda items: urwid.SimpleListWalker(items, wrap_around=True),
+            "SimpleFocusListWalker": lambda items: urwid.SimpleFocusListWalker(items, wrap_around=True),
+        }
+        for target, make in lists.items():
+            for name, operation in COPY_OPERATIONS.items():
+                with self.subTest(target=target, operation=name):
+                    original = make([urwid.Text("a"), urwid.Text("b"), urwid.Text("c")])
+                    if isinstance(original, (urwid.MonitoredFocusList, urwid.SimpleListWalker)):
+                        original.focus = 1
+                    result = operation(original)
+                    self.assertIs(type(original), type(result))
+                    self.assertEqual(["a", "b", "c"], [widget.text for widget in result])
+                    self.assertEqual(vars(original).keys(), vars(result).keys())
+                    if isinstance(original, (urwid.MonitoredFocusList, urwid.SimpleListWalker)):
+                        self.assertEqual(1, result.focus)
+                    if isinstance(original, (urwid.SimpleListWalker, urwid.SimpleFocusListWalker)):
+                        self.assertTrue(result.wrap_around)
+
+    def test_unpickling_does_not_notify(self) -> None:
+        """Check that restoring the items calls neither callback, and that a list containing itself survives.
+
+        Protocols 0 and 1 pass a list subclass's items to its constructor, which cannot hold the list itself.
+        """
+        for protocol in range(2, pickle.HIGHEST_PROTOCOL + 1):
+            with self.subTest(protocol=protocol):
+                calls: list[object] = []
+                items: urwid.MonitoredFocusList[object] = urwid.MonitoredFocusList(["a", "b"], focus=1)
+                items.append(items)
+                items.set_modified_callback(functools.partial(calls.append, "modified"))
+                items.set_focus_changed_callback(calls.append)
+                result, result_calls = pickle.loads(pickle.dumps((items, calls), protocol=protocol))
+                self.assertEqual([], result_calls)
+                self.assertIs(result, result[2])
+                self.assertEqual(1, result.focus)
+                result.append("c")
+                self.assertEqual(["modified"], result_calls)
+
+    def test_subclass_state(self) -> None:
+        """Check a subclass with slots, and ones whose own ``__setstate__`` or ``__reduce__`` gets the default state.
+
+        Protocols 0 and 1 cannot pickle a class with slots.
+        """
+        for name, operation in COPY_OPERATIONS.items():
+            with self.subTest(operation=name):
+                own_state = OwnStateList(["a", "b"])
+                own_state.extra = "x"
+                result = operation(own_state)
+                self.assertIs(OwnStateList, type(result))
+                self.assertEqual(["a", "b"], list(result))
+                self.assertEqual("x", result.extra)
+                result = operation(PlainReduceList(["a", "b"]))
+                self.assertIs(list, type(result))
+                self.assertEqual(["a", "b"], result)
+                if name in {"pickle0", "pickle1"}:
+                    continue
+                slotted = SlottedFocusList(["a", "b"], focus=1)
+                slotted.extra = "x"
+                result = operation(slotted)
+                self.assertIs(SlottedFocusList, type(result))
+                self.assertEqual(["a", "b"], list(result))
+                self.assertEqual("x", result.extra)
+                self.assertEqual(1, result.focus)
 
 
 class MonitoredFocusDequeIndexTest(unittest.TestCase):

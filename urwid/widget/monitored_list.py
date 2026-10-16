@@ -100,6 +100,42 @@ class MonitoredList(list[_T], typing.Generic[_T]):
         for item in self:
             yield None, item
 
+    def __reduce_ex__(self, protocol: typing.SupportsIndex, /) -> str | tuple[typing.Any, ...]:
+        """Move the items into the state, so that unpickling restores them only after the attributes.
+
+        From protocol 2 pickle restores a list subclass's items with ``extend`` before its attributes,
+        and the monitoring methods need those attributes. Protocols 0 and 1 pass the items to the constructor.
+        A subclass with its own ``__reduce__`` or ``__setstate__`` keeps the default state.
+        """
+        rv = super().__reduce_ex__(protocol)
+        cls = type(self)
+        if (
+            isinstance(rv, str)
+            or len(rv) < 4
+            or rv[3] is None
+            or cls.__reduce__ is not object.__reduce__
+            or cls.__setstate__ is not MonitoredList.__setstate__
+        ):
+            return rv
+        factory, args, state, items, *rest = rv
+        return factory, args, (state, list(items)), None, *rest
+
+    def __setstate__(self, state: typing.Any) -> None:
+        """Restore the attributes, then the items :meth:`__reduce_ex__` put into *state*, without notifying.
+
+        :param state: ``(state, items)`` from :meth:`__reduce_ex__`, or the default state pickle restores:
+            ``None``, the instance dictionary, or a tuple of it and a dictionary of slot values.
+        """
+        items: list[_T] = []
+        if isinstance(state, tuple) and isinstance(state[1], list):
+            state, items = state
+        attributes, slots = state if isinstance(state, tuple) else (state, None)
+        if attributes:
+            vars(self).update(attributes)
+        for name, value in (slots or {}).items():
+            setattr(self, name, value)
+        list.extend(self, items)
+
     # list.__add__/__rmul__ return a new list, not Self, and leave this list unchanged, so they do not notify.
     @typing.overload
     def __add__(self, __value: list[_T], /) -> list[_T]: ...
