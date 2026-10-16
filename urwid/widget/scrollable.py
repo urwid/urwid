@@ -575,6 +575,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self.scroll_by_focus = scroll_by_focus
         self._press_on_scrollbar: bool | None = None  # where the last unreleased press here went
         self._original_widget_size = (0, 0)
+        self._rendered_size: tuple[int, int] | None = None  # size of the last render, which set the size above
 
     def _render_original(
         self,
@@ -673,6 +674,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """Render the wrapped widget together with the scrollbar, when scrolling is needed."""
         from urwid import canvas
 
+        self._rendered_size = size
         if self._visible is False:
             return self._render_original(size, focus)
 
@@ -779,8 +781,13 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
-        """Forward a keypress to the wrapped widget."""
-        return self._original_widget.keypress(self._original_widget_size, key)
+        """Forward a keypress to the wrapped widget, at the size it is rendered at within ``size``."""
+        ow_size = self._original_widget_size
+        if size != self._rendered_size:
+            # Not rendered at this size yet: a key before the first render, or after a resize.
+            layout = self._scrollbar_layout(size)
+            ow_size = size if layout is None else layout.ow_size
+        return self._original_widget.keypress(ow_size, key)
 
     def mouse_event(
         self,
