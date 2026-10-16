@@ -968,7 +968,8 @@ class Columns(
             return None
 
         widths, _, size_args = self.get_column_sizes(size, focus=True)
-        if len(widths) <= self.focus_position:
+        if len(widths) <= self.focus_position or widths[self.focus_position] <= 0:
+            # the focus column is hidden: render shows no cursor
             return None
 
         if (coords := w.get_cursor_coords(size_args[self.focus_position])) is not None:
@@ -1020,7 +1021,8 @@ class Columns(
                     if col < end:
                         # choose this one
                         break
-            x = end + self.dividechars
+            if width > 0:
+                x = end + self.dividechars
 
         if best is None:
             return False
@@ -1072,7 +1074,8 @@ class Columns(
             end = x + width
 
             if col >= end:
-                x = end + self.dividechars
+                if width > 0:
+                    x = end + self.dividechars
                 continue
 
             focus = focus and self.focus_position == i
@@ -1102,23 +1105,22 @@ class Columns(
         widths, _, size_args = self.get_column_sizes(size, focus=True)
 
         w, _ = self.contents[self.focus_position]
-        if len(widths) <= self.focus_position:
+        if len(widths) <= self.focus_position or widths[self.focus_position] <= 0:
             return 0
         col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         cwidth = widths[self.focus_position]
+        # hidden columns are rendered without a divider
+        x = sum(self.dividechars + wc for wc in widths[: self.focus_position] if wc > 0)
 
         if hasattr(w, "get_pref_col"):
             col = w.get_pref_col(size_args[self.focus_position])
             if isinstance(col, int):
-                col += self.focus_position * self.dividechars
-                col += sum(widths[: self.focus_position])
+                col += x
         if col is None:
             col = self.pref_col
 
         if col is None and w.selectable():
-            col = cwidth // 2
-            col += self.focus_position * self.dividechars
-            col += sum(widths[: self.focus_position])
+            col = cwidth // 2 + x
         return col
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:

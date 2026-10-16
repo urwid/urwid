@@ -476,6 +476,40 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(3, canvas.cols())
         self.assertEqual([b"###", b"###"], canvas.text)
 
+    def test_hidden_focus_column_cursor(self) -> None:
+        widget = urwid.Columns([(10, urwid.Edit("", "abc"))])
+        self.assertEqual([0], widget.column_widths((5,), focus=True))
+        self.assertIsNone(widget.render((5,), focus=True).cursor)
+        self.assertIsNone(widget.get_cursor_coords((5,)))
+        self.assertEqual(0, widget.get_pref_col((5,)))
+
+        canvas = urwid.ListBox([widget]).render((5, 3), focus=True)
+        self.assertIsNone(canvas.cursor)
+
+    def test_hidden_column_positions(self) -> None:
+        def make_columns() -> tuple[urwid.Columns, urwid.Edit]:
+            edit = urwid.Edit("", "cdef", edit_pos=2)
+            # the first column is dropped and rendered without its divider
+            return urwid.Columns([(6, urwid.Edit("", "ab")), (4, edit)], dividechars=1, focus_column=1), edit
+
+        widget, edit = make_columns()
+        self.assertEqual([0, 4], widget.column_widths((5,), focus=True))
+        canvas = widget.render((5,), focus=True)
+        self.assertEqual([b"cdef "], canvas.text)
+        self.assertEqual((2, 0), canvas.cursor)
+        self.assertEqual((2, 0), widget.get_cursor_coords((5,)))
+        self.assertEqual(2, widget.get_pref_col((5,)))
+
+        with self.subTest("move_cursor_to_coords"):
+            widget, edit = make_columns()
+            self.assertTrue(widget.move_cursor_to_coords((5,), 1, 0))
+            self.assertEqual(1, edit.edit_pos)
+
+        with self.subTest("mouse_event"):
+            widget, edit = make_columns()
+            self.assertTrue(widget.mouse_event((5,), "mouse press", 1, 1, 0, True))
+            self.assertEqual(1, edit.edit_pos)
+
     def test_focus_column(self):
         button_1 = urwid.Button("Selectable")
         button_2 = urwid.Button("Other selectable")
