@@ -361,6 +361,7 @@ def main() -> None:
     scrollable = urwid.ScrollBar(
         listbox,
         trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        scroll_by_focus=True,
     )
     frame: urwid.Frame[
         urwid.AttrMap[urwid.ScrollBar[urwid.ListBox[int]]],
