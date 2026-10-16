@@ -375,6 +375,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
         focus = self._focus
         if step == 1:
+            stop = max(start, stop)
             if start + num_new_items <= focus < stop:
                 focus = stop
             # adjust for added/removed items
