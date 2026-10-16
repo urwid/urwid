@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import typing
 
 from urwid import _deprecation
@@ -80,7 +81,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         Return the widget without decorations.
 
         If there is only one Decoration, then this is the same as original_widget.
-        The walk stops at the first object that is not a :class:`Widget`.
+        The walk stops at a :mod:`unittest.mock` object.
 
         >>> from urwid import Text
         >>> t = Text("hello")
@@ -92,10 +93,14 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         >>> wd3.base_widget is t
         True
         """
-        visited: set[AbstractWidget] = {self}
-        w: AbstractWidget = self
-        # A non-widget, such as a mock, may create `_original_widget` on every access, which would never end the walk.
-        while isinstance(w, Widget) and (w := getattr(w, "_original_widget", w)) not in visited:
+        visited = {self}
+        w = self
+        # Each mock returns a new child mock for `_original_widget`, so the walk would never reach a visited object.
+        # Mocks exist only if unittest.mock is already imported, so it is not imported here.
+        # The module may still be importing in another thread, so the class can be missing from it.
+        mock_type = getattr(sys.modules.get("unittest.mock"), "NonCallableMock", None)
+        mock_types: tuple[type, ...] = (mock_type,) if mock_type is not None else ()
+        while not isinstance(w, mock_types) and (w := getattr(w, "_original_widget", w)) not in visited:
             visited.add(w)
         return w
 
