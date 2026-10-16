@@ -80,6 +80,7 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         Return the widget without decorations.
 
         If there is only one Decoration, then this is the same as original_widget.
+        The walk stops at the first object that is not a :class:`Widget`.
 
         >>> from urwid import Text
         >>> t = Text("hello")
@@ -91,9 +92,10 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         >>> wd3.base_widget is t
         True
         """
-        visited = {self}
-        w = self
-        while (w := getattr(w, "_original_widget", w)) not in visited:
+        visited: set[AbstractWidget] = {self}
+        w: AbstractWidget = self
+        # A non-widget, such as a mock, may create `_original_widget` on every access, which would never end the walk.
+        while isinstance(w, Widget) and (w := getattr(w, "_original_widget", w)) not in visited:
             visited.add(w)
         return w
 
