@@ -2204,6 +2204,52 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         with self.assertRaises(urwid.ListBoxError):
             lbox.get_first_visible_pos((4, 5))
 
+    def test_check_support_scrolling_wraps_without_flag(self):
+        """A walker that wraps around without a ``wrap_around`` attribute is refused instead of walked forever."""
+
+        class WrappingWalker(urwid.ListWalker):
+            """Wrap around with unhashable positions, and fail the test instead of hanging."""
+
+            def __init__(self, widgets: list[urwid.Text]) -> None:
+                self._widgets = widgets
+                self._focus = 0
+                self.steps = 0
+
+            def __len__(self) -> int:
+                return len(self._widgets)
+
+            def _step(self, position: list[int], step: int) -> tuple[urwid.Text, list[int]]:
+                self.steps += 1
+                if self.steps > 1000:
+                    raise AssertionError("ListBox walks the wrapped body forever")
+                index = (position[0] + step) % len(self._widgets)
+                return self._widgets[index], [index]
+
+            def get_focus(self) -> tuple[urwid.Text, list[int]]:
+                return self._widgets[self._focus], [self._focus]
+
+            def set_focus(self, position: list[int]) -> None:
+                self._focus = position[0]
+                self._modified()
+
+            def get_next(self, position: list[int]) -> tuple[urwid.Text, list[int]]:
+                return self._step(position, 1)
+
+            def get_prev(self, position: list[int]) -> tuple[urwid.Text, list[int]]:
+                return self._step(position, -1)
+
+        size = (4, 5)
+        for name, call in (
+            ("rows_max", lambda lbox: lbox.rows_max(size)),
+            ("get_scrollpos", lambda lbox: lbox.get_scrollpos(size)),
+            ("get_first_visible_pos", lambda lbox: lbox.get_first_visible_pos(size)),
+            ("ScrollBar.render", lambda lbox: urwid.ScrollBar(lbox).render((5, 5))),
+        ):
+            with self.subTest(name):
+                lbox = urwid.ListBox(WrappingWalker([urwid.Text(str(i)) for i in range(20)]))
+                with self.assertRaises(urwid.ListBoxError):
+                    call(lbox)
+
     def test_scroll_protocol_empty_body(self):
         lbox = urwid.ListBox(urwid.SimpleListWalker([]))
         self.assertEqual(0, lbox.get_scrollpos((4, 5)))

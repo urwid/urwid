@@ -331,6 +331,11 @@ The :class:`ScrollBar` widget draw optional scrollbar on the right or left side 
 With ``visible=True`` the scrollbar is drawn even when no scrolling is required,
 so the wrapped widget keeps the same width whatever its content.
 With ``visible=False`` it is never drawn: the wrapped widget gets the full width and still scrolls by keys and wheel.
+With ``end_markers``, such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``,
+the first and the last scrollbar row hold markers
+that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
+``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
+and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
 The widget is always rendered BOX and wrapped widget is also should be BOX.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
