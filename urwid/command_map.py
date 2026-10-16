@@ -21,12 +21,14 @@
 
 from __future__ import annotations
 
+import dataclasses
 import enum
+import types
 import typing
 from collections.abc import MutableMapping
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Mapping
     from typing import Self
 
 
@@ -60,6 +62,16 @@ CURSOR_MAX_RIGHT: typing.Literal[Command.MAX_RIGHT] = Command.MAX_RIGHT
 ACTIVATE: typing.Literal[Command.ACTIVATE] = Command.ACTIVATE
 
 
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
+class CommandInfo:
+    """Description of a command, for building a keyboard help screen."""
+
+    #: What the command does, as one line shown to the user.
+    help_text: str
+    #: Heading the command is listed under.
+    category: str
+
+
 class CommandMap(MutableMapping[str, str | Command | None]):
     """
     dict-like object for looking up commands from keystrokes.
@@ -82,6 +94,17 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         ``'cursor max left'``, ``'cursor max right'``
     :kbd:`space`, :kbd:`enter`
         ``'activate'``
+
+    Every standard command also has a :class:`CommandInfo` with its help text and category, and
+    :meth:`register` adds one for an application's own command. Together with :meth:`keys_for`
+    they are what a keyboard help screen is built from:
+
+    >>> cm = CommandMap()
+    >>> cm.register("quit", "q", "ctrl c", help_text="Quit the program", category="Application")
+    >>> for command, info in cm.command_info.items():
+    ...     if info.category == "Application":
+    ...         print(info.category, cm.keys_for(command), info.help_text)
+    Application ('q', 'ctrl c') Quit the program
     """
 
     def __iter__(self) -> Iterator[str]:
@@ -111,12 +134,37 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         "enter": Command.ACTIVATE,
     }
 
+    _command_info_defaults: typing.ClassVar[dict[str | Command, CommandInfo]] = {
+        Command.REDRAW_SCREEN: CommandInfo("Redraw the screen", "Screen"),
+        Command.UP: CommandInfo("Move up", "Navigation"),
+        Command.DOWN: CommandInfo("Move down", "Navigation"),
+        Command.LEFT: CommandInfo("Move left", "Navigation"),
+        Command.RIGHT: CommandInfo("Move right", "Navigation"),
+        Command.PAGE_UP: CommandInfo("Move up by one page", "Navigation"),
+        Command.PAGE_DOWN: CommandInfo("Move down by one page", "Navigation"),
+        Command.MAX_LEFT: CommandInfo("Move to the start", "Navigation"),
+        Command.MAX_RIGHT: CommandInfo("Move to the end", "Navigation"),
+        Command.ACTIVATE: CommandInfo("Activate the focused widget", "Actions"),
+        Command.MENU: CommandInfo("Open or close the menu", "Actions"),
+        Command.SELECT_NEXT: CommandInfo("Focus the next selectable widget", "Focus"),
+        Command.SELECT_PREVIOUS: CommandInfo("Focus the previous selectable widget", "Focus"),
+    }
+
     def __init__(self) -> None:
-        """Initialize the command map with the class's default key-to-command bindings."""
+        """Initialize the command map with the class's default bindings and command descriptions."""
         self._command = self._command_defaults.copy()
+        self._command_info = self._command_info_defaults.copy()
+
+    def __setstate__(self, state: dict[str, typing.Any]) -> None:
+        """Restore a pickled command map; one pickled by an older release gets the default command descriptions."""
+        self.__dict__.update(state)
+        self.__dict__.setdefault("_command_info", self._command_info_defaults.copy())
 
     def restore_defaults(self) -> None:
-        """Reset the command map to the class's default key-to-command bindings."""
+        """Reset the command map to the class's default key-to-command bindings.
+
+        Command descriptions are kept, including those added by :meth:`register`.
+        """
         self._command = self._command_defaults.copy()
 
     def __getitem__(self, key: str) -> str | Command | None:
@@ -139,6 +187,47 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         """Remove the command mapping for `key`."""
         del self._command[key]
 
+    def register(
+        self,
+        command: str | Command,
+        *keys: str,
+        help_text: str,
+        category: str,
+    ) -> None:
+        """Describe ``command`` and bind ``keys`` to it.
+
+        A key already bound to ``command`` is accepted, and a description given earlier is replaced.
+        Item assignment (``command_map[key] = command``) remains the way to rebind a key on purpose.
+
+        :param command: the command to describe and bind.
+        :param keys: keystrokes to bind to ``command``, added to those it already has.
+        :param help_text: what the command does, as one line shown to the user.
+        :param category: heading the command is listed under.
+        :raises ValueError: a key in ``keys`` is already bound to a different command;
+            the command map is left unchanged.
+        """
+        for key in keys:
+            bound = self._command.get(key)
+            if bound is not None and bound != command:
+                raise ValueError(
+                    f"Key {key!r} is already bound to {str(bound)!r}, cannot also bind it to {str(command)!r}"
+                )
+        self._command_info[command] = CommandInfo(help_text, category)
+        for key in keys:
+            self._command[key] = command
+
+    @property
+    def command_info(self) -> Mapping[str | Command, CommandInfo]:
+        """Read-only view of the description of every described command, in the order they were first described.
+
+        A command stays described when its keys are removed, so :meth:`keys_for` can return no keys for it.
+        """
+        return types.MappingProxyType(self._command_info)
+
+    def keys_for(self, command: str | Command) -> tuple[str, ...]:
+        """Return the keystrokes currently mapped to ``command``, in the order they were first added to the map."""
+        return tuple(key for key, bound in self._command.items() if bound == command)
+
     def clear_command(self, command: str | Command) -> None:
         """Remove every keystroke currently mapped to ``command``."""
         dk = [k for k, v in self._command.items() if v == command]
@@ -149,6 +238,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         """Return a new copy of this CommandMap, likely so we can modify it separate from a shared one."""
         c = self.__class__()
         c._command = dict(self._command)  # pylint: disable=protected-access
+        c._command_info = dict(self._command_info)  # pylint: disable=protected-access
         return c
 
 
