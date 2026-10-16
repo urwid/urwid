@@ -28,10 +28,13 @@ import dataclasses
 import errno
 import functools
 import os
+import pathlib
 import platform
 import selectors
 import signal
 import socket
+import stat
+import struct
 import sys
 import typing
 
@@ -116,6 +119,18 @@ _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
 _TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
 
+# Compiled terminfo entries, as term(5) describes them.
+# ncurses' built-in search path on common systems, searched after TERMINFO, ~/.terminfo and TERMINFO_DIRS.
+_TERMINFO_SYSTEM_DIRS = ("/etc/terminfo", "/lib/terminfo", "/usr/share/terminfo", "/usr/lib/terminfo")
+# Header magic -> struct format of one numeric capability: the legacy format has 16-bit numbers,
+# the ncurses 6.1 extended number format has 32-bit numbers.
+_TERMINFO_NUMBER_FORMATS: Mapping[int, str] = {0o432: "<h", 0o1036: "<i"}
+_TERMINFO_HEADER = struct.Struct("<6h")
+_TERMINFO_COLORS_INDEX = 13  # position of "colors" among the predefined numeric capabilities
+_TERMINFO_MAX_SIZE = 32768  # bytes read from an entry: the largest entry ncurses accepts
+# Minimum terminfo "colors" value -> the colour count it allows; 8-colour terminals use bold for the bright half.
+_TERMINFO_COLOR_COUNTS: Sequence[tuple[int, _ColorCount]] = ((16777216, 16777216), (256, 256), (88, 88), (8, 16))
+
 # ANSI SGR base codes (ECMA-48 / ISO 6429): 30-37 selects a standard foreground color, 90-97 a
 # bright one without needing bold; 40-47 selects a standard background color, 100-107 a bright
 # one. AttrSpec numbers its 16 basic colors 0-15, with 8-15 being "the bright half", so
@@ -134,7 +149,7 @@ _ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256:
 
 @dataclasses.dataclass(frozen=True)
 class TerminalProperties:
-    """Capabilities inferred from TERM and standard color environment variables."""
+    """Capabilities inferred from TERM, its terminfo entry and standard colour environment variables."""
 
     colors: _ColorCount
     has_underline: bool
@@ -257,18 +272,95 @@ def _colors_from_term(term: str, families: frozenset[str]) -> _ColorCount:
     return 16
 
 
+def _parse_terminfo_colors(data: bytes) -> int | None:
+    """Return the ``colors`` capability of a compiled terminfo entry.
+
+    The entry is untrusted data, so its header is checked before its sizes are used as offsets.
+
+    :returns: the number of colours, or None when the entry has no ``colors``.
+    :raises ValueError: the entry is not in a compiled terminfo format, or it is shorter than its header says.
+    """
+    if len(data) < _TERMINFO_HEADER.size:
+        raise ValueError
+    magic, *sizes = _TERMINFO_HEADER.unpack_from(data)
+    names_size, booleans_count, numbers_count, strings_count, strings_size = sizes
+    number_format = _TERMINFO_NUMBER_FORMATS.get(magic)
+    if number_format is None or min(sizes) < 0:
+        raise ValueError
+    number_size = struct.calcsize(number_format)
+    numbers_offset = _TERMINFO_HEADER.size + names_size + booleans_count
+    numbers_offset += numbers_offset % 2  # the numbers start on an even byte
+    # The string offsets are 16-bit and followed by the string table.
+    if numbers_offset + numbers_count * number_size + 2 * strings_count + strings_size > len(data):
+        raise ValueError
+    if numbers_count <= _TERMINFO_COLORS_INDEX:
+        return None
+    (colors,) = struct.unpack_from(number_format, data, numbers_offset + _TERMINFO_COLORS_INDEX * number_size)
+    # -1 marks an absent capability and -2 a cancelled one
+    return colors if colors > 0 else None
+
+
+def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
+    """Return the colour count the terminfo entry of *term* allows.
+
+    The stdlib ``curses.setupterm()`` loads one entry per process and ignores later terminal names,
+    so the compiled entry is read directly.
+    Directories are searched in ncurses' order: ``TERMINFO``, ``$HOME/.terminfo``, ``TERMINFO_DIRS``,
+    then the system directories.
+    In each one the entry is looked up under its first letter, and under that letter's hexadecimal code as on macOS.
+    The first valid entry found is used, and a malformed one is passed over as ncurses does.
+
+    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    """
+    # TERM comes from the environment and becomes a file name. Only the characters terminal names use are accepted,
+    # so it cannot name another directory, a Windows drive, or a path the file system cannot encode.
+    if not term or not term.isascii() or not all(char.isalnum() or char in "+-._" for char in term):
+        return None
+    directories: list[pathlib.Path] = []
+    if terminfo := environ.get("TERMINFO"):
+        directories.append(pathlib.Path(terminfo))
+    if home := environ.get("HOME"):
+        directories.append(pathlib.Path(home, ".terminfo"))
+    directories.extend(pathlib.Path(entry) for entry in environ.get("TERMINFO_DIRS", "").split(os.pathsep) if entry)
+    directories.extend(pathlib.Path(directory) for directory in _TERMINFO_SYSTEM_DIRS)
+    # A FIFO or a device named like an entry would block a plain open() or read(), so only a regular file is read.
+    flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_BINARY", 0)
+    for directory in directories:
+        for subdirectory in (term[0], f"{ord(term[0]):x}"):
+            try:
+                fd = os.open(directory / subdirectory / term, flags)
+            except (OSError, ValueError):  # ValueError: a directory from the environment holds NUL or a lone surrogate
+                continue
+            try:
+                if not stat.S_ISREG(os.fstat(fd).st_mode):
+                    continue
+                colors = _parse_terminfo_colors(os.read(fd, _TERMINFO_MAX_SIZE))
+            except (OSError, ValueError):
+                continue
+            finally:
+                os.close(fd)
+            if colors is None:
+                return None
+            return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
+    return None
+
+
 def detect_terminal_properties(
     term: str | None = None,
     environ: Mapping[str, str] | None = None,
     *,
     windows_version: tuple[int, int, int] | None = None,
 ) -> TerminalProperties:
-    """Detect raw-display capabilities from TERM and standard color environment variables.
+    """Detect raw-display capabilities from TERM, its terminfo entry and standard colour environment variables.
 
     Environment handling follows the NO_COLOR spec and common COLORTERM / FORCE_COLOR / CLICOLOR_FORCE /
     CLICOLOR conventions.
     TERM names are matched by family so ``gnome-256color``, ``konsole-direct``
     and ``rxvt-unicode-256color`` are recognized.
+    The ``colors`` capability of the TERM terminfo entry raises the colour count the name gives,
+    and never lowers it.
+    The entry is searched in the ``TERMINFO``, ``$HOME/.terminfo`` and ``TERMINFO_DIRS`` directories of *environ*,
+    then in the system terminfo directories.
 
     On Windows 10 and later the console VT host is used when TERM is empty or generic:
     256 colors from build 10586, 24-bit color from build 14931. Windows Terminal
@@ -280,6 +372,9 @@ def detect_terminal_properties(
     families = _term_families(term_value)
     term_l = term_value.lower()
     term_colors = _colors_from_term(term_value, families)
+    # The name rules know hosts whose entries understate them, such as the truecolor families.
+    if (terminfo_colors := _terminfo_colors(term_value, env)) is not None:
+        term_colors = max(term_colors, terminfo_colors)
     if windows_version is None:
         windows_version = _windows_version()
     win_colors = _windows_console_colors(windows_version)
