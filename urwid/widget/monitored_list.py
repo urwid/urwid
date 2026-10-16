@@ -362,6 +362,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """Default behaviour is to move the focus to the item following any removed items.
 
         Unless that item was simply replaced, failing that choose the last item in the list.
+        Filling an empty list therefore focuses the last new item; applications rely on this,
+        for example to focus the last part of a container whose contents they replace.
 
         returns focus position for after change is applied
         """

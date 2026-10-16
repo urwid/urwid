@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import enum
 import functools
 import re
@@ -696,10 +697,9 @@ def process_keyqueue(
             end_code = codes[1].to_bytes(1, "little")
 
             if str_util.within_double_byte(start_code + end_code, 0, 1):
-                try:
+                # a pair that is not a character of the encoding falls through and is decoded byte by byte
+                with contextlib.suppress(UnicodeDecodeError):
                     return [(start_code + end_code).decode(util.get_encoding())], codes[2:]
-                except UnicodeDecodeError:
-                    pass  # not a character of the encoding: decode the bytes one by one
 
     if 127 < code < 256:
         try:
@@ -742,6 +742,10 @@ OSC: typing.Final = f"{ESC}]"
 ST: typing.Final = f"{ESC}\\"
 # OSC 8 with an empty URI ends the hyperlink the text is drawn with
 HYPERLINK_CLOSE: typing.Final = f"{OSC}8;;{ST}"
+# Linux console palette, console_codes(4): LINUX_SET_PALETTE then "nrrggbb" in hex, with no terminator,
+# sets entry n (0-15); LINUX_RESET_PALETTE resets all 16 entries to the console default.
+LINUX_SET_PALETTE: typing.Final = f"{OSC}P"
+LINUX_RESET_PALETTE: typing.Final = f"{OSC}R"
 
 
 class PrivateMode(enum.StrEnum):

@@ -14,7 +14,7 @@ import typing
 import unittest.mock
 
 import urwid
-from urwid.display.common import BaseScreen
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, BaseScreen
 from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
@@ -580,6 +580,18 @@ class TestMainLoop(unittest.TestCase):
             with evl.start():
                 pass
         self.assertEqual([True], calls)
+
+    def test_screen_stop_removes_its_input_from_the_event_loop(self):
+        """Stopping the screen of a started loop stops watching its input, also after a later re-notification."""
+        event_loop = urwid.SelectEventLoop()
+        with dummy_raw_main_loop(event_loop=event_loop) as evl, evl.start():
+            self.assertTrue(event_loop._watch_files)
+
+            evl.screen.stop()
+            self.assertEqual({}, event_loop._watch_files)
+
+            urwid.emit_signal(evl.screen, INPUT_DESCRIPTORS_CHANGED)
+            self.assertEqual({}, event_loop._watch_files)
 
     def test_start_raises_when_screen_lacks_external_loop_support(self):
         """start() raises CantUseExternalLoop for a screen without hook_event_loop."""

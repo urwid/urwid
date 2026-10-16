@@ -498,6 +498,13 @@ values with :meth:`display.raw.Screen.modify_terminal_palette`.
 There is no automatic way to tell if this is supported by a user's
 terminal, so this feature shouldn't be relied on.
 
+Most terminals take the xterm OSC 4 sequence.
+On the Linux console (``TERM=linux`` and its variants) the console's own sequence is used instead,
+which covers only the 16 basic colors: entries 16-255 are skipped there.
+Check which terminal is in use (``Screen.term``) before relying on a modified palette.
+The modified entries are reset to the terminal's default when the screen stops;
+the Linux console resets all 16 entries, and fbterm, which has no reset sequence, keeps them.
+
 :meth:`display.raw.Screen.reset_default_terminal_palette` is used to
 reset the palette in the ``palette_test.py`` example program when switching modes.
 

@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import functools
 import operator
+import typing
 import unittest
 
 import urwid
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
 
 
 class Index:
@@ -104,6 +109,81 @@ class MonitoredFocusListIndexTest(unittest.TestCase):
                 index = CountingIndex()
                 operation(items, index)
                 self.assertEqual(1, index.calls)
+
+
+FILL_OPERATIONS: typing.Final[Mapping[str, Callable[[list[typing.Any], list[typing.Any]], object]]] = {
+    "slice all": lambda items, new: operator.setitem(items, slice(None), new),
+    "slice 0:0": lambda items, new: operator.setitem(items, slice(0, 0), new),
+    "extend": lambda items, new: items.extend(new),
+    "+=": operator.iadd,
+    "insert": lambda items, new: items.insert(0, new[0]),
+    "append": lambda items, new: items.append(new[0]),
+}
+
+
+class MonitoredFocusListFillEmptyTest(unittest.TestCase):
+    """Filling an empty focus list gives the focus to the last new item, which applications rely on."""
+
+    @staticmethod
+    def widgets() -> list[urwid.Widget]:
+        """Return new widgets whose first one is not selectable."""
+        return [urwid.Text("t"), urwid.Button("b"), urwid.Text("t2")]
+
+    def test_list_gives_focus_to_last_new_item(self) -> None:
+        """Check the focus of a focus list and a walker after each way of filling them."""
+        lists: dict[str, Callable[[], urwid.MonitoredFocusList[urwid.Widget]]] = {
+            "MonitoredFocusList": urwid.MonitoredFocusList,
+            "SimpleFocusListWalker": lambda: urwid.SimpleFocusListWalker([]),
+        }
+        for target, make in lists.items():
+            for name, operation in FILL_OPERATIONS.items():
+                with self.subTest(target=target, operation=name):
+                    items = make()
+                    operation(items, self.widgets())
+                    self.assertEqual(len(items) - 1, items.focus)
+
+    def test_container_gives_focus_to_last_new_item(self) -> None:
+        """Check the focus position of a container after each way of filling its contents."""
+        containers: dict[str, Callable[[], urwid.Pile | urwid.Columns | urwid.GridFlow]] = {
+            "Pile": lambda: urwid.Pile([]),
+            "Columns": lambda: urwid.Columns([]),
+            "GridFlow": lambda: urwid.GridFlow([], 5, 1, 0, urwid.LEFT),
+        }
+        for target, make in containers.items():
+            for name, operation in FILL_OPERATIONS.items():
+                with self.subTest(target=target, operation=name):
+                    widget = make()
+                    operation(widget.contents, [(w, widget.options()) for w in self.widgets()])
+                    self.assertEqual(len(widget.contents) - 1, widget.focus_position)
+
+    def test_fill_notifies_once_with_the_new_focus(self) -> None:
+        """Check that a fill sends one modified notification, which already sees the new focus.
+
+        A fill with several items also reports one focus change; whether a one-item fill reports one is left open.
+        """
+
+        def record_focus(items: urwid.MonitoredFocusList[str], modified: list[int | None]) -> None:
+            modified.append(items.focus)
+
+        for name, operation in FILL_OPERATIONS.items():
+            with self.subTest(operation=name):
+                items: urwid.MonitoredFocusList[str] = urwid.MonitoredFocusList()
+                modified: list[int | None] = []
+                focus_changes: list[int] = []
+                items.set_modified_callback(functools.partial(record_focus, items, modified))
+                items.set_focus_changed_callback(focus_changes.append)
+                operation(items, ["a", "b", "c"])
+                last = len(items) - 1
+                self.assertEqual([last], modified)
+                if last:
+                    self.assertEqual([last], focus_changes)
+
+    def test_validation_can_override_focus(self) -> None:
+        """Check that a focus returned by the validation callback wins over the last new item."""
+        items: urwid.MonitoredFocusList[str] = urwid.MonitoredFocusList()
+        items.set_validate_contents_modified(lambda indices, new: 0)
+        items[:] = ["a", "b", "c"]
+        self.assertEqual(0, items.focus)
 
 
 class MonitoredFocusDequeIndexTest(unittest.TestCase):

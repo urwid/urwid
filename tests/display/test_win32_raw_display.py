@@ -116,6 +116,7 @@ class TestScreenInput(unittest.TestCase):
         ):
             s.hook_event_loop(event_loop, mock.Mock())
             s.stop()
+            signals.emit_signal(s, INPUT_DESCRIPTORS_CHANGED)  # a re-notification after stop() starts no reader
 
         self.assertTrue(readers)
         self.assertTrue(all(reader.should_exit for reader in readers))

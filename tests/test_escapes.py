@@ -433,6 +433,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                 ("koi8-r", [0xC1], ["а"], []),  # single byte of a narrow encoding
                 ("iso-8859-1", [0xE9], ["é"], []),
                 ("gbk", [0xD6, 0xD0, ord("A")], ["中"], [ord("A")]),  # double byte of a wide encoding
+                ("gbk", [0x81, 0xFF], ["\x81"], [0xFF]),  # lead byte with an invalid trail: decoded one by one
                 ("ascii", [0xE9], ["é"], []),  # not a character of the encoding: read as Latin-1
             ):
                 with self.subTest(encoding=encoding, codes=codes):

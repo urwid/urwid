@@ -198,6 +198,15 @@ def _term_families(term: str) -> frozenset[str]:
     return frozenset(families)
 
 
+def _is_linux_console(term: str) -> bool:
+    """Tell whether a TERM value names the Linux virtual console.
+
+    ``linux``, ``linux-16color`` and ``linux.utf8`` do.
+    A multiplexer that names its outer terminal, such as ``screen.linux``, is not the console.
+    """
+    return term.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
+
+
 def _parse_force_color(value: str) -> _ColorCount:
     """Map FORCE_COLOR / CLICOLOR_FORCE to a color count (chalk / supports-color convention)."""
     normalized = value.strip().lower()
@@ -302,7 +311,7 @@ def detect_terminal_properties(
         colors = term_colors
 
     has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
-    linux_console = bool(term_value) and term_value.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
+    linux_console = _is_linux_console(term_value)
     fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
     if vt_host and not linux_console:
         fg_bright_is_bold = False
@@ -591,8 +600,20 @@ class Screen(BaseScreen, RealTerminal):
         self.flush()
 
     def _stop_restore_palette(self) -> None:
-        """Reset (OSC 104) any palette entries modify_terminal_palette() changed this session."""
+        """Reset any palette entries modify_terminal_palette() changed this session.
+
+        The entries go back to the terminal's default, not to what they were before the screen started.
+        OSC 104 resets the changed entries only.
+        The Linux console can only reset all 16 entries at once.
+        Its reset sequence has no terminator, so a terminal that only claims ``TERM=linux`` reads it as an
+        unterminated OSC string: call this before other escape sequences are written, which end that string.
+        """
         if not self._modified_palette_entries:
+            return
+        if _is_linux_console(self.term):
+            self.write(escape.LINUX_RESET_PALETTE)
+            self.flush()
+            self._modified_palette_entries.clear()
             return
         if self.term == "fbterm":
             # fbterm's palette-modification escape (used in modify_terminal_palette) has no
@@ -1342,13 +1363,34 @@ class Screen(BaseScreen, RealTerminal):
         """Attempt to set part of the terminal palette; this does not work on all terminals.
 
         The changes are sent as a single escape sequence so they should all take effect at the same time.
+        The Linux console takes one sequence per entry instead, and applies each as it arrives.
 
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256
 
+        The Linux console has only entries 0-15 and skips the others.
+        Which terminal is in use, and so which entries it has, is up to the caller to check (:attr:`term`)
+        before relying on the change.
+
         :param entries: list of (index, red, green, blue) tuples.
+        :raises TypeError: a red, green or blue value is None.
+        :raises ValueError: on the Linux console, an index or a red, green or blue value is outside 0-255,
+            which its sequence cannot carry.
         """
-        if self.term == "fbterm":
+        if _is_linux_console(self.term):
+            sequences: list[str] = []
+            applied: list[tuple[int, int | None, int | None, int | None]] = []
+            for index, red, green, blue in entries:
+                if red is None or green is None or blue is None:
+                    raise TypeError(f"Palette entry {index} has no value for a color component")
+                if index not in range(256) or any(value not in range(256) for value in (red, green, blue)):
+                    raise ValueError(f"Linux console palette entry out of range: {(index, red, green, blue)!r}")
+                if index < 16:
+                    sequences.append(f"{escape.LINUX_SET_PALETTE}{index:x}{red:02x}{green:02x}{blue:02x}")
+                    applied.append((index, red, green, blue))
+            entries = applied
+            self.write("".join(sequences))
+        elif self.term == "fbterm":
             modify = [f"{index:d};{red:d};{green:d};{blue:d}" for index, red, green, blue in entries]
             self.write(f"{escape.CSI}3;{';'.join(modify)}}}")
         else:
