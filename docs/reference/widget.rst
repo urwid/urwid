@@ -241,4 +241,7 @@ ScrollBar
 
 .. autoclass:: ScrollBar
 
+.. autoclass:: urwid.widget.scrollable.ScrollbarSymbols
+   :undoc-members:
+
 .. currentmodule:: urwid

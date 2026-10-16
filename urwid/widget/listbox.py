@@ -492,6 +492,20 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         if getattr(self._body, "wrap_around", False):
             raise ListBoxError("Body is wrapped around. Scroll position calculation is undefined.")
 
+    def _walk_body(self, position: typing.Any, forward: bool) -> Iterator[tuple[AbstractFlowWidget, typing.Any]]:
+        """Yield the widgets and positions after *position*, or before it when *forward* is false.
+
+        :raises ListBoxError: the walk comes back to *position*: the body wraps around without saying so.
+        """
+        start = position
+        while True:
+            widget, position = self._body.get_next(position) if forward else self._body.get_prev(position)
+            if widget is None:
+                return
+            if position == start:
+                raise ListBoxError("Body is wrapped around. Scroll position calculation is undefined.")
+            yield widget, position
+
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Return the current scrolling position."""
         self._check_support_scrolling()
@@ -512,10 +526,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         else:
             pos = visible.middle.focus_pos
 
-        prev, pos = self._body.get_prev(pos)
-        while prev is not None:
+        for prev, _pos in self._walk_body(pos, forward=False):
             start_row += prev.rows((maxcol,))
-            prev, pos = self._body.get_prev(pos)
 
         return start_row
 
@@ -534,15 +546,11 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             if focused_w:
                 rows += focused_w.rows((cols,), focus)
 
-                prev, pos = self._body.get_prev(idx)
-                while prev is not None:
+                for prev, _pos in self._walk_body(idx, forward=False):
                     rows += prev.rows((cols,), False)
-                    prev, pos = self._body.get_prev(pos)
 
-                next_, pos = self._body.get_next(idx)
-                while next_ is not None:
+                for next_, _pos in self._walk_body(idx, forward=True):
                     rows += next_.rows((cols,), True)
-                    next_, pos = self._body.get_next(pos)
 
             self._rows_max_cached = rows
 
@@ -565,13 +573,7 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         else:
             first_pos = self.focus_position
 
-        over = 0
-        _widget, first_pos = self._body.get_prev(first_pos)
-        while first_pos is not None:
-            over += 1
-            _widget, first_pos = self._body.get_prev(first_pos)
-
-        return over
+        return sum(1 for _ in self._walk_body(first_pos, forward=False))
 
     def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
         """Return the number of items currently visible."""

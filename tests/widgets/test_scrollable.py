@@ -5,6 +5,7 @@ import typing
 import unittest
 
 import urwid
+from urwid.util import apply_target_encoding, get_encoding
 from urwid.widget.scrollable import ScrollableError, _pos_at_thumb_top, _thumb_top
 
 if typing.TYPE_CHECKING:
@@ -664,6 +665,104 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertTrue(widget.mouse_event(size, "mouse press", 5, scrollbar_col, 0, False))
         self.assertEqual(5, scrollable.get_scrollpos())
 
+    def test_end_markers(self):
+        """End markers take the first and the last row, and the one whose end is visible gets the dim attribute."""
+        content = urwid.Text("\n".join(string.ascii_letters[:10]))
+        widget = urwid.ScrollBar(urwid.Scrollable(content), end_markers=("^", "v"), marker_dim_attr="dim")
+        scrollable = widget.original_widget
+        size = (3, 5)
+
+        canv = widget.render(size)
+        self.assertEqual(("a ^", "b █", "c █", "d  ", "e v"), canv.decoded_text)
+        self.assertEqual(["dim", None, None, None, None], [line[-1][0] for line in canv.content()])
+
+        scrollable.set_scrollpos(2)
+        canv = widget.render(size)
+        self.assertEqual(("c ^", "d  ", "e █", "f █", "g v"), canv.decoded_text)
+        self.assertEqual([None] * 5, [line[-1][0] for line in canv.content()])
+
+        scrollable.set_scrollpos(5)
+        canv = widget.render(size)
+        self.assertEqual(("f ^", "g  ", "h █", "i █", "j v"), canv.decoded_text)
+        self.assertEqual([None, None, None, None, "dim"], [line[-1][0] for line in canv.content()])
+
+        # Too few rows for the markers and a thumb: no markers are drawn.
+        self.assertEqual(("f  ", "g █"), widget.render((3, 2)).decoded_text)
+
+        with self.assertRaises(ValueError):
+            urwid.ScrollBar(urwid.Scrollable(content), end_markers=("^",))
+
+    def test_symbols_drawn_without_utf8(self):
+        """The symbols the docstring lists as ASCII or DEC special graphics are the ones a narrow encoding keeps."""
+        old_encoding = get_encoding()
+        urwid.set_encoding("ascii")
+        try:
+            kept = {symbol.name for symbol in urwid.ScrollBar.Symbols if apply_target_encoding(symbol)[0] != b"?"}
+        finally:
+            urwid.set_encoding(old_encoding)
+        self.assertEqual(
+            {
+                "MEDIUM_SHADE",
+                "DRAWING_LIGHT",
+                "BLACK_VERTICAL_RECTANGLE",
+                "MIDDLE_DOT",
+                "ARROW_ASCII_UP",
+                "ARROW_ASCII_DOWN",
+            },
+            kept,
+        )
+
+    def test_end_markers_mouse(self):
+        """A click on an end marker scrolls one step, and its release does not move the thumb."""
+        content = urwid.Text("\n".join(string.ascii_letters))
+        widget = urwid.ScrollBar(
+            urwid.Scrollable(content),
+            end_markers=(urwid.ScrollBar.Symbols.ARROW_ASCII_UP, urwid.ScrollBar.Symbols.ARROW_ASCII_DOWN),
+        )
+        scrollable = widget.original_widget
+        size = (3, 5)
+        scrollbar_col = size[0] - 1
+        widget.render(size)
+
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, scrollbar_col, 4, False))
+        self.assertEqual(1, scrollable.get_scrollpos())
+        self.assertTrue(widget.mouse_event(size, "mouse drag", 1, scrollbar_col, 2, False))
+        self.assertTrue(widget.mouse_event(size, "mouse release", 1, scrollbar_col, 4, False))
+        self.assertEqual(1, scrollable.get_scrollpos())
+
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, scrollbar_col, 0, False))
+        self.assertEqual(0, scrollable.get_scrollpos())
+        self.assertTrue(widget.mouse_event(size, "mouse release", 1, scrollbar_col, 0, False))
+
+        # The trough lies between the markers: its last row is the end of the content.
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, scrollbar_col, 3, False))
+        self.assertEqual(47, scrollable.get_scrollpos())
+        self.assertEqual(("V ^", "W  ", "X  ", "Y █", "Z v"), widget.render(size).decoded_text)
+
+    def test_attributes(self):
+        """The bar and the thumb get their own attributes, with focused variants."""
+        content = urwid.Text("\n".join(string.ascii_letters[:10]))
+        size = (3, 4)
+        for kwargs, unfocused, focused in (
+            ({}, [None, None, None, None], [None, None, None, None]),
+            ({"attr": "bar"}, ["bar"] * 4, ["bar"] * 4),
+            ({"attr": "bar", "focus_attr": "bar f"}, ["bar"] * 4, ["bar f"] * 4),
+            (
+                {"attr": "bar", "focus_attr": "bar f", "thumb_attr": "thumb"},
+                ["thumb", "thumb", "bar", "bar"],
+                ["thumb", "thumb", "bar f", "bar f"],
+            ),
+            (
+                {"attr": "bar", "focus_attr": "bar f", "thumb_attr": "thumb", "thumb_focus_attr": "thumb f"},
+                ["thumb", "thumb", "bar", "bar"],
+                ["thumb f", "thumb f", "bar f", "bar f"],
+            ),
+        ):
+            with self.subTest(**kwargs):
+                widget = urwid.ScrollBar(urwid.Scrollable(content), **kwargs)
+                self.assertEqual(unfocused, [line[-1][0] for line in widget.render(size).content()])
+                self.assertEqual(focused, [line[-1][0] for line in widget.render(size, True).content()])
+
     def test_scrollbar_layout_relative_scroll_all_visible_falls_back_to_absolute(self):
         """When relative scrolling reports every row visible, the absolute geometry is still computed."""
 
@@ -1008,6 +1107,70 @@ class TestScrollBarListBox(unittest.TestCase):
             ),
             widget.render((8, 3)).decoded_text,
         )
+
+    def test_end_markers_dim_listbox_cut_off_item(self) -> None:
+        """In a ListBox scrolled by items, an end marker is dimmed only once no row of that end is cut off."""
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text(f"{idx}.0\n{idx}.1\n{idx}.2") for idx in range(40)])),
+            end_markers=("^", "v"),
+            marker_dim_attr="dim",
+        )
+        listbox = widget.original_widget
+        size = (6, 5)
+        ow_size = (5, 5)
+
+        for focus_pos, offset, first, last, attrs in (
+            (0, 0, "0.0  ^", "1.1  v", ["dim", None]),
+            (1, 1, "0.2  ^", "2.0  v", [None, None]),
+            (39, 3, "38.0 ^", "39.1 v", [None, None]),
+            (39, 2, "38.1 ^", "39.2 v", [None, "dim"]),
+        ):
+            with self.subTest(focus_pos=focus_pos, offset=offset):
+                listbox.change_focus(ow_size, focus_pos, offset_inset=offset)
+                canv = widget.render(size)
+                self.assertEqual((first, last), (canv.decoded_text[0], canv.decoded_text[-1]))
+                content = [line[-1][0] for line in canv.content()]
+                self.assertEqual(attrs, [content[0], content[-1]])
+
+    def test_end_markers_dim_listbox_empty_end_items(self) -> None:
+        """Items that render no rows at the ends of a ListBox do not keep an end marker from dimming."""
+        items = [urwid.Pile([]), *(urwid.Text(str(idx)) for idx in range(20)), urwid.Pile([])]
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleFocusListWalker(items)),
+            end_markers=("^", "v"),
+            marker_dim_attr="dim",
+        )
+        listbox = widget.original_widget
+        size = (4, 4)
+
+        for focus_pos, valign, first, last, attrs in (
+            (1, "top", "0  ^", "3  v", ["dim", None]),
+            (20, "bottom", "16 ^", "19 v", [None, "dim"]),
+        ):
+            with self.subTest(focus_pos=focus_pos):
+                listbox.set_focus(focus_pos)
+                listbox.set_focus_valign(valign)
+                canv = widget.render(size)
+                self.assertEqual((first, last), (canv.decoded_text[0], canv.decoded_text[-1]))
+                content = [line[-1][0] for line in canv.content()]
+                self.assertEqual(attrs, [content[0], content[-1]])
+                self.assertTrue(widget._scrollbar_layout(size).relative)
+
+    def test_end_markers_scroll_listbox(self) -> None:
+        """A click on an end marker scrolls a ListBox, which has no set_scrollpos, as the mouse wheel does."""
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleListWalker([urwid.Text(f"item {idx}") for idx in range(10)])),
+            end_markers=("^", "v"),
+        )
+        size = (8, 5)
+        self.assertEqual(
+            ("item 0 ^", "item 1 █", "item 2 █", "item 3  ", "item 4 v"),
+            widget.render(size).decoded_text,
+        )
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, 7, 4, True))
+        self.assertEqual("item 1 ^", widget.render(size).decoded_text[0])
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, 7, 0, True))
+        self.assertEqual("item 0 ^", widget.render(size).decoded_text[0])
 
 
 def trivial_AttrMap(widget):
