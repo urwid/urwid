@@ -30,6 +30,7 @@ from .constants import (
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .divider import Divider
+from .drop_down import DropDown
 from .edit import Edit, EditError, IntEdit
 from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
 from .frame import Frame, FrameError
@@ -108,6 +109,7 @@ __all__ = (
     "ColumnsError",
     "ColumnsWarning",
     "Divider",
+    "DropDown",
     "Edit",
     "EditError",
     "Filler",
