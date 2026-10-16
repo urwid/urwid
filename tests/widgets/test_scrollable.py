@@ -803,6 +803,19 @@ class TestScrollBarListBox(unittest.TestCase):
                 widget = urwid.ScrollBar(urwid.ListBox(urwid.SimpleListWalker(())), visible=visible)
                 self.assertEqual(expected, widget.render(reduced_size).decoded_text)
 
+    def test_keypress_reaches_a_row_focused_since_the_last_render(self):
+        """A key reaches the focused row when the focus moved before any render, or since the last one."""
+        for rendered in (False, True):
+            with self.subTest(rendered=rendered):
+                listbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Edit("", "a")]))
+                widget = urwid.ScrollBar(listbox)
+                if rendered:
+                    widget.render((20, 3))
+                listbox.body.append(urwid.Edit("", ""))
+                listbox.focus_position = 1
+                self.assertIsNone(widget.keypress((20, 3), "b"))
+                self.assertEqual("b", listbox.body[1].edit_text)
+
     def test_mouse_event_scrollbar_columns(self):
         """ListBox has no set_scrollpos, but the scrollbar columns are still kept away from its rows."""
         reduced_size = (10, 4)
