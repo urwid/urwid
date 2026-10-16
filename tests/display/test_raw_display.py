@@ -4,7 +4,12 @@ import errno
 import itertools
 import gc
 import os
+import pathlib
+import shutil
+import signal
+import struct
 import sys
+import tempfile
 import typing
 import unittest
 import weakref
@@ -699,7 +704,29 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual([(["a"], [97])], received)
 
 
+def terminfo_entry(colors: int, *, magic: int = 0o432, names: bytes = b"test|test terminal\0") -> bytes:
+    """Return a compiled terminfo entry, as term(5) describes it, with one boolean and *colors* as its 14th number."""
+    booleans = b"\x01"
+    number_format = {0o432: "<h", 0o1036: "<i"}[magic]
+    numbers = b"".join(struct.pack(number_format, number) for number in (*(-1,) * 13, colors))
+    padding = b"\0" * ((len(names) + len(booleans)) % 2)
+    return struct.pack("<6h", magic, len(names), len(booleans), 14, 0, 0) + names + booleans + padding + numbers
+
+
 class TestTerminalProperties(unittest.TestCase):
+    def setUp(self) -> None:
+        """Keep the host terminfo database out of the results, and give each test its own database root."""
+        self.enterContext(mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", ()))
+        self.root = pathlib.Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.root)
+
+    def install_terminfo(self, path: str, data: bytes) -> str:
+        """Write *data* as the entry at *path* under the temporary root and return the directory of its database."""
+        entry = self.root / path
+        entry.parent.mkdir(parents=True, exist_ok=True)
+        entry.write_bytes(data)
+        return str(entry.parent.parent)
+
     def test_term_families(self) -> None:
         cases = (
             ("", 16, True, True, False, True),
@@ -752,6 +779,82 @@ class TestTerminalProperties(unittest.TestCase):
         self.assertEqual(1, colors(xterm, {"NO_COLOR": "1", "FORCE_COLOR": "3"}))
         # Empty NO_COLOR is unset per the spec
         self.assertEqual(256, colors(xterm, {"NO_COLOR": ""}))
+
+    def test_terminfo_colors(self) -> None:
+        """Check that the ``colors`` of a terminfo entry raises the colour count the TERM name gives."""
+        terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
+        self.install_terminfo("terminfo/f/fancy-direct32", terminfo_entry(16777216, magic=0o1036, names=b"fancy\0"))
+        self.install_terminfo("terminfo/f/fancy-8", terminfo_entry(8))
+        self.install_terminfo("terminfo/f/fancy-mono", terminfo_entry(-1))
+        self.install_terminfo("terminfo/f/fancy-truncated", terminfo_entry(256)[:-2])
+        self.install_terminfo("terminfo/f/fancy-bad-magic", terminfo_entry(256)[2:])
+        bad_strings = struct.pack("<6h", 0o432, 0, 0, 14, -5, -5) + terminfo_entry(256)[12 + 20 :]
+        self.install_terminfo("terminfo/f/fancy-bad-strings", bad_strings)
+        self.install_terminfo("terminfo/a/alacritty", terminfo_entry(256))
+        environ = {"TERMINFO": terminfo}
+        cases: tuple[tuple[str, dict[str, str], int], ...] = (
+            ("fancy", {}, 16),
+            ("fancy", environ, 256),
+            ("fancy-direct32", environ, 16777216),
+            ("fancy-8", environ, 16),
+            ("fancy-mono", environ, 16),
+            ("fancy-truncated", environ, 16),
+            ("fancy-bad-magic", environ, 16),
+            ("fancy-bad-strings", environ, 16),
+            # the entry raises the count the name gives and never lowers it
+            ("alacritty", environ, 16777216),
+            # the environment variables still decide over the entry
+            ("fancy-direct32", {**environ, "NO_COLOR": "1"}, 1),
+            ("fancy-8", {**environ, "COLORTERM": "yes"}, 256),
+            # TERM never leaves the database directory, and only names a file the platform can encode
+            ("../f/fancy", {"TERMINFO": f"{terminfo}/f"}, 16),
+            ("f:fancy", environ, 16),
+            ("fancy\udc80", environ, 16),
+        )
+        for term, case_environ, colors in cases:
+            with self.subTest(term=term, environ=case_environ):
+                props = detect_terminal_properties(term, case_environ, windows_version=(0, 0, 0))
+                self.assertEqual(colors, props.colors)
+
+    def test_terminfo_search_order(self) -> None:
+        """Check that terminfo entries are searched in ncurses' directory order."""
+        terminfo = self.install_terminfo("terminfo/f/fancy", terminfo_entry(256))
+        self.install_terminfo("home/.terminfo/66/fancy", terminfo_entry(88))  # hexadecimal subdirectory, as on macOS
+        first = self.install_terminfo("first/f/fancy", terminfo_entry(16777216, magic=0o1036))
+        # Malformed entries and directories named like an entry are passed over.
+        broken = self.install_terminfo("broken/f/fancy", terminfo_entry(256)[:-2])
+        (self.root / "broken/66/fancy").mkdir(parents=True)
+        home = str(self.root / "home")
+        cases = (
+            ({"TERMINFO": terminfo, "HOME": home, "TERMINFO_DIRS": first}, 256),
+            ({"HOME": home, "TERMINFO_DIRS": first}, 88),
+            ({"TERMINFO_DIRS": os.pathsep.join(("", first))}, 16777216),
+            ({"TERMINFO": broken, "TERMINFO_DIRS": first}, 16777216),
+            ({"TERMINFO": "nul\0byte", "HOME": "lone\udc80surrogate", "TERMINFO_DIRS": first}, 16777216),
+        )
+        for environ, colors in cases:
+            with self.subTest(environ=environ):
+                self.assertEqual(colors, detect_terminal_properties("fancy", environ, windows_version=(0, 0, 0)).colors)
+        with mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", (first,)):
+            self.assertEqual(16777216, detect_terminal_properties("fancy", {}, windows_version=(0, 0, 0)).colors)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFOs are POSIX only")
+    def test_terminfo_fifo_is_not_read(self) -> None:
+        """Check that a FIFO named like a terminfo entry is passed over instead of blocking."""
+        fifo = self.root / "terminfo/f/fancy"
+        fifo.parent.mkdir(parents=True)
+        os.mkfifo(fifo)
+        terminfo = self.install_terminfo("first/f/fancy", terminfo_entry(256))
+        environ = {"TERMINFO": str(fifo.parent.parent), "TERMINFO_DIRS": terminfo}
+
+        def blocked(_signum: int, _frame: object) -> None:
+            # Not an OSError such as TimeoutError, which the lookup would catch and pass over.
+            self.fail("reading the FIFO blocked")
+
+        self.addCleanup(signal.signal, signal.SIGALRM, signal.signal(signal.SIGALRM, blocked))
+        self.addCleanup(signal.setitimer, signal.ITIMER_REAL, 0)
+        signal.setitimer(signal.ITIMER_REAL, 5)
+        self.assertEqual(256, detect_terminal_properties("fancy", environ, windows_version=(0, 0, 0)).colors)
 
     def test_windows_console_vt(self) -> None:
         win7 = (6, 1, 7601)
