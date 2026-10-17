@@ -1056,6 +1056,40 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(self.term.keypress(self.termsize, key), key)
                 self.assertEqual(bytes(self.pty.from_widget), b"")
 
+    def test_meta_keys_send_escape_prefix(self) -> None:
+        """Send ESC before the key's character for a meta key, which urwid's own input parser reads back as that key."""
+        for key, sent in (
+            ("meta x", b"\x1bx"),
+            ("meta X", b"\x1bX"),
+            ("meta ctrl x", b"\x1b\x18"),
+            ("meta enter", b"\x1b\r"),
+            ("meta backspace", b"\x1b\x7f"),
+            ("meta tab", b"\x1b\t"),
+        ):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+                self.assertEqual(urwid.display.escape.process_keyqueue(list(sent), more_available=False), ([key], []))
+
+    def test_meta_enter_in_lf_nl_mode(self) -> None:
+        """Send ESC CR LF for meta enter while LF/NL mode is set, as for enter."""
+        self.write(r"\e[20h")
+        self.drain()
+        self.assertTrue(self.term.term_modes.lfnl)
+        self.term.keygrab = True
+        self.assertIsNone(self.term.keypress(self.termsize, "meta enter"))
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b\r\n")
+
+    def test_meta_keys_without_single_character_are_not_handled(self) -> None:
+        """Return a meta key sent as an escape sequence, or without a control character, unhandled."""
+        for key in ("meta up", "meta f5", "meta ctrl up", "meta ctrl 5"):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
     def test_focus_restores_tty_signal_keys(self) -> None:
         """Restore the tty signal keys seen before the first focused render, on unfocus and on terminate."""
         original = self.tty.signal_keys
