@@ -1790,22 +1790,32 @@ class Terminal(Widget):
 
         self.term.scroll_buffer(reset=True)  # type: ignore[union-attr]
 
-        if key.startswith("ctrl "):
+        meta = key.startswith("meta ")
+        sent = key.removeprefix("meta ")
+
+        if sent.startswith("ctrl "):
             # C0 control characters only exist for "@", "A"-"Z" and "[\]^_"
-            char = key.removeprefix("ctrl ").upper()
+            char = sent.removeprefix("ctrl ").upper()
             if len(char) != 1 or not "@" <= char <= "_":
                 return key
-            key = chr(ord(char) - ord("@"))
-        else:  # noqa: PLR5501  # pylint: disable=else-if-used  # readability
-            if self.term_modes.keys_decckm and key in KEY_TRANSLATIONS_DECCKM:
-                key = KEY_TRANSLATIONS_DECCKM[key]
-            else:
-                key = KEY_TRANSLATIONS.get(key, key)
+            sent = chr(ord(char) - ord("@"))
+        elif self.term_modes.keys_decckm and sent in KEY_TRANSLATIONS_DECCKM:
+            sent = KEY_TRANSLATIONS_DECCKM[sent]
+        else:
+            sent = KEY_TRANSLATIONS.get(sent, sent)
+
+        # Meta (Alt) sends ESC before the key's single character, as xterm does with metaSendsEscape.
+        # A key that is sent as an escape sequence has no such form.
+        if meta and len(sent) != 1:
+            return key
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl and key == "\r":
-            key += "\n"
+        if self.term_modes.lfnl and sent == "\r":
+            sent += "\n"
 
-        os.write(typing.cast("int", self.master), key.encode(self.encoding, "ignore"))
+        if meta:
+            sent = ESC + sent
+
+        os.write(typing.cast("int", self.master), sent.encode(self.encoding, "ignore"))
 
         return None
