@@ -936,7 +936,8 @@ class TermCanvas(Canvas):
                 x += 1
 
                 if x >= self.width and self.is_rotten_cursor:
-                    if y >= self.scrollregion_end:
+                    # as a line feed: only the bottom row of the scrolling region scrolls it
+                    if y == self.scrollregion_end:
                         self.scroll()
                     else:
                         y += 1

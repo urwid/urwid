@@ -490,6 +490,17 @@ class TermTest(unittest.TestCase):
         self.write(r"\e[?6h\e[10;20r\e[2;5rtest")
         self.expect("\ntest")
 
+    def test_wrap_below_scrolling_region(self) -> None:
+        """Wrapping on a row below the scrolling region moves down a row, or stays on the last one, without scrolling."""
+        for label, row, screen in (
+            ("below the region", 5, "1\n2\n3\n\n" + "a" * 80 + "\nb"),
+            ("on the last row", 24, "1\n2\n3" + "\n" * 21 + "b" + "a" * 79),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(f"1\n2\n3\\e[1;3r\\e[{row};1H" + "a" * 80 + "b")
+                self.expect(screen)
+
     def test_cursor_scrolling_region(self):
         # TODO(Aleksei): Issue #544
         self.write("\\e[?6h\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa")
