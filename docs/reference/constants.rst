@@ -201,6 +201,16 @@ User's terminal configuration default foreground or background
    :annotation: = 'default'
 
 
+Color of the enclosing display attribute
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. data:: INHERIT
+   :annotation: = 'inherit'
+
+   Take the foreground or background color from the enclosing display
+   attribute, see :ref:`inherit-foreground-background`.
+
+
 256 and 88 Color Foregrounds and Backgrounds
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

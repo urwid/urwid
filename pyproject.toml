@@ -367,6 +367,9 @@ no-any-return = "error"
 implicit-any-parameter = "error"
 unannotated-return = "error"
 implicit-any = "error"
+# Stale "# pyrefly: ignore" comments fail the check. Unused "# type: ignore" comments stay unreported here:
+# they belong to mypy, and its strict mode reports them.
+unused-ignore = "error"
 # A sub-config disables an error kind for a whole file, so it is kept for files where that is the design.
 # Anything narrower is an inline "# pyrefly: ignore[...]" comment on the expression.
 # Widgets override render, keypress, mouse_event and similar methods with narrower sizing signatures on purpose.

@@ -258,7 +258,7 @@ class CheckBox(WidgetWrap[Columns]):
         self._label = Text(label)
         self.has_mixed = has_mixed
 
-        self._state = state
+        self._state: bool | Literal["mixed"] = state
         if checked_symbol:
             # Copy the class-level table so a custom mark does not leak into other CheckBox instances.
             self.states = {  # type: ignore[misc]

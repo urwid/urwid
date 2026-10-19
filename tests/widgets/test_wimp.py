@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
+from tests.util import fwstest
 
 
 class SelectableIconTest(unittest.TestCase):
@@ -66,6 +67,9 @@ class ButtonTest(unittest.TestCase):
 
         button.keypress((8,), "enter")
         self.assertEqual(["Ok"], clicks)
+
+    def test_squish(self):
+        fwstest(self, urwid.Button("hello"))
 
 
 class CheckBoxTest(unittest.TestCase):
@@ -261,3 +265,6 @@ class RadioButtonTest(unittest.TestCase):
         second.set_state(True)
 
         self.assertEqual((True, False), (first.state, second.state))
+
+    def test_squish(self):
+        fwstest(self, urwid.RadioButton([], "hello"))

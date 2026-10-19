@@ -496,6 +496,7 @@ class SupportsFileno(typing.Protocol):
 
     def fileno(self) -> int:
         """Return the underlying OS-level file descriptor."""
+        ...
 
 
 class TextWriter(typing.Protocol):

@@ -1,2 +1,3 @@
 windowsize --usehints $TERMWINDOWID 39 25
 key --window $TERMWINDOWID Return End
+key --window $TERMWINDOWID shift+Tab Return

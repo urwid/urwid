@@ -6,7 +6,7 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import SelectableText
+from tests.util import SelectableText, wstest
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection
@@ -1168,6 +1168,10 @@ class ColumnsTest(unittest.TestCase):
         columns = urwid.Columns([urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(0))])
         self.assertFalse(columns.move_cursor_to_coords((40,), 30, 0))
         self.assertEqual(0, columns.focus_position)
+
+    def test_squish(self):
+        wstest(urwid.Columns([urwid.SolidFill()]))
+        wstest(urwid.Columns([(4, urwid.SolidFill())]))
 
 
 class ColumnsSelectNavigationTest(unittest.TestCase):

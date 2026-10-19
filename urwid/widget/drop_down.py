@@ -105,8 +105,9 @@ class DropDown(PopUpLauncher[Columns]):
     when it fits on neither side it takes the side with more rows and scrolls. :kbd:`enter`, :kbd:`space` or a
     click chooses the focused option and closes the list; :kbd:`esc` closes it without a change.
 
-    The list is a pop-up, so it is shown only under a :class:`PopUpTarget <urwid.PopUpTarget>`, such as the one
-    ``MainLoop(..., pop_ups=True)`` adds.
+    .. important::
+        DropDown requires ``MainLoop(..., pop_ups=True)``, or another :class:`PopUpTarget <urwid.PopUpTarget>`
+        above it. The list is a pop-up, and without a target activating the widget shows nothing.
 
     Signals supported: ``'change'``, sent as ``callback(drop_down, new_index)`` before :attr:`selected` changes,
     so the callback still reads the previous value there.
@@ -119,6 +120,7 @@ class DropDown(PopUpLauncher[Columns]):
     [b'blue     v']
     """
 
+    #: Widget drawn after the selected option; a subclass replaces it to change the indicator.
     drop_down_indicator: typing.ClassVar[Text] = Text("v")
 
     signals: typing.ClassVar[list[str]] = ["change"]

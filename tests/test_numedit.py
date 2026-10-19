@@ -1,42 +1,65 @@
+from __future__ import annotations
+
 import unittest
 from decimal import Decimal
 from itertools import product
 
-from urwid.numedit import FloatEdit
+from urwid.numedit import FloatEdit, IntegerEdit
+
+
+class IntegerEditNegativeDefaultTest(unittest.TestCase):
+    def test_negative_string_defaults(self):
+        for default, base, expected in (("-42", 10, -42), ("-101", 2, -5), ("-ff", 16, -255), ("-Z", 36, -35)):
+            with self.subTest(default=default, base=base):
+                edit = IntegerEdit(default=default, base=base, allow_negative=True)
+                self.assertEqual(default, edit.edit_text)
+                self.assertEqual(Decimal(expected), edit.value())
+                self.assertEqual(expected, int(edit))
+                edit.keypress((10,), "home")
+                edit.keypress((10,), "delete")
+                self.assertEqual(-expected, int(edit))
+
+    def test_negative_string_defaults_require_opt_in(self):
+        for default, base in (("-42", 10), ("-101", 2), ("-ff", 16)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base)
+
+    def test_invalid_negative_defaults(self):
+        for default, base in (("-", 10), ("--42", 10), ("4-2", 10), ("-102", 2), ("-FG", 16), ("+42", 10)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base, allow_negative=True)
+
+    def test_nonnegative_defaults(self):
+        for default, base, expected in (("42", 10, 42), ("101", 2, 5), ("ff", 16, 255), ("", 10, None)):
+            with self.subTest(default=default, base=base):
+                edit = IntegerEdit(default=default, base=base, allow_negative=True)
+                self.assertEqual(default, edit.edit_text)
+                self.assertEqual(expected, edit.value())
 
 
 class FloatEditNoPreservePrecicionTest(unittest.TestCase):
     def test(self):
-        for v in ("1.01", "2.5", "300", "4.100", "5.001"):
-            f = FloatEdit(preserve_significance=False)
-            f.set_edit_text(v)
-            print(f.value(), Decimal(v))
-            self.assertEqual(Decimal(v), f.value())
-
-    def test_int(self):
-        corner_value = "1"  # just int
-        f = FloatEdit(preserve_significance=False)
-        f.set_edit_text(corner_value)
-        self.assertEqual(Decimal(corner_value), f.value())
-
-    def test_no_post_dot(self):
-        corner_value = "1."  # forced float 1.0 with trimmed end
-        f = FloatEdit(preserve_significance=False)
-        f.set_edit_text(corner_value)
-        self.assertEqual(Decimal(corner_value), f.value())
+        # "1" is just an int, and "1." a forced float 1.0 with a trimmed end
+        for v in ("1.01", "2.5", "300", "4.100", "5.001", "1", "1."):
+            with self.subTest(v):
+                f = FloatEdit(preserve_significance=False)
+                f.set_edit_text(v)
+                print(f.value(), Decimal(v))
+                self.assertEqual(Decimal(v), f.value())
 
 
 class FloatEditPreservePrecicionTest(unittest.TestCase):
     def test(self):
         for v, sig, sep in product(("1.010", "2.500", "300.000", "4.100", "5.001"), (0, 1, 2, 3), (".", ",")):
-            precision_template = "0." + "0" * sig
-            expected = Decimal(v).quantize(Decimal(precision_template))
-            f = FloatEdit(
-                preserve_significance=True, default=precision_template.replace(".", sep), decimal_separator=sep
-            )
+            with self.subTest(v, significance=sig, separator=sep):
+                precision_template = "0." + "0" * sig
+                expected = Decimal(v).quantize(Decimal(precision_template))
+                f = FloatEdit(
+                    preserve_significance=True, default=precision_template.replace(".", sep), decimal_separator=sep
+                )
 
-            f.set_edit_text(v.replace(".", sep))
-            self.assertEqual(expected, f.value(), f"{f.value()} != {expected} (significance={sig!r})")
+                f.set_edit_text(v.replace(".", sep))
+                self.assertEqual(expected, f.value(), f"{f.value()} != {expected} (significance={sig!r})")
 
 
 class FloatEditDeprecatedArgumentsTest(unittest.TestCase):
@@ -105,3 +128,7 @@ class FloatEditDefaultValidationTest(unittest.TestCase):
             Decimal("123456789012345678901234567890.0000").as_tuple(),
             edit.value().as_tuple(),
         )
+
+
+if __name__ == "__main__":
+    unittest.main()

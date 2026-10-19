@@ -59,26 +59,6 @@ IntEdit
 
 .. autoclass:: IntEdit
 
-Button
-~~~~~~
-
-.. autoclass:: Button
-
-CheckBox
-~~~~~~~~
-
-.. autoclass:: CheckBox
-
-RadioButton
-~~~~~~~~~~~
-
-.. autoclass:: RadioButton
-
-DropDown
-~~~~~~~~
-
-.. autoclass:: DropDown
-
 TreeWidget
 ~~~~~~~~~~
 
@@ -99,6 +79,32 @@ FloatEdit
 ~~~~~~~~~~~
 
 .. autoclass:: FloatEdit
+
+
+Control Widget Classes
+----------------------
+
+.. currentmodule:: urwid
+
+Button
+~~~~~~
+
+.. autoclass:: Button
+
+CheckBox
+~~~~~~~~
+
+.. autoclass:: CheckBox
+
+RadioButton
+~~~~~~~~~~~
+
+.. autoclass:: RadioButton
+
+DropDown
+~~~~~~~~
+
+.. autoclass:: DropDown
 
 
 Special cases text widgets
@@ -150,6 +156,9 @@ SolidFill
 
 .. autoclass:: SolidFill
 
+Pop-up Widget Classes
+---------------------
+
 PopUpLauncher
 ~~~~~~~~~~~~~
 
@@ -160,15 +169,18 @@ PopUpTarget
 
 .. autoclass:: PopUpTarget
 
-WidgetPlaceholder
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: WidgetPlaceholder
+Special Widget Classes
+----------------------
 
 WidgetDisable
 ~~~~~~~~~~~~~
 
 .. autoclass:: WidgetDisable
+
+WidgetPlaceholder
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetPlaceholder
 
 Container Widget Classes
 ------------------------

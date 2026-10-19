@@ -46,9 +46,11 @@ if typing.TYPE_CHECKING:
 
         def next_position(self, position: _K) -> _K:
             """Return the position following `position`."""
+            ...
 
         def prev_position(self, position: _K) -> _K:
             """Return the position preceding `position`."""
+            ...
 
     class ListBoxContentsProto(typing.Protocol[_K_contra]):
         """Read-only `(widget, options)` view over the :class:`ListBox` body."""
@@ -89,15 +91,18 @@ class ScrollSupportingBody(typing.Protocol[_K]):
 
     def get_focus(self) -> tuple[AbstractWidget, _K] | tuple[None, None]:
         """Return the ``(widget, position)`` currently in focus, or ``(None, None)`` if the body is empty."""
+        ...
 
     def set_focus(self, position: _K, /) -> None:
         """Set the focus to *position*."""
 
     def get_next(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
         """Return the ``(widget, position)`` after *position*, or ``(None, None)`` if there is none."""
+        ...
 
     def get_prev(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
         """Return the ``(widget, position)`` before *position*, or ``(None, None)`` if there is none."""
+        ...
 
 
 @typing.runtime_checkable
@@ -111,6 +116,7 @@ class EstimatedSized(typing.Protocol):
 
     def __length_hint__(self) -> int:
         """Return an estimate of the number of items, per PEP 424."""
+        ...
 
 
 class ListWalker(

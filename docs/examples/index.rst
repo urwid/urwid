@@ -16,9 +16,11 @@ tour.py
    :scale: 50%
 .. image:: tour2.png
    :scale: 50%
+.. image:: tour3.png
+   :scale: 50%
 
 Show how many of the standard widgets may be arranged
-on the screen
+on the screen, including a DropDown with its list open
 
 
 graph.py

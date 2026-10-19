@@ -6,7 +6,7 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import SelectableText
+from tests.util import SelectableText, wstest
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -1105,6 +1105,17 @@ class PileTest(unittest.TestCase):
         pile = urwid.Pile([urwid.Edit("", "a"), ParentMutatingText("b", lambda: pile.contents.__delitem__(0))])
         self.assertFalse(pile.move_cursor_to_coords((10,), 0, 1))
         self.assertEqual(0, pile.focus_position)
+
+    def test_squish(self):
+        wstest(urwid.Pile([urwid.SolidFill()]))
+        wstest(urwid.Pile([("flow", urwid.Text("hello"))]))
+        wstest(urwid.Pile([]))
+
+    def testFocus(self):
+        expect_focused = urwid.Button("Focused")
+        pile = urwid.Pile((urwid.Button("First"), expect_focused, urwid.Button("Last")), focus_item=expect_focused)
+        self.assertEqual(1, pile.focus_position)
+        self.assertEqual(expect_focused, pile.focus)
 
 
 class PileSelectNavigationTest(unittest.TestCase):
