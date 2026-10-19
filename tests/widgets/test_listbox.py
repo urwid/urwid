@@ -3470,3 +3470,126 @@ class ListBoxBodySignalTest(unittest.TestCase):
         self.assertEqual([b"a   ", b"    "], listbox.render((4, 2)).text)
         walker.append(urwid.Text("b"))
         self.assertEqual([b"a   ", b"b   "], listbox.render((4, 2)).text)
+
+
+class CountingWalker(V1ProtocolWalker):
+    """V1 walker that records the positions it was asked to step from."""
+
+    def __init__(self, widgets):
+        """Wrap *widgets* with an empty record of steps."""
+        super().__init__(widgets)
+        self.steps: list[int] = []
+
+    def get_next(self, position):
+        """Record *position* and return the widget after it."""
+        self.steps.append(position)
+        return super().get_next(position)
+
+    def get_prev(self, position):
+        """Record *position* and return the widget before it."""
+        self.steps.append(position)
+        return super().get_prev(position)
+
+
+class PositionOnlyListBox(urwid.ListBox):
+    """ListBox whose ``set_focus`` takes only a position, as some applications override it."""
+
+    def set_focus(self, position):
+        """Set the focus without accepting ``coming_from``."""
+        super().set_focus(position)
+
+
+class ListBoxSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
+
+    size = (5, 3)
+
+    def _widgets(self) -> list[urwid.Widget]:
+        return [SelectableText("a"), urwid.Text("-"), SelectableText("b"), urwid.Text("-"), SelectableText("c")]
+
+    def _assert_traversal(self, listbox: urwid.ListBox, positions: list[object]) -> None:
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual(positions[2], listbox.focus_position)
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual(positions[4], listbox.focus_position)
+        self.assertEqual("tab", listbox.keypress(self.size, "tab"))
+        self.assertEqual(positions[0], listbox.focus_position)
+        self.assertEqual("shift tab", listbox.keypress(self.size, "shift tab"))
+        self.assertEqual(positions[4], listbox.focus_position)
+        self.assertIsNone(listbox.keypress(self.size, "shift tab"))
+        self.assertEqual(positions[2], listbox.focus_position)
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        listbox = urwid.ListBox(self._widgets())
+        self.assertEqual("tab", listbox.keypress(self.size, "tab"))
+        self.assertEqual(0, listbox.focus_position)
+        listbox.focus_position = 2
+        listbox.enter_selectable()
+        self.assertEqual(2, listbox.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps skip non-selectable widgets, also with positions that only support ``==`` and without positions()."""
+        positions = list(range(5))
+        self._assert_traversal(urwid.ListBox(self._widgets(), select_navigation=True), positions)
+        self._assert_traversal(urwid.ListBox(V1ProtocolWalker(self._widgets()), select_navigation=True), positions)
+        for kind in ("unhashable", "mixed"):
+            with self.subTest(kind=kind):
+                positions = make_positions(5, kind)
+                walker = CappedWrappingWalker(self._widgets(), positions)
+                # A wrapping walker stands for the finite one here: each step stops at the position it started from.
+                listbox = PositionOnlyListBox(walker, select_navigation=True)
+                self.assertIsNone(listbox.keypress(self.size, "tab"))
+                self.assertEqual(positions[2], listbox.focus_position)
+                self.assertIsNone(listbox.keypress(self.size, "shift tab"))
+                self.assertEqual(positions[0], listbox.focus_position)
+
+    def test_cyclic_walker_returns_key(self) -> None:
+        """A walker that repeats a position ends the search instead of looping."""
+        listbox = urwid.ListBox(CappedWrappingWalker([SelectableText("a"), urwid.Text("-")]), select_navigation=True)
+        self.assertEqual("tab", listbox.keypress(self.size, "tab"))
+        self.assertEqual(0, listbox.focus_position)
+
+    def test_lazy_walk(self) -> None:
+        """A step reads the body only up to the next selectable widget."""
+        walker = CountingWalker([SelectableText("a"), urwid.Text("-"), SelectableText("b"), *self._widgets()])
+        listbox = urwid.ListBox(walker, select_navigation=True)
+        listbox.render(self.size, focus=True)
+        walker.steps.clear()
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual(2, listbox.focus_position)
+        self.assertEqual([0, 1], walker.steps)
+
+    def test_contents_changed_between_presses(self) -> None:
+        """An appended selectable is reached, and a removal continues from the new focus."""
+        walker = urwid.SimpleFocusListWalker(self._widgets())
+        listbox = urwid.ListBox(walker, select_navigation=True)
+        listbox.focus_position = 4
+        walker.append(SelectableText("d"))
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual(5, listbox.focus_position)
+        del walker[3:]
+        self.assertEqual(2, listbox.focus_position)
+        self.assertEqual("tab", listbox.keypress(self.size, "tab"))
+        self.assertEqual(0, listbox.focus_position)
+
+    def test_child_keeps_handled_key(self) -> None:
+        """A child that handles the key keeps it."""
+        listbox = urwid.ListBox([urwid.Edit(allow_tab=True), SelectableText("b")], select_navigation=True)
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual(0, listbox.focus_position)
+
+    def test_off_screen_target_is_centred(self) -> None:
+        """A step to a widget out of view centres it."""
+        widgets = [SelectableText("a"), *(urwid.Text(str(i)) for i in range(8)), SelectableText("b"), urwid.Text("8")]
+        listbox = urwid.ListBox(widgets, select_navigation=True)
+        listbox.render(self.size, focus=True)
+        self.assertIsNone(listbox.keypress(self.size, "tab"))
+        self.assertEqual([b"7    ", b"b    ", b"8    "], listbox.render(self.size, focus=True).text)
+        self.assertEqual("tab", listbox.keypress(self.size, "tab"))
+        self.assertEqual([b"a    ", b"0    ", b"1    "], listbox.render(self.size, focus=True).text)
+
+    def test_set_focus_with_position_only(self) -> None:
+        """A subclass whose ``set_focus`` takes only a position is supported."""
+        listbox = PositionOnlyListBox(self._widgets(), select_navigation=True)
+        self._assert_traversal(listbox, list(range(5)))

@@ -1168,3 +1168,56 @@ class ColumnsTest(unittest.TestCase):
         columns = urwid.Columns([urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(0))])
         self.assertFalse(columns.move_cursor_to_coords((40,), 30, 0))
         self.assertEqual(0, columns.focus_position)
+
+
+class ColumnsSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
+
+    size = (20,)
+
+    def _columns(self, *, select_navigation: bool = True) -> urwid.Columns:
+        return urwid.Columns(
+            [SelectableText("a"), urwid.Text("-"), SelectableText("b"), urwid.Text("-"), SelectableText("c")],
+            select_navigation=select_navigation,
+        )
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        columns = self._columns(select_navigation=False)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+        columns.focus_position = 2
+        columns.enter_selectable(reverse=True)
+        self.assertEqual(2, columns.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps skip non-selectable children, and past the edge the key is returned after a reset."""
+        columns = self._columns()
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(2, columns.focus_position)
+        self.assertIsNone(columns.keypress(self.size, "ctrl n"))
+        self.assertEqual(4, columns.focus_position)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+        self.assertEqual("ctrl p", columns.keypress(self.size, "ctrl p"))
+        self.assertEqual(4, columns.focus_position)
+        self.assertIsNone(columns.keypress(self.size, "shift tab"))
+        self.assertEqual(2, columns.focus_position)
+
+    def test_contents_changed_between_presses(self) -> None:
+        """An appended selectable is reached, and a removal continues from the new focus."""
+        columns = self._columns()
+        columns.focus_position = 4
+        columns.contents.append((SelectableText("d"), columns.options()))
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(5, columns.focus_position)
+        del columns.contents[3:]
+        self.assertEqual(2, columns.focus_position)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+
+    def test_child_keeps_handled_key(self) -> None:
+        """A child that handles the key keeps it."""
+        columns = urwid.Columns([urwid.Edit(allow_tab=True), SelectableText("b")], select_navigation=True)
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)

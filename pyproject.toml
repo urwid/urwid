@@ -76,6 +76,10 @@ pyrefly = [
   "pyrefly",
   "types-pyserial",
 ]
+pyright = [
+  "pyright[nodejs]",
+  "types-pyserial",
+]
 pytest = [
   "pytest",
   "pytest-asyncio",
@@ -389,6 +393,12 @@ matches = "urwid/display/_win32*.py"
 [tool.pyrefly.sub-config.errors]
 # ctypes.windll exists on Windows only, and so does this module.
 missing-module-attribute = "ignore"
+
+[tool.pyright]
+# Without it pyright checks for the version of the interpreter it runs on.
+pythonVersion = "3.11"
+# The same paths as [tool.pyrefly] project-includes.
+include = [ "examples", "tests/type_checks", "urwid" ]
 
 [tool.pytest.ini_options]
 minversion = "6.0"

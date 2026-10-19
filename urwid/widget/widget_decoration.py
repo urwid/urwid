@@ -8,7 +8,7 @@ import typing
 from urwid import _deprecation
 from urwid.canvas import CompositeCanvas
 
-from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, delegate_to_widget_mixin
+from .widget import AbstractWidget, Widget, WidgetError, WidgetWarning, _select_enter_child, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from typing import Literal
@@ -108,6 +108,18 @@ class WidgetDecoration(Widget, typing.Generic[WrappedWidget]):  # pylint: disabl
         """Return whether the wrapped widget can take the input focus."""
         return self._original_widget.selectable()
 
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Forward the entry hook to :attr:`original_widget`, when it has one.
+
+        A container with ``select_navigation`` calls this when it moves its focus to this widget,
+        see :ref:`select-navigation`.
+        The hook goes to the widget that :meth:`keypress` sends keys to:
+        a subclass that sends keys elsewhere overrides this method to match.
+
+        :param reverse: start at the last selectable widget instead of the first one.
+        """
+        _select_enter_child(self._original_widget, reverse=reverse)
+
     def sizing(self) -> frozenset[Sizing]:
         """Return the set of sizing modes supported by the wrapped widget."""
         return self._original_widget.sizing()
@@ -147,6 +159,9 @@ class WidgetDisable(WidgetDecoration[WrappedWidget]):
     def selectable(self) -> Literal[False]:
         """Return ``False``: a disabled widget never takes the input focus."""
         return False
+
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Do nothing: a disabled widget is never entered."""
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Return the number of rows the wrapped widget occupies, always passing ``focus=False``."""

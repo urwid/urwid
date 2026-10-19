@@ -29,6 +29,17 @@ WidgetContainerMixin
 
 .. autoclass:: WidgetContainerMixin
 
+SelectNavigationMixin
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationMixin
+   :private-members: _select_candidates, _select_enter_focus, _select_keypress_unhandled
+
+SelectNavigationListContentsMixin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationListContentsMixin
+
 
 Basic Widget Classes
 --------------------

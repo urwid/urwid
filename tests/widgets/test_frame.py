@@ -483,3 +483,63 @@ class FrameCursorCoordsTest(unittest.TestCase):
             self.assertIsNone(f.get_cursor_coords((10, 5)))
         finally:
             header.get_cursor_coords = original
+
+
+class FrameSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
+
+    size = (10, 5)
+
+    def _frame(self, *, select_navigation: bool = True, header: urwid.Widget | None = None) -> urwid.Frame:
+        return urwid.Frame(
+            urwid.Filler(SelectableText("b")),
+            header=SelectableText("h") if header is None else header,
+            footer=SelectableText("f"),
+            select_navigation=select_navigation,
+        )
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        frame = self._frame(select_navigation=False)
+        self.assertEqual("tab", frame.keypress(self.size, "tab"))
+        self.assertEqual("body", frame.focus_position)
+        frame.enter_selectable()
+        self.assertEqual("body", frame.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps go header, body, footer, and past the edge the key is returned after a reset."""
+        frame = self._frame()
+        self.assertIsNone(frame.keypress(self.size, "tab"))
+        self.assertEqual("footer", frame.focus_position)
+        self.assertEqual("tab", frame.keypress(self.size, "tab"))
+        self.assertEqual("header", frame.focus_position)
+        self.assertEqual("shift tab", frame.keypress(self.size, "shift tab"))
+        self.assertEqual("footer", frame.focus_position)
+        self.assertIsNone(frame.keypress(self.size, "shift tab"))
+        self.assertEqual("body", frame.focus_position)
+
+    def test_skips_non_selectable_part(self) -> None:
+        """A part that is not selectable is skipped."""
+        frame = self._frame(header=urwid.Text("h"))
+        self.assertIsNone(frame.keypress(self.size, "tab"))
+        self.assertEqual("tab", frame.keypress(self.size, "tab"))
+        self.assertEqual("body", frame.focus_position)
+        self.assertFalse(urwid.Frame(urwid.SolidFill(), select_navigation=True).focus_first_selectable())
+
+    def test_parts_changed_between_presses(self) -> None:
+        """A footer added after the press before is reached, and a removed one is not."""
+        frame = urwid.Frame(urwid.Filler(SelectableText("b")), select_navigation=True)
+        self.assertEqual("tab", frame.keypress(self.size, "tab"))
+        frame.footer = SelectableText("f")
+        self.assertIsNone(frame.keypress(self.size, "tab"))
+        self.assertEqual("footer", frame.focus_position)
+        frame.footer = None
+        self.assertEqual("body", frame.focus_position)
+        self.assertEqual("tab", frame.keypress(self.size, "tab"))
+
+    def test_child_keeps_handled_key(self) -> None:
+        """A child that handles the key keeps it."""
+        frame = urwid.Frame(urwid.Filler(urwid.Edit(allow_tab=True)), footer=SelectableText("f"))
+        frame.select_navigation = True
+        self.assertIsNone(frame.keypress(self.size, "tab"))
+        self.assertEqual("body", frame.focus_position)

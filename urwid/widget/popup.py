@@ -175,6 +175,13 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._current_widget: AbstractWidget = self._original_widget
         self._cache_original_canvas: Canvas | None = None
 
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Do nothing: every focus under this widget is kept when a parent container enters it.
+
+        The widget that receives keys is known only after the pop-ups were laid out at the current size,
+        which the entry hook does not have, see :ref:`select-navigation`.
+        """
+
     def _update_overlay(self, size: tuple[int, int], focus: bool) -> None:
         """Rebuild :attr:`_current_widget` as a chain of Overlay widgets, one per open pop-up.
 

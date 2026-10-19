@@ -1105,3 +1105,69 @@ class PileTest(unittest.TestCase):
         pile = urwid.Pile([urwid.Edit("", "a"), ParentMutatingText("b", lambda: pile.contents.__delitem__(0))])
         self.assertFalse(pile.move_cursor_to_coords((10,), 0, 1))
         self.assertEqual(0, pile.focus_position)
+
+
+class PileSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
+
+    size = (10,)
+
+    def _pile(self, *, select_navigation: bool = True) -> urwid.Pile:
+        return urwid.Pile(
+            [SelectableText("a"), urwid.Text("-"), SelectableText("b"), urwid.Text("-"), SelectableText("c")],
+            select_navigation=select_navigation,
+        )
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        pile = self._pile(select_navigation=False)
+        self.assertFalse(urwid.Pile([]).select_navigation)
+        self.assertEqual("tab", pile.keypress(self.size, "tab"))
+        self.assertEqual(0, pile.focus_position)
+        pile.focus_position = 2
+        pile.enter_selectable()
+        self.assertEqual(2, pile.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps skip non-selectable children, and past the edge the key is returned after a reset."""
+        pile = self._pile()
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(2, pile.focus_position)
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(4, pile.focus_position)
+        self.assertEqual("tab", pile.keypress(self.size, "tab"))
+        self.assertEqual(0, pile.focus_position)
+        self.assertEqual("shift tab", pile.keypress(self.size, "shift tab"))
+        self.assertEqual(4, pile.focus_position)
+        self.assertIsNone(pile.keypress(self.size, "shift tab"))
+        self.assertEqual(2, pile.focus_position)
+
+    def test_contents_changed_between_presses(self) -> None:
+        """An appended selectable is reached, and a removal continues from the new focus."""
+        pile = self._pile()
+        pile.focus_position = 4
+        pile.contents.append((SelectableText("d"), pile.options()))
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(5, pile.focus_position)
+        del pile.contents[3:]
+        self.assertEqual(2, pile.focus_position)
+        self.assertEqual("tab", pile.keypress(self.size, "tab"))
+        self.assertEqual(0, pile.focus_position)
+
+    def test_child_keeps_handled_key(self) -> None:
+        """A child that handles the key keeps it."""
+        pile = urwid.Pile([urwid.Edit(allow_tab=True), SelectableText("b")], select_navigation=True)
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(0, pile.focus_position)
+        self.assertTrue(pile.focus.edit_text)
+
+    def test_no_selectable_child(self) -> None:
+        """Without a selectable child the key is returned."""
+        pile = urwid.Pile([urwid.Text("a")], select_navigation=True)
+        self.assertEqual("tab", pile.keypress(self.size, "tab"))
+        self.assertFalse(pile.focus_first_selectable())
+
+    def test_repr(self) -> None:
+        """The flag shows in the repr only when set."""
+        self.assertNotIn("select_navigation", repr(self._pile(select_navigation=False)))
+        self.assertIn("select_navigation=True", repr(self._pile()))

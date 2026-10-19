@@ -82,6 +82,9 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         ``'cursor max left'``, ``'cursor max right'``
     :kbd:`space`, :kbd:`enter`
         ``'activate'``
+
+    Only containers created with ``select_navigation=True`` handle ``'next selectable'`` and
+    ``'prev selectable'``, see :ref:`select-navigation`.
     """
 
     def __iter__(self) -> Iterator[str]:

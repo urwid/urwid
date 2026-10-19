@@ -31,7 +31,10 @@ from urwid import _deprecation, signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 
 from .constants import Sizing, VAlign, WHSettings, normalize_valign
-from .container import WidgetContainerMixin
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationMixin,
+)
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .filler import calculate_top_bottom_filler
 from .list_walker import (
@@ -42,7 +45,7 @@ from .list_walker import (
     SimpleFocusListWalker,
     SimpleListWalker,
 )
-from .widget import Widget, nocache_widget_render_instance
+from .widget import Widget, _select_enter_child, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterator
@@ -202,7 +205,7 @@ class _SeenPositions(Container[typing.Any]):
         self._listed.append(position)
 
 
-class ListBox(Widget, WidgetContainerMixin[_K]):
+class ListBox(Widget, SelectNavigationMixin[_K]):
     """Vertically stacked list of widgets."""
 
     _selectable = True
@@ -212,22 +215,30 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
     def __init__(
         self,
         body: ListWalker[_K, AbstractFlowWidget],
+        *,
+        select_navigation: bool = False,
     ) -> None: ...
 
     @typing.overload
     def __init__(
         self: ListBox[int],
         body: Iterable[AbstractFlowWidget],
+        *,
+        select_navigation: bool = False,
     ) -> None: ...
 
     def __init__(
         self,
         body: ListWalker[_K, AbstractFlowWidget] | Iterable[AbstractFlowWidget],
+        *,
+        select_navigation: bool = False,
     ) -> None:
         """Create the ListBox widget.
 
         :param body: a ListWalker subclass such as :class:`SimpleFocusListWalker`
             that contains widgets to be displayed inside the list box
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
+            see :ref:`select-navigation`.
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
@@ -271,6 +282,8 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
         # used for scrollable protocol
         self._rows_max_cached = 0
         self._rendered_size = 0, 0
+
+        self.select_navigation = select_navigation
 
     @property
     def body(self) -> ListWalker[_K, AbstractFlowWidget]:
@@ -1230,6 +1243,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             move cursor up one listbox length (or widget)
         :kbd:`page down`
             move cursor down one listbox length (or widget)
+
+        With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
+        move the focus to the next or previous selectable widget.
         """
         from urwid.command_map import Command
 
@@ -1248,6 +1264,9 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             else:
                 self.make_cursor_visible((maxcol, maxrow))
                 return None
+
+        if self.select_navigation and self._command_map[key] in _SELECT_COMMANDS:
+            return self._select_keypress_unhandled(key)
 
         def actual_key(unhandled: str | bool | None) -> str | None:
             if unhandled:
@@ -1274,6 +1293,55 @@ class ListBox(Widget, WidgetContainerMixin[_K]):
             return actual_key(self._keypress_max_right((maxcol, maxrow)))  # type: ignore[func-returns-value]
 
         return key
+
+    def _select_walk(
+        self,
+        position: typing.Any,
+        *,
+        forward: bool,
+        seen: _SeenPositions,
+    ) -> Iterator[tuple[AbstractFlowWidget, typing.Any]]:
+        """Yield the widgets and positions after *position*, or before it when *forward* is false.
+
+        The walk ends at the end of the body or at a position already in *seen*, which a cyclic walker repeats.
+        """
+        while True:
+            widget, position = self._body.get_next(position) if forward else self._body.get_prev(position)
+            if widget is None or position in seen:
+                return
+            seen.add(position)
+            yield widget, position
+
+    def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[_K]:
+        """Yield the positions of the selectable widgets in the traversal order.
+
+        The body is walked lazily from the focus, so a step reads only up to the next selectable widget.
+
+        :param reverse: yield them from the bottom to the top.
+        :param from_edge: start at the top (bottom when *reverse*) of the body instead of after the focus.
+        """
+        focus_widget, focus_pos = self._body.get_focus()
+        if focus_widget is None:
+            return
+        seen = _SeenPositions()
+        seen.add(focus_pos)
+        if from_edge:
+            # Selectable positions between the focus and the edge, nearest to the focus first.
+            before_focus = [
+                position
+                for widget, position in self._select_walk(focus_pos, forward=reverse, seen=seen)
+                if widget.selectable()
+            ]
+            yield from reversed(before_focus)
+            if focus_widget.selectable():
+                yield typing.cast("_K", focus_pos)
+        for widget, position in self._select_walk(focus_pos, forward=not reverse, seen=seen):
+            if widget.selectable():
+                yield position
+
+    def _select_enter_focus(self, *, reverse: bool) -> None:
+        """Call the entry hook of the widget in focus."""
+        _select_enter_child(self.focus, reverse=reverse)
 
     def _keypress_max_left(self, size: tuple[int, int]) -> None:
         """
