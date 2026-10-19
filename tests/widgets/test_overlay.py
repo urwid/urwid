@@ -4,7 +4,7 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import wstest
+import urwid.testing
 from urwid.widget import overlay as overlay_mod
 
 
@@ -784,9 +784,11 @@ class OverlayTest(unittest.TestCase):
         self.assertFalse(ovl.mouse_event((8, 4), "mouse press", 1, 0, 0, True))
 
     def test_squish(self):
-        wstest(
+        urwid.testing.check_box_sizing(
             urwid.Overlay(
                 urwid.BigText("hello", urwid.Thin6x6Font()), urwid.SolidFill(), "center", None, "middle", None
             )
         )
-        wstest(urwid.Overlay(urwid.Text("hello"), urwid.SolidFill(), "center", ("relative", 100), "middle", None))
+        urwid.testing.check_box_sizing(
+            urwid.Overlay(urwid.Text("hello"), urwid.SolidFill(), "center", ("relative", 100), "middle", None)
+        )

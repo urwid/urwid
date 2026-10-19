@@ -3,12 +3,12 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from tests.util import wstest
+import urwid.testing
 
 
 class SolidFillTest(unittest.TestCase):
     def test_squish(self):
-        wstest(urwid.SolidFill())
+        urwid.testing.check_box_sizing(urwid.SolidFill())
 
 
 if __name__ == "__main__":

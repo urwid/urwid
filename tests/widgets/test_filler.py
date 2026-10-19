@@ -4,7 +4,7 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import wstest
+import urwid.testing
 
 
 class CursorWidget(urwid.Widget):
@@ -489,4 +489,4 @@ class FillerTest(unittest.TestCase):
             urwid.widget.calculate_top_bottom_filler(10, urwid.RELATIVE, None, urwid.GIVEN, 5, None, 0, 0)
 
     def test_squish(self):
-        wstest(urwid.Filler(urwid.Text("hello")))
+        urwid.testing.check_box_sizing(urwid.Filler(urwid.Text("hello")))

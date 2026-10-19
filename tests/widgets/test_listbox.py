@@ -6,7 +6,8 @@ import unittest
 import weakref
 
 import urwid
-from tests.util import SelectableText, collect_and_count_alive, wstest
+import urwid.testing
+from tests.util import SelectableText, collect_and_count_alive
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -762,8 +763,8 @@ class ListBoxRenderTest(unittest.TestCase):
         )
 
     def test_squish(self):
-        wstest(urwid.ListBox(urwid.SimpleListWalker([])))
-        wstest(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
+        urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([])))
+        urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
 
 
 class ListBoxKeypressTest(unittest.TestCase):

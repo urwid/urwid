@@ -4,7 +4,7 @@ import math
 import unittest
 
 import urwid
-from tests.util import wstest
+import urwid.testing
 from urwid.util import get_encoding
 from urwid.widget import bar_graph
 
@@ -582,7 +582,7 @@ class RenderTest(unittest.TestCase):
             urwid.set_encoding(old_encoding)
 
     def test_squish(self):
-        wstest(urwid.BarGraph(["foo", "bar"]))
+        urwid.testing.check_box_sizing(urwid.BarGraph(["foo", "bar"]))
 
 
 class GraphVScaleTest(unittest.TestCase):
@@ -668,8 +668,8 @@ class GraphVScaleTest(unittest.TestCase):
         self.assertEqual(list(canv.text), [b"x    "])
 
     def test_squish(self):
-        wstest(urwid.GraphVScale([(0, "hello")], 1))
-        wstest(urwid.GraphVScale([(5, "hello")], 1))
+        urwid.testing.check_box_sizing(urwid.GraphVScale([(0, "hello")], 1))
+        urwid.testing.check_box_sizing(urwid.GraphVScale([(5, "hello")], 1))
 
 
 class ScaleBarValuesTest(unittest.TestCase):

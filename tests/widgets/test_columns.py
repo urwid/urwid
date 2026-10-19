@@ -6,7 +6,8 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import SelectableText, wstest
+import urwid.testing
+from tests.util import SelectableText
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection
@@ -1170,8 +1171,8 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(0, columns.focus_position)
 
     def test_squish(self):
-        wstest(urwid.Columns([urwid.SolidFill()]))
-        wstest(urwid.Columns([(4, urwid.SolidFill())]))
+        urwid.testing.check_box_sizing(urwid.Columns([urwid.SolidFill()]))
+        urwid.testing.check_box_sizing(urwid.Columns([(4, urwid.SolidFill())]))
 
 
 class ColumnsSelectNavigationTest(unittest.TestCase):

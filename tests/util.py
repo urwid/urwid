@@ -75,18 +75,6 @@ class CountingIndex:
         return self.value
 
 
-def wstest(w: urwid.Widget) -> None:
-    """Render the box widget *w* with zero and one rows and with zero and one columns."""
-    c = w.render((80, 0), focus=False)
-    assert (c.cols(), c.rows()) == (80, 0)
-    c = w.render((80, 0), focus=True)
-    assert (c.cols(), c.rows()) == (80, 0)
-    c = w.render((80, 1), focus=False)
-    assert c.rows() == 1
-    c = w.render((0, 25), focus=False)
-    c = w.render((1, 25), focus=False)
-
-
 def fwstest(test_case: unittest.TestCase, w: urwid.Widget) -> None:
     """Check that the flow widget *w* rendered with zero and one columns matches its rows and cursor."""
 
