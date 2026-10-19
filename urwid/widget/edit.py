@@ -264,7 +264,8 @@ class Edit(WidgetWrap[Text]):
         (maxcol,) = size
         pref_col, then_maxcol = self.pref_col_maxcol
         if then_maxcol != maxcol:
-            return self.get_cursor_coords((maxcol,))[0]
+            coords = self.get_cursor_coords((maxcol,))
+            return coords[0] if coords is not None else 0
 
         return typing.cast("int", pref_col)
 
@@ -525,7 +526,8 @@ class Edit(WidgetWrap[Text]):
         if self._command_map[key] in {Command.UP, Command.DOWN}:
             self.highlight = None
 
-            _x, y = self.get_cursor_coords(size)
+            if (y := self._cursor_row(size)) is None:
+                return key
             pref_col = self.get_pref_col(size)
             if pref_col is None:
                 raise ValueError(pref_col)
@@ -564,7 +566,8 @@ class Edit(WidgetWrap[Text]):
             self.highlight = None
             self.pref_col_maxcol = None, None
 
-            _x, y = self.get_cursor_coords(size)
+            if (y := self._cursor_row(size)) is None:
+                return key
 
             if self._command_map[key] == Command.MAX_LEFT:
                 self.move_cursor_to_coords(size, Align.LEFT, y)
@@ -711,16 +714,20 @@ class Edit(WidgetWrap[Text]):
 
         return trans
 
-    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int]:
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
         """
-        Return the (*x*, *y*) coordinates of cursor within widget.
+        Return the (*x*, *y*) coordinates of cursor within widget, or ``None`` when it has no columns to show it in.
 
         >>> Edit("? ", "yes").get_cursor_coords((10,))
         (5, 0)
+        >>> Edit("? ", "yes").get_cursor_coords((0,)) is None
+        True
         """
         (maxcol,) = size
 
         self._shift_view_to_cursor = True
+        if maxcol == 0:
+            return None
         x, y = self.position_coords(maxcol, self.edit_pos)
         if self._w.wrap in (WrapMode.SPACE, WrapMode.ANY) and x >= maxcol:
             # The cursor sits right after a row that is already full and entirely visible.
@@ -728,6 +735,15 @@ class Edit(WidgetWrap[Text]):
             # that has not happened yet.
             x = maxcol - 1
         return x, y
+
+    def _cursor_row(self, size: tuple[int]) -> int | None:
+        if (coords := self.get_cursor_coords(size)) is not None:
+            return coords[1]
+        if size[0] == 0:
+            # No columns means no cursor, but the edit position still has a row.
+            return self.position_coords(0, self.edit_pos)[1]
+        # An override reports no cursor to move from.
+        return None
 
     def position_coords(self, maxcol: int, pos: int) -> tuple[int, int]:
         """Return (*x*, *y*) coordinates for an offset into self.edit_text."""

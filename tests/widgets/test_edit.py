@@ -349,6 +349,23 @@ class EditTest(unittest.TestCase):
         self.assertIsNone(e.highlight)
 
 
+class GutterEdit(urwid.Edit):
+    """Edit drawn right of a gutter, mapping cursor coordinates through overridden methods."""
+
+    gutter = 2
+
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
+        (maxcol,) = size
+        coords = super().get_cursor_coords((maxcol - self.gutter,))
+        return None if coords is None else (coords[0] + self.gutter, coords[1])
+
+    def move_cursor_to_coords(self, size: tuple[int], x: int | str, y: int) -> bool:
+        (maxcol,) = size
+        if isinstance(x, int):
+            x -= self.gutter
+        return super().move_cursor_to_coords((maxcol - self.gutter,), x, y)
+
+
 class EditKeypressMovementTest(unittest.TestCase):
     def setUp(self):
         self.t1 = urwid.Edit(b"", "blah blah")
@@ -360,6 +377,31 @@ class EditKeypressMovementTest(unittest.TestCase):
         got = e.keypress((12,), key)
         assert got == expected, f"{desc}.  got: {got!r} expected:{expected!r}"
         assert e.edit_pos == pos, f"{desc}. pos: {e.edit_pos!r} expected pos: {pos!r}"
+
+    def test_vertical_keys_use_an_overridden_get_cursor_coords(self):
+        for key, start, expected in (("up", 10, 3), ("down", 3, 10), ("home", 10, 7), ("end", 3, 6)):
+            with self.subTest(key):
+                edit = GutterEdit("", "abcdef\nabcdef")
+                edit.set_edit_pos(start)
+                self.assertIsNone(edit.keypress((10,), key))
+                self.assertEqual(expected, edit.edit_pos)
+
+    def test_keys_without_a_cursor_from_an_override(self):
+        """A gutter as wide as the whole edit leaves no columns for the text, so there is no cursor to move from."""
+        for key in ("up", "down", "home", "end"):
+            with self.subTest(key):
+                edit = GutterEdit("", "ab\ncd")
+                edit.set_edit_pos(4)
+                self.assertEqual(key, edit.keypress((2,), key))
+                self.assertEqual(4, edit.edit_pos)
+
+    def test_keys_at_zero_columns(self):
+        """With no columns there is no cursor, and the keys that need one still work from the edit position."""
+        for key, expected in (("up", "up"), ("down", "down"), ("home", None), ("end", None)):
+            with self.subTest(key):
+                edit = urwid.Edit("", "ab\ncd")
+                edit.set_edit_pos(4)
+                self.assertEqual(expected, edit.keypress((0,), key))
 
     def test1_left(self):
         self.t1.set_edit_pos(0)
@@ -447,6 +489,13 @@ class EditRenderTest(unittest.TestCase):
         w.set_wrap_mode("any")
 
         self.rtest(w, ["blah", " bla", "h   "], (1, 2))
+
+    def test_zero_width_has_no_cursor(self):
+        for wrap in ("space", "any", "clip"):
+            with self.subTest(wrap):
+                w = urwid.Edit("? ", "yes", wrap=wrap)
+                self.assertIsNone(w.get_cursor_coords((0,)))
+                self.assertIsNone(w.render((0,), focus=True).cursor)
 
     def test4_CursorNudge(self):
         w = urwid.Edit("", "hi", align="right")
