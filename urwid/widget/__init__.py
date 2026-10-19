@@ -27,7 +27,12 @@ from .constants import (
     simplify_valign,
     simplify_width,
 )
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
+from .container import (
+    SelectNavigationListContentsMixin,
+    SelectNavigationMixin,
+    WidgetContainerListContentsMixin,
+    WidgetContainerMixin,
+)
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .divider import Divider
 from .drop_down import DropDown
@@ -148,6 +153,8 @@ __all__ = (
     "ScrollBar",
     "Scrollable",
     "ScrollableError",
+    "SelectNavigationListContentsMixin",
+    "SelectNavigationMixin",
     "SelectableIcon",
     "SimpleDequeWalker",
     "SimpleFocusDequeWalker",

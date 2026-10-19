@@ -187,11 +187,12 @@ class BigTextDisplay:
 
         # ListBox
         chars = urwid.Pile([cah, ca])
-        fonts_pile = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1)
-        col = urwid.Columns([(16, chars), fonts_pile], 3, focus_column=1)
-        bt_pile = urwid.Pile([bt, edit], focus_item=1)
+        # select_navigation lets TAB / SHIFT TAB move between the edit and the font buttons
+        fonts_pile = urwid.Pile([urwid.Text("Fonts:"), *self.font_buttons], focus_item=1, select_navigation=True)
+        col = urwid.Columns([(16, chars), fonts_pile], 3, focus_column=1, select_navigation=True)
+        bt_pile = urwid.Pile([bt, edit], focus_item=1, select_navigation=True)
         lines: list[urwid.widget.AbstractFlowWidget] = [bt_pile, urwid.Divider(), col]
-        listbox = urwid.ListBox(urwid.SimpleListWalker(lines))
+        listbox = urwid.ListBox(urwid.SimpleListWalker(lines), select_navigation=True)
 
         # Frame
         w: urwid.Frame[
@@ -200,7 +201,9 @@ class BigTextDisplay:
             None,
         ] = urwid.Frame(
             body=urwid.AttrMap(listbox, "body"),
-            header=urwid.AttrMap(urwid.Text("Urwid BigText example program - F8 exits."), "header"),
+            header=urwid.AttrMap(
+                urwid.Text("Urwid BigText example program - TAB / SHIFT TAB move focus, F8 exits."), "header"
+            ),
         )
 
         # Exit message

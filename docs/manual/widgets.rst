@@ -258,6 +258,80 @@ walker interface was defined.  Note that a custom list walker might also generat
 an unbounded number of positions, so care should be used with this interface and
 :class:`ListBox`.
 
+.. _select-navigation:
+
+Moving the Focus with Tab
+-------------------------
+
+The default command map binds :kbd:`tab` and :kbd:`ctrl n` to the
+``'next selectable'`` command and :kbd:`shift tab` and :kbd:`ctrl p` to the
+``'prev selectable'`` command.  :class:`Pile`, :class:`Columns`,
+:class:`Frame`, :class:`ListBox` and :class:`GridFlow` handle these commands
+only when they are created with ``select_navigation=True`` (or have their
+``select_navigation`` attribute set).  Otherwise the keys are returned
+unhandled, so an application that handles :kbd:`tab` in its
+``unhandled_input`` keeps working.
+
+An opted-in container handles ``'next selectable'`` this way, and
+``'prev selectable'`` the same way in the opposite direction:
+
+#. The key goes to the child in focus first, like every other key.  A child
+   that handles it keeps it: an :class:`Edit` created with ``allow_tab=True``
+   inserts a tab, and an opted-in child container moves its own focus.
+#. When the child returns the key unhandled, the container moves its focus to
+   the next selectable child and enters it (see below).  The following key
+   presses go to that child until it returns the key unhandled again.
+#. When there is no selectable child after the focus, the container moves its
+   focus back to its first selectable child, enters it, and returns the key
+   unhandled.  An opted-in parent then moves on to its own next child.  At the
+   outermost opted-in container the same key press has already put the focus
+   on its first selectable child, and the key still reaches
+   ``unhandled_input``, which an application may use or ignore.
+
+Each key press is decided from the answer of the child in focus and from the
+current contents and focus of the container, so children added, removed or
+changed between key presses are taken into account.
+
+Entering a child means calling its ``enter_selectable(reverse=...)`` method,
+when it has one.  An opted-in container starts at its first selectable child
+(its last one, for ``'prev selectable'``) and enters that child in turn.
+A container that is not opted in keeps its focus and is a single stop, the
+same as a widget without the method, such as a :class:`ListBox` of records.
+Decoration widgets such as :class:`Padding`, :class:`AttrMap` and
+:class:`LineBox`, and :class:`WidgetWrap` subclasses, forward the method to
+the widget they send keys to; a subclass that sends keys to another widget
+overrides ``enter_selectable()`` to match.  :class:`WidgetDisable` is never
+entered.  :class:`PopUpTarget` does not forward the method and keeps every
+focus under it, because the widget that receives its keys is known only
+after the pop-ups were laid out at the current size.
+
+After a step or a reset, every opted-in container on the new focus path,
+reached through containers and decorations that implement the method, is at
+its first (last) selectable child.  Containers off the new focus path keep
+their focus until they are entered.
+
+``container.focus_first_selectable()`` and
+``container.focus_last_selectable()`` move the focus to the first or last
+selectable child and enter it, whether or not the container is opted in.
+They return whether a selectable child exists.  :class:`ListBox` searches its
+whole body, not only the visible rows.
+
+Every focus change made by this navigation is an assignment to
+``container.focus_position``, so a subclass that overrides the
+``focus_position`` setter sees each one.  :class:`ListBox` places the new
+focus like any undirected focus change: a visible widget stays where it is,
+and a widget out of view is centred.
+
+A custom container gets the same behaviour from :class:`SelectNavigationMixin`,
+or from :class:`SelectNavigationListContentsMixin` when its positions are
+indexes into a ``contents`` list; the mixin documentation lists what the
+container has to provide.
+
+``select_navigation=True`` on a :class:`ListBox` requires a finite body:
+``get_next()`` and ``get_prev()`` of its list walker must reach
+``(None, None)`` in both directions.  A list walker that repeats a position
+is treated as ending there, so the key is returned instead of looping.
+
 
 Pile Widgets
 ------------

@@ -1007,6 +1007,12 @@ def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:
     return DelegateToWidgetMixin
 
 
+def _select_enter_child(widget: object, *, reverse: bool) -> None:
+    """Call the ``enter_selectable`` entry hook of *widget*, when it has one."""
+    if (enter_selectable := getattr(widget, "enter_selectable", None)) is not None:
+        enter_selectable(reverse=reverse)
+
+
 class WidgetWrapError(Exception):
     """Error raised for invalid :class:`WidgetWrap` usage."""
 
@@ -1071,6 +1077,18 @@ class WidgetWrap(
         """
         self._wrapped_widget = new_widget
         self._invalidate()
+
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Forward the entry hook to the wrapped widget, when it has one.
+
+        A container with ``select_navigation`` calls this when it moves its focus to this widget,
+        see :ref:`select-navigation`.
+        The hook goes to the widget that :meth:`keypress` sends keys to:
+        a subclass that sends keys elsewhere overrides this method to match.
+
+        :param reverse: start at the last selectable widget instead of the first one.
+        """
+        _select_enter_child(self._wrapped_widget, reverse=reverse)
 
 
 def _test() -> None:

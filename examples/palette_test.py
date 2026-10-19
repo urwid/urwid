@@ -407,6 +407,7 @@ def main() -> None:
     def click_exit(button: urwid.Button) -> typing.NoReturn:
         raise urwid.ExitMainLoop
 
+    # select_navigation lets TAB / SHIFT TAB move through the mode buttons, then the chart buttons and Exit
     lb.extend(
         [
             urwid.AttrMap(urwid.Text("Urwid Palette Test"), "header"),
@@ -420,7 +421,8 @@ def main() -> None:
                                 mode_rb("88-Color", 88),
                                 mode_rb("256-Color", 256),
                                 mode_rb("24-bit Color", 2**24),
-                            ]
+                            ],
+                            select_navigation=True,
                         ),
                         urwid.Pile(
                             [
@@ -428,9 +430,11 @@ def main() -> None:
                                 fcs(urwid.RadioButton(chart_radio_buttons, "Background Colors")),
                                 urwid.Divider(),
                                 fcs(urwid.Button("Exit", click_exit)),
-                            ]
+                            ],
+                            select_navigation=True,
                         ),
-                    ]
+                    ],
+                    select_navigation=True,
                 ),
                 "panel",
             ),
@@ -446,7 +450,7 @@ def main() -> None:
         if key in {"Q", "q", "esc"}:
             raise urwid.ExitMainLoop
 
-    urwid.MainLoop(urwid.ListBox(lb), screen=screen, unhandled_input=unhandled_input).run()
+    urwid.MainLoop(urwid.ListBox(lb, select_navigation=True), screen=screen, unhandled_input=unhandled_input).run()
 
 
 if __name__ == "__main__":

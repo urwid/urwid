@@ -11,7 +11,10 @@ from urwid.split_repr import remove_defaults
 
 from .columns import Columns
 from .constants import Align, Sizing, WHSettings
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationListContentsMixin,
+)
 from .divider import Divider
 from .monitored_list import MonitoredFocusList
 from .padding import Padding
@@ -38,8 +41,7 @@ GridFlowContentsItem = tuple[AbstractFlowWidget, GridFlowOptions]
 
 class GridFlow(
     WidgetWrap["Pile | Divider"],  # quoted: pylint cannot infer a base subscripted with a "|" union
-    WidgetContainerMixin[int],
-    WidgetContainerListContentsMixin[GridFlowContentsItem],
+    SelectNavigationListContentsMixin[GridFlowContentsItem],
 ):
     """Flow widget that renders all the widgets it contains the same width.
 
@@ -65,6 +67,17 @@ class GridFlow(
         """Return self: GridFlow is a container, not a decoration."""
         return self
 
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Start at the first selectable cell, or at the last one when *reverse* is set.
+
+        It is the entry hook a parent container calls, and acts only when :attr:`select_navigation` is set,
+        see :ref:`select-navigation`.
+
+        :param reverse: start at the last selectable cell instead of the first one.
+        """
+        # WidgetWrap comes first in the bases: its forwarding to the generated display widget would win otherwise.
+        SelectNavigationListContentsMixin.enter_selectable(self, reverse=reverse)
+
     def __init__(
         self,
         cells: Iterable[AbstractFlowWidget],
@@ -73,6 +86,8 @@ class GridFlow(
         v_sep: int,
         align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
         focus: int | AbstractFlowWidget | None = None,
+        *,
+        select_navigation: bool = False,
     ) -> None:
         """Create the GridFlow widget.
 
@@ -84,6 +99,8 @@ class GridFlow(
         :param align: horizontal alignment of cells, one of:
             'left', 'center', 'right', ('relative', percentage 0=left 100=right)
         :param focus: widget index or widget instance to focus on
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands
+            over the cells in their contents order, see :ref:`select-navigation`.
         """
         prepared_contents: list[GridFlowContentsItem] = []
         focus_position: int = -1
@@ -108,6 +125,7 @@ class GridFlow(
         self.h_sep = h_sep
         self.v_sep = v_sep
         self.align = align
+        self.select_navigation = select_navigation
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
         maxcol = self._get_maxcol(())
         self._cache_maxcol: int | None = maxcol
@@ -130,6 +148,7 @@ class GridFlow(
             "v_sep": self.v_sep,
             "align": self.align,
             "focus": self.focus_position if len(self._contents) > 1 else None,
+            "select_navigation": self.select_navigation,
         }
         return remove_defaults(attrs, GridFlow.__init__)
 
@@ -141,6 +160,7 @@ class GridFlow(
         yield "v_sep", self.v_sep
         yield "align", self.align
         yield "focus", self.focus_position
+        yield "select_navigation", self.select_navigation, False
 
     def __len__(self) -> int:
         """Return the number of cells."""
@@ -378,12 +398,16 @@ class GridFlow(
         """Pass keypress to display widget for handling.
 
         Captures focus changes.
+        With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
+        move the focus to the next or previous selectable cell.
         """
         self.get_display_widget(size)
         focus_before = self.contents.focus
         generation_before = self._contents_generation
 
         if (processed := super().keypress(size, key)) is not None:
+            if self.select_navigation and self._command_map[processed] in _SELECT_COMMANDS:
+                return self._select_keypress_unhandled(processed)
             return processed
 
         # The display widget was built before the keypress was dispatched, so a callback that

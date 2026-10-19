@@ -364,6 +364,7 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
             2,
             0,
             urwid.CENTER,
+            select_navigation=True,
         )
 
         unicode_checkbox: urwid.Widget
@@ -386,7 +387,9 @@ class GraphView(urwid.WidgetWrap[urwid.Widget]):
             urwid.Divider(),
             self.button("Quit", self.exit_program),
         ]
-        w = urwid.ListBox(urwid.SimpleListWalker(lines))  # type: ignore[arg-type]  # all lines are flow widgets
+        # select_navigation lets TAB / SHIFT TAB move between the controls
+        walker = urwid.SimpleListWalker(lines)
+        w = urwid.ListBox(walker, select_navigation=True)  # type: ignore[arg-type]  # all lines are flow widgets
         return w
 
     def main_window(self) -> urwid.Widget:

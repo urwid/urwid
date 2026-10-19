@@ -16,7 +16,11 @@ from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, WHSettings
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationListContentsMixin,
+    _ContainerElementSizingFlag,
+)
 from .monitored_list import MonitoredFocusList
 from .widget import (
     AbstractBoxWidget,
@@ -54,8 +58,7 @@ class PileWarning(WidgetWarning):
 
 class Pile(
     Widget,
-    WidgetContainerMixin[int],
-    WidgetContainerListContentsMixin[
+    SelectNavigationListContentsMixin[
         tuple[
             AbstractFlowWidget | AbstractFixedWidget,
             tuple[Literal[WHSettings.PACK], None],
@@ -203,12 +206,16 @@ class Pile(
             | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
         focus_item: AbstractWidget | int | None = None,
+        *,
+        select_navigation: bool = False,
     ) -> None:
         """Build the pile from a list of child widgets.
 
         :param widget_list: child widgets
         :param focus_item: child widget that gets the focus initially.
             Chooses the first selectable widget if unset.
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
+            see :ref:`select-navigation`.
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
 
         *widget_list* may also contain tuples such as:
@@ -311,6 +318,7 @@ class Pile(
             self.focus = focus_item
 
         self.pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = 0
+        self.select_navigation = select_navigation
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
@@ -322,7 +330,11 @@ class Pile(
         return [*super()._repr_words(), contents_string]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = {**super()._repr_attrs(), "focus_item": self.focus_position if len(self._contents) > 1 else None}
+        attrs = {
+            **super()._repr_attrs(),
+            "focus_item": self.focus_position if len(self._contents) > 1 else None,
+            "select_navigation": self.select_navigation,
+        }
         return remove_defaults(attrs, Pile.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
@@ -346,6 +358,7 @@ class Pile(
 
         yield "widget_list", widget_list
         yield "focus_item", self.focus_position if self._contents else None
+        yield "select_navigation", self.select_navigation, False
 
     def __len__(self) -> int:
         """Return the number of widgets in the pile."""
@@ -1021,6 +1034,7 @@ class Pile(
         """Pass the keypress to the widget in focus.
 
         Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
+        With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
 
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
@@ -1034,6 +1048,8 @@ class Pile(
                 key = processed
             else:
                 return None
+            if self.select_navigation and self._command_map[key] in _SELECT_COMMANDS:
+                return self._select_keypress_unhandled(key)
             if self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents:
                 return key
             # The child may have changed this Pile's contents or focus while handling the key.

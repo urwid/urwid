@@ -329,3 +329,60 @@ class NestedPopUpOffsetTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PilePopUpLauncher(urwid.PopUpLauncher[urwid.Filler[urwid.Pile]]):
+    """Launcher over an opted-in Pile, whose pop-up is another opted-in Pile."""
+
+    def __init__(self) -> None:
+        """Create both Piles and wrap the background one."""
+        self.background = urwid.Pile([urwid.Button("a"), urwid.Button("b")], select_navigation=True)
+        self.pop_up = urwid.Pile([urwid.Button("p"), urwid.Button("q")], select_navigation=True)
+        super().__init__(urwid.Filler(self.background, valign="top"))
+
+    def create_pop_up(self) -> urwid.Filler[urwid.Pile]:
+        """Return the pop-up Pile, aligned to the top."""
+        return urwid.Filler(self.pop_up, valign="top")
+
+    def get_pop_up_parameters(self) -> dict:
+        """Place the pop-up below the background buttons."""
+        return {"left": 0, "top": 2, "overlay_width": 8, "overlay_height": 2}
+
+
+class PopUpTargetSelectNavigationTest(unittest.TestCase):
+    """PopUpTarget is one stop: entering it keeps every focus under it."""
+
+    size = (8, 5)
+
+    def test_entry_keeps_focus(self) -> None:
+        """No focus under the target changes on entry, whatever state the pop-up is in."""
+        launcher = PilePopUpLauncher()
+        target = urwid.PopUpTarget(launcher)
+        launcher.background.focus_position = 1
+        launcher.pop_up.focus_position = 1
+
+        steps = (
+            ("no pop-up", lambda: None),
+            ("opened, not rendered", launcher.open_pop_up),
+            ("open and rendered", lambda: target.render(self.size, focus=True)),
+            ("closed, not rendered", launcher.close_pop_up),
+        )
+        for description, step in steps:
+            with self.subTest(description):
+                step()
+                target.enter_selectable()
+                target.enter_selectable(reverse=True)
+                self.assertEqual(1, launcher.background.focus_position)
+                self.assertEqual(1, launcher.pop_up.focus_position)
+
+    def test_keys_traverse_open_pop_up(self) -> None:
+        """Keys still reach the opted-in Pile of the open pop-up."""
+        launcher = PilePopUpLauncher()
+        target = urwid.PopUpTarget(launcher)
+        launcher.open_pop_up()
+        target.render(self.size, focus=True)
+        self.assertIsNone(target.keypress(self.size, "tab"))
+        self.assertEqual(1, launcher.pop_up.focus_position)
+        self.assertEqual("tab", target.keypress(self.size, "tab"))
+        self.assertEqual(0, launcher.pop_up.focus_position)
+        self.assertEqual(0, launcher.background.focus_position)

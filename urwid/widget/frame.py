@@ -12,9 +12,12 @@ from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Sizing, VAlign
-from .container import WidgetContainerMixin
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationMixin,
+)
 from .filler import Filler
-from .widget import AbstractBoxWidget, AbstractFlowWidget, AbstractWidget, Widget, WidgetError
+from .widget import AbstractBoxWidget, AbstractFlowWidget, AbstractWidget, Widget, WidgetError, _select_enter_child
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
@@ -42,7 +45,7 @@ def _check_widget_subclass(widget: AbstractWidget | None) -> None:
 
 class Frame(
     Widget,
-    WidgetContainerMixin[Literal["header", "footer", "body"]],
+    SelectNavigationMixin[Literal["header", "footer", "body"]],
     typing.Generic[BodyWidget, HeaderWidget, FooterWidget],
 ):
     """Frame widget is a box widget with optional header and footer flow widgets placed above and below it.
@@ -61,6 +64,8 @@ class Frame(
         header: HeaderWidget | None = None,
         footer: FooterWidget | None = None,
         focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
+        *,
+        select_navigation: bool = False,
     ) -> None:
         """Initialize a new Frame instance.
 
@@ -68,6 +73,8 @@ class Frame(
         :param header: a flow widget for above the body (or None)
         :param footer: a flow widget for below the body (or None)
         :param focus_part:  'header', 'footer' or 'body'
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
+            see :ref:`select-navigation`.
         :raises ValueError: *focus_part* is not one of the three frame parts.
 
         .. deprecated:: 2.4.0
@@ -89,6 +96,7 @@ class Frame(
             self.focus_part = "body"
         else:
             raise ValueError(f"Invalid focus part {focus_part!r}")
+        self.select_navigation = select_navigation
 
         _check_widget_subclass(header)
         _check_widget_subclass(body)
@@ -101,6 +109,7 @@ class Frame(
             "header": self._header,
             "footer": self._footer,
             "focus_part": self.focus_part,
+            "select_navigation": self.select_navigation,
         }
         return remove_defaults(attrs, Frame.__init__)
 
@@ -110,6 +119,7 @@ class Frame(
         yield "header", self._header
         yield "footer", self._footer
         yield "focus_part", self.focus_part
+        yield "select_navigation", self.select_navigation, False
 
     @property
     def header(self) -> HeaderWidget | None:
@@ -444,7 +454,19 @@ class Frame(
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
-        """Pass keypress to widget in focus."""
+        """Pass keypress to widget in focus.
+
+        With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
+        may cause a focus change.
+        """
+        if (unhandled := self._keypress_focus_part(size, key)) is None:
+            return None
+        if self.select_navigation and self._command_map[unhandled] in _SELECT_COMMANDS:
+            return self._select_keypress_unhandled(unhandled)
+        return unhandled
+
+    def _keypress_focus_part(self, size: tuple[int, int], key: str) -> str | None:
+        """Pass keypress to the part in focus and return what it leaves unhandled."""
         (maxcol, maxrow) = size
         header: AbstractFlowWidget | None = self._header
         footer: AbstractFlowWidget | None = self._footer
@@ -470,6 +492,31 @@ class Frame(
         if not self.body.selectable():
             return key
         return self.body.keypress((maxcol, remaining), key)
+
+    def _select_candidates(
+        self,
+        *,
+        reverse: bool,
+        from_edge: bool,
+    ) -> Iterator[Literal["header", "body", "footer"]]:
+        """Yield the selectable parts in the traversal order.
+
+        :param reverse: yield them from the bottom to the top.
+        :param from_edge: start at the top (bottom when *reverse*) part instead of after the focus.
+        """
+        parts: Iterator[Literal["header", "body", "footer"]] = reversed(self) if reverse else iter(self)
+        if not from_edge:
+            for part in parts:
+                if part == self.focus_part:
+                    break
+        for part in parts:
+            # Iteration yields only the parts the frame has, so the widget is not None.
+            if typing.cast("AbstractWidget", self._contents__getitem__(part)[0]).selectable():
+                yield part
+
+    def _select_enter_focus(self, *, reverse: bool) -> None:
+        """Call the entry hook of the part in focus."""
+        _select_enter_child(self.focus, reverse=reverse)
 
     def mouse_event(
         self,

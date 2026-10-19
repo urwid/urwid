@@ -416,3 +416,87 @@ class GridFlowTest(unittest.TestCase):
         self.assertEqual([(1, 0, second)], seen)
         self.assertIs(second, grid.focus)
         self.assertEqual(1, grid.focus_position)
+
+
+class FramedGridFlow(urwid.GridFlow):
+    """GridFlow whose display widget is wrapped in a LineBox."""
+
+    def generate_display_widget(self, size):
+        """Return the standard display widget inside a LineBox."""
+        return urwid.LineBox(super().generate_display_widget(size))
+
+
+class TabBarLikeGridFlow(urwid.GridFlow):
+    """GridFlow whose iteration yields widgets and whose ``focus`` is an index, as some applications do."""
+
+    def __iter__(self):
+        """Iterate over the cell widgets."""
+        return iter(widget for widget, _ in self.contents)
+
+    @property
+    def focus(self):
+        """Return the index of the focused cell."""
+        return self.focus_position
+
+
+class GridFlowSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus over the cells in their contents order."""
+
+    size = (8,)
+
+    def _cells(self) -> list[urwid.Widget]:
+        return [urwid.Button("a"), urwid.Text("-"), urwid.Button("b"), urwid.Button("c")]
+
+    def _grid(self, cls: type[urwid.GridFlow] = urwid.GridFlow, *, select_navigation: bool = True) -> urwid.GridFlow:
+        return cls(self._cells(), 5, 1, 0, "left", select_navigation=select_navigation)
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        grid = self._grid(select_navigation=False)
+        self.assertEqual("tab", grid.keypress(self.size, "tab"))
+        self.assertEqual(0, grid.focus_position)
+        grid.focus_position = 2
+        grid.enter_selectable()
+        self.assertEqual(2, grid.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps follow the contents order across rows, and past the edge the key is returned after a reset."""
+        for cls in (urwid.GridFlow, FramedGridFlow, TabBarLikeGridFlow):
+            with self.subTest(cls=cls.__name__):
+                grid = self._grid(cls)
+                self.assertIsNone(grid.keypress(self.size, "tab"))
+                self.assertEqual(2, grid.focus_position)
+                self.assertIsNone(grid.keypress(self.size, "tab"))
+                self.assertEqual(3, grid.focus_position)
+                self.assertEqual("tab", grid.keypress(self.size, "tab"))
+                self.assertEqual(0, grid.focus_position)
+                self.assertEqual("shift tab", grid.keypress(self.size, "shift tab"))
+                self.assertEqual(3, grid.focus_position)
+                self.assertIsNone(grid.keypress(self.size, "shift tab"))
+                self.assertEqual(2, grid.focus_position)
+
+    def test_entered_from_parent(self) -> None:
+        """A parent entering the GridFlow moves the GridFlow's own focus, and the rendered focus follows."""
+        grid = self._grid()
+        grid.focus_position = 2
+        pile = urwid.Pile([urwid.Button("x"), grid], select_navigation=True)
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(0, grid.focus_position)
+        canvas = pile.render(self.size, focus=True)
+        self.assertEqual((2, 1), canvas.cursor)  # the label of "a", on the first row of the GridFlow
+        self.assertIsNone(pile.keypress(self.size, "shift tab"))
+        self.assertEqual(0, pile.focus_position)
+        grid.focus_position = 0
+        self.assertEqual("shift tab", pile.keypress(self.size, "shift tab"))
+        self.assertEqual(1, pile.focus_position)
+        self.assertEqual(3, grid.focus_position)
+
+    def test_not_opted_in_kept_when_entered(self) -> None:
+        """A GridFlow without the flag is one stop and keeps its focus."""
+        grid = self._grid(select_navigation=False)
+        grid.focus_position = 2
+        pile = urwid.Pile([urwid.Button("x"), grid], select_navigation=True)
+        self.assertIsNone(pile.keypress(self.size, "tab"))
+        self.assertEqual(2, grid.focus_position)
+        self.assertEqual("tab", pile.keypress(self.size, "tab"))
+        self.assertEqual(0, pile.focus_position)

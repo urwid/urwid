@@ -31,7 +31,10 @@ import urwid
 
 def main() -> None:
     """Build and run the tour of standard widget types and features."""
-    text_header = "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  F8 exits."
+    text_header = (
+        "Welcome to the urwid tour!  UP / DOWN / PAGE UP / PAGE DOWN scroll.  "
+        "TAB / SHIFT TAB move between fields.  F8 exits."
+    )
     text_intro: list[str | tuple[str, str]] = [
         ("important", "Text"),
         (
@@ -289,10 +292,12 @@ def main() -> None:
                         urwid.AttrMap(urwid.Edit(text_edit_col_cap2, text_edit_col_text2), "editbx", "editfc"),
                         blank,
                         urwid.AttrMap(urwid.Edit(text_edit_col_cap3, text_edit_col_text3), "editbx", "editfc"),
-                    ]
+                    ],
+                    select_navigation=True,
                 ),
             ],
             1,
+            select_navigation=True,
         ),
         blank,
         urwid.AttrMap(
@@ -318,6 +323,7 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
             ),
             left=4,
             right=3,
@@ -331,6 +337,7 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
             ),
             left=4,
             right=3,
@@ -344,6 +351,7 @@ def main() -> None:
                 3,
                 1,
                 urwid.LEFT,
+                select_navigation=True,
             ),
             left=4,
             right=3,
@@ -357,7 +365,8 @@ def main() -> None:
     ]
 
     header = urwid.AttrMap(urwid.Text(text_header), "header")
-    listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content))
+    # select_navigation lets TAB / SHIFT TAB visit every edit, button and check box in order
+    listbox = urwid.ListBox(urwid.SimpleListWalker(listbox_content), select_navigation=True)
     scrollable = urwid.ScrollBar(
         listbox,
         trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,

@@ -16,7 +16,11 @@ from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, WHSettings
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationListContentsMixin,
+    _ContainerElementSizingFlag,
+)
 from .monitored_list import MonitoredFocusList
 from .widget import (
     AbstractBoxWidget,
@@ -50,8 +54,7 @@ class ColumnsWarning(WidgetWarning):
 
 class Columns(
     Widget,
-    WidgetContainerMixin[int],
-    WidgetContainerListContentsMixin[
+    SelectNavigationListContentsMixin[
         tuple[
             AbstractFlowWidget | AbstractFixedWidget,
             tuple[Literal[WHSettings.PACK], None, bool],
@@ -237,6 +240,8 @@ class Columns(
         focus_column: int | AbstractWidget | None = None,
         min_width: int = 1,
         box_columns: Iterable[int] | None = None,
+        *,
+        select_navigation: bool = False,
     ) -> None:
         """Initialize a new Columns instance.
 
@@ -249,6 +254,8 @@ class Columns(
         :param box_columns: a list of column indexes containing box widgets
             whose height is set to the maximum of the rows
             required by columns not listed in *box_columns*.
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
+            see :ref:`select-navigation`.
         :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
         :raises ValueError: *focus_column* is a widget that is not in *widget_list*.
 
@@ -353,6 +360,7 @@ class Columns(
         self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         self.min_width = min_width
         self._cache_maxcol: int | None = None
+        self.select_navigation = select_navigation
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:
@@ -369,6 +377,7 @@ class Columns(
             "dividechars": self.dividechars,
             "focus_column": self.focus_position if len(self._contents) > 1 else None,
             "min_width": self.min_width,
+            "select_navigation": self.select_navigation,
         }
         return remove_defaults(attrs, Columns.__init__)
 
@@ -399,6 +408,7 @@ class Columns(
         yield "focus_column", self.focus_position if self._contents else None
         yield "min_width", self.min_width
         yield "box_columns", box_columns
+        yield "select_navigation", self.select_navigation, False
 
     def __len__(self) -> int:
         """Return the number of columns."""
@@ -1143,6 +1153,9 @@ class Columns(
         """
         Pass keypress to the focus column.
 
+        Unhandled :kbd:`left` and :kbd:`right` keys may cause a focus change.
+        With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
+
         :param size: Widget size correct for the supported sizing
         :param key: a single keystroke value
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
@@ -1165,6 +1178,8 @@ class Columns(
             else:
                 return None
 
+        if self.select_navigation and self._command_map[key] in _SELECT_COMMANDS:
+            return self._select_keypress_unhandled(key)
         if self._command_map[key] not in {Command.LEFT, Command.RIGHT} or not self.contents:
             return key
 
