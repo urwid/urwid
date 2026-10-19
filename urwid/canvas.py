@@ -918,6 +918,7 @@ class CompositeCanvas(Canvas):
             self.shards = shards_trim_rows(self.shards, count)
 
         self.coords = self.translate_coords(0, -top)
+        self._drop_cursor_outside_rows()
 
     def trim_end(self, end: int) -> None:
         """Trim lines from the bottom of the canvas.
@@ -937,6 +938,11 @@ class CompositeCanvas(Canvas):
             self.shards = self._shards_without_rows()
         else:
             self.shards = shards_trim_rows(self.shards, self.rows() - end)
+        self._drop_cursor_outside_rows()
+
+    def _drop_cursor_outside_rows(self) -> None:
+        if (cursor := self.get_cursor()) is not None and not 0 <= cursor[1] < self.rows():
+            self.cursor = None
 
     def _shards_without_rows(self) -> list[tuple[int, list[_CView]]]:
         # An empty shard list has no width, so a canvas trimmed to no rows keeps one blank shard of no rows.

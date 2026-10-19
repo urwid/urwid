@@ -1217,6 +1217,20 @@ class CompositeCanvasTrimTest(unittest.TestCase):
                 self.assertEqual((3, 0), (canv.cols(), canv.rows()))
                 self.assertEqual([], list(canv.content()))
 
+    def test_trim_drops_a_cursor_outside_the_kept_rows(self) -> None:
+        for description, cursor, trim, expected in (
+            ("above a top cut", (1, 0), lambda c: c.trim(2), None),
+            ("below the kept rows", (1, 4), lambda c: c.trim(0, 3), None),
+            ("trim to no rows", (1, 0), lambda c: c.trim(0, 0), None),
+            ("trim_end", (1, 4), lambda c: c.trim_end(1), None),
+            ("inside the kept rows", (1, 3), lambda c: c.trim(2), (1, 1)),
+        ):
+            with self.subTest(description):
+                canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+                canv.cursor = cursor
+                trim(canv)
+                self.assertEqual(expected, canv.cursor)
+
     def test_mutation_on_finalized_canvas_raises(self) -> None:
         widget = urwid.SolidFill(" ")
         for description, mutate in (
