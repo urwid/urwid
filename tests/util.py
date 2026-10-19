@@ -7,7 +7,6 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    import unittest
     import weakref
     from collections.abc import Collection
 
@@ -73,19 +72,3 @@ class CountingIndex:
     def __index__(self) -> int:
         self.calls += 1
         return self.value
-
-
-def fwstest(test_case: unittest.TestCase, w: urwid.Widget) -> None:
-    """Check that the flow widget *w* rendered with zero and one columns matches its rows and cursor."""
-
-    def t(cols: int, focus: bool):
-        wrows = w.rows((cols,), focus)
-        c = w.render((cols,), focus)
-        test_case.assertEqual(c.rows(), wrows, f"Canvas rows {c.rows()} != widget rows {wrows}")
-        if focus and hasattr(w, "get_cursor_coords"):
-            gcc = w.get_cursor_coords((cols,))
-            test_case.assertEqual(c.cursor, gcc, f"Canvas cursor {c.cursor} != widget cursor {gcc}")
-
-    for cols, focus in ((0, False), (1, False), (0, True), (1, True)):
-        with test_case.subTest(f"{w.__class__.__name__} cols={cols} and focus={focus}"):
-            t(cols, focus)
