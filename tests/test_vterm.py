@@ -539,6 +539,22 @@ class TermTest(unittest.TestCase):
         self.write("\\e[?7h\\e[1;%dHt\b\b\t\ta" % self.term.width)
         self.expect(" " * (self.term.width - 1) + "a")
 
+    def test_cursor_motion_cancels_pending_wrap(self) -> None:
+        """A character written after moving the cursor off a pending wrap stays where the cursor was moved to."""
+        for label, move in (
+            ("CUP", r"\e[2;80H"),
+            ("CUD", r"\e[B"),
+            ("VPA", r"\e[2d"),
+            ("IND", r"\eD"),
+            ("VT", "\v"),
+            ("DECRC", r"\e8"),
+            ("SCORC", r"\e[u"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(r"\e[2;80H\e7\e[s\e[1;80HA" + move + "B")
+                self.expect(" " * 79 + "A\n" + " " * 79 + "B")
+
     def test_cursor_visibility(self):
         self.write(r"\e[?25linvisible")
         self.expect("invisible", focus=True)

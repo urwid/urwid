@@ -870,6 +870,7 @@ class TermCanvas(Canvas):
             else:
                 y += 1
 
+        self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
     def carriage_return(self) -> None:
@@ -905,6 +906,7 @@ class TermCanvas(Canvas):
         elif self.modes.constrain_scrolling:
             y += self.scrollregion_start
 
+        self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
     def push_char(self, char: bytes | None, x: int, y: int) -> None:
@@ -967,6 +969,7 @@ class TermCanvas(Canvas):
             return
 
         x, y = self.saved_cursor
+        self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
         if with_attrs and self.saved_attrs is not None:
