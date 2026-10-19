@@ -22,16 +22,21 @@
 
 from __future__ import annotations
 
+import codecs
 import contextlib
+import functools
 import itertools
 import sys
 import typing
 from contextlib import suppress
+from types import MappingProxyType
+
+import wcwidth
 
 from urwid import _deprecation, str_util
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Generator, Hashable, Iterable, Iterator, MutableSequence, Sequence
+    from collections.abc import Generator, Hashable, Iterable, Iterator, Mapping, MutableSequence, Sequence
     from types import TracebackType
     from typing import Literal, Protocol, Self
 
@@ -125,6 +130,10 @@ else:
 
 _target_encoding = "ascii"
 _use_dec_special = True
+# Fallbacks as passed to `set_ascii_fallbacks`, returned by `get_ascii_fallbacks`; replaced, never mutated.
+_ascii_fallbacks: Mapping[str, str] = MappingProxyType({})
+# The same fallbacks in the form the encoder outputs: a DEC drawing character value is already its SO/SI sequence.
+_ascii_fallback_table: dict[str, str] = {}
 
 
 def set_encoding(encoding: str) -> None:
@@ -197,6 +206,106 @@ def get_encoding_mode() -> Literal["wide", "narrow", "utf8"]:
     return str_util.get_byte_encoding()
 
 
+def set_ascii_fallbacks(fallbacks: Mapping[str, str]) -> None:
+    """Replace the table of replacements for characters the target encoding cannot encode.
+
+    When the target encoding is not UTF-8, a character it cannot encode is output as its fallback from this table,
+    or as ``?`` when the table has none. The table is consulted only for such characters: a character the
+    encoding can encode (``é`` in ISO-8859-1) is output as it is, and the table is not used at all with a UTF-8
+    target encoding.
+
+    The DEC drawing characters listed in :ref:`the manual <unicode-support>` are translated to the terminal's
+    alternate character set before the table is consulted, so a fallback for one of them is never used.
+
+    Text layout measures the original text, so a fallback has to occupy the same single column as the character
+    it replaces:
+
+    * a key is one character, one column wide, and not printable ASCII;
+    * a value is one printable ASCII character or one of the DEC drawing characters, which is output through the
+      alternate character set.
+
+    A ``str`` element of byte text markup uses only the printable ASCII fallbacks, since byte text cannot carry
+    the DEC drawing characters.
+
+    Every call replaces the whole table, and ``{}`` clears it. The mapping is copied, so changing it afterwards
+    has no effect. The table is validated as a whole: when an entry is rejected, the previous table stays in use.
+
+    Canvases rendered before the call keep their old output; call :meth:`urwid.CanvasCache.clear` to redraw them.
+    :mod:`urwid.font` still reports a font that uses a non-DEC character as needing UTF-8, fallback or not.
+
+    >>> import urwid
+    >>> urwid.set_ascii_fallbacks({"\N{BULLET}": "*", "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}"})
+    >>> urwid.set_ascii_fallbacks({})
+
+    :param fallbacks: replacement character for each character, keyed by the character it replaces.
+    :raises TypeError: a key or a value is not a ``str``.
+    :raises ValueError: a key or a value breaks one of the rules above; the message names it.
+    """
+    # Import locally to warranty no circular imports
+    from urwid.display import escape
+
+    global _ascii_fallbacks, _ascii_fallback_table  # noqa: PLW0603  # pylint: disable=global-statement
+
+    new_fallbacks: dict[str, str] = {}
+    new_table: dict[str, str] = {}
+    for key, value in fallbacks.items():
+        if not isinstance(key, str) or not isinstance(value, str):
+            raise TypeError(f"Fallback {key!r}: {value!r} is not a str to str entry")
+        if len(key) != 1 or " " <= key <= "~" or "\ud800" <= key <= "\udfff" or wcwidth.wcwidth(key) != 1:
+            raise ValueError(f"Fallback key {key!r} is not a single one-column non-ASCII character")
+        if len(value) != 1:
+            raise ValueError(f"Fallback value {value!r} for {key!r} is not a single character")
+        if " " <= value <= "~":
+            new_table[key] = value
+        elif value in escape.DEC_SPECIAL_CHARS:
+            alt = escape.ALT_DEC_SPECIAL_CHARS[escape.DEC_SPECIAL_CHARS.index(value)]
+            new_table[key] = escape.SO + alt + escape.SI
+        else:
+            raise ValueError(f"Fallback value {value!r} for {key!r} is neither printable ASCII nor a DEC character")
+        new_fallbacks[key] = value
+
+    _ascii_fallbacks = MappingProxyType(new_fallbacks)
+    _ascii_fallback_table = new_table
+
+
+def get_ascii_fallbacks() -> Mapping[str, str]:
+    """Return the table set by :func:`set_ascii_fallbacks`, read-only and as it was passed.
+
+    A later :func:`set_ascii_fallbacks` call does not change the returned mapping.
+
+    >>> import urwid
+    >>> urwid.set_ascii_fallbacks({"\N{BULLET}": "*"})
+    >>> dict(urwid.get_ascii_fallbacks())
+    {'\N{BULLET}': '*'}
+    >>> urwid.set_ascii_fallbacks({})
+    """
+    return _ascii_fallbacks
+
+
+def _fallback_errors(exc: UnicodeError, *, ascii_only: bool) -> tuple[str, int]:
+    """Replace the characters the target encoding rejected by their fallbacks, or by ``?``.
+
+    Registered as the ``urwid_fallback`` codec error handler, and with *ascii_only* as ``urwid_fallback_ascii``
+    for output that cannot carry the DEC shift sequences: a DEC drawing character fallback is then ``?`` as well.
+
+    :raises UnicodeError: *exc* is not raised by encoding, re-raised as it is.
+    """
+    if not isinstance(exc, UnicodeEncodeError):
+        raise exc
+    rejected = exc.object[exc.start : exc.end]
+    if not _use_dec_special:
+        return "?" * len(rejected), exc.end
+    parts = (_ascii_fallback_table.get(char, "?") for char in rejected)
+    if ascii_only:
+        # a DEC drawing character value is stored as its three-character SO/SI sequence
+        parts = (part if len(part) == 1 else "?" for part in parts)
+    return "".join(parts), exc.end
+
+
+codecs.register_error("urwid_fallback", functools.partial(_fallback_errors, ascii_only=False))
+codecs.register_error("urwid_fallback_ascii", functools.partial(_fallback_errors, ascii_only=True))
+
+
 def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U", "0"] | None, int]]]:
     """
     Return (encoded byte string, character set rle).
@@ -214,7 +323,7 @@ def apply_target_encoding(s: str | bytes) -> tuple[bytes, list[tuple[Literal["U"
         # remove redundant shifts
         s = s.replace(escape._SI_SO, "")  # pylint: disable=protected-access
         # `str.encode` over `codecs.encode`: the latter re-looks-up the codec on every call.
-        s = s.encode(_target_encoding, "replace")
+        s = s.encode(_target_encoding, "urwid_fallback")
 
     if not isinstance(s, bytes):
         raise TypeError(s)
@@ -548,8 +657,9 @@ class TagMarkupException(Exception):
 def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
     """Return (text string, attribute list) for tagmarkup passed.
 
-    Elements that are not of the type of the first one are converted with the target encoding,
-    replacing what cannot be converted, as :func:`apply_target_encoding` does.
+    Elements that are not of the type of the first one are converted with the target encoding.
+    A character it cannot encode is replaced by its :func:`set_ascii_fallbacks` entry when that is ASCII,
+    and by ``?`` otherwise: byte text cannot carry the DEC drawing characters.
     """
     tl, al = _tagmarkup_recurse(tm, None)
     # join as str or bytes based on type of first element
@@ -561,7 +671,9 @@ def decompose_tagmarkup(tm: _TagMarkup) -> tuple[str | bytes, list[tuple[Hashabl
             converted = [item if isinstance(item, str) else item.decode(encoding, "replace") for item in tl]
             text = "".join(converted)
         else:
-            converted = [item if isinstance(item, bytes) else item.encode(encoding, "replace") for item in tl]
+            converted = [
+                item if isinstance(item, bytes) else item.encode(encoding, "urwid_fallback_ascii") for item in tl
+            ]
             text = b"".join(converted)
         if len(text) != sum(len(item) for item in tl):
             # the attribute runs count the elements before conversion: recount them after it

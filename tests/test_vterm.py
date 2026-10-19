@@ -592,6 +592,24 @@ class TermTest(unittest.TestCase):
             self.write("\\e%G\xe2\x80\x94")
             self.expect("?")
 
+    def test_encoding_unicode_ascii_dec_special(self):
+        """A DEC drawing character, or a fallback to one, from a UTF-8 child is one cell in the DEC character set."""
+        self.addCleanup(urwid.set_ascii_fallbacks, urwid.get_ascii_fallbacks())
+        urwid.set_ascii_fallbacks({"\N{EM DASH}": "-", "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}"})
+        dec_q, dec_x = (None, "0", b"q"), (None, "0", b"x")
+        with set_temporary_encoding("ascii"):
+            # U+2500, U+2014 and U+2588 in UTF-8, then an ASCII "q" in the active character set
+            self.write("\\e%G\xe2\x94\x80\xe2\x80\x94\xe2\x96\x88q")
+            self.expect([[dec_q, (None, None, b"-"), dec_x, (None, None, b"q")]], raw=True)
+
+            # the IBM PC mapping does not remap a cell that is already in the DEC character set
+            self.write("\\ec\\e%G\\e[11m\xe2\x94\x80\\e[10m")
+            self.expect([[dec_q]], raw=True)
+
+            # insert mode stores the cell in the DEC character set as well
+            self.write("\\ec\\e%Ga\\e[4h\\e[D\xe2\x94\x80")
+            self.expect([[dec_q, (None, None, b"a")]], raw=True)
+
     def test_encoding_wrong_unicode(self):
         with set_temporary_encoding("utf-8"):
             self.write("\\e%G\xc0\x99")
