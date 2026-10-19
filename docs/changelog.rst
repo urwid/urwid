@@ -2,6 +2,13 @@
 Changelog
 ---------
 
+Urwid 4.3.0 (unreleased)
+=========================
+
+New features 🗹
++++++++++++++++
+* Add ``urwid.testing``: render widgets to text and attribute runs, check their sizing, feed keys and mouse events, and run a ``MainLoop`` on ``ScriptedScreen`` without a terminal
+
 Urwid 4.2.5
 ============
 
