@@ -913,7 +913,7 @@ class CompositeCanvas(Canvas):
             self.shards = shards_trim_top(self.shards, top)
 
         if count == 0:
-            self.shards = []
+            self.shards = self._shards_without_rows()
         elif count is not None:
             self.shards = shards_trim_rows(self.shards, count)
 
@@ -933,7 +933,14 @@ class CompositeCanvas(Canvas):
         if self.widget_info:
             raise CanvasError(self._finalized_message)
 
-        self.shards = shards_trim_rows(self.shards, self.rows() - end)
+        if end == self.rows():
+            self.shards = self._shards_without_rows()
+        else:
+            self.shards = shards_trim_rows(self.shards, self.rows() - end)
+
+    def _shards_without_rows(self) -> list[tuple[int, list[_CView]]]:
+        # An empty shard list has no width, so a canvas trimmed to no rows keeps one blank shard of no rows.
+        return [(0, [(0, 0, self.cols(), 0, None, blank_canvas)])]
 
     def pad_trim_left_right(self, left: int, right: int) -> None:
         """
@@ -1031,7 +1038,7 @@ class CompositeCanvas(Canvas):
 
         middle_shards: list[tuple[int, list[_CView]]]
         if not self.rows():
-            middle_shards = []
+            middle_shards = shards  # nothing to overlay; the rowless shard keeps the width
         elif left or right:
             middle_shards = shards_join((*left_shards, other.shards, *right_shards))
         else:

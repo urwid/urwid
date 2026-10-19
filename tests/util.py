@@ -78,9 +78,9 @@ class CountingIndex:
 def wstest(w: urwid.Widget) -> None:
     """Render the box widget *w* with zero and one rows and with zero and one columns."""
     c = w.render((80, 0), focus=False)
-    assert c.rows() == 0
+    assert (c.cols(), c.rows()) == (80, 0)
     c = w.render((80, 0), focus=True)
-    assert c.rows() == 0
+    assert (c.cols(), c.rows()) == (80, 0)
     c = w.render((80, 1), focus=False)
     assert c.rows() == 1
     c = w.render((0, 25), focus=False)

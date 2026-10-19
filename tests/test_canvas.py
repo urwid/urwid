@@ -1205,6 +1205,18 @@ class CompositeCanvasTrimTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 canv.trim_end(6)
 
+    def test_trim_to_no_rows_keeps_the_width(self) -> None:
+        for description, trim in (
+            ("trim", lambda c: c.trim(0, 0)),
+            ("trim below a top cut", lambda c: c.trim(2, 0)),
+            ("trim_end", lambda c: c.trim_end(5)),
+        ):
+            with self.subTest(description):
+                canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+                trim(canv)
+                self.assertEqual((3, 0), (canv.cols(), canv.rows()))
+                self.assertEqual([], list(canv.content()))
+
     def test_mutation_on_finalized_canvas_raises(self) -> None:
         widget = urwid.SolidFill(" ")
         for description, mutate in (
@@ -1235,14 +1247,14 @@ class CompositeCanvasOverlayValidationTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 3)), 0, 3)
 
-    def test_overlay_on_a_rowless_canvas_yields_no_middle_shards(self) -> None:
+    def test_overlay_on_a_rowless_canvas_keeps_its_width(self) -> None:
         base = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 5, 5))
-        base.trim(0, 0)  # empties the canvas: no rows left to overlay onto
-        self.assertEqual(0, base.rows())
-        self.assertEqual(0, base.cols())  # trimming to no rows also leaves no shards to measure columns from
+        base.trim(0, 0)  # no rows left to overlay onto
+        self.assertEqual((5, 0), (base.cols(), base.rows()))
 
-        base.overlay(urwid.CompositeCanvas(), 0, 0)  # equally empty, so sizes still match
-        self.assertEqual([], base.shards)
+        base.overlay(urwid.CompositeCanvas(), 0, 0)  # empty, so it fits
+        self.assertEqual((5, 0), (base.cols(), base.rows()))
+        self.assertEqual([], list(base.content()))
 
 
 class CompositeCanvasFillAttrTest(unittest.TestCase):
