@@ -6,16 +6,13 @@ import unittest
 import weakref
 
 import urwid
+import urwid.testing
 
 COLOURS = ("red", "green", "blue")
 
 
 def numbers(count: int) -> list[str]:
     return [f"n{index:02d}" for index in range(count)]
-
-
-def screen(target: urwid.PopUpTarget, size: tuple[int, int]) -> list[str]:
-    return [line.decode() for line in target.render(size, focus=True).text]
 
 
 def drop_down_at_row(drop_down: urwid.DropDown, row: int) -> urwid.PopUpTarget:
@@ -82,7 +79,7 @@ class DropDownListTest(unittest.TestCase):
         target = drop_down_at_row(drop_down, 0)
 
         self.assertIsNone(target.keypress((7, 6), "enter"))
-        rows = screen(target, (7, 6))
+        rows = urwid.testing.render_text(target, (7, 6), focus=True)
 
         self.assertEqual(["green v", "red    ", "green  ", "blue   "], rows[:4])
         self.assertEqual((0, 2), target.render((7, 6), focus=True).cursor)
@@ -100,7 +97,7 @@ class DropDownListTest(unittest.TestCase):
 
         self.assertEqual([2], seen)
         self.assertIsNone(drop_down._pop_up_widget)
-        self.assertEqual("blue  v", screen(target, (7, 6))[0])
+        self.assertEqual("blue  v", urwid.testing.render_text(target, (7, 6), focus=True)[0])
 
     def test_escape_closes_without_a_change(self) -> None:
         drop_down = urwid.DropDown(COLOURS)
@@ -134,7 +131,7 @@ class DropDownListTest(unittest.TestCase):
         target = drop_down_at_row(drop_down, 0)
         target.keypress((6, 10), "enter")
 
-        rows = screen(target, (6, 10))
+        rows = urwid.testing.render_text(target, (6, 10), focus=True)
         list_rows = rows[1:6]
 
         self.assertEqual("", rows[6].strip())
@@ -147,7 +144,7 @@ class DropDownListTest(unittest.TestCase):
         target = drop_down_at_row(drop_down, 7)
         target.keypress((5, 9), "enter")
 
-        rows = screen(target, (5, 9))
+        rows = urwid.testing.render_text(target, (5, 9), focus=True)
 
         self.assertEqual(["n00  ", "n01  ", "n02  ", "n03  "], rows[3:7])
         self.assertEqual("n00 v", rows[7])
@@ -157,7 +154,7 @@ class DropDownListTest(unittest.TestCase):
         target = drop_down_at_row(drop_down, 3)
         target.keypress((5, 8), "enter")
 
-        rows = screen(target, (5, 8))
+        rows = urwid.testing.render_text(target, (5, 8), focus=True)
 
         self.assertEqual("n00 v", rows[3])
         self.assertEqual(["n00", "n01", "n02", "n03"], [row[:3] for row in rows[4:]])
