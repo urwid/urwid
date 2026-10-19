@@ -1297,14 +1297,17 @@ def shards_trim_sides(
     new_shards: list[tuple[int, list[_CView]]] = []
     right = left + cols
     for num_rows, cviews in shards:
-        sbody = shard_body(cviews, shard_tail, False, num_rows=num_rows)
+        # Cviews starting in this shard get this shard's marker and continued ones keep an earlier one:
+        # done_rows cannot tell them apart, since it stays 0 for a cview continued past a shard of no rows.
+        started_here: Iterator[_ContentLine] = iter(())
+        sbody = shard_body(cviews, shard_tail, False, started_here, num_rows=num_rows)
         shard_tail = shard_body_tail(num_rows, sbody)
         new_cviews = []
         col = 0
-        for done_rows, _content_iter, cv in sbody:
+        for _done_rows, content_iter, cv in sbody:
             cv_cols = cv[2]
             next_col = col + cv_cols
-            if done_rows or next_col <= left or col >= right:
+            if content_iter is not started_here or next_col <= left or col >= right:
                 col = next_col
                 continue
             if col < left:

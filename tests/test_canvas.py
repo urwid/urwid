@@ -834,6 +834,29 @@ class ShardsTrimTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 canvas.shards_trim_sides(shards, 0, 0)
 
+    def test_sides_after_a_shard_of_no_rows(self):
+        """A cview starting in a shard of no rows continues into the next shard and is kept once."""
+        shards = [
+            (0, [(0, 0, 4, 0, None, "empty"), (0, 0, 3, 3, None, "text")]),
+            (3, [(0, 0, 4, 3, None, "blank")]),
+        ]
+        self.stsides(shards, 4, 3, [(3, [(0, 0, 3, 3, None, "text")])])
+        self.stsides(
+            shards,
+            2,
+            4,
+            [(0, [(2, 0, 2, 0, None, "empty"), (0, 0, 2, 3, None, "text")]), (3, [(2, 0, 2, 3, None, "blank")])],
+        )
+
+        joined = urwid.CanvasJoin(
+            [
+                (urwid.SolidCanvas(" ", 4, 0), None, False, 4),
+                (urwid.TextCanvas([b"abc", b"def", b"ghi"], maxcol=3), None, False, 3),
+            ]
+        )
+        joined.pad_trim_left_right(-4, 0)
+        self.assertEqual([b"abc", b"def", b"ghi"], joined.text)
+
 
 class ShardsJoinTest(unittest.TestCase):
     def sjt(self, shard_lists, expected):
