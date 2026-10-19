@@ -5,6 +5,7 @@ import unittest
 
 import urwid
 from urwid import str_util, util
+from urwid.display import escape
 
 
 class CalcWidthTest(unittest.TestCase):
@@ -57,6 +58,147 @@ class ConvertDecSpecialTest(unittest.TestCase):
         self.ctest("mix right", "abc££", "abc}}", [(None, 3), ("0", 2)])
         self.ctest("mix inner", "a££bc", "a}}bc", [(None, 1), ("0", 2), (None, 2)])
         self.ctest("mix well", "£a£b£", "}a}b}", [("0", 1), (None, 1), ("0", 1), (None, 1), ("0", 1)])
+
+
+class AsciiFallbacksTest(unittest.TestCase):
+    """Tests for `urwid.set_ascii_fallbacks` and the encoding that uses the table."""
+
+    def setUp(self) -> None:
+        """Save the target encoding and the fallback table."""
+        self.old_encoding = util.get_encoding()
+        self.old_fallbacks = urwid.get_ascii_fallbacks()
+
+    def tearDown(self) -> None:
+        """Restore the fallback table and the target encoding."""
+        urwid.set_ascii_fallbacks(self.old_fallbacks)
+        urwid.set_encoding(self.old_encoding)
+
+    def render(self, encoding: str, text: str) -> tuple[bytes, list, list]:
+        """Return the encoded text, attribute runs and character set runs of *text* rendered under *encoding*."""
+        with util.set_temporary_encoding(encoding):
+            canvas = urwid.Text(text).render((len(text),))
+        return canvas._text[0], canvas._attr[0], canvas._cs[0]  # pylint: disable=protected-access
+
+    def test_validation(self) -> None:
+        """Accept one-column replacements and reject everything else."""
+        accepted = {"\N{BULLET}": "*", "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}", "\xe9": "e"}
+        urwid.set_ascii_fallbacks(accepted)
+        fallbacks = urwid.get_ascii_fallbacks()
+        self.assertEqual(accepted, fallbacks)
+        with self.assertRaises(TypeError):
+            fallbacks["\N{BULLET}"] = "+"  # type: ignore[index]
+
+        rejected = (
+            ({"\N{BULLET}\N{BULLET}": "*"}, ValueError),
+            ({"\N{BULLET}": "**"}, ValueError),
+            ({"a": "*"}, ValueError),
+            ({"\u0301": "*"}, ValueError),
+            ({"\u754c": "*"}, ValueError),
+            ({"\ud800": "*"}, ValueError),
+            ({"\N{BULLET}": "\xe9"}, ValueError),
+            ({"": "*"}, ValueError),
+            ({"\N{BULLET}": ""}, ValueError),
+            ({1: "*"}, TypeError),
+            ({"\N{BULLET}": 1}, TypeError),
+        )
+        for mapping, exc_type in rejected:
+            with self.subTest(mapping=mapping), self.assertRaises(exc_type):
+                urwid.set_ascii_fallbacks(mapping)  # type: ignore[arg-type]
+
+    def test_failed_validation_keeps_table(self) -> None:
+        """Keep the previous table when one entry of a new table is rejected."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*"})
+        with self.assertRaises(ValueError):
+            urwid.set_ascii_fallbacks({"\N{CHECK MARK}": "+", "a": "*"})
+        self.assertEqual({"\N{BULLET}": "*"}, urwid.get_ascii_fallbacks())
+        self.assertEqual(b"a*b?", self.render("ascii", "a\N{BULLET}b\N{CHECK MARK}")[0])
+
+    def test_replace_and_clear(self) -> None:
+        """Replace the whole table on each call, and clear it with an empty mapping."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*"})
+        urwid.set_ascii_fallbacks({"\N{CHECK MARK}": "+"})
+        self.assertEqual(b"?+", self.render("ascii", "\N{BULLET}\N{CHECK MARK}")[0])
+        urwid.set_ascii_fallbacks({})
+        self.assertEqual({}, urwid.get_ascii_fallbacks())
+        self.assertEqual(b"??", self.render("ascii", "\N{BULLET}\N{CHECK MARK}")[0])
+
+    def test_copies(self) -> None:
+        """Copy the mapping passed in, and return a snapshot."""
+        mapping = {"\N{BULLET}": "*"}
+        urwid.set_ascii_fallbacks(mapping)
+        snapshot = urwid.get_ascii_fallbacks()
+        mapping["\N{BULLET}"] = "+"
+        mapping["\N{CHECK MARK}"] = "+"
+        self.assertEqual({"\N{BULLET}": "*"}, urwid.get_ascii_fallbacks())
+        self.assertEqual(b"*?", self.render("ascii", "\N{BULLET}\N{CHECK MARK}")[0])
+        urwid.set_ascii_fallbacks({"\N{CHECK MARK}": "+"})
+        self.assertEqual({"\N{BULLET}": "*"}, snapshot)
+
+    def test_used_only_for_rejected_characters(self) -> None:
+        """Use a fallback only for a character the target encoding cannot encode."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*", "\xe9": "e"})
+        self.assertEqual(b"a*b", self.render("ascii", "a\N{BULLET}b")[0])
+        self.assertEqual(b"e", self.render("ascii", "\xe9")[0])
+        self.assertEqual(b"\xe9", self.render("iso8859-1", "\xe9")[0])
+        self.assertEqual(b"?", self.render("ascii", "\N{CHECK MARK}")[0])
+
+    def test_dec_character_takes_precedence(self) -> None:
+        """Translate a DEC drawing character before the table is consulted."""
+        urwid.set_ascii_fallbacks({"\N{DEGREE SIGN}": "*"})
+        self.assertEqual((b"f", [("0", 1)]), self.render("ascii", "\N{DEGREE SIGN}")[::2])
+
+    def test_width_is_kept(self) -> None:
+        """Keep the row width and the layout of text that contains a replaced character."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*"})
+        text = "a\N{BULLET}b"
+        encoded, attr, cs = self.render("ascii", text)
+        self.assertEqual(b"a*b", encoded)
+        self.assertEqual(3, sum(run for _, run in attr))
+        self.assertEqual(3, sum(run for _, run in cs))
+        with util.set_temporary_encoding("utf-8"):
+            utf8_layout = urwid.Text(text * 3).get_line_translation(4)
+        with util.set_temporary_encoding("ascii"):
+            ascii_layout = urwid.Text(text * 3).get_line_translation(4)
+        self.assertEqual(utf8_layout, ascii_layout)
+
+    def test_utf8_ignores_table(self) -> None:
+        """Ignore the table under UTF-8, even for a character UTF-8 rejects."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*"})
+        self.assertEqual("\N{BULLET}".encode(), self.render("utf-8", "\N{BULLET}")[0])
+        util._ascii_fallback_table["\ud800"] = "*"  # pylint: disable=protected-access
+        try:
+            with util.set_temporary_encoding("utf-8"):
+                self.assertEqual(b"?", util.apply_target_encoding("\ud800")[0])
+        finally:
+            del util._ascii_fallback_table["\ud800"]  # pylint: disable=protected-access
+
+    def test_dec_character_value(self) -> None:
+        """Output a DEC drawing character value through the alternate character set."""
+        urwid.set_ascii_fallbacks({"\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}"})
+        self.assertEqual((b"x", [("0", 1)]), self.render("ascii", "\N{FULL BLOCK}")[::2])
+        self.assertEqual(
+            (b"xx", [("0", 2)]),
+            self.render("ascii", "\N{FULL BLOCK}\N{BOX DRAWINGS LIGHT VERTICAL}")[::2],
+        )
+
+    def test_byte_markup_uses_ascii_fallbacks_only(self) -> None:
+        """Use only printable ASCII fallbacks for a str element of byte text markup."""
+        urwid.set_ascii_fallbacks({"\N{BULLET}": "*", "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}"})
+        with util.set_temporary_encoding("ascii"):
+            self.assertEqual(
+                (b"a*?", [(None, 2), ("x", 1)]),
+                urwid.decompose_tagmarkup([b"a", "\N{BULLET}", ("x", "\N{FULL BLOCK}")]),
+            )
+            self.assertEqual(b"a*?", urwid.Text([b"a", "\N{BULLET}\N{FULL BLOCK}"]).render((3,)).text[0])
+
+    def test_dec_charmap_update_still_works(self) -> None:
+        """Keep honouring entries added to `escape.DEC_SPECIAL_CHARMAP` in place."""
+        key = ord("\N{CHECK MARK}")
+        escape.DEC_SPECIAL_CHARMAP[key] = "*"
+        try:
+            self.assertEqual(b"*", self.render("ascii", "\N{CHECK MARK}")[0])
+        finally:
+            del escape.DEC_SPECIAL_CHARMAP[key]
 
 
 class WithinDoubleByteTest(unittest.TestCase):

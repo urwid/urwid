@@ -748,7 +748,15 @@ class TermCanvas(Canvas):
                 self.utf8_eat_bytes = None
 
                 if sequence := (self.utf8_buffer + bytes([byte])).decode("utf-8", "ignore"):
-                    char = sequence.encode(util.get_encoding(), "replace")
+                    if self.within_escape:
+                        # an escape sequence takes bytes, not cells: no DEC drawing character here
+                        char = sequence.encode(util.get_encoding(), "urwid_fallback_ascii")
+                    else:
+                        char, charsets = util.apply_target_encoding(sequence)
+                        if charsets == [("0", 1)]:
+                            # a DEC drawing character, or a fallback to one: one cell in the DEC character set
+                            self.push_cursor(char, dec_special=True)
+                            return
 
                 else:
                     # invalid multibyte sequence, stop processing
@@ -818,15 +826,28 @@ class TermCanvas(Canvas):
         else:
             self.push_cursor(char)
 
-    def set_char(self, char: bytes, x: int | None = None, y: int | None = None) -> None:
-        """Set character of either the current cursor position or a position given by 'x' and/or 'y' to 'char'."""
+    def set_char(
+        self,
+        char: bytes,
+        x: int | None = None,
+        y: int | None = None,
+        *,
+        dec_special: bool = False,
+    ) -> None:
+        """Set character of either the current cursor position or a position given by 'x' and/or 'y' to 'char'.
+
+        :param char: the character to store.
+        :param x: the column, the cursor's when not given.
+        :param y: the row, the cursor's when not given.
+        :param dec_special: store *char* in the DEC special character set instead of the active one.
+        """
         if x is None:
             x = self.term_cursor[0]
         if y is None:
             y = self.term_cursor[1]
 
         x, y = self.constrain_coords(x, y)
-        self.term[y][x] = (self.attrspec, self.charset.current, char)
+        self.term[y][x] = (self.attrspec, "0" if dec_special else self.charset.current, char)
 
     def constrain_coords(self, x: int, y: int, ignore_scrolling: bool = False) -> tuple[int, int]:
         """Check if x/y are within the terminal and return the corrected version.
@@ -909,21 +930,31 @@ class TermCanvas(Canvas):
         self.is_rotten_cursor = False
         self.set_term_cursor(x, y)
 
-    def push_char(self, char: bytes | None, x: int, y: int) -> None:
-        """Push one character to current position and advance cursor to x/y."""
+    def push_char(self, char: bytes | None, x: int, y: int, *, dec_special: bool = False) -> None:
+        """Push one character to current position and advance cursor to x/y.
+
+        :param char: the character to store, or ``None`` to only move the cursor.
+        :param x: the column to move the cursor to.
+        :param y: the row to move the cursor to.
+        :param dec_special: *char* is already in the DEC special character set: store it there, unmapped.
+        """
         if char is not None:
-            char = self.charset.apply_mapping(char)
+            if not dec_special:
+                char = self.charset.apply_mapping(char)
             if self.modes.insert:
-                self.insert_chars(char=char)
+                self.insert_chars(char=char, dec_special=dec_special)
             else:
-                self.set_char(char)
+                self.set_char(char, dec_special=dec_special)
 
         self.set_term_cursor(x, y)
 
-    def push_cursor(self, char: bytes | None = None) -> None:
+    def push_cursor(self, char: bytes | None = None, *, dec_special: bool = False) -> None:
         """Move cursor one character forward wrapping lines as needed.
 
         If 'char' is given, put the character into the former position.
+
+        :param char: the character to put into the former position, if any.
+        :param dec_special: *char* is already in the DEC special character set: store it there, unmapped.
         """
         x, y = self.term_cursor
 
@@ -933,7 +964,7 @@ class TermCanvas(Canvas):
                 # position of the screen, the cursor position remains the same but
                 # one last set_char() is allowed for that piece of sh^H^H"border".
                 self.is_rotten_cursor = True
-                self.push_char(char, x, y)
+                self.push_char(char, x, y, dec_special=dec_special)
             else:
                 x += 1
 
@@ -948,7 +979,7 @@ class TermCanvas(Canvas):
 
                     self.set_term_cursor(0, y)
 
-                self.push_char(char, x, y)
+                self.push_char(char, x, y, dec_special=dec_special)
 
                 self.is_rotten_cursor = False
         else:
@@ -956,7 +987,7 @@ class TermCanvas(Canvas):
                 x += 1
 
             self.is_rotten_cursor = False
-            self.push_char(char, x, y)
+            self.push_char(char, x, y, dec_special=dec_special)
 
     def save_cursor(self, with_attrs: bool = False) -> None:
         """Save the current cursor position, and its attributes/charset when *with_attrs* is set."""
@@ -1016,11 +1047,14 @@ class TermCanvas(Canvas):
         position: tuple[int, int] | None = None,
         chars: int = 1,
         char: bytes | None = None,
+        *,
+        dec_special: bool = False,
     ) -> None:
         """Insert 'chars' number of empty characters (or those given by 'char') before 'position'.
 
         Defaults to the current position if 'position' is not specified,
         pushing subsequent characters of the line to the right without wrapping.
+        With *dec_special*, 'char' is stored in the DEC special character set instead of the active one.
         """
         if position is None:
             position = self.term_cursor
@@ -1031,7 +1065,8 @@ class TermCanvas(Canvas):
         if char is None:
             char_spec = self.empty_char()
         else:
-            char_spec = (self.attrspec, self.charset.current, char)
+            charset: Literal["0", "U"] | None = "0" if dec_special else self.charset.current
+            char_spec = (self.attrspec, charset, char)
 
         x, y = position
         line = self.term[y]
