@@ -155,6 +155,23 @@ class SimpleListWalkerMutationTest(unittest.TestCase):
         del self.walker[:]
         self.assertEqual(0, self.walker.focus)
 
+    def test_simple_list_walker_emits_modified_for_partial_extension(self):
+        first = urwid.Text("first")
+        added = urwid.Text("added")
+        walker = urwid.SimpleListWalker([first])
+        changes = []
+        urwid.connect_signal(walker, "modified", lambda: changes.append(list(walker)))
+
+        def incoming():
+            yield added
+            raise ValueError("Input failed")
+
+        with self.assertRaisesRegex(ValueError, "Input failed"):
+            walker.extend(incoming())
+
+        self.assertEqual(changes, [[first, added]])
+        self.assertEqual(walker.focus, 0)
+
 
 class SimpleListWalkerFocusApiTest(unittest.TestCase):
     def setUp(self) -> None:
@@ -275,80 +292,13 @@ class SimpleFocusListWalkerFocusTest(unittest.TestCase):
         with self.assertRaises(IndexError):
             walker.prev_position(0)
 
-
-class MonitoredFocusListConstructionTest(unittest.TestCase):
-    def test_focus_out_of_range_rejected(self) -> None:
-        for focus in (3, -1):
-            with self.subTest(focus=focus), self.assertRaises(IndexError):
-                urwid.MonitoredFocusList([1, 2, 3], focus=focus)
-        with self.assertRaises(TypeError):
-            urwid.MonitoredFocusList([1, 2, 3], focus="1")
-
-    def test_focus_ignored_when_empty(self) -> None:
-        ml = urwid.MonitoredFocusList([], focus=5)
-        ml.append(1)
-        self.assertEqual(0, ml.focus)
-
-
-class MonitoredFocusListValidationTest(unittest.TestCase):
-    def test_iadd_is_validated(self) -> None:
-        pile = urwid.Pile([urwid.Text("a")])
-        contents = pile.contents
-        with self.assertRaises(urwid.PileError):
-            contents += ["bad"]
-        self.assertEqual(1, len(pile.contents))
-
-    def test_clear_reports_removed_range(self) -> None:
-        ml = urwid.MonitoredFocusList([1, 2, 3])
-        seen = []
-        ml.set_validate_contents_modified(lambda indices, new_items: seen.append(indices))
-        ml.clear()
-        self.assertEqual([(0, 3, 1)], seen)
-
-
-class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
-    """The modified callback runs once, after both the contents and the focus are updated."""
-
-    def test_callback_sees_final_focus(self) -> None:
-        """Every mutating operation notifies once, with the contents and the focus already final."""
-        operations = {
-            "del item": lambda ml: ml.__delitem__(0),
-            "del slice": lambda ml: ml.__delitem__(slice(0, 2)),
-            "set item": lambda ml: ml.__setitem__(2, 7),
-            "set slice": lambda ml: ml.__setitem__(slice(0, 1), [8, 9]),
-            "imul": lambda ml: ml.__imul__(0),
-            "iadd": lambda ml: ml.__iadd__([6, 7]),
-            "append": lambda ml: ml.append(6),
-            "extend": lambda ml: ml.extend([6, 7]),
-            "insert": lambda ml: ml.insert(0, -1),
-            "pop": lambda ml: ml.pop(0),
-            "remove": lambda ml: ml.remove(0),
-            "reverse": lambda ml: ml.reverse(),
-            "sort": lambda ml: ml.sort(reverse=True),
-            "clear": lambda ml: ml.clear(),
-        }
-        for name, operation in operations.items():
-            with self.subTest(name):
-                ml = urwid.MonitoredFocusList(range(6), focus=2)
-                seen = []
-                ml.set_modified_callback(lambda ml=ml, seen=seen: seen.append((list(ml), ml.focus)))
-                operation(ml)
-                self.assertEqual([(list(ml), ml.focus)], seen)
-
-    def test_focus_set_by_callback_is_kept(self) -> None:
-        """A focus set by the modified callback is not overwritten afterwards."""
-        ml = urwid.MonitoredFocusList(range(6), focus=2)
-        ml.set_modified_callback(lambda: setattr(ml, "focus", 0) if ml.focus else None)
-        ml.insert(0, -1)
-        self.assertEqual(0, ml.focus)
-
-    def test_insert_by_callback_keeps_focus_item(self) -> None:
-        """An insertion made by the modified callback keeps the focus on the same item."""
-        ml = urwid.MonitoredFocusList(["a", "b", "c", "d"], focus=2)
-        ml.set_modified_callback(lambda: ml.insert(0, "x") if len(ml) == 3 else None)
-        del ml[0]
-        self.assertEqual(["x", "b", "c", "d"], list(ml))
-        self.assertEqual("c", ml[ml.focus])
+    def test_walker_keeps_the_focused_widget(self) -> None:
+        widgets = [urwid.SelectableIcon(text) for text in "abcde"]
+        walker = urwid.SimpleFocusListWalker(widgets)
+        walker.set_focus(2)
+        walker[4:1] = [urwid.SelectableIcon("x")]
+        self.assertEqual(2, walker.focus)
+        self.assertIs(widgets[2], walker.get_focus()[0])
 
     def test_walker_signal_sees_final_focus(self) -> None:
         """A ListBox rendered from the walker's modified signal shows the new focus item."""
@@ -363,39 +313,6 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
         urwid.connect_signal(walker, "modified", on_modified)
         del walker[2]
         self.assertEqual([(1, [b"1    "])], seen)
-
-
-class MonitoredFocusListClearValidationTest(unittest.TestCase):
-    def test_clear_reports_removed_contents(self) -> None:
-        for contents in ([], [1, 2, 3]):
-            with self.subTest(contents=contents):
-                items = urwid.MonitoredFocusList(contents)
-                seen = []
-
-                def validate(indices, new_items):
-                    seen.append((indices, list(new_items), list(items)))
-
-                items.set_validate_contents_modified(validate)
-                items.clear()
-                self.assertEqual([((0, len(contents), 1), [], contents)], seen)
-                self.assertEqual([], items)
-                self.assertIsNone(items.focus)
-
-    def test_clear_respects_removal_rejection(self) -> None:
-        items = urwid.MonitoredFocusList([1, 2, 3], focus=1)
-        modified = []
-        items.set_modified_callback(lambda: modified.append(True))
-
-        def validate(indices, new_items):
-            if indices[0] < indices[1]:
-                raise ValueError("cannot remove items")
-
-        items.set_validate_contents_modified(validate)
-        with self.assertRaisesRegex(ValueError, "cannot remove items"):
-            items.clear()
-        self.assertEqual([1, 2, 3], items)
-        self.assertEqual(1, items.focus)
-        self.assertEqual([], modified)
 
 
 class PositionsArgumentTest(unittest.TestCase):

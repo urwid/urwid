@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from tests.util import SelectableText
+from tests.util import SelectableText, wstest
 from urwid.canvas import TextCanvas
 from urwid.widget import Widget
 from urwid.widget.constants import Sizing
@@ -328,6 +328,11 @@ class FrameRenderTest(unittest.TestCase):
     def test_render_footer_row_mismatch_raises(self):
         f = urwid.Frame(urwid.SolidFill("x"), None, LiarFooter())
         self.assertRaises(RuntimeError, f.render, (5, 5))
+
+    def test_squish(self):
+        wstest(urwid.Frame(urwid.SolidFill()))
+        wstest(urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello")))
+        wstest(urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello"), footer=urwid.Text("hello")))
 
 
 class FrameKeypressTest(unittest.TestCase):

@@ -6,7 +6,7 @@ import unittest
 import weakref
 
 import urwid
-from tests.util import SelectableText, collect_and_count_alive
+from tests.util import SelectableText, collect_and_count_alive, wstest
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -760,6 +760,10 @@ class ListBoxRenderTest(unittest.TestCase):
             ["hell", "ohel", "lohe", "lloh", "ello"],
             (3, 4),
         )
+
+    def test_squish(self):
+        wstest(urwid.ListBox(urwid.SimpleListWalker([])))
+        wstest(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
 
 
 class ListBoxKeypressTest(unittest.TestCase):
@@ -2010,16 +2014,6 @@ class ListBoxSetBodyTest(unittest.TestCase):
         )
 
 
-class TestListWalkerFromIterable(unittest.TestCase):
-    def test_01_simple_list_walker(self):
-        walker = urwid.SimpleListWalker(str(num) for num in range(5))
-        self.assertEqual(5, len(walker))
-
-    def test_02_simple_focus_list_walker(self):
-        walker = urwid.SimpleFocusListWalker(str(num) for num in range(5))
-        self.assertEqual(5, len(walker))
-
-
 class ListBoxConsumerApiTest(unittest.TestCase):
     def test_simple_list_walker_clear_and_append(self) -> None:
         walker = urwid.SimpleListWalker([urwid.Text("old")])
@@ -2499,6 +2493,25 @@ class ListBoxSetFocusErrorsTest(unittest.TestCase):
         lbox = urwid.ListBox(urwid.SimpleListWalker([]))
         with self.assertRaises(IndexError):
             _ = lbox.focus_position
+
+    def test_focus_and_focus_position(self):
+        lb = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        self.assertEqual(lb.focus, None)
+        self.assertRaises(IndexError, lambda: getattr(lb, "focus_position"))
+        self.assertRaises(IndexError, lambda: setattr(lb, "focus_position", None))
+        self.assertRaises(IndexError, lambda: setattr(lb, "focus_position", 0))
+
+        t1 = urwid.Text("one")
+        t2 = urwid.Text("two")
+        lb = urwid.ListBox(urwid.SimpleListWalker([t1, t2]))
+        self.assertEqual(lb.focus, t1)
+        self.assertEqual(lb.focus_position, 0)
+        lb.focus_position = 1
+        self.assertEqual(lb.focus, t2)
+        self.assertEqual(lb.focus_position, 1)
+        lb.focus_position = 0
+        self.assertRaises(IndexError, lambda: setattr(lb, "focus_position", -1))
+        self.assertRaises(IndexError, lambda: setattr(lb, "focus_position", 2))
 
 
 class ListBoxContentsTest(unittest.TestCase):

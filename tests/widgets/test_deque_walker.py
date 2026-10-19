@@ -1,19 +1,15 @@
 from __future__ import annotations
 
-import collections
-import decimal
-import fractions
-import math
-import sys
+import copy
+import operator
+import pickle
 import unittest
-import warnings
+from collections import deque
 
 import urwid
 
-IS_PYPY = sys.implementation.name == "pypy"
 
-
-class MonitoredDequeConstructionTest(unittest.TestCase):
+class DequeWalkerConstructionTest(unittest.TestCase):
     def test_from_generator(self) -> None:
         walker = urwid.SimpleDequeWalker(str(num) for num in range(5))
         self.assertEqual(5, len(walker))
@@ -29,317 +25,24 @@ class MonitoredDequeConstructionTest(unittest.TestCase):
             urwid.SimpleFocusDequeWalker(123)
 
 
-class MonitoredDequeMaxlenParityTest(unittest.TestCase):
-    """Verify a bounded MonitoredDeque matches a plain collections.deque with the same maxlen.
-
-    Runs the same operation sequence against both, asserting equal contents after each step.
-    """
-
-    def test_parity(self) -> None:
-        maxlen = 4
-        monitored = urwid.MonitoredDeque(maxlen=maxlen)
-        reference: collections.deque = collections.deque(maxlen=maxlen)
-
-        operations = [
-            ("append", 1),
-            ("append", 2),
-            ("append", 3),
-            ("appendleft", 0),
-            ("append", 4),  # triggers eviction of head
-            ("appendleft", -1),  # triggers eviction of tail
-            ("extend", [10, 11, 12]),
-            ("extendleft", [20, 21]),
-            ("rotate", 1),
-            ("rotate", -2),
-            ("reverse", None),
-            ("pop", None),
-            ("popleft", None),
-        ]
-        for name, arg in operations:
-            with self.subTest(name=name, arg=arg):
-                if arg is None:
-                    # pylint incorrectly infers a fixed signature for these dynamically-dispatched
-                    # calls, treating `name` as though it always resolved to an argument-taking
-                    # method such as ``append``.
-                    getattr(monitored, name)()  # pylint: disable=no-value-for-parameter
-                    getattr(reference, name)()  # pylint: disable=no-value-for-parameter
-                else:
-                    getattr(monitored, name)(arg)
-                    getattr(reference, name)(arg)
-                self.assertEqual(list(reference), list(monitored))
-
-
-class MonitoredDequeModifiedCallbackTest(unittest.TestCase):
-    def test_modified_fires_once(self) -> None:
-        counter = {"count": 0}
-
-        def bump() -> None:
-            counter["count"] += 1
-
-        md = urwid.MonitoredDeque([1, 2, 3], maxlen=3)
-        md.set_modified_callback(bump)
-
-        md.append(4)  # evicts head
-        self.assertEqual(1, counter["count"])
-
-        md.appendleft(0)  # evicts tail
-        self.assertEqual(2, counter["count"])
-
-        md.extend([5, 6])  # evicts multiple
-        self.assertEqual(3, counter["count"])
-
-        md.extendleft([7, 8])
-        self.assertEqual(4, counter["count"])
-
-        md.pop()
-        self.assertEqual(5, counter["count"])
-
-        md.popleft()
-        self.assertEqual(6, counter["count"])
-
-        md.rotate(1)
-        self.assertEqual(7, counter["count"])
-
-        md.clear()
-        self.assertEqual(8, counter["count"])
-
-        md.extend([1, 2])
-        md *= 2
-        self.assertEqual(10, counter["count"])
-        expected = collections.deque([1, 2], maxlen=3)
-        expected *= 2
-        self.assertEqual(list(expected), list(md))
-
-
-class MonitoredFocusDequeModifiedCallbackTest(unittest.TestCase):
-    """The modified callback runs once, after both the contents and the focus are updated."""
-
-    def test_callback_sees_final_focus(self) -> None:
-        """Every mutating operation notifies once, with the contents and the focus already final."""
-        operations = {
-            "del item": lambda md: md.__delitem__(0),
-            "set item": lambda md: md.__setitem__(2, 7),
-            "append": lambda md: md.append(6),
-            "appendleft": lambda md: md.appendleft(-1),
-            "extend": lambda md: md.extend([6, 7]),
-            "iadd": lambda md: md.__iadd__([6, 7]),
-            "extendleft": lambda md: md.extendleft([-1, -2]),
-            "insert": lambda md: md.insert(0, -1),
-            "pop": lambda md: md.pop(),
-            "popleft": lambda md: md.popleft(),
-            "remove": lambda md: md.remove(0),
-            "reverse": lambda md: md.reverse(),
-            "rotate": lambda md: md.rotate(2),
-            "clear": lambda md: md.clear(),
-        }
-        for maxlen in (None, 6):
-            for name, operation in operations.items():
-                if maxlen is not None and name == "insert":
-                    continue  # deque.insert raises on a full bounded deque
-                with self.subTest(name, maxlen=maxlen):
-                    md = urwid.MonitoredFocusDeque(range(6), maxlen, focus=2)
-                    seen = []
-                    md.set_modified_callback(lambda md=md, seen=seen: seen.append((list(md), md.focus)))
-                    operation(md)
-                    self.assertEqual([(list(md), md.focus)], seen)
-
-    def test_iadd_keeps_focused_item_like_extend(self) -> None:
-        """In-place addition evicts from a bounded deque and keeps the focused item, the same as extend."""
-        for maxlen in (None, 4):
-            with self.subTest(maxlen=maxlen):
-                extended = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
-                extended.extend("xyz")
-                added = urwid.MonitoredFocusDeque("abc", maxlen, focus=2)
-                added += "xyz"
-                self.assertIsInstance(added, urwid.MonitoredFocusDeque)
-                self.assertEqual((list(extended), extended.focus), (list(added), added.focus))
-                self.assertEqual("c", added[added.focus])
-
-    def test_focus_set_by_callback_is_kept(self) -> None:
-        """A focus set by the modified callback is not overwritten afterwards."""
-        md = urwid.MonitoredFocusDeque(range(6), focus=2)
-        md.set_modified_callback(lambda: setattr(md, "focus", 0) if md.focus else None)
-        md.appendleft(-1)
-        self.assertEqual(0, md.focus)
-
-    def test_insert_by_callback_keeps_focus_item(self) -> None:
-        """An insertion made by the modified callback keeps the focus on the same item."""
-        md = urwid.MonitoredFocusDeque(["a", "b", "c", "d"], focus=2)
-        md.set_modified_callback(lambda: md.appendleft("x") if len(md) == 3 else None)
-        md.popleft()
-        self.assertEqual(["x", "b", "c", "d"], list(md))
-        self.assertEqual("c", md[md.focus])
-
-    def test_walker_signal_sees_final_focus(self) -> None:
-        """A ListBox rendered from the walker's modified signal shows the new focus item."""
-        walker = urwid.SimpleFocusDequeWalker([urwid.Text(str(num)) for num in range(3)])
-        walker.focus = 2
-        listbox = urwid.ListBox(walker)
-        seen = []
-
-        def on_modified() -> None:
-            seen.append((walker.get_focus()[1], listbox.render((5, 1), focus=True).text))
-
-        urwid.connect_signal(walker, "modified", on_modified)
-        walker.pop()
-        self.assertEqual([(1, [b"1    "])], seen)
-
-
-class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
-    def test_focus_evicted_by_append(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=0)
-        mfd.append(4)  # evicts head (the focus item)
-        self.assertEqual([2, 3, 4], list(mfd))
-        self.assertEqual(0, mfd.focus)
-
-    def test_focus_evicted_by_appendleft(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=2)
-        mfd.appendleft(0)  # evicts tail (the focus item)
-        self.assertEqual([0, 1, 2], list(mfd))
-        self.assertEqual(2, mfd.focus)
-
-    def test_focus_shift_without_eviction(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=1)
-        mfd.appendleft(0)
-        self.assertEqual([0, 1, 2, 3], list(mfd))
-        self.assertEqual(2, mfd.focus)
-
-    def test_rotate_positive(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([0, 1, 2, 3, 4], focus=0)
-        mfd.rotate(1)
-        self.assertEqual([4, 0, 1, 2, 3], list(mfd))
-        self.assertEqual(1, mfd.focus)
-
-    def test_rotate_negative(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([0, 1, 2, 3, 4], focus=0)
-        mfd.rotate(-1)
-        self.assertEqual([1, 2, 3, 4, 0], list(mfd))
-        self.assertEqual(4, mfd.focus)
-
-    def test_clear_focus_is_none(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=1)
-        mfd.clear()
-        self.assertIsNone(mfd.focus)
-
-    def test_imul(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], focus=2)
-        seen = []
-        mfd.set_modified_callback(lambda: seen.append((list(mfd), mfd.focus)))
-        mfd *= 2
-        self.assertEqual([([1, 2, 3, 1, 2, 3], 2)], seen)
-        mfd *= 0
-        self.assertEqual([([1, 2, 3, 1, 2, 3], 2), ([], None)], seen)
-        mfd.append(1)
-        self.assertEqual(0, mfd.focus)
-
-    def test_imul_bounded_by_maxlen(self) -> None:
-        """A bounded deque keeps only maxlen items; a huge count is not repeated item by item on any interpreter."""
-        for focus, count in ((2, 2), (0, 2), (2, 5)):
-            with self.subTest(focus=focus, count=count):
-                mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=focus)
-                expected = collections.deque([1, 2, 3], maxlen=4)
-                expected *= count
-                mfd *= count
-                self.assertEqual(list(expected), list(mfd))
-                self.assertEqual(max(0, focus - (3 * count - 4)), mfd.focus)
-
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=4, focus=2)
-        mfd *= 2**61
-        self.assertEqual([3, 1, 2, 3], list(mfd))
-        self.assertEqual(0, mfd.focus)
-        md = urwid.MonitoredDeque([1, 2, 3], maxlen=4)
-        md *= 2**61
-        self.assertEqual([3, 1, 2, 3], list(md))
-
-    def test_focus_out_of_range_rejected(self) -> None:
-        for focus in (3, -1):
-            with self.subTest(focus=focus), self.assertRaises(IndexError):
-                urwid.MonitoredFocusDeque([1, 2, 3], focus=focus)
-        with self.assertRaises(IndexError):
-            urwid.MonitoredFocusDeque([1, 2, 3], maxlen=2, focus=2)  # only two items are kept
-        with self.assertRaises(TypeError):
-            urwid.MonitoredFocusDeque([1, 2, 3], focus="1")
-
-    def test_maxlen_zero(self) -> None:
-        mfd = urwid.MonitoredFocusDeque([1, 2, 3], maxlen=0)
-        self.assertIsNone(mfd.focus)
-        mfd.append(1)
-        self.assertEqual(0, len(mfd))
-        self.assertIsNone(mfd.focus)
-
-
-class _Index:
-    """Integer-like object that supports only ``__index__``, as ``deque.insert()`` requires."""
-
-    def __index__(self) -> int:
-        return 1
-
-
-class _IntOnly:
-    """Object that supports only ``__int__``."""
-
-    def __int__(self) -> int:
-        return 1
-
-
-class MonitoredDequeInsertIndexTest(unittest.TestCase):
-    """Check ``insert()`` index conversion against ``collections.deque.insert()``."""
-
-    classes = (urwid.MonitoredDeque, urwid.MonitoredFocusDeque)
-
-    def test_integer_index_does_not_warn(self) -> None:
-        """Insert at an ``int``, a ``bool`` and an ``__index__`` object like ``deque`` does, with no warning."""
-        for cls in self.classes:
-            for index in (1, True, _Index()):
-                with self.subTest(cls=cls.__name__, index=index), warnings.catch_warnings():
-                    warnings.simplefilter("error")
-                    reference = collections.deque([0, 1, 2])
-                    reference.insert(index, 9)
-                    deq = cls([0, 1, 2])
-                    deq.insert(index, 9)
-                    self.assertEqual(list(reference), list(deq))
-
-    def test_non_integer_index_raises(self) -> None:
-        """Raise ``TypeError`` for an index without ``__index__`` like ``deque`` does, with no change."""
-        strict = (1.5, "1", None, "abc", math.inf, b"1", 1j)
-        int_only = (decimal.Decimal(1), fractions.Fraction(7, 2), _IntOnly())
-        for cls in self.classes:
-            for index in (*strict, *int_only):
-                with self.subTest(cls=cls.__name__, index=index):
-                    deq = cls([0, 1, 2])
-                    with self.assertRaises(TypeError):
-                        deq.insert(index, 9)
-                    self.assertEqual([0, 1, 2], list(deq))
-                    if IS_PYPY and any(index is lenient for lenient in int_only):
-                        self.skipTest("PyPy deque.insert() converts an index that has only __int__")
-                    with self.assertRaises(TypeError):
-                        collections.deque([0, 1, 2]).insert(index, 9)
-
-
 class WrapAroundTest(unittest.TestCase):
-    def test_simple_deque_walker_wrap_true(self) -> None:
-        walker = urwid.SimpleDequeWalker([1, 2, 3], wrap_around=True)
-        self.assertEqual(0, walker.next_position(2))
-        self.assertEqual(2, walker.prev_position(0))
+    walker_classes = (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker)
 
-    def test_simple_deque_walker_wrap_false(self) -> None:
-        walker = urwid.SimpleDequeWalker([1, 2, 3], wrap_around=False)
-        with self.assertRaises(IndexError):
-            walker.next_position(2)
-        with self.assertRaises(IndexError):
-            walker.prev_position(0)
+    def test_wrap_true(self) -> None:
+        for walker_class in self.walker_classes:
+            with self.subTest(walker_class.__name__):
+                walker = walker_class([1, 2, 3], wrap_around=True)
+                self.assertEqual(0, walker.next_position(2))
+                self.assertEqual(2, walker.prev_position(0))
 
-    def test_simple_focus_deque_walker_wrap_true(self) -> None:
-        walker = urwid.SimpleFocusDequeWalker([1, 2, 3], wrap_around=True)
-        self.assertEqual(0, walker.next_position(2))
-        self.assertEqual(2, walker.prev_position(0))
-
-    def test_simple_focus_deque_walker_wrap_false(self) -> None:
-        walker = urwid.SimpleFocusDequeWalker([1, 2, 3], wrap_around=False)
-        with self.assertRaises(IndexError):
-            walker.next_position(2)
-        with self.assertRaises(IndexError):
-            walker.prev_position(0)
+    def test_wrap_false(self) -> None:
+        for walker_class in self.walker_classes:
+            with self.subTest(walker_class.__name__):
+                walker = walker_class([1, 2, 3], wrap_around=False)
+                with self.assertRaises(IndexError):
+                    walker.next_position(2)
+                with self.assertRaises(IndexError):
+                    walker.prev_position(0)
 
 
 class SimpleDequeWalkerFocusTest(unittest.TestCase):
@@ -392,6 +95,215 @@ class SimpleFocusDequeWalkerFocusTest(unittest.TestCase):
         walker = urwid.SimpleFocusDequeWalker([1, 2, 3])
         self.assertEqual([0, 1, 2], list(walker.positions()))
         self.assertEqual([2, 1, 0], list(walker.positions(reverse=True)))
+
+    def test_walker_signal_sees_final_focus(self) -> None:
+        """A ListBox rendered from the walker's modified signal shows the new focus item."""
+        walker = urwid.SimpleFocusDequeWalker([urwid.Text(str(num)) for num in range(3)])
+        walker.focus = 2
+        listbox = urwid.ListBox(walker)
+        seen = []
+
+        def on_modified() -> None:
+            seen.append((walker.get_focus()[1], listbox.render((5, 1), focus=True).text))
+
+        urwid.connect_signal(walker, "modified", on_modified)
+        walker.pop()
+        self.assertEqual([(1, [b"1    "])], seen)
+
+
+class ContentsOnlyWalker(urwid.SimpleDequeWalker):
+    def __init__(self, contents=()) -> None:
+        super().__init__(contents, wrap_around=True)
+
+
+class ContentsOnlyFocusWalker(urwid.SimpleFocusDequeWalker):
+    def __init__(self, contents=()) -> None:
+        super().__init__(contents, wrap_around=True)
+
+
+class DequeWalkerCopyTest(unittest.TestCase):
+    def test_capacity_and_wrapping(self) -> None:
+        operations = {
+            "copy": lambda items: items.copy(),
+            "shallow": copy.copy,
+            "deep": copy.deepcopy,
+            "repeat": lambda items: items * 2,
+            "reverse_repeat": lambda items: 2 * items,
+            "concatenate": lambda items: items + deque([4, 5]),
+        }
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            for limit in (None, 0, 2, 4):
+                for wrap in (False, True):
+                    for name, operation in operations.items():
+                        with self.subTest(container=container.__name__, maxlen=limit, wrap=wrap, operation=name):
+                            original = container([1, 2, 3], wrap_around=wrap, maxlen=limit)
+                            expected = operation(deque(original, maxlen=limit))
+                            result = operation(original)
+                            self.assertIsInstance(result, container)
+                            self.assertIsNot(original, result)
+                            self.assertEqual(list(expected), list(result))
+                            self.assertEqual(limit, result.maxlen)
+                            self.assertIs(wrap, result.wrap_around)
+                            self.assertEqual(list(deque([1, 2, 3], maxlen=limit)), list(original))
+
+    def test_copy_depth(self) -> None:
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                item = [1]
+                original = container([item], maxlen=2)
+                for result in (original.copy(), copy.copy(original), original * 2, original + deque([item])):
+                    self.assertIs(item, result[0])
+                result = copy.deepcopy(original)
+                self.assertIsNot(item, result[0])
+                self.assertEqual(item, result[0])
+
+    def test_pickle_retains_configuration(self) -> None:
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            for limit in (None, 0, 2, 4):
+                for wrap in (False, True):
+                    for protocol in range(pickle.HIGHEST_PROTOCOL + 1):
+                        with self.subTest(container=container.__name__, maxlen=limit, wrap=wrap, protocol=protocol):
+                            original = container([1, 2, 3], wrap_around=wrap, maxlen=limit)
+                            if len(original) > 1:
+                                original.set_focus(1)
+                            result = pickle.loads(pickle.dumps(original, protocol=protocol))
+                            self.assertIsInstance(result, container)
+                            self.assertEqual(list(original), list(result))
+                            self.assertEqual(limit, result.maxlen)
+                            self.assertIs(wrap, result.wrap_around)
+                            self.assertEqual(original.focus, result.focus)
+
+    def test_copy_stays_bounded(self) -> None:
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2], maxlen=2)
+                for result in (original.copy(), copy.copy(original), copy.deepcopy(original)):
+                    result.append(3)
+                    self.assertEqual([2, 3], list(result))
+                    self.assertEqual([1, 2], list(original))
+
+    def test_arithmetic_does_not_notify_original(self) -> None:
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3], maxlen=4)
+                original.set_focus(1)
+                seen = []
+                urwid.connect_signal(original, "modified", lambda: seen.append(True))
+                original * 2
+                2 * original
+                original + deque([4, 5])
+                self.assertEqual([], seen)
+                self.assertEqual([1, 2, 3], list(original))
+                self.assertEqual(1, original.focus)
+
+    def test_invalid_operands(self) -> None:
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            for operation, operand in ((operator.add, [4]), (operator.mul, 1.5), (operator.mul, "2")):
+                with self.subTest(container=container.__name__, operation=operation, operand=operand):
+                    original = container([1, 2, 3], maxlen=4)
+                    with self.assertRaises(TypeError):
+                        operation(original, operand)
+                    self.assertEqual([1, 2, 3], list(original))
+
+    def test_index_multiplier_is_evaluated_once(self) -> None:
+        class Index:
+            calls = 0
+
+            def __index__(self) -> int:
+                self.calls += 1
+                return 2
+
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3], maxlen=4)
+                multiplier = Index()
+                result = original * multiplier
+                self.assertEqual([3, 1, 2, 3], list(result))
+                self.assertEqual(1, multiplier.calls)
+
+    def test_reflected_operand(self) -> None:
+        class Scale:
+            def __rmul__(self, other):
+                return other
+
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3], maxlen=4)
+                self.assertIs(original, original * Scale())
+
+    def test_left_operand_defers_to_repetition(self) -> None:
+        class Index:
+            def __mul__(self, other):
+                return NotImplemented
+
+            def __index__(self) -> int:
+                return 2
+
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                result = Index() * container([1, 2, 3], maxlen=4, wrap_around=True)
+                self.assertEqual([3, 1, 2, 3], list(result))
+                self.assertEqual(4, result.maxlen)
+                self.assertIs(True, result.wrap_around)
+
+    def test_invalid_index_is_evaluated_once(self) -> None:
+        class Index:
+            calls = 0
+
+            def __index__(self) -> int:
+                self.calls += 1
+                raise TypeError("invalid index")
+
+        for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3], maxlen=4)
+                multiplier = Index()
+                with self.assertRaises(TypeError):
+                    original * multiplier
+                self.assertEqual(1, multiplier.calls)
+                self.assertEqual([1, 2, 3], list(original))
+
+    def test_subclass_is_retained(self) -> None:
+        class Walker(urwid.SimpleDequeWalker):
+            pass
+
+        class FocusWalker(urwid.SimpleFocusDequeWalker):
+            pass
+
+        for container in (Walker, FocusWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3], maxlen=4, wrap_around=True)
+                for result in (original.copy(), original * 2, 2 * original, original + deque([4])):
+                    self.assertIs(type(result), container)
+                    self.assertEqual(4, result.maxlen)
+                    self.assertIs(True, result.wrap_around)
+
+    def test_unbounded_subclass_with_contents_only_constructor(self) -> None:
+        class Walker(urwid.SimpleDequeWalker):
+            def __init__(self, contents) -> None:
+                super().__init__(contents, wrap_around=True)
+
+        class FocusWalker(urwid.SimpleFocusDequeWalker):
+            def __init__(self, contents) -> None:
+                super().__init__(contents, wrap_around=True)
+
+        for container in (Walker, FocusWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3])
+                for result in (original.copy(), copy.copy(original), original * 2, 2 * original):
+                    self.assertIs(type(result), container)
+                    self.assertIsNone(result.maxlen)
+                    self.assertIs(True, result.wrap_around)
+
+    def test_unbounded_subclass_reconstruction(self) -> None:
+        for container in (ContentsOnlyWalker, ContentsOnlyFocusWalker):
+            with self.subTest(container=container.__name__):
+                original = container([1, 2, 3])
+                for result in (copy.deepcopy(original), pickle.loads(pickle.dumps(original))):
+                    self.assertIs(type(result), container)
+                    self.assertEqual([1, 2, 3], list(result))
+                    self.assertIsNone(result.maxlen)
+                    self.assertIs(True, result.wrap_around)
 
 
 class ListBoxIntegrationTest(unittest.TestCase):

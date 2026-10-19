@@ -28,6 +28,7 @@ if typing.TYPE_CHECKING:
             index: _KT_contra,
         ) -> tuple[AbstractWidget, typing.Any]:
             """Return the `(widget, options)` entry at `index`."""
+            ...
 
     class WidgetContainerMixinProto(AbstractWidget, typing.Protocol[_KT_contra]):
         """Structural type for a widget exposing ``contents`` and a settable ``focus_position``."""
@@ -35,10 +36,12 @@ if typing.TYPE_CHECKING:
         @property
         def contents(self) -> WidgetContainerProto[_KT_contra]:
             """Return the container's contents, indexable by position."""
+            ...
 
         @property
         def focus_position(self) -> int | str:
             """Return the position of the container's currently focused element."""
+            ...
 
         @focus_position.setter
         def focus_position(self, position: int | str) -> None: ...

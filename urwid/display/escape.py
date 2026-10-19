@@ -37,7 +37,7 @@ if typing.TYPE_CHECKING:
 
     from .common import Hyperlink
 
-    _KeyQueueData = dict[int, str | "_KeyQueueData"]
+    _KeyQueueData = dict[int, "str | _KeyQueueData"]
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]

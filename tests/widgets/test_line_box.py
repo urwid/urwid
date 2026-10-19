@@ -253,3 +253,21 @@ class LineBoxTest(unittest.TestCase):
             ["┌─ Title ─┐", "│body     │", "└─────────┘"],
             [line.decode("utf-8") for line in box.render((11,)).text],
         )
+
+    def test_follows_original_widget(self) -> None:
+        box = urwid.LineBox(urwid.Text("x"))
+        self.assertFalse(box.selectable())
+        self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), box.sizing())
+        self.assertEqual(["┌───┐", "│x  │", "└───┘"], [line.decode("utf-8") for line in box.render((5,)).text])
+
+        box.original_widget = urwid.Edit("y")
+        self.assertTrue(box.selectable())
+        self.assertEqual(frozenset((urwid.FLOW,)), box.sizing())
+        self.assertEqual(["┌───┐", "│y  │", "└───┘"], [line.decode("utf-8") for line in box.render((5,)).text])
+
+    def test_render_cache_invalidated_on_replacement(self) -> None:
+        box = urwid.LineBox(urwid.Text("a"))
+        first = box.render((5,))
+        self.assertIs(first, box.render((5,)))
+        box.original_widget = urwid.Text("b")
+        self.assertIsNot(first, box.render((5,)))

@@ -5,7 +5,6 @@ import typing
 import unittest
 
 import urwid
-from urwid.util import get_encoding
 from urwid.widget.widget import delegate_to_widget_mixin
 
 
@@ -258,33 +257,6 @@ class OptionalApiTest(unittest.TestCase):
         self.assertEqual(edit.get_pref_col((10,)), wrap.get_pref_col((10,)))
         self.assertTrue(wrap.move_cursor_to_coords((10,), 4, 0))
         self.assertEqual(1, edit.edit_pos)
-
-
-class LineBoxTest(unittest.TestCase):
-    def setUp(self) -> None:
-        self.old_encoding = get_encoding()
-        urwid.set_encoding("utf-8")
-
-    def tearDown(self) -> None:
-        urwid.set_encoding(self.old_encoding)
-
-    def test_follows_original_widget(self) -> None:
-        box = urwid.LineBox(urwid.Text("x"))
-        self.assertFalse(box.selectable())
-        self.assertEqual(frozenset((urwid.FLOW, urwid.FIXED)), box.sizing())
-        self.assertEqual(["┌───┐", "│x  │", "└───┘"], [line.decode("utf-8") for line in box.render((5,)).text])
-
-        box.original_widget = urwid.Edit("y")
-        self.assertTrue(box.selectable())
-        self.assertEqual(frozenset((urwid.FLOW,)), box.sizing())
-        self.assertEqual(["┌───┐", "│y  │", "└───┘"], [line.decode("utf-8") for line in box.render((5,)).text])
-
-    def test_render_cache_invalidated_on_replacement(self) -> None:
-        box = urwid.LineBox(urwid.Text("a"))
-        first = box.render((5,))
-        self.assertIs(first, box.render((5,)))
-        box.original_widget = urwid.Text("b")
-        self.assertIsNot(first, box.render((5,)))
 
 
 if __name__ == "__main__":

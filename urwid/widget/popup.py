@@ -63,7 +63,7 @@ class PopUpLauncher(
     _PopUpLauncherDelegate,
     WidgetDecoration[LauncherWidget],
 ):
-    """Decoration that lets a wrapped widget open and close a pop-up widget above it."""
+    """Decoration that lets a wrapped widget open and close a pop-up drawn over other widgets by a PopUpTarget."""
 
     def __init__(self, original_widget: LauncherWidget) -> None:
         """Wrap `original_widget`, with no pop-up open yet."""
@@ -86,7 +86,9 @@ class PopUpLauncher(
         raise NotImplementedError("Subclass must override this method")
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
-        """Return a dict of pop-up parameters, eg: {'left':0, 'top':1, 'overlay_width':30, 'overlay_height':4}.
+        """Return a dict of pop-up parameters.
+
+        For example: ``{'left': 0, 'top': 1, 'overlay_width': 30, 'overlay_height': 4, 'anchor_height': 1}``.
 
         Subclass must override this method. It is called each time this widget is rendered.
 

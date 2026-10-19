@@ -130,9 +130,11 @@ class SupportsScroll(AbstractBoxWidget, typing.Protocol):
 
     def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int:
         """Return the index of the first visible row."""
+        ...
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Return the total number of rows the widget can render."""
+        ...
 
 
 @typing.runtime_checkable
@@ -141,12 +143,15 @@ class SupportsRelativeScroll(AbstractBoxWidget, typing.Protocol):
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
         """Return whether the widget should be scrolled using relative position rather than absolute rows."""
+        ...
 
     def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
         """Return the index of the first visible item."""
+        ...
 
     def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
         """Return the number of items currently visible."""
+        ...
 
 
 def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:

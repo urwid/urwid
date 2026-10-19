@@ -78,7 +78,7 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
     def load_child_keys(self) -> tuple[int, ...]:
         """Return the indices of this node's children."""
         data = self.get_value()
-        return tuple(range(len(data["children"])))
+        return tuple(range(len(data.get("children", []))))
 
     def load_child_node(
         self,
@@ -90,7 +90,7 @@ class ExampleParentNode(urwid.ParentNode[SampleTree]):
         :returns: an :class:`ExampleParentNode` if the child has children of its own, an :class:`ExampleNode`
                   otherwise
         """
-        childdata = self.get_value()["children"][key]
+        childdata = self.get_value().get("children", [])[key]
         childdepth = self.get_depth() + 1
         if "children" in childdata:
             return ExampleParentNode(childdata, parent=self, key=key, depth=childdepth)
@@ -169,13 +169,11 @@ def get_example_tree() -> SampleTree:
 
     :returns: a parent node with 10 children, each having 10 children of their own
     """
-    retval: SampleTree = {"name": "parent", "children": []}
+    children: list[SampleTree] = []
     for i in range(10):
-        retval["children"].append({"name": f"child {i!s}"})
-        retval["children"][i]["children"] = []
-        for j in range(10):
-            retval["children"][i]["children"].append({"name": "grandchild " + str(i) + "." + str(j)})
-    return retval
+        grandchildren: list[SampleTree] = [{"name": "grandchild " + str(i) + "." + str(j)} for j in range(10)]
+        children.append({"name": f"child {i!s}", "children": grandchildren})
+    return {"name": "parent", "children": children}
 
 
 def main() -> None:

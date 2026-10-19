@@ -47,6 +47,7 @@ class SupportsFileno(typing.Protocol):
 
     def fileno(self) -> int:
         """Return the OS-level file descriptor for this object."""
+        ...
 
 
 class ExitMainLoop(Exception):

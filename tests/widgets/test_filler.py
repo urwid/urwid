@@ -4,6 +4,7 @@ import unittest
 import warnings
 
 import urwid
+from tests.util import wstest
 
 
 class CursorWidget(urwid.Widget):
@@ -486,3 +487,6 @@ class FillerTest(unittest.TestCase):
     def test_calculate_top_bottom_filler_relative_valign_requires_amount(self) -> None:
         with self.assertRaises(TypeError):
             urwid.widget.calculate_top_bottom_filler(10, urwid.RELATIVE, None, urwid.GIVEN, 5, None, 0, 0)
+
+    def test_squish(self):
+        wstest(urwid.Filler(urwid.Text("hello")))

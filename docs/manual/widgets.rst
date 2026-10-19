@@ -93,6 +93,51 @@ calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 Fixed widgets expect the value ``()`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
 
+A widget may support more than one sizing mode, and :meth:`Widget.sizing`
+returns the set of modes it supports.  The sizing modes of a decoration or
+container widget depend on the widgets it contains and on its options.
+
+.. list-table:: Sizing Modes of the Included Widgets
+   :widths: 45 55
+   :header-rows: 1
+
+   * - widget
+     - sizing modes
+   * - :class:`Text`, :class:`ANSIText`, :class:`TreeWidget`,
+       :class:`Button`, :class:`CheckBox`, :class:`RadioButton`,
+       :class:`DropDown`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Edit` and its subclasses, :class:`Divider`,
+       :class:`ProgressBar`
+     - ``'flow'``
+   * - :class:`BigText`
+     - ``'fixed'``
+   * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
+       :class:`Terminal`
+     - ``'box'``
+   * - :class:`AttrMap`, :class:`LineBox`, :class:`PopUpLauncher`,
+       :class:`WidgetDisable`, :class:`WidgetPlaceholder`
+     - the modes of the wrapped widget
+   * - :class:`Padding`
+     - the modes of the wrapped widget, and ``'fixed'`` as well when its width
+       is a given number of columns; only ``'flow'`` when its width is
+       ``'clip'``
+   * - :class:`Filler`
+     - ``'box'``, and ``'flow'`` as well when its height is ``'pack'`` or a
+       given number of rows
+   * - :class:`BoxAdapter`
+     - ``'flow'``; the wrapped widget is a box widget
+   * - :class:`Pile`, :class:`Columns`
+     - depend on the widgets they contain and their options
+   * - :class:`GridFlow`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Overlay`
+     - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
+       position options of the top widget allow it
+   * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
+       :class:`PopUpTarget`, :class:`ScrollBar`, :class:`Scrollable`
+     - ``'box'``
+
 .. _basic-grafic-widgets:
 
 Included Widgets
@@ -102,10 +147,63 @@ Included Widgets
 
 .. image:: images/urwid_widgets_1.png
 
-Basic and graphic widgets are the content with which users interact. They may
-also be used as part of custom widgets you create.
+Basic widgets, controls and graphic widgets are the content with which users
+interact. They may also be used as part of custom widgets you create.
+Controls are the widgets a user operates to make a choice: :class:`Button`,
+:class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
+The graphic widgets also include :class:`Terminal`, a box widget that runs a
+child process and shows its terminal output.
+
+The color of a widget's title in the figures shows the sizing modes it
+supports: blue for box, orange for flow and yellow for fixed.  A title in more
+than one color supports each of those modes.  In a decoration or container
+tile, the colors inside the box show which sizing modes the wrapped widgets
+use.  The table in `Box, Flow and Fixed Widgets`_ lists the exact sizing modes
+of each widget.
 
 .. image:: images/urwid_widgets_2.png
+
+.. _controls:
+
+Controls
+========
+
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` send a signal
+when the user activates them with :kbd:`enter`, :kbd:`space` or a mouse
+click: ``'click'`` for a button and ``'change'`` for a check box or a radio
+button.  :class:`GridFlow` arranges a group of them in equal-width cells.
+
+DropDown Widgets
+----------------
+
+:class:`DropDown` shows the selected option of a list of options, followed by
+an indicator.  :kbd:`enter`, :kbd:`space` or a mouse click opens a pop-up list
+of all the options with the selected one in focus.  Activating an option in
+the list selects it and closes the list, and :kbd:`esc` closes the list
+without a change.  The list opens below the widget, or above it when it does
+not fit below, and it shows at most ``max_visible_items`` options at once and
+scrolls through the rest.
+
+The :attr:`DropDown.selected` property holds the index of the selected
+option, and :attr:`DropDown.options` holds the markup of every option.
+The ``'change'`` signal is sent with the new index before
+:attr:`DropDown.selected` changes, so a callback still reads the previous
+value from the widget:
+
+::
+
+    def on_change(drop_down: urwid.DropDown, new_index: int) -> None:
+        status.set_text(["Selected: ", drop_down.options[new_index]])
+
+    drop_down = urwid.DropDown(["Red", "Green", "Blue"], selected=1)
+    urwid.connect_signal(drop_down, "change", on_change)
+
+The list is a pop-up, so :class:`DropDown` needs a :class:`PopUpTarget`;
+see :class:`DropDown` for the requirement.
+
+The tour.py_ example program shows two drop-down widgets.
+
+.. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
 
 .. _decoration-widgets:
 
@@ -120,6 +218,59 @@ If you might be using more than one decoration widget you may use the
 "most" original_widget.
 :attr:`Widget.base_widget` points to ``self`` on all non-decoration widgets, so
 it is safe to use in any situation.
+
+.. _pop-up-widgets:
+
+Pop-up Widgets
+==============
+
+A pop-up is a widget drawn on top of the other widgets on the screen, such as
+a menu or the list of a :class:`DropDown`.  Two decoration widgets work
+together to show it:
+
+* :class:`PopUpLauncher` wraps the widget that opens the pop-up.  A subclass
+  implements :meth:`PopUpLauncher.create_pop_up`, which returns the pop-up
+  widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
+  position relative to the launcher and its size.  Calling
+  :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
+  opens and closes it.
+* :class:`PopUpTarget` is a box widget that draws the open pop-up of a
+  launcher inside it, and any pop-up opened from that pop-up, as an
+  :class:`Overlay` over its own content.  A pop-up
+  is shown only inside a :class:`PopUpTarget`.  ``MainLoop(..., pop_ups=True)``
+  wraps the topmost widget in one, so a pop-up can use the whole screen.
+
+A pop-up that would extend past an edge of the :class:`PopUpTarget` is moved,
+and shrunk when it is larger, to fit inside it.  When the parameters include
+``anchor_height``, the number of launcher rows directly above the pop-up, the
+pop-up is kept off those rows: it is placed below the launcher when it fits
+there, above the launcher when it fits there, and otherwise on the side with
+more rows, with its height clipped to that side.  A pop-up widget may itself be
+a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
+relative to the pop-up that opened it.
+
+The pop_up.py_ example program shows a button that opens a pop-up, and
+:class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
+pop-up is its list of options.
+
+.. _pop_up.py: https://github.com/urwid/urwid/blob/master/examples/pop_up.py
+
+.. _special-widgets:
+
+Special Widgets
+===============
+
+These decoration widgets change how the widget they wrap takes part in the
+interface, not how it looks:
+
+* :class:`WidgetDisable` disables interaction with the wrapped widget: it is
+  never selectable, it is skipped by focus navigation, and it always renders
+  the wrapped widget without focus.
+* :class:`WidgetPlaceholder` shows the widget stored in its
+  ``original_widget`` property, and assigning a new widget to that property
+  replaces the widget shown without modifying the container that holds the
+  placeholder.  It is useful for an interface with several pages, or for
+  showing and hiding a menu or a status bar.
 
 .. _container-widgets:
 

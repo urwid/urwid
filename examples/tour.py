@@ -167,6 +167,33 @@ def main() -> None:
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
     text_rb_list = ["Morning", "Afternoon", "Evening", "Weekend"]
+    text_drop_down: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "DropDown"),
+        (
+            " widget shows the selected option.  ENTER, SPACE or a mouse click "
+            "opens a list of all the options below it, or above it when there is no room "
+            "below; ESC closes the list without a change.  A long list scrolls.  "
+            "The list is a pop-up, so the MainLoop is created with pop_ups=True."
+        ),
+    ]
+    text_drop_down_cap1 = "Color:"
+    text_drop_down_list1 = ["Red", "Green", "Blue", "Cyan", "Magenta", "Yellow"]
+    text_drop_down_cap2 = "Month:"
+    text_drop_down_list2 = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
     text_listbox: list[str | tuple[str, str]] = [
         "All these widgets have been displayed with the help of a ",
         ("important", "ListBox"),
@@ -179,6 +206,29 @@ def main() -> None:
         frame.footer = urwid.AttrMap(urwid.Text(["Pressed: ", button.get_label()]), "header")
 
     radio_button_group: list[urwid.RadioButton] = []
+
+    drop_down_options = (text_drop_down_list1, text_drop_down_list2)
+    drop_down_selected = urwid.Text("")
+
+    def show_drop_down_selection(changed: urwid.DropDown | None = None, new_index: int = 0) -> None:
+        # 'change' is sent before changed.selected moves, so its new option is read from new_index.
+        markup: list[str | tuple[str, str]] = ["Selected: "]
+        for number, (drop_down, options) in enumerate(zip(drop_downs, drop_down_options, strict=True)):
+            index = new_index if drop_down is changed else drop_down.selected
+            if number:
+                markup.append(", ")
+            markup.append(("important", options[index]))
+        drop_down_selected.set_text(markup)
+
+    drop_downs = [
+        urwid.DropDown(drop_down_options[0], attr_map="buttn", focus_map="buttnf"),
+        urwid.DropDown(drop_down_options[1], selected=5, max_visible_items=5, attr_map="buttn", focus_map="buttnf"),
+    ]
+    for drop_down in drop_downs:
+        urwid.connect_signal(drop_down, "change", show_drop_down_selection)
+    show_drop_down_selection()
+    # One width for both, so the two drop-downs line up.
+    drop_down_width = max(drop_down.pack()[0] for drop_down in drop_downs)
 
     blank = urwid.Divider()
     listbox_content: list[urwid.widget.AbstractFlowWidget] = [
@@ -359,6 +409,34 @@ def main() -> None:
         ),
         blank,
         blank,
+        urwid.Padding(urwid.Text(text_drop_down), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Columns(
+                [
+                    (7, urwid.Text(text_drop_down_cap1)),
+                    (drop_down_width, urwid.AttrMap(drop_downs[0], "buttn", "buttnf")),
+                ]
+            ),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        urwid.Padding(
+            urwid.Columns(
+                [
+                    (7, urwid.Text(text_drop_down_cap2)),
+                    (drop_down_width, urwid.AttrMap(drop_downs[1], "buttn", "buttnf")),
+                ]
+            ),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        urwid.Padding(drop_down_selected, left=4, right=3, min_width=20),
+        blank,
+        blank,
         urwid.Padding(urwid.Text(text_listbox), left=2, right=2, min_width=20),
         blank,
         blank,
@@ -370,6 +448,7 @@ def main() -> None:
     scrollable = urwid.ScrollBar(
         listbox,
         trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
+        end_markers=(urwid.ScrollBar.Symbols.ARROW_TRIANGLE_UP, urwid.ScrollBar.Symbols.ARROW_TRIANGLE_DOWN),
         scroll_by_focus=True,
     )
     frame: urwid.Frame[
@@ -404,7 +483,8 @@ def main() -> None:
         if key == "f8":
             raise urwid.ExitMainLoop
 
-    urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled).run()
+    # pop_ups=True adds the PopUpTarget that shows the open DropDown lists.
+    urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
 
 
 def setup() -> None:

@@ -77,6 +77,7 @@ if typing.TYPE_CHECKING:
 
         def get_input(self, raw_keys: Literal[True]) -> tuple[list[str | tuple[str, int, int, int]], list[int]]:
             """Return the input received since the last call, alongside its raw key codes."""
+            ...
 
         def set_input_timeouts(self, max_wait: float | None = ...) -> None:
             """Set the maximum time to wait for input before returning, in seconds."""
@@ -124,7 +125,8 @@ class MainLoop:
                        stored as :attr:`.event_loop`
 
     :param pop_ups: `True` to wrap :attr:`.widget` with a :class:`PopUpTarget`
-                    instance to allow any widget to open a pop-up anywhere on the screen
+                    instance to allow any widget to open a pop-up anywhere on the screen;
+                    required by :class:`DropDown` and other :class:`PopUpLauncher` widgets
 
 
     .. attribute:: screen

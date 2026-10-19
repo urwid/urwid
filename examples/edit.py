@@ -242,7 +242,7 @@ def main() -> None:
         # do not overcomplicate example
         assert open(name, "ab")  # noqa: SIM115,S101  # pylint: disable=consider-using-with
     except OSError:
-        sys.stderr.write(__doc__)
+        sys.stderr.write(__doc__ or "")
         return
     EditDisplay(name).main()
 
