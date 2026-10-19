@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import unittest
 
-from tests.util import PaletteScreen
 from urwid import LayeredAttr
 from urwid.display import common
 from urwid.display.common import NO_HYPERLINK, AttrSpec, AttrSpecError, Hyperlink, _browser_href, attr_spec_to_css
+from urwid.testing import ScriptedScreen
 
 
 class HyperlinkTest(unittest.TestCase):
@@ -324,7 +324,7 @@ class ResolveAttrTest(unittest.TestCase):
 
     def setUp(self) -> None:
         """Register a palette with partial and opaque entries."""
-        self.screen = PaletteScreen()
+        self.screen = ScriptedScreen()
         self.screen.register_palette(
             [
                 (None, "light gray", "black"),
