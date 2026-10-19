@@ -521,6 +521,9 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
                 raise BarGraphError("Invalid characters in BarGraph!")
             combinelist += [(c, None, False)] * y_count
 
+        if not combinelist:
+            # No rows: an empty combination would lose the width.
+            return CompositeCanvas(SolidCanvas(" ", maxcol, maxrow))
         canv = CanvasCombine(combinelist)
         return canv
 

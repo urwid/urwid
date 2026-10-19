@@ -3,7 +3,8 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from tests.util import SelectableText, wstest
+import urwid.testing
+from tests.util import SelectableText
 from urwid.canvas import TextCanvas
 from urwid.widget import Widget
 from urwid.widget.constants import Sizing
@@ -330,9 +331,11 @@ class FrameRenderTest(unittest.TestCase):
         self.assertRaises(RuntimeError, f.render, (5, 5))
 
     def test_squish(self):
-        wstest(urwid.Frame(urwid.SolidFill()))
-        wstest(urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello")))
-        wstest(urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello"), footer=urwid.Text("hello")))
+        urwid.testing.check_box_sizing(urwid.Frame(urwid.SolidFill()))
+        urwid.testing.check_box_sizing(urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello")))
+        urwid.testing.check_box_sizing(
+            urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello"), footer=urwid.Text("hello"))
+        )
 
 
 class FrameKeypressTest(unittest.TestCase):

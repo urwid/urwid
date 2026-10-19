@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
-from tests.util import PaletteScreen
+import urwid.testing
 from urwid.ansi_parser import AnsiParser
 from urwid.util import get_encoding, rle_len
 
@@ -23,14 +23,13 @@ class ANSITextTest(unittest.TestCase):
         self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
 
     def test_reset_turns_off_inherited_italics_and_strikethrough(self) -> None:
-        screen = PaletteScreen()
-        screen.register_palette_entry("panel", "inherit,italics,strikethrough", "inherit")
+        palette = [("panel", "inherit,italics,strikethrough", "inherit")]
         for sgr, name in (("23", "italics"), ("29", "strikethrough")):
             with self.subTest(name):
                 widget = urwid.AttrMap(urwid.ANSIText(f"\x1b[{sgr}mx"), "panel")
                 ((attr, _cs, _text),) = next(widget.render((1,)).content())
 
-                self.assertFalse(getattr(screen.resolve_attr(attr, 3), name))
+                self.assertFalse(getattr(urwid.testing.resolve_attr(attr, palette), name))
 
     def test_unset_colors_inherit_from_the_container(self) -> None:
         widget = urwid.AttrMap(urwid.ANSIText("\x1b[31ma\x1b[39;44mb\x1b[0mc"), "panel")
@@ -46,17 +45,16 @@ class ANSITextTest(unittest.TestCase):
 
     def test_hyperlink_reaches_the_screen(self) -> None:
         """Draw OSC 8 linked text with the link, over the colors of the container."""
-        screen = PaletteScreen()
-        screen.register_palette_entry("panel", "light green", "dark blue")
+        palette = [("panel", "light green", "dark blue")]
         widget = urwid.AttrMap(urwid.ANSIText("\x1b]8;;https://urwid.org\x07a\x1b]8;;\x07b"), "panel")
         (linked, _cs, text), (plain, _cs2, _text2) = next(widget.render((2,)).content())
 
         self.assertEqual(b"a", text)
         self.assertEqual(
             urwid.AttrSpec("light green", "dark blue", hyperlink="https://urwid.org"),
-            screen.resolve_attr(linked, 3),
+            urwid.testing.resolve_attr(linked, palette),
         )
-        self.assertEqual(urwid.AttrSpec("light green", "dark blue"), screen.resolve_attr(plain, 3))
+        self.assertEqual(urwid.AttrSpec("light green", "dark blue"), urwid.testing.resolve_attr(plain, palette))
 
     def test_pack_and_render_fixed(self) -> None:
         ansi = urwid.ANSIText("\x1b[31mhello\nworld\x1b[0m")

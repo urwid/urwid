@@ -7,7 +7,7 @@ from collections.abc import MutableMapping
 from typing import Literal
 
 from urwid import _deprecation
-from urwid.canvas import CanvasCombine, CompositeCanvas
+from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
@@ -447,6 +447,9 @@ class Frame(
         if foot:
             combinelist.append((foot, "footer", self.focus_part == "footer"))
 
+        if not combinelist:
+            # No part has rows: an empty combination would lose the width.
+            return CompositeCanvas(SolidCanvas(" ", maxcol, maxrow))
         return CanvasCombine(combinelist)
 
     def keypress(

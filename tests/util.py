@@ -7,7 +7,6 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
-    import unittest
     import weakref
     from collections.abc import Collection
 
@@ -15,14 +14,6 @@ if typing.TYPE_CHECKING:
 # and never frees a class created at run time. GraalPy for Python 3.12 (GraalVM 25) frees both.
 GC_KEEPS_UNREACHABLE = sys.implementation.name == "graalpy" and sys.version_info < (3, 12)
 SKIP_GC_REASON = "GraalPy for Python 3.11 keeps some unreachable objects through gc.collect()"
-
-
-class PaletteScreen(urwid.BaseScreen):
-    """Screen with a palette and no terminal, for resolving display attributes."""
-
-    def draw_screen(self, size: tuple[int, int], canvas: urwid.Canvas) -> None:
-        """Drawing is unsupported."""
-        raise NotImplementedError
 
 
 class SelectableText(urwid.Text):
@@ -73,31 +64,3 @@ class CountingIndex:
     def __index__(self) -> int:
         self.calls += 1
         return self.value
-
-
-def wstest(w: urwid.Widget) -> None:
-    """Render the box widget *w* with zero and one rows and with zero and one columns."""
-    c = w.render((80, 0), focus=False)
-    assert c.rows() == 0
-    c = w.render((80, 0), focus=True)
-    assert c.rows() == 0
-    c = w.render((80, 1), focus=False)
-    assert c.rows() == 1
-    c = w.render((0, 25), focus=False)
-    c = w.render((1, 25), focus=False)
-
-
-def fwstest(test_case: unittest.TestCase, w: urwid.Widget) -> None:
-    """Check that the flow widget *w* rendered with zero and one columns matches its rows and cursor."""
-
-    def t(cols: int, focus: bool):
-        wrows = w.rows((cols,), focus)
-        c = w.render((cols,), focus)
-        test_case.assertEqual(c.rows(), wrows, f"Canvas rows {c.rows()} != widget rows {wrows}")
-        if focus and hasattr(w, "get_cursor_coords"):
-            gcc = w.get_cursor_coords((cols,))
-            test_case.assertEqual(c.cursor, gcc, f"Canvas cursor {c.cursor} != widget cursor {gcc}")
-
-    for cols, focus in ((0, False), (1, False), (0, True), (1, True)):
-        with test_case.subTest(f"{w.__class__.__name__} cols={cols} and focus={focus}"):
-            t(cols, focus)

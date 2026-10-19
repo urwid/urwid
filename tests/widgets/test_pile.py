@@ -6,7 +6,8 @@ import unittest
 import warnings
 
 import urwid
-from tests.util import SelectableText, wstest
+import urwid.testing
+from tests.util import SelectableText
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -1107,9 +1108,9 @@ class PileTest(unittest.TestCase):
         self.assertEqual(0, pile.focus_position)
 
     def test_squish(self):
-        wstest(urwid.Pile([urwid.SolidFill()]))
-        wstest(urwid.Pile([("flow", urwid.Text("hello"))]))
-        wstest(urwid.Pile([]))
+        urwid.testing.check_box_sizing(urwid.Pile([urwid.SolidFill()]))
+        urwid.testing.check_box_sizing(urwid.Pile([("flow", urwid.Text("hello"))]))
+        urwid.testing.check_box_sizing(urwid.Pile([]))
 
     def testFocus(self):
         expect_focused = urwid.Button("Focused")

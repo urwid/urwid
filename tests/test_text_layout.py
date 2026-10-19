@@ -9,6 +9,7 @@ import unittest.mock
 import wcwidth
 
 import urwid
+import urwid.testing
 from urwid import canvas, text_layout
 from urwid.util import get_encoding, set_temporary_encoding
 
@@ -178,28 +179,25 @@ class NarrowWideCharacterRenderTest(unittest.TestCase):
 
     CJK = "你好世界"
 
-    def render(self, widget, size, focus: bool = False) -> list[str]:
-        return [line.decode("utf-8") for line in widget.render(size, focus).text]
-
     def test_clipped_on_both_edges(self):
         with set_temporary_encoding("utf-8"):
-            self.assertEqual([" "], self.render(urwid.Text(self.CJK, wrap="clip"), (1,)))
-            self.assertEqual(["你 "], self.render(urwid.Text(self.CJK, wrap="clip"), (3,)))
-            self.assertEqual(["  "], self.render(urwid.Text(self.CJK, align="center", wrap="clip"), (2,)))
-            self.assertEqual([" "], self.render(urwid.Text(self.CJK, align="right", wrap="clip"), (1,)))
+            self.assertEqual([" "], urwid.testing.render_text(urwid.Text(self.CJK, wrap="clip"), (1,)))
+            self.assertEqual(["你 "], urwid.testing.render_text(urwid.Text(self.CJK, wrap="clip"), (3,)))
+            self.assertEqual(["  "], urwid.testing.render_text(urwid.Text(self.CJK, align="center", wrap="clip"), (2,)))
+            self.assertEqual([" "], urwid.testing.render_text(urwid.Text(self.CJK, align="right", wrap="clip"), (1,)))
 
     def test_inside_a_line_box(self):
         with set_temporary_encoding("utf-8"):
             self.assertEqual(
                 ["┌─┐", "│ │", "└─┘"],
-                self.render(urwid.LineBox(urwid.Text(self.CJK, wrap="clip")), (3,)),
+                urwid.testing.render_text(urwid.LineBox(urwid.Text(self.CJK, wrap="clip")), (3,)),
             )
 
     def test_shifted_left_by_padding(self):
         with set_temporary_encoding("utf-8"):
             self.assertEqual(
                 [" "],
-                self.render(urwid.Padding(urwid.Text(self.CJK, wrap="clip"), left=-1), (1,)),
+                urwid.testing.render_text(urwid.Padding(urwid.Text(self.CJK, wrap="clip"), left=-1), (1,)),
             )
 
     def test_every_narrow_width_renders(self):
@@ -911,7 +909,7 @@ class TabStopTest(unittest.TestCase):
     """Tab characters advance to word-processor style tab stops counted in rendered screen columns."""
 
     def render(self, text: str, width: int, **kwargs) -> list[str]:
-        return [row.decode() for row in urwid.Text(text, **kwargs).render((width,)).text]
+        return urwid.testing.render_text(urwid.Text(text, **kwargs), (width,))
 
     def test_default_stops_every_8_columns(self):
         self.assertEqual(["1       2       3   "], self.render("1\t2\t3", 20))

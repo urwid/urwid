@@ -6,7 +6,8 @@ import unittest
 import weakref
 
 import urwid
-from tests.util import SelectableText, collect_and_count_alive, wstest
+import urwid.testing
+from tests.util import SelectableText, collect_and_count_alive
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -762,8 +763,8 @@ class ListBoxRenderTest(unittest.TestCase):
         )
 
     def test_squish(self):
-        wstest(urwid.ListBox(urwid.SimpleListWalker([])))
-        wstest(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
+        urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([])))
+        urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
 
 
 class ListBoxKeypressTest(unittest.TestCase):
@@ -3258,8 +3259,7 @@ class ListBoxWrapAroundRenderTest(unittest.TestCase):
 
     @staticmethod
     def _rows(walker, size: tuple[int, int]) -> list[str]:
-        canvas = urwid.ListBox(walker).render(size, focus=True)
-        return [line.decode().rstrip() for line in canvas.text]
+        return urwid.testing.render_text(urwid.ListBox(walker), size, focus=True, strip=True)
 
     def test_short_list_is_shown_once(self) -> None:
         walker = urwid.SimpleListWalker([urwid.Text(t) for t in ("a", "b", "c")], wrap_around=True)
@@ -3439,13 +3439,13 @@ class ListBoxUnhashablePositionsTest(unittest.TestCase):
     size = (4, 5)
     keys = ("down", "down", "page down", "up", "page up", "up", "up", "page up", "page down")
 
-    def _trace(self, texts: str, kind: str) -> list[list[bytes]]:
+    def _trace(self, texts: str, kind: str) -> list[list[str]]:
         walker = CappedWrappingWalker([SelectableText(t) for t in texts], make_positions(len(texts), kind))
         listbox = urwid.ListBox(walker)
-        trace = [listbox.render(self.size, focus=True).text]
+        trace = [urwid.testing.render_text(listbox, self.size, focus=True)]
         for key in self.keys:
             listbox.keypress(self.size, key)
-            trace.append(listbox.render(self.size, focus=True).text)
+            trace.append(urwid.testing.render_text(listbox, self.size, focus=True))
         return trace
 
     def test_same_as_integer_positions(self) -> None:
