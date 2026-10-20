@@ -967,15 +967,23 @@ class CompositeCanvas(Canvas):
 
         rows = self.rows()
         if left > 0 or right > 0:
-            top_rows, top_cviews = shards[0]
-            if left > 0:
-                new_top_cviews = [(0, 0, left, rows, None, blank_canvas), *top_cviews]
-            else:
-                new_top_cviews = top_cviews.copy()
 
-            if right > 0:
-                new_top_cviews.append((0, 0, right, rows, None, blank_canvas))
-            shards = [(top_rows, new_top_cviews), *shards[1:]]
+            def padded(cviews: list[_CView], pad_rows: int) -> list[_CView]:
+                new_cviews: list[_CView] = [(0, 0, left, pad_rows, None, blank_canvas)] if left > 0 else []
+                new_cviews.extend(cviews)
+                if right > 0:
+                    new_cviews.append((0, 0, right, pad_rows, None, blank_canvas))
+                return new_cviews
+
+            top_rows, top_cviews = shards[0]
+            new_shards = [(top_rows, padded(top_cviews, rows))]
+            done_rows = top_rows
+            for num_rows, cviews in shards[1:]:
+                # The padding started in the first shard ends with the last row,
+                # so a shard of no rows after that row needs padding of its own.
+                new_shards.append((num_rows, padded(cviews, 0) if done_rows == rows else cviews))
+                done_rows += num_rows
+            shards = new_shards
 
         self.coords = self.translate_coords(left, 0)
         self.shards = shards
@@ -1172,12 +1180,10 @@ def shard_body(
             try:
                 cview = next(cviews_iter)
             except StopIteration:
-                # The shard calculation is inconsistent: this shard's cviews don't add up
-                # to the width the previous shard's tail expects to continue into. This is
-                # a known open issue (https://github.com/urwid/urwid/issues/340) that we
-                # haven't been able to root-cause; rather than raising (crashing the whole
-                # app) or silently leaving the row short (a corrupted-looking canvas), pad
-                # the unmet gap with blank filler so the canvas stays rectangular.
+                # The shards are inconsistent: this shard's cviews don't add up to the width
+                # the previous shard's tail expects to continue into. Rather than raising
+                # (crashing the whole app) or leaving the row short (a corrupted-looking
+                # canvas), pad the unmet gap with blank filler so the canvas stays rectangular.
                 fill_rows = num_rows if num_rows is not None else done_rows + 1
                 filler_cview = (0, 0, col_gap, fill_rows, None, blank_canvas)
                 new_iter = blank_canvas.content(0, 0, col_gap, fill_rows, None) if create_iter else iter_default
@@ -1297,14 +1303,17 @@ def shards_trim_sides(
     new_shards: list[tuple[int, list[_CView]]] = []
     right = left + cols
     for num_rows, cviews in shards:
-        sbody = shard_body(cviews, shard_tail, False, num_rows=num_rows)
+        # Cviews starting in this shard get this shard's marker and continued ones keep an earlier one:
+        # done_rows cannot tell them apart, since it stays 0 for a cview continued past a shard of no rows.
+        started_here: Iterator[_ContentLine] = iter(())
+        sbody = shard_body(cviews, shard_tail, False, started_here, num_rows=num_rows)
         shard_tail = shard_body_tail(num_rows, sbody)
         new_cviews = []
         col = 0
-        for done_rows, _content_iter, cv in sbody:
+        for _done_rows, content_iter, cv in sbody:
             cv_cols = cv[2]
             next_col = col + cv_cols
-            if done_rows or next_col <= left or col >= right:
+            if content_iter is not started_here or next_col <= left or col >= right:
                 col = next_col
                 continue
             if col < left:
