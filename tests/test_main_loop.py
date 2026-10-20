@@ -14,6 +14,7 @@ import typing
 import unittest.mock
 
 import urwid
+import urwid.testing
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, BaseScreen
 from urwid.event_loop import main_loop as main_loop_module
 
@@ -142,6 +143,7 @@ class RecordingWidget:
         self._keypress_return = keypress_return
         self._mouse_return = mouse_return
         self.keypress_calls: list[str] = []
+        self.keypress_sizes: list[tuple[int, int]] = []
         self.mouse_calls: list[tuple[str, int, int, int]] = []
 
     def selectable(self) -> bool:
@@ -149,6 +151,7 @@ class RecordingWidget:
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None:
         self.keypress_calls.append(key)
+        self.keypress_sizes.append(size)
         return self._keypress_return
 
     def mouse_event(self, size: tuple[int, int], event: str, button: int, col: int, row: int, focus: bool) -> bool:
@@ -592,6 +595,108 @@ class TestMainLoop(unittest.TestCase):
 
             urwid.emit_signal(evl.screen, INPUT_DESCRIPTORS_CHANGED)
             self.assertEqual({}, event_loop._watch_files)
+
+    def test_paused_stops_and_restarts_the_screen(self) -> None:
+        """paused() stops the screen and its input for the block and restarts them for a full redraw."""
+        with dummy_raw_main_loop() as evl, evl.start():
+            screen = typing.cast("urwid.display.raw.Screen", evl.screen)
+            evl.screen_size = (10, 5)
+            with evl.paused():
+                self.assertFalse(screen.started)
+                self.assertEqual([], screen.get_input_descriptors())
+                screen.screen_buf = [[]]
+
+            self.assertTrue(screen.started)
+            self.assertTrue(screen.get_input_descriptors())
+            self.assertIsNone(evl.screen_size)
+            self.assertIsNone(screen.screen_buf)
+
+    def test_paused_restores_mouse_tracking_when_handled(self) -> None:
+        """paused() enables mouse tracking again on resume when handle_mouse is True."""
+        with ClosingScreenIO() as (screen_input, screen_output):
+            screen = urwid.display.raw.Screen(input=screen_input, output=screen_output)
+            evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=True)
+            with (
+                unittest.mock.patch.object(screen, "set_mouse_tracking") as set_mouse_tracking,
+                evl.start(),
+                evl.paused(),
+            ):
+                pass
+        self.assertEqual([unittest.mock.call(), unittest.mock.call()], set_mouse_tracking.call_args_list)
+
+    def test_paused_restarts_the_screen_when_the_block_raises(self) -> None:
+        """An exception in the paused block propagates and the screen is started again."""
+        with dummy_raw_main_loop() as evl, evl.start():
+            with self.assertRaises(RuntimeError), evl.paused():
+                raise RuntimeError("editor failed")
+            self.assertTrue(evl.screen.started)
+
+    def test_paused_leaves_a_stopped_screen_alone(self) -> None:
+        """paused() on a screen that was not started runs the block and starts nothing."""
+        with dummy_raw_main_loop() as evl:
+            ran: list[bool] = []
+            with evl.paused():
+                ran.append(evl.screen.started)
+            self.assertEqual([False], ran)
+            self.assertFalse(evl.screen.started)
+
+    def test_paused_redraws_after_resume(self) -> None:
+        """A change made while paused is drawn once the block ends."""
+        text = urwid.Text("before")
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> bool:
+            with evl.paused():
+                text.set_text("after")
+            return True
+
+        screen = urwid.testing.ScriptedScreen(size=(6, 1), inputs=[["e"]])
+        evl = urwid.MainLoop(urwid.Filler(text), screen=screen, unhandled_input=unhandled)
+        evl.run()
+        self.assertEqual(["after "], screen.last_text)
+
+    def test_paused_in_screen_event_loop_restarts_before_the_next_read(self) -> None:
+        """With a screen that drives its own loop, input after a pause is read from a started screen."""
+
+        class StartedRecordingScreen(LimitedInputScreen):
+            """Scripted screen recording whether it was started at each read."""
+
+            def __init__(self, responses: list[tuple[list[typing.Any], list[int]]]) -> None:
+                super().__init__(responses)
+                self.started_at_read: list[bool] = []
+
+            def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+                self.started_at_read.append(self.started)
+                return super().get_input(raw_keys)
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> bool:
+            if key == "q":
+                raise urwid.ExitMainLoop
+            with evl.paused():
+                pass
+            return True
+
+        screen = StartedRecordingScreen([(["e"], []), (["q"], [])])
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        evl.run()
+        self.assertEqual([True, True], screen.started_at_read)
+
+    def test_process_input_gives_a_size_to_keys_after_a_pause(self) -> None:
+        """A key after a pausing handler in the same batch is given the screen size, not None."""
+        widget = RecordingWidget(selectable=True, keypress_return="z")
+        paused: list[bool] = []
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> bool:
+            if not paused:
+                paused.append(True)
+                with evl.paused():
+                    pass
+            return True
+
+        with dummy_raw_main_loop(typing.cast("urwid.Widget", widget), unhandled_input=unhandled) as evl, evl.start():
+            evl.process_input(["e", "x"])
+        self.assertEqual(["e", "x"], widget.keypress_calls)
+        self.assertIsInstance(widget.keypress_sizes[1], tuple)
+        self.assertEqual(2, len(widget.keypress_sizes[1]))
 
     def test_start_raises_when_screen_lacks_external_loop_support(self):
         """start() raises CantUseExternalLoop for a screen without hook_event_loop."""

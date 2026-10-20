@@ -64,6 +64,12 @@ subproc.py
 Monitor and display results from a subprocess
 
 
+external_editor.py
+------------------
+
+Hand the terminal to an external editor and show the text written in it
+
+
 palette_test.py
 ---------------
 

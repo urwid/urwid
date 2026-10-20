@@ -31,7 +31,7 @@ import os
 import sys
 import time
 import typing
-from contextlib import suppress
+from contextlib import contextmanager, suppress
 
 from urwid import display, signals
 from urwid.command_map import Command, command_map
@@ -43,7 +43,7 @@ from .abstract_loop import ExitMainLoop
 from .select_loop import SelectEventLoop
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Callable, Iterable, Iterator
     from typing import Literal, Self
 
     from urwid.display import BaseScreen
@@ -538,6 +538,48 @@ class MainLoop:
 
         self.screen.stop()
 
+    @contextmanager
+    def paused(self) -> Iterator[None]:
+        """Hand the terminal to another program for the duration of the block.
+
+        The :attr:`screen` is stopped on entry, which gives the terminal back its normal mode and buffer
+        and stops reading its input, and is started again on exit, also when the block raises.
+        On exit the mouse tracking is restored when :attr:`handle_mouse` is set,
+        the screen is cleared and the screen size is read again, so the next draw repaints all of it
+        at the terminal's current size.
+        A screen that is not started is left alone on both sides of the block.
+        The screen is restarted the way :meth:`start` starts it:
+        an application that started its screen with ``alternate_buffer=False`` comes back in the alternate buffer.
+
+        Run an editor on a file:
+
+        >>> editor = shlex.split(os.environ.get("EDITOR", "")) or ["vi"]  # doctest: +SKIP
+        >>> with loop.paused():  # doctest: +SKIP
+        ...     subprocess.run([*editor, path], check=False)
+
+        The block runs in the event loop's thread and holds it until the block ends,
+        so no input, alarm or watched file is handled meanwhile: the terminal belongs to the other program.
+
+        .. important::
+            Call it only from the thread running the event loop, like every other widget and screen change.
+
+        .. warning::
+            Do not use it with the web display, :class:`urwid.display.web.Screen`, which has no terminal to hand over:
+            stopping it ends the browser session, and starting it again reads a new client request from standard input.
+        """
+        was_started = self.screen.started
+        if was_started:
+            self.screen.stop()
+        try:
+            yield
+        finally:
+            if was_started:
+                self.screen.start()
+                if self.handle_mouse:
+                    self.screen.set_mouse_tracking()
+                self.screen.clear()
+                self.screen_size = None
+
     def _reset_input_descriptors(self) -> None:
         screen = typing.cast("_ExternalLoopScreen", self.screen)
         screen.unhook_event_loop(self.event_loop)
@@ -668,6 +710,10 @@ class MainLoop:
         for key in keys:
             if key == "window resize":
                 continue
+
+            # a handler of an earlier key may have paused the loop, which drops the screen size
+            if not self.screen_size:
+                self.screen_size = self.screen.get_cols_rows()
 
             if isinstance(key, str):
                 if self._topmost_widget.selectable():

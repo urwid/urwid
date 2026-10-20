@@ -529,7 +529,61 @@ class AlarmFairnessTestMixin:
         self.assertEqual(["ready", "first", "ready", "second"], called)
 
 
-class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin, AlarmFairnessTestMixin):
+class MainLoopPausedTestMixin:
+    """MainLoop.paused() run on the event loop of the test case."""
+
+    evl: urwid.EventLoop
+
+    def _paused_event_loop(self) -> urwid.EventLoop:
+        """Return the event loop to run a :class:`urwid.MainLoop` on."""
+        return self.evl
+
+    def test_main_loop_paused_watches_the_input_again(self) -> None:
+        """Input written while MainLoop.paused() runs is read from the restarted screen once the block ends."""
+        out: list[tuple[str, bool]] = []
+        rd: socket.socket
+        wr: socket.socket
+
+        def pause() -> None:
+            with loop.paused():
+                out.append(("paused", loop.screen.started))
+                wr.send(b"x")
+
+        def give_up() -> typing.NoReturn:
+            out.append(("timeout", loop.screen.started))
+            raise urwid.ExitMainLoop
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            out.append((str(key), loop.screen.started))
+            raise urwid.ExitMainLoop
+
+        with (
+            ClosingSocketPair() as (rd, wr),
+            ClosingSocketPair() as (_output_rd, output_wr),
+            output_wr.makefile("w", encoding="utf-8") as output,
+        ):
+            screen = urwid.display.raw.Screen(input=rd, output=output)
+            loop = urwid.MainLoop(
+                urwid.SolidFill(),
+                screen=screen,
+                event_loop=self._paused_event_loop(),
+                handle_mouse=False,
+                unhandled_input=unhandled,
+            )
+            loop.set_alarm_in(0, lambda *_args: pause())
+            loop.set_alarm_in(10, lambda *_args: give_up())
+            loop.run()
+
+        self.assertEqual([("paused", False), ("x", True)], out)
+
+
+class SelectEventLoopTest(
+    unittest.TestCase,
+    EventLoopTestMixin,
+    StaleReadyWatchTestMixin,
+    AlarmFairnessTestMixin,
+    MainLoopPausedTestMixin,
+):
     def setUp(self):
         self.evl = urwid.SelectEventLoop()
 
@@ -550,7 +604,7 @@ class SelectEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatch
 
 
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
-class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
     def setUp(self):
         self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
         self.loop = self.evl_runner.get_loop()
@@ -794,7 +848,7 @@ class GLibSignalHandlerTest(unittest.TestCase):
     IS_WINDOWS,
     "Windows is temporary not supported by TornadoEventLoop due to race conditions.",
 )
-class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
     def setUp(self):
         from tornado.ioloop import IOLoop
 
@@ -878,7 +932,7 @@ class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     IS_WINDOWS,
     "Windows is temporary not supported by TwistedEventLoop due to race conditions.",
 )
-class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
     def setUp(self):
         self.evl = urwid.TwistedEventLoop()
 
@@ -912,6 +966,17 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
     def test_remove_alarm_after_it_fired(self) -> None:
         """Skipped: the shared test stops the reactor, which cannot be started again."""
+
+    def _paused_event_loop(self) -> urwid.EventLoop:
+        """Return a loop on a reactor of its own: the shared reactor cannot be started again."""
+        from twisted.internet.selectreactor import SelectReactor
+
+        reactor = SelectReactor()
+        self.addCleanup(reactor.waker.connectionLost, None)
+        # reactor.run() points SIGINT and SIGTERM at this reactor and never restores them
+        for signum in (signal.SIGINT, signal.SIGTERM):
+            self.addCleanup(signal.signal, signum, signal.getsignal(signum))
+        return urwid.TwistedEventLoop(reactor=reactor)
 
     def test_watch_file_twice_replaces_the_watch(self) -> None:
         """A second watch on one descriptor replaces the first one in the reactor."""
@@ -1060,7 +1125,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin):
     IS_WINDOWS,
     "Windows is temporary not supported by TrioEventLoop due to race conditions.",
 )
-class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
+class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
     def setUp(self):
         self.evl = urwid.TrioEventLoop()
 
@@ -1406,7 +1471,13 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
 @unittest.skipUnless(ZMQ_AVAILABLE, "ZMQ is not available")
 @unittest.skipIf(IS_WINDOWS, "ZMQEventLoop is not supported under windows")
-class ZMQEventLoopTest(unittest.TestCase, EventLoopTestMixin, StaleReadyWatchTestMixin, AlarmFairnessTestMixin):
+class ZMQEventLoopTest(
+    unittest.TestCase,
+    EventLoopTestMixin,
+    StaleReadyWatchTestMixin,
+    AlarmFairnessTestMixin,
+    MainLoopPausedTestMixin,
+):
     def setUp(self):
         self.evl = urwid.ZMQEventLoop()
 
