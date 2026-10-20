@@ -2264,6 +2264,18 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         lbox = urwid.ListBox(urwid.SimpleListWalker([]))
         self.assertEqual(0, lbox.rows_max((4, 5)))
 
+    def test_rows_max_reset_when_body_changes(self) -> None:
+        """A walker modification or a new body is reflected by the next ``rows_max()`` without a size."""
+        walker = urwid.SimpleListWalker([urwid.Text("a"), urwid.Text("b")])
+        lbox = urwid.ListBox(walker)
+        self.assertEqual(2, lbox.rows_max((5, 3)))
+
+        walker.append(urwid.Text("c"))
+        self.assertEqual(3, lbox.rows_max())
+
+        lbox.body = urwid.SimpleListWalker([urwid.Text("d")])
+        self.assertEqual(1, lbox.rows_max())
+
     def test_scroll_protocol(self):
         items = [urwid.Text(str(i)) for i in range(20)]
         lbox = urwid.ListBox(urwid.SimpleListWalker(items))

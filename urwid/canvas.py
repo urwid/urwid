@@ -1032,6 +1032,10 @@ class CompositeCanvas(Canvas):
         if bottom < 0:
             raise ValueError(f"top canvas of overlay not the size expected!{(other.rows(), top, bottom, height)!r}")
 
+        self.coords.update(other.translate_coords(left, top))
+        if not height:
+            return  # a canvas of no rows covers nothing, and the row trims below need at least one row
+
         shards = self.shards
         top_shards: list[tuple[int, list[_CView]]] = []
         side_shards = self.shards
@@ -1050,17 +1054,9 @@ class CompositeCanvas(Canvas):
         if right > 0:
             right_shards = [shards_trim_sides(side_shards, max(0, left + width), right)]
 
-        middle_shards: list[tuple[int, list[_CView]]]
-        if not self.rows():
-            middle_shards = shards  # nothing to overlay; the rowless shard keeps the width
-        elif left or right:
-            middle_shards = shards_join((*left_shards, other.shards, *right_shards))
-        else:
-            middle_shards = other.shards
+        middle_shards = shards_join((*left_shards, other.shards, *right_shards)) if left or right else other.shards
 
         self.shards = top_shards + middle_shards + bottom_shards
-
-        self.coords.update(other.translate_coords(left, top))
 
     def fill_attr(self, a: Hashable) -> None:
         """Apply attribute a to all areas of this canvas with default attribute currently set to None.
