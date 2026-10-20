@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import itertools
 import string
 import typing
 import unittest
 
 import urwid
+import urwid.testing
 from urwid.util import apply_target_encoding, get_encoding
 from urwid.widget.scrollable import ScrollableError, _pos_at_thumb_top, _thumb_top
 
@@ -262,6 +264,20 @@ class TestScrollable(unittest.TestCase):
 
 
 class TestScrollBarScrollable(unittest.TestCase):
+    def test_degenerate_sizes(self):
+        """The canvas has the requested size, including no rows, whether or not the scrollbar is drawn."""
+        for wrapped, side, visible, end_markers in itertools.product(
+            ("Scrollable", "ListBox"),
+            ("right", "left"),
+            (None, True, False),
+            (None, ("^", "v")),
+        ):
+            with self.subTest(wrapped=wrapped, side=side, visible=visible, end_markers=end_markers):
+                texts = [urwid.Text("x") for _ in range(30)]
+                body = urwid.Scrollable(urwid.Pile(texts)) if wrapped == "Scrollable" else urwid.ListBox(texts)
+                widget = urwid.ScrollBar(body, side=side, visible=visible, end_markers=end_markers)
+                urwid.testing.check_box_sizing(widget)
+
     def test_basic(self):
         """Test basic init and scroll.
 

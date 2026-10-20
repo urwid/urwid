@@ -738,8 +738,10 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             posmax = max(0, ow_rows_max - maxrow)
             thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
 
-        # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
-        thumb_height = max(1, round(thumb_weight * trough_height))  # pylint: disable=possibly-used-before-assignment
+        # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>,
+        # keeping at least one row unless there are no rows at all.
+        # pylint: disable-next=possibly-used-before-assignment
+        thumb_height = min(trough_height, max(1, round(thumb_weight * trough_height)))
 
         # pylint: disable-next=possibly-used-before-assignment
         top_height = _thumb_top(pos, posmax, trough_height - thumb_height)
@@ -810,7 +812,11 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             up_char, down_char = self._end_markers
             rows.insert(0, row_canvas(up_char, dim_attr if layout.start_visible else bar_attr))
             rows.append(row_canvas(down_char, dim_attr if layout.end_visible else bar_attr))
-        sb_canv = canvas.CanvasCombine([(row, None, False) for row in rows])
+        if rows:
+            sb_canv = canvas.CanvasCombine([(row, None, False) for row in rows])
+        else:
+            # No rows: an empty combination would lose the width.
+            sb_canv = canvas.CompositeCanvas(canvas.SolidCanvas(self._trough_char, layout.sb_width, 0))
 
         combinelist = [
             (ow_canv, None, True, layout.ow_size[0]),
