@@ -1448,6 +1448,28 @@ class CanvasPadTrimTest(unittest.TestCase):
         self.cptest("left trim", "asdf", [], -2, 0, [[(None, None, b"df")]])
         self.cptest("right trim", "asdf", [], 0, -2, [[(None, None, b"as")]])
 
+    def test_pad_covers_a_trailing_shard_of_no_rows(self):
+        """Padding reaches a shard of no rows after the last row, so canvases joined next to it still render."""
+        narrow = urwid.CompositeCanvas(urwid.SolidCanvas("d", 1, 0))
+        narrow.pad_trim_left_right(0, 1)
+        rowless = urwid.CompositeCanvas(
+            urwid.CanvasCombine(
+                [(urwid.CompositeCanvas(urwid.SolidCanvas("d", 2, 0)), None, False), (narrow, None, False)]
+            )
+        )
+        rowless.pad_trim_left_right(1, 0)
+        rowless.pad_trim_top_bottom(0, 3)
+        blank = urwid.CompositeCanvas(urwid.SolidCanvas("b", 4, 0))
+        blank.pad_trim_top_bottom(0, 3)
+        joined = urwid.CanvasJoin(
+            [
+                (rowless, None, False, 3),
+                (urwid.TextCanvas([b"h", b"g", b"q"], maxcol=1), None, False, 1),
+                (blank, None, False, 4),
+            ]
+        )
+        self.assertEqual([b"   h    ", b"   g    ", b"   q    "], joined.text)
+
 
 class ApplyTextLayoutTest(unittest.TestCase):
     def setUp(self) -> None:
