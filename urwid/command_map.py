@@ -142,6 +142,33 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         """Remove the command mapping for `key`."""
         del self._command[key]
 
+    def bind(self, command: str | Command, *keys: str) -> None:
+        """Bind ``keys`` to ``command``, refusing a key that is already bound to a different command.
+
+        A key already bound to ``command`` is accepted.
+        Item assignment (``command_map[key] = command``) remains the way to rebind a key on purpose.
+
+        >>> cm = CommandMap()
+        >>> cm.bind("quit", "q", "ctrl c")
+        >>> cm.bind("quit", "ctrl l")
+        Traceback (most recent call last):
+        ...
+        ValueError: Key 'ctrl l' is already bound to 'redraw screen', cannot also bind it to 'quit'
+
+        :param command: the command to bind.
+        :param keys: keystrokes to bind to ``command``, added to those it already has.
+        :raises ValueError: a key in ``keys`` is already bound to a different command;
+            the command map is left unchanged.
+        """
+        for key in keys:
+            bound = self._command.get(key)
+            if bound is not None and bound != command:
+                raise ValueError(
+                    f"Key {key!r} is already bound to {str(bound)!r}, cannot also bind it to {str(command)!r}"
+                )
+        for key in keys:
+            self._command[key] = command
+
     def clear_command(self, command: str | Command) -> None:
         """Remove every keystroke currently mapped to ``command``."""
         dk = [k for k, v in self._command.items() if v == command]
