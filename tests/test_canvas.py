@@ -1293,6 +1293,14 @@ class CompositeCanvasOverlayValidationTest(unittest.TestCase):
         self.assertEqual((5, 0), (base.cols(), base.rows()))
         self.assertEqual([], list(base.content()))
 
+    def test_overlay_of_a_rowless_canvas_changes_nothing(self) -> None:
+        """A top canvas of no rows leaves the canvas as it is, wherever it is placed."""
+        for top in (0, 1, 3):
+            with self.subTest(top=top):
+                base = urwid.CompositeCanvas(urwid.SolidCanvas("#", 4, 3))
+                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 0)), 1, top)
+                self.assertEqual([b"####"] * 3, base.text)
+
 
 class CompositeCanvasFillAttrTest(unittest.TestCase):
     def test_fill_attr_sets_the_default_attribute(self) -> None:

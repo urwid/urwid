@@ -751,6 +751,21 @@ class OverlayTest(unittest.TestCase):
         with self.assertRaises(overlay_mod.OverlayError):
             ovl.calculate_padding_filler((10, 5), False)
 
+    def test_margins_leave_no_rows_for_a_box_top_widget(self) -> None:
+        """The top widget is rendered at no rows when the margins take every row, and only the bottom shows."""
+        ovl = urwid.Overlay(
+            urwid.SolidFill("x"),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            4,
+            urwid.MIDDLE,
+            (urwid.RELATIVE, 100),
+            top=1,
+            bottom=1,
+        )
+        self.assertEqual(["######", "######"], urwid.testing.render_text(ovl, (6, 2)))
+        urwid.testing.check_box_sizing(ovl)
+
     def test_calculate_padding_filler_shrinks_bottom_for_oversized_flow(self) -> None:
         """A PACK-height flow widget taller than maxrow has its bottom filler go negative instead of raising."""
         top_w = urwid.Text("one two three four five six seven eight nine ten")

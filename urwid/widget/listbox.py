@@ -285,6 +285,11 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
         self.select_navigation = select_navigation
 
+    def _invalidate(self) -> None:
+        """Drop the cached canvases and the cached :meth:`rows_max` result."""
+        self._rows_max_cached = 0
+        super()._invalidate()
+
     @property
     def body(self) -> ListWalker[_K, AbstractFlowWidget]:
         """A ListWalker subclass such as :class:`SimpleFocusListWalker` that contains widgets.
