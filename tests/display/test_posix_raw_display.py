@@ -738,6 +738,23 @@ class TestMouseTracking(unittest.TestCase):
 
         self.assertEqual([], written)
 
+    @mock.patch("urwid.display._posix_raw_display.Screen._start_gpm_tracking")
+    def test_stop_and_restart_keeps_mouse_tracking(self, _mock_start_gpm_tracking: mock.Mock) -> None:
+        """A restarted screen turns on the mouse tracking the application enabled before the stop."""
+        s = _make_screen()
+        written: list[str] = []
+        self.addCleanup(s.stop)
+        with mock.patch.object(s, "write", written.append):
+            s.start()
+            s.set_mouse_tracking(True)
+
+            s.stop()
+            self.assertIn(escape.MOUSE_TRACKING_OFF, "".join(written))
+            written.clear()
+            s.start()
+
+        self.assertIn(escape.MOUSE_TRACKING_ON, "".join(written))
+
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
 class TestGetColsRows(unittest.TestCase):

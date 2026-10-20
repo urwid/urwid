@@ -750,7 +750,12 @@ class Screen(BaseScreen, RealTerminal):
 
     def _stop_mouse_restore_buffer(self) -> None:
         """Stop mouse tracking and restore the screen."""
-        self._mouse_tracking(False)
+        # Keep the state the application requested: _start() restores it on a restart.
+        mouse_tracking_requested = self._mouse_tracking_enabled
+        try:
+            self._mouse_tracking(False)
+        finally:
+            self._mouse_tracking_enabled = mouse_tracking_requested
 
         move_cursor = ""
         if self._alternate_buffer:
