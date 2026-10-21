@@ -163,11 +163,26 @@ class NumEditLeadingZerosTest(unittest.TestCase):
             (IntegerEdit(), "007", "7"),
             (FloatEdit(), "007", "7"),
             (NumEdit("0123456789ABCDEF", "", ""), "0f", "f"),
+            (IntegerEdit(allow_negative=True), "-007", "-7"),
+            (IntegerEdit(allow_negative=True), "-00", "-0"),
+            (FloatEdit(allow_negative=True), "-00.5", "-0.5"),
         ):
             with self.subTest(widget=type(edit).__name__, keys=keys):
                 for key in keys:
                     edit.keypress((10,), key)
                 self.assertEqual(expected, edit.edit_text)
+
+    def test_zeros_after_sign_are_trimmed_behind_the_cursor(self):
+        edit = IntegerEdit(allow_negative=True)
+        for key in "-007":
+            edit.keypress((10,), key)
+        self.assertEqual(("-7", 2), (edit.edit_text, edit.edit_pos))
+
+        edit = IntegerEdit(default="-007", allow_negative=True)
+        for key, expected in (("home", ("-007", 0)), ("right", ("-007", 1)), ("right", ("-07", 1))):
+            with self.subTest(key=key, expected=expected):
+                edit.keypress((10,), key)
+                self.assertEqual(expected, (edit.edit_text, edit.edit_pos))
 
 
 if __name__ == "__main__":
