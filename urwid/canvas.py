@@ -1416,8 +1416,10 @@ def CanvasCombine(canvas_info: Iterable[tuple[Canvas, typing.Any, bool]]) -> Com
     return combined_canvas
 
 
-def CanvasOverlay(top_c: CompositeCanvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
+def CanvasOverlay(top_c: Canvas, bottom_c: Canvas, left: int, top: int) -> CompositeCanvas:
     """Overlay canvas top_c onto bottom_c at position (left, top)."""
+    if not isinstance(top_c, CompositeCanvas):
+        top_c = CompositeCanvas(top_c)
     overlayed_canvas = CompositeCanvas(bottom_c)
     overlayed_canvas.overlay(top_c, left, top)
     overlayed_canvas.children = [(left, top, top_c, None), (0, 0, bottom_c, None)]
