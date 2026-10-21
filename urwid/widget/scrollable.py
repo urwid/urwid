@@ -572,6 +572,31 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """Return that this widget is always a box widget."""
         return frozenset((Sizing.BOX,))
 
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the rows of the wrapped widget at the width it is rendered at.
+
+        With :attr:`visible` ``True`` the scrollbar always takes its columns, so the wrapped widget gets the rest.
+
+        :raises AttributeError: the wrapped widget has no ``rows()``, as a :class:`Scrollable` has none.
+        """
+        (maxcol,) = size
+        bar_width = self._scrollbar_width if self._visible is True else 0
+        return typing.cast("AbstractFlowWidget", self._original_widget).rows((max(0, maxcol - bar_width),), focus)
+
+    def _flow_without_bar(self, size: tuple[int] | tuple[int, int]) -> bool:
+        """Return whether *size* is a flow size that draws no scrollbar.
+
+        A flow size gives the wrapped widget all its rows, so with :attr:`visible` ``None`` it needs no scrollbar,
+        whatever the scrolling protocol of the wrapped widget estimates.
+        """
+        return len(size) == 1 and self._visible is None
+
+    def _box_size(self, size: tuple[int] | tuple[int, int], focus: bool) -> tuple[int, int]:
+        """Return *size* as a box size, measuring the wrapped widget for a flow size."""
+        if len(size) == 1:
+            return (size[0], self.rows((size[0],), focus))
+        return size
+
     def selectable(self) -> bool:
         """Return ``True``: a scrollbar-wrapped widget always accepts the input focus."""
         return True
@@ -672,8 +697,13 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self,
         size: tuple[int, int],
         focus: bool = False,
+        *,
+        shows_all: bool = False,
     ) -> _ScrollbarLayout | None:
         """Compute the scrollbar geometry for ``size``.
+
+        With *shows_all*, the wrapped widget is known to show all its rows, as at a flow size,
+        so the geometry is measured in rows rather than estimated from item counts.
 
         :returns: ``None`` is returned as a "not shown" flag when no scrollbar is drawn:
             :attr:`visible` is ``False``, or it is ``None`` and the wrapped widget fits without scrolling.
@@ -701,7 +731,8 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         require_absolute = True
 
         if (
-            isinstance(ow_base, SupportsRelativeScroll)
+            not shows_all
+            and isinstance(ow_base, SupportsRelativeScroll)
             and callable(len_getter := getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", None)))
             and ow_base.require_relative_scroll(size, focus)
         ):
@@ -765,14 +796,20 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     def render(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> Canvas:
-        """Render the wrapped widget together with the scrollbar, when scrolling is needed."""
+        """Render the wrapped widget together with the scrollbar, when scrolling is needed.
+
+        A flow *size* renders the wrapped widget at its flow rows, so it never needs scrolling.
+        """
         from urwid import canvas
 
+        flow = len(size) == 1
+        no_bar = self._visible is False or self._flow_without_bar(size)
+        size = self._box_size(size, focus)
         self._rendered_size = size
-        if self._visible is False:
+        if no_bar:
             return self._render_original(size, focus)
 
         maxcol, maxrow = size
@@ -782,7 +819,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         ow_canv = self._render_original(ow_size, focus)
 
-        layout = self._scrollbar_layout(size, focus)
+        layout = self._scrollbar_layout(size, focus, shows_all=flow)
         if layout is None:
             # Canvas fits without scrolling - no scrollbar needed
             return self._render_original(size, focus)
@@ -890,20 +927,21 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Forward a keypress to the wrapped widget, at the size it is rendered at within ``size``."""
         ow_size = self._original_widget_size
-        if size != self._rendered_size:
+        box_size = self._box_size(size, True)
+        if box_size != self._rendered_size:
             # Not rendered at this size yet: a key before the first render, or after a resize.
-            layout = self._scrollbar_layout(size)
-            ow_size = size if layout is None else layout.ow_size
+            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size)
+            ow_size = box_size if layout is None else layout.ow_size
         return self._original_widget.keypress(ow_size, key)
 
     def mouse_event(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -926,6 +964,9 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         widget, goes to the wrapped widget.
         Events outside this widget never reach it, so a release there is not seen; the next press here starts over.
         """
+        flow = len(size) == 1
+        no_bar = self._flow_without_bar(size)
+        size = self._box_size(size, focus)
         ow = self._original_widget
         ow_size = self._original_widget_size
         supports_scroll = hasattr(ow, "set_scrollpos")
@@ -934,7 +975,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
         # The geometry is needed before the event is passed on: the wrapped widget cannot tell
         # that a column belongs to the scrollbar, and would answer a click that is not its own.
-        layout = self._scrollbar_layout(size, focus)
+        layout = None if no_bar else self._scrollbar_layout(size, focus, shows_all=flow)
         if layout is not None:
             if self._scrollbar_side == SCROLLBAR_LEFT:
                 on_scrollbar = col < layout.sb_width

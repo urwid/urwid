@@ -561,7 +561,9 @@ the first and the last scrollbar row hold markers
 that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
 ``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
 and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
-The widget is always rendered BOX and wrapped widget is also should be BOX.
+The widget reports BOX sizing, and the wrapped widget must support BOX.
+Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
+draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
 * :class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
@@ -647,6 +649,13 @@ Its contents are displayed stacked vertically, and the
 :class:`ListBox` allows the user to scroll through its content.
 One of the flow widgets displayed in the :class:`ListBox` is its
 focus widget.
+
+A :class:`ListBox` also accepts a flow size, although it reports BOX sizing only,
+so containers keep laying it out as a box widget.
+At a flow size it shows all its widgets, and :meth:`ListBox.rows` returns the rows they take.
+The whole body is measured, so this is meant for lists short enough for a dialog.
+It needs a list walker that reports its length or an estimate of it, or a :class:`TreeWalker`,
+and that does not wrap around.
 
 ListBox Focus and Scrolling
 ---------------------------

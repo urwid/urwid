@@ -2015,6 +2015,106 @@ class ListBoxSetBodyTest(unittest.TestCase):
         )
 
 
+def _flow_body() -> list[urwid.Widget]:
+    """Return widgets of different heights at width 5, the last two selectable."""
+    return [urwid.Text("one two"), urwid.Divider(), urwid.CheckBox("x"), urwid.Edit("", "abc def")]
+
+
+class ListBoxFlowSizeTest(unittest.TestCase):
+    """A ListBox rendered at a flow size shows all its widgets, while its sizing stays BOX."""
+
+    def test_sizing_stays_box(self) -> None:
+        """Containers keep laying a ListBox out as a box widget."""
+        self.assertEqual(frozenset((urwid.BOX,)), urwid.ListBox(_flow_body()).sizing())
+
+    def test_check_flow_sizing(self) -> None:
+        """A flow render has the rows that rows() reports, and the cursor that get_cursor_coords() reports."""
+        for widgets in ([], [urwid.Text("hello")], [urwid.Text("hello"), urwid.Edit("> ", "ab")]):
+            with self.subTest(count=len(widgets)):
+                urwid.testing.check_flow_sizing(urwid.ListBox(urwid.SimpleListWalker(widgets)))
+
+    def test_rows(self) -> None:
+        """The rows are those of all widgets, whatever the focus position and the focus flag."""
+        widgets = _flow_body()
+        expected = sum(widget.rows((5,)) for widget in widgets)
+        lbox = urwid.ListBox(urwid.SimpleListWalker(widgets))
+        for position in range(len(widgets)):
+            for focus in (False, True):
+                with self.subTest(position=position, focus=focus):
+                    lbox.focus_position = position
+                    self.assertEqual(expected, lbox.rows((5,), focus))
+        self.assertEqual(0, urwid.ListBox([]).rows((5,)))
+
+    def test_rows_wrapping_body(self) -> None:
+        """A body that wraps around has no flow rows."""
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")], wrap_around=True))
+        with self.assertRaises(urwid.ListBoxError):
+            lbox.rows((5,))
+
+    def test_render_equals_box_render(self) -> None:
+        """A flow render equals the box render at the flow rows."""
+        for position in (0, 3):
+            with self.subTest(position=position):
+                lbox = urwid.ListBox(urwid.SimpleListWalker(_flow_body()))
+                lbox.focus_position = position
+                rows = lbox.rows((5,), True)
+                flow_text = urwid.testing.render_text(lbox, (5,), focus=True)
+                self.assertEqual(rows, len(flow_text))
+                self.assertEqual(urwid.testing.render_text(lbox, (5, rows), focus=True), flow_text)
+
+    def test_input_at_a_flow_size(self) -> None:
+        """Keys, clicks and the cursor work at a flow size."""
+        lbox = urwid.ListBox(urwid.SimpleListWalker(_flow_body()))
+        lbox.render((10,), focus=True)
+        self.assertEqual(2, lbox.focus_position)  # the first selectable widget
+
+        self.assertEqual([], urwid.testing.press(lbox, (10,), "down"))
+        self.assertEqual(3, lbox.focus_position)
+        canvas = lbox.render((10,), focus=True)
+        self.assertEqual(canvas.cursor, lbox.get_cursor_coords((10,)))
+
+        checkbox = lbox.body[2]
+        self.assertTrue(urwid.testing.click(lbox, (10,), 0, 2))
+        self.assertEqual(2, lbox.focus_position)
+        self.assertTrue(checkbox.state)
+
+    def test_tree_list_box_keys_at_a_flow_size(self) -> None:
+        """TreeListBox moves the focus to the parent at a flow size."""
+
+        class Leaf(urwid.TreeNode):
+            """Leaf node shown as a TreeWidget."""
+
+            def load_widget(self) -> urwid.TreeWidget:
+                return urwid.TreeWidget(self)
+
+            def get_display_text(self) -> str:
+                """Return the label of the node."""
+                return "leaf"
+
+        class Root(urwid.ParentNode):
+            """Root node with one leaf."""
+
+            def load_widget(self) -> urwid.TreeWidget:
+                return urwid.TreeWidget(self)
+
+            def get_display_text(self) -> str:
+                """Return the label of the node."""
+                return "root"
+
+            def load_child_keys(self) -> list[int]:
+                return [0]
+
+            def load_child_node(self, key: int) -> Leaf:
+                return Leaf(None, parent=self, key=key, depth=1)
+
+        root = Root(None)
+        tree = urwid.TreeListBox(urwid.TreeWalker(root))
+        self.assertEqual(len(urwid.testing.render_text(tree, (10,))), tree.rows((10,)))
+        tree.focus_position = root.get_child_node(0)
+        self.assertEqual([], urwid.testing.press(tree, (10,), "left"))
+        self.assertIs(root, tree.focus_position)
+
+
 class ListBoxConsumerApiTest(unittest.TestCase):
     def test_simple_list_walker_clear_and_append(self) -> None:
         walker = urwid.SimpleListWalker([urwid.Text("old")])
@@ -2275,6 +2375,34 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
 
         lbox.body = urwid.SimpleListWalker([urwid.Text("d")])
         self.assertEqual(1, lbox.rows_max())
+
+    def test_rows_max_ignores_an_overridden_rows(self) -> None:
+        """A subclass that defines its own rows() keeps the scroll measurement of the body."""
+
+        class ShortListBox(urwid.ListBox):
+            """ListBox that reports at most 3 rows as a flow widget."""
+
+            _sizing = frozenset((urwid.BOX, urwid.FLOW))
+
+            def rows(self, size: tuple[int], focus: bool = False) -> int:
+                return min(len(self.body), 3)
+
+        lbox = ShortListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(10)]))
+        self.assertEqual(10, lbox.rows_max((10, 3)))
+
+    def test_rows_max_measures_the_focus_widget_in_focus(self) -> None:
+        """The focus widget is measured in focus and the others out of focus, whatever the focus argument is."""
+
+        class FocusHeightText(SelectableText):
+            """Selectable Text that is one row taller in focus."""
+
+            def rows(self, size: tuple[int], focus: bool = False) -> int:
+                return super().rows(size, focus) + focus
+
+        lbox = urwid.ListBox(urwid.SimpleListWalker([FocusHeightText("a") for _ in range(3)]))
+        for focus in (False, True):
+            with self.subTest(focus=focus):
+                self.assertEqual(4, lbox.rows_max((5, 3), focus))
 
     def test_scroll_protocol(self):
         items = [urwid.Text(str(i)) for i in range(20)]
