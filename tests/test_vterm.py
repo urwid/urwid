@@ -249,12 +249,12 @@ class TermTest(unittest.TestCase):
         self.term = urwid.Terminal(["/bin/false"])
         self.resize(80, 24)
 
-    def restart(self, width: int = 80, height: int = 24) -> None:
+    def restart(self, width: int = 80, height: int = 24, soft: bool = False) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
         self.term = urwid.Terminal(["/bin/false"])
-        self.resize(width, height)
+        self.resize(width, height, soft)
 
     def tearDown(self) -> None:
         if not self.term.terminated:
@@ -1092,6 +1092,24 @@ class TermTest(unittest.TestCase):
                 self.term.keygrab = True
                 self.assertIsNone(self.term.keypress(self.termsize, key))
                 self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_keypress_before_first_render(self) -> None:
+        """Start the child at the keypress size only for a key sent to it before the first render."""
+        for key, handled, sent in (
+            ("a", None, b"a"),
+            ("page up", None, None),
+            ("page down", None, None),
+            ("up", "up", None),
+        ):
+            with self.subTest(key=key):
+                self.restart(40, 10, soft=True)
+                self.assertEqual(self.term.keypress(self.termsize, key), handled)
+                if sent is None:
+                    self.assertIsNone(self.term.term)
+                    self.assertIsNone(self.term.pid)
+                else:
+                    self.assertEqual((self.term.term.width, self.term.term.height), self.termsize)
+                    self.assertEqual(bytes(self.pty.from_widget), sent)
 
     def test_ctrl_keys_without_control_character_are_not_handled(self) -> None:
         """Return a ctrl key that has no C0 control character unhandled, writing nothing to the child."""

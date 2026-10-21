@@ -1793,13 +1793,15 @@ class Terminal(Widget):
                 return None
         else:
             if key == "page up":
-                self.term.scroll_buffer()  # type: ignore[union-attr]
+                if self.term is not None:  # there is no scrollback before the first render
+                    self.term.scroll_buffer()
                 self.last_key = key
                 self._invalidate()
                 return None
 
             if key == "page down":
-                self.term.scroll_buffer(up=False)  # type: ignore[union-attr]
+                if self.term is not None:  # there is no scrollback before the first render
+                    self.term.scroll_buffer(up=False)
                 self.last_key = key
                 self._invalidate()
                 return None
@@ -1826,6 +1828,11 @@ class Terminal(Widget):
                 return key
 
         self.last_key = key
+
+        if self.term is None:
+            # Only touch_term() starts the child and creates the canvas, and render() normally calls it first.
+            width, height = size
+            self.touch_term(width, height)
 
         self.term.scroll_buffer(reset=True)  # type: ignore[union-attr]
 
