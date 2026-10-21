@@ -4,7 +4,7 @@ import unittest
 from decimal import Decimal
 from itertools import product
 
-from urwid.numedit import FloatEdit, IntegerEdit
+from urwid.numedit import FloatEdit, IntegerEdit, NumEdit
 
 
 class IntegerEditNegativeDefaultTest(unittest.TestCase):
@@ -128,6 +128,46 @@ class FloatEditDefaultValidationTest(unittest.TestCase):
             Decimal("123456789012345678901234567890.0000").as_tuple(),
             edit.value().as_tuple(),
         )
+
+
+class NumEditLeadingZerosTest(unittest.TestCase):
+    def test_lone_zero_is_kept(self):
+        for edit in (IntegerEdit(), FloatEdit()):
+            with self.subTest(widget=type(edit).__name__):
+                edit.keypress((10,), "0")
+                edit.keypress((10,), "0")
+                self.assertEqual("0", edit.edit_text)
+                self.assertEqual(Decimal(0), edit.value())
+
+    def test_zero_default_is_kept(self):
+        for edit in (IntegerEdit(default=0), FloatEdit(default="0")):
+            with self.subTest(widget=type(edit).__name__):
+                edit.keypress((10,), "end")
+                self.assertEqual("0", edit.edit_text)
+                self.assertEqual(Decimal(0), edit.value())
+
+    def test_zero_before_decimal_separator_is_kept(self):
+        for separator in (".", ","):
+            with self.subTest(separator=separator):
+                edit = FloatEdit(decimal_separator=separator)
+                edit.keypress((10,), "0")
+                edit.keypress((10,), separator)
+                self.assertEqual(f"0{separator}", edit.edit_text)
+                self.assertEqual(Decimal(0), edit.value())
+                edit.keypress((10,), "5")
+                self.assertEqual(f"0{separator}5", edit.edit_text)
+                self.assertEqual(Decimal("0.5"), edit.value())
+
+    def test_zeros_before_digits_are_trimmed(self):
+        for edit, keys, expected in (
+            (IntegerEdit(), "007", "7"),
+            (FloatEdit(), "007", "7"),
+            (NumEdit("0123456789ABCDEF", "", ""), "0f", "f"),
+        ):
+            with self.subTest(widget=type(edit).__name__, keys=keys):
+                for key in keys:
+                    edit.keypress((10,), key)
+                self.assertEqual(expected, edit.edit_text)
 
 
 if __name__ == "__main__":

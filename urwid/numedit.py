@@ -132,8 +132,8 @@ class NumEdit(Edit):
         unhandled = super().keypress(size, key)
 
         if not unhandled and self._trim_leading_zeros:
-            # trim leading zeros
-            while self.edit_pos > 0 and self.edit_text[:1] == "0":
+            # trim leading zeros, but keep the zero of "0" and "0.5"
+            while self.edit_pos > 0 and self.edit_text[:1] == "0" and self.edit_text[1:2].isalnum():
                 self.set_edit_pos(self.edit_pos - 1)
                 self.set_edit_text(self.edit_text[1:])
 

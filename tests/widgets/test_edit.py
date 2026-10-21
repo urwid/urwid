@@ -525,6 +525,16 @@ class IntEditTest(unittest.TestCase):
         e.keypress((10,), "end")
         self.assertEqual(e.edit_text, "2")
 
+    def test_keypress_keeps_lone_zero(self) -> None:
+        e = urwid.IntEdit()
+        e.keypress((10,), "0")
+        e.keypress((10,), "0")
+        self.assertEqual(e.edit_text, "0")
+        e = urwid.IntEdit("", 0)
+        e.keypress((10,), "end")
+        self.assertEqual(e.edit_text, "0")
+        self.assertEqual(e.value(), 0)
+
     def test_keypress_unhandled_passthrough(self) -> None:
         e = urwid.IntEdit()
         self.assertEqual(e.keypress((10,), "shift f1"), "shift f1")
