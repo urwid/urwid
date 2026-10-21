@@ -802,8 +802,8 @@ class IntEdit(Edit):
         if unhandled := super().keypress(size, key):
             return unhandled
 
-        # trim leading zeros
-        while self.edit_pos > 0 and self.edit_text[:1] == "0":
+        # trim leading zeros, but keep a lone zero
+        while self.edit_pos > 0 and self.edit_text[:1] == "0" and self.edit_text[1:2].isdigit():
             self.set_edit_pos(self.edit_pos - 1)
             self.set_edit_text(self.edit_text[1:])
 
