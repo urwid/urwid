@@ -392,6 +392,12 @@ class FloatEdit(NumEdit):
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
+    def valid_char(self, ch: str) -> bool:
+        """Return true for allowed characters, refusing a second decimal separator."""
+        if ch == self._decimal_separator and ch in self.edit_text:
+            return False
+        return super().valid_char(ch)
+
     def value(self) -> decimal.Decimal | None:
         """Return the numeric value of self.edit_text."""
         if self.edit_text:
