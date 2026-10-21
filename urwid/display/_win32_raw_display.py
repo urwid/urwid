@@ -285,7 +285,7 @@ class Screen(_raw_display_base.Screen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
-        y, x = super().get_cols_rows()
+        x, y = super().get_cols_rows()
         # The console buffer describes the standard output only: any other stream keeps the fallback size.
         if self._term_output_file is sys.stdout:
             handle = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
