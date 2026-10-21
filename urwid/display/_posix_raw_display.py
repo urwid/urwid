@@ -495,7 +495,7 @@ class Screen(_raw_display_base.Screen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
-        y, x = super().get_cols_rows()
+        x, y = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
                 buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 8)

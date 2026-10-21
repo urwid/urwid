@@ -778,6 +778,16 @@ class TestGetColsRows(unittest.TestCase):
 
         self.assertEqual((80, 24), (cols, rows))
 
+    @mock.patch("fcntl.ioctl", side_effect=OSError)
+    def test_falls_back_to_80x24_when_ioctl_fails(self, mock_ioctl):
+        """An output that is not a terminal reports 80 columns by 24 rows."""
+        s = _make_screen()
+
+        cols, rows = s.get_cols_rows()
+
+        self.assertEqual((80, 24), (cols, rows))
+        self.assertEqual(24, s.maxrow)
+
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
 class TestGetInputDescriptors(unittest.TestCase):

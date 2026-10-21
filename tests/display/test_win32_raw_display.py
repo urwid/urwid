@@ -130,3 +130,18 @@ class TestScreenInput(unittest.TestCase):
 
         with mock.patch.object(s, "_started", True), self.assertRaises(RuntimeError):
             s.get_available_raw_input()
+
+
+@unittest.skipUnless(IS_WINDOWS, "_win32_raw_display needs the Windows console API")
+class TestGetColsRows(unittest.TestCase):
+    """The Windows screen's terminal size."""
+
+    def test_falls_back_to_80x24_for_output_other_than_stdout(self):
+        """An output stream without a console buffer keeps the 80 columns by 24 rows fallback."""
+        s = _win32_raw_display.Screen()
+
+        with mock.patch.object(s, "_term_output_file", mock.Mock()):
+            cols, rows = s.get_cols_rows()
+
+        self.assertEqual((80, 24), (cols, rows))
+        self.assertEqual(24, s.maxrow)
