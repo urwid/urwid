@@ -650,10 +650,12 @@ class TreeListBox(ListBox[TreeNode[typing.Any]]):
 
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Handle a keypress, passing any unhandled key to :meth:`unhandled_input`."""
+        # unhandled_input and the focus moves behind it take a box size
+        size = self._box_size(size, True)
         if unhandled := super().keypress(size, key):
             return self.unhandled_input(size, unhandled)
         return None

@@ -549,6 +549,35 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
         return start_row
 
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the rows of all widgets in the body at the width in *size*.
+
+        The focus widget is measured in focus and the others out of focus, as a render measures them,
+        whatever *focus* is.
+        A child whose row count depends on its focus breaks the box layout as well,
+        which a render reports as a :exc:`ListBoxError`.
+
+        >>> from urwid import Text
+        >>> ListBox([Text("one two"), Text("three")]).rows((5,))
+        3
+
+        :raises ListBoxError: the body does not support the scrolling protocol, or it wraps around.
+        """
+        self._check_support_scrolling()
+        return self._body_rows(size[0])
+
+    def _body_rows(self, maxcol: int) -> int:
+        """Return the rows of all widgets in the body at width *maxcol*, the focus widget measured in focus."""
+        focus_widget, focus_pos = self._body.get_focus()
+        if focus_widget is None:
+            return 0
+
+        rows = focus_widget.rows((maxcol,), True)
+        for forward in (False, True):
+            for widget, _pos in self._walk_body(focus_pos, forward=forward):
+                rows += widget.rows((maxcol,))
+        return rows
+
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Scrollable protocol for sized iterable and not wrapped around contents."""
         self._check_support_scrolling()
@@ -557,22 +586,15 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
             self._rendered_size = size
 
         if size or not self._rows_max_cached:
-            cols = self._rendered_size[0]
-            rows = 0
-
-            focused_w, idx = self._body.get_focus()
-            if focused_w:
-                rows += focused_w.rows((cols,), focus)
-
-                for prev, _pos in self._walk_body(idx, forward=False):
-                    rows += prev.rows((cols,), False)
-
-                for next_, _pos in self._walk_body(idx, forward=True):
-                    rows += next_.rows((cols,), True)
-
-            self._rows_max_cached = rows
+            self._rows_max_cached = self._body_rows(self._rendered_size[0])
 
         return self._rows_max_cached
+
+    def _box_size(self, size: tuple[int] | tuple[int, int], focus: bool) -> tuple[int, int]:
+        """Return *size* as a box size, measuring the body for a flow size."""
+        if len(size) == 1:
+            return (size[0], self.rows((size[0],), focus))
+        return size
 
     def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
         """Widget require relative scroll due to performance limitations of real lines count calculation."""
@@ -605,7 +627,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
     def render(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas | SolidCanvas:
         """
@@ -613,13 +635,13 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
         see :meth:`Widget.render` for details
 
+        A flow *size* renders every widget of the body, with the rows :meth:`rows` reports.
+
         :raises ListBoxError: the rendered contents do not fit the reported rows, a child widget renders a different
             number of rows or cursor coordinates than it calculated, or the list walker returns a next position pointing
             at itself.
         """
-        (maxcol, maxrow) = size
-
-        self._rendered_size = size
+        (maxcol, maxrow) = self._rendered_size = self._box_size(size, focus)
 
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=focus)
         if middle is None:
@@ -722,9 +744,9 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
         return final_canvas
 
-    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
         """See :meth:`Widget.get_cursor_coords` for details."""
-        (maxcol, maxrow) = size
+        (maxcol, maxrow) = self._box_size(size, True)
 
         middle, _top, _bottom = self.calculate_visible((maxcol, maxrow), True)
         if middle is None:
@@ -1231,7 +1253,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Move selection through the list elements scrolling when necessary.
@@ -1254,7 +1276,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         """
         from urwid.command_map import Command
 
-        (maxcol, maxrow) = size
+        (maxcol, maxrow) = self._box_size(size, True)
 
         if self.set_focus_pending or self.set_focus_valign_pending:
             self._set_focus_complete((maxcol, maxrow), focus=True)
@@ -1939,7 +1961,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
 
     def mouse_event(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -1956,7 +1978,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         """
         from urwid.util import is_mouse_press
 
-        (maxcol, maxrow) = size
+        (maxcol, maxrow) = self._box_size(size, focus)
         middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus=True)
         if middle is None or top is None or bottom is None:
             return False

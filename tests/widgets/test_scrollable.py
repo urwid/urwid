@@ -1193,6 +1193,99 @@ def trivial_AttrMap(widget):
     return urwid.AttrMap(widget, {})
 
 
+class TestScrollBarFlowSize(unittest.TestCase):
+    """ScrollBar rendered at a flow size, while its sizing stays BOX."""
+
+    TEXT = "one two three four five six"
+
+    def make(self, **kwargs: typing.Any) -> urwid.ScrollBar:
+        """Return a ScrollBar over a ListBox of a wrapping Text and an Edit."""
+        return urwid.ScrollBar(urwid.ListBox([urwid.Text(self.TEXT), urwid.Edit("", "abc")]), **kwargs)
+
+    def test_sizing_stays_box(self) -> None:
+        """Containers keep laying a ScrollBar out as a box widget."""
+        self.assertEqual(frozenset((urwid.BOX,)), self.make().sizing())
+
+    def test_rows(self) -> None:
+        """The content is measured without the scrollbar column unless the scrollbar is always visible."""
+        lbox_rows = {
+            width: urwid.ListBox([urwid.Text(self.TEXT), urwid.Edit("", "abc")]).rows((width,)) for width in (9, 10)
+        }
+        self.assertNotEqual(lbox_rows[9], lbox_rows[10])
+        for visible, width in ((None, 10), (False, 10), (True, 9)):
+            with self.subTest(visible=visible):
+                self.assertEqual(lbox_rows[width], self.make(visible=visible).rows((10,)))
+
+    def test_render(self) -> None:
+        """A flow render shows the whole content, with a full thumb when the scrollbar is always visible."""
+        self.assertEqual(
+            ["one two   ", "three four", "five six  ", "abc       "],
+            urwid.testing.render_text(self.make(), (10,)),
+        )
+        self.assertEqual(
+            ["one two   ", "three four", "five six  ", "abc       "],
+            urwid.testing.render_text(self.make(visible=False), (10,)),
+        )
+        self.assertEqual(
+            ["one two  █", "three    █", "four five█", "six      █", "abc      █"],
+            urwid.testing.render_text(self.make(visible=True), (10,)),
+        )
+        self.assertEqual(
+            ["one two  ^", "three    █", "four five█", "six      █", "abc      v"],
+            urwid.testing.render_text(self.make(visible=True, end_markers=("^", "v")), (10,)),
+        )
+
+    def test_check_flow_sizing(self) -> None:
+        """A flow render has the rows that rows() reports, on either side and for every visibility."""
+        for side, visible in itertools.product(("right", "left"), (None, True, False)):
+            with self.subTest(side=side, visible=visible):
+                widget = urwid.ScrollBar(
+                    urwid.ListBox([urwid.Edit("", "abcd"), urwid.Edit("", "efgh")]), side=side, visible=visible
+                )
+                urwid.testing.check_flow_sizing(widget)
+
+    def test_render_without_scrollbar_over_rows_the_estimate_misses(self) -> None:
+        """A flow render draws no scrollbar, or a full thumb when it is visible, whatever the item count says."""
+        empty = [urwid.Pile([]) for _ in range(8)]  # items of no rows, which the item count still includes
+        widget = urwid.ScrollBar(
+            urwid.ListBox(urwid.SimpleListWalker([*empty, urwid.Text("aaa bbb"), urwid.Text("ccc")]))
+        )
+        self.assertEqual(["aaa bbb", "ccc    "], urwid.testing.render_text(widget, (7,), focus=True))
+        widget.visible = True
+        self.assertEqual(["aaa bbb█", "ccc    █"], urwid.testing.render_text(widget, (8,), focus=True))
+
+    def test_mouse_at_a_flow_size_with_a_visible_scrollbar(self) -> None:
+        """A click on the full thumb scrolls nothing, whatever the item count says, and the content takes clicks."""
+        empty = [urwid.Pile([]) for _ in range(8)]  # items of no rows, which the item count still includes
+        checkbox = urwid.CheckBox("bbb")
+        lbox = urwid.ListBox(urwid.SimpleListWalker([*empty, urwid.CheckBox("aaa"), checkbox]))
+        widget = urwid.ScrollBar(lbox, visible=True, scroll_by_focus=True)
+        self.assertEqual(["[ ] aaa █", "[ ] bbb █"], urwid.testing.render_text(widget, (9,), focus=True))
+        self.assertEqual(8, lbox.focus_position)
+        widget.mouse_event((9,), "mouse press", 1, 8, 0, True)
+        self.assertEqual(8, lbox.focus_position)
+        self.assertTrue(urwid.testing.click(widget, (9,), 1, 1))
+        self.assertTrue(checkbox.state)
+
+    def test_input_at_a_flow_size(self) -> None:
+        """Keys and clicks reach the wrapped ListBox at a flow size."""
+        edit = urwid.Edit("", "abc")
+        lbox = urwid.ListBox([urwid.Text("text"), edit])
+        widget = urwid.ScrollBar(lbox)
+        widget.render((10,), focus=True)
+        self.assertEqual(1, lbox.focus_position)
+        self.assertEqual([], urwid.testing.press(widget, (10,), "x"))
+        self.assertEqual("abcx", edit.edit_text)
+
+        checkbox = urwid.CheckBox("check")
+        lbox = urwid.ListBox([urwid.Edit("", "abc"), checkbox])
+        widget = urwid.ScrollBar(lbox)
+        widget.render((10,), focus=True)
+        self.assertTrue(urwid.testing.click(widget, (10,), 1, 1))
+        self.assertEqual(1, lbox.focus_position)
+        self.assertTrue(checkbox.state)
+
+
 class TestScrollableAttrMap(unittest.TestCase):
     def test_basic(self):
         """Test basic init and scroll."""
