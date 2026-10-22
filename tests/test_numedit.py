@@ -185,5 +185,19 @@ class NumEditLeadingZerosTest(unittest.TestCase):
                 self.assertEqual(expected, (edit.edit_text, edit.edit_pos))
 
 
+class FloatEditDecimalSeparatorInputTest(unittest.TestCase):
+    def test_second_separator_is_refused(self):
+        for separator in (".", ","):
+            with self.subTest(separator=separator):
+                edit = FloatEdit(decimal_separator=separator)
+                for key in ("1", separator, "2"):
+                    edit.keypress((10,), key)
+                self.assertEqual(separator, edit.keypress((10,), separator))
+                edit.keypress((10,), "home")
+                self.assertEqual(separator, edit.keypress((10,), separator))
+                self.assertEqual(f"1{separator}2", edit.edit_text)
+                self.assertEqual(Decimal("1.2"), edit.value())
+
+
 if __name__ == "__main__":
     unittest.main()
