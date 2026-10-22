@@ -233,6 +233,24 @@ class StripAndLogTest(unittest.TestCase):
     def test_unknown_escape_logs_debug(self) -> None:
         self._assert_skip("\x1b|", "unknown", "DEBUG")
 
+    def test_csi_with_sub_parameters_or_intermediate_bytes_is_skipped_whole(self) -> None:
+        """Strip a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
+        for sequence in (
+            "\x1b[38:5:196m",
+            "\x1b[38:2::255:0:0m",
+            "\x1b[4:3m",
+            "\x1b[2 q",
+            "\x1b[>4;1m",
+            "\x1b[=5u",
+            "\x1b[!p",
+        ):
+            with self.subTest(sequence=sequence):
+                op = self._assert_skip(f"{sequence}text", "unknown", "DEBUG")
+                self.assertEqual(sequence, op.raw)
+                line = parse_ansi_text(f"{sequence}text")
+                self.assertEqual("text", line.text)
+                self.assertIsNone(line.last_attr)
+
     def test_never_raises(self) -> None:
         # a grab-bag of recognised and unrecognised sequences must never
         # raise, regardless of classification

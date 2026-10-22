@@ -565,7 +565,7 @@ class AnsiParser:
 
     def _parse_escape(self, ch: str) -> None:
         if self._parsestate == 1:  # within CSI
-            if ch in "0123456789;" or (not self._escbuf and ch == "?"):
+            if " " <= ch <= "?":  # parameter and intermediate bytes, ECMA-48 5.4
                 # past the limit the parameters are dropped; _dispatch_csi skips the sequence by its length
                 if len(self._escbuf) < MAX_CSI_LENGTH:
                     self._escbuf += ch
@@ -608,6 +608,9 @@ class AnsiParser:
 
         qmark = escbuf.startswith("?")
         body = escbuf[1:] if qmark else escbuf
+        if body.strip("0123456789;"):
+            self._skip("unknown", raw, "CSI sub-parameters, private markers and intermediate bytes are not supported")
+            return
         params: list[int | None] = [int(p) if p else None for p in body.split(";")] if body else []
 
         if final == "m":
