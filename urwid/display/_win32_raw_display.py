@@ -67,6 +67,9 @@ class Screen(_raw_display_base.Screen):
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
+        :param input: the socket the console input is read from.
+            None (default) creates a socket pair and forwards the console input into it.
+        :param output: the terminal output, which the escape codes are written to.
         :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
@@ -102,6 +105,8 @@ class Screen(_raw_display_base.Screen):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use alternate screen buffer
+        :param args: not supported; any value raises :exc:`TypeError`.
+        :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
         :raises RuntimeError: the console mode could not be set.
         """
@@ -334,6 +339,8 @@ class ReadInputThread(threading.Thread):
     ) -> None:
         """Forward console input to *input_socket* and call *resize* when the console window changes size.
 
+        :param input_socket: the socket the console input is written to.
+        :param resize: called when the console window changes size.
         :param window_size: returns the visible window size, checked on every wake-up of the thread:
             the console reports a change of its buffer size, which a change of the window alone does not cause.
         :param start_window_size: the window size read before the thread started, to compare later sizes with;

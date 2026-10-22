@@ -102,8 +102,6 @@ def remove_defaults(d: dict[str, object], fn: Callable[..., object]) -> dict[str
 
     d will be modified by this function.
 
-    Returns d.
-
     >>> class Foo(object):
     ...     def __init__(self, a=1, b=2):
     ...         self.values = a, b
@@ -123,6 +121,7 @@ def remove_defaults(d: dict[str, object], fn: Callable[..., object]) -> dict[str
     >>> Foo()
     <Foo object>
 
+    :returns: d.
     :raises TypeError: *fn* is not callable. No signature can be read from *fn*.
     """
     try:

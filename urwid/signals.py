@@ -136,6 +136,10 @@ class Signals:
         :param user_args: additional arguments to pass to the callback,
                           (before any arguments passed when the signal
                           is emitted but after any weak_args).
+        :returns: a key associated with this signal handler,
+            which can be used to disconnect the signal later on using urwid.disconnect_signal_by_key.
+            Alternatively, the signal handler can also be disconnected by calling urwid.disconnect_signal,
+            which doesn't need this key.
         :raises NameError: *obj* does not support a signal called *name*.
 
         When a matching signal is sent, callback will be called. The
@@ -173,12 +177,6 @@ class Signals:
         weak_debug value passed is not a weak reference anymore, the
         signals code transparently dereferences the weakref parameter
         before passing it to print_debug.
-
-        Returns a key associated by this signal handler, which can be
-        used to disconnect the signal later on using
-        urwid.disconnect_signal_by_key. Alternatively, the signal
-        handler can also be disconnected by calling
-        urwid.disconnect_signal, which doesn't need this key.
         """
         sig_cls = obj.__class__
         if name not in self._supported.get(sig_cls, ()):
@@ -291,11 +289,10 @@ class Signals:
     def emit(self, obj: typing.Any, name: Hashable, *args: typing.Any) -> bool:
         """Call each of the callbacks connected to this signal with the args arguments as positional parameters.
 
-        Returns True if any of the callbacks returned True.
-
         :param obj: the object sending a signal
         :param name: the signal to send, typically a string
         :param args: zero or more positional arguments to pass to the signal callback functions
+        :returns: True if any of the callbacks returned True.
         """
         result = False
         handlers = getattr(obj, self._signal_attr, {}).get(name, ())

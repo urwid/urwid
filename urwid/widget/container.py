@@ -262,6 +262,7 @@ class SelectNavigationMixin(WidgetContainerMixin[_KT_contra]):
         """Focus the first candidate through the ``focus_position`` setter and enter it.
 
         :returns: whether a selectable candidate exists.
+        :warns WidgetWarning: the container has no ``focus_position`` of its own, so its focus is left unchanged.
         """
         if inspect.getattr_static(type(self), "focus_position") is _WIDGET_FOCUS_POSITION:
             warnings.warn(

@@ -176,7 +176,10 @@ class UrwidMind(Adapter):
         return IConchUser(self.original)
 
     def set_terminalProtocol(self, terminalProtocol: UrwidTerminalProtocol) -> None:
-        """Attach the terminal protocol driving this mind, and build its UI."""
+        """Attach the terminal protocol driving this mind, and build its UI.
+
+        :raises RuntimeError: the subclass did not set ``ui_factory``.
+        """
         self.terminalProtocol = terminalProtocol
         self.terminal = terminalProtocol.terminal
         self.unhandled_key_handler = self.unhandled_key_factory(self)
@@ -187,14 +190,20 @@ class UrwidMind(Adapter):
         self.ui = self.ui_factory(self)
 
     def push(self, data: bytes) -> None:
-        """Push data received from the terminal protocol into the UI screen."""
+        """Push data received from the terminal protocol into the UI screen.
+
+        :raises RuntimeError: the UI is not built yet, because :meth:`set_terminalProtocol` has not run.
+        """
         if self.ui is None:
             msg = "the UI is only available after set_terminalProtocol() has run"
             raise RuntimeError(msg)
         self.ui.screen.push(data)
 
     def draw(self) -> None:
-        """Refresh the UI."""
+        """Refresh the UI.
+
+        :raises RuntimeError: the UI is not built yet, because :meth:`set_terminalProtocol` has not run.
+        """
         if self.ui is None:
             msg = "the UI is only available after set_terminalProtocol() has run"
             raise RuntimeError(msg)
@@ -383,7 +392,10 @@ class UrwidTerminalProtocol(TerminalProtocol):
         self.terminalSize(self.width, self.height)
 
     def terminalSize(self, width: int, height: int) -> None:
-        """Resize the terminal."""
+        """Resize the terminal.
+
+        :raises RuntimeError: the UI is not built yet, because ``set_terminalProtocol()`` has not run.
+        """
         self.width = width
         self.height = height
         if self.urwid_mind.ui is None:
@@ -421,7 +433,10 @@ class UrwidServerProtocol(ServerProtocol):
     """A conch server protocol that proxies input straight to the terminal protocol."""
 
     def dataReceived(self, data: bytes) -> None:
-        """Forward received *data* straight to the connected terminal protocol."""
+        """Forward received *data* straight to the connected terminal protocol.
+
+        :raises RuntimeError: no terminal protocol is connected.
+        """
         if self.terminalProtocol is None:
             msg = "dataReceived needs a connected terminal protocol"
             raise RuntimeError(msg)
@@ -456,7 +471,10 @@ class UrwidTerminalSession(TerminalSession):
         TerminalSessionTransport(proto, self.chained_protocol, IConchUser(self.original), self.height, self.width)
 
     def windowChanged(self, dimensions: tuple[int, int, int, int]) -> None:
-        """Handle the window size changing."""
+        """Handle the window size changing.
+
+        :raises RuntimeError: no terminal protocol is connected.
+        """
         (h, w, _x, _y) = dimensions
         if self.chained_protocol.terminalProtocol is None:
             msg = "terminalSize needs a connected terminal protocol"
@@ -487,7 +505,10 @@ class UrwidRealm(TerminalRealm):
     ) -> tuple[type, UrwidUser, Callable[[], None]]:
         """Build the avatar for ``avatarId``, implementing ``portal.IRealm``.
 
+        :param avatarId: the id of the authenticated user
+        :param mind: the client object given by the login request; it is not used
         :param interfaces: the interfaces the avatar is requested to support; only :class:`IConchUser` is offered.
+        :returns: the interface, the avatar, and a logout callable that does nothing.
         :raises NotImplementedError: if :class:`IConchUser` isn't among ``interfaces``.
         """
         for i in interfaces:

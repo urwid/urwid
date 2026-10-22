@@ -458,6 +458,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
 
         :param focus: the new focus index, or a callable returning it, called after the change
         :param change: the unmonitored operation applying the change
+        :param args: positional arguments for *change*
+        :param kwargs: keyword arguments for *change*
         :returns: what ``change`` returns
         :raises Exception: whatever ``change`` raises, leaving the focus as it was and notifying nothing;
             or whatever the focus-changed or the modified callback raises.

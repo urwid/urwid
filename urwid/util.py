@@ -200,8 +200,7 @@ def set_temporary_encoding(encoding_name: str) -> Generator[None]:
 def get_encoding_mode() -> Literal["wide", "narrow", "utf8"]:
     """Get the mode Urwid is using when processing text strings.
 
-    Returns 'narrow' for 8-bit encodings, 'wide' for CJK encodings
-    or 'utf8' for UTF-8 encodings.
+    :returns: 'narrow' for 8-bit encodings, 'wide' for CJK encodings or 'utf8' for UTF-8 encodings.
     """
     return str_util.get_byte_encoding()
 

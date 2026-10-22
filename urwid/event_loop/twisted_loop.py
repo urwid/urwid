@@ -105,8 +105,8 @@ class TwistedEventLoop(EventLoop):
         """Initialize the event loop, wrapping *reactor* or Twisted's default reactor.
 
         :param reactor: reactor to use
-        :param: manage_reactor: `True` if you want this event loop to run
-                                and stop the reactor.
+        :param manage_reactor: `True` if you want this event loop to run
+                               and stop the reactor.
 
         .. WARNING::
            Twisted's reactor doesn't like to be stopped and run again.  If you
@@ -171,7 +171,7 @@ class TwistedEventLoop(EventLoop):
         """
         Remove an alarm.
 
-        Returns True if the alarm exists, False otherwise
+        :returns: True if the alarm exists, False otherwise
         """
         try:
             handle.cancel()
@@ -201,7 +201,7 @@ class TwistedEventLoop(EventLoop):
         """
         Remove an input file.
 
-        Returns True if the input file exists, False otherwise
+        :returns: True if the input file exists, False otherwise
         """
         if handle in self._watch_files:
             self.reactor.removeReader(typing.cast("IReadDescriptor", self._watch_files[handle]))
@@ -213,7 +213,7 @@ class TwistedEventLoop(EventLoop):
         """
         Add a callback for entering idle.
 
-        Returns a handle that may be passed to remove_enter_idle()
+        :returns: a handle that may be passed to remove_enter_idle()
         """
         self._idle_handle += 1
         self._idle_callbacks[self._idle_handle] = callback
@@ -247,7 +247,7 @@ class TwistedEventLoop(EventLoop):
         """
         Remove an idle callback.
 
-        Returns True if the handle was removed.
+        :returns: True if the handle was removed.
         """
         try:
             del self._idle_callbacks[handle]

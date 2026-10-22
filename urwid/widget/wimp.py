@@ -223,6 +223,8 @@ class CheckBox(WidgetWrap[Columns]):
         :param on_state_change: shorthand for connect_signal()
                                 function call for a single callback
         :param user_data: user_data for on_state_change
+        :param checked_symbol: the symbol drawn inside the brackets for the checked state,
+            ``None`` for the default one
         :raises ValueError: *state* is not one of the states of this check box.
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
@@ -287,6 +289,7 @@ class CheckBox(WidgetWrap[Columns]):
 
         :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
+        :returns: the (columns, rows) the widget needs.
 
         >>> cb = CheckBox("test")
         >>> cb.pack((10,))
@@ -734,6 +737,7 @@ class Button(WidgetWrap[Columns]):
 
         :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
+        :returns: the (columns, rows) the widget needs.
 
         >>> btn = Button("Some button")
         >>> btn.pack((10,))

@@ -58,7 +58,10 @@ def nocache_bargraph_get_data(
         tuple[Sequence[Sequence[float | int]], float, Sequence[float | int] | None],
     ],
 ) -> None:
-    """Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data."""
+    """Disable caching on this bargraph because get_data_fn needs to be polled to get the latest data.
+
+    :warns DeprecationWarning: always, since assigning ``BarGraph.get_data`` is deprecated.
+    """
     _deprecation.warn(
         "Assigning BarGraph.get_data is deprecated. Call BarGraph.set_data() instead.",
         since="4.0.10",
@@ -540,19 +543,13 @@ def calculate_bargraph_display(
     :param top: maximal value for bardata segments
     :param bar_widths: list of integer column widths for each bar
     :param maxrow: rows for display of bargraph
+    :returns: ``[(y_count, [(bar_type, width), ...]), ...]``, one outer tuple per set of identical rows.
+        *y_count* is the number of rows in the set,
+        and the list holds the runs displayed in the row repeated through the set.
+        Each inner tuple is a run of *width* characters of *bar_type*:
+        0 for the background, 1 for the 1st segment, 2 for the 2nd segment and so on.
     :raises BarGraphError: *bardata* and *bar_widths* have different lengths.
     :raises ValueError: a bar segment falls outside the rendered columns.
-
-    Returns a structure as follows:
-      [ ( y_count, [ ( bar_type, width), ... ] ), ... ]
-
-    The outer tuples represent a set of identical rows. y_count is
-    the number of rows in this set, the list contains the data to be
-    displayed in the row repeated through the set.
-
-    The inner tuple describes a run of width characters of bar_type.
-    bar_type is an integer starting from 0 for the background, 1 for
-    the 1st segment, 2 for the 2nd segment etc..
 
     This function should complete in approximately O(n+m) time, where
     n is the number of bars displayed and m is the number of rows.

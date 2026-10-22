@@ -70,7 +70,9 @@ class Columns(
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
 
-        :return: Calculated widget sizing
+        :returns: Calculated widget sizing
+        :warns ColumnsWarning: a column's width type does not suit its widget's sizing,
+            or no sizing fits all columns and the BOX/FLOW fallback is used.
 
         Due to the nature of container with mutable contents, this method cannot be cached.
 
@@ -258,6 +260,8 @@ class Columns(
             see :ref:`select-navigation`.
         :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
         :raises ValueError: *focus_column* is a widget that is not in *widget_list*.
+        :warns ColumnsWarning: an item of *widget_list* is not a widget.
+            A ``'pack'`` column is listed in *box_columns*.
 
         *widget_list* may also contain tuples such as:
 
@@ -634,7 +638,11 @@ class Columns(
             size_kind: WHSettings,
             is_box: bool,
         ) -> int:
-            """Calculate the width a 'pack' column takes by packing its widget."""
+            """Calculate the width a 'pack' column takes by packing its widget.
+
+            :warns ColumnsWarning: the column holds an object that is not a widget,
+                or its widget supports neither FIXED nor FLOW sizing.
+            """
             if isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
@@ -834,6 +842,8 @@ class Columns(
         """Get column widths, heights and render size parameters.
 
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        :warns ColumnsWarning: a column holds an object that is not a widget.
+            A FLOW render is requested and a BOX-only column is not listed in ``box_columns``.
         """
         if not size:
             return self._get_fixed_column_sizes(focus=focus)
@@ -1158,6 +1168,8 @@ class Columns(
 
         :param size: Widget size correct for the supported sizing
         :param key: a single keystroke value
+        :returns: ``None`` if the key was handled, otherwise the key left unhandled,
+            as the focus column returned it.
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         if not self.contents:

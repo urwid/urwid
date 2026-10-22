@@ -321,8 +321,7 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
 
     text may be unicode or a byte string in the target _byte_encoding
 
-    Returns (position, actual_col).
-
+    :returns: (position, actual_col).
     :raises ValueError: *start_offs* is past *end_offs*.
     :raises TypeError: the byte encoding is in use and *text* is not a byte string.
     :raises UnicodeDecodeError: the byte encoding is UTF-8 and the decoded bytes are not valid UTF-8.
@@ -376,6 +375,7 @@ def calc_width(text: str | bytes, start_offs: int, end_offs: int) -> int:
     in sequence by "grapheme boundaries" (Emoji, Skin tones, flags, etc).
 
     :raises ValueError: *start_offs* is past *end_offs*.
+    :warns UnicodeWarning: the byte encoding is UTF-8 and the bytes between the offsets are not valid UTF-8.
     """
     if start_offs > end_offs:
         msg = f"{start_offs=} > {end_offs=}"

@@ -96,7 +96,7 @@ class GLibEventLoop(EventLoop):
         :param func: function to call
         :param args: positional arguments to function
         :param kwargs: keyword arguments to function
-        :return: future object for the function call outcome.
+        :returns: future object for the function call outcome.
         """
         return executor.submit(func, *args, **kwargs)
 
@@ -189,7 +189,7 @@ class GLibEventLoop(EventLoop):
         """
         Remove an alarm.
 
-        Returns True if the alarm exists, False otherwise
+        :returns: True if the alarm exists, False otherwise
         """
         try:
             self._alarms.remove(handle[0])
@@ -225,7 +225,7 @@ class GLibEventLoop(EventLoop):
         """
         Remove an input file.
 
-        Returns True if the input file exists, False otherwise
+        :returns: True if the input file exists, False otherwise
         """
         if handle in self._watch_files:
             GLib.source_remove(self._watch_files[handle])
@@ -237,7 +237,7 @@ class GLibEventLoop(EventLoop):
         """
         Add a callback for entering idle.
 
-        Returns a handle that may be passed to remove_enter_idle()
+        :returns: a handle that may be passed to remove_enter_idle()
         """
         self._idle_handle += 1
         self._idle_callbacks[self._idle_handle] = callback
@@ -263,7 +263,7 @@ class GLibEventLoop(EventLoop):
         """
         Remove an idle callback.
 
-        Returns True if the handle was removed.
+        :returns: True if the handle was removed.
         """
         try:
             del self._idle_callbacks[handle]

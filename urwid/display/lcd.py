@@ -175,10 +175,10 @@ class CFLCDScreen(LCDScreen, abc.ABC):
     def _read_packet(self) -> tuple[int, bytearray] | None:
         """Read a low-level packet.
 
-        Returns ``(command/report code, data)`` or ``None``.
-
         This method stores data read and tries to resync when bad data
         is received.
+
+        :returns: ``(command/report code, data)`` or ``None``.
         """
         # pull in any new data available
         self._unprocessed += self._device.read()
@@ -204,8 +204,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
     def _parse_data(cls, data: bytearray) -> tuple[int, bytearray, bytearray]:
         """Try to read a packet from the start of *data*.
 
-        Returns ``(command/report code, packet_data, remaining_data)``.
-
+        :returns: ``(command/report code, packet_data, remaining_data)``.
         :raises MoreDataRequired: *data* does not yet hold a complete packet.
         :raises InvalidPacket: the packet is longer than the protocol allows, or its CRC does not match.
         """

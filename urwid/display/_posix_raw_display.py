@@ -102,6 +102,8 @@ class Screen(_raw_display_base.Screen):
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
+        :param input: the terminal input, read through its file descriptor.
+        :param output: the terminal output, which the escape codes are written to.
         :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
@@ -148,7 +150,11 @@ class Screen(_raw_display_base.Screen):
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
-        """:param frame: will always be None when the GLib event loop is being used."""
+        """Record a terminal resize and pass the signal on to the previous handler.
+
+        :param signum: the signal number.
+        :param frame: will always be None when the GLib event loop is being used.
+        """
         super()._sigwinch_handler(signum, frame)
 
         if callable(self._prev_sigwinch_handler):
@@ -240,6 +246,8 @@ class Screen(_raw_display_base.Screen):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use an alternate screen buffer
+        :param args: not supported; any value raises :exc:`TypeError`.
+        :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
         """
         if args or kwargs:

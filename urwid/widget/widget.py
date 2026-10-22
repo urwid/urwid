@@ -709,7 +709,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
 
         :param size: See :meth:`Widget.render` for details
         :param key: a single keystroke value; see :ref:`keyboard-input`
-        :return: ``None`` if *key* was handled by *key* (the same value passed) if *key* was not handled
+        :returns: ``None`` if *key* was handled, *key* (the same value passed) if it was not handled
+        :warns WidgetWarning: the widget is not selectable and its class did not call ``super().__init__()``.
         """
         if not self.selectable():
             if hasattr(self, "logger"):
@@ -743,7 +744,8 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         :param col: Column of the event, 0 is the left edge of this widget
         :param row: Row of the event, 0 it the top row of this widget
         :param focus: Set to ``True`` if this widget or one of its children is in focus
-        :return: ``True`` if the event was handled by this widget, ``False`` otherwise
+        :returns: ``True`` if the event was handled by this widget, ``False`` otherwise
+        :warns WidgetWarning: the widget is not selectable and its class did not call ``super().__init__()``.
         """
         if not self.selectable():
             if hasattr(self, "logger"):

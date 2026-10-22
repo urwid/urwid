@@ -270,10 +270,9 @@ _BROWSER_SCHEMES = frozenset({"file", "http", "https", "mailto", "sftp"})
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
     """Generate a lookup table for finding the closest item in *values*.
 
-    Lookup returns (index into values)+1.
-
     :param values: list of values in ascending order, all < size
     :param size: size of lookup table and maximum value
+    :returns: one entry per value from 0 to *size* - 1, holding the index into *values* of the closest item.
 
     >>> _value_lookup_table([0, 7, 9], 10)
     [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
@@ -453,7 +452,7 @@ def _parse_color_256(desc: str) -> int | None:
     'g0'..'g100' -> 16, 232..255, 231 grays and color cube black/white
     'g#00'..'g#ff' -> 16, 232...255, 231 gray and color cube black/white
 
-    Returns None if desc is invalid.
+    :returns: None if desc is invalid.
 
     >>> _parse_color_256("h142")
     142
@@ -532,7 +531,7 @@ def _parse_color_88(desc: str) -> int | None:
     'g0'..'g100' -> 16, 80..87, 79 grays and color cube black/white
     'g#00'..'g#ff' -> 16, 80...87, 79 gray and color cube black/white
 
-    Returns None if desc is invalid.
+    :returns: None if desc is invalid.
 
     >>> _parse_color_88("h142")
     >>> _parse_color_88("h42")
@@ -738,7 +737,8 @@ class AttrSpec:
 
         :param hyperlink: the terminal hyperlink of the text, a string being its URI;
             ``None`` takes the link of the enclosing attribute, and :data:`NO_HYPERLINK` hides it.
-        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*/*bg* need more colours than *colors*.
+        :raises AttrSpecError: *colors* is not a supported palette size.
+            *fg* or *bg* is invalid, or needs more colours than *colors*.
         :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
 
         >>> AttrSpec("dark red", "light gray", 16)
