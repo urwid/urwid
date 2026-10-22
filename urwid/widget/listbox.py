@@ -1346,6 +1346,23 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
             seen.add(position)
             yield widget, position
 
+    def _select_wrap_edges(self) -> tuple[typing.Any, typing.Any] | None:
+        """Return the first and last positions of a body created with ``wrap_around``.
+
+        Such a walker steps from its last position to its first one, so its edges are where a walk stops.
+
+        :returns: ``None`` for a body that does not wrap, has no ``positions()``, or yields no position.
+        """
+        body = self._body
+        if not getattr(body, "wrap_around", False) or not hasattr(body, "positions"):
+            return None
+        missing = object()
+        first = next(iter(body.positions()), missing)
+        last = next(iter(body.positions(reverse=True)), missing)
+        if first is missing or last is missing:
+            return None
+        return first, last
+
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[_K]:
         """Yield the positions of the selectable widgets in the traversal order.
 
@@ -1357,10 +1374,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:
             return
-        # A walker created with wrap_around steps from its last position to its first one: its edges stop the walk.
-        edges = None
-        if getattr(self._body, "wrap_around", False) and hasattr(self._body, "positions"):
-            edges = (next(iter(self._body.positions())), next(iter(self._body.positions(reverse=True))))
+        edges = self._select_wrap_edges()
         seen = _SeenPositions()
         seen.add(focus_pos)
         if from_edge:
