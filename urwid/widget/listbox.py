@@ -1327,17 +1327,41 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         *,
         forward: bool,
         seen: _SeenPositions,
+        edges: tuple[typing.Any, typing.Any] | None,
     ) -> Iterator[tuple[AbstractFlowWidget, typing.Any]]:
         """Yield the widgets and positions after *position*, or before it when *forward* is false.
 
         The walk ends at the end of the body or at a position already in *seen*, which a cyclic walker repeats.
+
+        :param edges: the first and last positions of a wrapping body, where the walk ends as well;
+            ``None`` for a body that ends on its own.
         """
+        edge = None if edges is None else edges[1] if forward else edges[0]
         while True:
+            if edges is not None and position == edge:
+                return
             widget, position = self._body.get_next(position) if forward else self._body.get_prev(position)
             if widget is None or position in seen:
                 return
             seen.add(position)
             yield widget, position
+
+    def _select_wrap_edges(self) -> tuple[typing.Any, typing.Any] | None:
+        """Return the first and last positions of a body created with ``wrap_around``.
+
+        Such a walker steps from its last position to its first one, so its edges are where a walk stops.
+
+        :returns: ``None`` for a body that does not wrap, has no ``positions()``, or yields no position.
+        """
+        body = self._body
+        if not getattr(body, "wrap_around", False) or not hasattr(body, "positions"):
+            return None
+        missing = object()
+        first = next(iter(body.positions()), missing)
+        last = next(iter(body.positions(reverse=True)), missing)
+        if first is missing or last is missing:
+            return None
+        return first, last
 
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[_K]:
         """Yield the positions of the selectable widgets in the traversal order.
@@ -1350,19 +1374,20 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:
             return
+        edges = self._select_wrap_edges()
         seen = _SeenPositions()
         seen.add(focus_pos)
         if from_edge:
             # Selectable positions between the focus and the edge, nearest to the focus first.
             before_focus = [
                 position
-                for widget, position in self._select_walk(focus_pos, forward=reverse, seen=seen)
+                for widget, position in self._select_walk(focus_pos, forward=reverse, seen=seen, edges=edges)
                 if widget.selectable()
             ]
             yield from reversed(before_focus)
             if focus_widget.selectable():
                 yield typing.cast("_K", focus_pos)
-        for widget, position in self._select_walk(focus_pos, forward=not reverse, seen=seen):
+        for widget, position in self._select_walk(focus_pos, forward=not reverse, seen=seen, edges=edges):
             if widget.selectable():
                 yield position
 
