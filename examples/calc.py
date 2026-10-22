@@ -532,7 +532,10 @@ class CellColumn(
         return True
 
     def create_child(self, letter: str) -> tuple[Cell, CellColumn] | tuple[None, None]:
-        """Return (parent cell,child column) or None,None on failure."""
+        """Return (parent cell,child column) or None,None on failure.
+
+        :raises CalcEvent: the cell in focus already has a child column or holds text.
+        """
         i, sub = self._focus_pos()
         if sub != 0:
             # f is not an edit widget
@@ -704,7 +707,10 @@ class CalcDisplay:
         data: list[str | tuple[str, int, int, int]],
         raw_input: list[int],
     ) -> list[str | tuple[str, int, int, int]]:
-        """Handle every keystroke immediately and consume all input, leaving nothing for MainLoop to process."""
+        """Handle every keystroke immediately and consume all input, leaving nothing for MainLoop to process.
+
+        :raises urwid.ExitMainLoop: :kbd:`q` or :kbd:`Q` is pressed.
+        """
         if "q" in data or "Q" in data:
             raise urwid.ExitMainLoop
 
@@ -725,7 +731,8 @@ class CalcDisplay:
     def wrap_keypress(self, key: str | tuple[str, int, int, int]) -> None:
         """Handle confirmation and throw event on bad input.
 
-        :raises ColumnDeleteEvent: if a second BACKSPACE confirms deleting a non-empty column.
+        :raises ColumnDeleteEvent: :kbd:`backspace` asks to delete a non-empty column and is not yet confirmed;
+            the event shows the confirmation prompt, and a second :kbd:`backspace` deletes the column.
         :raises CalcEvent: if `key` is not a valid movement or editing key for the current focus.
         """
         # falls back to the raw key if self.keypress() raises before returning

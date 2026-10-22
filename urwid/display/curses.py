@@ -135,7 +135,7 @@ class Screen(BaseScreen, RealTerminal):
         After calling this function get_input will include mouse
         click events along with keystrokes.
 
-        :raises NotImplementedError: *enable* is false; tracking cannot be turned off.
+        :raises NotImplementedError: *enable* is false while tracking is on; tracking cannot be turned off.
         """
         if enable == self._mouse_tracking_enabled:
             return

@@ -185,6 +185,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         * width == CLIP: only FLOW is supported, and wrapped widget should support FIXED
         * width == GIVEN: FIXED is supported, and wrapped widget should support FLOW
         * All other cases: use sizing of target widget
+
+        :warns PaddingWarning: the width is GIVEN and the wrapped widget supports neither FLOW nor BOX sizing.
         """
         if self._width_type == WHSettings.CLIP:
             return frozenset((Sizing.FLOW,))
@@ -268,6 +270,8 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
         :raises PaddingError: this Padding uses ``CLIP``, which makes it FLOW-only, or its width type does not resolve
             to a fixed size.
+        :warns PaddingWarning: the wrapped widget does not support the sizing a FIXED pack needs:
+            FLOW for a GIVEN width, FIXED otherwise.
         """
         if size:
             return super().pack(size, focus)
@@ -319,6 +323,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         Render the Padding and return the resulting canvas.
 
         :raises ValueError: the Padding is empty and no *size* was given.
+        :warns PaddingWarning: the width is GIVEN and *size* is too narrow for it.
         """
         left, right = self.padding_values(size, focus)
 
@@ -475,7 +480,7 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     ) -> bool:
         """Set the cursor position with (x,y) coordinates of self._original_widget.
 
-        Returns True if move succeeded, False otherwise.
+        :returns: True if move succeeded, False otherwise.
         """
         if not hasattr(self._original_widget, "move_cursor_to_coords"):
             return True

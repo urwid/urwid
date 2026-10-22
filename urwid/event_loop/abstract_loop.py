@@ -76,7 +76,7 @@ class EventLoop(abc.ABC):
         :param func: function to call
         :param args: arguments to function (positional only)
         :param kwargs: keyword arguments to function (keyword only)
-        :return: future object for the function call outcome.
+        :returns: future object for the function call outcome.
                  (exact future type depends on the event loop type)
         :raises NotImplementedError: this event loop cannot run callables in an executor.
         """
@@ -88,10 +88,9 @@ class EventLoop(abc.ABC):
 
         No parameters are passed to callback. This method has no default implementation.
 
-        Returns a handle that may be passed to remove_alarm().
-
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
+        :returns: a handle that may be passed to remove_alarm().
         """
 
     @abc.abstractmethod
@@ -101,7 +100,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns a handle that may be passed to remove_idle()
+        :returns: a handle that may be passed to remove_enter_idle()
         """
 
     @abc.abstractmethod
@@ -111,7 +110,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the alarm exists, False otherwise
+        :returns: True if the alarm exists, False otherwise
         """
 
     @abc.abstractmethod
@@ -121,7 +120,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the handle was removed.
+        :returns: True if the handle was removed.
         """
 
     @abc.abstractmethod
@@ -131,7 +130,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the input file exists, False otherwise
+        :returns: True if the input file exists, False otherwise
         """
 
     @abc.abstractmethod
@@ -148,10 +147,9 @@ class EventLoop(abc.ABC):
 
         No parameters are passed to callback. This method has no default implementation.
 
-        Returns a handle that may be passed to remove_watch_file().
-
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
+        :returns: a handle that may be passed to remove_watch_file().
         """
 
     def set_signal_handler(

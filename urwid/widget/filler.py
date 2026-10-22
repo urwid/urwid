@@ -165,6 +165,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         Rules:
         * height == PACK: the height is taken from the wrapped widget, which therefore should support FLOW
+
+        :warns FillerWarning: the height is PACK and the wrapped widget does not support FLOW sizing.
         """
         sizing: set[Sizing] = {Sizing.BOX}
         if self.height_type in {WHSettings.PACK, WHSettings.GIVEN}:

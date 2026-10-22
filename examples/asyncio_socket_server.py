@@ -123,6 +123,7 @@ class AsyncScreen(Screen):
         """Pump input from the asyncio stream reader into the urwid event loop.
 
         :param event_loop: must be an :class:`urwid.AsyncioEventLoop`, since it needs asyncio's ``create_task``.
+        :param callback: called with the decoded keys and the raw input codes of each read.
         :raises TypeError: if ``event_loop`` is not an :class:`urwid.AsyncioEventLoop`.
         """
         if not isinstance(event_loop, urwid.AsyncioEventLoop):

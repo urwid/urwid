@@ -576,7 +576,7 @@ for _name, _module in _moved_warn.items():
 def __getattr__(name: str) -> typing.Any:
     """Get attributes lazy.
 
-    :return: attribute by name
+    :returns: attribute by name
     :raises AttributeError: attribute is not defined for lazy load
 
     .. deprecated:: 2.4.0

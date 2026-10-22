@@ -114,7 +114,7 @@ class AsyncioEventLoop(EventLoop):
         :param callback: function or coroutine function to call
         :param args: positional arguments to pass to callback
         :param kwargs: keyword arguments to pass to callback
-        :return: callback return value, or None if it was scheduled as a background task
+        :returns: callback return value, or None if it was scheduled as a background task
         """
         if inspect.iscoroutinefunction(callback):
             task = self._loop.create_task(callback(*args, **kwargs))
@@ -161,7 +161,7 @@ class AsyncioEventLoop(EventLoop):
         :param func: function to call
         :param args: arguments to function (positional only)
         :param kwargs: keyword arguments to function (keyword only)
-        :return: future object for the function call outcome.
+        :returns: future object for the function call outcome.
         """
         return self._loop.run_in_executor(executor, functools.partial(func, *args, **kwargs))
 
@@ -187,7 +187,7 @@ class AsyncioEventLoop(EventLoop):
         """
         Remove an alarm.
 
-        Returns True if the alarm was still pending, False if it has fired or was removed already.
+        :returns: True if the alarm was still pending, False if it has fired or was removed already.
         """
         handle.cancel()
         try:
@@ -211,7 +211,7 @@ class AsyncioEventLoop(EventLoop):
         """
         Remove an input file.
 
-        Returns True if the input file exists, False otherwise
+        :returns: True if the input file exists, False otherwise
         """
         return self._loop.remove_reader(handle)
 
@@ -219,7 +219,7 @@ class AsyncioEventLoop(EventLoop):
         """
         Add a callback for entering idle.
 
-        Returns a handle that may be passed to remove_enter_idle()
+        :returns: a handle that may be passed to remove_enter_idle()
         """
         # XXX there's no such thing as "idle" in most event loops; this fakes
         # it by adding extra callback to the timer and file watch callbacks.
@@ -231,7 +231,7 @@ class AsyncioEventLoop(EventLoop):
         """
         Remove an idle callback.
 
-        Returns True if the handle was removed.
+        :returns: True if the handle was removed.
         """
         try:
             del self._idle_callbacks[handle]

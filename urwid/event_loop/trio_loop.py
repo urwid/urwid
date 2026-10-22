@@ -207,7 +207,7 @@ class TrioEventLoop(EventLoop):
 
         :param seconds: time in seconds to wait before calling the callback
         :param callback: function to call from the event loop
-        :return: a handle that may be passed to `remove_alarm()`
+        :returns: a handle that may be passed to `remove_alarm()`
 
         No parameters are passed to the callback.
         """
@@ -243,6 +243,7 @@ class TrioEventLoop(EventLoop):
         """Remove an idle callback.
 
         :param handle: the handle of the idle callback to remove
+        :returns: ``True`` if *handle* was found, ``False`` otherwise.
         """
         try:
             del self._idle_callbacks[handle]
@@ -278,7 +279,7 @@ class TrioEventLoop(EventLoop):
         :param callback: function or coroutine function to call
         :param args: positional arguments to pass to callback
         :param kwargs: keyword arguments to pass to callback
-        :return: callback return value, or None if it was scheduled as a nursery task
+        :returns: callback return value, or None if it was scheduled as a nursery task
         """
         if inspect.iscoroutinefunction(callback):
             # Callers run only while the nursery is open: its tasks, and the idle instrument, which checks.

@@ -78,7 +78,8 @@ class Pile(
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
 
-        :return: Calculated widget sizing
+        :returns: Calculated widget sizing
+        :warns PileWarning: an item's height type does not suit its widget's sizing.
 
         Due to the nature of container with mutable contents, this method cannot be cached.
 
@@ -217,6 +218,7 @@ class Pile(
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
+        :warns PileWarning: an item of *widget_list* is not a widget.
 
         *widget_list* may also contain tuples such as:
 
@@ -779,6 +781,8 @@ class Pile(
 
         Flow case is the simplest one: minimum cycles in the logic and no widgets manipulation.
         Here we can make some shortcuts
+
+        :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
         maxcol = size[0]
         if not self.contents:
@@ -829,6 +833,7 @@ class Pile(
         """Get rows widths, heights and render size parameters.
 
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
         if not size:
             return self._get_fixed_rows_sizes(focus=focus)

@@ -241,6 +241,8 @@ class Overlay(
         * * width amount and GIVEN width or min_width AND:
         * * * FLOW supported by the TOP widget AND PACK height type
         * * * BOX supported by the TOP widget AND height_amount and GIVEN height or min height
+
+        :warns OverlayWarning: the top widget does not support the sizing its width or height type needs.
         """
         sizing = {Sizing.BOX}
         top_sizing = self.top_w.sizing()

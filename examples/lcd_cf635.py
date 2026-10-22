@@ -116,6 +116,7 @@ class LCDProgressBar(urwid.Widget):
     def move_position(self, size: tuple[int], direction: int) -> int:
         """Update and return the value one step +ve or -ve, based on the size of the displayed bar.
 
+        :param size: the size the bar is displayed at
         :param direction: 1 for +ve, 0 for -ve
         """
         steps = self.get_steps(size)

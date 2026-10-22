@@ -586,7 +586,7 @@ class Edit(WidgetWrap[Text]):
     ) -> bool:
         r"""Set the cursor position with (x,y) coordinates.
 
-        Returns True if move succeeded, False otherwise.
+        :returns: True if move succeeded, False otherwise.
 
         >>> size = (10,)
         >>> e = Edit("", "edit\ntext")

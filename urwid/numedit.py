@@ -160,6 +160,7 @@ class IntegerEdit(NumEdit):
 
         :param caption: caption markup
         :param default: default edit value
+        :param base: the numeric base of the value, from 2 to 36
         :param allow_negative: accept a leading minus sign in string defaults and input
         :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
             consist of digits valid for *base*.
@@ -292,10 +293,14 @@ class FloatEdit(NumEdit):
 
         :param caption: caption markup
         :param default: default edit value. Strings must use the configured decimal separator.
+        :param preserveSignificance: deprecated positional form of *preserve_significance*
+        :param decimalSeparator: deprecated positional form of *decimal_separator*
         :param preserve_significance: return value has the same signif. as default
         :param decimal_separator: use '.' as separator by default, optionally a ','
-        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`, or *decimal_separator* is
-            neither ``'.'`` nor ``','``.
+        :param allow_negative: accept a leading minus sign in string defaults and input
+        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`.
+            *default* is a string with the other decimal separator, is not a number, or is not a finite value.
+            *decimal_separator* is neither ``'.'`` nor ``','``.
 
         .. deprecated:: 2.2.3
             The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,

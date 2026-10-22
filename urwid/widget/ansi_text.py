@@ -226,7 +226,7 @@ class ANSIText(WidgetWrap[Text]):
             whole accumulated input into one multi-row block.
         :param kwargs: forwarded to :meth:`_from_parsed` (i.e. ``wrap``/``align`` for the internal
             :class:`~urwid.Text`).
-        :returns: an iterator yielding one or more :class:`ANSIText` instances, in order, depending on ``one_line``.
+        :yields: one or more :class:`ANSIText` instances, in order, depending on ``one_line``.
         """
         parser = AnsiParser(previous_attr, one_line=one_line)
         for chunk in chunks:

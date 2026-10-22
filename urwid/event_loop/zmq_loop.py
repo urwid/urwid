@@ -88,7 +88,7 @@ class ZMQEventLoop(EventLoop):
         :param callback: function or coroutine function to call
         :param args: positional arguments to pass to callback
         :param kwargs: keyword arguments to pass to callback
-        :return: callback return value, or None if it was scheduled as a background task
+        :returns: callback return value, or None if it was scheduled as a background task
         """
         if inspect.iscoroutinefunction(callback):
             task = asyncio.get_running_loop().create_task(callback(*args, **kwargs))
@@ -124,7 +124,7 @@ class ZMQEventLoop(EventLoop):
         :param func: function to call
         :param args: positional arguments to function
         :param kwargs: keyword arguments to function
-        :return: future object for the function call outcome.
+        :returns: future object for the function call outcome.
         """
         return executor.submit(func, *args, **kwargs)
 
@@ -146,7 +146,7 @@ class ZMQEventLoop(EventLoop):
     def remove_alarm(self, handle: ZMQAlarmHandle) -> bool:
         """Remove an alarm.
 
-        Returns ``True`` if the alarm exists, ``False`` otherwise.
+        :returns: ``True`` if the alarm exists, ``False`` otherwise.
         """
         try:
             self._alarms.remove(handle)
@@ -194,7 +194,6 @@ class ZMQEventLoop(EventLoop):
         """Call *callback* when *fd* has some data to read.
 
         No parameters are passed to the callback. The *flags* are as for :meth:`watch_queue`.
-        Returns a handle that may be passed to :meth:`remove_watch_file`.
 
         .. note::
             For a zmq socket, this method and :meth:`watch_queue` set the same watch.
@@ -212,6 +211,7 @@ class ZMQEventLoop(EventLoop):
 
         :param int flags:
             The condition to monitor on the file (defaults to ``POLLIN``).
+        :returns: a handle that may be passed to :meth:`remove_watch_file`.
         """
         # The key the poller reports a ready entry by: the socket for a zmq socket, the descriptor number otherwise.
         key = fd if isinstance(fd, (int, zmq.Socket)) else fd.fileno()
@@ -222,7 +222,7 @@ class ZMQEventLoop(EventLoop):
     def remove_watch_queue(self, handle: zmq.Socket[typing.Any]) -> bool:
         """Remove a queue from background polling.
 
-        Returns ``True`` if the queue was being monitored, ``False`` otherwise.
+        :returns: ``True`` if the queue was being monitored, ``False`` otherwise.
         """
         try:
             try:
@@ -240,7 +240,8 @@ class ZMQEventLoop(EventLoop):
 
         *handle* may be the object given to :meth:`watch_file` or, for an ordinary file, its descriptor number.
         A zmq socket is named by the socket object itself.
-        Returns ``True`` if the file was being monitored, ``False`` otherwise.
+
+        :returns: ``True`` if the file was being monitored, ``False`` otherwise.
         """
         key = handle if isinstance(handle, (int, zmq.Socket)) else handle.fileno()
         try:
@@ -257,7 +258,7 @@ class ZMQEventLoop(EventLoop):
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
         """Add a *callback* to be executed when the event loop detects it is idle.
 
-        Returns a handle that may be passed to :meth:`remove_enter_idle`.
+        :returns: a handle that may be passed to :meth:`remove_enter_idle`.
         """
         self._idle_handle += 1
         self._idle_callbacks[self._idle_handle] = callback
@@ -266,7 +267,7 @@ class ZMQEventLoop(EventLoop):
     def remove_enter_idle(self, handle: int) -> bool:
         """Remove an idle callback.
 
-        Returns ``True`` if *handle* was removed, ``False`` otherwise.
+        :returns: ``True`` if *handle* was removed, ``False`` otherwise.
         """
         try:
             del self._idle_callbacks[handle]

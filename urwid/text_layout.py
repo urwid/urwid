@@ -318,6 +318,9 @@ class StandardTextLayout(TextLayout):
     ) -> tuple[list[tuple[int, int, int | bytes] | tuple[int, int]], int, int]:
         """Lay out one line holding tab characters without wrapping it.
 
+        :param text: the text the line is part of
+        :param start: the offset in *text* where the line starts
+        :param end: the offset in *text* where the line ends
         :param limit: screen columns to stop at, ``None`` to lay out the whole line.
         :returns: the line segments, their total screen columns,
             and the text offset the layout stopped at (*end* unless *limit* cut the line short).
@@ -860,8 +863,7 @@ def calc_line_pos(
 ) -> int | None:
     """Calculate the closest linear position to pref_col given a line layout structure.
 
-    Returns None if no position found.
-
+    :returns: None if no position found.
     :raises TypeError: *pref_col* is neither an integer nor ``'left'``/``'right'``.
     """
     if pref_col in {"left", "right"}:
@@ -947,6 +949,7 @@ def calc_coords(
     :param layout: layout structure applied to text
     :param pos: integer position into text
     :param clamp: ignored right now
+    :returns: the (x, y) coordinates: the screen column and the line of the layout.
     """
     closest: tuple[int, tuple[int, int]] | None = None
     y = 0

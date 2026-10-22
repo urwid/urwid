@@ -257,7 +257,7 @@ class MainLoop:
 
         :param callback: function to call with this main loop object and *user_data*
         :param user_data: user data to pass to *callback*
-        :return: a zero-argument callback suitable for :meth:`EventLoop.alarm`
+        :returns: a zero-argument callback suitable for :meth:`EventLoop.alarm`
         """
         if inspect.iscoroutinefunction(callback):
 
@@ -293,6 +293,7 @@ class MainLoop:
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :param user_data: optional user data to pass to the callback
+        :returns: a handle that may be passed to :meth:`remove_alarm`.
 
         .. note::
             *callback* may be an ``async def`` function on an :attr:`event_loop`
@@ -316,12 +317,11 @@ class MainLoop:
     ) -> typing.Any:
         """Schedule an alarm at *tm* time that will call *callback* from the within the :meth:`run` function.
 
-        Returns a handle that may be passed to :meth:`remove_alarm`.
-
         :param tm: time to call callback e.g. ``time.time() + 5``
         :param callback: function to call with two parameters: this main loop
                          object and *user_data*
         :param user_data: optional user data to pass to the callback
+        :returns: a handle that may be passed to :meth:`remove_alarm`.
 
         .. note::
             *callback* may be an ``async def`` function on an :attr:`event_loop`
@@ -410,9 +410,9 @@ class MainLoop:
             """
             Close the read end of the pipe and remove the watch created by :meth:`watch_pipe`.
 
-            ..note:: You are responsible for closing the write end of the pipe.
+            :returns: ``True`` if the watch pipe exists, ``False`` otherwise
 
-            Returns ``True`` if the watch pipe exists, ``False`` otherwise
+            .. note:: You are responsible for closing the write end of the pipe.
             """
             try:
                 watch_handle, pipe_rd = self._watch_pipes.pop(write_fd)
@@ -426,7 +426,7 @@ class MainLoop:
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
         """Call *callback* when *fd* has some data to read. No parameters are passed to callback.
 
-        Returns a handle that may be passed to :meth:`remove_watch_file`.
+        :returns: a handle that may be passed to :meth:`remove_watch_file`.
 
         .. note::
             *callback* is passed to :attr:`event_loop` unwrapped, so it may be an ``async def``
@@ -696,9 +696,7 @@ class MainLoop:
 
         *keys* is a list of input returned from :attr:`screen`'s get_input() method or its event loop hook.
 
-        Returns ``True`` if any key was handled by a widget or the
-        :meth:`unhandled_input` method.
-
+        :returns: ``True`` if any key was handled by a widget or the :meth:`unhandled_input` method.
         :raises TypeError: an item of *keys* is neither a key name nor a mouse event tuple.
         """
         self.logger.debug(f"Processing input: keys={keys!r}")

@@ -524,6 +524,8 @@ class Screen(BaseScreen, RealTerminal):
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
+        :param input: the terminal input, read through its file descriptor.
+        :param output: the terminal output, which the escape codes are written to.
         :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
@@ -592,6 +594,7 @@ class Screen(BaseScreen, RealTerminal):
         so it only sets a flag and writes to the wake-up socket.
         :meth:`parse_input` reports the resize and drops the screen buffer in the thread that draws the screen.
 
+        :param signum: the signal number; it is not used.
         :param frame: will always be None when the GLib event loop is being used.
         """
         self._resized = True
@@ -746,6 +749,8 @@ class Screen(BaseScreen, RealTerminal):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use alternate screen buffer
+        :param args: not supported; an implementation raises :exc:`TypeError` when any is given.
+        :param kwargs: not supported; an implementation raises :exc:`TypeError` when any is given.
         """
 
     def _stop_mouse_restore_buffer(self) -> None:
@@ -936,7 +941,10 @@ class Screen(BaseScreen, RealTerminal):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> Callable[[], None]:
-        """Support old Screen classes that still have a get_input_nonblocking and expect it to work."""
+        """Support old Screen classes that still have a get_input_nonblocking and expect it to work.
+
+        :warns DeprecationWarning: always, since overriding ``get_input_nonblocking()`` is deprecated.
+        """
         _deprecation.warn(
             f"{self.__class__.__module__}.{self.__class__.__qualname__} defines get_input_nonblocking(). "
             "Override get_available_raw_input() instead.",

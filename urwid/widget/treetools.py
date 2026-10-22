@@ -395,6 +395,8 @@ class TreeNode(typing.Generic[_T]):
         """Rename this node to ``key``, updating the parent's reference to it as well.
 
         :raises TreeWidgetError: this node is the root.
+            The parent is not loaded yet and :meth:`load_parent` is not overridden.
+            *key* is already a key among the parent's children, this node's own key included.
         """
         self._require_parent().change_child_key(self._key, key)
 

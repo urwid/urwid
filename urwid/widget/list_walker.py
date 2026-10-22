@@ -397,11 +397,10 @@ class SimpleFocusListWalker(
 def _positions_reverse(args: tuple[bool, ...], *, reverse: object) -> bool:
     """Return the *reverse* argument of a ``positions()`` call that may still pass it positionally.
 
-    A positional *reverse* emits a deprecation warning.
-
     :param args: the positional arguments of the call
     :param reverse: the keyword argument of the call, ``_REVERSE_NOT_GIVEN`` when it is not given
     :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+    :warns DeprecationWarning: *reverse* is passed positionally.
     """
     if not args:
         return reverse is not _REVERSE_NOT_GIVEN and bool(reverse)

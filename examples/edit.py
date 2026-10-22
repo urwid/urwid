@@ -187,7 +187,10 @@ class EditDisplay:
         self.loop.run()
 
     def unhandled_keypress(self, k: str | tuple[str, int, int, int]) -> bool | None:
-        """Last resort for keypresses."""
+        """Last resort for keypresses.
+
+        :raises urwid.ExitMainLoop: :kbd:`f8` is pressed.
+        """
         if k == "f5":
             self.save_file()
         elif k == "f8":

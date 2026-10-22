@@ -156,7 +156,10 @@ class FontRegistry(type):
         namespace: dict[str, typing.Any],
         **kwds: typing.Any,
     ) -> FontRegistry:
-        """Create the new font class and register it under its ``name``, if any."""
+        """Create the new font class and register it under its ``name``, if any.
+
+        :warns FontRegistryWarning: another font class is already registered under the same name.
+        """
         font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
         font_class = super().__new__(mcs, name, bases, namespace)
         if font_name:
