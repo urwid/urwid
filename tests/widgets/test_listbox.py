@@ -3703,6 +3703,23 @@ class ListBoxSelectNavigationTest(unittest.TestCase):
         self.assertEqual("tab", listbox.keypress(self.size, "tab"))
         self.assertEqual(0, listbox.focus_position)
 
+    def test_wrap_around_walker_ends_at_its_edges(self) -> None:
+        """A walker created with ``wrap_around`` is traversed from its first to its last position."""
+        for walker_cls in (
+            urwid.SimpleListWalker,
+            urwid.SimpleFocusListWalker,
+            urwid.SimpleDequeWalker,
+            urwid.SimpleFocusDequeWalker,
+        ):
+            with self.subTest(walker=walker_cls.__name__):
+                listbox = urwid.ListBox(walker_cls(self._widgets(), wrap_around=True), select_navigation=True)
+                self._assert_traversal(listbox, list(range(5)))
+                listbox.focus_position = 2
+                self.assertTrue(listbox.focus_first_selectable())
+                self.assertEqual(0, listbox.focus_position)
+                self.assertTrue(listbox.focus_last_selectable())
+                self.assertEqual(4, listbox.focus_position)
+
     def test_lazy_walk(self) -> None:
         """A step reads the body only up to the next selectable widget."""
         walker = CountingWalker([SelectableText("a"), urwid.Text("-"), SelectableText("b"), *self._widgets()])

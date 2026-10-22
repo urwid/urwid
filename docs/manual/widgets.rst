@@ -478,10 +478,15 @@ or from :class:`SelectNavigationListContentsMixin` when its positions are
 indexes into a ``contents`` list; the mixin documentation lists what the
 container has to provide.
 
-``select_navigation=True`` on a :class:`ListBox` requires a finite body:
-``get_next()`` and ``get_prev()`` of its list walker must reach
-``(None, None)`` in both directions.  A list walker that repeats a position
-is treated as ending there, so the key is returned instead of looping.
+``select_navigation=True`` on a :class:`ListBox` expects a finite body:
+``get_next()`` and ``get_prev()`` of its list walker reach
+``(None, None)`` in both directions.  A body without an end never returns
+from the search.  A list walker created with
+``wrap_around=True``, such as :class:`SimpleFocusListWalker`, is traversed
+from the first to the last position of its ``positions()``, so the key is
+returned at its end.  Another list walker that repeats a position is treated
+as ending where the walk comes back to the focus: the search does not loop,
+but the key is returned only when no other selectable widget is left.
 
 
 Pile Widgets

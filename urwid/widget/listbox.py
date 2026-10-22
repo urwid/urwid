@@ -1327,12 +1327,19 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         *,
         forward: bool,
         seen: _SeenPositions,
+        edges: tuple[typing.Any, typing.Any] | None,
     ) -> Iterator[tuple[AbstractFlowWidget, typing.Any]]:
         """Yield the widgets and positions after *position*, or before it when *forward* is false.
 
         The walk ends at the end of the body or at a position already in *seen*, which a cyclic walker repeats.
+
+        :param edges: the first and last positions of a wrapping body, where the walk ends as well;
+            ``None`` for a body that ends on its own.
         """
+        edge = None if edges is None else edges[1] if forward else edges[0]
         while True:
+            if edges is not None and position == edge:
+                return
             widget, position = self._body.get_next(position) if forward else self._body.get_prev(position)
             if widget is None or position in seen:
                 return
@@ -1350,19 +1357,23 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:
             return
+        # A walker created with wrap_around steps from its last position to its first one: its edges stop the walk.
+        edges = None
+        if getattr(self._body, "wrap_around", False) and hasattr(self._body, "positions"):
+            edges = (next(iter(self._body.positions())), next(iter(self._body.positions(reverse=True))))
         seen = _SeenPositions()
         seen.add(focus_pos)
         if from_edge:
             # Selectable positions between the focus and the edge, nearest to the focus first.
             before_focus = [
                 position
-                for widget, position in self._select_walk(focus_pos, forward=reverse, seen=seen)
+                for widget, position in self._select_walk(focus_pos, forward=reverse, seen=seen, edges=edges)
                 if widget.selectable()
             ]
             yield from reversed(before_focus)
             if focus_widget.selectable():
                 yield typing.cast("_K", focus_pos)
-        for widget, position in self._select_walk(focus_pos, forward=not reverse, seen=seen):
+        for widget, position in self._select_walk(focus_pos, forward=not reverse, seen=seen, edges=edges):
             if widget.selectable():
                 yield position
 
