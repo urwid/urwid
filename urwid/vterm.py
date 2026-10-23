@@ -39,7 +39,7 @@ import traceback
 import typing
 from collections import deque
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from urwid import event_loop, util
 from urwid.ansi_parser import (
@@ -55,11 +55,17 @@ from urwid.ansi_parser import (
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec, RealTerminal
 from urwid.display.escape import (
+    _CSI_LETTER_KEYS,
+    _CSI_TILDE_KEYS,
+    _CSI_U_KEYS,
+    _KEY_MODIFIER_PREFIXES,
     _MOUSE_BYTE_OFFSET,
     _MOUSE_COORD_OFFSET,
     ALT_DEC_SPECIAL_CHARS,
     DEC_SPECIAL_CHARS,
     MOUSE_X10_PAST_END,
+    KeyModifier,
+    KittyKeyboardFlag,
     MouseBit,
     PrivateMode,
 )
@@ -201,6 +207,42 @@ _MOUSE_BUTTON_CODES: typing.Final = {
 _MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(4, 8))
 #: the modifier prefixes of an urwid mouse event, in the order urwid writes them, and their bits in a mouse report
 _MOUSE_MODIFIERS: typing.Final = (("shift ", MouseBit.SHIFT), ("meta ", MouseBit.META), ("ctrl ", MouseBit.CTRL))
+#: the modes that switch to the alternate screen when set and back to the main one when reset
+_ALTERNATE_SCREEN_MODES: typing.Final = frozenset(
+    (
+        PrivateMode.ALTERNATE_SCREEN,
+        PrivateMode.ALTERNATE_SCREEN_CLEARED_ON_EXIT,
+        PrivateMode.ALTERNATE_SCREEN_BUFFER,
+    )
+)
+
+#: the private markers of the kitty keyboard protocol's CSI u sequences: query, push, pop and set the flags
+_KITTY_KEYBOARD_MARKERS: typing.Final = frozenset((b"?", b">", b"<", b"="))
+#: the flags a Terminal accepts, all the protocol defines; others are dropped, so a query shows they are not set
+_KITTY_KEYBOARD_ALL_FLAGS: typing.Final = ~KittyKeyboardFlag(0)
+#: the flags whose key reports differ from the legacy keys; event types and alternate keys alone change no key press
+_KITTY_KEYBOARD_REPORTING_FLAGS: typing.Final = KittyKeyboardFlag.DISAMBIGUATE | KittyKeyboardFlag.ALL_KEYS
+#: the entries a screen's keyboard flag stack keeps, as in kitty; a push onto a full stack drops the oldest entry
+_KITTY_KEYBOARD_STACK_LIMIT: typing.Final = 8
+#: the keypad keys' codes in a CSI u report, from 0 to the middle key; urwid names these keys as the main keys
+_KITTY_KEYPAD_CODES: typing.Final = range(57399, 57428)
+#: the CSI u codes of Caps Lock, Scroll Lock, Num Lock and the modifier keys, which are reported only with all keys as
+#: escape codes
+_KITTY_MODIFIER_KEY_CODES: typing.Final = frozenset((*range(57358, 57361), *range(57441, 57455)))
+#: the key of each CSI 1 ; modifiers letter report, by urwid name; "5" is left out, since it is also the digit key
+_KITTY_LETTER_KEYS: typing.Final = {name: chr(final) for final, name in _CSI_LETTER_KEYS.items() if name != "5"}
+#: the key of each CSI number ~ report, by urwid name: the editing keys, F3 and F5 to F12; F13 and above are CSI u keys
+_KITTY_TILDE_KEYS: typing.Final = {
+    name: number for number, name in _CSI_TILDE_KEYS.items() if number <= 24 and name not in _KITTY_LETTER_KEYS
+}
+#: the code of each key a CSI u report names by a code that is not its text, by urwid name; Backspace is 127
+_KITTY_CSI_U_KEYS: typing.Final = {
+    name: code for code, name in _CSI_U_KEYS.items() if code != 8 and code not in _KITTY_KEYPAD_CODES
+}
+#: the keys the kitty keyboard protocol sends as legacy keys without modifiers, unless all keys are escape codes
+_KITTY_LEGACY_KEYS: typing.Final = frozenset(("enter", "tab", "backspace"))
+#: the keys that frame pasted text, which is sent as typed in a legacy terminal whatever the keyboard flags
+_PASTE_KEYS: typing.Final = frozenset(("begin paste", "end paste"))
 
 
 class CSIAlias(typing.NamedTuple):
@@ -295,6 +337,11 @@ class TermModes:
     mouse_tracking: PrivateMode | None = None
     # the mode of the mouse report encoding the child asked for, or None for the X10 encoding
     mouse_encoding: PrivateMode | None = None
+    # the alternate screen is shown, rather than the main one
+    alternate_screen: bool = False
+
+    # the kitty keyboard protocol's flag stack of the screen shown, with the flags in effect last; empty for none
+    keyboard_flags: list[int] = field(default_factory=list)
 
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
@@ -314,9 +361,23 @@ class TermModes:
         self.visible_cursor = True
         self.mouse_tracking = None
         self.mouse_encoding = None
+        self.alternate_screen = False
+
+        self.keyboard_flags = []
 
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
+
+
+@dataclass(slots=True, weakref_slot=True)
+class _Screen:
+    """The state a :class:`TermCanvas` keeps for the screen it does not show, the main or the alternate one."""
+
+    term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
+    scrollback_buffer: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
+    saved_cursor: tuple[int, int] | None = None
+    saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
+    keyboard_flags: list[int] = field(default_factory=list)
 
 
 class TermCharset:
@@ -422,6 +483,10 @@ class TermCanvas(Canvas):
 
         self.tabstops: list[int] = []
         self.term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = []
+        # the screen not shown: the alternate one while the main one is shown, and the other way round
+        self._hidden_screen = _Screen([], deque(maxlen=0))
+        # a new canvas starts on its main screen, also for modes an earlier canvas left on the alternate one
+        self.modes.alternate_screen = False
 
         self.reset()
 
@@ -485,7 +550,13 @@ class TermCanvas(Canvas):
         self.set_term_cursor()
 
     def reset(self) -> None:
-        """Reset the terminal."""
+        """Reset the terminal to its startup state on the main screen.
+
+        The main screen is cleared. It keeps its scrollback. The alternate screen is replaced by a blank one.
+        """
+        if self.modes.alternate_screen:
+            self._swap_screens()
+
         self._escbuf = bytearray()
         self.within_escape = False
         self.parsestate = 0
@@ -507,6 +578,60 @@ class TermCanvas(Canvas):
 
         # initialize self.term
         self.clear()
+        # the alternate screen keeps no scrollback, as in xterm: the lines scrolled off it are dropped
+        self._hidden_screen = _Screen([[_BLANK_CELL] * self.width for _ in range(self.height)], deque(maxlen=0))
+
+    def _swap_screens(self) -> None:
+        """Swap the screen shown with the one kept apart.
+
+        The cursor position stays where it is.
+        """
+        hidden = self._hidden_screen
+        self._hidden_screen = _Screen(
+            self.term,
+            self.scrollback_buffer,
+            self.saved_cursor,
+            self.saved_attrs,
+            self.modes.keyboard_flags,
+        )
+        self.term = hidden.term
+        self.scrollback_buffer = hidden.scrollback_buffer
+        self.saved_cursor = hidden.saved_cursor
+        self.saved_attrs = hidden.saved_attrs
+        self.modes.keyboard_flags = hidden.keyboard_flags
+        self.modes.alternate_screen = not self.modes.alternate_screen
+        self.scroll_buffer(reset=True)
+
+    def set_alternate_screen(self, mode: PrivateMode, flag: bool) -> None:
+        """Switch to or from the alternate screen for DEC private *mode*, as xterm does.
+
+        Each screen keeps its own content, scrollback, cursor saved by DECSC and keyboard flags. The cursor position
+        is shared.
+
+        - 47 switches to the alternate screen when set, and back to the main one when reset.
+        - 1047 also clears the alternate screen before switching back from it.
+        - 1049 also saves the cursor as DECSC does before switching to the alternate screen.
+        - 1049 also clears the alternate screen after switching to it.
+        - 1049 also restores the saved cursor after switching back to the main screen.
+
+        :param mode: one of the modes in :data:`_ALTERNATE_SCREEN_MODES`.
+        :param flag: the mode is set rather than reset.
+        """
+        if flag:
+            if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+                self.save_cursor(with_attrs=True)
+            if not self.modes.alternate_screen:
+                self._swap_screens()
+            if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+                self.clear(cursor=self.term_cursor)
+            return
+
+        if self.modes.alternate_screen:
+            if mode == PrivateMode.ALTERNATE_SCREEN_CLEARED_ON_EXIT:
+                self.clear(cursor=self.term_cursor)
+            self._swap_screens()
+        if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+            self.restore_cursor(with_attrs=True)
 
     def init_tabstops(self, extend: bool = False) -> None:
         """Set every column to a tabstop, or, when *extend* is set, grow the existing tabstops to the new width."""
@@ -568,45 +693,19 @@ class TermCanvas(Canvas):
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """Resize the terminal to the given width and height."""
+        """Resize both screens to the given width and height, keeping the cursor and saved cursors on their lines."""
         x, y = self.term_cursor
 
-        if width > self.width:
-            # grow
-            for row in range(self.height):
-                self.term[row] += [_BLANK_CELL] * (width - self.width)
-        elif width < self.width:
-            # shrink
-            for row in range(self.height):
-                self.term[row] = self.term[row][:width]
+        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height)
+        y += shift
+        if self.saved_cursor is not None:
+            self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
+        hidden = self._hidden_screen
+        hidden_shift = self._resize_lines(hidden.term, hidden.scrollback_buffer, width, height)
+        if hidden.saved_cursor is not None:
+            hidden.saved_cursor = (hidden.saved_cursor[0], hidden.saved_cursor[1] + hidden_shift)
 
         self.width = width
-
-        if height > self.height:
-            # grow
-            for _y in range(self.height, height):
-                try:
-                    last_line = self.scrollback_buffer.pop()
-                except IndexError:
-                    # nothing in scrollback buffer, append an empty line
-                    self.term.append([_BLANK_CELL] * self.width)
-                    self.scrollregion_end += 1
-                    continue
-
-                # adjust x axis of scrollback buffer to the current width
-                if (padding := self.width - len(last_line)) > 0:
-                    last_line += [_BLANK_CELL] * padding
-                else:
-                    last_line = last_line[: self.width]
-
-                self.term.insert(0, last_line)
-                y += 1
-        elif height < self.height:
-            # shrink
-            for _y in range(height, self.height):
-                self.scrollback_buffer.append(self.term.pop(0))
-                y -= 1
-
         self.height = height
 
         self.reset_scroll()
@@ -616,6 +715,39 @@ class TermCanvas(Canvas):
 
         # extend tabs
         self.init_tabstops(extend=True)
+
+    def _resize_lines(
+        self,
+        lines: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
+        scrollback: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
+        width: int,
+        height: int,
+    ) -> int:
+        """Fit *lines*, a screen of the current size, to *width* and *height* in place.
+
+        A screen that shrinks moves its top lines to the end of *scrollback*, and one that grows takes them back from
+        there, or adds blank lines at the bottom once *scrollback* is empty.
+
+        :returns: how many rows the lines that stay on the screen moved down, negative when they moved up.
+        """
+        for row in range(self.height):
+            lines[row] = lines[row][:width] + [_BLANK_CELL] * (width - self.width)
+
+        shift = 0
+        for _y in range(self.height, height):
+            if not scrollback:
+                lines.append([_BLANK_CELL] * width)
+                continue
+
+            # adjust x axis of the scrollback line to the new width
+            last_line = scrollback.pop()
+            lines.insert(0, last_line[:width] + [_BLANK_CELL] * (width - len(last_line)))
+            shift += 1
+        for _y in range(height, self.height):
+            scrollback.append(lines.pop(0))
+            shift -= 1
+
+        return shift
 
     def set_g01(self, char: bytes, mod: bytes) -> None:
         """Set G0 or G1 according to 'char' and modifier 'mod'."""
@@ -640,6 +772,12 @@ class TermCanvas(Canvas):
 
     def parse_csi(self, char: bytes) -> None:
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
+        if char == b"u" and (marker := bytes(self._escbuf[:1])) in _KITTY_KEYBOARD_MARKERS:
+            params = self._escbuf[1:]
+            if not params.strip(b"0123456789;"):
+                self.csi_keyboard_flags(marker, [int(param) if param else None for param in params.split(b";")])
+            return
+
         qmark = self._escbuf.startswith(b"?")
         body = self._escbuf[1 if qmark else 0 :]
         if body.strip(b"0123456789;") or (qmark and char not in _CSI_PRIVATE_FINAL_BYTES):
@@ -1314,12 +1452,11 @@ class TermCanvas(Canvas):
         return attrspec
 
     def reverse_video(self, undo: bool = False) -> None:
-        """Reverse video/scanmode (DECSCNM) by swapping fg and bg colors."""
-        for y in range(self.height):
-            for x in range(self.width):
-                char = self.term[y][x]
-                attrs = self.reverse_attrspec(char[0], undo=undo)
-                self.term[y][x] = (attrs, *char[1:])
+        """Reverse video/scanmode (DECSCNM) on both screens by swapping fg and bg colors."""
+        for lines in (self.term, self._hidden_screen.term):
+            for line in lines:
+                for x, char in enumerate(line):
+                    line[x] = (self.reverse_attrspec(char[0], undo=undo), *char[1:])
 
     def set_mode(
         self,
@@ -1368,6 +1505,14 @@ class TermCanvas(Canvas):
                     self.modes.mouse_encoding = None
             elif private_mode in _RECOGNISED_IGNORED_MODES:
                 pass  # for the reason given at each member of PrivateMode
+            elif private_mode in _ALTERNATE_SCREEN_MODES:
+                self.set_alternate_screen(PrivateMode(private_mode), flag)
+            elif private_mode == PrivateMode.SAVE_CURSOR:
+                # set saves the cursor as DECSC does, and reset restores it as DECRC does
+                if flag:
+                    self.save_cursor(with_attrs=True)
+                else:
+                    self.restore_cursor(with_attrs=True)
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
             elif private_mode == PrivateMode.SYNCHRONIZED_OUTPUT:
@@ -1425,6 +1570,49 @@ class TermCanvas(Canvas):
         """Report device attributes (what are you?). In our case, we'll report ourself as a VT102 terminal."""
         if not qmark:
             self.widget.respond(f"{ESC}[?6c")
+
+    def csi_keyboard_flags(self, marker: bytes, params: Sequence[int | None]) -> None:
+        """Act on a kitty keyboard protocol sequence for the flag stack of the screen shown.
+
+        An empty stack means no flags. The sequences are:
+
+        - ``CSI ? u``, answered with ``CSI ? flags u``.
+        - ``CSI > flags u``, which pushes *flags*.
+        - ``CSI < number u``, which pops *number* entries, 1 by default.
+        - ``CSI = flags ; mode u``, which changes the entry on top, or adds one to an empty stack. *mode* 1, the
+          default, sets *flags*. *mode* 2 adds them. *mode* 3 removes them.
+
+        :param marker: the private marker that selects the sequence: ``?``, ``>``, ``<`` or ``=``.
+        :param params: the parameters after it, None for an empty one.
+        :raises ValueError: *marker* is none of these.
+        """
+        stack = self.modes.keyboard_flags
+        flags = int((params[0] or 0) & _KITTY_KEYBOARD_ALL_FLAGS)
+        current = stack[-1] if stack else 0
+        if marker == b"?":
+            self.widget.respond(f"{ESC}[?{current:d}u")
+        elif marker == b">":
+            stack.append(flags)
+            del stack[:-_KITTY_KEYBOARD_STACK_LIMIT]
+        elif marker == b"<":
+            del stack[-(params[0] or 1) :]
+        elif marker == b"=":
+            mode = params[1] if len(params) > 1 and params[1] is not None else 1
+            if mode == 1:
+                current = flags
+            elif mode == 2:
+                current |= flags
+            elif mode == 3:
+                current &= ~flags
+            else:
+                return
+            if stack:
+                stack[-1] = current
+            else:
+                stack.append(current)
+        else:
+            msg = f"Not a kitty keyboard protocol marker: {marker!r}"
+            raise ValueError(msg)
 
     def csi_status_report(self, mode: int) -> None:
         """Report various information about the terminal status.
@@ -1615,6 +1803,8 @@ class Terminal(Widget):
 
         self.keygrab = False
         self.last_key: str | None = None
+        # the keys between "begin paste" and "end paste" are being handled
+        self._pasting = False
         # the button of the last press reported to the child, for a release or a drag that does not name its button
         self._pressed_button = 0
 
@@ -1923,7 +2113,8 @@ class Terminal(Widget):
 
         grabbed = self.keygrab
 
-        if key in {"begin paste", "end paste"}:
+        if key in _PASTE_KEYS:
+            self._pasting = key == "begin paste"
             if self.term_modes.bracketed_paste:
                 pass  # passthrough bracketed paste sequences
             else:  # swallow bracketed paste sequences
@@ -2076,7 +2267,25 @@ class Terminal(Widget):
         return True
 
     def _key_sequence(self, key: str) -> str | None:
-        """Return the characters the child receives for *key*, or ``None`` when its terminal type has none."""
+        """Return the characters the child receives for *key*, or ``None`` when its terminal type has none.
+
+        While the flags the child set with the kitty keyboard protocol change key reports, the keys are sent in that
+        protocol, except for pasted text, which is sent as a legacy terminal sends it.
+        """
+        flags = self.term_modes.keyboard_flags[-1] if self.term_modes.keyboard_flags else 0
+        if flags & _KITTY_KEYBOARD_REPORTING_FLAGS and not self._pasting and key not in _PASTE_KEYS:
+            sent = _kitty_key_report(key, flags)
+        else:
+            sent = self._legacy_key_sequence(key)
+
+        # ENTER transmits both a carriage return and linefeed in LF/NL mode.
+        if self.term_modes.lfnl and sent is not None and sent.endswith("\r"):
+            sent += "\n"
+
+        return sent
+
+    def _legacy_key_sequence(self, key: str) -> str | None:
+        """Return the characters a ``linux`` terminal sends for *key*, or ``None`` when it has none."""
         meta = key.startswith("meta ")
         sent = key.removeprefix("meta ")
         sent = _LEGACY_KEYS.get(sent, sent)
@@ -2103,11 +2312,69 @@ class Terminal(Widget):
         if meta and len(sent) != 1:
             return None
 
-        # ENTER transmits both a carriage return and linefeed in LF/NL mode.
-        if self.term_modes.lfnl and sent == "\r":
-            sent += "\n"
-
         if meta:
             sent = ESC + sent
 
         return sent
+
+
+def _kitty_key_report(key: str, flags: int) -> str | None:
+    """Return what a terminal sends for *key* in the kitty keyboard protocol, or ``None`` when it sends nothing.
+
+    - Unless all keys are escape codes, a text key whose name has no modifiers is sent as its text.
+    - Unless all keys are escape codes, Enter, Tab and Backspace without modifiers are sent as the legacy keys.
+    - An upper case letter is reported as the lower case key with shift. With alternate keys, the report adds the
+      upper case letter as the shifted key.
+    - Another shifted symbol is reported as the symbol, since the key that types it depends on the keyboard layout.
+    - The keypad keys are sent as the main keys, since urwid names them alike.
+
+    :param key: the urwid key name.
+    :param flags: the keyboard flags in effect, with disambiguate or all keys set.
+    """
+    name = key
+    modifiers = 0
+    for prefix, bits in _KEY_MODIFIER_PREFIXES:
+        if name.startswith(prefix) and len(name) > len(prefix):
+            name = name.removeprefix(prefix)
+            # urwid's "meta" is the modifier a terminal sends Alt as
+            modifiers |= bits & ~KeyModifier.META
+    all_keys = flags & KittyKeyboardFlag.ALL_KEYS
+
+    if name in _KITTY_LETTER_KEYS:
+        final = _KITTY_LETTER_KEYS[name]
+        return f"{ESC}[1;{modifiers + 1:d}{final}" if modifiers else f"{ESC}[{final}"
+    if name in _KITTY_TILDE_KEYS:
+        number = _KITTY_TILDE_KEYS[name]
+        return f"{ESC}[{number:d};{modifiers + 1:d}~" if modifiers else f"{ESC}[{number:d}~"
+
+    text = ""
+    if name in _KITTY_CSI_U_KEYS:
+        code = _KITTY_CSI_U_KEYS[name]
+        if not (modifiers or all_keys) and name in _KITTY_LEGACY_KEYS:
+            return KEY_TRANSLATIONS[name]
+        if code in _KITTY_MODIFIER_KEY_CODES and not all_keys:
+            return None
+        key_field = f"{code:d}"
+    elif len(name) == 1 and name.isprintable():
+        if not (modifiers or all_keys):
+            return name
+        if not modifiers:
+            # the text the key types, which a name with a modifier does not give
+            text = name
+        if len(lower := name.lower()) == 1 and lower != name and lower.upper() == name:
+            # an upper case letter, typed with shift
+            modifiers |= KeyModifier.SHIFT
+            key_field = f"{ord(lower):d}"
+            if flags & KittyKeyboardFlag.ALTERNATE_KEYS:
+                key_field += f":{ord(name):d}"
+        else:
+            key_field = f"{ord(name):d}"
+    else:
+        return None
+
+    modifiers_field = f"{modifiers + 1:d}" if modifiers else ""
+    if text and flags & KittyKeyboardFlag.ASSOCIATED_TEXT:
+        return f"{ESC}[{key_field};{modifiers_field};{ord(text):d}u"
+    if modifiers:
+        return f"{ESC}[{key_field};{modifiers_field}u"
+    return f"{ESC}[{key_field}u"

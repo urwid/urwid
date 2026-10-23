@@ -977,6 +977,7 @@ class TermTest(unittest.TestCase):
             ("DECID reports a VT102", r"\eZ", b"\x1b[?6c"),
             ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?6c"),
         ):
             with self.subTest(label):
                 self.restart()
@@ -985,16 +986,19 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(bytes(self.pty.from_widget), answer)
 
     def test_save_restore_cursor_esc_keeps_attributes(self) -> None:
-        """Restore the attributes saved by DECSC together with the cursor position."""
-        self.write(r"\e[31mab\e7\e[0m\e[2;1Hcd\e8e")
+        """Restore the attributes saved by DECSC or mode 1048 together with the cursor position."""
         red = urwid.AttrSpec("dark red", "default")
-        self.expect(
-            [
-                [(red, None, b"a"), (red, None, b"b"), (red, None, b"e")],
-                [(None, None, b"c"), (None, None, b"d")],
-            ],
-            raw=True,
-        )
+        for save, restore in ((r"\e7", r"\e8"), (r"\e[?1048h", r"\e[?1048l")):
+            with self.subTest(save=save):
+                self.restart()
+                self.write(rf"\e[31mab{save}\e[0m\e[2;1Hcd{restore}e")
+                self.expect(
+                    [
+                        [(red, None, b"a"), (red, None, b"b"), (red, None, b"e")],
+                        [(None, None, b"c"), (None, None, b"d")],
+                    ],
+                    raw=True,
+                )
 
     def test_charset_designation(self) -> None:
         """Draw with the DEC special graphics set while it is designated as G0."""
@@ -1068,14 +1072,14 @@ class TermTest(unittest.TestCase):
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
         """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5uf\e[!pg\e[>ch")
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[!pg\e[>ch")
         self.expect("abcdefgh")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
 
     def test_private_form_of_a_command_without_one_is_ignored(self) -> None:
-        """Ignore CSI ? u (kitty keyboard query), CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
-        self.write(r"a\e[s\e[2;1Hb\e[?uc\e[?4md\e[?1se\e[?1r\e[uf")
+        """Ignore CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
+        self.write(r"a\e[s\e[2;1Hbc\e[?4md\e[?1se\e[?1r\e[uf")
         self.expect("af\nbcde")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
@@ -1088,13 +1092,23 @@ class TermTest(unittest.TestCase):
         self.assertEqual(self.term.get_cursor_coords((2, 24)), (1, 0))
 
     def test_resize_keeps_the_cursor_on_its_line(self) -> None:
-        """Keep the cursor on its line when the width changes or lines move to and from the scrollback."""
+        """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
         self.write("a\nb\nc\\e[2;2H")
         for size, char in (((70, 24), "X"), ((70, 23), "Y"), ((80, 24), "Z")):
             self.read()
             self.resize(*size)
             self.write(char)
         self.expect("a\nbXYZ\nc")
+        self.write(r"\e[2;2H\e7")
+        self.read()
+        self.resize(80, 23)
+        self.write(r"\e8W")
+        self.expect("bWYZ\nc")
+        self.write(r"\e[1;3H\e7")
+        self.read()
+        self.resize(80, 24)
+        self.write(r"\e8V")
+        self.expect("a\nbWVZ\nc")
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
@@ -1104,6 +1118,120 @@ class TermTest(unittest.TestCase):
         added = {cell for line in self.term.term.term[:24] for cell in line[80:]}
         added |= {cell for line in self.term.term.term[24:] for cell in line}
         self.assertEqual(added, {(None, None, b" ")})
+
+    def test_alternate_screen(self) -> None:
+        """Show the alternate screen while modes 47, 1047 and 1049 are set, keeping the main screen and its scrollback.
+
+        The alternate screen keeps no scrollback. 1049 saves and restores the cursor, and clears the alternate screen
+        on entering it. 1047 clears it on leaving it. 47 keeps it.
+        """
+        for mode, main, alternate in (
+            ("47", "2   Z\n3\n4", "\n Y"),
+            ("1047", "2   Z\n3\n4", ""),
+            ("1049", "2\n3\n4Z", "\n Y"),
+        ):
+            with self.subTest(mode=mode):
+                self.restart(10, 3)
+                self.write("1\n2\n3\n4")
+                self.read()
+                # the alternate screen is shown from its first line on
+                self.term.term.scroll_buffer(up=True)
+                self.write(rf"\e[?{mode}hX")
+                self.expect("\n\n X")
+                self.assertTrue(self.term.term_modes.alternate_screen)
+                self.write("\\e[2J\\e[3;2HY\n")
+                self.expect("\n Y")
+                self.term.term.scroll_buffer(up=True)
+                self.expect("\n Y")
+                self.write(rf"\e[1;5H\e[?{mode}lZ")
+                self.expect(main)
+                self.assertFalse(self.term.term_modes.alternate_screen)
+                self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+                self.term.term.scroll_buffer(up=True)
+                self.expect("1\n" + main.rsplit("\n", 1)[0])
+                self.term.term.scroll_buffer(reset=True)
+                self.write(r"\e[?47h")
+                self.expect(alternate)
+
+    def test_new_canvas_starts_on_the_main_screen(self) -> None:
+        """Start a canvas on its main screen, with a scrollback, also for modes left on the alternate screen."""
+        self.write(r"\e[?1049h")
+        self.read()
+        canvas = urwid.TermCanvas(10, 3, self.term)
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        # the alternate screen keeps no scrollback
+        self.assertGreater(canvas.scrollback_buffer.maxlen, 0)
+
+    def test_reverse_video_covers_both_screens(self) -> None:
+        """Reverse the cells of the screen not shown as well, so DECSCNM shows on whichever screen is switched to."""
+        self.write(r"a\e[?47hb\e[?5h\e[?47l")
+        self.read()
+        self.assertIn("standout", self.term.term.term[0][0][0].foreground)
+        self.write(r"\e[?5l\e[?47h")
+        self.read()
+        self.assertNotIn("standout", self.term.term.term[0][1][0].foreground)
+
+    def test_alternate_screen_resize(self) -> None:
+        """Resize the main screen with the alternate one shown, restoring the cursor saved by 1049 to its line."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\\e[?1049hA")
+        self.read()
+        self.resize(12, 2)
+        self.expect("\n A")
+        self.write(r"\e[?1049lZ")
+        self.expect("2\n3Z")
+        self.assertEqual({len(line) for line in self.term.term.content()}, {12})
+        self.write(r"\e[?1049hB")
+        self.read()
+        self.resize(10, 3)
+        self.write(r"\e[?1049lY")
+        self.expect("1\n2\n3ZY")
+
+    def test_reset_shows_the_main_screen(self) -> None:
+        """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen and the flags."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\n4\\e[>1u\\e[?1049h\\e[>8ualt\\ec")
+        self.expect("")
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        self.assertEqual(self.term.term_modes.keyboard_flags, [])
+        self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+        self.write(r"\e[?47h\e[?u")
+        self.expect("")
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?0u")
+
+    def test_keyboard_flags(self) -> None:
+        """Answer the kitty keyboard flags query after pushing, popping and setting the flags, on each screen."""
+        # none of these sequences is the restore of the cursor that CSI u is without a private marker
+        self.write(r"a\e[s\e[2;1Hb\e[>1u\e[=1u\e[<uc")
+        self.expect("a\nbc")
+        steps = (
+            ("", 0),
+            (r"\e[>1u", 1),
+            (r"\e[>5u", 5),
+            (r"\e[<u", 1),
+            (r"\e[=4;2u", 5),
+            (r"\e[=1;3u", 4),
+            (r"\e[=8u", 8),
+            (r"\e[=1;4u", 8),
+            (r"\e[>1:2u\e[>1;2:3u", 8),
+            (r"\e[<5u", 0),
+            (r"\e[=3u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>255u", 31),
+            (r"\e[>u", 0),
+            ("".join(rf"\e[>{flags}u" for flags in range(1, 11)) + r"\e[<7u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>2u\e[?47h", 0),
+            (r"\e[>4u", 4),
+            (r"\e[?47l", 2),
+            (r"\e[?47h", 4),
+        )
+        for written, flags in steps:
+            with self.subTest(written=written):
+                self.pty.from_widget.clear()
+                self.write(rf"{written}\e[?u")
+                self.read()
+                self.assertEqual(bytes(self.pty.from_widget), f"\x1b[?{flags}u".encode())
 
     def test_wait_and_feed_without_output_returns(self) -> None:
         """Return after the timeout without reading when the child wrote nothing."""
@@ -1285,6 +1413,100 @@ class TermTest(unittest.TestCase):
                 self.term.keygrab = True
                 self.assertIsNone(self.term.keypress(self.termsize, keys[0]))
                 self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_keys_in_the_kitty_keyboard_protocol(self) -> None:
+        """Send keys as the kitty keyboard protocol reports them under the flags the child set.
+
+        urwid's own input parser reads each report back as the same key.
+        """
+        for flags, key, sent in (
+            # disambiguate escape codes
+            (1, "a", b"a"),
+            (1, "A", b"A"),
+            (1, "ctrl b", b"\x1b[98;5u"),
+            (1, "ctrl A", b"\x1b[97;6u"),
+            (1, "ctrl c", b"\x1b[99;5u"),
+            (1, "meta a", b"\x1b[97;3u"),
+            (1, "meta ctrl super hyper x", b"\x1b[120;31u"),
+            (1, "ctrl  ", b"\x1b[32;5u"),
+            (1, "shift 1", b"\x1b[49;2u"),
+            (1, "ctrl 5", b"\x1b[53;5u"),
+            (1, "ctrl \u0436", b"\x1b[1078;5u"),
+            (1, "ctrl \u0416", b"\x1b[1078;6u"),
+            (1, "esc", b"\x1b[27u"),
+            (1, "enter", b"\r"),
+            (1, "tab", b"\t"),
+            (1, "backspace", b"\x7f"),
+            (1, "shift enter", b"\x1b[13;2u"),
+            (1, "shift tab", b"\x1b[9;2u"),
+            (1, "ctrl backspace", b"\x1b[127;5u"),
+            (1, "up", b"\x1b[A"),
+            (1, "ctrl up", b"\x1b[1;5A"),
+            (1, "f1", b"\x1b[P"),
+            (1, "shift f4", b"\x1b[1;2S"),
+            (1, "f3", b"\x1b[13~"),
+            (1, "shift f3", b"\x1b[13;2~"),
+            (1, "page up", b"\x1b[5~"),
+            (1, "f12", b"\x1b[24~"),
+            (1, "f13", b"\x1b[57376u"),
+            (1, "media play", b"\x1b[57428u"),
+            (1, "left shift", None),
+            (1, "caps lock", None),
+            (1, "focus in", None),
+            (1, "<130>", None),
+            # event types are accepted, and only presses are reported
+            (3, "ctrl b", b"\x1b[98;5u"),
+            # report alternate keys
+            (5, "ctrl A", b"\x1b[97:65;6u"),
+            (5, "meta A", b"\x1b[97:65;4u"),
+            (5, "ctrl b", b"\x1b[98;5u"),
+            (5, "A", b"A"),
+            # report all keys as escape codes
+            (8, "a", b"\x1b[97u"),
+            (8, "A", b"\x1b[97;2u"),
+            (8, "1", b"\x1b[49u"),
+            (8, "enter", b"\x1b[13u"),
+            (8, "left shift", b"\x1b[57441u"),
+            (8, "shift caps lock", b"\x1b[57358;2u"),
+            # and associated text
+            (28, "a", b"\x1b[97;;97u"),
+            (28, "A", b"\x1b[97:65;2;65u"),
+            (28, "ctrl b", b"\x1b[98;5u"),
+            # event types or alternate keys alone change no key press
+            (2, "ctrl b", b"\x02"),
+            (4, "f1", b"\x1b[[A"),
+            (20, "meta a", b"\x1ba"),
+        ):
+            with self.subTest(flags=flags, key=key):
+                self.restart()
+                self.write(rf"\e[={flags}u")
+                self.read()
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), None if sent else key)
+                self.assertEqual(bytes(self.pty.from_widget), sent or b"")
+                if sent is not None:
+                    keys, rest = urwid.display.escape.process_keyqueue(
+                        list(sent), more_available=False, keyboard_protocol="kitty"
+                    )
+                    self.assertEqual((keys, rest), ([key], []))
+
+    def test_kitty_keyboard_protocol_keeps_cursor_key_and_lf_nl_modes_apart(self) -> None:
+        """Send the cursor keys in their CSI form also in cursor key mode, and enter as CR LF in LF/NL mode."""
+        self.write(r"\e[?1h\e[20h\e[=1u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("up", "enter"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[A\r\n")
+
+    def test_pasted_text_is_sent_as_text_under_the_kitty_keyboard_protocol(self) -> None:
+        """Send the keys between "begin paste" and "end paste" as typed, also when all keys are escape codes."""
+        self.write(r"\e[?2004h\e[=8u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("begin paste", "a", "enter", "end paste", "a"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[200~a\r\x1b[201~\x1b[97u")
 
     def mouse(self, *events: tuple[str, int, int, int]) -> tuple[list[bool | None], bytes]:
         """Send mouse *events* as ``(event, button, col, row)``, and return what each returned and what the child got."""

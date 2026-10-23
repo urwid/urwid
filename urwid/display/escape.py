@@ -111,6 +111,16 @@ class KeyModifier(enum.IntFlag):
     NUM_LOCK = 128
 
 
+class KittyKeyboardFlag(enum.IntFlag):
+    """The kitty keyboard protocol's progressive enhancement flags, which a program sets with ``CSI = flags u``."""
+
+    DISAMBIGUATE = 1  # disambiguate escape codes
+    EVENT_TYPES = 2  # report event types
+    ALTERNATE_KEYS = 4  # report alternate keys
+    ALL_KEYS = 8  # report all keys as escape codes
+    ASSOCIATED_TEXT = 16  # report associated text
+
+
 #: the key name prefix of each modifier, in the order urwid writes them; Alt and Meta are both urwid's "meta"
 _KEY_MODIFIER_PREFIXES: typing.Final = (
     ("shift ", KeyModifier.SHIFT),
@@ -1136,7 +1146,8 @@ class PrivateMode(enum.StrEnum):
     # Neither display controls cursor blinking; the mode is recognised and never turned on.
     CURSOR_BLINK = "12"
     CURSOR_VISIBLE = "25"  # DECTCEM
-    # For the alternate screen in a Terminal, which is not implemented yet.
+    # The alternate screen (47, 1047, 1049) and the cursor saved as DECSC saves it (1048); a Terminal implements them
+    # as `vterm.TermCanvas.set_alternate_screen` describes.
     ALTERNATE_SCREEN = "47"
     ALTERNATE_SCREEN_CLEARED_ON_EXIT = "1047"
     SAVE_CURSOR = "1048"
@@ -1196,8 +1207,8 @@ REPORT_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}c"
 # kitty keyboard protocol: the flags query (replied as CSI ? flags u), and pushing and popping the flags on the
 # terminal's per-screen stack
 KITTY_KEYBOARD_QUERY: typing.Final = f"{CSI}?u"
-# disambiguate escape codes (1) and report alternate keys (4), so a shifted symbol is named by what it types
-KITTY_KEYBOARD_FLAGS: typing.Final = 0b101
+# report alternate keys, so a shifted symbol is named by what it types
+KITTY_KEYBOARD_FLAGS: typing.Final = KittyKeyboardFlag.DISAMBIGUATE | KittyKeyboardFlag.ALTERNATE_KEYS
 KITTY_KEYBOARD_PUSH: typing.Final = f"{CSI}>{KITTY_KEYBOARD_FLAGS}u"
 KITTY_KEYBOARD_POP: typing.Final = f"{CSI}<u"
 
