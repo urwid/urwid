@@ -568,45 +568,15 @@ class TermCanvas(Canvas):
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """Resize the terminal to the given width and height."""
+        """Resize the terminal to the given width and height, keeping the cursor and the saved cursor on their lines."""
         x, y = self.term_cursor
 
-        if width > self.width:
-            # grow
-            for row in range(self.height):
-                self.term[row] += [_BLANK_CELL] * (width - self.width)
-        elif width < self.width:
-            # shrink
-            for row in range(self.height):
-                self.term[row] = self.term[row][:width]
+        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height)
+        y += shift
+        if self.saved_cursor is not None:
+            self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
 
         self.width = width
-
-        if height > self.height:
-            # grow
-            for _y in range(self.height, height):
-                try:
-                    last_line = self.scrollback_buffer.pop()
-                except IndexError:
-                    # nothing in scrollback buffer, append an empty line
-                    self.term.append([_BLANK_CELL] * self.width)
-                    self.scrollregion_end += 1
-                    continue
-
-                # adjust x axis of scrollback buffer to the current width
-                if (padding := self.width - len(last_line)) > 0:
-                    last_line += [_BLANK_CELL] * padding
-                else:
-                    last_line = last_line[: self.width]
-
-                self.term.insert(0, last_line)
-                y += 1
-        elif height < self.height:
-            # shrink
-            for _y in range(height, self.height):
-                self.scrollback_buffer.append(self.term.pop(0))
-                y -= 1
-
         self.height = height
 
         self.reset_scroll()
@@ -616,6 +586,39 @@ class TermCanvas(Canvas):
 
         # extend tabs
         self.init_tabstops(extend=True)
+
+    def _resize_lines(
+        self,
+        lines: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
+        scrollback: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
+        width: int,
+        height: int,
+    ) -> int:
+        """Fit *lines*, a screen of the current size, to *width* and *height* in place.
+
+        A screen that shrinks moves its top lines to the end of *scrollback*, and one that grows takes them back from
+        there, or adds blank lines at the bottom once *scrollback* is empty.
+
+        :returns: how many rows the lines that stay on the screen moved down, negative when they moved up.
+        """
+        for row in range(self.height):
+            lines[row] = lines[row][:width] + [_BLANK_CELL] * (width - self.width)
+
+        shift = 0
+        for _y in range(self.height, height):
+            if not scrollback:
+                lines.append([_BLANK_CELL] * width)
+                continue
+
+            # adjust x axis of the scrollback line to the new width
+            last_line = scrollback.pop()
+            lines.insert(0, last_line[:width] + [_BLANK_CELL] * (width - len(last_line)))
+            shift += 1
+        for _y in range(height, self.height):
+            scrollback.append(lines.pop(0))
+            shift -= 1
+
+        return shift
 
     def set_g01(self, char: bytes, mod: bytes) -> None:
         """Set G0 or G1 according to 'char' and modifier 'mod'."""

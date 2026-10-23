@@ -1088,13 +1088,23 @@ class TermTest(unittest.TestCase):
         self.assertEqual(self.term.get_cursor_coords((2, 24)), (1, 0))
 
     def test_resize_keeps_the_cursor_on_its_line(self) -> None:
-        """Keep the cursor on its line when the width changes or lines move to and from the scrollback."""
+        """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
         self.write("a\nb\nc\\e[2;2H")
         for size, char in (((70, 24), "X"), ((70, 23), "Y"), ((80, 24), "Z")):
             self.read()
             self.resize(*size)
             self.write(char)
         self.expect("a\nbXYZ\nc")
+        self.write(r"\e[2;2H\e7")
+        self.read()
+        self.resize(80, 23)
+        self.write(r"\e8W")
+        self.expect("bWYZ\nc")
+        self.write(r"\e[1;3H\e7")
+        self.read()
+        self.resize(80, 24)
+        self.write(r"\e8V")
+        self.expect("a\nbWVZ\nc")
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
