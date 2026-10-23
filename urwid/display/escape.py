@@ -808,6 +808,8 @@ class PrivateMode(enum.StrEnum):
 
     Not every member is queried or acted on, some members are for future development.
     `_raw_display_base.TermModes` carries a field for each mode the raw display queries.
+    `vterm.TermModes` carries the modes a `Terminal` acts on, with one field for each group of modes that replace
+    each other, such as the mouse tracking modes.
     """
 
     APPLICATION_CURSOR_KEYS = "1"  # DECCKM
@@ -823,7 +825,7 @@ class PrivateMode(enum.StrEnum):
     ALTERNATE_SCREEN_CLEARED_ON_EXIT = "1047"
     SAVE_CURSOR = "1048"
     ALTERNATE_SCREEN_BUFFER = "1049"
-    # Reports presses only, without modifiers.
+    # Reports presses only, without modifiers; a Terminal uses it only while no other tracking mode is on.
     MOUSE_X10 = "9"
     MOUSE_REPORTING = "1000"
     # The program answers a press with CSI T and the terminal highlights the drag; urwid implements none of it.

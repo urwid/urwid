@@ -1243,6 +1243,147 @@ class TermTest(unittest.TestCase):
                 self.assertIsNone(self.term.keypress(self.termsize, keys[0]))
                 self.assertEqual(bytes(self.pty.from_widget), sent)
 
+    def mouse(self, *events: tuple[str, int, int, int]) -> tuple[list[bool | None], bytes]:
+        """Send mouse *events* as ``(event, button, col, row)``, and return what each returned and what the child got."""
+        self.pty.from_widget.clear()
+        handled = [self.term.mouse_event(self.termsize, *event, focus=True) for event in events]
+        return handled, bytes(self.pty.from_widget)
+
+    def test_mouse_events_reported_as_xterm_does(self) -> None:
+        """Report mouse events to a child that tracks the mouse, in its tracking mode and encoding."""
+        for modes, events, sent in (
+            ("1000", [("mouse press", 1, 4, 2), ("mouse release", 0, 4, 2)], b"\x1b[M %#\x1b[M#%#"),
+            (
+                "1000",
+                [
+                    ("mouse press", 1, 0, 0),
+                    ("mouse press", 3, 0, 0),
+                    ("mouse release", 0, 0, 0),
+                    ("mouse release", 0, 0, 0),
+                ],
+                b'\x1b[M !!\x1b[M"!!\x1b[M#!!\x1b[M#!!',
+            ),
+            ("1000", [("mouse press", 1, 0, 0), ("shift mouse release", 0, 0, 0)], b"\x1b[M !!\x1b[M'!!"),
+            ("1000", [("shift ctrl mouse press", 3, 0, 0)], b"\x1b[M6!!"),
+            ("1002", [("mouse drag", 0, 0, 0)], b""),
+            (
+                "1002",
+                [("mouse press", 1, 0, 0), ("mouse press", 4, 0, 0), ("mouse drag", 0, 1, 0)],
+                b'\x1b[M !!\x1b[M`!!\x1b[M@"!',
+            ),
+            (
+                "1000;1006",
+                [("mouse press", 1, 0, 0), ("mouse release", 0, 0, 0), ("mouse release", 0, 0, 0)],
+                b"\x1b[<0;1;1M\x1b[<0;1;1m",
+            ),
+            ("1000;1006", [("mouse press", 9, 0, 0), ("mouse release", 9, 0, 0)], b"\x1b[<129;1;1M\x1b[<129;1;1m"),
+            ("1000", [("meta mouse press", 8, 0, 0)], b"\x1b[M\xa8!!"),
+            ("1000", [("mouse press", 5, 0, 0), ("mouse release", 5, 0, 0)], b"\x1b[Ma!!"),
+            ("1000", [("mouse press", 1, 0, 0), ("mouse drag", 1, 1, 0)], b"\x1b[M !!"),
+            ("1002", [("mouse press", 1, 0, 0), ("mouse drag", 1, 1, 0)], b'\x1b[M !!\x1b[M@"!'),
+            ("1003", [("mouse press", 2, 0, 0), ("mouse drag", 0, 1, 0)], b'\x1b[M!!!\x1b[MA"!'),
+            ("1000", [("mouse press", 1, 222, 300)], b"\x1b[M \xff\x00"),
+            ("1000;1005", [("mouse press", 1, 94, 300)], b"\x1b[M \x7f\xc5\x8d"),
+            ("1000;1005", [("mouse press", 1, 3000, 0)], b"\x1b[M \x00!"),
+            ("1000;1006", [("mouse press", 2, 4, 2), ("mouse release", 2, 4, 2)], b"\x1b[<1;5;3M\x1b[<1;5;3m"),
+            ("1000;1006", [("mouse press", 3, 4, 2), ("mouse release", 0, 4, 2)], b"\x1b[<2;5;3M\x1b[<2;5;3m"),
+            ("1000;1006", [("mouse release", 0, 0, 0)], b""),
+            ("1000;1006", [("mouse press", 4, 300, 0)], b"\x1b[<64;301;1M"),
+            ("1002;1006", [("ctrl mouse drag", 1, 0, 0)], b"\x1b[<48;1;1M"),
+            ("1000;1005;1006", [("mouse press", 1, 0, 0)], b"\x1b[<0;1;1M"),
+            ("9", [("shift ctrl mouse press", 1, 4, 2)], b"\x1b[M %#"),
+            (
+                "9",
+                [
+                    ("mouse press", 3, 0, 0),
+                    ("mouse drag", 3, 1, 0),
+                    ("mouse release", 0, 1, 0),
+                    ("mouse press", 4, 0, 0),
+                ],
+                b'\x1b[M"!!',
+            ),
+            ("9;1006", [("meta mouse press", 2, 4, 2), ("mouse release", 2, 4, 2)], b"\x1b[<1;5;3M"),
+        ):
+            with self.subTest(modes=modes, events=events):
+                self.restart()
+                self.write(f"\\e[?{modes}h")
+                self.drain()
+                self.assertEqual(self.mouse(*events), ([True] * len(events), sent))
+
+    def test_mouse_reports_read_back_as_the_same_event(self) -> None:
+        """Encode a mouse event so that urwid's own input parser reads the event back."""
+        for modes in ("1002", "1002;1006"):
+            for event in (
+                ("mouse press", 1, 4, 2),
+                ("shift meta ctrl mouse press", 3, 0, 0),
+                ("mouse press", 7, 0, 0),
+                ("mouse press", 11, 0, 0),
+                ("mouse drag", 2, 9, 9),
+            ):
+                with self.subTest(modes=modes, event=event):
+                    self.restart()
+                    self.write(f"\\e[?{modes}h")
+                    self.drain()
+                    _, sent = self.mouse(event)
+                    keys, rest = urwid.display.escape.process_keyqueue(list(sent), more_available=False)
+                    self.assertEqual((keys, rest), ([event], []))
+
+    def test_mouse_events_not_handled(self) -> None:
+        """Leave a mouse event to the parent when the child does not track the mouse or cannot receive it."""
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+        self.write("\\e[?1000h")
+        self.drain()
+        for event in ("double mouse click", "mouse click"):
+            with self.subTest(event=event):
+                self.assertEqual(self.mouse((event, 1, 0, 0)), ([False], b""))
+
+        # highlight tracking is not implemented, so its press would wait for a CSI T answer that never comes
+        self.write("\\e[?1001h")
+        self.drain()
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+        self.write("\\e[?1000h")
+        self.drain()
+
+        self.resize(10, 3)
+        self.write("1\n2\n3\n4\n5")
+        self.drain()
+        self.term.term.scroll_buffer(up=True, lines=1)
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+        self.term.term.scroll_buffer(reset=True)
+        self.term.terminate()
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+    def test_mouse_modes_set_and_reset(self) -> None:
+        """Track the mouse modes as xterm does: one tracking mode and one encoding at a time."""
+        mode = urwid.display.escape.PrivateMode
+        for sequence, tracking, encoding in (
+            ("\\e[?1000h\\e[?1003h", mode.MOUSE_ANY_EVENT_TRACKING, None),
+            ("\\e[?1003h\\e[?1000l", None, None),
+            ("\\e[?1006h\\e[?1005h", None, mode.MOUSE_UTF8_MODE),
+            ("\\e[?1006h\\e[?1005l", None, mode.MOUSE_SGR_MODE),
+            ("\\e[?1006h\\e[?1006l", None, None),
+            ("\\e[?1002;1006h\\ec", None, None),
+            ("\\e[?1000h\\e[?1001h", mode.MOUSE_HIGHLIGHT_TRACKING, None),
+            ("\\e[?1003h\\e[?1001l", None, None),
+            ("\\e[?1006h\\e[?1015h", None, mode.MOUSE_SGR_MODE),
+            ("\\e[?1015h", None, None),
+            ("\\e[?9h", mode.MOUSE_X10, None),
+            ("\\e[?9h\\e[?9l", None, None),
+            ("\\e[?1000h\\e[?9h", mode.MOUSE_REPORTING, None),
+            ("\\e[?1003h\\e[?9h\\e[?9l", mode.MOUSE_ANY_EVENT_TRACKING, None),
+            ("\\e[?9h\\e[?1002h", mode.MOUSE_BUTTON_TRACKING, None),
+            ("\\e[?9h\\e[?1000l", None, None),
+            ("\\e[?1002;1006h\\e[?12;1036;1039h", mode.MOUSE_BUTTON_TRACKING, mode.MOUSE_SGR_MODE),
+        ):
+            with self.subTest(sequence=sequence):
+                self.restart()
+                self.write(sequence)
+                self.drain()
+                modes = self.term.term_modes
+                self.assertEqual((modes.mouse_tracking, modes.mouse_encoding), (tracking, encoding))
+
     def test_focus_restores_tty_signal_keys(self) -> None:
         """Restore the tty signal keys seen before the first focused render, on unfocus and on terminate."""
         original = self.tty.signal_keys
