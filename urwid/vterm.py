@@ -547,9 +547,13 @@ class TermCanvas(Canvas):
     def parse_csi(self, char: bytes) -> None:
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
         qmark = self._escbuf.startswith(b"?")
+        body = self._escbuf[1 if qmark else 0 :]
+        if body.strip(b"0123456789;"):
+            # sub-parameters, other private markers and intermediate bytes select sequences not implemented here
+            return
 
         escbuf = []
-        for arg in self._escbuf[1 if qmark else 0 :].split(b";"):
+        for arg in body.split(b";"):
             try:
                 num = int(arg)
             except ValueError:
@@ -646,7 +650,7 @@ class TermCanvas(Canvas):
                 if len(self._escbuf) < MAX_CSI_LENGTH:
                     self.parse_csi(char)
                 self.parsestate = 0
-            elif char in b"0123456789;" or (not self._escbuf and char == b"?"):
+            elif b" " <= char <= b"?":  # parameter and intermediate bytes, ECMA-48 5.4
                 # past the limit the parameters are dropped, and the sequence is skipped by its length
                 if len(self._escbuf) < MAX_CSI_LENGTH:
                     self._escbuf += char

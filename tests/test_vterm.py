@@ -1042,6 +1042,13 @@ class TermTest(unittest.TestCase):
             raw=True,
         )
 
+    def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
+        """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5uf\e[!pg\e[>ch")
+        self.expect("abcdefgh")
+        self.assertIsNone(self.term.term.attrspec)
+        self.assertEqual(bytes(self.pty.from_widget), b"")
+
     def test_cursor_coords_follow_resize(self) -> None:
         """Report the cursor position constrained to the size being rendered."""
         self.write("abc")
