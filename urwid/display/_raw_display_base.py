@@ -771,6 +771,9 @@ class Screen(BaseScreen, RealTerminal):
         close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+        # leaving the alternate screen restores the G1 the terminal had before, and whatever runs before the next
+        # start can reset the character sets, so G1 is designated again then
+        self._setup_G1_done = False
 
     def _stop_restore_palette(self) -> None:
         """Reset any palette entries modify_terminal_palette() changed this session.
@@ -1425,10 +1428,24 @@ class Screen(BaseScreen, RealTerminal):
         >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
         '\x1b[0;38;5;229;4;48;5;164m'
         """
+        st = (
+            "1;" * a.bold
+            + "2;" * a.faint
+            + "3;" * a.italics
+            + "4;" * a.underline
+            + "5;" * a.blink
+            + "7;" * a.standout
+            + "9;" * a.strikethrough
+        )
         if self.term == "fbterm":
-            fg = f"{escape.CSI}1;{a.foreground_number:d}}}"
-            bg = f"{escape.CSI}2;{a.background_number:d}}}"
-            return fg + bg
+            # fbterm takes a palette color from its own sequences, after SGR for the default colors and the settings;
+            # an unset color has no palette entry, as entry 0 is black. Its 39 also ends underline, so it comes first.
+            escapes = f"{escape.CSI}0;39;49;{st}".removesuffix(";") + "m"
+            if a.foreground_basic or a.foreground_high:
+                escapes += f"{escape.CSI}1;{a.foreground_number:d}}}"
+            if a.background_basic or a.background_high:
+                escapes += f"{escape.CSI}2;{a.background_number:d}}}"
+            return escapes
 
         if a.foreground_true:
             fg = f"38;2;{';'.join(str(part) for part in a.get_rgb_values()[0:3])}"
@@ -1444,15 +1461,6 @@ class Screen(BaseScreen, RealTerminal):
                 fg = f"{a.foreground_number + _SGR_FG_BASE:d}"
         else:
             fg = "39"
-        st = (
-            "1;" * a.bold
-            + "2;" * a.faint
-            + "3;" * a.italics
-            + "4;" * a.underline
-            + "5;" * a.blink
-            + "7;" * a.standout
-            + "9;" * a.strikethrough
-        )
         if a.background_true:
             bg = f"48;2;{';'.join(str(part) for part in a.get_rgb_values()[3:6])}"
         elif a.background_high:
