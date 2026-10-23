@@ -1181,6 +1181,30 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(bytes(self.pty.from_widget), sent)
                 self.assertEqual(urwid.display.escape.process_keyqueue(list(sent), more_available=False), ([key], []))
 
+    def test_keyboard_protocol_keys_are_sent_as_a_legacy_terminal_sends_them(self) -> None:
+        """Send a key only the keyboard protocols report apart as the legacy key it collapses to."""
+        for key, sent in (
+            ("ctrl enter", b"\r"),
+            ("shift enter", b"\r"),
+            ("shift ctrl enter", b"\r"),
+            ("meta ctrl enter", b"\x1b\r"),
+            ("ctrl tab", b"\t"),
+            ("shift ctrl tab", b"\x1b\t"),
+            ("shift backspace", b"\x7f"),
+            ("ctrl backspace", b"\x08"),
+            ("ctrl esc", b"\x1b"),
+            ("ctrl  ", b"\x00"),
+            ("ctrl /", b"\x1f"),
+            ("ctrl ?", b"\x7f"),
+            ("ctrl ~", b"\x1e"),
+            ("shift ctrl /", b"\x1f"),
+        ):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+
     def test_meta_enter_in_lf_nl_mode(self) -> None:
         """Send ESC CR LF for meta enter while LF/NL mode is set, as for enter."""
         self.write(r"\e[20h")
@@ -1214,7 +1238,7 @@ class TermTest(unittest.TestCase):
             "f21",
             "focus in",
             "<130>",
-            "ctrl enter",
+            "super enter",
             "super a",
             "super \u0436",
             "hyper \u00e9",

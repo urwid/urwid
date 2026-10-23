@@ -121,9 +121,10 @@ arrives without the short wait an escape sequence needs.
    ``SIGINT``, suspend the program or raise ``SIGQUIT``. An application that
    turns on extended keys handles these keys itself.
 
-A :class:`Terminal` widget passes these keys to its child as the ``linux``
-terminal type defines them, and returns a key that type has no form for, such
-as ``'ctrl enter'``.
+A :class:`Terminal` widget passes ENTER, TAB, BACKSPACE and ESC with modifiers,
+and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal sends them
+under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as ENTER. It
+returns the other new keys, such as ``'super a'``.
 
 
 .. _mouse-input:

@@ -124,6 +124,31 @@ KEY_TRANSLATIONS = {
     "shift tab": f"{ESC}\t",  # kcbt of the linux terminal type the child is given
 }
 
+#: the legacy key that a key name only the keyboard protocols report (see ``extended_keys`` of the raw display)
+#: collapses to in a legacy terminal, as the kitty keyboard protocol's legacy encoding sends it: Enter and Esc lose
+#: shift and ctrl, Tab and Backspace lose shift, ctrl Backspace is ctrl H, and ctrl maps Space, "/", "?" and "~" to
+#: NUL, US, DEL and RS. The digits are left out, because urwid names the keypad keys with them, and ctrl with the
+#: keypad's middle key is "ctrl 5" too.
+_LEGACY_KEYS: typing.Final = {
+    "shift enter": "enter",
+    "ctrl enter": "enter",
+    "shift ctrl enter": "enter",
+    "ctrl tab": "tab",
+    "shift ctrl tab": "shift tab",
+    "shift backspace": "backspace",
+    "ctrl backspace": "ctrl h",
+    "shift ctrl backspace": "ctrl h",
+    "shift esc": "esc",
+    "ctrl esc": "esc",
+    "shift ctrl esc": "esc",
+    "ctrl  ": "ctrl @",
+    "ctrl /": "ctrl _",
+    # without the shifted key in the report, as from a terminal that does not report alternate keys
+    "shift ctrl /": "ctrl _",
+    "ctrl ?": "backspace",
+    "ctrl ~": "ctrl ^",
+}
+
 KEY_TRANSLATIONS_DECCKM = {
     "up": f"{ESC}OA",
     "down": f"{ESC}OB",
@@ -2054,6 +2079,7 @@ class Terminal(Widget):
         """Return the characters the child receives for *key*, or ``None`` when its terminal type has none."""
         meta = key.startswith("meta ")
         sent = key.removeprefix("meta ")
+        sent = _LEGACY_KEYS.get(sent, sent)
 
         if sent.startswith("ctrl "):
             # C0 control characters only exist for "@", "A"-"Z" and "[\]^_"
