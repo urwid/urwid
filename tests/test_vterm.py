@@ -872,6 +872,24 @@ class TermTest(unittest.TestCase):
             ("IRM inserts instead of replacing", (80, 24), r"abc\e[1G\e[4hX", "Xabc"),
             ("LNM makes VT a newline", (80, 24), "\\e[20hab\x0bcd", "ab\ncd"),
             ("DECALN fills the screen with E", (4, 2), r"\e#8", "EEEE\nEEEE"),
+            ("OSC palette set ends with its 7th hex digit", (80, 24), r"\e]Pabcdef0xy", "xy"),
+            ("OSC palette reset ends with its R", (80, 24), r"\e]Rxy", "xy"),
+            ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
+            ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
+            ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
+            ("ESC inside a C1 CSI sequence starts a new one", (80, 24), "ab\x9b3\\e[1GX", "Xb"),
+            ("C1 CSI inside a CSI sequence starts a new one", (80, 24), "ab\\e[3\x9b1GX", "Xb"),
+            ("C1 CSI inside ESC ( starts a new sequence", (80, 24), "ab\\e(\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC starts a new sequence", (80, 24), "ab\\e\x9b1GX", "Xb"),
+            ("C1 CSI after an over-long CSI starts a new one", (80, 24), "ab\\e[" + "1;" * 300 + "\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC inside an OSC string starts a CSI", (80, 24), "ab\\e]0;t\\e\x9b1GX", "Xb"),
+            ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
+            ("ESC after an ESC starts a new sequence", (80, 24), r"ab\e\e[1GX", "Xb"),
+            ("ESC inside ESC % starts a new sequence", (80, 24), r"ab\e%\e[1GX", "Xb"),
+            ("ESC inside ESC ( starts a new sequence", (4, 2), r"\e(\e#8", "EEEE\nEEEE"),
+            ("ESC inside ESC # starts a new sequence", (80, 24), r"ab\e#\ecd", "d"),
+            ("ESC # c is no terminal reset", (80, 24), r"ab\e#cd", "abd"),
+            ("ESC # M is no reverse line feed", (80, 24), "a\nb\\e#Mc", "a\nbc"),
             ("DECSTBM with top below bottom is ignored", (80, 24), r"\e[5;2rtext", "text"),
             ("CUU, CUF, CUD and CUB are relative", (80, 24), r"\e[3;3H\e[2A\e[2C\e[1B\e[3Dx", "\n x"),
             ("CNL and CPL go to the first column", (80, 24), r"\e[2;5H\e[1Ea\e[2Fb", "b\n\na"),
@@ -957,6 +975,8 @@ class TermTest(unittest.TestCase):
             ("DA reports a VT102", r"\e[c", b"\x1b[?6c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
             ("DECID reports a VT102", r"\eZ", b"\x1b[?6c"),
+            ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
+            ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
         ):
             with self.subTest(label):
                 self.restart()
@@ -1015,8 +1035,11 @@ class TermTest(unittest.TestCase):
         self.assertEqual({cell for line in self.term.term.term[:2] for cell in line[10:]}, {(None, None, b" ")})
 
     def test_sgr_colors(self) -> None:
-        """Set the attributes of 16-colour, 256-colour and true-colour SGR sequences, brightening bold colours."""
-        self.write(r"\e[1;4;7;31;42ma\e[0mb\e[38;5;100mc\e[0;38;2;1;2;3;48;2;4;5;6md")
+        """Set the attributes of 16-colour, 256-colour and true-colour SGR sequences, brightening bold colours.
+
+        A colour value of 0 is not a reset: the other attributes stay.
+        """
+        self.write(r"\e[1;4;7;31;42ma\e[0mb\e[38;5;100mc\e[0;38;2;1;2;3;48;2;4;5;6md\e[0;1;44m\e[38;5;0me")
         self.expect(
             [
                 [
@@ -1024,6 +1047,7 @@ class TermTest(unittest.TestCase):
                     (None, None, b"b"),
                     (urwid.AttrSpec("h100", "default", 256), None, b"c"),
                     (urwid.AttrSpec("#010203", "#040506", 2**24), None, b"d"),
+                    (urwid.AttrSpec("h0,bold", "h4", 256), None, b"e"),
                 ]
             ],
             raw=True,

@@ -207,6 +207,52 @@ class StripAndLogTest(unittest.TestCase):
     def test_terminal_setting_reset(self) -> None:
         self._assert_skip("\x1bc", "terminal-setting", "DEBUG")
 
+    def test_escape_interrupted_by_escape(self) -> None:
+        """Drop a sequence still being read at an ESC, record it as skipped, and parse the new sequence."""
+        red = AttrSpec("dark red", "inherit")
+        interrupted = "escape sequence interrupted by ESC"
+        for text, skipped, expected_text, attrib in (
+            ("\x1b[3\x1b[31mx", [("\x1b[3", interrupted)], "x", [(red, 1)]),
+            ("\x1b\x1b[31mx", [("\x1b", interrupted)], "x", [(red, 1)]),
+            ("\x1b(\x1b[31mx", [("\x1b(", interrupted)], "x", [(red, 1)]),
+            ("\x1b#\x1b[31mx", [("\x1b#", interrupted)], "x", [(red, 1)]),
+            ("\x1b%\x1b[31mx", [("\x1b%", interrupted)], "x", [(red, 1)]),
+            # the first ESC ends the OSC string unapplied and starts a sequence that the second one drops
+            (
+                "\x1b]0;t\x1b\x1b[31mx",
+                [("\x1b]0;t", "unterminated OSC string"), ("\x1b", interrupted)],
+                "x",
+                [(red, 1)],
+            ),
+            (
+                f"\x1b[{'1' * 300}\x1b[31mx",
+                [
+                    (
+                        f"\x1b[{'1' * 256}",
+                        f"{interrupted}, its CSI parameters of 256 characters or more truncated",
+                    )
+                ],
+                "x",
+                [(red, 1)],
+            ),
+        ):
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(text=text[:20], one_line=one_line, split=split):
+                        parser = AnsiParser(one_line=one_line)
+                        parser.feed(text[:split])
+                        parser.feed(text[split:])
+                        (line,) = parser.finalize()
+                        self.assertEqual(expected_text, line.text)
+                        self.assertEqual(attrib, line.attrib)
+                        self.assertEqual(skipped, [(op.raw, op.reason) for op in line.skipped])
+
+    def test_escape_with_hash_intermediate_is_no_single_character_sequence(self) -> None:
+        """Skip ESC # followed by a final other than 8 as unknown, not as the sequence of that final alone."""
+        for final in "cHM7":
+            with self.subTest(final=final):
+                self._assert_skip(f"\x1b#{final}", "unknown", "DEBUG")
+
     def test_terminal_setting_insert_delete(self) -> None:
         for final in "@LMPX":
             self._assert_skip(f"\x1b[1{final}", "terminal-setting", "DEBUG")
@@ -220,8 +266,21 @@ class StripAndLogTest(unittest.TestCase):
         self._assert_skip("\x1b[g", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_osc_palette(self) -> None:
-        self._assert_skip("\x1b]Pnrrggbbx", "terminal-setting", "DEBUG")
-        self._assert_skip("\x1b]R", "terminal-setting", "DEBUG")
+        """Skip a palette set, which ends with its 7th hex digit, and a palette reset, keeping the text after them."""
+        for text, raw in (("\x1b]Pabcdef0xy", "\x1b]Pabcdef0"), ("\x1b]Rxy", "\x1b]R")):
+            with self.subTest(text=text):
+                op = self._assert_skip(text, "terminal-setting", "DEBUG")
+                self.assertEqual(raw, op.raw)
+                self.assertEqual("xy", parse_ansi_text(text).text)
+
+    def test_osc_palette_set_cut_short_by_escape(self) -> None:
+        """End a palette set cut short by ST or by a new sequence at the ESC, not take the ESC as its 7th digit."""
+        line = parse_ansi_text("\x1b]Pabcdef\x1b\\xy")
+        self.assertEqual("xy", line.text)
+        self.assertEqual([("terminal-setting", "\x1b]Pabcdef")], [(op.kind, op.raw) for op in line.skipped])
+        line = parse_ansi_text("\x1b]Pabcdef\x1b[31mxy")
+        self.assertEqual("xy", line.text)
+        self.assertEqual([(AttrSpec("dark red", "inherit"), 2)], line.attrib)
 
     def test_terminal_setting_unrecognised_osc(self) -> None:
         self._assert_skip("\x1b]666parsed right?\x1b\\", "terminal-setting", "DEBUG")
@@ -452,6 +511,19 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         self.assertIsNone(result)
         result = sgi_params_to_attrspec([31, 11], None)
         self.assertEqual(AttrSpec("dark red", "default"), result)
+
+    def test_extended_color_value_zero_is_no_reset(self) -> None:
+        """Keep the settings and the other color when an extended color ends in a 0, and reset on a final SGR 0."""
+        previous = sgi_params_to_attrspec([1, 44], None)
+        for params, expected in (
+            ([38, 5, 0], AttrSpec("h0,bold", "h4", 256)),
+            ([38, 2, 1, 2, 0], AttrSpec("#010200,bold", "dark blue", 16777216)),
+            ([1, 0], None),
+            ([38, 5, 1, 0], None),
+            ([38, 2, 1, 2, 3, 0], None),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(expected, sgi_params_to_attrspec(params, previous))
 
     def test_applied_on_top_of_previous(self) -> None:
         """Apply each step of SGR parameters on top of the attribute the steps before it produced.
@@ -784,15 +856,18 @@ class UntrustedInputBoundsTest(unittest.TestCase):
         self.assertIsNone(result.last_attr)
 
     def test_skipped_list_is_capped(self) -> None:
-        """Record only the first 65536 skipped sequences, in both modes."""
-        text = "\x1b[2J" + "\x1b[K" * 70000
-        for one_line in (True, False):
-            with self.subTest(one_line=one_line):
-                parser = AnsiParser(one_line=one_line)
-                parser.feed(text)
-                skipped = parser.finalize()[0].skipped
-                self.assertEqual(65536, len(skipped))
-                self.assertEqual(["\x1b[2J", "\x1b[K"], [op.raw for op in skipped[:2]])
+        """Record only the first 65536 skipped sequences, in both modes, also for a run of ESC bytes."""
+        for text, first in (
+            ("\x1b[2J" + "\x1b[K" * 70000, ["\x1b[2J", "\x1b[K"]),
+            ("\x1b" * 70000, ["\x1b", "\x1b"]),
+        ):
+            for one_line in (True, False):
+                with self.subTest(text=text[:4], one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    skipped = parser.finalize()[0].skipped
+                    self.assertEqual(65536, len(skipped))
+                    self.assertEqual(first, [op.raw for op in skipped[:2]])
 
     def test_skipped_cap_is_per_line_in_one_line_mode(self) -> None:
         """Start each line with an empty skipped list, so a full line does not cap the next one."""

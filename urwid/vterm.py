@@ -582,6 +582,9 @@ class TermCanvas(Canvas):
         """Parse escape sequences which are not CSI."""
         if mod == b"#" and char == b"8":
             self.decaln()
+        elif mod == b"#":
+            # the single-character sequences below take no intermediate byte
+            pass
         elif mod == b"%":  # select main character set
             if char == b"@":
                 self.modes.main_charset = CHARSET_DEFAULT
@@ -676,15 +679,16 @@ class TermCanvas(Canvas):
         elif self.parsestate == 2 and self._escbuf[-1:] + char == f"{ESC}\\".encode("iso8859-1"):
             # end of OSC
             self.parse_osc(bytes(self._escbuf[:-1].lstrip(b"0")))
-        elif self.parsestate == 2 and self._escbuf.startswith(b"P") and len(self._escbuf) == 8:
-            # set palette (ESC]Pnrrggbb)
-            pass
         elif self.parsestate == 2 and not self._escbuf and char == b"R":
             # reset palette
             pass
         elif self.parsestate in {2, 4}:
             if self.parsestate == 2 and len(self._escbuf) < MAX_OSC_LENGTH:
                 self._escbuf += char
+                # an ESC is no digit: the next byte decides whether it starts ST or a new sequence
+                if char != ESC_B and self._escbuf.startswith(b"P") and len(self._escbuf) == 8:
+                    # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit; not applied
+                    self.leave_escape()
             else:
                 if self.parsestate == 2 and self._escbuf.lstrip(b"0").startswith(b"8;"):
                     # an over-long OSC 8 is refused like any other invalid one, ending the current link
@@ -787,6 +791,8 @@ class TermCanvas(Canvas):
         dc = self.modes.display_ctrl
 
         if char == ESC_B and self.parsestate not in {2, 4}:  # escape
+            # as in a terminal, an ESC drops a sequence still being read and starts a new one
+            self.leave_escape()
             self.within_escape = True
         elif self.parsestate in {2, 4} and char in b"\x18\x1a":  # CAN/SUB abort an OSC string, also with display_ctrl
             self.leave_escape()
@@ -821,12 +827,13 @@ class TermCanvas(Canvas):
         elif not dc and (char in _IGNORED_CONTROLS or (char == b"\x7f" and self.parsestate not in {2, 4})):
             # as in a terminal, any other C0 control character and DEL are ignored, and an escape sequence continues
             pass
+        elif not dc and char == b"\x9b" and self.parsestate not in {2, 4}:  # CSI (equivalent to "ESC [")
+            # like ESC, it drops a sequence still being read; inside an OSC string it is part of the string
+            self.leave_escape()
+            self.within_escape = True
+            self.parsestate = 1
         elif self.within_escape:
             self.parse_escape(char)
-        elif not dc and char == b"\x9b":  # CSI (equivalent to "ESC [")
-            self.within_escape = True
-            self._escbuf = bytearray()
-            self.parsestate = 1
         else:
             self.push_cursor(char)
 

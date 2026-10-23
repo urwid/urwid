@@ -242,7 +242,8 @@ class AnsiParser:
     C0 control characters and DEL are executed as in a terminal, also inside an escape sequence, which then
     continues: BEL is counted, tab and backspace move the cursor, VT and FF are line feeds (completing the line in
     ``one_line`` mode, else moving one row down in the same column), CAN and SUB abort the sequence, and the others
-    are ignored, so none of them is part of the resolved text.
+    are ignored, so none of them is part of the resolved text. An ESC outside an OSC string drops a sequence still
+    being read, recorded as a :class:`SkippedOp`, and starts a new one.
 
     Inside an OSC string, in both modes, a control character in :data:`OSC_IGNORED_CONTROLS`, line ends included,
     is ignored as in a terminal: it is neither executed nor part of the string, and a line end there splits no line.
@@ -497,6 +498,13 @@ class AnsiParser:
             self._escbuf = ""
             return
         if ch == ESC:
+            if self._within_escape:
+                # as in a terminal, an ESC drops a sequence still being read and starts a new one
+                reason = "escape sequence interrupted by ESC"
+                if len(self._escbuf) >= MAX_CSI_LENGTH:
+                    reason += f", its CSI parameters of {MAX_CSI_LENGTH} characters or more truncated"
+                self._skip("unknown", f"{ESC}{'[' if self._parsestate == 1 else ''}{self._escbuf}", reason)
+                self._leave_escape()
             self._within_escape = True
             return
         if self._within_escape:
@@ -675,6 +683,9 @@ class AnsiParser:
         raw = f"{ESC}{mod}{ch}"
         if mod == "#" and ch == "8":
             self._skip("terminal-setting", raw, "DECALN screen alignment test")
+        elif mod == "#":
+            # the single-character sequences below take no intermediate byte
+            self._skip("unknown", raw, f"unrecognised escape sequence {raw!r}")
         elif mod == "%":
             self._skip("terminal-setting", raw, "character set selection")
         elif mod in ("(", ")"):
@@ -729,13 +740,15 @@ class AnsiParser:
             self._parsestate = 4
             self._escbuf = ch
             return
-        if self._escbuf.startswith("P") and len(self._escbuf) == 8:
-            self._finish_osc_skip("OSC palette set")
-            return
         if not self._escbuf and ch == "R":
+            self._escbuf = ch
             self._finish_osc_skip("OSC palette reset")
             return
         self._escbuf += ch
+        # an ESC is no digit: the next character decides whether it starts ST or a new sequence
+        if ch != ESC and self._escbuf.startswith("P") and len(self._escbuf) == 8:
+            # the Linux console's palette set, ESC ] P n rr gg bb, ends with its 7th hex digit
+            self._finish_osc_skip("OSC palette set")
 
     def _finish_osc(self, buf: str) -> None:
         raw = f"{ESC}]{buf}"
@@ -956,8 +969,6 @@ def sgi_params_to_attrspec(
     AttrSpec('inherit,no-underline', 'inherit')
     """
     hyperlink = None if previous is None else previous.hyperlink
-    if params and params[-1] == 0:
-        previous = None
 
     attributes: set[str] = set()
     # settings an SGR reset turned off; with 'inherit' colors they stay off over the enclosing attribute
@@ -1041,6 +1052,8 @@ def sgi_params_to_attrspec(
             turned_off.update(_SGR_RESETS[attr])
         elif attr == 0:
             fg = bg = None
+            fg_rgb = bg_rgb = False
+            colors = 1
             attributes.clear()
             turned_off.clear()
         idx += 1

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import errno
-import itertools
 import gc
+import io
+import itertools
 import os
 import pathlib
 import shutil
@@ -135,6 +136,26 @@ class TestRawDisplay(unittest.TestCase):
         row = [(None, None, "日".encode())]
 
         self.assertEqual((row, 0, None), s._last_row(row))
+
+    def test_attrspec_to_escape_fbterm(self) -> None:
+        """Write the default colors and then the settings as SGR on fbterm, and only a set color as a palette entry.
+
+        fbterm's SGR 39 also ends underline, so the settings come after it.
+        """
+        s = urwid.display.raw.Screen()
+        s.set_terminal_properties(colors=256)
+        s.term = "fbterm"
+        a2e = s._attrspec_to_escape  # pylint: disable=protected-access  # the encoder has no public entry point
+        for fg, bg, expected in (
+            ("default", "default", "\x1b[0;39;49m"),
+            ("black", "default", "\x1b[0;39;49m\x1b[1;0}"),
+            ("brown,bold,underline", "dark green", "\x1b[0;39;49;1;4m\x1b[1;3}\x1b[2;2}"),
+            ("default,underline", "default", "\x1b[0;39;49;4m"),
+            ("default,standout", "#d0d", "\x1b[0;39;49;7m\x1b[2;164}"),
+            ("#fea", "light blue", "\x1b[0;39;49m\x1b[1;229}\x1b[2;12}"),
+        ):
+            with self.subTest(fg=fg, bg=bg):
+                self.assertEqual(expected, a2e(s.AttrSpec(fg, bg)))
 
     def test_attrspec_truecolor_to_escape(self):
         s = urwid.display.raw.Screen()
@@ -608,6 +629,31 @@ class TestRawDisplay(unittest.TestCase):
                     s.draw_screen((1, canvas.rows()), canvas)
 
         self.assertEqual([mock.call(escape.DESIGNATE_G1_SPECIAL)] * 2, s.write.call_args_list)
+
+    def test_setup_g1_after_restart(self) -> None:
+        """Designate G1 once while the screen runs, and again on the first draw after it is stopped and restarted."""
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        input_file = self.enterContext(os.fdopen(read_fd, "rb", buffering=0))
+        s = urwid.display.raw.Screen(input=input_file, output=io.StringIO())
+        written: list[str] = []
+        with (
+            mock.patch.object(s, "write", side_effect=written.append),
+            mock.patch.object(s, "flush"),
+        ):
+            for _ in range(2):
+                s.start()
+                for text in ("x", "y"):
+                    canvas = urwid.Text(text).render((1,))
+                    s.draw_screen((1, canvas.rows()), canvas)
+                s.stop()
+
+        self.assertEqual(2, written.count(escape.DESIGNATE_G1_SPECIAL))
+        # each run designates G1 in its first frame, before the stop that ends it
+        stops = [i for i, data in enumerate(written) if escape.SI in data]
+        designations = [i for i, data in enumerate(written) if data == escape.DESIGNATE_G1_SPECIAL]
+        self.assertLess(designations[0], stops[0])
+        self.assertLess(stops[0], designations[1])
 
     def test_draw_screen_reraises_other_oserror(self):
         """An OSError with an errno other than EINTR during draw_screen() must propagate."""
