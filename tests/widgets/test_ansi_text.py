@@ -110,6 +110,32 @@ class ANSITextTest(unittest.TestCase):
         continued = urwid.ANSIText("more red", previous_attr=widget.last_attr)
         self.assertEqual(widget.last_attr, continued.attrib[0][0])
 
+    def test_continuation_from_previous_widget(self) -> None:
+        """Continue the colour and the character sets of a previous widget passed as previous_attr."""
+        first = urwid.ANSIText("\x1b[31m\x0eq")
+        red = urwid.AttrSpec("dark red", "inherit")
+        continued = urwid.ANSIText("q\x0fq", previous_attr=first)
+        self.assertEqual("\u2500q", continued.text)
+        self.assertEqual([(red, 2)], continued.attrib)
+
+        continued.set_ansi_text("qq", previous_attr=first)
+        self.assertEqual("\u2500\u2500", continued.text)
+
+        from_lines = list(urwid.ANSIText.from_lines(["q", "q"], previous_attr=first))
+        self.assertEqual(["\u2500\u2500"], [widget.text for widget in from_lines])
+
+        # the attribute alone starts with the default character sets
+        self.assertEqual("qq", urwid.ANSIText("qq", previous_attr=first.last_attr).text)
+
+        # a widget restricted to one line continues from the end of that line
+        one_line = urwid.ANSIText("\x0eq\nq\x0f", one_line=True)
+        self.assertEqual("\u2500", urwid.ANSIText("q", previous_attr=one_line).text)
+        lines = list(urwid.ANSIText.from_lines(["q\nq\x0f", "\nq"], previous_attr=one_line, one_line=True))
+        self.assertEqual(["\u2500", "\u2500", "q"], [widget.text for widget in lines])
+
+        # a reset before the end leaves nothing to carry
+        self.assertEqual("q", urwid.ANSIText("q", previous_attr=urwid.ANSIText("\x0e\x1bc")).text)
+
     def test_attrib_rle_contract(self) -> None:
         widget = urwid.ANSIText("\x1b[31mred\x1b[0m and \n\x1b[32mgreen\x1b[0m")
         self.assertEqual(len(widget.text), rle_len(widget.attrib))

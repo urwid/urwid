@@ -300,6 +300,8 @@ attribute that sets both colors, including ``'default'`` and ``''``, hides the e
 attribute completely, settings included. Attributes are combined from the outermost inward, so
 each one keeps what all of the attributes around it set. :class:`ANSIText` turns an SGR reset
 such as ``ESC[24m`` into ``'no-underline'``, so the reset also applies to the enclosing attribute.
+It keeps bold apart from the color: ``ESC[1;31m`` is ``'dark red,bold'``, which the raw display draws
+in light red where the terminal shows bold text in bright colors.
 
 A change to a palette entry shows on the next :meth:`MainLoop.draw_screen`, and neither the
 widgets nor the screen have to be redrawn for it: the raw and web displays compare each drawn
