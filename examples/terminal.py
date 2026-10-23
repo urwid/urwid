@@ -78,7 +78,6 @@ def main() -> None:
 
     loop = urwid.MainLoop(
         mainframe,
-        handle_mouse=False,
         screen=bpm_screen,
         unhandled_input=handle_key,
         event_loop=shared_event_loop,
