@@ -1474,7 +1474,7 @@ class Screen(BaseScreen, RealTerminal):
         new_row: list[tuple[Hashable, Literal["0", "U"] | None, bytes]] = row[:-1]
         z_attr, z_cs, last_text = row[-1]
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
-        last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
+        last_offs, _ = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
         if last_offs == 0:
             if not new_row:
                 return row, 0, None
@@ -1483,8 +1483,7 @@ class Screen(BaseScreen, RealTerminal):
             # we need another segment
             y_attr, y_cs, nlast_text = row[-2]
             nlast_cols = str_util.calc_width(nlast_text, 0, len(nlast_text))
-            z_col += nlast_cols
-            nlast_offs, y_col = str_util.calc_text_pos(nlast_text, 0, len(nlast_text), nlast_cols - 1)
+            nlast_offs, _ = str_util.calc_text_pos(nlast_text, 0, len(nlast_text), nlast_cols - 1)
             y_text = nlast_text[nlast_offs:]
             if nlast_offs:
                 new_row.append((y_attr, y_cs, nlast_text[:nlast_offs]))
@@ -1492,13 +1491,14 @@ class Screen(BaseScreen, RealTerminal):
             z_text = last_text[last_offs:]
             y_attr, y_cs = z_attr, z_cs
             nlast_cols = str_util.calc_width(last_text, 0, last_offs)
-            nlast_offs, y_col = str_util.calc_text_pos(last_text, 0, last_offs, nlast_cols - 1)
+            nlast_offs, _ = str_util.calc_text_pos(last_text, 0, last_offs, nlast_cols - 1)
             y_text = last_text[nlast_offs:last_offs]
             if nlast_offs:
                 new_row.append((y_attr, y_cs, last_text[:nlast_offs]))
 
         new_row.append((z_attr, z_cs, z_text))
-        return new_row, z_col - y_col, (y_attr, y_cs, y_text)
+        # Z is drawn where Y starts, so move back over Z to insert Y in front of it
+        return new_row, str_util.calc_width(z_text, 0, len(z_text)), (y_attr, y_cs, y_text)
 
     def clear(self) -> None:
         """Force the screen to be completely repainted on the next call to draw_screen()."""
