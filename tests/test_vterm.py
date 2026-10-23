@@ -1199,7 +1199,19 @@ class TermTest(unittest.TestCase):
 
     def test_key_names_without_byte_form_are_not_handled(self) -> None:
         """Return a key name the linux terminal type has no byte form for unhandled instead of writing it as text."""
-        for key in ("shift up", "shift f1", "shift meta ctrl f12", "meta shift up", "f21", "focus in", "<130>"):
+        for key in (
+            "shift up",
+            "shift f1",
+            "shift meta ctrl f12",
+            "meta shift up",
+            "f21",
+            "focus in",
+            "<130>",
+            "ctrl enter",
+            "super a",
+            "super \u0436",
+            "hyper \u00e9",
+        ):
             with self.subTest(key=key):
                 self.term.keygrab = True
                 self.assertEqual(self.term.keypress(self.termsize, key), key)

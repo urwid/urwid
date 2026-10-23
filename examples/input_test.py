@@ -30,6 +30,8 @@ import typing
 import urwid
 
 loop_cls: type[urwid.EventLoop] | None
+# turn on the kitty keyboard protocol or modifyOtherKeys, which only the raw display speaks
+extended_keys = False
 
 if urwid.display.web.is_web_request():
     Screen = urwid.display.web.Screen
@@ -66,6 +68,11 @@ else:
         default="raw",
         help="Display module to use (default is 'raw' as most advanced)",
     )
+    parser.add_argument(
+        "--extended-keys",
+        action="store_true",
+        help="Ask the terminal to report keys the legacy encodings cannot tell apart, such as ctrl enter (raw only)",
+    )
     group = parser.add_argument_group("Advanced Options")
     group.add_argument(
         "--event-loop",
@@ -83,6 +90,9 @@ else:
 
     Screen = displays[args.display]
     loop_cls = event_loops[args.event_loop]
+    if args.extended_keys and args.display != "raw":
+        parser.error("--extended-keys needs the raw display")
+    extended_keys = args.extended_keys
 
     if args.debug_log:
         logging.basicConfig(
@@ -111,7 +121,7 @@ PALETTE: typing.Final = (
 
 def key_test() -> None:
     """Run the main loop that echoes each keypress and its raw bytes to the screen."""
-    screen = Screen()
+    screen = urwid.display.raw.Screen(extended_keys=True) if extended_keys else Screen()
     header = urwid.AttrMap(
         urwid.Text("Values from get_input(). Q exits."),
         "header",
@@ -160,7 +170,7 @@ def key_test() -> None:
         event_loop=loop_cls() if loop_cls is not None else None,
     )
 
-    old = ()
+    old: tuple[typing.Any, ...] | None = ()
 
     try:
         # pyrefly: ignore[missing-attribute]  # not on BaseScreen, but on every display offered here

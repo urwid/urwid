@@ -76,6 +76,56 @@ information. If you want the input converted to Unicode in all cases you may
 create an input filter to do so.
 
 
+.. _extended-keys:
+
+Extended Keys
+-------------
+
+In the legacy encodings several keys send the same bytes: CTRL+I is TAB,
+CTRL+M and CTRL+ENTER are ENTER, CTRL+[ is ESC. Terminals that implement the
+`kitty keyboard protocol <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>`_
+or xterm's *modifyOtherKeys* can report these keys apart. The raw display turns
+this on when it is created with ``extended_keys=True``::
+
+    screen = urwid.display.raw.Screen(extended_keys=True)
+
+The screen then asks the terminal for both protocols and turns on the one the
+terminal answers for, preferring the kitty keyboard protocol. It does not wait
+for the answer: keys typed before it arrives are reported as before. The state
+the terminal had is restored when the screen stops. Which protocols the terminal
+supports is kept in ``screen.modes.kitty_keyboard`` and
+``screen.modes.modify_other_keys``.
+
+=============== ====================== ===================
+Key pressed     Legacy input           Extended input
+=============== ====================== ===================
+CTRL+I          ``'tab'``              ``'ctrl i'``
+CTRL+M          ``'enter'``            ``'ctrl m'``
+CTRL+ENTER      ``'enter'``            ``'ctrl enter'``
+SHIFT+ENTER     ``'enter'``            ``'shift enter'``
+CTRL+SHIFT+TAB  ``'shift tab'``        ``'shift ctrl tab'``
+CTRL+/          ``'ctrl _'``           ``'ctrl /'``
+CTRL+SHIFT+A    ``'ctrl a'``           ``'ctrl A'``
+ALT+SHIFT+A     ``'meta A'``           ``'meta A'``
+=============== ====================== ===================
+
+A shifted letter or symbol is named by the character it types, as the legacy
+encodings name it. The kitty keyboard protocol also reports the *super* and
+*hyper* modifiers, as the ``'super '`` and ``'hyper '`` prefixes, and its ESC key
+arrives without the short wait an escape sequence needs.
+
+.. note::
+
+   With either protocol on, the terminal sends CTRL+C, CTRL+Z and CTRL+\\ as
+   ``'ctrl c'``, ``'ctrl z'`` and ``'ctrl \'`` keys, so they no longer raise
+   ``SIGINT``, suspend the program or raise ``SIGQUIT``. An application that
+   turns on extended keys handles these keys itself.
+
+A :class:`Terminal` widget passes these keys to its child as the ``linux``
+terminal type defines them, and returns a key that type has no form for, such
+as ``'ctrl enter'``.
+
+
 .. _mouse-input:
 
 Mouse Input

@@ -596,7 +596,7 @@ class TestReadRawInput(unittest.TestCase):
 class TestDetectTerminalModes(unittest.TestCase):
     """_detect_terminal_modes() only writes the DECRQM queries; it does not wait for a reply."""
 
-    def _screen_over_pipe(self, *, bracketed_paste_mode=None, focus_reporting=None):
+    def _screen_over_pipe(self, *, bracketed_paste_mode=None, focus_reporting=None, extended_keys=False):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
         s = Screen(
@@ -604,6 +604,7 @@ class TestDetectTerminalModes(unittest.TestCase):
             output=open(os.devnull, "w"),  # noqa: SIM115
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
+            extended_keys=extended_keys,
         )
         written: list[str] = []
         s.write = written.append
@@ -645,6 +646,38 @@ class TestDetectTerminalModes(unittest.TestCase):
         s._detect_terminal_modes()
 
         self.assertEqual([], written)
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_extended_keys_query_both_protocols_before_primary_da(self, mock_isatty):
+        s, written = self._screen_over_pipe(extended_keys=True)
+
+        s._detect_terminal_modes()
+
+        self.assertTrue(
+            "".join(written).endswith(
+                escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY + escape.REPORT_DEVICE_ATTRIBUTES
+            )
+        )
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_keyboard_protocols_are_queried_once_while_the_answer_is_pending(self, mock_isatty):
+        s, written = self._screen_over_pipe(extended_keys=True)
+
+        s._detect_terminal_modes()
+        s._detect_terminal_modes()
+
+        self.assertEqual(1, "".join(written).count(escape.REPORT_DEVICE_ATTRIBUTES))
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_keyboard_protocols_are_not_queried_without_extended_keys(self, mock_isatty):
+        s, written = self._screen_over_pipe()
+
+        s._detect_terminal_modes()
+
+        output = "".join(written)
+        self.assertNotIn(escape.KITTY_KEYBOARD_QUERY, output)
+        self.assertNotIn(escape.MODIFY_OTHER_KEYS_QUERY, output)
+        self.assertNotIn(escape.REPORT_DEVICE_ATTRIBUTES, output)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
@@ -741,6 +774,176 @@ class TestApplyPrivateModeReports(unittest.TestCase):
                 reply = f"\x1b[?1006;{value}$y\x1b[M".encode()
                 keys, _raw = s.parse_input(None, None, [*reply, 32, 0, 33, ord("a")])
                 self.assertEqual(["a"], keys)
+
+
+@unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
+class TestKeyboardProtocol(unittest.TestCase):
+    """With extended_keys, the replies up to the Primary DA reply decide which keyboard protocol is turned on."""
+
+    KITTY_REPLY = b"\x1b[?0u"
+    DEVICE_ATTRIBUTES_REPLY = b"\x1b[?62;22c"
+
+    def _queried_screen(self):
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = Screen(
+            input=os.fdopen(read_fd, "rb", buffering=0),
+            output=open(os.devnull, "w"),  # noqa: SIM115
+            extended_keys=True,
+        )
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        with mock.patch("os.isatty", return_value=True):
+            s._detect_terminal_modes()
+        written.clear()
+        # as start() leaves it: the replies are read while the screen runs
+        s._started = True
+        return s, written
+
+    def test_kitty_keyboard_protocol_is_pushed_and_decoded(self):
+        s, written = self._queried_screen()
+
+        keys, _raw = s.parse_input(None, None, [*self.KITTY_REPLY, *self.DEVICE_ATTRIBUTES_REPLY])
+
+        self.assertEqual([], keys)
+        self.assertTrue(s.modes.kitty_keyboard)
+        self.assertEqual([escape.KITTY_KEYBOARD_PUSH], written)
+        keys, _raw = s.parse_input(None, None, [*b"\x1b[P", *b"\x1b[13;5u"])
+        self.assertEqual(["f1", "ctrl enter"], keys)
+
+        written.clear()
+        s._disable_keyboard_protocol()
+        self.assertEqual([escape.KITTY_KEYBOARD_POP], written)
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[P"))
+        self.assertEqual(["delete"], keys)
+
+    def test_modify_other_keys_is_turned_on_and_its_reported_value_restored(self):
+        for reply, restore in ((b"\x1b[>4;1m", "\x1b[>4;1m"), (b"\x1b[>4m", "\x1b[>4m")):
+            with self.subTest(reply=reply):
+                s, written = self._queried_screen()
+
+                keys, _raw = s.parse_input(None, None, [*reply, *self.DEVICE_ATTRIBUTES_REPLY])
+
+                self.assertEqual([], keys)
+                self.assertFalse(s.modes.kitty_keyboard)
+                self.assertTrue(s.modes.modify_other_keys)
+                self.assertEqual([escape.MODIFY_OTHER_KEYS_ON], written)
+                written.clear()
+                s._disable_keyboard_protocol()
+                self.assertEqual([restore], written)
+
+    def test_kitty_keyboard_protocol_is_preferred_to_modify_other_keys(self):
+        s, written = self._queried_screen()
+
+        s.parse_input(None, None, [*self.KITTY_REPLY, *b"\x1b[>4;0m", *self.DEVICE_ATTRIBUTES_REPLY])
+
+        self.assertEqual([escape.KITTY_KEYBOARD_PUSH], written)
+
+    def test_no_reply_before_primary_da_turns_nothing_on(self):
+        s, written = self._queried_screen()
+
+        s.parse_input(None, None, list(self.DEVICE_ATTRIBUTES_REPLY))
+
+        self.assertIs(False, s.modes.kitty_keyboard)
+        self.assertIs(False, s.modes.modify_other_keys)
+        self.assertEqual([], written)
+
+    def test_replies_split_across_reads_are_collected_until_primary_da(self):
+        s, written = self._queried_screen()
+
+        keys, _raw = s.parse_input(None, None, [ord("a"), *self.KITTY_REPLY])
+        self.assertEqual(["a"], keys)
+        self.assertEqual([], written)
+        keys, _raw = s.parse_input(None, None, [*self.DEVICE_ATTRIBUTES_REPLY, ord("b")])
+
+        self.assertEqual(["b"], keys)
+        self.assertEqual([escape.KITTY_KEYBOARD_PUSH], written)
+
+    def test_reply_out_of_sync_with_the_queries_is_dropped(self):
+        """A reply after the Primary DA reply, or with no query sent, did not answer urwid's query."""
+        s, written = self._queried_screen()
+
+        keys, _raw = s.parse_input(None, None, [*self.DEVICE_ATTRIBUTES_REPLY, *self.KITTY_REPLY, ord("a")])
+        self.assertEqual(["a"], keys)
+        keys, _raw = s.parse_input(None, None, [*self.DEVICE_ATTRIBUTES_REPLY, *b"\x1b[>4;1m"])
+
+        self.assertEqual([], keys)
+        self.assertIs(False, s.modes.kitty_keyboard)
+        self.assertIs(False, s.modes.modify_other_keys)
+        self.assertEqual([], written)
+
+    def test_reply_read_while_stopped_turns_nothing_on(self):
+        """Nothing would pop the flags pushed while the screen is stopped."""
+        s, written = self._queried_screen()
+        s._started = False
+
+        s.parse_input(None, None, [*self.KITTY_REPLY, *self.DEVICE_ATTRIBUTES_REPLY])
+
+        self.assertTrue(s.modes.kitty_keyboard)
+        self.assertEqual([], written)
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_queries_are_sent_again_after_a_stop_discarded_their_replies(self, mock_isatty):
+        s, written = self._queried_screen()
+
+        s._disable_keyboard_protocol()
+        s._detect_terminal_modes()
+
+        self.assertIn(escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY, "".join(written))
+        self.assertTrue(s._keyboard_query_pending)
+
+    def test_reply_for_another_key_modifier_resource_is_ignored(self):
+        s, written = self._queried_screen()
+
+        s.parse_input(None, None, [*b"\x1b[>1;2m", *self.DEVICE_ATTRIBUTES_REPLY])
+
+        self.assertIs(False, s.modes.modify_other_keys)
+        self.assertEqual([], written)
+
+    def test_start_turns_a_resolved_protocol_on_and_stop_restores_it_on_the_alternate_screen(self):
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = Screen(
+            input=os.fdopen(read_fd, "rb", buffering=0),
+            output=open(os.devnull, "w"),  # noqa: SIM115
+            extended_keys=True,
+        )
+        s.modes.kitty_keyboard = True
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        for _ in range(2):
+            written.clear()
+            s.start()
+            output = "".join(written)
+            self.assertEqual(1, output.count(escape.KITTY_KEYBOARD_PUSH))
+            self.assertLess(
+                output.index(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq),
+                output.index(escape.KITTY_KEYBOARD_PUSH),
+            )
+
+            written.clear()
+            s.stop()
+            output = "".join(written)
+            self.assertEqual(1, output.count(escape.KITTY_KEYBOARD_POP))
+            self.assertLess(
+                output.index(escape.KITTY_KEYBOARD_POP),
+                output.index(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq),
+            )
+
+    def test_resolved_protocol_stays_off_without_extended_keys(self):
+        s = _make_screen()
+        s.modes.kitty_keyboard = True
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        s.start()
+        s.stop()
+
+        self.assertNotIn(escape.KITTY_KEYBOARD_PUSH, "".join(written))
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

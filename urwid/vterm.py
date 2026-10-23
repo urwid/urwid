@@ -2062,8 +2062,9 @@ class Terminal(Widget):
             sent = KEY_TRANSLATIONS_DECCKM[sent]
         elif sent in KEY_TRANSLATIONS:
             sent = KEY_TRANSLATIONS[sent]
-        elif len(sent) > 1 and sent.isascii():
-            # a key name such as "shift up" or "focus in" has no form under TERM=linux, and is not written as text
+        elif len(sent) > 1 and (sent.isascii() or " " in sent):
+            # a key name such as "shift up", "focus in" or "super \u0436" has no form under TERM=linux, and is not
+            # written as text
             return None
 
         # Meta (Alt) sends ESC before the key's single character, as xterm does with metaSendsEscape.

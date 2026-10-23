@@ -41,7 +41,11 @@ if typing.TYPE_CHECKING:
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
-    _DecodedInput = list[str | _MouseInput | _CursorPosition | _PrivateModeReport]
+    _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
+    _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
+    _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
+    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    _DecodedInput = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
 
