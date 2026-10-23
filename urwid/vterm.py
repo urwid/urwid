@@ -54,7 +54,15 @@ from urwid.ansi_parser import (
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec, RealTerminal
-from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS, PrivateMode
+from urwid.display.escape import (
+    _MOUSE_BYTE_OFFSET,
+    _MOUSE_COORD_OFFSET,
+    ALT_DEC_SPECIAL_CHARS,
+    DEC_SPECIAL_CHARS,
+    MOUSE_X10_PAST_END,
+    MouseBit,
+    PrivateMode,
+)
 from urwid.widget import Sizing, Widget
 
 if typing.TYPE_CHECKING:
@@ -128,6 +136,22 @@ KEY_TRANSLATIONS_DECCKM = {
     "f5": f"{ESC}[15~",
 }
 
+#: the mouse tracking modes that replace each other: reports for presses and releases, highlight tracking, reports
+#: also for drags, also for any motion
+_MOUSE_TRACKING_MODES: typing.Final = frozenset(
+    (
+        PrivateMode.MOUSE_REPORTING,
+        PrivateMode.MOUSE_HIGHLIGHT_TRACKING,
+        PrivateMode.MOUSE_BUTTON_TRACKING,
+        PrivateMode.MOUSE_ANY_EVENT_TRACKING,
+    )
+)
+#: the tracking modes a Terminal recognises and sends no reports for
+_MOUSE_UNREPORTED_TRACKING_MODES: typing.Final = frozenset((None, PrivateMode.MOUSE_HIGHLIGHT_TRACKING))
+#: the buttons X10 compatibility mode reports, those of the mice it was made for
+_MOUSE_X10_BUTTONS: typing.Final = frozenset((1, 2, 3))
+#: the modes that change the encoding of a mouse report from X10: UTF-8 coordinates, SGR parameters
+_MOUSE_ENCODING_MODES: typing.Final = frozenset((PrivateMode.MOUSE_UTF8_MODE, PrivateMode.MOUSE_SGR_MODE))
 #: the DEC private modes a Terminal recognises and ignores
 _RECOGNISED_IGNORED_MODES: typing.Final = frozenset(
     (
@@ -137,6 +161,21 @@ _RECOGNISED_IGNORED_MODES: typing.Final = frozenset(
         PrivateMode.ALT_SENDS_ESCAPE,
     )
 )
+#: the 0-based coordinate past what the X10 and the UTF-8 encoding can carry, which xterm sends as a NUL byte
+_MOUSE_COORDINATE_LIMITS: typing.Final = {
+    None: MOUSE_X10_PAST_END,
+    PrivateMode.MOUSE_UTF8_MODE: 2047 - _MOUSE_BYTE_OFFSET,
+}
+#: the button bits of a mouse report for each urwid button number, the inverse of the decoding in urwid.display.escape
+_MOUSE_BUTTON_CODES: typing.Final = {
+    **{button: button - 1 for button in range(1, 4)},
+    **{button: MouseBit.HIGH_BUTTON + button - 4 for button in range(4, 8)},
+    **{button: MouseBit.EXTRA_BUTTON + button - 8 for button in range(8, 12)},
+}
+#: the wheel buttons, whose release xterm does not report
+_MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(4, 8))
+#: the modifier prefixes of an urwid mouse event, in the order urwid writes them, and their bits in a mouse report
+_MOUSE_MODIFIERS: typing.Final = (("shift ", MouseBit.SHIFT), ("meta ", MouseBit.META), ("ctrl ", MouseBit.CTRL))
 
 
 class CSIAlias(typing.NamedTuple):
@@ -222,6 +261,10 @@ class TermModes:
     visible_cursor: bool = True
     bracketed_paste: bool = False
     synchronized_output: bool = False
+    # the mode of the mouse events the child asked for, or None when it asked for none
+    mouse_tracking: PrivateMode | None = None
+    # the mode of the mouse report encoding the child asked for, or None for the X10 encoding
+    mouse_encoding: PrivateMode | None = None
 
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
@@ -239,6 +282,8 @@ class TermModes:
         self.constrain_scrolling = False
         self.autowrap = True
         self.visible_cursor = True
+        self.mouse_tracking = None
+        self.mouse_encoding = None
 
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
@@ -1275,6 +1320,22 @@ class TermCanvas(Canvas):
             elif private_mode == PrivateMode.CURSOR_VISIBLE:
                 self.modes.visible_cursor = flag
                 self.set_term_cursor()
+            elif private_mode == PrivateMode.MOUSE_X10:
+                # X10 compatibility is a last resort: it does not replace a tracking mode the child turned on,
+                # and its reset ends only itself.
+                if flag and self.modes.mouse_tracking is None:
+                    self.modes.mouse_tracking = PrivateMode(private_mode)
+                elif not flag and self.modes.mouse_tracking == PrivateMode.MOUSE_X10:
+                    self.modes.mouse_tracking = None
+            elif private_mode in _MOUSE_TRACKING_MODES:
+                # As in xterm, the tracking modes replace each other, and resetting any of them stops tracking.
+                self.modes.mouse_tracking = PrivateMode(private_mode) if flag else None
+            elif private_mode in _MOUSE_ENCODING_MODES:
+                # As in xterm, the encodings replace each other, and a reset only ends the encoding it names.
+                if flag:
+                    self.modes.mouse_encoding = PrivateMode(private_mode)
+                elif self.modes.mouse_encoding == private_mode:
+                    self.modes.mouse_encoding = None
             elif private_mode in _RECOGNISED_IGNORED_MODES:
                 pass  # for the reason given at each member of PrivateMode
             elif private_mode == PrivateMode.BRACKETED_PASTE:
@@ -1436,6 +1497,28 @@ class TermCanvas(Canvas):
                 yield line[: self.width] + [_BLANK_CELL] * (self.width - len(line))
 
 
+def _mouse_report(code: int, col: int, row: int, release: bool, encoding: PrivateMode | None) -> bytes:
+    """Return the bytes xterm sends for a mouse event with button byte *code* at 0-based *col* and *row*.
+
+    :param release: the event is a release, which only the SGR encoding marks apart from the button byte.
+    :param encoding: the mode of the encoding, or None for the X10 encoding.
+    """
+    if encoding == PrivateMode.MOUSE_SGR_MODE:
+        return f"{ESC}[<{code};{col + 1};{row + 1}{'m' if release else 'M'}".encode("ascii")
+
+    limit = _MOUSE_COORDINATE_LIMITS[encoding]
+    # a coordinate past the limit is sent as the limit, and the limit as a NUL byte
+    coordinates = (min(value, limit) for value in (col, row))
+    values = [
+        code + _MOUSE_BYTE_OFFSET,
+        *(0 if value == limit else value + _MOUSE_COORD_OFFSET for value in coordinates),
+    ]
+    if encoding == PrivateMode.MOUSE_UTF8_MODE:
+        # UTF-8 encoding: each value is a character, so one above 127 takes two bytes
+        return f"{ESC}[M".encode("ascii") + "".join(map(chr, values)).encode("utf-8")
+    return f"{ESC}[M".encode("ascii") + bytes(values)
+
+
 class Terminal(Widget):
     """Widget that runs a child process (or callable) and renders its terminal output."""
 
@@ -1502,6 +1585,8 @@ class Terminal(Widget):
 
         self.keygrab = False
         self.last_key: str | None = None
+        # the button of the last press reported to the child, for a release or a drag that does not name its button
+        self._pressed_button = 0
 
         self.response_buffer: list[str] = []
 
@@ -1885,6 +1970,80 @@ class Terminal(Widget):
         os.write(typing.cast("int", self.master), sent.encode(self.encoding, "ignore"))
 
         return None
+
+    def mouse_event(  # pyrefly: ignore[bad-override]  # a box widget, sized by two dimensions
+        self,
+        size: tuple[int, int],  # type: ignore[override]
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool | None:
+        """Report a mouse event to the child in the tracking mode and the encoding the child turned on.
+
+        The report bytes are the ones xterm sends for the same event.
+
+        :returns: ``True`` when the child tracks the mouse, also for an event its tracking mode does not report.
+            Such events are a drag under mode 1000, the release of a wheel button, and under X10 compatibility mode (9)
+            anything but a press of buttons 1 to 3.
+            ``False`` when the event is left to the parent, in these cases:
+
+            - the child has exited;
+            - the child does not track the mouse, or tracks it in highlight mode (1001), which is not implemented;
+            - the view is scrolled back from the screen the child sees;
+            - the event is not a press, a release or a drag.
+        """
+        modes = self.term_modes
+        if (
+            self.terminated
+            or modes.mouse_tracking in _MOUSE_UNREPORTED_TRACKING_MODES
+            or self.term is None
+            or self.term.scrolling_up
+        ):
+            return False
+
+        code = 0
+        action = event
+        for prefix, flag in _MOUSE_MODIFIERS:
+            if action.startswith(prefix):
+                code |= flag
+                action = action.removeprefix(prefix)
+
+        release = action == "mouse release"
+        x10 = modes.mouse_tracking == PrivateMode.MOUSE_X10
+        if action == "mouse press":
+            if x10:
+                # X10 compatibility reports no modifiers
+                if button not in _MOUSE_X10_BUTTONS:
+                    return True
+                code = 0
+            elif button not in _MOUSE_WHEEL_BUTTONS:
+                self._pressed_button = button
+        elif action == "mouse drag":
+            if x10 or modes.mouse_tracking == PrivateMode.MOUSE_REPORTING:
+                return True
+            button = button or self._pressed_button
+            code |= MouseBit.DRAG
+        elif release:
+            # an X10 report from the parent's terminal does not say which button was released
+            button = button or self._pressed_button
+            self._pressed_button = 0
+            if x10 or button in _MOUSE_WHEEL_BUTTONS:
+                return True
+        else:
+            return False
+
+        if release and modes.mouse_encoding != PrivateMode.MOUSE_SGR_MODE:
+            # without SGR, a release names no button, so it is sent also when its button is unknown
+            code |= MouseBit.BUTTON
+        elif button in _MOUSE_BUTTON_CODES:
+            code |= _MOUSE_BUTTON_CODES[button]
+        else:
+            return True
+
+        os.write(typing.cast("int", self.master), _mouse_report(code, col, row, release, modes.mouse_encoding))
+        return True
 
     def _key_sequence(self, key: str) -> str | None:
         """Return the characters the child receives for *key*, or ``None`` when its terminal type has none."""
