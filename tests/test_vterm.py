@@ -1073,6 +1073,13 @@ class TermTest(unittest.TestCase):
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
 
+    def test_private_form_of_a_command_without_one_is_ignored(self) -> None:
+        """Ignore CSI ? u (kitty keyboard query), CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
+        self.write(r"a\e[s\e[2;1Hb\e[?uc\e[?4md\e[?1se\e[?1r\e[uf")
+        self.expect("af\nbcde")
+        self.assertIsNone(self.term.term.attrspec)
+        self.assertEqual(bytes(self.pty.from_widget), b"")
+
     def test_cursor_coords_follow_resize(self) -> None:
         """Report the cursor position constrained to the size being rendered."""
         self.write("abc")

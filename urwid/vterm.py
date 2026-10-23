@@ -237,6 +237,11 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"`": CSIAlias("alias", b"G"),
 }
 
+#: the final bytes whose "?" form is run: the DEC private modes, the linux cursor style CSI ? Ps c (not answered), and
+#: the DEC forms of the erase and status commands, which act like their ECMA-48 forms here; any other "?" form, such as
+#: the kitty keyboard protocol query CSI ? u, is a different command than the one without it
+_CSI_PRIVATE_FINAL_BYTES: typing.Final = frozenset((b"J", b"K", b"c", b"h", b"l", b"n"))
+
 CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
 CHARSET_UTF8: Literal[2] = 2
 
@@ -612,7 +617,7 @@ class TermCanvas(Canvas):
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
         qmark = self._escbuf.startswith(b"?")
         body = self._escbuf[1 if qmark else 0 :]
-        if body.strip(b"0123456789;"):
+        if body.strip(b"0123456789;") or (qmark and char not in _CSI_PRIVATE_FINAL_BYTES):
             # sub-parameters, other private markers and intermediate bytes select sequences not implemented here
             return
 
