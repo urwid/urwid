@@ -148,6 +148,10 @@ input_sequences: list[tuple[str, str]] = [
     ("Ok", "+"),
     ("[Z", "shift tab"),
     ("On", "."),
+    ("Ol", ","),
+    ("OX", "="),
+    ("OE", "5"),
+    ("OM", "enter"),
     ("[200~", "begin paste"),
     ("[201~", "end paste"),
     *(
@@ -176,12 +180,13 @@ input_sequences: list[tuple[str, str]] = [
         for number, letter in enumerate("PQRS", start=1)
     ),
     *(
-        # modified F1-F13 keys -- [XX;#~ form
+        # modified editing and F1-F20 keys -- [N;#~ form
         (f"[{num!s};{digit}~", escape_modifier(digit) + key)
         for digit in "12345678"
         for num, key in zip(
-            (3, 5, 6, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26, 28, 29, 31, 32, 33, 34),
+            (2, 3, 5, 6, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26, 28, 29, 31, 32, 33, 34),
             (
+                "insert",
                 "delete",
                 "page up",
                 "page down",
