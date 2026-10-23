@@ -111,6 +111,16 @@ class KeyModifier(enum.IntFlag):
     NUM_LOCK = 128
 
 
+class KittyKeyboardFlag(enum.IntFlag):
+    """The kitty keyboard protocol's progressive enhancement flags, which a program sets with ``CSI = flags u``."""
+
+    DISAMBIGUATE = 1  # disambiguate escape codes
+    EVENT_TYPES = 2  # report event types
+    ALTERNATE_KEYS = 4  # report alternate keys
+    ALL_KEYS = 8  # report all keys as escape codes
+    ASSOCIATED_TEXT = 16  # report associated text
+
+
 #: the key name prefix of each modifier, in the order urwid writes them; Alt and Meta are both urwid's "meta"
 _KEY_MODIFIER_PREFIXES: typing.Final = (
     ("shift ", KeyModifier.SHIFT),
@@ -1197,8 +1207,8 @@ REPORT_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}c"
 # kitty keyboard protocol: the flags query (replied as CSI ? flags u), and pushing and popping the flags on the
 # terminal's per-screen stack
 KITTY_KEYBOARD_QUERY: typing.Final = f"{CSI}?u"
-# disambiguate escape codes (1) and report alternate keys (4), so a shifted symbol is named by what it types
-KITTY_KEYBOARD_FLAGS: typing.Final = 0b101
+# report alternate keys, so a shifted symbol is named by what it types
+KITTY_KEYBOARD_FLAGS: typing.Final = KittyKeyboardFlag.DISAMBIGUATE | KittyKeyboardFlag.ALTERNATE_KEYS
 KITTY_KEYBOARD_PUSH: typing.Final = f"{CSI}>{KITTY_KEYBOARD_FLAGS}u"
 KITTY_KEYBOARD_POP: typing.Final = f"{CSI}<u"
 

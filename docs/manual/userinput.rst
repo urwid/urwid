@@ -121,10 +121,22 @@ arrives without the short wait an escape sequence needs.
    ``SIGINT``, suspend the program or raise ``SIGQUIT``. An application that
    turns on extended keys handles these keys itself.
 
-A :class:`Terminal` widget passes ENTER, TAB, BACKSPACE and ESC with modifiers,
-and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal sends them
-under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as ENTER. It
-returns the other new keys, such as ``'super a'``.
+A :class:`Terminal` widget implements the kitty keyboard protocol for its child.
+The child can query, push, pop and set the protocol's flags, and the main and
+the alternate screen each keep their own stack of them. While the child has
+*disambiguate escape codes* or *report all keys as escape codes* set, the
+Terminal sends keys as the protocol reports them, so ``'ctrl enter'`` and
+``'super a'`` reach the child as they were pressed. With *report alternate keys*
+an upper case letter carries its shifted key, and with *report associated text*
+a key that types text carries that text. urwid reports key presses only, so the
+child gets no repeat or release events even with *report event types* set. The
+keypad keys are sent as the main keys, which urwid names them as, and pasted
+text is sent as text.
+
+Without these flags, the Terminal passes ENTER, TAB, BACKSPACE and ESC with
+modifiers, and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal
+sends them under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as
+ENTER. It returns the other new keys, such as ``'super a'``.
 
 
 .. _mouse-input:

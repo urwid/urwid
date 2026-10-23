@@ -977,6 +977,7 @@ class TermTest(unittest.TestCase):
             ("DECID reports a VT102", r"\eZ", b"\x1b[?6c"),
             ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?6c"),
         ):
             with self.subTest(label):
                 self.restart()
@@ -1071,14 +1072,14 @@ class TermTest(unittest.TestCase):
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
         """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5uf\e[!pg\e[>ch")
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[!pg\e[>ch")
         self.expect("abcdefgh")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
 
     def test_private_form_of_a_command_without_one_is_ignored(self) -> None:
-        """Ignore CSI ? u (kitty keyboard query), CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
-        self.write(r"a\e[s\e[2;1Hb\e[?uc\e[?4md\e[?1se\e[?1r\e[uf")
+        """Ignore CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
+        self.write(r"a\e[s\e[2;1Hbc\e[?4md\e[?1se\e[?1r\e[uf")
         self.expect("af\nbcde")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")
@@ -1187,14 +1188,50 @@ class TermTest(unittest.TestCase):
         self.expect("1\n2\n3ZY")
 
     def test_reset_shows_the_main_screen(self) -> None:
-        """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen."""
+        """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen and the flags."""
         self.restart(10, 3)
-        self.write("1\n2\n3\n4\\e[?1049halt\\ec")
+        self.write("1\n2\n3\n4\\e[>1u\\e[?1049h\\e[>8ualt\\ec")
         self.expect("")
         self.assertFalse(self.term.term_modes.alternate_screen)
+        self.assertEqual(self.term.term_modes.keyboard_flags, [])
         self.assertEqual(len(self.term.term.scrollback_buffer), 1)
-        self.write(r"\e[?47h")
+        self.write(r"\e[?47h\e[?u")
         self.expect("")
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?0u")
+
+    def test_keyboard_flags(self) -> None:
+        """Answer the kitty keyboard flags query after pushing, popping and setting the flags, on each screen."""
+        # none of these sequences is the restore of the cursor that CSI u is without a private marker
+        self.write(r"a\e[s\e[2;1Hb\e[>1u\e[=1u\e[<uc")
+        self.expect("a\nbc")
+        steps = (
+            ("", 0),
+            (r"\e[>1u", 1),
+            (r"\e[>5u", 5),
+            (r"\e[<u", 1),
+            (r"\e[=4;2u", 5),
+            (r"\e[=1;3u", 4),
+            (r"\e[=8u", 8),
+            (r"\e[=1;4u", 8),
+            (r"\e[>1:2u\e[>1;2:3u", 8),
+            (r"\e[<5u", 0),
+            (r"\e[=3u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>255u", 31),
+            (r"\e[>u", 0),
+            ("".join(rf"\e[>{flags}u" for flags in range(1, 11)) + r"\e[<7u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>2u\e[?47h", 0),
+            (r"\e[>4u", 4),
+            (r"\e[?47l", 2),
+            (r"\e[?47h", 4),
+        )
+        for written, flags in steps:
+            with self.subTest(written=written):
+                self.pty.from_widget.clear()
+                self.write(rf"{written}\e[?u")
+                self.read()
+                self.assertEqual(bytes(self.pty.from_widget), f"\x1b[?{flags}u".encode())
 
     def test_wait_and_feed_without_output_returns(self) -> None:
         """Return after the timeout without reading when the child wrote nothing."""
@@ -1376,6 +1413,100 @@ class TermTest(unittest.TestCase):
                 self.term.keygrab = True
                 self.assertIsNone(self.term.keypress(self.termsize, keys[0]))
                 self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_keys_in_the_kitty_keyboard_protocol(self) -> None:
+        """Send keys as the kitty keyboard protocol reports them under the flags the child set.
+
+        urwid's own input parser reads each report back as the same key.
+        """
+        for flags, key, sent in (
+            # disambiguate escape codes
+            (1, "a", b"a"),
+            (1, "A", b"A"),
+            (1, "ctrl b", b"\x1b[98;5u"),
+            (1, "ctrl A", b"\x1b[97;6u"),
+            (1, "ctrl c", b"\x1b[99;5u"),
+            (1, "meta a", b"\x1b[97;3u"),
+            (1, "meta ctrl super hyper x", b"\x1b[120;31u"),
+            (1, "ctrl  ", b"\x1b[32;5u"),
+            (1, "shift 1", b"\x1b[49;2u"),
+            (1, "ctrl 5", b"\x1b[53;5u"),
+            (1, "ctrl \u0436", b"\x1b[1078;5u"),
+            (1, "ctrl \u0416", b"\x1b[1078;6u"),
+            (1, "esc", b"\x1b[27u"),
+            (1, "enter", b"\r"),
+            (1, "tab", b"\t"),
+            (1, "backspace", b"\x7f"),
+            (1, "shift enter", b"\x1b[13;2u"),
+            (1, "shift tab", b"\x1b[9;2u"),
+            (1, "ctrl backspace", b"\x1b[127;5u"),
+            (1, "up", b"\x1b[A"),
+            (1, "ctrl up", b"\x1b[1;5A"),
+            (1, "f1", b"\x1b[P"),
+            (1, "shift f4", b"\x1b[1;2S"),
+            (1, "f3", b"\x1b[13~"),
+            (1, "shift f3", b"\x1b[13;2~"),
+            (1, "page up", b"\x1b[5~"),
+            (1, "f12", b"\x1b[24~"),
+            (1, "f13", b"\x1b[57376u"),
+            (1, "media play", b"\x1b[57428u"),
+            (1, "left shift", None),
+            (1, "caps lock", None),
+            (1, "focus in", None),
+            (1, "<130>", None),
+            # event types are accepted, and only presses are reported
+            (3, "ctrl b", b"\x1b[98;5u"),
+            # report alternate keys
+            (5, "ctrl A", b"\x1b[97:65;6u"),
+            (5, "meta A", b"\x1b[97:65;4u"),
+            (5, "ctrl b", b"\x1b[98;5u"),
+            (5, "A", b"A"),
+            # report all keys as escape codes
+            (8, "a", b"\x1b[97u"),
+            (8, "A", b"\x1b[97;2u"),
+            (8, "1", b"\x1b[49u"),
+            (8, "enter", b"\x1b[13u"),
+            (8, "left shift", b"\x1b[57441u"),
+            (8, "shift caps lock", b"\x1b[57358;2u"),
+            # and associated text
+            (28, "a", b"\x1b[97;;97u"),
+            (28, "A", b"\x1b[97:65;2;65u"),
+            (28, "ctrl b", b"\x1b[98;5u"),
+            # event types or alternate keys alone change no key press
+            (2, "ctrl b", b"\x02"),
+            (4, "f1", b"\x1b[[A"),
+            (20, "meta a", b"\x1ba"),
+        ):
+            with self.subTest(flags=flags, key=key):
+                self.restart()
+                self.write(rf"\e[={flags}u")
+                self.read()
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), None if sent else key)
+                self.assertEqual(bytes(self.pty.from_widget), sent or b"")
+                if sent is not None:
+                    keys, rest = urwid.display.escape.process_keyqueue(
+                        list(sent), more_available=False, keyboard_protocol="kitty"
+                    )
+                    self.assertEqual((keys, rest), ([key], []))
+
+    def test_kitty_keyboard_protocol_keeps_cursor_key_and_lf_nl_modes_apart(self) -> None:
+        """Send the cursor keys in their CSI form also in cursor key mode, and enter as CR LF in LF/NL mode."""
+        self.write(r"\e[?1h\e[20h\e[=1u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("up", "enter"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[A\r\n")
+
+    def test_pasted_text_is_sent_as_text_under_the_kitty_keyboard_protocol(self) -> None:
+        """Send the keys between "begin paste" and "end paste" as typed, also when all keys are escape codes."""
+        self.write(r"\e[?2004h\e[=8u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("begin paste", "a", "enter", "end paste", "a"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[200~a\r\x1b[201~\x1b[97u")
 
     def mouse(self, *events: tuple[str, int, int, int]) -> tuple[list[bool | None], bytes]:
         """Send mouse *events* as ``(event, button, col, row)``, and return what each returned and what the child got."""
