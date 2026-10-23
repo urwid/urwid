@@ -163,6 +163,41 @@ class TestStartStop(unittest.TestCase):
         self.assertTrue(s._alternate_buffer)
         s.stop()  # must not raise: signal_restore() only reads what __init__ already set
 
+    def test_stop_moves_below_the_frame_before_leaving_the_alternate_screen(self):
+        """Stop works whether or not the terminal switched screens, and before any DECRQM reply."""
+        for reply in (b"", b"\x1b[?1049;0$y", b"\x1b[?1049;1$y"):
+            with self.subTest(reply=reply):
+                s = _make_screen()
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s.start()
+                s.parse_input(None, None, list(reply))
+                s.maxrow = 5
+                written.clear()
+                s.stop()
+                self.assertIn(
+                    escape.set_cursor_position(0, 5) + "\n" + escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq,
+                    "".join(written),
+                )
+
+    def test_restart_after_no_alternate_screen_reported_skips_only_the_switch(self):
+        """The frames are still drawn on the whole screen, as on the first start."""
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s.start()
+        s.parse_input(None, None, list(b"\x1b[?1049;0$y"))
+        s.stop()
+
+        written.clear()
+        s.start()
+        self.addCleanup(s.stop)
+        self.assertNotIn(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq, "".join(written))
+        self.assertTrue(s._alternate_buffer)
+        self.assertIsNone(s._rows_used)
+
     def test_start_installs_signal_handlers_and_stop_restores_them(self):
         s = _make_screen()
         s.write = lambda *_a: None
@@ -418,7 +453,7 @@ class TestEncodeGpmEvent(unittest.TestCase):
 
         result = s._encode_gpm_event()
 
-        expected_button = 1 + escape.MOUSE_DRAG_FLAG + 32
+        expected_button = 1 + escape.MouseBit.DRAG + 32
         self.assertEqual([27, ord("["), ord("M"), expected_button, 3 + 32, 4 + 32], result)
         # drag does not change the tracked button state
         self.assertEqual(0, s.last_bstate)
@@ -682,6 +717,30 @@ class TestApplyPrivateModeReports(unittest.TestCase):
 
         self.assertEqual(["a", "b"], keys)
         self.assertTrue(s.modes.synchronized_output)
+
+    def test_past_end_mouse_events_dropped_without_sgr_reports(self):
+        """An X10 report at the past-end NUL byte is dropped once the terminal answered 1006 as unsupported."""
+        past_end = [*b"\x1b[M", 32, 0, 33]
+        inside = [*b"\x1b[M", 32, 255, 33]
+        release = [*b"\x1b[M", 35, 0, 33]
+        for sgr, expected in (
+            (None, [("mouse press", 1, 223, 0), ("mouse press", 1, 222, 0), ("mouse release", 0, 223, 0)]),
+            (False, [("mouse press", 1, 222, 0), ("mouse release", 0, 223, 0)]),
+        ):
+            with self.subTest(sgr=sgr):
+                s, _written = self._screen()
+                s.modes.mouse_sgr_mode = sgr
+                keys, _raw = s.parse_input(None, None, [*past_end, *inside, *release])
+                self.assertEqual(expected, keys)
+
+    def test_sgr_reply_applies_to_the_mouse_events_after_it(self):
+        s, _written = self._screen()
+
+        for value in (0, 4):
+            with self.subTest(value=value):
+                reply = f"\x1b[?1006;{value}$y\x1b[M".encode()
+                keys, _raw = s.parse_input(None, None, [*reply, 32, 0, 33, ord("a")])
+                self.assertEqual(["a"], keys)
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")

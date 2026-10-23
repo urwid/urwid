@@ -237,7 +237,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         x = 4
         y = 8
         coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
-        key_code = tuple(ord(element) for element in str(0 | escape.MOUSE_DRAG_FLAG))
+        key_code = tuple(ord(element) for element in str(0 | escape.MouseBit.DRAG))
         codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
         actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertEqual([("mouse drag", 1, x, y)], actual)
@@ -359,7 +359,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
 
     def test_mouse_x10_drag(self):
         x, y = 8, 15
-        codes = [27, 91, 77, 32 + escape.MOUSE_DRAG_FLAG, x + 33, y + 33]
+        codes = [27, 91, 77, 32 + escape.MouseBit.DRAG, x + 33, y + 33]
         actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertEqual([("mouse drag", 1, x, y)], actual)
         self.assertListEqual([], rest)
@@ -575,6 +575,34 @@ class KeyqueueTrieTest(unittest.TestCase):
         codes = [ord("["), ord("5"), ord(";"), ord("3"), ord("R"), ord("z")]
         result = escape.input_trie.read_cursor_position(codes, more_available=False)
         self.assertEqual((("cursor position", 2, 4), [ord("z")]), result)
+
+
+class MouseBitTest(unittest.TestCase):
+    def test_operators_return_int(self) -> None:
+        """Combine and test the bits with int's own operators, which return a plain int."""
+        for value in (
+            escape.MouseBit.SHIFT | escape.MouseBit.CTRL,
+            52 | escape.MouseBit.DRAG,
+            52 & escape.MouseBit.SHIFT,
+            escape.MouseBit.DRAG & 63,
+        ):
+            with self.subTest(value=value):
+                self.assertIs(type(value), int)
+
+    def test_renamed_private_names_warn(self) -> None:
+        """Resolve the names the bits had before MouseBit to their values, with a deprecation warning."""
+        for name, value in (
+            ("_MOUSE_SHIFT_FLAG", 4),
+            ("_MOUSE_META_FLAG", 8),
+            ("_MOUSE_CTRL_FLAG", 16),
+            ("_MOUSE_HIGH_BUTTON_FLAG", 64),
+            ("_MOUSE_EXTRA_BUTTON_FLAG", 128),
+            ("_MOUSE_BUTTON_MASK", 3),
+        ):
+            with self.subTest(name=name), self.assertWarns(DeprecationWarning):
+                self.assertEqual(getattr(escape, name), value)
+        with self.assertRaises(AttributeError):
+            getattr(escape, "_MOUSE_NO_SUCH_FLAG")
 
 
 class OutputSequenceTest(unittest.TestCase):

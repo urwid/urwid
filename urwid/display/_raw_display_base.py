@@ -192,7 +192,7 @@ class TermModes:
             if field is None:
                 continue
             was_unresolved = getattr(self, field) is None
-            supported = value in escape.DECRQM_RECOGNIZED_VALUES
+            supported = value in escape.DECRQM_SETTABLE_VALUES
             setattr(self, field, supported)
             if was_unresolved and supported:
                 newly_supported.add(field)
@@ -738,6 +738,27 @@ class Screen(BaseScreen, RealTerminal):
 
         return filtered
 
+    def _drop_past_end_mouse_events(self, codes: _DecodedInput) -> _DecodedInput:
+        """Drop the mouse events at a position an X10 report cannot carry, when the terminal has no SGR reports.
+
+        Without SGR reports every mouse report is in the X10 encoding, and xterm sends a column or row past its limit
+        as a NUL byte. That byte decodes as the limit itself, so the event would arrive at a wrong position.
+        A release is kept, since it ends a press or a drag the application tracks.
+        """
+        if self.modes.mouse_sgr_mode is not False:
+            return codes
+        return [
+            code
+            for code in codes
+            if not (
+                isinstance(code, tuple)
+                and len(code) == 4
+                and escape.MOUSE_X10_PAST_END in code[2:]
+                # a release ends a press or a drag the application tracks, wherever it happens
+                and not code[0].endswith("mouse release")
+            )
+        ]
+
     @abc.abstractmethod
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -762,11 +783,14 @@ class Screen(BaseScreen, RealTerminal):
         finally:
             self._mouse_tracking_enabled = mouse_tracking_requested
 
-        move_cursor = ""
+        move_cursor = "" if self.maxrow is None else escape.set_cursor_position(0, self.maxrow)
         if self._alternate_buffer:
-            move_cursor = escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
-        elif self.maxrow is not None:
-            move_cursor = escape.set_cursor_position(0, self.maxrow)
+            # Below the last frame first: the move lands on its last row and the line feed goes past it.
+            # A terminal without an alternate screen drew the frames on its main screen and ignores the switch back,
+            # and one with it scrolls only the alternate screen and restores the cursor saved by the switch.
+            if move_cursor:
+                move_cursor += "\n"
+            move_cursor += escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
         # an application's own "U" run, or a partly written frame, can leave a hyperlink open
         close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
         self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
@@ -1064,7 +1088,7 @@ class Screen(BaseScreen, RealTerminal):
             raw_codes = original_codes
             self._partial_codes = []
 
-        output_codes = self._apply_private_mode_reports(decoded_codes)
+        output_codes = self._drop_past_end_mouse_events(self._apply_private_mode_reports(decoded_codes))
 
         logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 

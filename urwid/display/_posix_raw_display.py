@@ -245,7 +245,8 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        :param alternate_buffer: use an alternate screen buffer
+        :param alternate_buffer: use an alternate screen buffer.
+            The switch is not sent to a terminal that reported it has no alternate screen.
         :param args: not supported; any value raises :exc:`TypeError`.
         :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
@@ -254,7 +255,10 @@ class Screen(_raw_display_base.Screen):
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
+            # A terminal that reported no alternate screen on an earlier start ignores the switch, and the frames are
+            # drawn the same either way.
+            if self.modes.alternate_buffer is not False:
+                self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
@@ -468,11 +472,11 @@ class Screen(_raw_display_base.Screen):
                 next_state |= 4
         elif ev == _GPM_EV_DRAG:  # drag
             if b & _GPM_B_LEFT:
-                append_button(0 + escape.MOUSE_DRAG_FLAG)
+                append_button(0 + escape.MouseBit.DRAG)
             elif b & _GPM_B_MIDDLE:
-                append_button(1 + escape.MOUSE_DRAG_FLAG)
+                append_button(1 + escape.MouseBit.DRAG)
             elif b & _GPM_B_RIGHT:
-                append_button(2 + escape.MOUSE_DRAG_FLAG)
+                append_button(2 + escape.MouseBit.DRAG)
         else:  # release
             if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_RELEASE_FLAG)

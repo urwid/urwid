@@ -1017,6 +1017,13 @@ class TestTermModesSetFromCodes(unittest.TestCase):
         self.assertFalse(modes.bracketed_paste)
         self.assertEqual(frozenset(), newly_supported)
 
+    def test_permanently_reset_reply_resolves_sentinel_to_false(self) -> None:
+        """A mode the terminal recognises but can never turn on is not supported."""
+        modes = TermModes()
+        newly_supported = modes.set_from_codes((escape.PrivateMode.BRACKETED_PASTE, 4))
+        self.assertFalse(modes.bracketed_paste)
+        self.assertEqual(frozenset(), newly_supported)
+
     def test_reply_for_an_already_resolved_field_is_not_reported_as_newly_supported(self) -> None:
         modes = TermModes(bracketed_paste=True)
         newly_supported = modes.set_from_codes((escape.PrivateMode.BRACKETED_PASTE, 1))

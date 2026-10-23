@@ -30,7 +30,7 @@ import sys
 import typing
 from collections.abc import MutableMapping
 
-from urwid import str_util, util
+from urwid import _deprecation, str_util, util
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable
@@ -316,11 +316,11 @@ class KeyqueueTrie:
         x, y = (keys[1] - _MOUSE_COORD_OFFSET) % 256, (keys[2] - _MOUSE_COORD_OFFSET) % 256
 
         prefixes = []
-        if b & _MOUSE_SHIFT_FLAG:
+        if b & MouseBit.SHIFT:
             prefixes.append("shift ")
-        if b & _MOUSE_META_FLAG:
+        if b & MouseBit.META:
             prefixes.append("meta ")
-        if b & _MOUSE_CTRL_FLAG:
+        if b & MouseBit.CTRL:
             prefixes.append("ctrl ")
         multi_click = (b & MOUSE_MULTIPLE_CLICK_MASK) >> 9
         if multi_click == 1:
@@ -329,20 +329,20 @@ class KeyqueueTrie:
             prefixes.append("triple ")
         prefix = "".join(prefixes)
 
-        button_bits = b & _MOUSE_BUTTON_MASK
-        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+        button_bits = b & MouseBit.BUTTON
+        if b & MouseBit.EXTRA_BUTTON:
             button = 8 + button_bits
-        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+        elif b & MouseBit.HIGH_BUTTON:
             button = 4 + button_bits
         else:
             button = 1 + button_bits
 
-        if button_bits == _MOUSE_BUTTON_MASK and not b & (_MOUSE_HIGH_BUTTON_FLAG | _MOUSE_EXTRA_BUTTON_FLAG):
+        if button_bits == MouseBit.BUTTON and not b & (MouseBit.HIGH_BUTTON | MouseBit.EXTRA_BUTTON):
             action = "release"
             button = 0
         elif b & MOUSE_RELEASE_FLAG:
             action = "release"
-        elif b & MOUSE_DRAG_FLAG:
+        elif b & MouseBit.DRAG:
             action = "drag"
         elif multi_click:
             action = "click"
@@ -395,18 +395,18 @@ class KeyqueueTrie:
         # so setting one here will cause an inconsistent behaviour.
 
         prefixes = []
-        if b & _MOUSE_SHIFT_FLAG:
+        if b & MouseBit.SHIFT:
             prefixes.append("shift ")
-        if b & _MOUSE_META_FLAG:
+        if b & MouseBit.META:
             prefixes.append("meta ")
-        if b & _MOUSE_CTRL_FLAG:
+        if b & MouseBit.CTRL:
             prefixes.append("ctrl ")
         prefix = "".join(prefixes)
 
-        button_bits = b & _MOUSE_BUTTON_MASK
-        if b & _MOUSE_EXTRA_BUTTON_FLAG:
+        button_bits = b & MouseBit.BUTTON
+        if b & MouseBit.EXTRA_BUTTON:
             button = 8 + button_bits
-        elif b & _MOUSE_HIGH_BUTTON_FLAG:
+        elif b & MouseBit.HIGH_BUTTON:
             button = 4 + button_bits
         else:
             button = 1 + button_bits
@@ -414,7 +414,7 @@ class KeyqueueTrie:
         y -= 1
 
         if action == "M":
-            if b & MOUSE_DRAG_FLAG:
+            if b & MouseBit.DRAG:
                 action = "drag"
             else:
                 action = "press"
@@ -557,25 +557,75 @@ MOUSE_MULTIPLE_CLICK_MASK: typing.Final = 1536
 # triple release adds this times two.  NON-STANDARD
 MOUSE_MULTIPLE_CLICK_FLAG: typing.Final = 512
 
-# xterm adds this to the button value to signal a mouse drag event
-MOUSE_DRAG_FLAG: typing.Final = 32
 
-# Bits of the X10/SGR mouse report's button byte, per xterm's ctlseqs documentation of the
-# "normal tracking mode" and "SGR mouse mode" reports.
-_MOUSE_SHIFT_FLAG: typing.Final = 4
-_MOUSE_META_FLAG: typing.Final = 8
-_MOUSE_CTRL_FLAG: typing.Final = 16
-_MOUSE_HIGH_BUTTON_FLAG: typing.Final = 64  # set to report buttons 4-7 (e.g. a wheel)
-_MOUSE_EXTRA_BUTTON_FLAG: typing.Final = 128  # set to report buttons 8-11 (e.g. side buttons)
-_MOUSE_BUTTON_MASK: typing.Final = 3  # low two bits: the button offset within its group
-# button_bits == 3 with neither flag set means "released" (X10 report only); with either flag
-# set it is the group's 4th button (7 or 11), which has no release encoding.
+class MouseBit(enum.IntFlag):
+    """Bits of the button byte of an X10 or SGR mouse report, as xterm's ctlseqs documents them.
+
+    ``&`` and ``|`` are those of :class:`int` and return a plain :class:`int`.
+    The :class:`enum.Flag` operators build a flag object for each operation, which makes decoding a report about
+    twenty times slower.
+    """
+
+    # The button offset within its group. 3 with neither group flag set means "released" (X10 report only);
+    # with either group flag set it is the group's 4th button (7 or 11), which has no release encoding.
+    BUTTON = 3
+    SHIFT = 4
+    META = 8
+    CTRL = 16
+    DRAG = 32
+    HIGH_BUTTON = 64  # set to report buttons 4-7 (e.g. a wheel)
+    EXTRA_BUTTON = 128  # set to report buttons 8-11 (e.g. side buttons)
+
+    # int's own operators, typed by the enum as returning a flag
+    __and__ = int.__and__  # type: ignore[assignment]
+    __rand__ = int.__rand__  # type: ignore[assignment]
+    __or__ = int.__or__  # type: ignore[assignment]
+    __ror__ = int.__ror__  # type: ignore[assignment]
+
+
+# MouseBit.DRAG as a plain int, for code outside urwid that reads it
+MOUSE_DRAG_FLAG: typing.Final = int(MouseBit.DRAG)
+
+# the names of the mouse report bits before MouseBit replaced them
+_RENAMED_MOUSE_BITS: typing.Final = {
+    "_MOUSE_SHIFT_FLAG": MouseBit.SHIFT,
+    "_MOUSE_META_FLAG": MouseBit.META,
+    "_MOUSE_CTRL_FLAG": MouseBit.CTRL,
+    "_MOUSE_HIGH_BUTTON_FLAG": MouseBit.HIGH_BUTTON,
+    "_MOUSE_EXTRA_BUTTON_FLAG": MouseBit.EXTRA_BUTTON,
+    "_MOUSE_BUTTON_MASK": MouseBit.BUTTON,
+}
+
+
+# Hidden from type checkers, which would otherwise accept any attribute name of this module.
+if not typing.TYPE_CHECKING:
+
+    def __getattr__(name: str) -> int:
+        """Resolve a mouse report bit by the name it had before :class:`MouseBit`, warning about the rename.
+
+        :raises AttributeError: *name* is not defined in this module.
+
+        .. deprecated:: 5.0.0
+            Use the members of :class:`MouseBit` instead of the ``_MOUSE_*_FLAG`` names and ``_MOUSE_BUTTON_MASK``.
+            This API will be removed in version 6.0.
+        """
+        if name in _RENAMED_MOUSE_BITS:
+            bit = _RENAMED_MOUSE_BITS[name]
+            _deprecation.warn(
+                f"{__name__}.{name} is renamed to {__name__}.MouseBit.{bit.name}.", since="5.0.0", removed_in="6.0"
+            )
+            return int(bit)
+        raise AttributeError(f"{name} is not defined in {__name__}")
+
 
 # The X10 report encodes the button byte and the two coordinate bytes by adding an offset to
 # keep them in the printable ASCII range; coordinates are further offset by 1 since they are
 # reported 1-based.
 _MOUSE_BYTE_OFFSET: typing.Final = 32
 _MOUSE_COORD_OFFSET: typing.Final = 33
+# the 0-based column or row an X10 report cannot carry: xterm sends it, and any farther one, as a NUL byte,
+# which decodes back to this value
+MOUSE_X10_PAST_END: typing.Final = 255 - _MOUSE_BYTE_OFFSET
 
 
 #################################################
@@ -757,17 +807,43 @@ class PrivateMode(enum.StrEnum):
     """DEC private modes (``CSI ? Pd h``/``l``).
 
     Not every member is queried or acted on, some members are for future development.
-    `_raw_display_base.TermModes` carries a field for each regardless.
+    `_raw_display_base.TermModes` carries a field for each mode the raw display queries.
     """
 
+    APPLICATION_CURSOR_KEYS = "1"  # DECCKM
+    COLUMNS_132 = "3"  # DECCOLM
+    REVERSE_VIDEO = "5"  # DECSCNM
+    ORIGIN_MODE = "6"  # DECOM
+    AUTO_WRAP = "7"  # DECAWM
+    # Neither display controls cursor blinking; the mode is recognised and never turned on.
+    CURSOR_BLINK = "12"
+    CURSOR_VISIBLE = "25"  # DECTCEM
+    # For the alternate screen in a Terminal, which is not implemented yet.
+    ALTERNATE_SCREEN = "47"
+    ALTERNATE_SCREEN_CLEARED_ON_EXIT = "1047"
+    SAVE_CURSOR = "1048"
     ALTERNATE_SCREEN_BUFFER = "1049"
+    # Reports presses only, without modifiers.
+    MOUSE_X10 = "9"
     MOUSE_REPORTING = "1000"
+    # The program answers a press with CSI T and the terminal highlights the drag; urwid implements none of it.
+    MOUSE_HIGHLIGHT_TRACKING = "1001"
     MOUSE_BUTTON_TRACKING = "1002"
+    MOUSE_ANY_EVENT_TRACKING = "1003"
+    MOUSE_UTF8_MODE = "1005"
     MOUSE_SGR_MODE = "1006"
+    # The urxvt encoding is recognised, but never turned on or used.
+    # xterm's documentation advises against it, because a report looks like CSI Pn M, which is the delete-lines command.
+    MOUSE_URXVT_MODE = "1015"
     FOCUS_REPORTING = "1004"
+    # A Terminal always sends Meta and Alt as ESC and the key, so it recognises these and does not track them.
+    META_SENDS_ESCAPE = "1036"
+    ALT_SENDS_ESCAPE = "1039"
     BRACKETED_PASTE = "2004"
     SYNCHRONIZED_OUTPUT = "2026"
     GRAPHEME_CLUSTERING = "2027"
+    # Colour scheme change notifications; not queried or turned on yet.
+    COLOR_SCHEME_REPORTING = "2031"
 
     @functools.cached_property
     def query(self) -> str:
@@ -800,6 +876,8 @@ REPORT_CURSOR_POSITION: typing.Final = f"{CSI}6n"
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
 # Ps: 0 = not recognized, 1-4 = recognized.
 DECRQM_RECOGNIZED_VALUES: typing.Final = frozenset({1, 2, 3, 4})
+# Ps of a mode the terminal can turn on: 1 set, 2 reset, 3 permanently set; 4 is permanently reset.
+DECRQM_SETTABLE_VALUES: typing.Final = frozenset({1, 2, 3})
 
 INSERT_ON: typing.Final = f"{CSI}4h"
 INSERT_OFF: typing.Final = f"{CSI}4l"
@@ -855,8 +933,8 @@ def hyperlink_open(link: Hyperlink) -> str:
     return f"{OSC}8;{params};{link.uri}{ST}"
 
 
-HIDE_CURSOR: typing.Final = f"{CSI}?25l"
-SHOW_CURSOR: typing.Final = f"{CSI}?25h"
+HIDE_CURSOR: typing.Final = PrivateMode.CURSOR_VISIBLE.disable_seq
+SHOW_CURSOR: typing.Final = PrivateMode.CURSOR_VISIBLE.enable_seq
 
 _MOUSE_MODES: typing.Final = (
     PrivateMode.MOUSE_REPORTING,

@@ -104,7 +104,8 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        :param alternate_buffer: use alternate screen buffer
+        :param alternate_buffer: use alternate screen buffer.
+            The switch is not sent to a terminal that reported it has no alternate screen.
         :param args: not supported; any value raises :exc:`TypeError`.
         :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
@@ -114,7 +115,10 @@ class Screen(_raw_display_base.Screen):
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
+            # A terminal that reported no alternate screen on an earlier start ignores the switch, and the frames are
+            # drawn the same either way.
+            if self.modes.alternate_buffer is not False:
+                self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
