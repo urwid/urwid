@@ -41,6 +41,13 @@ if typing.TYPE_CHECKING:
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
+    # the kitty keyboard protocol flags the terminal has in effect
+    _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
+    # an xterm key modifier resource and its value, None when the terminal reports it at its initial value
+    _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
+    # the parameters of a Primary Device Attributes reply
+    _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
+    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
 
 IS_WINDOWS: typing.Final = sys.platform == "win32"
 
@@ -69,6 +76,8 @@ _ORD_0: typing.Final = ord("0")
 _ORD_9: typing.Final = ord("9")
 # longest "Pb;Px;Py" body of an SGR mouse report accepted before its "M"/"m" terminator
 _SGR_MOUSE_MAX_LEN: typing.Final = 32
+# longest parameter body of a key report or a terminal reply accepted before its final byte
+_CSI_PARAMETERS_MAX_LEN: typing.Final = 64
 
 ###################
 # Input sequences
@@ -83,6 +92,161 @@ def escape_modifier(digit: str) -> str:
     """Translate a CSI modifier digit into the "shift "/"meta "/"ctrl " prefix combination it encodes."""
     mode = ord(digit) - ord("1")
     return "shift " * (mode & 1) + "meta " * ((mode & 2) // 2) + "ctrl " * ((mode & 4) // 4)
+
+
+class KeyModifier(enum.IntFlag):
+    """The modifier bits of a key report: the CSI parameter is 1 plus these bits.
+
+    These are the kitty keyboard protocol's names. xterm sends the first three, and with its alwaysUseMods resource
+    it sends its Meta key as the SUPER bit, which urwid then names ``super`` as well.
+    """
+
+    SHIFT = 1
+    ALT = 2
+    CTRL = 4
+    SUPER = 8
+    HYPER = 16
+    META = 32
+    CAPS_LOCK = 64
+    NUM_LOCK = 128
+
+
+#: the key name prefix of each modifier, in the order urwid writes them; Alt and Meta are both urwid's "meta"
+_KEY_MODIFIER_PREFIXES: typing.Final = (
+    ("shift ", KeyModifier.SHIFT),
+    ("meta ", KeyModifier.ALT | KeyModifier.META),
+    ("ctrl ", KeyModifier.CTRL),
+    ("super ", KeyModifier.SUPER),
+    ("hyper ", KeyModifier.HYPER),
+)
+
+#: the keys a CSI u report names by a code that is not their text, with the names of the matching legacy keys
+_CSI_U_KEYS: typing.Final[dict[int, str]] = {
+    8: "backspace",  # what xterm sends for Backspace when its backarrowKey resource is set
+    9: "tab",
+    13: "enter",
+    27: "esc",
+    127: "backspace",
+    57358: "caps lock",
+    57359: "scroll lock",
+    57360: "num lock",
+    57361: "print screen",
+    57362: "pause",
+    57363: "menu",
+    **{57376 + offset: f"f{13 + offset}" for offset in range(23)},
+    # the keypad keys, named as their application keypad and legacy forms are
+    **{57399 + digit: str(digit) for digit in range(10)},
+    57409: ".",
+    57410: "/",
+    57411: "*",
+    57412: "-",
+    57413: "+",
+    57414: "enter",
+    57415: "=",
+    57416: ",",
+    57417: "left",
+    57418: "right",
+    57419: "up",
+    57420: "down",
+    57421: "page up",
+    57422: "page down",
+    57423: "home",
+    57424: "end",
+    57425: "insert",
+    57426: "delete",
+    57427: "5",
+    57428: "media play",
+    57429: "media pause",
+    57430: "media play pause",
+    57431: "media reverse",
+    57432: "media stop",
+    57433: "media fast forward",
+    57434: "media rewind",
+    57435: "media track next",
+    57436: "media track previous",
+    57437: "media record",
+    57438: "lower volume",
+    57439: "raise volume",
+    57440: "mute volume",
+    57441: "left shift",
+    57442: "left ctrl",
+    57443: "left alt",
+    57444: "left super",
+    57445: "left hyper",
+    57446: "left meta",
+    57447: "right shift",
+    57448: "right ctrl",
+    57449: "right alt",
+    57450: "right super",
+    57451: "right hyper",
+    57452: "right meta",
+    57453: "iso level3 shift",
+    57454: "iso level5 shift",
+}
+
+#: the key of each CSI number ~ report, by its number
+_CSI_TILDE_KEYS: typing.Final[dict[int, str]] = {
+    1: "home",
+    2: "insert",
+    3: "delete",
+    4: "end",
+    5: "page up",
+    6: "page down",
+    7: "home",
+    8: "end",
+    **dict(
+        zip(
+            (11, 12, 13, 14, 15, 17, 18, 19, 20, 21, 23, 24, 25, 26, 28, 29, 31, 32, 33, 34),
+            (f"f{number}" for number in range(1, 21)),
+            strict=True,
+        )
+    ),
+    57427: "5",  # the keypad's middle key in the kitty keyboard protocol
+}
+
+#: the key of each CSI 1 ; modifiers letter report, by its final byte; F3 is CSI 13 ~ only, since CSI R is a cursor
+#: position report
+_CSI_LETTER_KEYS: typing.Final[dict[int, str]] = {
+    ord(letter): key
+    for letter, key in zip(
+        "ABCDEFHPQS",
+        ("up", "down", "right", "left", "5", "end", "home", "f1", "f2", "f4"),
+        strict=True,
+    )
+}
+
+#: the number xterm's modifyOtherKeys puts before the modifiers and the key's code in CSI 27 ; modifiers ; code ~
+_MODIFY_OTHER_KEYS_NUMBER: typing.Final = 27
+
+
+def _modified_key_name(key: str, modifiers: int) -> str:
+    """Return *key* with the prefixes of the modifier bits *modifiers*; the lock bits do not change the key."""
+    return "".join(prefix for prefix, bits in _KEY_MODIFIER_PREFIXES if modifiers & bits) + key
+
+
+def _text_key_name(code: int, shifted_code: int | None, modifiers: int, *, shift_applied: bool) -> str | None:
+    """Return the name of a key that types the character *code*, or None when *code* is not a printable character.
+
+    A shifted letter or symbol is named by the character it types and without the shift prefix, as the legacy
+    encodings name it: Alt+Shift+A is ``meta A``.
+
+    :param shifted_code: the character the key types with shift, when the terminal reported it.
+    :param shift_applied: *code* is already the character typed with shift, as xterm reports it.
+    """
+    if not 0 <= code <= sys.maxunicode or not (char := chr(code)).isprintable():
+        return None
+    if modifiers & KeyModifier.SHIFT:
+        if shifted_code is not None and 0 <= shifted_code <= sys.maxunicode and chr(shifted_code).isprintable():
+            char = chr(shifted_code)
+        elif shift_applied or char.lower() != char or char == " ":
+            pass  # an upper case letter, or a space, is the character typed with shift, whichever terminal reported it
+        elif len(upper := char.upper()) == 1 and upper != char:
+            char = upper
+        else:
+            # the shifted character of a symbol depends on the keyboard layout, which the report did not give
+            return _modified_key_name(char, modifiers)
+        modifiers &= ~KeyModifier.SHIFT
+    return _modified_key_name(char, modifiers)
 
 
 input_sequences: list[tuple[str, str]] = [
@@ -102,6 +266,9 @@ input_sequences: list[tuple[str, str]] = [
     # st in normal keypad mode
     ("[4h", "insert"),
     ("[P", "delete"),
+    # F2 and F4 without modifiers in the kitty keyboard protocol, whose F1 is the CSI P above
+    ("[Q", "f2"),
+    ("[S", "f4"),
     ("[4~", "end"),
     ("[5~", "page up"),
     ("[6~", "page down"),
@@ -255,13 +422,29 @@ class KeyqueueTrie:
         self,
         keys: list[int],
         more_available: bool,
-    ) -> tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None:
-        """Decode the longest key sequence matching the start of ``keys``, trying the trie then the special reports."""
-        result: tuple[str | _MouseInput | _CursorPosition | _PrivateModeReport, list[int]] | None
+        *,
+        csi_u_shift_applied: bool = False,
+    ) -> tuple[str | _MouseInput | _CursorPosition | _TerminalReport, list[int]] | None:
+        """Decode the longest key sequence matching the start of ``keys``, trying the trie then the special reports.
+
+        :param keys: the codes after the ESC that starts the sequence.
+        :param more_available: raise MoreInputRequired when the codes end in the middle of a sequence.
+        :param csi_u_shift_applied: see `read_key_report`.
+        """
+        result: tuple[str | _MouseInput | _CursorPosition | _TerminalReport, list[int]] | None
         if result := self.get_recurse(self.data, keys, more_available):
             return result
 
         if (result := self.read_private_mode_report(keys, more_available)) is not None:
+            return result
+
+        if (result := self.read_private_report(keys, more_available)) is not None:
+            return result
+
+        if (result := self.read_modify_keys_report(keys, more_available)) is not None:
+            return result
+
+        if (result := self.read_key_report(keys, more_available, csi_u_shift_applied=csi_u_shift_applied)) is not None:
             return result
 
         return self.read_cursor_position(keys, more_available)
@@ -542,6 +725,130 @@ class KeyqueueTrie:
             raise MoreInputRequired
         return None
 
+    @staticmethod
+    def _split_csi(
+        keys: list[int],
+        more_available: bool,
+        introducer: bytes,
+        final_bytes: Iterable[int],
+    ) -> tuple[list[list[str]], int, list[int]] | None:
+        """Split a control sequence that starts with *introducer* and ends with one of *final_bytes*.
+
+        :returns: the parameters, each split into its sub-parameters, the final byte and the codes after it,
+            or None when the codes do not start with such a sequence.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if keys[: len(introducer)] != list(introducer[: len(keys)]):
+            return None
+        for pos in range(len(introducer), min(len(keys), len(introducer) + _CSI_PARAMETERS_MAX_LEN + 1)):
+            k = keys[pos]
+            if k in final_bytes:
+                break
+            if not (_ORD_0 <= k <= _ORD_9 or k in {ord(";"), ord(":")}):
+                return None
+        else:
+            if more_available and len(keys) <= len(introducer) + _CSI_PARAMETERS_MAX_LEN:
+                raise MoreInputRequired
+            return None
+        body = bytes(keys[len(introducer) : pos]).decode("ascii")
+        return [field.split(":") for field in body.split(";")], keys[pos], keys[pos + 1 :]
+
+    def read_private_report(
+        self,
+        keys: list[int],
+        more_available: bool,
+    ) -> tuple[_KeyboardProtocolReport | _DeviceAttributesReport, list[int]] | None:
+        """Interpret a kitty keyboard protocol flags reply (CSI ? flags u) or a Primary DA reply (CSI ? Ps ; ... c).
+
+        :returns: ``('keyboard protocol report', flags)`` or ``('device attributes', parameters)``.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if (split := self._split_csi(keys, more_available, b"[?", (ord("u"), ord("c")))) is None:
+            return None
+        fields, final, rest = split
+        if any(len(field) != 1 or not field[0] for field in fields):
+            return None
+        values = tuple(int(field[0]) for field in fields)
+        if final == ord("c"):
+            return ("device attributes", values), rest
+        if len(values) != 1:
+            return None
+        return ("keyboard protocol report", values[0]), rest
+
+    def read_modify_keys_report(
+        self,
+        keys: list[int],
+        more_available: bool,
+    ) -> tuple[_ModifyKeysReport, list[int]] | None:
+        """Interpret xterm's reply to a key modifier options query (CSI > Pp ; Pv m, or CSI > Pp m).
+
+        :returns: ``('modify keys report', resource, value)``, with value None when the reply omits it.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if (split := self._split_csi(keys, more_available, b"[>", (ord("m"),))) is None:
+            return None
+        fields, _final, rest = split
+        if len(fields) > 2 or any(len(field) != 1 for field in fields) or not fields[0][0]:
+            return None
+        value = int(fields[1][0]) if len(fields) == 2 and fields[1][0] else None
+        return ("modify keys report", int(fields[0][0]), value), rest
+
+    def read_key_report(
+        self,
+        keys: list[int],
+        more_available: bool,
+        *,
+        csi_u_shift_applied: bool = False,
+    ) -> tuple[str, list[int]] | None:
+        """Interpret a key report the trie has no entry for.
+
+        These are the kitty keyboard protocol's CSI u reports, xterm's modifyOtherKeys reports
+        (CSI 27 ; modifiers ; code ~), and the legacy CSI number ; modifiers ~ and CSI 1 ; modifiers letter forms
+        with modifiers beyond shift, alt and ctrl.
+
+        :param keys: the codes after the ESC that starts the sequence.
+        :param more_available: raise MoreInputRequired when the codes end in the middle of a sequence.
+        :param csi_u_shift_applied: a CSI u report carries the character typed with shift, as xterm's modifyOtherKeys
+            sends it with the formatOtherKeys resource set, rather than the kitty keyboard protocol's unshifted key.
+        :returns: the key name, or None when the codes do not start with a key report urwid can name.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        final_bytes = (ord("u"), ord("~"), *_CSI_LETTER_KEYS)
+        if keys[1:2] and not _ORD_0 <= keys[1] <= _ORD_9:
+            # a key report starts with its key's number; a private parameter starts a terminal reply instead
+            return None
+        if (split := self._split_csi(keys, more_available, b"[", final_bytes)) is None:
+            return None
+        fields, final, rest = split
+        numbers = [[int(sub) if sub else None for sub in field] for field in fields]
+        code, shifted_code = (numbers[0] + [None])[:2]
+        modifiers = numbers[1][0] if len(numbers) > 1 and numbers[1][0] is not None else 1
+        if code is None or modifiers < 1:
+            return None
+        modifiers -= 1
+
+        name: str | None
+        if final == ord("u"):
+            if code in _CSI_U_KEYS:
+                name = _modified_key_name(_CSI_U_KEYS[code], modifiers)
+            else:
+                name = _text_key_name(code, shifted_code, modifiers, shift_applied=csi_u_shift_applied)
+        elif final == ord("~") and code == _MODIFY_OTHER_KEYS_NUMBER:
+            if len(numbers) != 3 or (key_code := numbers[2][0]) is None:
+                return None
+            if key_code in _CSI_U_KEYS:
+                name = _modified_key_name(_CSI_U_KEYS[key_code], modifiers)
+            else:
+                name = _text_key_name(key_code, None, modifiers, shift_applied=True)
+        elif final == ord("~"):
+            name = _modified_key_name(_CSI_TILDE_KEYS[code], modifiers) if code in _CSI_TILDE_KEYS else None
+        else:
+            name = _modified_key_name(_CSI_LETTER_KEYS[final], modifiers) if code == 1 else None
+
+        if name is None:
+            return None
+        return name, rest
+
 
 # This is added to button value to signal mouse release by curses_display
 # and raw_display when we know which button was released.  NON-STANDARD
@@ -687,12 +994,17 @@ if IS_WINDOWS:
 def process_keyqueue(
     codes: list[int],
     more_available: bool,
-) -> tuple[list[str | _MouseInput | _CursorPosition | _PrivateModeReport], list[int]]:
+    *,
+    keyboard_protocol: typing.Literal["kitty", "modify other keys"] | None = None,
+) -> tuple[list[str | _MouseInput | _CursorPosition | _TerminalReport], list[int]]:
     """Decode `codes` into input events, consuming as much of the queue as is currently decodable.
 
     :param codes: list of key codes
     :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
         (escape/utf8/wide) and caller will attempt to send more key codes on the next call.
+    :param keyboard_protocol: the keyboard protocol the terminal has on. With the kitty keyboard protocol, CSI P is F1
+        rather than the Delete key st sends it for; with xterm's modifyOtherKeys, a CSI u report carries the character
+        typed with shift.
     :returns: a ``(list of input, list of remaining key codes)`` tuple.
     :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
     """
@@ -765,7 +1077,11 @@ def process_keyqueue(
     if code != 27:
         return [f"<{code:d}>"], codes[1:]
 
-    if (result := input_trie.get(codes[1:], more_available)) is not None:
+    if keyboard_protocol == "kitty" and codes[1:3] == [ord("["), ord("P")]:
+        return ["f1"], codes[3:]
+
+    shift_applied = keyboard_protocol == "modify other keys"
+    if (result := input_trie.get(codes[1:], more_available, csi_u_shift_applied=shift_applied)) is not None:
         decoded, remaining_codes = result
         return [decoded], remaining_codes
 
@@ -776,8 +1092,8 @@ def process_keyqueue(
 
     if codes[1:]:
         # Meta keys -- ESC+Key form
-        run, remaining_codes = process_keyqueue(codes[1:], more_available)
-        # A mouse event or a terminal report (cursor position, DECRPM) cannot take a meta prefix.
+        run, remaining_codes = process_keyqueue(codes[1:], more_available, keyboard_protocol=keyboard_protocol)
+        # A mouse event or a terminal report (cursor position, DECRPM, a query reply) cannot take a meta prefix.
         if not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0]:
             return ["esc", *run], remaining_codes
         return [f"meta {run[0]}", *run[1:]], remaining_codes
@@ -874,6 +1190,35 @@ NUM_KEYPAD_MODE: typing.Final = f"{ESC}>"
 
 REPORT_STATUS: typing.Final = f"{CSI}5n"
 REPORT_CURSOR_POSITION: typing.Final = f"{CSI}6n"
+# Primary DA; every terminal answers it, so its reply arriving first means an earlier query got no answer
+REPORT_DEVICE_ATTRIBUTES: typing.Final = f"{CSI}c"
+
+# kitty keyboard protocol: the flags query (replied as CSI ? flags u), and pushing and popping the flags on the
+# terminal's per-screen stack
+KITTY_KEYBOARD_QUERY: typing.Final = f"{CSI}?u"
+# disambiguate escape codes (1) and report alternate keys (4), so a shifted symbol is named by what it types
+KITTY_KEYBOARD_FLAGS: typing.Final = 0b101
+KITTY_KEYBOARD_PUSH: typing.Final = f"{CSI}>{KITTY_KEYBOARD_FLAGS}u"
+KITTY_KEYBOARD_POP: typing.Final = f"{CSI}<u"
+
+# xterm's modifyOtherKeys key modifier resource, and its query (XTQMODKEYS)
+MODIFY_OTHER_KEYS_RESOURCE: typing.Final = 4
+MODIFY_OTHER_KEYS_QUERY: typing.Final = f"{CSI}?{MODIFY_OTHER_KEYS_RESOURCE}m"
+
+
+def set_modify_other_keys(value: int | None) -> str:
+    r"""Return the XTMODKEYS sequence that sets modifyOtherKeys to *value*, or resets it to its initial value for None.
+
+    >>> set_modify_other_keys(None)
+    '\x1b[>4m'
+    """
+    if value is None:
+        return f"{CSI}>{MODIFY_OTHER_KEYS_RESOURCE}m"
+    return f"{CSI}>{MODIFY_OTHER_KEYS_RESOURCE};{value:d}m"
+
+
+# level 2 reports every key pressed with a modifier, Ctrl+C included
+MODIFY_OTHER_KEYS_ON: typing.Final = set_modify_other_keys(2)
 
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
 # Ps: 0 = not recognized, 1-4 = recognized.

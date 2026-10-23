@@ -63,8 +63,12 @@ if typing.TYPE_CHECKING:
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
     _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
+    _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
+    _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
+    _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
+    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
-    _DecodedInputWithReports = list[str | _MouseInput | _CursorPosition | _PrivateModeReport]
+    _DecodedInputWithReports = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
@@ -172,6 +176,9 @@ class TermModes:
     bracketed_paste: bool | None = None
     synchronized_output: bool | None = None
     grapheme_clustering: bool | None = None
+    # Resolved by the replies to the keyboard protocol queries, which are sent only for Screen(extended_keys=True).
+    kitty_keyboard: bool | None = None
+    modify_other_keys: bool | None = None
 
     # escape.PrivateMode member -> the field it resolves.
     _FIELDS: typing.ClassVar[Mapping[str, str]] = {
@@ -521,6 +528,7 @@ class Screen(BaseScreen, RealTerminal):
         output: TextWriter,
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
+        extended_keys: bool = False,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -532,11 +540,20 @@ class Screen(BaseScreen, RealTerminal):
         :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
+        :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
+            and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
+            Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
         """
         super().__init__()
 
         self._partial_codes: list[int] = []
         self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
+        self.extended_keys = extended_keys
+        # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
+        self._keyboard_query_pending = False
+        # the modifyOtherKeys value the terminal reported, written back when the screen stops
+        self._modify_other_keys_reported: int | None = None
+        self._keyboard_protocol_enabled: Literal["kitty", "modify other keys"] | None = None
         # escape sequence per canvas run attribute, filled as attributes are drawn
         self._pal_escape: dict[Hashable, str] = {}
         self._modified_palette_entries: set[int] = set()
@@ -693,7 +710,8 @@ class Screen(BaseScreen, RealTerminal):
         """Send DECRQM queries for the private modes still at their sentinel; does not wait for a reply.
 
         Replies are recognized later, during normal `parse_input()`
-        (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_private_mode_reports()`).
+        (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_terminal_reports()`).
+        With ``extended_keys``, the kitty keyboard protocol and modifyOtherKeys are queried as well, once.
         """
         if not self._is_real_terminal():
             return
@@ -710,21 +728,50 @@ class Screen(BaseScreen, RealTerminal):
         if self.modes.focus_reporting is None:
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
 
-        self.write("".join(mode.query for mode in modes))
+        queries = "".join(mode.query for mode in modes)
+        if self.extended_keys and self.modes.kitty_keyboard is None and not self._keyboard_query_pending:
+            # A terminal ignores a query it does not know, and answers Primary DA in the order it reads the queries,
+            # so a protocol that has no reply by the time the Primary DA reply arrives is not supported.
+            queries += escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY + escape.REPORT_DEVICE_ATTRIBUTES
+            self._keyboard_query_pending = True
+        self.write(queries)
         self.flush()
 
-    def _apply_private_mode_reports(
+    def _apply_terminal_reports(
         self,
         decoded_codes: _DecodedInputWithReports,
     ) -> _DecodedInput:
-        """Apply any DECRPM replies among *decoded_codes* to `self.modes` and strip them out."""
+        """Apply the query replies among *decoded_codes* to `self.modes` and strip them out.
+
+        A keyboard protocol reply counts only between the keyboard protocol queries and the Primary DA reply sent
+        after them: outside that window it is not an answer to urwid's query, and is dropped without effect.
+        """
+        logger = self.logger.getChild("terminal_reports")
         filtered: _DecodedInput = []
         reports: list[tuple[str, int]] = []
         for item in decoded_codes:
-            if isinstance(item, tuple) and item[:1] == ("private mode report",):
-                reports.append(typing.cast("tuple[str, int]", item[1:]))
-            else:
-                filtered.append(typing.cast("str | _MouseInput | _CursorPosition", item))
+            match item:
+                case ("private mode report", str() as mode, int() as value):
+                    reports.append((mode, value))
+                case ("keyboard protocol report" | "modify keys report" | "device attributes", *_) if (
+                    not self._keyboard_query_pending
+                ):
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("keyboard protocol report", _flags):
+                    self.modes.kitty_keyboard = True
+                case ("modify keys report", escape.MODIFY_OTHER_KEYS_RESOURCE, value):
+                    self.modes.modify_other_keys = True
+                    self._modify_other_keys_reported = value
+                case ("modify keys report", *_):
+                    pass  # another key modifier resource, which urwid did not query
+                case ("device attributes", _attributes):
+                    # the Primary DA reply that ends the answers to the keyboard protocol queries
+                    self._keyboard_query_pending = False
+                    self.modes.kitty_keyboard = bool(self.modes.kitty_keyboard)
+                    self.modes.modify_other_keys = bool(self.modes.modify_other_keys)
+                    self._enable_keyboard_protocol()
+                case _:
+                    filtered.append(item)
 
         if reports:
             enable = [
@@ -737,6 +784,37 @@ class Screen(BaseScreen, RealTerminal):
                 self.flush()
 
         return filtered
+
+    def _enable_keyboard_protocol(self) -> None:
+        """Turn on the keyboard protocol the terminal answered for, preferring kitty's to modifyOtherKeys.
+
+        Only for ``extended_keys``, and once per start of the screen: the kitty flags are pushed on the stack of the
+        screen in use, so they are popped before the alternate screen is left (see `_disable_keyboard_protocol()`).
+        """
+        if not self.extended_keys or not self._started or self._keyboard_protocol_enabled is not None:
+            return
+        if self.modes.kitty_keyboard:
+            self.write(escape.KITTY_KEYBOARD_PUSH)
+            self._keyboard_protocol_enabled = "kitty"
+        elif self.modes.modify_other_keys:
+            self.write(escape.MODIFY_OTHER_KEYS_ON)
+            self._keyboard_protocol_enabled = "modify other keys"
+        else:
+            return
+        self.flush()
+
+    def _disable_keyboard_protocol(self) -> None:
+        """Restore the keyboard protocol state `_enable_keyboard_protocol()` changed, as the screen stops.
+
+        Replies not read by then can be lost, as a POSIX stop discards the pending input, so queries still waiting for
+        them are sent again on the next start.
+        """
+        if self._keyboard_protocol_enabled == "kitty":
+            self.write(escape.KITTY_KEYBOARD_POP)
+        elif self._keyboard_protocol_enabled == "modify other keys":
+            self.write(escape.set_modify_other_keys(self._modify_other_keys_reported))
+        self._keyboard_protocol_enabled = None
+        self._keyboard_query_pending = False
 
     def _drop_past_end_mouse_events(self, codes: _DecodedInput) -> _DecodedInput:
         """Drop the mouse events at a position an X10 report cannot carry, when the terminal has no SGR reports.
@@ -1066,7 +1144,9 @@ class Screen(BaseScreen, RealTerminal):
         decoded_codes: _DecodedInputWithReports = []
         try:
             while codes:
-                run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
+                run, remaining_codes = escape.process_keyqueue(
+                    codes, wait_for_more, keyboard_protocol=self._keyboard_protocol_enabled
+                )
                 codes = remaining_codes.copy()
                 decoded_codes.extend(run)
         except escape.MoreInputRequired:
@@ -1088,7 +1168,7 @@ class Screen(BaseScreen, RealTerminal):
             raw_codes = original_codes
             self._partial_codes = []
 
-        output_codes = self._drop_past_end_mouse_events(self._apply_private_mode_reports(decoded_codes))
+        output_codes = self._drop_past_end_mouse_events(self._apply_terminal_reports(decoded_codes))
 
         logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 

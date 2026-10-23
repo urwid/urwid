@@ -678,3 +678,163 @@ class ReadPrivateModeReportTest(unittest.TestCase):
         for value in (1, 2, 3, 4):
             self.assertIn(value, escape.DECRQM_RECOGNIZED_VALUES)
         self.assertNotIn(0, escape.DECRQM_RECOGNIZED_VALUES)
+
+
+class KeyReportTest(unittest.TestCase):
+    """Key reports of the kitty keyboard protocol and xterm's modifyOtherKeys, and modifiers the trie has no entry for."""
+
+    def test_reports_decode_to_key_names(self):
+        for sequence, key in (
+            # kitty keyboard protocol: CSI code[:shifted] ; modifiers u
+            (b"[97;5u", "ctrl a"),
+            (b"[105;5u", "ctrl i"),
+            (b"[109;5u", "ctrl m"),
+            (b"[47;5u", "ctrl /"),
+            (b"[32;5u", "ctrl  "),
+            (b"[32;6u", "ctrl  "),
+            (b"[32;4u", "meta  "),
+            (b"[97;3u", "meta a"),
+            (b"[97:65;4u", "meta A"),
+            (b"[97;6u", "ctrl A"),
+            (b"[49:33;6u", "ctrl !"),
+            (b"[49;6u", "shift ctrl 1"),
+            (b"[97;9u", "super a"),
+            (b"[97;17u", "hyper a"),
+            (b"[97;33u", "meta a"),
+            (b"[97;69u", "ctrl a"),
+            (b"[13;5u", "ctrl enter"),
+            (b"[13;2u", "shift enter"),
+            (b"[9;5u", "ctrl tab"),
+            (b"[9;6u", "shift ctrl tab"),
+            (b"[127;3u", "meta backspace"),
+            (b"[27u", "esc"),
+            (b"[27;3u", "meta esc"),
+            (b"[57376u", "f13"),
+            (b"[57398;5u", "ctrl f35"),
+            (b"[57399u", "0"),
+            (b"[57414;5u", "ctrl enter"),
+            (b"[57427u", "5"),
+            (b"[57441u", "left shift"),
+            (b"[57440u", "mute volume"),
+            (b"[1078;5u", "ctrl ж"),
+            (b"[1078;6u", "ctrl Ж"),
+            # xterm modifyOtherKeys: CSI 27 ; modifiers ; code ~, where code is the character after shift
+            (b"[27;5;13~", "ctrl enter"),
+            (b"[27;6;9~", "shift ctrl tab"),
+            (b"[27;5;97~", "ctrl a"),
+            (b"[27;6;65~", "ctrl A"),
+            (b"[27;6;33~", "ctrl !"),
+            (b"[27;3;97~", "meta a"),
+            (b"[27;5;32~", "ctrl  "),
+            (b"[27;6;32~", "ctrl  "),
+            (b"[27;4;32~", "meta  "),
+            # legacy forms with super, hyper or a lock modifier, which the trie has no entry for
+            (b"[1;9A", "super up"),
+            (b"[1;129A", "up"),
+            (b"[1;133D", "ctrl left"),
+            (b"[3;133~", "ctrl delete"),
+            (b"[15;9~", "super f5"),
+            (b"[1;9P", "super f1"),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_sequences_that_name_no_key_are_not_key_reports(self):
+        for sequence in (
+            b"[0;5u",  # a text event without a key, only sent with the associated text enhancement
+            b"[1114112;5u",  # past the last code point
+            b"[1;5u",  # a C0 control code is never a key's code
+            b"[97;0u",  # the modifiers parameter is one more than the bits, so it is never 0
+            b"[;5u",
+            b"[99;5~",
+            b"[2;5A",
+            b"[27;5~",
+            b"[27;5;~",
+            b"[97;5:x",
+        ):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_key_report(list(sequence), more_available=False))
+
+    def test_truncated_report_waits_for_more_input(self):
+        sequence = b"[27;6;65~"
+        for length in range(1, len(sequence)):
+            with self.subTest(length=length), self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+
+    def test_overlong_parameters_are_not_buffered(self):
+        codes = [ord("["), *b"1" * 65]
+        self.assertIsNone(escape.input_trie.read_key_report(codes, more_available=True))
+
+    def test_csi_p_is_f1_only_with_the_kitty_keyboard_protocol(self):
+        for keyboard_protocol, key in ((None, "delete"), ("modify other keys", "delete"), ("kitty", "f1")):
+            with self.subTest(keyboard_protocol=keyboard_protocol):
+                actual, rest = escape.process_keyqueue(
+                    [27, *b"[P"], more_available=False, keyboard_protocol=keyboard_protocol
+                )
+                self.assertEqual([key], actual)
+                self.assertEqual([], rest)
+
+    def test_meta_prefixed_csi_p_keeps_the_kitty_keyboard_reading(self):
+        actual, _rest = escape.process_keyqueue([27, 27, *b"[P"], more_available=False, keyboard_protocol="kitty")
+        self.assertEqual(["meta f1"], actual)
+
+    def test_csi_u_carries_the_shifted_character_with_modify_other_keys(self):
+        """xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
+        for keyboard_protocol, key in ((None, "shift ctrl !"), ("kitty", "shift ctrl !"), ("modify other keys", "ctrl !")):
+            with self.subTest(keyboard_protocol=keyboard_protocol):
+                actual, _rest = escape.process_keyqueue(
+                    [27, *b"[33;6u"], more_available=False, keyboard_protocol=keyboard_protocol
+                )
+                self.assertEqual([key], actual)
+
+    def test_shift_space_with_modify_other_keys_is_a_space(self):
+        self.assertEqual(([" "], []), escape.process_keyqueue([27, *b"[27;2;32~"], more_available=False))
+
+    def test_csi_q_and_csi_s_are_f2_and_f4(self):
+        for sequence, key in ((b"[Q", "f2"), (b"[S", "f4")):
+            with self.subTest(sequence=sequence):
+                self.assertEqual(([key], []), escape.process_keyqueue([27, *sequence], more_available=False))
+
+
+class ReadKeyboardQueryReplyTest(unittest.TestCase):
+    def test_replies_through_process_keyqueue(self):
+        for sequence, report in (
+            (b"[?5u", ("keyboard protocol report", 5)),
+            (b"[?0u", ("keyboard protocol report", 0)),
+            (b"[?62;22c", ("device attributes", (62, 22))),
+            (b"[?6c", ("device attributes", (6,))),
+            (b"[>4;2m", ("modify keys report", 4, 2)),
+            (b"[>4m", ("modify keys report", 4, None)),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
+                self.assertEqual([report], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_malformed_replies_are_not_reports(self):
+        for sequence in (b"[?u", b"[?1;2u", b"[?1:2u", b"[?;c"):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_private_report(list(sequence), more_available=False))
+        for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_modify_keys_report(list(sequence), more_available=False))
+
+    def test_truncated_replies_wait_for_more_input(self):
+        for sequence in (b"[?62;22c", b"[>4;2m"):
+            for length in range(1, len(sequence)):
+                with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
+                    escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+
+
+class KeyboardProtocolOutputTest(unittest.TestCase):
+    def test_sequences(self):
+        self.assertEqual(f"{escape.ESC}[?u", escape.KITTY_KEYBOARD_QUERY)
+        self.assertEqual(f"{escape.ESC}[>5u", escape.KITTY_KEYBOARD_PUSH)
+        self.assertEqual(f"{escape.ESC}[<u", escape.KITTY_KEYBOARD_POP)
+        self.assertEqual(f"{escape.ESC}[?4m", escape.MODIFY_OTHER_KEYS_QUERY)
+        self.assertEqual(f"{escape.ESC}[>4;2m", escape.MODIFY_OTHER_KEYS_ON)
+        self.assertEqual(f"{escape.ESC}[>4;1m", escape.set_modify_other_keys(1))
+        self.assertEqual(f"{escape.ESC}[>4m", escape.set_modify_other_keys(None))
+        self.assertEqual(f"{escape.ESC}[c", escape.REPORT_DEVICE_ATTRIBUTES)

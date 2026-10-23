@@ -64,6 +64,7 @@ class Screen(_raw_display_base.Screen):
         output: _raw_display_base.TextWriter = sys.stdout,
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
+        extended_keys: bool = False,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -76,11 +77,20 @@ class Screen(_raw_display_base.Screen):
         :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
             None (default) auto-detects via DECRQM and enables it once confirmed supported;
             pass True/False to force it without probing.
+        :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
+            and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
+            Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
         """
         if input is None:
             input, self._send_input = socket.socketpair()  # noqa: A001
 
-        super().__init__(input, output, bracketed_paste_mode=bracketed_paste_mode, focus_reporting=focus_reporting)
+        super().__init__(
+            input,
+            output,
+            bracketed_paste_mode=bracketed_paste_mode,
+            focus_reporting=focus_reporting,
+            extended_keys=extended_keys,
+        )
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
@@ -163,6 +173,8 @@ class Screen(_raw_display_base.Screen):
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
+        self._enable_keyboard_protocol()
+
         self._next_timeout = self.max_wait
 
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
@@ -190,6 +202,9 @@ class Screen(_raw_display_base.Screen):
 
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+
+        # before the alternate screen is left: the kitty keyboard flags are kept per screen
+        self._disable_keyboard_protocol()
 
         self._stop_input_thread()
 

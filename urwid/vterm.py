@@ -124,6 +124,31 @@ KEY_TRANSLATIONS = {
     "shift tab": f"{ESC}\t",  # kcbt of the linux terminal type the child is given
 }
 
+#: the legacy key that a key name only the keyboard protocols report (see ``extended_keys`` of the raw display)
+#: collapses to in a legacy terminal, as the kitty keyboard protocol's legacy encoding sends it: Enter and Esc lose
+#: shift and ctrl, Tab and Backspace lose shift, ctrl Backspace is ctrl H, and ctrl maps Space, "/", "?" and "~" to
+#: NUL, US, DEL and RS. The digits are left out, because urwid names the keypad keys with them, and ctrl with the
+#: keypad's middle key is "ctrl 5" too.
+_LEGACY_KEYS: typing.Final = {
+    "shift enter": "enter",
+    "ctrl enter": "enter",
+    "shift ctrl enter": "enter",
+    "ctrl tab": "tab",
+    "shift ctrl tab": "shift tab",
+    "shift backspace": "backspace",
+    "ctrl backspace": "ctrl h",
+    "shift ctrl backspace": "ctrl h",
+    "shift esc": "esc",
+    "ctrl esc": "esc",
+    "shift ctrl esc": "esc",
+    "ctrl  ": "ctrl @",
+    "ctrl /": "ctrl _",
+    # without the shifted key in the report, as from a terminal that does not report alternate keys
+    "shift ctrl /": "ctrl _",
+    "ctrl ?": "backspace",
+    "ctrl ~": "ctrl ^",
+}
+
 KEY_TRANSLATIONS_DECCKM = {
     "up": f"{ESC}OA",
     "down": f"{ESC}OB",
@@ -236,6 +261,11 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor()),
     b"`": CSIAlias("alias", b"G"),
 }
+
+#: the final bytes whose "?" form is run: the DEC private modes, the linux cursor style CSI ? Ps c (not answered), and
+#: the DEC forms of the erase and status commands, which act like their ECMA-48 forms here; any other "?" form, such as
+#: the kitty keyboard protocol query CSI ? u, is a different command than the one without it
+_CSI_PRIVATE_FINAL_BYTES: typing.Final = frozenset((b"J", b"K", b"c", b"h", b"l", b"n"))
 
 CHARSET_DEFAULT: Literal[1] = 1  # type annotated exclusively for buggy IDE
 CHARSET_UTF8: Literal[2] = 2
@@ -612,7 +642,7 @@ class TermCanvas(Canvas):
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
         qmark = self._escbuf.startswith(b"?")
         body = self._escbuf[1 if qmark else 0 :]
-        if body.strip(b"0123456789;"):
+        if body.strip(b"0123456789;") or (qmark and char not in _CSI_PRIVATE_FINAL_BYTES):
             # sub-parameters, other private markers and intermediate bytes select sequences not implemented here
             return
 
@@ -2049,6 +2079,7 @@ class Terminal(Widget):
         """Return the characters the child receives for *key*, or ``None`` when its terminal type has none."""
         meta = key.startswith("meta ")
         sent = key.removeprefix("meta ")
+        sent = _LEGACY_KEYS.get(sent, sent)
 
         if sent.startswith("ctrl "):
             # C0 control characters only exist for "@", "A"-"Z" and "[\]^_"
@@ -2062,8 +2093,9 @@ class Terminal(Widget):
             sent = KEY_TRANSLATIONS_DECCKM[sent]
         elif sent in KEY_TRANSLATIONS:
             sent = KEY_TRANSLATIONS[sent]
-        elif len(sent) > 1 and sent.isascii():
-            # a key name such as "shift up" or "focus in" has no form under TERM=linux, and is not written as text
+        elif len(sent) > 1 and (sent.isascii() or " " in sent):
+            # a key name such as "shift up", "focus in" or "super \u0436" has no form under TERM=linux, and is not
+            # written as text
             return None
 
         # Meta (Alt) sends ESC before the key's single character, as xterm does with metaSendsEscape.
