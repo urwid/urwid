@@ -172,6 +172,36 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     f"Codes {codes!r} ({[chr(code) for code in codes]}) was not decoded to {expected!r}",
                 )
 
+    def test_editing_keys_mods(self):
+        """Test for modifiers handling for editing keys in the [X;#~ form."""
+        for number, key in ((2, "insert"), (3, "delete"), (5, "page up"), (6, "page down")):
+            for mask in "12345678":
+                sequence = f"\x1b[{number};{mask}~".encode()
+                expected = escape.escape_modifier(mask) + key
+                with self.subTest(sequence=sequence):
+                    actual, rest = escape.process_keyqueue(list(sequence), more_available=False)
+                    self.assertEqual([expected], actual)
+                    self.assertEqual([], rest)
+
+    def test_application_keypad_keys(self):
+        """Test for keypad keys sent in application keypad mode (SS3 form)."""
+        for sequence, key in (
+            (b"\x1bOM", "enter"),
+            (b"\x1bOE", "5"),
+            (b"\x1bOl", ","),
+            (b"\x1bOX", "="),
+            (b"\x1bOo", "/"),
+            (b"\x1bOj", "*"),
+            (b"\x1bOm", "-"),
+            (b"\x1bOk", "+"),
+            (b"\x1bOn", "."),
+            *((f"\x1bO{ord('p') + n:c}".encode(), str(n)) for n in range(10)),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue(list(sequence), more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([], rest)
+
     def test_sgrmouse(self):
         prefix = (27, ord("["), ord("<"))
         x = 4
