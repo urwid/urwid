@@ -54,7 +54,7 @@ from urwid.ansi_parser import (
 )
 from urwid.canvas import Canvas
 from urwid.display import AttrSpec, RealTerminal
-from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS
+from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS, PrivateMode
 from urwid.widget import Sizing, Widget
 
 if typing.TYPE_CHECKING:
@@ -127,6 +127,16 @@ KEY_TRANSLATIONS_DECCKM = {
     "f4": f"{ESC}OS",
     "f5": f"{ESC}[15~",
 }
+
+#: the DEC private modes a Terminal recognises and ignores
+_RECOGNISED_IGNORED_MODES: typing.Final = frozenset(
+    (
+        PrivateMode.CURSOR_BLINK,
+        PrivateMode.MOUSE_URXVT_MODE,
+        PrivateMode.META_SENDS_ESCAPE,
+        PrivateMode.ALT_SENDS_ESCAPE,
+    )
+)
 
 
 class CSIAlias(typing.NamedTuple):
@@ -1246,27 +1256,30 @@ class TermCanvas(Canvas):
         """Set a single mode, as a helper for csi_set_modes."""
         if qmark:
             # DEC private mode
-            if mode == 1:
+            private_mode = str(mode)
+            if private_mode == PrivateMode.APPLICATION_CURSOR_KEYS:
                 # cursor keys send an ESC O prefix, rather than ESC [
                 self.modes.keys_decckm = flag
-            elif mode == 3:
+            elif private_mode == PrivateMode.COLUMNS_132:
                 # deccolm just clears the screen
                 self.clear()
-            elif mode == 5:
+            elif private_mode == PrivateMode.REVERSE_VIDEO:
                 if self.modes.reverse_video != flag:
                     self.reverse_video(undo=not flag)
                 self.modes.reverse_video = flag
-            elif mode == 6:
+            elif private_mode == PrivateMode.ORIGIN_MODE:
                 self.modes.constrain_scrolling = flag
                 self.set_term_cursor(0, 0)
-            elif mode == 7:
+            elif private_mode == PrivateMode.AUTO_WRAP:
                 self.modes.autowrap = flag
-            elif mode == 25:
+            elif private_mode == PrivateMode.CURSOR_VISIBLE:
                 self.modes.visible_cursor = flag
                 self.set_term_cursor()
-            elif mode == 2004:
+            elif private_mode in _RECOGNISED_IGNORED_MODES:
+                pass  # for the reason given at each member of PrivateMode
+            elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
-            elif mode == 2026:
+            elif private_mode == PrivateMode.SYNCHRONIZED_OUTPUT:
                 # Synchronized output (https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036):
                 # the child program is asking that its writes not be displayed until it closes the
                 # block with CSI ?2026l.
