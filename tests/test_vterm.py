@@ -1131,6 +1131,7 @@ class TermTest(unittest.TestCase):
             ("page up", None, None),
             ("page down", None, None),
             ("up", "up", None),
+            ("shift up", "shift up", None),
         ):
             with self.subTest(key=key):
                 self.restart(40, 10, soft=True)
@@ -1144,7 +1145,13 @@ class TermTest(unittest.TestCase):
 
     def test_ctrl_keys_without_control_character_are_not_handled(self) -> None:
         """Return a ctrl key that has no C0 control character unhandled, writing nothing to the child."""
-        for key in ("ctrl f5", "ctrl up", "ctrl 5"):
+        for key in (
+            "ctrl f5",
+            "ctrl up",
+            "ctrl 5",
+            "ctrl \N{LATIN SMALL LETTER LONG S}",
+            "ctrl \N{LATIN SMALL LETTER DOTLESS I}",
+        ):
             with self.subTest(key=key):
                 self.term.keygrab = True
                 self.assertEqual(self.term.keypress(self.termsize, key), key)
@@ -1178,11 +1185,63 @@ class TermTest(unittest.TestCase):
 
     def test_meta_keys_without_single_character_are_not_handled(self) -> None:
         """Return a meta key sent as an escape sequence, or without a control character, unhandled."""
-        for key in ("meta up", "meta f5", "meta ctrl up", "meta ctrl 5"):
+        for key in ("meta up", "meta f5", "meta ctrl up", "meta ctrl 5", "meta shift tab"):
             with self.subTest(key=key):
                 self.term.keygrab = True
                 self.assertEqual(self.term.keypress(self.termsize, key), key)
                 self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_shift_tab_sends_linux_back_tab(self) -> None:
+        """Send shift tab as ESC TAB, the back-tab key of the linux terminal type the child is given."""
+        self.term.keygrab = True
+        self.assertIsNone(self.term.keypress(self.termsize, "shift tab"))
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b\t")
+
+    def test_key_names_without_byte_form_are_not_handled(self) -> None:
+        """Return a key name the linux terminal type has no byte form for unhandled instead of writing it as text."""
+        for key in ("shift up", "shift f1", "shift meta ctrl f12", "meta shift up", "f21", "focus in", "<130>"):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_unhandled_key_keeps_the_key_grab_state(self) -> None:
+        """A key the child has no byte form for neither starts nor ends a key grab."""
+        for grabbed in (False, True):
+            for key in ("focus in", "ctrl up", "meta up"):
+                with self.subTest(grabbed=grabbed, key=key):
+                    self.term.keygrab = grabbed
+                    self.assertEqual(self.term.keypress(self.termsize, key), key)
+                    self.assertEqual(self.term.keygrab, grabbed)
+
+    def test_unhandled_key_keeps_the_scrollback_view(self) -> None:
+        """A key the child has no byte form for leaves the view where it was scrolled to."""
+        self.resize(10, 3)
+        self.write("1\n2\n3\n4\n5")
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.term.keygrab = True
+        self.assertEqual(self.term.keypress(self.termsize, "shift up"), "shift up")
+        self.assertEqual(self.term.term.scrolling_up, 2)
+
+    def test_function_keys_above_f12_send_linux_sequences(self) -> None:
+        """Send F13-F20 as the linux terminal type defines them, which urwid's own input parser reads back."""
+        for sent in (
+            b"\x1b[25~",
+            b"\x1b[26~",
+            b"\x1b[28~",
+            b"\x1b[29~",
+            b"\x1b[31~",
+            b"\x1b[32~",
+            b"\x1b[33~",
+            b"\x1b[34~",
+        ):
+            with self.subTest(sent=sent):
+                self.pty.from_widget.clear()
+                keys, rest = urwid.display.escape.process_keyqueue(list(sent), more_available=False)
+                self.assertEqual(rest, [])
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, keys[0]))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
 
     def test_focus_restores_tty_signal_keys(self) -> None:
         """Restore the tty signal keys seen before the first focused render, on unfocus and on terminate."""

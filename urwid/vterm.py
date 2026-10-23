@@ -105,6 +105,15 @@ KEY_TRANSLATIONS = {
     "f10": f"{ESC}[21~",
     "f11": f"{ESC}[23~",
     "f12": f"{ESC}[24~",
+    "f13": f"{ESC}[25~",
+    "f14": f"{ESC}[26~",
+    "f15": f"{ESC}[28~",
+    "f16": f"{ESC}[29~",
+    "f17": f"{ESC}[31~",
+    "f18": f"{ESC}[32~",
+    "f19": f"{ESC}[33~",
+    "f20": f"{ESC}[34~",
+    "shift tab": f"{ESC}\t",  # kcbt of the linux terminal type the child is given
 }
 
 KEY_TRANSLATIONS_DECCKM = {
@@ -1775,9 +1784,16 @@ class Terminal(Widget):
         self.flush_responses()
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None:  # type: ignore[override]
-        """Translate *key* into the byte sequence the child process expects and write it to the pty."""
+        """Translate *key* into the byte sequence the child process expects and write it to the pty.
+
+        :returns: ``None`` when the widget used *key*, or *key* when it did not: the child has exited, the key is
+            handed down to the parent outside a key grab, or the ``linux`` terminal type the child is given has no
+            byte form for it, as for a cursor or function key with shift, meta or ctrl.
+        """
         if self.terminated:
             return key
+
+        grabbed = self.keygrab
 
         if key in {"begin paste", "end paste"}:
             if self.term_modes.bracketed_paste:
@@ -1840,6 +1856,12 @@ class Terminal(Widget):
 
         self.last_key = key
 
+        sent = self._key_sequence(key)
+        if sent is None:
+            # the key is returned to the parent, so a key grab it started is not kept
+            self.keygrab = grabbed
+            return key
+
         if self.term is None:
             # Only touch_term() starts the child and creates the canvas, and render() normally calls it first.
             width, height = size
@@ -1847,24 +1869,35 @@ class Terminal(Widget):
 
         self.term.scroll_buffer(reset=True)  # type: ignore[union-attr]
 
+        os.write(typing.cast("int", self.master), sent.encode(self.encoding, "ignore"))
+
+        return None
+
+    def _key_sequence(self, key: str) -> str | None:
+        """Return the characters the child receives for *key*, or ``None`` when its terminal type has none."""
         meta = key.startswith("meta ")
         sent = key.removeprefix("meta ")
 
         if sent.startswith("ctrl "):
             # C0 control characters only exist for "@", "A"-"Z" and "[\]^_"
-            char = sent.removeprefix("ctrl ").upper()
+            char = sent.removeprefix("ctrl ")
+            # upper() of a non-ASCII letter can be an ASCII one: U+017F LATIN SMALL LETTER LONG S gives "S"
+            char = char.upper() if char.isascii() else char
             if len(char) != 1 or not "@" <= char <= "_":
-                return key
+                return None
             sent = chr(ord(char) - ord("@"))
         elif self.term_modes.keys_decckm and sent in KEY_TRANSLATIONS_DECCKM:
             sent = KEY_TRANSLATIONS_DECCKM[sent]
-        else:
-            sent = KEY_TRANSLATIONS.get(sent, sent)
+        elif sent in KEY_TRANSLATIONS:
+            sent = KEY_TRANSLATIONS[sent]
+        elif len(sent) > 1 and sent.isascii():
+            # a key name such as "shift up" or "focus in" has no form under TERM=linux, and is not written as text
+            return None
 
         # Meta (Alt) sends ESC before the key's single character, as xterm does with metaSendsEscape.
         # A key that is sent as an escape sequence has no such form.
         if meta and len(sent) != 1:
-            return key
+            return None
 
         # ENTER transmits both a carriage return and linefeed in LF/NL mode.
         if self.term_modes.lfnl and sent == "\r":
@@ -1873,6 +1906,4 @@ class Terminal(Widget):
         if meta:
             sent = ESC + sent
 
-        os.write(typing.cast("int", self.master), sent.encode(self.encoding, "ignore"))
-
-        return None
+        return sent
