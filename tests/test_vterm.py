@@ -985,16 +985,19 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(bytes(self.pty.from_widget), answer)
 
     def test_save_restore_cursor_esc_keeps_attributes(self) -> None:
-        """Restore the attributes saved by DECSC together with the cursor position."""
-        self.write(r"\e[31mab\e7\e[0m\e[2;1Hcd\e8e")
+        """Restore the attributes saved by DECSC or mode 1048 together with the cursor position."""
         red = urwid.AttrSpec("dark red", "default")
-        self.expect(
-            [
-                [(red, None, b"a"), (red, None, b"b"), (red, None, b"e")],
-                [(None, None, b"c"), (None, None, b"d")],
-            ],
-            raw=True,
-        )
+        for save, restore in ((r"\e7", r"\e8"), (r"\e[?1048h", r"\e[?1048l")):
+            with self.subTest(save=save):
+                self.restart()
+                self.write(rf"\e[31mab{save}\e[0m\e[2;1Hcd{restore}e")
+                self.expect(
+                    [
+                        [(red, None, b"a"), (red, None, b"b"), (red, None, b"e")],
+                        [(None, None, b"c"), (None, None, b"d")],
+                    ],
+                    raw=True,
+                )
 
     def test_charset_designation(self) -> None:
         """Draw with the DEC special graphics set while it is designated as G0."""
@@ -1114,6 +1117,84 @@ class TermTest(unittest.TestCase):
         added = {cell for line in self.term.term.term[:24] for cell in line[80:]}
         added |= {cell for line in self.term.term.term[24:] for cell in line}
         self.assertEqual(added, {(None, None, b" ")})
+
+    def test_alternate_screen(self) -> None:
+        """Show the alternate screen while modes 47, 1047 and 1049 are set, keeping the main screen and its scrollback.
+
+        The alternate screen keeps no scrollback. 1049 saves and restores the cursor, and clears the alternate screen
+        on entering it. 1047 clears it on leaving it. 47 keeps it.
+        """
+        for mode, main, alternate in (
+            ("47", "2   Z\n3\n4", "\n Y"),
+            ("1047", "2   Z\n3\n4", ""),
+            ("1049", "2\n3\n4Z", "\n Y"),
+        ):
+            with self.subTest(mode=mode):
+                self.restart(10, 3)
+                self.write("1\n2\n3\n4")
+                self.read()
+                # the alternate screen is shown from its first line on
+                self.term.term.scroll_buffer(up=True)
+                self.write(rf"\e[?{mode}hX")
+                self.expect("\n\n X")
+                self.assertTrue(self.term.term_modes.alternate_screen)
+                self.write("\\e[2J\\e[3;2HY\n")
+                self.expect("\n Y")
+                self.term.term.scroll_buffer(up=True)
+                self.expect("\n Y")
+                self.write(rf"\e[1;5H\e[?{mode}lZ")
+                self.expect(main)
+                self.assertFalse(self.term.term_modes.alternate_screen)
+                self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+                self.term.term.scroll_buffer(up=True)
+                self.expect("1\n" + main.rsplit("\n", 1)[0])
+                self.term.term.scroll_buffer(reset=True)
+                self.write(r"\e[?47h")
+                self.expect(alternate)
+
+    def test_new_canvas_starts_on_the_main_screen(self) -> None:
+        """Start a canvas on its main screen, with a scrollback, also for modes left on the alternate screen."""
+        self.write(r"\e[?1049h")
+        self.read()
+        canvas = urwid.TermCanvas(10, 3, self.term)
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        # the alternate screen keeps no scrollback
+        self.assertGreater(canvas.scrollback_buffer.maxlen, 0)
+
+    def test_reverse_video_covers_both_screens(self) -> None:
+        """Reverse the cells of the screen not shown as well, so DECSCNM shows on whichever screen is switched to."""
+        self.write(r"a\e[?47hb\e[?5h\e[?47l")
+        self.read()
+        self.assertIn("standout", self.term.term.term[0][0][0].foreground)
+        self.write(r"\e[?5l\e[?47h")
+        self.read()
+        self.assertNotIn("standout", self.term.term.term[0][1][0].foreground)
+
+    def test_alternate_screen_resize(self) -> None:
+        """Resize the main screen with the alternate one shown, restoring the cursor saved by 1049 to its line."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\\e[?1049hA")
+        self.read()
+        self.resize(12, 2)
+        self.expect("\n A")
+        self.write(r"\e[?1049lZ")
+        self.expect("2\n3Z")
+        self.assertEqual({len(line) for line in self.term.term.content()}, {12})
+        self.write(r"\e[?1049hB")
+        self.read()
+        self.resize(10, 3)
+        self.write(r"\e[?1049lY")
+        self.expect("1\n2\n3ZY")
+
+    def test_reset_shows_the_main_screen(self) -> None:
+        """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\n4\\e[?1049halt\\ec")
+        self.expect("")
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+        self.write(r"\e[?47h")
+        self.expect("")
 
     def test_wait_and_feed_without_output_returns(self) -> None:
         """Return after the timeout without reading when the child wrote nothing."""

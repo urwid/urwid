@@ -201,6 +201,14 @@ _MOUSE_BUTTON_CODES: typing.Final = {
 _MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(4, 8))
 #: the modifier prefixes of an urwid mouse event, in the order urwid writes them, and their bits in a mouse report
 _MOUSE_MODIFIERS: typing.Final = (("shift ", MouseBit.SHIFT), ("meta ", MouseBit.META), ("ctrl ", MouseBit.CTRL))
+#: the modes that switch to the alternate screen when set and back to the main one when reset
+_ALTERNATE_SCREEN_MODES: typing.Final = frozenset(
+    (
+        PrivateMode.ALTERNATE_SCREEN,
+        PrivateMode.ALTERNATE_SCREEN_CLEARED_ON_EXIT,
+        PrivateMode.ALTERNATE_SCREEN_BUFFER,
+    )
+)
 
 
 class CSIAlias(typing.NamedTuple):
@@ -295,6 +303,8 @@ class TermModes:
     mouse_tracking: PrivateMode | None = None
     # the mode of the mouse report encoding the child asked for, or None for the X10 encoding
     mouse_encoding: PrivateMode | None = None
+    # the alternate screen is shown, rather than the main one
+    alternate_screen: bool = False
 
     # charset stuff
     main_charset: Literal[1, 2] = CHARSET_DEFAULT
@@ -314,9 +324,20 @@ class TermModes:
         self.visible_cursor = True
         self.mouse_tracking = None
         self.mouse_encoding = None
+        self.alternate_screen = False
 
         # charset stuff
         self.main_charset = CHARSET_DEFAULT
+
+
+@dataclass(slots=True, weakref_slot=True)
+class _Screen:
+    """The state a :class:`TermCanvas` keeps for the screen it does not show, the main or the alternate one."""
+
+    term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
+    scrollback_buffer: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
+    saved_cursor: tuple[int, int] | None = None
+    saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
 
 
 class TermCharset:
@@ -422,6 +443,10 @@ class TermCanvas(Canvas):
 
         self.tabstops: list[int] = []
         self.term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = []
+        # the screen not shown: the alternate one while the main one is shown, and the other way round
+        self._hidden_screen = _Screen([], deque(maxlen=0))
+        # a new canvas starts on its main screen, also for modes an earlier canvas left on the alternate one
+        self.modes.alternate_screen = False
 
         self.reset()
 
@@ -485,7 +510,13 @@ class TermCanvas(Canvas):
         self.set_term_cursor()
 
     def reset(self) -> None:
-        """Reset the terminal."""
+        """Reset the terminal to its startup state on the main screen.
+
+        The main screen is cleared. It keeps its scrollback. The alternate screen is replaced by a blank one.
+        """
+        if self.modes.alternate_screen:
+            self._swap_screens()
+
         self._escbuf = bytearray()
         self.within_escape = False
         self.parsestate = 0
@@ -507,6 +538,57 @@ class TermCanvas(Canvas):
 
         # initialize self.term
         self.clear()
+        # the alternate screen keeps no scrollback, as in xterm: the lines scrolled off it are dropped
+        self._hidden_screen = _Screen([[_BLANK_CELL] * self.width for _ in range(self.height)], deque(maxlen=0))
+
+    def _swap_screens(self) -> None:
+        """Swap the screen shown with the one kept apart.
+
+        The cursor position stays where it is.
+        """
+        hidden = self._hidden_screen
+        self._hidden_screen = _Screen(
+            self.term,
+            self.scrollback_buffer,
+            self.saved_cursor,
+            self.saved_attrs,
+        )
+        self.term = hidden.term
+        self.scrollback_buffer = hidden.scrollback_buffer
+        self.saved_cursor = hidden.saved_cursor
+        self.saved_attrs = hidden.saved_attrs
+        self.modes.alternate_screen = not self.modes.alternate_screen
+        self.scroll_buffer(reset=True)
+
+    def set_alternate_screen(self, mode: PrivateMode, flag: bool) -> None:
+        """Switch to or from the alternate screen for DEC private *mode*, as xterm does.
+
+        Each screen keeps its own content, scrollback and cursor saved by DECSC. The cursor position is shared.
+
+        - 47 switches to the alternate screen when set, and back to the main one when reset.
+        - 1047 also clears the alternate screen before switching back from it.
+        - 1049 also saves the cursor as DECSC does before switching to the alternate screen.
+        - 1049 also clears the alternate screen after switching to it.
+        - 1049 also restores the saved cursor after switching back to the main screen.
+
+        :param mode: one of the modes in :data:`_ALTERNATE_SCREEN_MODES`.
+        :param flag: the mode is set rather than reset.
+        """
+        if flag:
+            if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+                self.save_cursor(with_attrs=True)
+            if not self.modes.alternate_screen:
+                self._swap_screens()
+            if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+                self.clear(cursor=self.term_cursor)
+            return
+
+        if self.modes.alternate_screen:
+            if mode == PrivateMode.ALTERNATE_SCREEN_CLEARED_ON_EXIT:
+                self.clear(cursor=self.term_cursor)
+            self._swap_screens()
+        if mode == PrivateMode.ALTERNATE_SCREEN_BUFFER:
+            self.restore_cursor(with_attrs=True)
 
     def init_tabstops(self, extend: bool = False) -> None:
         """Set every column to a tabstop, or, when *extend* is set, grow the existing tabstops to the new width."""
@@ -568,13 +650,17 @@ class TermCanvas(Canvas):
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """Resize the terminal to the given width and height, keeping the cursor and the saved cursor on their lines."""
+        """Resize both screens to the given width and height, keeping the cursor and saved cursors on their lines."""
         x, y = self.term_cursor
 
         shift = self._resize_lines(self.term, self.scrollback_buffer, width, height)
         y += shift
         if self.saved_cursor is not None:
             self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
+        hidden = self._hidden_screen
+        hidden_shift = self._resize_lines(hidden.term, hidden.scrollback_buffer, width, height)
+        if hidden.saved_cursor is not None:
+            hidden.saved_cursor = (hidden.saved_cursor[0], hidden.saved_cursor[1] + hidden_shift)
 
         self.width = width
         self.height = height
@@ -1317,12 +1403,11 @@ class TermCanvas(Canvas):
         return attrspec
 
     def reverse_video(self, undo: bool = False) -> None:
-        """Reverse video/scanmode (DECSCNM) by swapping fg and bg colors."""
-        for y in range(self.height):
-            for x in range(self.width):
-                char = self.term[y][x]
-                attrs = self.reverse_attrspec(char[0], undo=undo)
-                self.term[y][x] = (attrs, *char[1:])
+        """Reverse video/scanmode (DECSCNM) on both screens by swapping fg and bg colors."""
+        for lines in (self.term, self._hidden_screen.term):
+            for line in lines:
+                for x, char in enumerate(line):
+                    line[x] = (self.reverse_attrspec(char[0], undo=undo), *char[1:])
 
     def set_mode(
         self,
@@ -1371,6 +1456,14 @@ class TermCanvas(Canvas):
                     self.modes.mouse_encoding = None
             elif private_mode in _RECOGNISED_IGNORED_MODES:
                 pass  # for the reason given at each member of PrivateMode
+            elif private_mode in _ALTERNATE_SCREEN_MODES:
+                self.set_alternate_screen(PrivateMode(private_mode), flag)
+            elif private_mode == PrivateMode.SAVE_CURSOR:
+                # set saves the cursor as DECSC does, and reset restores it as DECRC does
+                if flag:
+                    self.save_cursor(with_attrs=True)
+                else:
+                    self.restore_cursor(with_attrs=True)
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
             elif private_mode == PrivateMode.SYNCHRONIZED_OUTPUT:

@@ -1136,7 +1136,8 @@ class PrivateMode(enum.StrEnum):
     # Neither display controls cursor blinking; the mode is recognised and never turned on.
     CURSOR_BLINK = "12"
     CURSOR_VISIBLE = "25"  # DECTCEM
-    # For the alternate screen in a Terminal, which is not implemented yet.
+    # The alternate screen (47, 1047, 1049) and the cursor saved as DECSC saves it (1048); a Terminal implements them
+    # as `vterm.TermCanvas.set_alternate_screen` describes.
     ALTERNATE_SCREEN = "47"
     ALTERNATE_SCREEN_CLEARED_ON_EXIT = "1047"
     SAVE_CURSOR = "1048"
