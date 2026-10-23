@@ -74,7 +74,7 @@ class ANSIText(WidgetWrap[Text]):
     def __init__(
         self,
         ansi_text: str,
-        previous_attr: AttrSpec | None = None,
+        previous_attr: AttrSpec | ParsedLine | ANSIText | None = None,
         *,
         one_line: bool = False,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
@@ -84,7 +84,9 @@ class ANSIText(WidgetWrap[Text]):
 
         :param ansi_text: a block of text, optionally spanning several lines and containing ANSI/VT100 escape
             sequences. If ``one_line`` is true, only its first physical line is surfaced by this widget instance.
-        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`).
+        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`), or
+            the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text, to carry its character
+            sets in as well.
         :param one_line: restrict this widget to a single physical line of resolved text rather than resolving the
             whole block into multi-row output.
         :param wrap: forwarded to the internal :class:`~urwid.Text`.
@@ -92,14 +94,14 @@ class ANSIText(WidgetWrap[Text]):
         """
         self._one_line = one_line
         super().__init__(Text("", align=align, wrap=wrap))
-        self._parsed = ParsedLine("", [], previous_attr)
+        self._parsed = ParsedLine("", [], None)
         self.set_ansi_text(ansi_text, previous_attr)
 
     def _repr_words(self) -> list[str]:
         first = super()._repr_words()
         return [*first, repr(self.text)]
 
-    def set_ansi_text(self, ansi_text: str, previous_attr: AttrSpec | None = None) -> None:
+    def set_ansi_text(self, ansi_text: str, previous_attr: AttrSpec | ParsedLine | ANSIText | None = None) -> None:
         """Re-parse ``ansi_text`` and invalidate this widget.
 
         Parsing uses the mode (``one_line``) this widget was constructed with; if ``one_line`` is true, only the
@@ -107,11 +109,20 @@ class ANSIText(WidgetWrap[Text]):
 
         :param ansi_text: a block of text, optionally spanning several lines and containing ANSI/VT100 escape
             sequences.
-        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`).
+        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`), or
+            the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text, to carry its character
+            sets in as well.
         """
-        parser = AnsiParser(previous_attr, one_line=self._one_line)
+        parser = AnsiParser(self._previous_state(previous_attr), one_line=self._one_line)
         parser.feed(ansi_text)
         self._set_parsed(parser.finalize()[0])
+
+    @staticmethod
+    def _previous_state(previous_attr: AttrSpec | ParsedLine | ANSIText | None) -> AttrSpec | ParsedLine | None:
+        """Return what :class:`~urwid.ansi_parser.AnsiParser` continues from, a widget replaced by its parsed line."""
+        if isinstance(previous_attr, ANSIText):
+            return previous_attr._parsed  # pylint: disable=protected-access  # the same class's own state
+        return previous_attr
 
     def _set_parsed(self, parsed: ParsedLine) -> None:
         self._parsed = parsed
@@ -146,7 +157,8 @@ class ANSIText(WidgetWrap[Text]):
         """The SGR/colour state in effect at the very end of this widget's text.
 
         Feed this in as ``previous_attr`` to a subsequently constructed :class:`ANSIText` to continue the same
-        colour state.
+        colour state; feed this widget itself instead to continue the character sets (such as the DEC
+        Special Graphics line drawing) as well.
         """
         return self._parsed.last_attr
 
@@ -195,7 +207,7 @@ class ANSIText(WidgetWrap[Text]):
     def from_lines(
         cls,
         chunks: Iterable[str],
-        previous_attr: AttrSpec | None = None,
+        previous_attr: AttrSpec | ParsedLine | ANSIText | None = None,
         *,
         one_line: bool = False,
         **kwargs: typing.Any,
@@ -209,9 +221,8 @@ class ANSIText(WidgetWrap[Text]):
         calls :meth:`~urwid.ansi_parser.AnsiParser.finalize` only once the iterable is exhausted.
 
         If ``one_line`` is true, one :class:`ANSIText` is yielded per line the shared parser completes, in order,
-        with SGR colour state carried forward continuously: each produced :class:`ANSIText`'s ``previous_attr`` is
-        the previous one's :attr:`last_attr`, whether that previous line came from the same chunk or an earlier
-        one.
+        with SGR colour state and character sets carried forward continuously: each produced :class:`ANSIText`
+        continues from the previous one, whether that previous line came from the same chunk or an earlier one.
 
         If ``one_line`` is false (the default), this naturally reduces to yielding exactly *one* :class:`ANSIText`
         once every chunk has been consumed, representing the entire accumulated multi-chunk block resolved into
@@ -221,14 +232,15 @@ class ANSIText(WidgetWrap[Text]):
         :param chunks: an iterable of raw text chunks, not required to be aligned on line or escape-sequence
             boundaries.
         :param previous_attr: SGR/colour state to seed the shared parser with, as if it were carried over from
-            previously parsed text.
+            previously parsed text, or the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text,
+            to carry its character sets in as well.
         :param one_line: parse in single-line-splitting mode (see the class docstring) rather than resolving the
             whole accumulated input into one multi-row block.
         :param kwargs: forwarded to :meth:`_from_parsed` (i.e. ``wrap``/``align`` for the internal
             :class:`~urwid.Text`).
         :yields: one or more :class:`ANSIText` instances, in order, depending on ``one_line``.
         """
-        parser = AnsiParser(previous_attr, one_line=one_line)
+        parser = AnsiParser(cls._previous_state(previous_attr), one_line=one_line)
         for chunk in chunks:
             parser.feed(chunk)
         for parsed in parser.finalize():

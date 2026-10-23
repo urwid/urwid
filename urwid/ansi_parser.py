@@ -21,7 +21,7 @@
 This module extracts the platform-independent portion of the escape-sequence
 grammar historically embedded inside :mod:`urwid.vterm`'s ``TermCanvas`` --
 SGR colour/attribute interpretation, horizontal cursor movement, BEL, OSC
-title, OSC 8 hyperlink and keyboard-LED recognition -- into a form that can be used to
+title, OSC 8 hyperlink, DEC Special Graphics and keyboard-LED recognition -- into a form that can be used to
 interpret a single string (or a stream of chunks) of ANSI-coloured text
 without instantiating a pty-backed :class:`~urwid.Terminal` widget.
 
@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import types
 import typing
 
 from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
@@ -43,6 +44,7 @@ from urwid.display.common import _BASIC_COLORS as BASIC_COLORS
 from urwid.display.common import _SETTING_OFF_PREFIX
 from urwid.display.common import _color_desc_256 as color_desc_256
 from urwid.display.common import _color_desc_true as color_desc_true
+from urwid.display.escape import ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS, DEC_TAG, SI, SO
 from urwid.util import rle_append_modify
 
 if typing.TYPE_CHECKING:
@@ -54,6 +56,7 @@ __all__ = (
     "MAX_OSC_LENGTH",
     "OSC_IGNORED_CONTROLS",
     "AnsiParser",
+    "CharsetState",
     "ParsedLine",
     "SkippedOp",
     "attrspec_with_hyperlink",
@@ -110,6 +113,16 @@ _VERTICAL_MOVE_CSI = frozenset("ABEFdHf")
 #: erase, insert/delete, device queries, tabstops, ...) -- again meaningless
 #: for a single, canvas-less line of text.
 _TERMINAL_SETTING_CSI = frozenset("hlrJKsu@LMPXcng")
+
+#: Characters drawn in place of their ASCII counterparts while the DEC Special Graphics character set is shifted in.
+_DEC_SPECIAL_GRAPHICS: typing.Final = str.maketrans(ALT_DEC_SPECIAL_CHARS, DEC_SPECIAL_CHARS)
+
+#: The final byte of a G0/G1 designation that selects US ASCII.
+_ASCII_SET: typing.Final = "B"
+
+#: fbterm's ``CSI 1;n }`` and ``CSI 2;n }``: the SGR parameters selecting 256-color palette index n as the
+#: foreground or the background.
+_FBTERM_COLOR_SGR: typing.Final = types.MappingProxyType({1: 38, 2: 48})
 
 #: CAN and SUB, which abort an escape sequence in progress.
 _CANCEL = frozenset("\x18\x1a")
@@ -172,6 +185,26 @@ class SkippedOp:
     reason: str
 
 
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
+class CharsetState:
+    """The character sets designated to G0 and G1, and the one selected, at the end of a parsed line.
+
+    :ivar g0: the final byte of the G0 designation: ``"B"`` for US ASCII, ``"0"`` for DEC Special Graphics.
+    :ivar g1: the final byte of the G1 designation, in the same form.
+    :ivar selected: ``0`` when G0 is selected (SI), ``1`` when G1 is (SO).
+    :raises ValueError: *selected* is neither ``0`` nor ``1``.
+    """
+
+    g0: str = _ASCII_SET
+    g1: str = DEC_TAG
+    selected: typing.Literal[0, 1] = 0
+
+    def __post_init__(self) -> None:
+        """Refuse a selected slot other than G0 or G1."""
+        if self.selected not in {0, 1}:
+            raise ValueError(f"selected must be 0 (G0) or 1 (G1), not {self.selected!r}")
+
+
 @dataclasses.dataclass(frozen=True)
 class ParsedLine:
     r"""The result of parsing one physical line of ANSI-coloured text.
@@ -185,13 +218,16 @@ class ParsedLine:
     :ivar attrib: run-length encoded display attributes for :attr:`text`, the same shape as
         :attr:`urwid.Text.attrib`. ``None`` is a valid RLE tag (meaning "no attribute"), matching
         :func:`urwid.util.decompose_tagmarkup`'s convention.
-    :ivar last_attr: the SGR/colour state in effect at the end of this line; feed this back in as ``previous_attr``
-        to continue the same colour state into a subsequently parsed line.
+    :ivar last_attr: the SGR/colour state in effect at the end of this line.
     :ivar bel: the number of BEL (``\a``) characters seen on this line (``0`` if none were seen).
     :ivar title: the last OSC window-title string seen on this line, or ``None`` if none was seen.
     :ivar leds: the last keyboard-LED state requested on this line (``CSI n q``), or ``None`` if none was seen.
     :ivar skipped: the :class:`SkippedOp` entries stripped while parsing this line, in encounter order, for
         programmatic inspection independent of the log. It holds at most the first 65536 of them.
+    :ivar last_charsets: the character sets in effect at the end of this line.
+
+    Pass the line itself as ``previous_attr`` to continue both :attr:`last_attr` and :attr:`last_charsets` into a
+    subsequently parsed line; passing :attr:`last_attr` alone starts that line with the default character sets.
     """
 
     text: str
@@ -201,6 +237,7 @@ class ParsedLine:
     title: str | None = None
     leds: str | None = None
     skipped: list[SkippedOp] = dataclasses.field(default_factory=list)
+    last_charsets: CharsetState = CharsetState()
 
 
 class AnsiParser:
@@ -213,7 +250,8 @@ class AnsiParser:
     Internally, a :class:`AnsiParser` always maintains a two-dimensional grid of rows (one cell buffer per screen
     row) plus a cursor (``row``, ``col``). The two constructor modes below share the *overwhelming majority* of
     their behaviour -- printable characters, horizontal cursor movement (``CSI n C/D/G``), backspace, tab, SGR
-    colour/attribute handling (``CSI ... m``), BEL, OSC window-title recognition, OSC 8 hyperlinks (carried in
+    colour/attribute handling (``CSI ... m``, and fbterm's ``CSI 1;n }``/``CSI 2;n }`` colors), DEC Special Graphics
+    selected with ``ESC ( 0``/``ESC ) 0`` and SI/SO, BEL, OSC window-title recognition, OSC 8 hyperlinks (carried in
     :attr:`AttrSpec.hyperlink <urwid.AttrSpec.hyperlink>` of the written text), keyboard-LED requests
     (``CSI n q``) and terminal-wide setting sequences (stripped and logged, see :class:`SkippedOp`) are interpreted
     identically regardless of mode. They differ only in how a **line end** and **vertical cursor movement** are
@@ -245,6 +283,16 @@ class AnsiParser:
     are ignored, so none of them is part of the resolved text. An ESC outside an OSC string drops a sequence still
     being read, recorded as a :class:`SkippedOp`, and starts a new one.
 
+    SGR bold stays a setting of its own and does not brighten the foreground: ``CSI 1;31 m`` is
+    ``'dark red,bold'``, and a display draws it in a bright color where the terminal does so for bold text.
+    So the escapes of a terminal that shows bright colors as bold, or bright backgrounds as blink (the Linux
+    console), come back as bold or blink with the basic color. A ``CSI 38;5;n m`` index is read in the 256-color
+    palette, also when it was written for an 88-color terminal. G1 starts as DEC Special Graphics, as on the Linux
+    console, so the SO/SI-wrapped line drawing of the raw display is drawn without a designation in the input.
+    A character set other than DEC Special Graphics and US ASCII is drawn as ASCII, and its designation is recorded
+    as a :class:`SkippedOp`. A terminal reset (``ESC c``) designates US ASCII to G0 and G1 and selects G0; it leaves
+    the SGR state as it is and is recorded as a :class:`SkippedOp`.
+
     Inside an OSC string, in both modes, a control character in :data:`OSC_IGNORED_CONTROLS`, line ends included,
     is ignored as in a terminal: it is neither executed nor part of the string, and a line end there splits no line.
     Right after an ESC inside the string, a control character is executed instead, and the ESC stays pending, so a
@@ -254,7 +302,8 @@ class AnsiParser:
     ``kind="terminal-setting"`` or ``kind="unknown"``): erase (``CSI J``/``K``), scroll regions, save/restore
     cursor, mode toggles, insert/delete, device queries, tabstops, and the non-CSI vertical-movement escapes
     (``ESC D``/``M``/``E``) -- a genuine two-dimensional buffer would technically allow implementing erase and
-    save/restore cursor, but that is a candidate follow-up, kept out of scope here.
+    save/restore cursor, but that is a candidate follow-up, kept out of scope here. Text sizing (OSC 66) is not
+    interpreted either: it is stripped together with the text it carries.
 
     The padding inserted to reach a moved cursor -- blank cells before a written character and empty rows below the
     last one -- is limited to ``1024 * 1024 + 8 * n`` cells over the parser's lifetime, ``n`` being the number of
@@ -268,7 +317,7 @@ class AnsiParser:
     rows joined with ``"\n"`` -- wrapped in a 1-tuple.
 
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from previously
-        parsed text.
+        parsed text, or the :class:`ParsedLine` parsed before, whose attribute and character sets both carry over.
     :param one_line: if true, treat line ends as structural split points that yield multiple :class:`ParsedLine`
         results; if false (the default), resolve the whole input into a single multi-row :class:`ParsedLine`.
 
@@ -283,8 +332,12 @@ class AnsiParser:
     'hello\nworld'
     """
 
-    def __init__(self, previous_attr: AttrSpec | None = None, *, one_line: bool = False) -> None:
+    def __init__(self, previous_attr: AttrSpec | ParsedLine | None = None, *, one_line: bool = False) -> None:
         """Create a parser, as described in the class docstring."""
+        charsets = CharsetState()
+        if isinstance(previous_attr, ParsedLine):
+            charsets = previous_attr.last_charsets
+            previous_attr = previous_attr.last_attr
         self._one_line = one_line
         self._attrspec: AttrSpec | None = previous_attr
 
@@ -314,6 +367,11 @@ class AnsiParser:
         self._within_escape = False
         self._parsestate = 0
         self._escbuf = ""
+
+        # the final bytes designating G0 and G1, and the one SI/SO selected; G1 starts as DEC Special Graphics,
+        # as in urwid.vterm and the Linux console
+        self._charsets = [charsets.g0, charsets.g1]
+        self._active_charset: typing.Literal[0, 1] = charsets.selected
 
         # a line-end byte seen at the very end of the previous feed() call,
         # kept around in case the next feed() call opens with its pairing
@@ -419,6 +477,7 @@ class AnsiParser:
             title=self._title,
             leds=self._leds,
             skipped=self._skipped.copy(),
+            last_charsets=self._charset_state(),
         )
         return (parsed,)
 
@@ -440,6 +499,7 @@ class AnsiParser:
                 title=self._title,
                 leds=self._leds,
                 skipped=self._skipped,
+                last_charsets=self._charset_state(),
             )
         )
 
@@ -449,6 +509,9 @@ class AnsiParser:
         self._title = None
         self._leds = None
         self._skipped = []
+
+    def _charset_state(self) -> CharsetState:
+        return CharsetState(self._charsets[0], self._charsets[1], self._active_charset)
 
     def _ensure_row(self, row: int) -> None:
         while len(self._rows) <= row:
@@ -510,16 +573,23 @@ class AnsiParser:
         if self._within_escape:
             self._parse_escape(ch)
             return
+        if self._charsets[self._active_charset] == DEC_TAG:
+            ch = ch.translate(_DEC_SPECIAL_GRAPHICS)
         self._write_char(ch, self._attrspec)
 
     def _execute_control(self, ch: str) -> None:
         """Execute C0 control character or DEL *ch* as a terminal does, leaving any escape sequence in progress.
 
-        BEL is counted, tab and backspace move the cursor, and VT and FF are line feeds: in one_line mode they
-        complete the line, otherwise they move the cursor one row down, keeping its column. The others are ignored.
+        BEL is counted, tab and backspace move the cursor, SO and SI select G1 and G0, and VT and FF are line feeds:
+        in one_line mode they complete the line, otherwise they move the cursor one row down, keeping its column.
+        The others are ignored.
         """
         if ch == BEL:
             self._bel_count += 1
+        elif ch == SO:
+            self._active_charset = 1
+        elif ch == SI:
+            self._active_charset = 0
         elif ch == "\t":
             self._handle_tab()
         elif ch == "\b":
@@ -623,8 +693,27 @@ class AnsiParser:
 
         if final == "m":
             ints = [p if p is not None else 0 for p in params] or [0]
-            # a color the text leaves unset shows the background or foreground of the widget around it
-            self._attrspec = sgi_params_to_attrspec(ints, self._attrspec, unset_color="inherit")
+            # a color the text leaves unset shows the background or foreground of the widget around it, and bold
+            # stays bold: the display brightens it again where the terminal draws bold text in bright colors
+            self._attrspec = sgi_params_to_attrspec(ints, self._attrspec, unset_color="inherit", bright_is_bold=False)
+        elif (
+            final == "}"
+            and not qmark
+            and len(params) == 2
+            and (extended_color := _FBTERM_COLOR_SGR.get(params[0] or 0)) is not None
+        ):
+            color = params[1] or 0
+            if color > 255:
+                self._skip("unknown", raw, "fbterm color index out of range")
+            else:
+                self._attrspec = sgi_params_to_attrspec(
+                    [extended_color, 5, color],
+                    self._attrspec,
+                    unset_color="inherit",
+                    bright_is_bold=False,
+                )
+        elif final == "}":
+            self._skip("terminal-setting", raw, "fbterm setting other than a color")
         elif final == "C":
             n = params[0] if params and params[0] else 1
             self._col += min(n, _MAX_CURSOR_POSITION)
@@ -689,7 +778,9 @@ class AnsiParser:
         elif mod == "%":
             self._skip("terminal-setting", raw, "character set selection")
         elif mod in ("(", ")"):
-            self._skip("terminal-setting", raw, "charset designation")
+            self._charsets[0 if mod == "(" else 1] = ch
+            if ch not in {_ASCII_SET, DEC_TAG}:
+                self._skip("terminal-setting", raw, "unsupported character set designation, drawn as ASCII")
         elif ch == "M":
             self._skip("vertical-move", raw, "reverse line feed")
         elif ch == "D":
@@ -699,7 +790,9 @@ class AnsiParser:
         elif ch == "H":
             self._skip("terminal-setting", raw, "set tabstop")
         elif ch == "c":
-            self._skip("terminal-setting", raw, "terminal reset")
+            self._charsets = [_ASCII_SET, _ASCII_SET]
+            self._active_charset = 0
+            self._skip("terminal-setting", raw, "terminal reset, applied to the character sets only")
         elif ch in ("7", "8"):
             self._skip("terminal-setting", raw, "save/restore cursor")
         elif ch in (">", "=", "Z"):
@@ -775,7 +868,7 @@ class AnsiParser:
         self._leave_escape()
 
 
-def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[ParsedLine, ...]:
+def parse_ansi_line(text: str, previous_attr: AttrSpec | ParsedLine | None = None) -> tuple[ParsedLine, ...]:
     r"""Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=True``) and return its finalised result.
 
     Returns one :class:`ParsedLine` per line found in ``text`` (split on ``\n``/``\r``/``\r\n``/``\n\r``, VT
@@ -786,7 +879,7 @@ def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[P
 
     :param text: the text to parse.
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from a
-        previously parsed line.
+        previously parsed line, or that :class:`ParsedLine` itself, to carry its character sets over as well.
     :returns: every :class:`ParsedLine` found in ``text``, in order.
 
     >>> [line.text for line in parse_ansi_line("one\ntwo\nthree")]
@@ -801,7 +894,7 @@ def parse_ansi_line(text: str, previous_attr: AttrSpec | None = None) -> tuple[P
     return parser.finalize()
 
 
-def parse_ansi_text(text: str, previous_attr: AttrSpec | None = None) -> ParsedLine:
+def parse_ansi_text(text: str, previous_attr: AttrSpec | ParsedLine | None = None) -> ParsedLine:
     r"""Feed ``text`` through a fresh :class:`AnsiParser` (``one_line=False``) and return its sole resolved line.
 
     Unlike :func:`parse_ansi_line`, vertical cursor movement and newlines are resolved into real multi-row output
@@ -810,7 +903,7 @@ def parse_ansi_text(text: str, previous_attr: AttrSpec | None = None) -> ParsedL
 
     :param text: the text to parse.
     :param previous_attr: SGR/colour state to seed the parser with, as if it were carried over from previously
-        parsed text.
+        parsed text, or the :class:`ParsedLine` of that text, to carry its character sets over as well.
     :returns: a single :class:`ParsedLine` representing the whole resolved block.
 
     >>> parse_ansi_text("one\ntwo\nthree").text
@@ -944,6 +1037,7 @@ def sgi_params_to_attrspec(
     previous: AttrSpec | None,
     *,
     unset_color: typing.Literal["default", "inherit"] = "default",
+    bright_is_bold: bool = True,
 ) -> AttrSpec | None:
     """Resolve a sequence of SGR (Select Graphic Rendition) numeric parameters against a previous attribute spec.
 
@@ -958,6 +1052,9 @@ def sgi_params_to_attrspec(
         'default' for the terminal default, 'inherit' for the color of the enclosing attribute.
         With 'inherit', SGR 22/23/24/25/27/29 turn their settings off ('no-bold') rather than leaving them to the
         enclosing attribute, and SGR 0 leaves every setting to it again.
+    :param bright_is_bold: whether bold also selects the bright variant of a basic foreground when the attribute
+        uses only the 16 basic colors, as on a terminal that draws bold text in bright colors; if false, bold stays
+        a setting of its own.
     :returns: the resulting :class:`~urwid.AttrSpec`, or ``None`` for "no attributes".
 
     >>> sgi_params_to_attrspec([31], None)
@@ -967,6 +1064,10 @@ def sgi_params_to_attrspec(
     AttrSpec('dark red', 'inherit')
     >>> sgi_params_to_attrspec([24], None, unset_color="inherit")
     AttrSpec('inherit,no-underline', 'inherit')
+    >>> sgi_params_to_attrspec([31, 1], None)
+    AttrSpec('light red,bold', 'default')
+    >>> sgi_params_to_attrspec([31, 1], None, bright_is_bold=False)
+    AttrSpec('dark red,bold', 'default')
     """
     hyperlink = None if previous is None else previous.hyperlink
 
@@ -993,7 +1094,7 @@ def sgi_params_to_attrspec(
         fg = previous.foreground_number if has_fg else None
         fg_rgb = previous.foreground_true
         # undo the bold brightening applied below, so it can be reapplied or dropped with the new bold state
-        if fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
+        if bright_is_bold and fg is not None and fg >= 8 and previous.colors == 16 and "bold" in attributes:
             fg -= 8
 
         has_bg = previous.background_basic or previous.background_high or previous.background_true
@@ -1058,7 +1159,7 @@ def sgi_params_to_attrspec(
             turned_off.clear()
         idx += 1
 
-    if "bold" in attributes and colors == 16 and fg is not None and fg < 8:
+    if bright_is_bold and "bold" in attributes and colors == 16 and fg is not None and fg < 8:
         fg += 8
 
     def _defaulter(req_color: int | None, rgb: bool) -> str:

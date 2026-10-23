@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
+import urwid.display.raw
 from urwid.ansi_parser import (
     LOGGER,
     MAX_OSC_LENGTH,
     AnsiParser,
+    CharsetState,
     ParsedLine,
     SkippedOp,
     attrspec_with_hyperlink,
@@ -14,7 +17,7 @@ from urwid.ansi_parser import (
     resolve_osc_hyperlink,
     sgi_params_to_attrspec,
 )
-from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink
+from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink, escape
 from urwid.util import rle_len
 
 
@@ -71,6 +74,27 @@ class SgrContinuationTest(unittest.TestCase):
         self.assertEqual(lines[0].last_attr, lines[1].last_attr)
         self.assertEqual(lines[0].last_attr, lines[1].attrib[0][0])
         self.assertIsNotNone(lines[0].last_attr)
+
+    def test_continuation_from_parsed_line(self) -> None:
+        """Carry the character sets as well when the previous ParsedLine itself is passed as previous_attr."""
+        lines = parse_ansi_line("\x0ea\nb\x0fc\x1b)A\nd")
+        self.assertEqual(
+            [CharsetState("B", "0", 1), CharsetState("B", "A", 0), CharsetState("B", "A", 0)],
+            [line.last_charsets for line in lines],
+        )
+        first = parse_ansi_line("\x1b[31m\x1b(A\x0eq")[-1]
+        self.assertEqual(CharsetState("A", "0", 1), first.last_charsets)
+        red = AttrSpec("dark red", "inherit")
+        for mode, line, attr_only in (
+            ("one_line", parse_ansi_line("q\x0fq", first)[0], parse_ansi_line("q\x0fq", first.last_attr)[0]),
+            ("block", parse_ansi_text("q\x0fq", first), parse_ansi_text("q\x0fq", first.last_attr)),
+        ):
+            with self.subTest(mode=mode):
+                self.assertEqual("\u2500q", line.text)
+                self.assertEqual([(red, 2)], line.attrib)
+                self.assertEqual(CharsetState("A", "0", 0), line.last_charsets)
+                # the attribute alone starts with the default character sets
+                self.assertEqual("qq", attr_only.text)
 
 
 class StreamingFeedTest(unittest.TestCase):
@@ -201,8 +225,12 @@ class StripAndLogTest(unittest.TestCase):
         self._assert_skip("\x1b8", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_charset(self) -> None:
-        self._assert_skip("\x1b(B", "terminal-setting", "DEBUG")
         self._assert_skip("\x1b%G", "terminal-setting", "DEBUG")
+
+    def test_fbterm_setting_other_than_a_color(self) -> None:
+        """Skip an fbterm sequence that sets no color, such as a palette entry, and a color index out of range."""
+        self._assert_skip("\x1b[3;1;2;3}", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[1;256}", "unknown", "DEBUG")
 
     def test_terminal_setting_reset(self) -> None:
         self._assert_skip("\x1bc", "terminal-setting", "DEBUG")
@@ -214,7 +242,7 @@ class StripAndLogTest(unittest.TestCase):
         for text, skipped, expected_text, attrib in (
             ("\x1b[3\x1b[31mx", [("\x1b[3", interrupted)], "x", [(red, 1)]),
             ("\x1b\x1b[31mx", [("\x1b", interrupted)], "x", [(red, 1)]),
-            ("\x1b(\x1b[31mx", [("\x1b(", interrupted)], "x", [(red, 1)]),
+            ("\x1b(\x1b(0q", [("\x1b(", interrupted)], "\u2500", [(None, 1)]),
             ("\x1b#\x1b[31mx", [("\x1b#", interrupted)], "x", [(red, 1)]),
             ("\x1b%\x1b[31mx", [("\x1b%", interrupted)], "x", [(red, 1)]),
             # the first ESC ends the OSC string unapplied and starts a sequence that the second one drops
@@ -252,6 +280,7 @@ class StripAndLogTest(unittest.TestCase):
         for final in "cHM7":
             with self.subTest(final=final):
                 self._assert_skip(f"\x1b#{final}", "unknown", "DEBUG")
+        self.assertEqual("\u2500", parse_ansi_text("\x0e\x1b#cq").text)
 
     def test_terminal_setting_insert_delete(self) -> None:
         for final in "@LMPX":
@@ -525,6 +554,20 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
             with self.subTest(params=params):
                 self.assertEqual(expected, sgi_params_to_attrspec(params, previous))
 
+    def test_bold_without_brightening(self) -> None:
+        """Keep bold a setting of its own, apart from the brightness of the foreground, without bright_is_bold."""
+        for steps, expected in (
+            ([[31, 1]], AttrSpec("dark red,bold", "inherit")),
+            ([[1, 31], [4]], AttrSpec("dark red,bold,underline", "inherit")),
+            ([[91, 1]], AttrSpec("light red,bold", "inherit")),
+            ([[91, 1], [22]], AttrSpec("light red,no-bold,no-faint", "inherit")),
+        ):
+            with self.subTest(steps=steps):
+                attr = None
+                for params in steps:
+                    attr = sgi_params_to_attrspec(params, attr, unset_color="inherit", bright_is_bold=False)
+                self.assertEqual(expected, attr)
+
     def test_applied_on_top_of_previous(self) -> None:
         """Apply each step of SGR parameters on top of the attribute the steps before it produced.
 
@@ -650,6 +693,13 @@ class ParsedLineDataclassTest(unittest.TestCase):
         self.assertIsNone(line.title)
         self.assertIsNone(line.leds)
         self.assertEqual([], line.skipped)
+        self.assertEqual(CharsetState("B", "0", 0), line.last_charsets)
+
+    def test_charset_state_refuses_other_slots(self) -> None:
+        """Refuse a selected slot other than G0 or G1 when the state is built."""
+        for selected in (-1, 2):
+            with self.subTest(selected=selected), self.assertRaises(ValueError):
+                CharsetState(selected=selected)  # type: ignore[arg-type]
 
     def test_rle_len_matches_text_length(self) -> None:
         lines = parse_ansi_line("\x1b[31mred\x1b[0m and plain")
@@ -1103,6 +1153,165 @@ class ControlCharacterTest(unittest.TestCase):
                 (line,) = parser.finalize()
                 self.assertEqual("ab", line.text)
                 self.assertEqual("t\x9c\x9b\x80le", line.title)
+
+
+class RawDisplayRoundTripTest(unittest.TestCase):
+    """Parse back what the raw display writes for each attribute and character set it draws."""
+
+    def _screen(
+        self,
+        *,
+        colors: typing.Literal[16, 88, 256, 16777216],
+        bright_is_bold: bool = False,
+        term: str = "xterm",
+    ) -> urwid.display.raw.Screen:
+        screen = urwid.display.raw.Screen()
+        screen.term = term
+        screen.set_terminal_properties(colors=colors, bright_is_bold=bright_is_bold, hyperlinks=True)
+        return screen
+
+    def _drawn(self, screen: urwid.display.raw.Screen, attr: AttrSpec) -> str:
+        """Return the text the raw display writes for "x" drawn with *attr*."""
+        # the escape draw_screen() writes for an attribute, without the cursor and line-erase sequences around it
+        return f"{screen._attr_to_escape(attr)}x"  # pylint: disable=protected-access
+
+    def _round_trip(self, screen: urwid.display.raw.Screen, fg: str, bg: str) -> AttrSpec | None:
+        line = parse_ansi_text(self._drawn(screen, screen.AttrSpec(fg, bg)))
+        self.assertEqual("x", line.text)
+        self.assertEqual([], line.skipped)
+        return line.last_attr
+
+    def test_attributes(self) -> None:
+        """Parse each color and setting back as drawn, with the terminal default colors left to the enclosing widget."""
+        basic = (
+            ("dark red", "dark blue"),
+            ("light red", "dark blue"),
+            ("dark red,bold", "default"),
+            ("yellow", "light gray"),
+            ("black", "light blue"),
+            *(
+                (f"default,{setting}", "default")
+                for setting in ("bold", "faint", "italics", "underline", "blink", "standout", "strikethrough")
+            ),
+        )
+        for screen, cases in (
+            (self._screen(colors=16), basic),
+            (self._screen(colors=256), (*basic, ("#f80", "#008"), ("h123", "h45"))),
+            (self._screen(colors=16777216), (*basic, ("#123456", "#abcdef"))),
+        ):
+            for fg, bg in cases:
+                with self.subTest(colors=screen.colors, fg=fg, bg=bg):
+                    expected = AttrSpec(
+                        fg.replace("default", "inherit"),
+                        bg.replace("default", "inherit"),
+                        screen.colors,
+                    )
+                    attr = self._round_trip(screen, fg, bg)
+                    self.assertEqual(expected.foreground, attr.foreground if attr else "inherit")
+                    self.assertEqual(expected.background, attr.background if attr else "inherit")
+
+    def test_hyperlink(self) -> None:
+        """Parse an OSC 8 hyperlink back with the colors drawn before it."""
+        screen = self._screen(colors=256)
+        link = Hyperlink("https://urwid.org", id="home")
+        line = parse_ansi_text(self._drawn(screen, screen.AttrSpec("dark red", "default", hyperlink=link)))
+        self.assertEqual(AttrSpec("dark red", "inherit", hyperlink=link), line.last_attr)
+
+    def test_fbterm_colors(self) -> None:
+        """Parse fbterm's colors back as the 256-color palette entries drawn."""
+        screen = self._screen(colors=256, term="fbterm")
+        for fg, bg in (("dark red", "dark blue"), ("yellow", "light gray"), ("#f80", "#008")):
+            with self.subTest(fg=fg, bg=bg):
+                drawn = screen.AttrSpec(fg, bg)
+                attr = self._round_trip(screen, fg, bg)
+                self.assertEqual(AttrSpec(f"h{drawn.foreground_number}", f"h{drawn.background_number}", 256), attr)
+
+    def test_ambiguous_attributes(self) -> None:
+        """Parse an escape that two attributes share as the one it most commonly means elsewhere."""
+        # a terminal that draws bold text in bright colors gets bright colors as bold
+        screen = self._screen(colors=16, bright_is_bold=True)
+        self.assertEqual(AttrSpec("dark red,bold", "inherit"), self._round_trip(screen, "light red", "default"))
+        # the Linux console draws blink as a bright background
+        screen = self._screen(colors=16)
+        screen.bg_bright_is_blink = True
+        self.assertEqual(AttrSpec("dark red,blink", "dark blue"), self._round_trip(screen, "dark red", "light blue"))
+        # an 88-color index is read as the 256-color index of the same number
+        screen = self._screen(colors=88)
+        self.assertEqual(AttrSpec("h68", "h17", 256), self._round_trip(screen, "#f80", "#008"))
+
+    def test_dec_special_graphics(self) -> None:
+        """Draw the characters the raw display shifts in as DEC Special Graphics, as the terminal shows them."""
+        drawn = escape.DEC_SPECIAL_CHARS.translate(escape.DEC_SPECIAL_CHARMAP)
+        for designation in ("", escape.DESIGNATE_G1_SPECIAL):
+            with self.subTest(designation=designation):
+                line = parse_ansi_text(f"{designation}a{drawn}b")
+                self.assertEqual(f"a{escape.DEC_SPECIAL_CHARS}b", line.text)
+                self.assertEqual([], line.skipped)
+
+    def test_charset_designation(self) -> None:
+        """Draw ASCII again once G1 is designated ASCII, and DEC Special Graphics once G0 is designated it."""
+        for text, expected in (
+            ("\x1b)B\x0eq\x0f-q", "q-q"),
+            ("q\x1b(0q\x1b(Bq", "q\u2500q"),
+        ):
+            with self.subTest(text=text):
+                line = parse_ansi_text(text)
+                self.assertEqual(expected, line.text)
+                self.assertEqual([], line.skipped)
+
+    def test_unsupported_charset_designation(self) -> None:
+        """Draw an unsupported character set as ASCII and record its designation as skipped."""
+        for designation in ("\x1b(A", "\x1b)U", "\x1b(["):
+            with self.subTest(designation=designation):
+                # the designated slot is selected with SI for G0 and SO for G1, both set to DEC Special Graphics first
+                shift = "\x0e" if designation.startswith("\x1b)") else "\x0f"
+                line = parse_ansi_text(f"\x1b(0\x1b)0{designation}{shift}q")
+                self.assertEqual("q", line.text)
+                self.assertEqual(
+                    [
+                        SkippedOp(
+                            "terminal-setting", designation, "unsupported character set designation, drawn as ASCII"
+                        )
+                    ],
+                    line.skipped,
+                )
+
+    def test_charset_state_within_one_parser(self) -> None:
+        """Keep the selected character set across lines and feed() calls, and drop a designation CAN aborts."""
+        lines = parse_ansi_line("\x0eq\nq\x0f\nq")
+        self.assertEqual(["\u2500", "\u2500", "q"], [line.text for line in lines])
+
+        for chunks in (("\x1b(0", "q"), ("\x0e", "q"), ("\x1b(", "0q")):
+            with self.subTest(chunks=chunks):
+                parser = AnsiParser()
+                for chunk in chunks:
+                    parser.feed(chunk)
+                self.assertEqual("\u2500", parser.finalize()[0].text)
+
+        line = parse_ansi_text("\x1b(\x180q")
+        self.assertEqual("0q", line.text)
+
+    def test_terminal_reset_selects_ascii(self) -> None:
+        """Designate US ASCII to G0 and G1 and select G0 on a terminal reset, keeping the SGR state."""
+        # G1 is designated DEC Special Graphics again after the reset, so the text stays ASCII only with G0 selected
+        line = parse_ansi_text("\x1b(0\x1b)0\x0e\x1b[31mq\x1bcq\x1b)0q")
+        self.assertEqual("\u2500qq", line.text)
+        self.assertEqual([(AttrSpec("dark red", "inherit"), 3)], line.attrib)
+        self.assertEqual(["terminal-setting"], [op.kind for op in line.skipped])
+        self.assertEqual("\u2500q", parse_ansi_text("\x1b)0\x0eq\x1bc\x0eq").text)
+
+    def test_fbterm_color_keeps_other_attributes(self) -> None:
+        """Keep the settings and the hyperlink in effect when an fbterm color is set, and read an empty index as 0."""
+        link = Hyperlink("https://urwid.org")
+        line = parse_ansi_text("\x1b]8;;https://urwid.org\x1b\\\x1b[1;31m\x1b[2;4}x\x1b[1;}y")
+        self.assertEqual(
+            [
+                (AttrSpec("h1,bold", "h4", 256, hyperlink=link), 1),
+                (AttrSpec("h0,bold", "h4", 256, hyperlink=link), 1),
+            ],
+            line.attrib,
+        )
+        self.assertEqual("terminal-setting", parse_ansi_line("\x1b[;3}")[0].skipped[0].kind)
 
 
 if __name__ == "__main__":
