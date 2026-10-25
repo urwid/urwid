@@ -171,9 +171,13 @@ class ProgressBarOutOfRangeTest(unittest.TestCase):
 
 
 class ProgressBarFiniteScaleTest(unittest.TestCase):
+    """Finite scale multiplication must not imply completion."""
+
     def test_large_finite_values_keep_their_fraction(self) -> None:
+        """Keep both the percentage and rendered bar below completion."""
         for current, done, expected in ((1e307, 1e308, "10 %"), (1e308, 1.5e308, "66 %")):
             with self.subTest(current=current, done=done):
                 bar = urwid.ProgressBar("normal", "complete", current, done)
                 self.assertEqual(bar.get_text(), expected)
-                self.assertLess(sum(len(seg) for attr, _charset, seg in list(bar.render((10,)).content())[0] if attr == "complete"), 10)
+                row = next(iter(bar.render((10,)).content()))
+                self.assertLess(sum(len(segment) for attr, _charset, segment in row if attr == "complete"), 10)
