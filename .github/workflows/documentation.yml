@@ -27,7 +27,7 @@ jobs:
         with:
           fetch-depth: 0  # need for setuptools_scm
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Create virtual environment
         run: uv venv
       - name: Install python dependencies
