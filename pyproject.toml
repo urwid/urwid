@@ -459,7 +459,8 @@ pretty_print = true
 
 [tool.refurb]
 python_version = "3.11"
-ignore = [ "FURB104", "FURB144", "FURB146" ]
+# FURB158 asks for the class pattern form that pylint's match-class-bind-self (R1905) rejects
+ignore = [ "FURB104", "FURB144", "FURB146", "FURB158" ]
 [[tool.refurb.amend]]
 path = "urwid/__init__.py"
 ignore = [ "FURB107" ]
