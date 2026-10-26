@@ -53,7 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Create virtual environment
         run: uv venv --python 3.14
       - name: Install package with all extras
@@ -70,7 +70,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Create virtual environment
         run: uv venv --python 3.14
       - name: Install package with all extras
@@ -87,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Create virtual environment
         run: uv venv --python 3.14
       - name: Install package with all extras
@@ -123,7 +123,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - name: Create virtual environment
         run: uv venv --python-preference only-system --python ${{ matrix.python-version }}
       - name: Install dependencies
@@ -170,7 +170,7 @@ jobs:
           fetch-depth: 0  # need for setuptools_scm
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
 
       - name: Build dist
         run: uv build
@@ -194,7 +194,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.3.0
+        uses: astral-sh/setup-uv@v10.3.2
       - uses: actions/download-artifact@v8
         with:
           # unpacks default artifact into dist/
