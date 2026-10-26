@@ -137,6 +137,29 @@ class TestRawDisplay(unittest.TestCase):
 
         self.assertEqual((row, 0, None), s._last_row(row))
 
+    def test_last_row_moves_back_over_the_last_character(self):
+        """Z is drawn where Y starts, so the cursor moves back as many columns as Z is wide, not Y."""
+        s = urwid.display.raw.Screen()
+        wide = "日".encode()
+        for row, expected in (
+            ([(None, None, b"a" + wide + b"c")], ([(None, None, b"a"), (None, None, b"c")], 1, (None, None, wide))),
+            ([("x", None, b"ab "), ("y", None, wide)], ([("x", None, b"ab"), ("y", None, wide)], 2, ("x", None, b" "))),
+        ):
+            with self.subTest(row=row), set_temporary_encoding("utf-8"):
+                self.assertEqual(expected, s._last_row(row))
+
+    def test_draw_screen_last_row_ending_with_a_wide_character(self):
+        """A narrow character before a wide last one is inserted in front of it, not into its second column."""
+        for windows in (False, True):
+            with self.subTest(windows=windows), set_temporary_encoding("utf-8"):
+                s = urwid.display.raw.Screen()
+                s.set_terminal_properties(colors=16)
+
+                self.assertEqual(
+                    f"{DRAW_START}ab日\x08\x08{insert(' ', windows=windows)}",
+                    draw(s, urwid.Text("ab 日").render((5,)), windows=windows),
+                )
+
     def test_attrspec_to_escape_fbterm(self) -> None:
         """Write the default colors and then the settings as SGR on fbterm, and only a set color as a palette entry.
 
