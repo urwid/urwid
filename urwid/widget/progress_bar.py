@@ -119,6 +119,11 @@ class ProgressBar(Widget):
         if self.done > 0:
             try:
                 completed = self.current * scale / self.done
+                # Scaling finite progress can overflow even while its fraction
+                # is below one. Divide first only on that overflow path, so
+                # ordinary values keep their existing rounding behavior.
+                if math.isinf(completed) and 0 < self.current < self.done:
+                    completed = (self.current / self.done) * scale
             except OverflowError:
                 completed = scale if self.current > self.done else 0
         if math.isnan(completed):
