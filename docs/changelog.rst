@@ -7,15 +7,145 @@ Urwid 5.0.0 (unreleased)
 
 Breaking Changes ⚠
 ++++++++++++++++++
-* Drop GraalPy 3.11 (GraalPy 24): its ``os`` module has no ``O_NOFOLLOW`` and its ASCII and Latin-1 codecs ignore registered error handlers. GraalPy 3.12 stays experimental, and GraalPy 3.13 is listed as experimental too
+* Allow display attributes to inherit colors and settings: canvas content and ``Text.get_text()`` carry ``LayeredAttr`` for nested attributes, custom screens have to call ``BaseScreen.resolve_attr()`` instead of reading the palette, and an attribute an ``AttrMap`` maps to ``None`` shows the map's ``None`` attribute by @penguinolog in https://github.com/urwid/urwid/pull/1409
+* 🗹 ``AttrSpec`` foreground and background default to ``'inherit'``; also a new feature, see "Major features" below: Draw OSC 8 hyperlinks from display attributes by @penguinolog in https://github.com/urwid/urwid/pull/1415
+* Drop code planned for removal in 5.0: the ``Columns``, ``Pile``, ``GridFlow``, ``Frame`` and ``ListBox`` ``get_focus``/``set_focus`` methods and 1.1-era list attributes, the ``Frame`` header/body/footer getters and setters, ``ListBox.contents()`` called as a method, ``content_delta``, ``shards_delta``, ``shard_cviews_delta``, ``BaseScreen.run_wrapper``, ``font.add_font``, ``WidgetWrap._set_w``, ``AttrWrap.w`` and ``Filler.body``; ``MonitoredDeque.insert()`` with an index without ``__index__`` raises ``TypeError`` by @penguinolog in https://github.com/urwid/urwid/pull/1402
+* ⚡ Remove the ``vterm`` escape compatibility constants and plain-tuple ``CSI_COMMANDS`` entries, return ``WHSettings`` members from ``Pile.options()`` for ``'given'`` and ``'weight'``, and require ``typing_extensions`` on Python older than 3.13; also see "Deprecations" below: Unify deprecation warnings and removal versions by @penguinolog in https://github.com/urwid/urwid/pull/1421
+* Stop re-exporting unrelated names from ``urwid.graphics`` by @penguinolog in https://github.com/urwid/urwid/pull/1163
+* 🗹 ``ANSIText`` keeps bold as a setting of its own: ``ESC[1;31m`` is ``'dark red,bold'``, no longer ``'light red,bold'``; also a new feature, see "New features" below: Read the raw display's attributes back in ANSIText by @penguinolog in https://github.com/urwid/urwid/pull/1502
+* 🗹 The raw display can detect more colors than before: the ``colors`` capability of the terminfo entry raises the count (``mintty``, ``vscode`` and others from 16 to 256); also a new feature, see "New features" below: Read colour depth from terminfo in the raw display by @penguinolog in https://github.com/urwid/urwid/pull/1464
+* 🗹 Pickles of ``MonitoredList`` written at protocol 2 or higher no longer load in older urwid releases; also a new feature, see "New features" below: Make focus lists and list walkers picklable by @penguinolog in https://github.com/urwid/urwid/pull/1469
+* 🕷 ``Terminal`` returns a key with no ``TERM=linux`` form (``shift up``, ``meta f5``, ``focus in``) unhandled instead of typing its name into the child; also bug fixes, see "Bug fixes" below by @luantaraschi in https://github.com/urwid/urwid/pull/1473 and by @penguinolog in https://github.com/urwid/urwid/pull/1498
+* Drop GraalPy 3.11 (GraalPy 24): its ``os`` module has no ``O_NOFOLLOW`` and its ASCII and Latin-1 codecs ignore registered error handlers. GraalPy 3.12 stays experimental, and GraalPy 3.13 is listed as experimental too by @penguinolog in https://github.com/urwid/urwid/pull/1510
+
+Major features 🗹
++++++++++++++++++
+* ⚠ Draw OSC 8 hyperlinks from display attributes (``Hyperlink``, ``AttrSpec(hyperlink=...)``, ``set_terminal_properties(hyperlinks=True)``); see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1415
+* Parse OSC 8 hyperlinks in ANSIText and Terminal by @penguinolog in https://github.com/urwid/urwid/pull/1419
+* Report extended keys via the kitty and modifyOtherKeys protocols: ``Screen(extended_keys=True)`` tells ``ctrl i`` from ``tab`` and ``ctrl enter`` from ``enter``, and adds the ``super`` and ``hyper`` modifiers by @penguinolog in https://github.com/urwid/urwid/pull/1504
+* Alternate screen and kitty keyboard protocol in Terminal by @penguinolog in https://github.com/urwid/urwid/pull/1505
+* Forward mouse events to the Terminal child by @penguinolog in https://github.com/urwid/urwid/pull/1501
+* Add DropDown choice widget and anchored pop-up placement by @penguinolog in https://github.com/urwid/urwid/pull/1471
+* Add ``urwid.testing``: render widgets to text and attribute runs, check their sizing, feed keys and mouse events, and run a ``MainLoop`` on ``ScriptedScreen`` without a terminal by @penguinolog in https://github.com/urwid/urwid/pull/1481
+* Add ``MainLoop.paused()`` to run another program, such as ``$EDITOR``, in the terminal by @penguinolog in https://github.com/urwid/urwid/pull/1485
+* Add tree navigation helpers and keyword-only walker positions by @penguinolog in https://github.com/urwid/urwid/pull/1451
 
 New features 🗹
 +++++++++++++++
-* Add ``urwid.testing``: render widgets to text and attribute runs, check their sizing, feed keys and mouse events, and run a ``MainLoop`` on ``ScriptedScreen`` without a terminal
+* Add ScrollBar visible option and fix scrollbar mouse handling by @penguinolog in https://github.com/urwid/urwid/pull/1462
+* Add ScrollBar end markers and attributes by @penguinolog in https://github.com/urwid/urwid/pull/1470
+* Render ListBox and ScrollBar at a flow size by @penguinolog in https://github.com/urwid/urwid/pull/1488
+* ⚠ Read colour depth from terminfo in the raw display; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1464
+* ⚠ Make focus lists and list walkers picklable; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1469
+* Add set_ascii_fallbacks for characters the encoding rejects by @penguinolog in https://github.com/urwid/urwid/pull/1479
+* Add CommandMap.bind() that refuses a key bound twice by @penguinolog in https://github.com/urwid/urwid/pull/1472
+* Accept plain foreground canvases in CanvasOverlay by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1428
+* Name DEC private modes and act on DECRQM replies by @penguinolog in https://github.com/urwid/urwid/pull/1500
+* ⚠ Read the raw display's attributes back in ANSIText; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1502
+
+Deprecations ⚡
++++++++++++++++
+* ⚠ Unify deprecation warnings and removal versions: every deprecation names its removal release, and APIs still used by pudb, mitmproxy, khal, zulip-terminal and others are postponed to 7.0; also removes APIs, see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1421
+* Deprecate a positional ``reverse`` in ``positions()`` of the ``Simple*ListWalker`` and ``Simple*DequeWalker`` classes (removal in 8.0) by @penguinolog in https://github.com/urwid/urwid/pull/1451
+* Deprecate the private ``_MOUSE_*_FLAG`` constants in favour of ``MouseBit`` (removal in 6.0) by @penguinolog in https://github.com/urwid/urwid/pull/1500
 
 Bug fixes 🕷
 ++++++++++++
-* Pickle widgets with protocols 0 and 1 on GraalPy, which built them from ``typing.Generic`` and failed
+
+Text layout and canvas rendering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Do not crash on a zero-width line with clip or ellipsis wrap by @luantaraschi in https://github.com/urwid/urwid/pull/1403
+* Do not crash on zero-width text before a break in wrap modes by @penguinolog in https://github.com/urwid/urwid/pull/1404
+* Fix shard_tail gap errors from canvas shards of no rows by @penguinolog in https://github.com/urwid/urwid/pull/1483
+* Fix the ListBox rows_max cache and overlays of rowless canvases by @penguinolog in https://github.com/urwid/urwid/pull/1486
+* Keep mixed-width characters in place on the last screen row by @nk-batman21 in https://github.com/urwid/urwid/pull/1506
+* Keep zero-width runs and raw sequences intact on the last row by @penguinolog in https://github.com/urwid/urwid/pull/1511
+
+Raw and curses displays
+^^^^^^^^^^^^^^^^^^^^^^^
+* Fix terminal input after stop and Linux console palette by @penguinolog in https://github.com/urwid/urwid/pull/1463
+* Keep mouse tracking across a screen stop and restart by @penguinolog in https://github.com/urwid/urwid/pull/1484
+* Fix the swapped 80x24 fallback size in raw displays by @penguinolog in https://github.com/urwid/urwid/pull/1491
+* Use and track the visible Windows console window size by @penguinolog in https://github.com/urwid/urwid/pull/1492
+* Fix BytesWarning when restoring tty signal keys by @luantaraschi in https://github.com/urwid/urwid/pull/1448
+* Fix bytes/str leftovers and typing in displays and event loops by @penguinolog in https://github.com/urwid/urwid/pull/1456
+* Fix curses input waits longer than 25.5 seconds by @hengweiyv in https://github.com/urwid/urwid/pull/1394
+
+Escape sequences and key decoding
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Fix escape sequence handling in Terminal, ANSIText and raw display by @penguinolog in https://github.com/urwid/urwid/pull/1497
+* Strip whole CSI sequences with sub-parameters or intermediate bytes by @nk-batman21 in https://github.com/urwid/urwid/pull/1496
+* Decode st Insert and Delete key sequences by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1423
+* Decode modified Insert and the remaining xterm keypad keys by @penguinolog in https://github.com/urwid/urwid/pull/1499
+
+Terminal widget
+^^^^^^^^^^^^^^^
+* Fix vterm hangs, crashes and leaks by @penguinolog in https://github.com/urwid/urwid/pull/1406
+* ⚠ Send ESC before the key for meta keys in Terminal; see "Breaking Changes" above by @luantaraschi in https://github.com/urwid/urwid/pull/1473
+* ⚠ Send Terminal keys as TERM=linux defines them; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1498
+* Cancel a pending wrap when the Terminal cursor moves by @ybai08 in https://github.com/urwid/urwid/pull/1474
+* Do not scroll the Terminal region when wrapping below it by @ybai08 in https://github.com/urwid/urwid/pull/1475
+* Fix Terminal keypress before the first render by @penguinolog in https://github.com/urwid/urwid/pull/1490
+
+Event loops
+^^^^^^^^^^^
+* Skip closing an already closed asyncio loop in __del__ by @penguinolog in https://github.com/urwid/urwid/pull/1417
+* Log and survive exceptions raised by alarm callbacks by @charan-rathore in https://github.com/urwid/urwid/pull/1418
+* Run expired select alarms while input stays readable by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1424
+* Run expired ZMQ alarms while input stays readable by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1427
+* Fix event loop callback races and idle handling by @penguinolog in https://github.com/urwid/urwid/pull/1461
+
+Containers, lists and walkers
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+* Use the index protocol in monitored containers by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1441
+* Preserve deque walker bounds when copying by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1446
+* Preserve focused object identity when sorting by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1454
+* Notify after partially extending a list by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1460
+* Preserve focus for empty forward slices by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1455
+* Preserve nested focus after undirected ListBox jumps by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1425
+* Return Tab at the ends of a wrap_around walker in ListBox by @penguinolog in https://github.com/urwid/urwid/pull/1495
+* Keep the correct parent during offscreen tree navigation by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1431
+* Fix Columns cursor and positions for hidden columns by @penguinolog in https://github.com/urwid/urwid/pull/1467
+* Stop base_widget at mock objects by @penguinolog in https://github.com/urwid/urwid/pull/1468
+* Pickle widgets with protocols 0 and 1 on GraalPy, which built them from ``typing.Generic`` and failed by @penguinolog in https://github.com/urwid/urwid/pull/1510
+
+ScrollBar
+^^^^^^^^^
+* Fix ScrollBar keypress before the first render by @penguinolog in https://github.com/urwid/urwid/pull/1465
+* Render ScrollBar with no rows at a size of no rows by @penguinolog in https://github.com/urwid/urwid/pull/1482
+
+Numeric edit widgets
+^^^^^^^^^^^^^^^^^^^^
+* Accept negative string defaults in IntegerEdit by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1436
+* Apply FloatEdit separators to default values by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1434
+* Fix FloatEdit exponent defaults and long-value quantization by @charan-rathore in https://github.com/urwid/urwid/pull/1447
+* Refuse a second decimal separator in FloatEdit by @nk-batman21 in https://github.com/urwid/urwid/pull/1493
+* Keep a lone zero in numeric edit widgets by @nk-batman21 in https://github.com/urwid/urwid/pull/1487
+* Trim leading zeros after the minus sign in NumEdit by @penguinolog in https://github.com/urwid/urwid/pull/1489
+
+Progress bar
+^^^^^^^^^^^^
+* Preserve Unicode labels in progress bars by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1432
+* Fix early completion for very large finite progress values by @charan-rathore in https://github.com/urwid/urwid/pull/1507
+
+Documentation 🕮
+++++++++++++++++
+* Complete the parameter, return, exception and warning fields in docstrings by @penguinolog in https://github.com/urwid/urwid/pull/1494
+* Forward the mouse to the child in the terminal demo by @penguinolog in https://github.com/urwid/urwid/pull/1503
+
+Refactoring 🛠
+++++++++++++++
+* Cover all refurb warnings by @penguinolog in https://github.com/urwid/urwid/pull/1185
+
+New Contributors
+++++++++++++++++
+* @hengweiyv made their first contribution in https://github.com/urwid/urwid/pull/1394
+* @IlyaKhalafi made their first contribution in https://github.com/urwid/urwid/pull/1424
+* @ybai08 made their first contribution in https://github.com/urwid/urwid/pull/1474
+* @nk-batman21 made their first contribution in https://github.com/urwid/urwid/pull/1487
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/4.2.5...5.0.0
 
 Urwid 4.2.5
 ============
