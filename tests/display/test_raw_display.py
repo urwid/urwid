@@ -130,35 +130,111 @@ class TestRawDisplay(unittest.TestCase):
         )
         self.assertFalse(urwid.AttrSpec("dark red", "").faint)
 
-    def test_last_row_without_preceding_segment(self):
-        """A last row holding a single grapheme has no character to slide back."""
+    def test_last_row_drawn_untouched(self):
+        """A last row with nothing of any width before Z, or raw sequence bytes after Y or in Y or Z, is untouched."""
         s = urwid.display.raw.Screen()
-        row = [(None, None, "日".encode())]
+        wide, rlm = "\u65e5".encode(), "\u200f".encode()
+        osc_open, osc_close = b"\x1b]8;;https://a.example\x1b\\", b"\x1b]8;;\x1b\\"
+        for row in (
+            [(None, None, wide)],
+            [(None, None, wide), ("b", None, rlm)],
+            [(None, None, b"x"), (None, "U", osc_open), (None, None, b"abc"), (None, "U", osc_close)],
+            [(None, None, b"xab"), (None, "U", osc_open), (None, None, b"c"), (None, "U", osc_close)],
+            [(None, "U", osc_open), (None, None, b"abc"), (None, "U", osc_close), (None, None, b"d")],
+            [(None, "U", b"xa" + osc_open + b"b")],
+            [(None, "U", b"ab" + osc_close)],
+            [(None, "U", osc_open + b"a"), (None, None, b"b")],
+            [(None, "U", b"ab\xc2\x9b31m")],  # a C1 CSI, as UTF-8
+            [(None, "U", b"ab\xc2\x9d0;t\xc2\x9c")],  # a C1 OSC, as UTF-8
+        ):
+            with self.subTest(row=row), set_temporary_encoding("utf-8"):
+                self.assertEqual((row, 0, []), s._last_row(row))
 
-        self.assertEqual((row, 0, None), s._last_row(row))
+        row = [(None, "U", b"ab\x1b[1m")]
+        with self.subTest(row=row), set_temporary_encoding("iso8859-1"):
+            self.assertEqual((row, 0, []), s._last_row(row))
 
     def test_last_row_moves_back_over_the_last_character(self):
-        """Z is drawn where Y starts, so the cursor moves back as many columns as Z is wide, not Y."""
+        """Z is drawn where Y starts, so the cursor moves back as many columns as Z is wide, not Y.
+
+        Runs of no width are neither Y nor Z: those after Z are drawn after it, and those between Y and Z follow Y.
+        """
         s = urwid.display.raw.Screen()
-        wide = "日".encode()
+        wide = "\u65e5".encode()
+        # the Hebrew word "shalom": "shin lamed", then Y "vav" and Z "final mem"
+        head, y, z = "\u05e9\u05dc".encode(), "\u05d5".encode(), "\u05dd".encode()
+        rli, pdi, rlm, acute = "\u2067".encode(), "\u2069".encode(), "\u200f".encode(), "\u0301".encode()
         for row, expected in (
-            ([(None, None, b"a" + wide + b"c")], ([(None, None, b"a"), (None, None, b"c")], 1, (None, None, wide))),
-            ([("x", None, b"ab "), ("y", None, wide)], ([("x", None, b"ab"), ("y", None, wide)], 2, ("x", None, b" "))),
+            ([(None, None, b"a" + wide + b"c")], ([(None, None, b"a"), (None, None, b"c")], 1, [(None, None, wide)])),
+            (
+                [("x", None, b"ab "), ("y", None, wide)],
+                ([("x", None, b"ab"), ("y", None, wide)], 2, [("x", None, b" ")]),
+            ),
+            (
+                [("a", None, head + y + z), ("b", None, rlm)],
+                ([("a", None, head), ("a", None, z), ("b", None, rlm)], 1, [("a", None, y)]),
+            ),
+            (
+                [("a", None, b"x " + rli + head + y + z), ("b", None, pdi)],
+                ([("a", None, b"x " + rli + head), ("a", None, z), ("b", None, pdi)], 1, [("a", None, y)]),
+            ),
+            (
+                [("a", None, b"abce"), ("b", None, acute)],
+                ([("a", None, b"ab"), ("a", None, b"e"), ("b", None, acute)], 1, [("a", None, b"c")]),
+            ),
+            (
+                [("x", None, b"ab"), ("y", None, b"c"), ("b", None, rlm)],
+                ([("x", None, b"a"), ("y", None, b"c"), ("b", None, rlm)], 1, [("x", None, b"b")]),
+            ),
+            (
+                [("a", None, b"xy"), ("b", None, rlm), ("a", None, b"z"), ("b", None, rlm)],
+                ([("a", None, b"x"), ("a", None, b"z"), ("b", None, rlm)], 1, [("a", None, b"y"), ("b", None, rlm)]),
+            ),
+            (
+                [("a", None, b"abc"), ("b", None, acute), ("a", None, b"d")],
+                ([("a", None, b"ab"), ("a", None, b"d")], 1, [("a", None, b"c"), ("b", None, acute)]),
+            ),
+            # a C1 byte inside a UTF-8 character is not a control
+            (
+                [(None, "U", "ab\u011b".encode())],
+                ([(None, "U", b"a"), (None, "U", "\u011b".encode())], 1, [(None, "U", b"b")]),
+            ),
+            # a raw escape sequence in a run that neither Y nor Z is taken from does not matter
+            (
+                [(None, "U", b"\x1b[1ma"), (None, None, b"bc")],
+                ([(None, "U", b"\x1b[1ma"), (None, None, b"c")], 1, [(None, None, b"b")]),
+            ),
         ):
             with self.subTest(row=row), set_temporary_encoding("utf-8"):
                 self.assertEqual(expected, s._last_row(row))
 
-    def test_draw_screen_last_row_ending_with_a_wide_character(self):
-        """A narrow character before a wide last one is inserted in front of it, not into its second column."""
-        for windows in (False, True):
-            with self.subTest(windows=windows), set_temporary_encoding("utf-8"):
-                s = urwid.display.raw.Screen()
-                s.set_terminal_properties(colors=16)
+        # bytes 0x80-0x9f in an IBM PC character set run are glyphs, not controls
+        row = [(None, "U", b"ab\x82")]
+        with self.subTest(row=row), set_temporary_encoding("iso8859-1"):
+            self.assertEqual(([(None, "U", b"a"), (None, "U", b"\x82")], 1, [(None, "U", b"b")]), s._last_row(row))
 
-                self.assertEqual(
-                    f"{DRAW_START}ab日\x08\x08{insert(' ', windows=windows)}",
-                    draw(s, urwid.Text("ab 日").render((5,)), windows=windows),
+    def test_draw_screen_last_row_inserts_y_in_front_of_z(self):
+        """Draw the last row without Y, move back over Z and insert Y in front of it.
+
+        A narrow character before a wide last one is inserted in front of it, not into its second column,
+        and a mark in a run of its own between Y and Z is written after Y is inserted, so it stays on Y.
+        """
+        mark, red = "\u0301", AttrSpec("dark red", "default")
+        for windows in (False, True):
+            with set_temporary_encoding("utf-8"):
+                cases = (
+                    (urwid.Text("ab 日").render((5,)), f"ab日\x08\x08{insert(' ', windows=windows)}"),
+                    (
+                        runs_canvas([[(None, None, b"abc"), (red, None, mark.encode()), (None, None, b"d")]], 4),
+                        f"abd\x08{insert('c', windows=windows)}{RED}{mark}",
+                    ),
                 )
+                for canvas, expected in cases:
+                    with self.subTest(windows=windows, expected=expected):
+                        s = urwid.display.raw.Screen()
+                        s.set_terminal_properties(colors=16)
+
+                        self.assertEqual(f"{DRAW_START}{expected}", draw(s, canvas, windows=windows))
 
     def test_attrspec_to_escape_fbterm(self) -> None:
         """Write the default colors and then the settings as SGR on fbterm, and only a set color as a palette entry.

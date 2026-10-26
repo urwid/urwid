@@ -30,6 +30,7 @@ import functools
 import os
 import pathlib
 import platform
+import re
 import selectors
 import signal
 import socket
@@ -495,6 +496,12 @@ def detect_terminal_properties(
         bg_bright_is_blink=bg_bright_is_blink,
         back_color_erase=back_color_erase,
     )
+
+
+# the start of a raw sequence in a charset "U" run: ESC or a C1 control as UTF-8, and only ESC in the
+# single and double byte encodings, where bytes 0x80-0x9f are glyphs of the IBM PC character set or parts of characters
+_RAW_SEQUENCE_UTF8 = re.compile(rb"\x1b|\xc2[\x80-\x9f]")
+_RAW_SEQUENCE_BYTES = re.compile(rb"\x1b")
 
 
 @typing.runtime_checkable
@@ -1349,7 +1356,7 @@ class Screen(BaseScreen, RealTerminal):
         cy = self._cy
         y = -1
 
-        ins = None
+        ins: list[tuple[Hashable, Literal["0", "U"] | None, bytes]] = []
         if self._rows_used is None:
             output.append(escape.set_cursor_position(0, 0))
         else:
@@ -1408,8 +1415,11 @@ class Screen(BaseScreen, RealTerminal):
                 handle_row(a, cs, run, last=False)
 
             if ins:
-                (a, cs, run) = ins
+                a, cs, run = ins[0]
                 handle_row(a, cs, run, last=True)
+                # runs of no width between Y and Z follow Y, and add nothing to shift
+                for a, cs, run in ins[1:]:
+                    handle_row(a, cs, run, last=False)
 
             if link_open:
                 # a hyperlink left open would cover the cursor moves and erased cells up to the next run
@@ -1456,49 +1466,68 @@ class Screen(BaseScreen, RealTerminal):
     ) -> tuple[
         list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[Hashable, Literal["0", "U"] | None, bytes] | None,
+        list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
     ]:
         """On the last row we need to slide the bottom right character into place.
-
-        Calculate the new line, attr and an insert sequence to do that.
 
         eg. last row:
         XXXXXXXXXXXXXXXXXXXXYZ
 
         Y will be drawn after Z, shifting Z into position.
 
-        When the whole row is a single grapheme, as happens with a double width
-        character on a two column screen, there is no Y to draw after Z.
-        The row is then returned untouched and no insert sequence is produced.
+        Runs of no width, such as a bidi mark or a combining mark, are neither Y nor Z:
+        those after Z are drawn after Z, and those between Y and Z are written after Y
+        is inserted, so each stays behind the character it follows.
+
+        The row is returned untouched, with nothing to insert and its bottom right
+        character written directly, when:
+
+        - nothing of any width comes before Z, as happens with a double width
+          character on a two column screen, so there is no Y to draw after Z;
+        - a non-empty run of no width in charset "U" comes after Y;
+        - Y or Z is taken from a charset "U" run holding the start of a raw sequence.
+
+        A charset "U" run holds the application's raw bytes. The column count can read
+        the parameters of an escape sequence there as text and cut it, and the sequence,
+        such as an OSC 8 hyperlink, applies to what is written after it, so moving it
+        around Y would change what it applies to.
+
+        :returns: the row to draw, the columns to move back over Z, and the runs to insert, Y first.
         """
-        new_row: list[tuple[Hashable, Literal["0", "U"] | None, bytes]] = row[:-1]
-        z_attr, z_cs, last_text = row[-1]
+        end = len(row)
+        while end > 1 and not str_util.calc_width(row[end - 1][2], 0, len(row[end - 1][2])):
+            end -= 1
+        tail = row[end:]
+
+        raw_sequence = _RAW_SEQUENCE_UTF8 if str_util.get_byte_encoding() == "utf8" else _RAW_SEQUENCE_BYTES
+        z_attr, z_cs, last_text = row[end - 1]
+        if z_cs == "U" and raw_sequence.search(last_text):
+            return row, 0, []
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
         last_offs, _ = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
-        if last_offs == 0:
-            if not new_row:
-                return row, 0, None
-            z_text = last_text
-            del new_row[-1]
-            # we need another segment
-            y_attr, y_cs, nlast_text = row[-2]
-            nlast_cols = str_util.calc_width(nlast_text, 0, len(nlast_text))
-            nlast_offs, _ = str_util.calc_text_pos(nlast_text, 0, len(nlast_text), nlast_cols - 1)
-            y_text = nlast_text[nlast_offs:]
-            if nlast_offs:
-                new_row.append((y_attr, y_cs, nlast_text[:nlast_offs]))
-        else:
-            z_text = last_text[last_offs:]
-            y_attr, y_cs = z_attr, z_cs
-            nlast_cols = str_util.calc_width(last_text, 0, last_offs)
-            nlast_offs, _ = str_util.calc_text_pos(last_text, 0, last_offs, nlast_cols - 1)
-            y_text = last_text[nlast_offs:last_offs]
-            if nlast_offs:
-                new_row.append((y_attr, y_cs, last_text[:nlast_offs]))
+        z_text = last_text[last_offs:]
+        head = row[: end - 1]
+        if last_offs:
+            head.append((z_attr, z_cs, last_text[:last_offs]))
 
+        y_end = len(head)
+        while y_end and not str_util.calc_width(head[y_end - 1][2], 0, len(head[y_end - 1][2])):
+            y_end -= 1
+        if not y_end or any(cs == "U" and run for _, cs, run in (*head[y_end:], *tail)):
+            return row, 0, []
+
+        y_attr, y_cs, y_run = head[y_end - 1]
+        if y_cs == "U" and raw_sequence.search(y_run):
+            return row, 0, []
+        y_cols = str_util.calc_width(y_run, 0, len(y_run))
+        y_offs, _ = str_util.calc_text_pos(y_run, 0, len(y_run), y_cols - 1)
+        new_row = head[: y_end - 1]
+        if y_offs:
+            new_row.append((y_attr, y_cs, y_run[:y_offs]))
         new_row.append((z_attr, z_cs, z_text))
+        new_row.extend(tail)
         # Z is drawn where Y starts, so move back over Z to insert Y in front of it
-        return new_row, str_util.calc_width(z_text, 0, len(z_text)), (y_attr, y_cs, y_text)
+        return new_row, str_util.calc_width(z_text, 0, len(z_text)), [(y_attr, y_cs, y_run[y_offs:]), *head[y_end:]]
 
     def clear(self) -> None:
         """Force the screen to be completely repainted on the next call to draw_screen()."""
