@@ -245,7 +245,7 @@ def main() -> None:
         # do not overcomplicate example
         assert open(name, "ab")  # noqa: SIM115,S101  # pylint: disable=consider-using-with
     except OSError:
-        sys.stderr.write(__doc__ or "")
+        sys.stderr.write(__doc__ or "")  # noqa: FURB143  # __doc__ is None under python -OO
         return
     EditDisplay(name).main()
 

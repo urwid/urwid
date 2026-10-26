@@ -901,7 +901,7 @@ class MouseBit(enum.IntFlag):
 
 
 # MouseBit.DRAG as a plain int, for code outside urwid that reads it
-MOUSE_DRAG_FLAG: typing.Final = int(MouseBit.DRAG)
+MOUSE_DRAG_FLAG: typing.Final = int(MouseBit.DRAG)  # noqa: FURB123
 
 # the names of the mouse report bits before MouseBit replaced them
 _RENAMED_MOUSE_BITS: typing.Final = {

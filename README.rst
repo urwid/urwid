@@ -125,7 +125,6 @@ so its tests are skipped rather than run.
 
 .. code:: bash
 
-    tox -e graalpy311      # GraalPy 3.11
     tox -e graalpy312      # GraalPy 3.12
     tox -e graalpy313      # GraalPy 3.13
 
@@ -137,7 +136,7 @@ Urwid supports:
 - CPython 3.11, 3.12, 3.13, 3.14, 3.15
 - CPython 3.13+ with free-threading (PEP 703 ``--disable-gil``)
 - PyPy 3.11
-- GraalPy 3.11, 3.12 (experimental)
+- GraalPy 3.12, 3.13 (experimental)
 
 Python implementation notes
 ===========================
@@ -179,6 +178,8 @@ modules, and the Terminal widget are not:
 - ❌ Unsupported: curses (GraalPy ships no ``_curses`` module), glib, zmq, twisted, trio (no C
   extension support, or known compatibility issues), Terminal widget/``urwid.vterm`` (like on
   Windows, ``fcntl``/``pty`` usage doesn't work on GraalPy)
+- ❌ Unsupported: GraalPy 3.11 (GraalPy 24), whose ``os`` module has no ``O_NOFOLLOW`` and whose ASCII and Latin-1
+  codecs ignore registered error handlers
 
 Authors
 =======

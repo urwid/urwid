@@ -2,12 +2,20 @@
 Changelog
 ---------
 
-Urwid 4.3.0 (unreleased)
+Urwid 5.0.0 (unreleased)
 =========================
+
+Breaking Changes ⚠
+++++++++++++++++++
+* Drop GraalPy 3.11 (GraalPy 24): its ``os`` module has no ``O_NOFOLLOW`` and its ASCII and Latin-1 codecs ignore registered error handlers. GraalPy 3.12 stays experimental, and GraalPy 3.13 is listed as experimental too
 
 New features 🗹
 +++++++++++++++
 * Add ``urwid.testing``: render widgets to text and attribute runs, check their sizing, feed keys and mouse events, and run a ``MainLoop`` on ``ScriptedScreen`` without a terminal
+
+Bug fixes 🕷
+++++++++++++
+* Pickle widgets with protocols 0 and 1 on GraalPy, which built them from ``typing.Generic`` and failed
 
 Urwid 4.2.5
 ============
