@@ -623,9 +623,9 @@ class Edit(WidgetWrap[Text]):
     def _word_boundary(self, pos: int, *, forward: bool) -> int:
         """Return the edit position after the next word, or at the start of the previous word.
 
-        A word is a run of characters whose first code point is a letter or a digit; a multibyte character of a
-        byte string counts as a letter. A masked text is one word, so that the cursor does not show where the
-        hidden text has spaces.
+        A word is a run of characters whose first code point is a letter, a digit or an underscore.
+        A multibyte character of a byte string counts as a letter.
+        A masked text is one word, so that the cursor does not show where the hidden text has spaces.
         """
         text = self._edit_text
         end = len(text)
@@ -633,7 +633,9 @@ class Edit(WidgetWrap[Text]):
             return end if forward else 0
 
         def in_word(char: str | bytes) -> bool:
-            return char[:1].isalnum() or (isinstance(char, bytes) and len(char) > 1)
+            if isinstance(char, bytes):
+                return char[:1].isalnum() or char[:1] == b"_" or len(char) > 1
+            return char[:1].isalnum() or char[:1] == "_"
 
         for skip_word in (False, True):  # skip the separators before the word, then the word
             while pos != (end if forward else 0):

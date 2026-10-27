@@ -95,7 +95,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     :class:`Edit` also handles these readline-style commands, which no key is mapped to by default:
     ``'cursor word left'``, ``'cursor word right'``, ``'delete word left'``, ``'delete word right'``,
     ``'delete to start of line'`` and ``'delete to end of line'``.
-    A word is a run of letters and digits, and a line ends at a newline.
+    A word is a run of letters, digits and underscores, and a line ends at a newline.
 
     >>> cm = CommandMap()
     >>> cm.bind(Command.WORD_LEFT, "meta b")
