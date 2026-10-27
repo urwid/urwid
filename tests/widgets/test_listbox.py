@@ -2553,6 +2553,47 @@ class ListBoxRenderEmptyTest(unittest.TestCase):
             lbox.render((4, 5), focus=True)
 
 
+class ListBoxFocusWhenEmptyTest(unittest.TestCase):
+    """``focus_when_empty`` decides whether an empty ListBox is selectable."""
+
+    def test_default_selectable_when_empty(self):
+        """By default an empty ListBox accepts the focus, as before."""
+        self.assertTrue(urwid.ListBox(urwid.SimpleFocusListWalker([])).selectable())
+
+    def test_selectable_follows_body(self):
+        """With ``focus_when_empty=False`` the result follows the body as rows come and go."""
+        walker = urwid.SimpleFocusListWalker([])
+        lbox = urwid.ListBox(walker, focus_when_empty=False)
+        self.assertFalse(lbox.selectable())
+        walker.append(urwid.Text("a"))
+        self.assertTrue(lbox.selectable())
+        walker.clear()
+        self.assertFalse(lbox.selectable())
+
+    def test_instance_selectable_flag_wins(self):
+        """An instance that sets ``_selectable`` to False stays unselectable with rows."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text("a")]), focus_when_empty=False)
+        lbox._selectable = False
+        self.assertFalse(lbox.selectable())
+
+    def test_container_skips_empty_listbox(self):
+        """A Pile focuses the next selectable child instead of the empty ListBox."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([]), focus_when_empty=False)
+        edit = urwid.Edit()
+        pile = urwid.Pile([(3, lbox), edit])
+        self.assertIs(edit, pile.focus)
+
+    def test_keys_move_focus_past_empty_listbox(self):
+        """Down moves the Pile focus over an empty ListBox, also inside ``ScrollBar(delegate_selectable=True)``."""
+        for wrap in (lambda w: w, lambda w: urwid.ScrollBar(w, delegate_selectable=True)):
+            with self.subTest(wrap=wrap):
+                lbox = urwid.ListBox(urwid.SimpleFocusListWalker([]), focus_when_empty=False)
+                first, last = urwid.Edit(), urwid.Edit()
+                pile = urwid.Pile([first, (3, wrap(lbox)), last])
+                self.assertIsNone(pile.keypress((10,), "down"))
+                self.assertIs(last, pile.focus)
+
+
 class ListBoxCalculateVisibleEdgeTest(unittest.TestCase):
     def test_calculate_visible_empty(self):
         lbox = urwid.ListBox(urwid.SimpleListWalker([]))
