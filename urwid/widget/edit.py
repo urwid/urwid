@@ -125,6 +125,8 @@ class Edit(WidgetWrap[Text]):
         self._mask: str | None = None
         self._shift_view_to_cursor = False
         self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
+        # cursor position the next set_edit_text() call applies before "postchange", see _set_edit_text_and_pos()
+        self._pending_edit_pos: int | None = None
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -366,6 +368,7 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_pos
         5
         """
+        pending_edit_pos, self._pending_edit_pos = self._pending_edit_pos, None
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         self.highlight = None
         self._emit("change", text)
@@ -373,9 +376,29 @@ class Edit(WidgetWrap[Text]):
         self._edit_text = text
         self._sync_wrapped()
         self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
+        if edit_pos is None and pending_edit_pos is not None:
+            # an editing key moves the cursor through set_edit_pos(), so that an override sees every move
+            self.set_edit_pos(pending_edit_pos)
 
         self._emit("postchange", old_text)
         self._invalidate()
+
+    def _set_edit_text_and_pos(self, text: str | bytes, pos: int) -> None:
+        """Replace the edit text and move the cursor to *pos*, so that "postchange" handlers already see *pos*.
+
+        The position reaches :meth:`set_edit_text` through an attribute instead of its ``edit_pos`` argument,
+        so that a subclass overriding it as ``set_edit_text(text)`` keeps working.
+        An override that never calls the base method gets the position afterwards, so that a cursor move made by
+        a "postchange" handler is kept otherwise.
+        """
+        self._pending_edit_pos = pos
+        try:
+            self.set_edit_text(text)  # type: ignore[arg-type]  # normalisation happen
+            unapplied = self._pending_edit_pos is not None
+        finally:
+            self._pending_edit_pos = None
+        if unapplied:
+            self.set_edit_pos(pos)
 
     def get_edit_text(self) -> str:
         """
@@ -417,8 +440,7 @@ class Edit(WidgetWrap[Text]):
         """
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         result_text, result_pos = self.insert_text_result(text)
-        self.set_edit_text(result_text)  # type: ignore[arg-type]  # normalisation happen
-        self.set_edit_pos(result_pos)
+        self._set_edit_text_and_pos(result_text, result_pos)
         self.highlight = None
 
     def _normalize_to_caption(self, text: str | bytes) -> str | bytes:
@@ -551,8 +573,7 @@ class Edit(WidgetWrap[Text]):
                 start, end = pos, len(text) if eol < 0 else eol
             if start == end:
                 return key
-            self.set_edit_text(text[:start] + text[end:])
-            self.set_edit_pos(start)
+            self._set_edit_text_and_pos(text[:start] + text[end:], start)
             return None
 
         if self._command_map[key] == Command.LEFT:
@@ -593,8 +614,7 @@ class Edit(WidgetWrap[Text]):
                 if pos == 0:
                     return key
                 pos = move_prev_char(self.edit_text, 0, pos)
-                self.set_edit_text(self.edit_text[:pos] + self.edit_text[self.edit_pos :])
-                self.set_edit_pos(pos)
+                self._set_edit_text_and_pos(self.edit_text[:pos] + self.edit_text[self.edit_pos :], pos)
                 return None
             return None
 
@@ -714,8 +734,7 @@ class Edit(WidgetWrap[Text]):
             return False
         start, stop = self.highlight
         btext, etext = self.edit_text[:start], self.edit_text[stop:]
-        self.set_edit_text(btext + etext)
-        self.edit_pos = start
+        self._set_edit_text_and_pos(btext + etext, start)
         self.highlight = None
         return True
 
