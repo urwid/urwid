@@ -469,6 +469,10 @@ class Edit(WidgetWrap[Text]):
         """
         Handle editing keystrokes, return others.
 
+        The readline delete commands described in :class:`~urwid.CommandMap` go through :meth:`set_edit_text`.
+        A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
+        once an application binds them, or the exception leaves :meth:`keypress`.
+
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, "x")
         >>> e.keypress(size, "left")

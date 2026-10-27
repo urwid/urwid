@@ -97,6 +97,13 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     ``'delete to start of line'`` and ``'delete to end of line'``.
     A word is a run of letters, digits and underscores, and a line ends at a newline.
 
+    * ``'delete word left'`` stops at punctuation, as readline's ``backward-kill-word`` (:kbd:`meta backspace`) does,
+      except that an underscore is part of a word here.
+      It is not bash's :kbd:`ctrl w` (``unix-word-rubout``), which deletes back to the previous whitespace.
+    * ``'delete to start of line'`` and ``'delete to end of line'`` work on lines that end at a newline.
+      ``'cursor max left'`` and ``'cursor max right'`` move to the edge of the screen row instead,
+      so on a wrapped line they stop earlier than the deletes reach.
+
     >>> cm = CommandMap()
     >>> cm.bind(Command.WORD_LEFT, "meta b")
     >>> cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
