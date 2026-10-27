@@ -4,6 +4,7 @@ import collections
 import decimal
 import fractions
 import math
+import operator
 import sys
 import unittest
 import warnings
@@ -233,6 +234,67 @@ class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
         mfd.append(1)
         self.assertEqual(0, len(mfd))
         self.assertIsNone(mfd.focus)
+
+
+class MonitoredFocusDequeFollowEndTest(unittest.TestCase):
+    """With ``follow_end``, items added after a focused last item take the focus, also when the head is evicted."""
+
+    def test_focus_follows_added_items(self) -> None:
+        """Check every way of adding items at the right end, bounded and not, with the focus last and elsewhere."""
+        operations = {
+            "append": lambda items: [items.append(item) for item in (3, 4)],
+            "extend": lambda items: items.extend((3, 4)),
+            "iadd": lambda items: operator.iadd(items, (3, 4)),
+            "insert at the end": lambda items: [items.insert(len(items) + 5, item) for item in (3, 4)],
+        }
+        for name, operation in operations.items():
+            for maxlen, contents in ((None, [0, 1, 2, 3, 4]), (5, [0, 1, 2, 3, 4]), (3, [2, 3, 4])):
+                if maxlen == 3 and name == "insert at the end":
+                    continue  # deque.insert raises on a full bounded deque
+                evicted = maxlen == 3
+                for focus, expected in ((2, 2 if evicted else 4), (1, 0 if evicted else 1)):
+                    with self.subTest(operation=name, maxlen=maxlen, focus=focus):
+                        mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=focus, follow_end=True)
+                        operation(mfd)
+                        self.assertEqual(contents, list(mfd))
+                        self.assertEqual(expected, mfd.focus)
+
+    def test_default_keeps_the_focused_item(self) -> None:
+        """Check that without ``follow_end`` a focused last item keeps the focus, or loses it to eviction."""
+        for maxlen, expected in ((None, 2), (3, 0)):
+            with self.subTest(maxlen=maxlen):
+                mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=2)
+                mfd.extend((3, 4))
+                self.assertEqual(expected, mfd.focus)
+
+    def test_imul(self) -> None:
+        """Check that repeating the contents moves a focused last item to the new last item."""
+        for maxlen, expected in ((None, 5), (4, 3)):
+            with self.subTest(maxlen=maxlen):
+                mfd = urwid.MonitoredFocusDeque([0, 1, 2], maxlen, focus=2, follow_end=True)
+                mfd *= 2
+                self.assertEqual(expected, mfd.focus)
+
+    def test_left_end_changes_keep_the_focused_item(self) -> None:
+        """Check that adding at the left end or inserting before the last item does not move the focus to the end."""
+        mfd = urwid.MonitoredFocusDeque([0, 1, 2], focus=2, follow_end=True)
+        mfd.appendleft(-1)
+        mfd.extendleft((-2, -3))
+        mfd.insert(-1, 9)
+        self.assertEqual([-3, -2, -1, 0, 1, 9, 2], list(mfd))
+        self.assertEqual(6, mfd.focus)
+
+    def test_notifies_once_with_the_new_focus(self) -> None:
+        """Check the focus-changed and modified callbacks see the new last item."""
+        mfd = urwid.MonitoredFocusDeque([0], maxlen=2, follow_end=True)
+        modified: list[int | None] = []
+        focus_changes: list[int] = []
+        mfd.set_modified_callback(lambda: modified.append(mfd.focus))
+        mfd.set_focus_changed_callback(focus_changes.append)
+        mfd.append(1)
+        mfd.append(2)
+        self.assertEqual([1, 1], modified)
+        self.assertEqual([1], focus_changes)
 
 
 class _Index:

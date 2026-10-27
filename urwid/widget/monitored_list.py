@@ -242,8 +242,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
+    follow_end: bool = False
+    """Move the focus from the last item to the new last item when items are added after it."""
 
-    def __init__(self, iterable: Iterable[_T] = (), /, *, focus: int = 0) -> None:
+    def __init__(self, iterable: Iterable[_T] = (), /, *, focus: int = 0, follow_end: bool = False) -> None:
         """Initialize a list that tracks one item as the focus item.
 
         If items are inserted or removed it will update the focus.
@@ -264,10 +266,25 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         >>> ml
         MonitoredFocusList([], focus=None)
 
+        With *follow_end*, items added after a focused last item take the focus, as in a log view:
+
+        >>> ml = MonitoredFocusList([10, 11], focus=1, follow_end=True)
+        >>> ml.append(12)
+        >>> ml
+        MonitoredFocusList([10, 11, 12], focus=2)
+        >>> ml.focus = 0
+        >>> ml.append(13)
+        >>> ml
+        MonitoredFocusList([10, 11, 12, 13], focus=0)
+
+        :param iterable: the initial items
+        :param focus: the index of the initial focus item
+        :param follow_end: the initial value of :attr:`follow_end`
         :raises TypeError: *focus* is not an integer.
         :raises IndexError: *focus* is not an index of *iterable*'s items, which is ignored when there are none.
         """
         super().__init__(iterable)
+        self.follow_end = follow_end
         if not self:
             self._focus = 0
             return
@@ -400,6 +417,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         Unless that item was simply replaced, failing that choose the last item in the list.
         Filling an empty list therefore focuses the last new item; applications rely on this,
         for example to focus the last part of a container whose contents they replace.
+        With :attr:`follow_end`, items added after a focused last item move the focus to the new last item.
 
         returns focus position for after change is applied
         """
@@ -412,7 +430,9 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
             return focus
 
         focus = self._focus
-        if step == 1:
+        if self.follow_end and step == 1 and start == len(self) == focus + 1:
+            focus += num_new_items
+        elif step == 1:
             stop = max(start, stop)
             if start + num_new_items <= focus < stop:
                 focus = stop

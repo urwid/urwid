@@ -276,6 +276,77 @@ class MonitoredFocusListFillEmptyTest(unittest.TestCase):
         self.assertEqual(0, items.focus)
 
 
+APPEND_OPERATIONS: Mapping[str, Callable[[urwid.MonitoredFocusList[str], list[str]], typing.Any]] = {
+    "append": lambda items, new: [items.append(item) for item in new],
+    "extend": urwid.MonitoredFocusList.extend,
+    "iadd": operator.iadd,
+    "insert at the end": lambda items, new: [items.insert(len(items) + 5, item) for item in new],
+    "slice at the end": lambda items, new: operator.setitem(items, slice(len(items), None), new),
+}
+
+
+class MonitoredFocusListFollowEndTest(unittest.TestCase):
+    """With ``follow_end``, items added after a focused last item take the focus."""
+
+    def test_focus_follows_added_items(self) -> None:
+        """Check every way of adding items at the end, with the focus on the last item and elsewhere."""
+        for name, operation in APPEND_OPERATIONS.items():
+            for follow_end, focus, expected in ((True, 2, 4), (True, 1, 1), (False, 2, 2)):
+                with self.subTest(operation=name, follow_end=follow_end, focus=focus):
+                    items = urwid.MonitoredFocusList(["a", "b", "c"], focus=focus, follow_end=follow_end)
+                    operation(items, ["d", "e"])
+                    self.assertEqual(["a", "b", "c", "d", "e"], items)
+                    self.assertEqual(expected, items.focus)
+
+    def test_other_changes_keep_the_focused_item(self) -> None:
+        """Check that changes which add nothing after the last item move the focus as without ``follow_end``."""
+        items = urwid.MonitoredFocusList(["a", "b"], focus=1, follow_end=True)
+        items.insert(1, "c")
+        self.assertEqual(2, items.focus)
+        items[-1:] = ["d", "e"]
+        self.assertEqual(2, items.focus)
+        items.focus = 3
+        items *= 1
+        self.assertEqual(3, items.focus)
+
+    def test_repetition(self) -> None:
+        """Check that repeating the contents moves a focused last item to the new last item, and only that one."""
+        for focus, expected in ((2, 5), (1, 1)):
+            with self.subTest(focus=focus):
+                items = urwid.MonitoredFocusList(["a", "b", "c"], focus=focus, follow_end=True)
+                items *= 2
+                self.assertEqual(expected, items.focus)
+
+    def test_setting_after_construction(self) -> None:
+        """Check that the attribute can be switched on and off."""
+        items = urwid.MonitoredFocusList(["a"])
+        self.assertFalse(items.follow_end)
+        items.follow_end = True
+        items.append("b")
+        self.assertEqual(1, items.focus)
+        items.follow_end = False
+        items.append("c")
+        self.assertEqual(1, items.focus)
+
+    def test_notifies_once_with_the_new_focus(self) -> None:
+        """Check the focus-changed and modified callbacks see the new last item."""
+        items = urwid.MonitoredFocusList(["a"], follow_end=True)
+        modified: list[int | None] = []
+        focus_changes: list[int] = []
+        items.set_modified_callback(lambda: modified.append(items.focus))
+        items.set_focus_changed_callback(focus_changes.append)
+        items.extend(["b", "c"])
+        self.assertEqual([2], modified)
+        self.assertEqual([2], focus_changes)
+
+    def test_validation_can_override_focus(self) -> None:
+        """Check that a focus returned by the validation callback wins over the new last item."""
+        items = urwid.MonitoredFocusList(["a"], follow_end=True)
+        items.set_validate_contents_modified(lambda indices, new: 0)
+        items.append("b")
+        self.assertEqual(0, items.focus)
+
+
 def _pickle_round_trip(obj: object, protocol: int) -> typing.Any:
     return pickle.loads(pickle.dumps(obj, protocol=protocol))
 
@@ -322,9 +393,11 @@ class MonitoredListPickleTest(unittest.TestCase):
         """Check every pickle protocol and both copies, which restore items and attributes in different orders."""
         lists: dict[str, Callable[[list[urwid.Text]], urwid.MonitoredList[urwid.Text]]] = {
             "MonitoredList": urwid.MonitoredList,
-            "MonitoredFocusList": urwid.MonitoredFocusList,
+            "MonitoredFocusList": lambda items: urwid.MonitoredFocusList(items, follow_end=True),
             "SimpleListWalker": lambda items: urwid.SimpleListWalker(items, wrap_around=True),
-            "SimpleFocusListWalker": lambda items: urwid.SimpleFocusListWalker(items, wrap_around=True),
+            "SimpleFocusListWalker": lambda items: urwid.SimpleFocusListWalker(
+                items, wrap_around=True, follow_end=True
+            ),
         }
         for target, make in lists.items():
             for name, operation in COPY_OPERATIONS.items():
@@ -340,6 +413,8 @@ class MonitoredListPickleTest(unittest.TestCase):
                         self.assertEqual(1, result.focus)
                     if isinstance(original, (urwid.SimpleListWalker, urwid.SimpleFocusListWalker)):
                         self.assertTrue(result.wrap_around)
+                    if isinstance(original, urwid.MonitoredFocusList):
+                        self.assertTrue(result.follow_end)
 
     def test_unpickling_does_not_notify(self) -> None:
         """Check that restoring the items calls neither callback, and that a list containing itself survives.

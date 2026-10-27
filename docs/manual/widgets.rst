@@ -827,6 +827,13 @@ A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
 
+A log or a progress view that grows at the end can be created with
+``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded
+:class:`SimpleFocusDequeWalker` and the same keyword.  While the focus is on
+the last widget, appended widgets take the focus, so the :class:`ListBox`
+keeps showing the newest one.  Once the user moves the focus up, appending
+leaves it where it is.
+
 If you need to display a large number of widgets you should implement your own
 list walker that manages creating widgets as they are requested and destroying
 them later to avoid excessive memory use.
