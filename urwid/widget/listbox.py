@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import itertools
 import operator
 import typing
 from collections.abc import Container, Iterable, Sized
@@ -1395,29 +1396,99 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         """Call the entry hook of the widget in focus."""
         _select_enter_child(self.focus, reverse=reverse)
 
-    def _keypress_max_left(self, size: tuple[int, int]) -> None:
-        """
-        Move the focus to the first position of the body.
+    def scroll_to_top(self) -> None:
+        """Move the focus to the first position of the body and show it at the top, as :kbd:`home` does.
+
+        The first position gets the focus whether its widget is selectable or not,
+        unlike :meth:`focus_first_selectable`.
+        An empty body is left as it is.
 
         :raises TypeError: the body does not implement ``positions``.
         """
         if not hasattr(self.body, "positions"):
             raise TypeError(f"{type(self.body)}.positions is not implemented.")
 
-        self.focus_position = next(iter(self.body.positions()))
-        self.set_focus_valign(VAlign.TOP)
+        for position in self.body.positions():
+            self.focus_position = position
+            self.set_focus_valign(VAlign.TOP)
+            return
+
+    def scroll_to_bottom(self) -> None:
+        """Move the focus to the last position of the body and show it at the bottom, as :kbd:`end` does.
+
+        The last position gets the focus whether its widget is selectable or not,
+        unlike :meth:`focus_last_selectable`.
+        An empty body is left as it is.
+
+        :raises TypeError: the body does not implement ``positions``.
+        """
+        if not hasattr(self.body, "positions"):
+            raise TypeError(f"{type(self.body)}.positions is not implemented.")
+
+        for position in self.body.positions(reverse=True):
+            self.focus_position = position
+            self.set_focus_valign(VAlign.BOTTOM)
+            return
+
+    def focus_next_match(
+        self,
+        predicate: Callable[[AbstractFlowWidget], bool],
+        *,
+        reverse: bool = False,
+        wrap: bool = True,
+    ) -> _K | None:
+        """Move the focus to the next widget for which *predicate* returns true.
+
+        The body is walked lazily from the position next to the focus in the search direction, so a match before the
+        end of the body is found without reading the rest of it.
+        A wrapped search reads the other side of the focus whole, and checks the widget in focus last,
+        so a single match is found again.
+
+        >>> import urwid
+        >>> listbox = urwid.ListBox([urwid.Text(word) for word in ("apple", "pear", "plum", "peach")])
+        >>> listbox.focus_next_match(lambda widget: widget.text.startswith("p"))
+        1
+        >>> listbox.focus_next_match(lambda widget: widget.text.startswith("p"), reverse=True)
+        3
+        >>> listbox.focus_next_match(lambda widget: widget.text == "apple", wrap=False) is None
+        True
+        >>> listbox.focus_position
+        3
+
+        :param predicate: called with each candidate widget.
+        :param reverse: search towards the top of the body.
+        :param wrap: continue from the other end of the body once this end is reached.
+            Only a body that ends, or declares ``wrap_around``, has an end to stop at; one that cycles without
+            declaring it is searched once round from the focus either way.
+        :returns: the new focus position, or ``None`` when nothing matches and the focus stays where it was.
+        """
+        focus_widget, focus_pos = self._body.get_focus()
+        if focus_widget is None:
+            return None
+        edges = self._select_wrap_edges()
+        seen = _SeenPositions()
+        seen.add(focus_pos)
+
+        def wrapped() -> Iterator[tuple[AbstractFlowWidget, typing.Any]]:
+            # Walked only once the first side is exhausted, since both walks share `seen`.
+            # The walk goes from the focus outwards, so it is read whole and searched from its far end.
+            yield from reversed(list(self._select_walk(focus_pos, forward=reverse, seen=seen, edges=edges)))
+            yield focus_widget, focus_pos
+
+        candidates = self._select_walk(focus_pos, forward=not reverse, seen=seen, edges=edges)
+        for widget, position in itertools.chain(candidates, wrapped()) if wrap else candidates:
+            if predicate(widget):
+                self.focus_position = position
+                return typing.cast("_K", position)
+        return None
+
+    def _keypress_max_left(self, size: tuple[int, int]) -> None:
+        """Move the focus to the first position of the body, through :meth:`scroll_to_top`."""
+        self.scroll_to_top()
 
     def _keypress_max_right(self, size: tuple[int, int]) -> None:
-        """
-        Move the focus to the last position of the body.
-
-        :raises TypeError: the body does not implement ``positions``.
-        """
-        if not hasattr(self.body, "positions"):
-            raise TypeError(f"{type(self.body)}.positions is not implemented.")
-
-        self.focus_position = next(iter(self.body.positions(reverse=True)))
-        self.set_focus_valign(VAlign.BOTTOM)
+        """Move the focus to the last position of the body, through :meth:`scroll_to_bottom`."""
+        self.scroll_to_bottom()
 
     def _keypress_up(self, size: tuple[int, int]) -> bool | None:
         (maxcol, maxrow) = size
