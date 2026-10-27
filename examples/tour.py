@@ -106,6 +106,8 @@ def main() -> None:
     )
     text_edit_cap3 = ("editcp", "This one is clipped, try editing past the edge: ")
     text_edit_text3 = "add some text here -> -> -> ...."
+    text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
+    text_edit_text4 = "12345"
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -262,6 +264,8 @@ def main() -> None:
         urwid.AttrMap(urwid.Edit(text_edit_cap2, text_edit_text2, multiline=True), "editbx", "editfc"),
         blank,
         urwid.AttrMap(urwid.Edit(text_edit_cap3, text_edit_text3, wrap=urwid.CLIP), "editbx", "editfc"),
+        blank,
+        urwid.AttrMap(urwid.Edit(text_edit_cap4, text_edit_text4, max_length=8), "editbx", "editfc"),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),

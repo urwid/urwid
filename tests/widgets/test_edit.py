@@ -235,6 +235,86 @@ class EditTest(unittest.TestCase):
         e = urwid.Edit("", "")
         self.assertEqual(e.keypress((20,), "tab"), "tab")
 
+    def test_keypress_max_length(self) -> None:
+        """A key that would make the text longer than max_length inserts nothing and is returned."""
+        tab = {"allow_tab": True}
+        cases: tuple[
+            tuple[str, str | bytes, str, dict[str, typing.Any], tuple[str, ...], tuple[str | None, ...], str | bytes],
+            ...,
+        ] = (
+            ("typed past the limit", "", "", {"max_length": 3}, ("a", "b", "c", "d"), (None, None, None, "d"), "abc"),
+            ("code points", "", "", {"max_length": 3}, ("A", "界", "🙂", "x"), (None, None, None, "x"), "A界🙂"),
+            ("bytes caption", b"", "", {"max_length": 3}, ("a", "b", "é", "c"), (None, None, "é", None), b"abc"),
+            ("expanded tab", "", "ab", {"max_length": 3, **tab}, ("tab",), ("tab",), "ab"),
+            (
+                "tab character",
+                "",
+                "a",
+                {"max_length": 2, **tab, "expand_tabs": False},
+                ("tab", "tab"),
+                (None, "tab"),
+                "a\t",
+            ),
+            ("multiline enter", "", "ab", {"max_length": 2, "multiline": True}, ("enter",), ("enter",), "ab"),
+            (
+                "bytes enter",
+                b"",
+                "",
+                {"max_length": 2, "multiline": True},
+                ("a", "enter", "enter"),
+                (None, None, "enter"),
+                b"a\n",
+            ),
+            ("full, then shortened", "", "ab", {"max_length": 2}, ("x", "backspace", "x"), ("x", None, None), "ax"),
+            ("zero", "", "", {"max_length": 0}, ("a",), ("a",), ""),
+            ("no limit", "", "", {"max_length": None}, ("a", "b"), (None, None), "ab"),
+        )
+        for label, caption, text, kwargs, keys, returned, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.Edit(caption, text, **kwargs)
+                self.assertEqual(tuple(e.keypress((20,), key) for key in keys), returned)
+                self.assertEqual(e.edit_text, expected)
+
+    def test_keypress_max_length_replaces_highlight(self) -> None:
+        """At the limit, a key replacing a highlighted range is inserted, and a refused key keeps the highlight."""
+        e = urwid.Edit("", "abc", max_length=3)
+        e.highlight = (0, 2)
+        self.assertIsNone(e.keypress((20,), "x"))
+        self.assertEqual(e.edit_text, "xc")
+
+        e = urwid.Edit("", "abc", max_length=3, allow_tab=True)
+        e.highlight = (0, 1)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+        self.assertEqual((e.edit_text, e.highlight), ("abc", (0, 1)))
+
+    def test_max_length_limits_all_text(self) -> None:
+        """Text longer than max_length is refused from every source, leaving the text and signals untouched."""
+        changes: list[str] = []
+
+        def record(edit: urwid.Edit, new: str) -> None:
+            changes.append(new)
+
+        e = urwid.Edit("", "ab", max_length=2)
+        urwid.connect_signal(e, "change", record)
+        with self.assertRaises(ValueError):
+            e.set_edit_text("abc")
+        with self.assertRaises(ValueError):
+            e.insert_text("c")
+        self.assertEqual((e.edit_text, e.edit_pos, changes), ("ab", 2, []))
+
+        with self.assertRaises(ValueError):
+            urwid.Edit("", "abc", max_length=2)
+        with self.assertRaises(ValueError):
+            urwid.Edit(max_length=-1)
+        with self.assertRaises(ValueError):
+            e.max_length = -1
+        with self.assertRaises(ValueError):
+            e.max_length = 1
+        self.assertEqual(e.max_length, 2)
+        e.max_length = None
+        e.set_edit_text("abcd")
+        self.assertEqual(e.edit_text, "abcd")
+
     def test_keypress_enter_multiline(self) -> None:
         e = urwid.Edit("", "ab", multiline=True, edit_pos=1)
         e.keypress((20,), "enter")
