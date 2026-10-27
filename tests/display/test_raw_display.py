@@ -863,7 +863,9 @@ class TestTerminalProperties(unittest.TestCase):
     def setUp(self) -> None:
         """Keep the host terminfo database out of the results, and give each test its own database root."""
         self.enterContext(mock.patch.object(_raw_display_base, "_TERMINFO_SYSTEM_DIRS", ()))
-        self.root = pathlib.Path(tempfile.mkdtemp())
+        # Resolved, because the terminfo reader stats the realpath: on macOS the temporary directory is under /var,
+        # a symlink to /private/var, and a test matching on the unresolved path never sees the reader's calls.
+        self.root = pathlib.Path(tempfile.mkdtemp()).resolve()
         self.addCleanup(shutil.rmtree, self.root)
 
     def install_terminfo(self, path: str, data: bytes) -> str:
