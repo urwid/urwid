@@ -44,6 +44,7 @@ New features 🗹
 * ⚠ Read the raw display's attributes back in ANSIText; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1502
 * Add PopUpLauncher ``close_on_menu``, ``pop_up_widget`` and ``launcher_size`` by @penguinolog in https://github.com/urwid/urwid/pull/1513
 * Add ``ListBox.scroll_to_top()``, ``scroll_to_bottom()`` and ``focus_next_match()`` by @penguinolog in https://github.com/urwid/urwid/pull/1514
+* Add ``Edit.set_edit_text(..., edit_pos=...)``, the ``Edit`` signal ``"submit"`` and readline editing commands for ``Edit`` by @penguinolog in https://github.com/urwid/urwid/pull/1515
 
 Deprecations ⚡
 +++++++++++++++

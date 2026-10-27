@@ -48,13 +48,15 @@ class Edit(WidgetWrap[Text]):
       called when the event is re-emitted.  It is up to the event
       handler to guard against this case (for instance, by not changing the
       text if it is signaled for text that it has already changed once).
+    * ``"submit"`` is sent when :kbd:`enter`, mapped to ``'activate'``, reaches an Edit with ``multiline=False``.
+      It receives the edit text as an argument. :meth:`keypress` still returns the key.
     """
 
     _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit"]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -342,12 +344,14 @@ class Edit(WidgetWrap[Text]):
         self._sync_wrapped()
         self._invalidate()
 
-    def set_edit_text(self, text: str) -> None:
+    def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
         """
         Set the edit text for this widget.
 
         :param text: text for editing, type (bytes or unicode)
                      must match the text in the caption
+        :param edit_pos: cursor position to set before ``"postchange"`` is sent, clipped as by
+            :meth:`set_edit_pos`; ``None`` keeps the current position, clipped to the new text
 
         >>> e = Edit()
         >>> e.set_edit_text("yes")
@@ -358,6 +362,9 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_text = "no"  # Urwid 0.9.9 or later
         >>> print(e.edit_text)
         no
+        >>> e.set_edit_text("maybe", edit_pos=5)
+        >>> e.edit_pos
+        5
         """
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         self.highlight = None
@@ -365,7 +372,7 @@ class Edit(WidgetWrap[Text]):
         old_text = self._edit_text
         self._edit_text = text
         self._sync_wrapped()
-        self.edit_pos = min(self.edit_pos, len(text))
+        self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
 
         self._emit("postchange", old_text)
         self._invalidate()
@@ -462,6 +469,10 @@ class Edit(WidgetWrap[Text]):
         """
         Handle editing keystrokes, return others.
 
+        The readline delete commands described in :class:`~urwid.CommandMap` go through :meth:`set_edit_text`.
+        A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
+        once an application binds them, or the exception leaves :meth:`keypress`.
+
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, "x")
         >>> e.keypress(size, "left")
@@ -507,6 +518,41 @@ class Edit(WidgetWrap[Text]):
         if key == "enter" and self.multiline:
             key = "\n"
             self.insert_text(key)
+            return None
+
+        command = self._command_map[key]
+        if key == "enter" and command == Command.ACTIVATE:
+            self._emit("submit", self._edit_text)
+            return key
+
+        if command in {Command.WORD_LEFT, Command.WORD_RIGHT}:
+            if (new_pos := self._word_boundary(pos, forward=command == Command.WORD_RIGHT)) == pos:
+                return key
+            self.set_edit_pos(new_pos)
+            return None
+
+        if command in {
+            Command.DELETE_WORD_LEFT,
+            Command.DELETE_WORD_RIGHT,
+            Command.DELETE_TO_LINE_START,
+            Command.DELETE_TO_LINE_END,
+        }:
+            text = self._edit_text
+            nl = "\n" if isinstance(text, str) else b"\n"
+            if command == Command.DELETE_WORD_LEFT:
+                start, end = self._word_boundary(pos, forward=False), pos
+            elif command == Command.DELETE_WORD_RIGHT:
+                start, end = pos, self._word_boundary(pos, forward=True)
+            elif command == Command.DELETE_TO_LINE_START:
+                bol = text.rfind(nl, 0, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+                start, end = bol + 1, pos
+            else:
+                eol = text.find(nl, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+                start, end = pos, len(text) if eol < 0 else eol
+            if start == end:
+                return key
+            self.set_edit_text(text[:start] + text[end:])
+            self.set_edit_pos(start)
             return None
 
         if self._command_map[key] == Command.LEFT:
@@ -577,6 +623,31 @@ class Edit(WidgetWrap[Text]):
 
         # key wasn't handled
         return key
+
+    def _word_boundary(self, pos: int, *, forward: bool) -> int:
+        """Return the edit position after the next word, or at the start of the previous word.
+
+        A word is a run of characters whose first code point is a letter, a digit or an underscore.
+        A multibyte character of a byte string counts as a letter.
+        A masked text is one word, so that the cursor does not show where the hidden text has spaces.
+        """
+        text = self._edit_text
+        end = len(text)
+        if self._mask is not None:
+            return end if forward else 0
+
+        def in_word(char: str | bytes) -> bool:
+            if isinstance(char, bytes):
+                return char[:1].isalnum() or char[:1] == b"_" or len(char) > 1
+            return char[:1].isalnum() or char[:1] == "_"
+
+        for skip_word in (False, True):  # skip the separators before the word, then the word
+            while pos != (end if forward else 0):
+                other = move_next_char(text, pos, end) if forward else move_prev_char(text, 0, pos)
+                if in_word(text[min(pos, other) : max(pos, other)]) != skip_word:
+                    break
+                pos = other
+        return pos
 
     def move_cursor_to_coords(
         self,
