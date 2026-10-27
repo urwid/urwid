@@ -3179,23 +3179,46 @@ class ListBoxKeypressEdgeTest(unittest.TestCase):
         lbox.keypress((4, 5), "page down")  # must not raise
 
     def test_keypress_home_end(self):
-        items = [urwid.Text(str(i)) for i in range(10)]
-        lbox = urwid.ListBox(urwid.SimpleListWalker(items))
-        lbox.set_focus(5)
-        lbox.keypress((4, 5), "home")
-        self.assertEqual(0, lbox.focus_position)
-        lbox.keypress((4, 5), "end")
-        self.assertEqual(9, lbox.focus_position)
+        """Home and End, and scroll_to_top() and scroll_to_bottom(), focus an end row although it is not selectable."""
+        size = (4, 5)
+        for how in ("key", "method"):
+            with self.subTest(how=how):
+                items = [urwid.Text(str(i)) for i in range(10)]
+                lbox = urwid.ListBox(urwid.SimpleListWalker(items))
+                lbox.set_focus(5)
+                if how == "key":
+                    lbox.keypress(size, "home")
+                else:
+                    lbox.scroll_to_top()
+                self.assertEqual(0, lbox.focus_position)
+                self.assertEqual(b"0   ", lbox.render(size).text[0])
+                if how == "key":
+                    lbox.keypress(size, "end")
+                else:
+                    lbox.scroll_to_bottom()
+                self.assertEqual(9, lbox.focus_position)
+                self.assertEqual(b"9   ", lbox.render(size).text[-1])
+
+    def test_scroll_to_ends_empty_body(self):
+        """scroll_to_top() and scroll_to_bottom() leave an empty body as it is."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        lbox.scroll_to_top()
+        lbox.scroll_to_bottom()
+        self.assertEqual([b"    "] * 5, lbox.render((4, 5)).text)
 
     def test_keypress_max_left_no_positions(self):
         lbox = urwid.ListBox(V1ProtocolWalker([urwid.Text(str(i)) for i in range(4)]))
         with self.assertRaises(TypeError):
             lbox.keypress((20, 5), "home")
+        with self.assertRaises(TypeError):
+            lbox.scroll_to_top()
 
     def test_keypress_max_right_no_positions(self):
         lbox = urwid.ListBox(V1ProtocolWalker([urwid.Text(str(i)) for i in range(4)]))
         with self.assertRaises(TypeError):
             lbox.keypress((20, 5), "end")
+        with self.assertRaises(TypeError):
+            lbox.scroll_to_bottom()
 
     def test_keypress_up_middle_none(self):
         class FlakyEmptyWalker(urwid.ListWalker):
@@ -3763,3 +3786,66 @@ class ListBoxSelectNavigationTest(unittest.TestCase):
         """A subclass whose ``set_focus`` takes only a position is supported."""
         listbox = PositionOnlyListBox(self._widgets(), select_navigation=True)
         self._assert_traversal(listbox, list(range(5)))
+
+
+class ListBoxFocusNextMatchTest(unittest.TestCase):
+    """``focus_next_match()`` moves the focus to the next widget a predicate accepts."""
+
+    words = ("a1", "b", "a2", "b", "a3")
+
+    @staticmethod
+    def _is_a(widget: urwid.Widget) -> bool:
+        return widget.text.startswith("a")
+
+    def _listbox(self, focus: int) -> urwid.ListBox:
+        listbox = urwid.ListBox([urwid.Text(word) for word in self.words])
+        listbox.focus_position = focus
+        return listbox
+
+    def test_search(self) -> None:
+        """Each direction finds the nearest match, wrapping only when asked, and the focus is the last candidate."""
+        for focus, reverse, wrap, expected in (
+            (0, False, True, 2),
+            (2, True, True, 0),
+            (4, False, True, 0),
+            (0, True, True, 4),
+            (4, False, False, None),
+            (0, True, False, None),
+        ):
+            with self.subTest(focus=focus, reverse=reverse, wrap=wrap):
+                listbox = self._listbox(focus)
+                self.assertEqual(expected, listbox.focus_next_match(self._is_a, reverse=reverse, wrap=wrap))
+                self.assertEqual(focus if expected is None else expected, listbox.focus_position)
+
+    def test_single_match_is_the_focus(self) -> None:
+        """A wrapped search finds the focus when it is the only match; an unwrapped one does not."""
+        listbox = self._listbox(1)
+        focused = listbox.focus
+        self.assertEqual(1, listbox.focus_next_match(lambda widget: widget is focused))
+        self.assertIsNone(listbox.focus_next_match(lambda widget: widget is focused, wrap=False))
+        self.assertIsNone(listbox.focus_next_match(lambda widget: False))
+        self.assertEqual(1, listbox.focus_position)
+
+    def test_empty_body(self) -> None:
+        """An empty body has nothing to match."""
+        self.assertIsNone(urwid.ListBox(urwid.SimpleFocusListWalker([])).focus_next_match(self._is_a))
+
+    def test_reads_up_to_the_match(self) -> None:
+        """The body is walked from the focus and the walk stops at the match."""
+        walker = CountingWalker([urwid.Text(word) for word in self.words])
+        listbox = urwid.ListBox(walker)
+        self.assertEqual(2, listbox.focus_next_match(self._is_a))
+        self.assertEqual([0, 1], walker.steps)
+
+    def test_wrapping_bodies(self) -> None:
+        """A ``wrap_around`` walker and a walker that wraps without saying so are each searched once."""
+        widgets = [urwid.Text(word) for word in self.words]
+        listbox = urwid.ListBox(urwid.SimpleFocusListWalker(widgets, wrap_around=True))
+        listbox.focus_position = 4
+        self.assertIsNone(listbox.focus_next_match(self._is_a, wrap=False))
+        self.assertEqual(0, listbox.focus_next_match(self._is_a))
+        for reverse, expected in ((False, 2), (True, 4)):
+            with self.subTest(reverse=reverse):
+                listbox = PositionOnlyListBox(CappedWrappingWalker(widgets))
+                self.assertEqual(expected, listbox.focus_next_match(self._is_a, reverse=reverse))
+                self.assertIsNone(listbox.focus_next_match(lambda widget: False))
