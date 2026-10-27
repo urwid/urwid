@@ -3,16 +3,19 @@ from __future__ import annotations
 import unittest
 
 import urwid
+from urwid.command_map import Command
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
-    def __init__(self) -> None:
-        super().__init__(urwid.SolidFill("x"))
+    def __init__(self, *, close_on_menu: bool = False) -> None:
+        super().__init__(urwid.SolidFill("x"), close_on_menu=close_on_menu)
+        self.launcher_sizes_seen: list[tuple[int, int] | None] = []
 
     def create_pop_up(self) -> urwid.Filler[urwid.Edit]:
         return urwid.Filler(urwid.Edit("", "pop up contents"))
 
     def get_pop_up_parameters(self) -> dict:
+        self.launcher_sizes_seen.append(self.launcher_size)
         return {"left": 1, "top": 1, "overlay_width": 10, "overlay_height": 3}
 
 
@@ -26,6 +29,31 @@ class PopUpLauncherTest(unittest.TestCase):
 
         launcher.close_pop_up()
         self.assertIsNone(launcher._pop_up_widget)
+
+    def test_pop_up_widget(self) -> None:
+        """The open pop-up widget is readable, and None while the pop-up is closed."""
+        launcher = ThingWithAPopUp()
+        self.assertIsNone(launcher.pop_up_widget)
+
+        launcher.open_pop_up()
+        self.assertIsInstance(launcher.pop_up_widget, urwid.Filler)
+        self.assertIs(launcher.pop_up_widget, launcher._pop_up_widget)
+
+        launcher.close_pop_up()
+        self.assertIsNone(launcher.pop_up_widget)
+
+    def test_launcher_size(self) -> None:
+        """The launcher size is that of the last render, set before the pop-up parameters are read."""
+        launcher = ThingWithAPopUp()
+        self.assertIsNone(launcher.launcher_size)
+
+        launcher.render((4, 2))
+        self.assertEqual((4, 2), launcher.launcher_size)
+
+        # The size of this render is already set when the pop-up parameters are asked for.
+        launcher.open_pop_up()
+        launcher.render((6, 3))
+        self.assertEqual([(6, 3)], launcher.launcher_sizes_seen)
 
     def test_render_without_pop_up(self) -> None:
         launcher = ThingWithAPopUp()
@@ -123,6 +151,36 @@ class PopUpTargetTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             target.move_cursor_to_coords((10, 5), 0, 0)
 
+    def test_menu_key_closes_pop_up(self) -> None:
+        """With close_on_menu, a menu key the pop-up leaves unhandled closes it."""
+        for description, close_on_menu, key, expected, still_open in (
+            ("off by default: esc is returned unhandled", False, "esc", "esc", True),
+            ("on: esc closes the pop-up", True, "esc", None, False),
+            ("on: other unhandled keys are returned", True, "f1", "f1", True),
+            ("on: keys the pop-up handles do not close it", True, "x", None, True),
+        ):
+            with self.subTest(description):
+                launcher = ThingWithAPopUp(close_on_menu=close_on_menu)
+                target = urwid.PopUpTarget(launcher)
+                launcher.open_pop_up()
+
+                self.assertEqual(expected, target.keypress((10, 5), key))
+                self.assertEqual(still_open, launcher.pop_up_widget is not None)
+
+    def test_menu_key_follows_the_launcher_command_map(self) -> None:
+        """The menu key is looked up in the launcher's command map."""
+        launcher = ThingWithAPopUp(close_on_menu=True)
+        launcher._command_map = launcher._command_map.copy()
+        del launcher._command_map["esc"]
+        launcher._command_map["f10"] = Command.MENU
+        target = urwid.PopUpTarget(launcher)
+        launcher.open_pop_up()
+
+        self.assertEqual("esc", target.keypress((10, 5), "esc"))
+        self.assertIsNotNone(launcher.pop_up_widget)
+        self.assertIsNone(target.keypress((10, 5), "f10"))
+        self.assertIsNone(launcher.pop_up_widget)
+
     def test_keypress(self) -> None:
         launcher = ThingWithAPopUp()
         target = urwid.PopUpTarget(launcher)
@@ -216,12 +274,13 @@ class NestedDialog(urwid.PopUpLauncher[urwid.Filler[urwid.Edit]]):
     launcher opened from inside an already-open pop-up.
     """
 
-    def __init__(self, level: int) -> None:
+    def __init__(self, level: int, *, close_on_menu_levels: frozenset[int] = frozenset()) -> None:
         self.level = level
-        super().__init__(urwid.Filler(urwid.Edit("", f"level {level}")))
+        self.close_on_menu_levels = close_on_menu_levels
+        super().__init__(urwid.Filler(urwid.Edit("", f"level {level}")), close_on_menu=level in close_on_menu_levels)
 
     def create_pop_up(self) -> NestedDialog:
-        return NestedDialog(self.level + 1)
+        return NestedDialog(self.level + 1, close_on_menu_levels=self.close_on_menu_levels)
 
     def get_pop_up_parameters(self) -> dict:
         return {"left": self.level * 12, "top": 0, "overlay_width": 10, "overlay_height": 3}
@@ -282,6 +341,23 @@ class NestedPopUpTest(unittest.TestCase):
 
         target.keypress((20, 10), "x")
         self.assertEqual(innermost.original_widget.original_widget.edit_text, "level 2x")
+
+    def test_menu_key_closes_only_the_topmost_pop_up(self) -> None:
+        """Only the topmost pop-up's launcher decides what a menu key does."""
+        for description, close_on_menu_levels, expected, outer_open, inner_open in (
+            ("both launchers close on menu", frozenset({0, 1}), None, True, False),
+            ("only the outer launcher closes on menu", frozenset({0}), "esc", True, True),
+        ):
+            with self.subTest(description):
+                outer = NestedDialog(0, close_on_menu_levels=close_on_menu_levels)
+                target = urwid.PopUpTarget(outer)
+                outer.open_pop_up()
+                inner = outer.pop_up_widget
+                inner.open_pop_up()
+
+                self.assertEqual(expected, target.keypress((25, 10), "esc"))
+                self.assertEqual(outer_open, outer.pop_up_widget is not None)
+                self.assertEqual(inner_open, inner.pop_up_widget is not None)
 
 
 class DialogWithLauncher(urwid.PopUpLauncher[urwid.Text]):

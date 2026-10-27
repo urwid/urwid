@@ -233,7 +233,12 @@ together to show it:
   widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
   position relative to the launcher and its size.  Calling
   :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
-  opens and closes it.
+  opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
+  closes it when the pop-up leaves :kbd:`esc` unhandled.
+  :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
+  :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
+  at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
+  against.
 * :class:`PopUpTarget` is a box widget that draws the open pop-up of a
   launcher inside it, and any pop-up opened from that pop-up, as an
   :class:`Overlay` over its own content.  A pop-up
