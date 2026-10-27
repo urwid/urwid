@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import typing
 import unittest
 from unittest import mock
 
@@ -561,6 +562,39 @@ class EditTest(unittest.TestCase):
         e.set_edit_pos(0)
         canv = e.render((5,), focus=True)
         self.assertEqual(canv.cursor[0], 0)
+
+    def test_render_ellipsis_scrolls_to_cursor(self) -> None:
+        """In focus, an ellipsis Edit clips and scrolls to the cursor; out of focus, it shows the ellipsis again."""
+        with set_temporary_encoding("utf-8"):
+            e = urwid.Edit("", "abcdefghij", wrap=urwid.ELLIPSIS)
+            for pos, row in ((2, "abcde"), (7, "defgh"), (10, "ghij ")):
+                with self.subTest(pos=pos):
+                    e.set_edit_pos(pos)
+                    canv = e.render((5,), focus=True)
+                    self.assertEqual(canv.text, [row.encode()])
+                    self.assertEqual(canv.cursor, (min(pos, 4), 0))
+            self.assertEqual(e.render((5,)).text, ["abcd…".encode()])
+
+            m = urwid.Edit("", "abcdefghij\nklmnopqrstu", multiline=True, wrap=urwid.ELLIPSIS, edit_pos=19)
+            canv = m.render((5,), focus=True)
+            self.assertEqual(canv.text, ["abcd…".encode(), b"opqrs"])
+            self.assertEqual(canv.cursor, (4, 1))
+
+        class FirstLineEllipsisLayout(urwid.StandardTextLayout):
+            """A layout whose ellipsis mode shows the first line only, so it has fewer rows than clip."""
+
+            def layout(
+                self,
+                text: str | bytes,
+                width: int,
+                align: typing.Literal["left", "center", "right"] | urwid.Align,
+                wrap: typing.Literal["any", "space", "clip", "ellipsis"] | urwid.WrapMode,
+            ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
+                rows = super().layout(text, width, align, wrap)
+                return rows[:1] if wrap == urwid.ELLIPSIS else rows
+
+        f = urwid.Edit("", "ab\ncd", multiline=True, wrap=urwid.ELLIPSIS, layout=FirstLineEllipsisLayout())
+        self.assertEqual(f.render((5,), focus=True).rows(), f.rows((5,), True))
 
     def test_cursor_after_control_characters(self) -> None:
         """The cursor sits where its character is drawn, with the control characters left out of the canvas."""

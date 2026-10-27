@@ -787,6 +787,13 @@ class Edit(WidgetWrap[Text]):
             return trans
 
         text, _ignore = self.get_text()
+        if self._w.wrap == WrapMode.ELLIPSIS and self._w.layout.supports_wrap_mode(WrapMode.CLIP):
+            # The ellipsis replaces the text past the cut, so no shift could bring a cursor there into view:
+            # the row with the cursor is clipped instead, and the other rows keep their ellipsis.
+            clipped = self._w.layout.layout(text, maxcol, self._w.align, WrapMode.CLIP)
+            if len(clipped) == len(trans):  # a different row count would disagree with rows()
+                cursor_row = text_layout.calc_coords(text, clipped, self.edit_pos + len(self.caption))[1]
+                trans = [*trans[:cursor_row], clipped[cursor_row], *trans[cursor_row + 1 :]]
         x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
         if x < 0:
             return [
