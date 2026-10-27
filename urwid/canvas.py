@@ -46,7 +46,7 @@ from urwid.util import (
 )
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Iterator, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Iterator, Sequence
     from typing import Literal, NotRequired
 
     from .widget import AbstractWidget
@@ -60,6 +60,8 @@ if typing.TYPE_CHECKING:
             "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, int, int]]],
             # Same (x, y) as "pop up", so both move together; the data part is the anchor height.
             "pop up anchor": NotRequired[tuple[int, int, int]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
+            "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
@@ -390,6 +392,15 @@ class Canvas:
             return None
         return anchor[2]
 
+    def get_pop_up_unhandled_key(self) -> Callable[[str], str | None] | None:
+        """Return the unhandled key callback set with the pop-up on this canvas, or ``None`` if none was set."""
+        pop_up = self.coords.get("pop up", None)
+        on_key = self.coords.get("pop up unhandled key", None)
+        # As for the anchor, use only the callback set together with this pop-up.
+        if pop_up is None or on_key is None or on_key[:2] != pop_up[:2] or on_key[2][0] is not pop_up[2][0]:
+            return None
+        return on_key[2][1]
+
     def set_pop_up(
         self,
         w: AbstractWidget,
@@ -399,6 +410,7 @@ class Canvas:
         overlay_height: int,
         *,
         anchor_height: int | None = None,
+        on_unhandled_key: Callable[[str], str | None] | None = None,
     ) -> None:
         """Add pop-up information to the canvas.
 
@@ -419,6 +431,9 @@ class Canvas:
             exactly as given. With an anchor, :class:`PopUpTarget <urwid.PopUpTarget>` keeps the pop-up off those
             rows: it goes below them when it fits there, above them when it fits there, and otherwise on the side
             with more rows, with its height clipped to that side.
+        :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
+            unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
+            to pass on. ``None`` passes every unhandled key on.
         :raises CanvasError: the canvas is already finalised, the anchor height is negative
             or the overlay size is not positive
         """
@@ -439,6 +454,10 @@ class Canvas:
             self.coords.pop("pop up anchor", None)
         else:
             self.coords["pop up anchor"] = (left, top, anchor_height)
+        if on_unhandled_key is None:
+            self.coords.pop("pop up unhandled key", None)
+        else:
+            self.coords["pop up unhandled key"] = (left, top, (w, on_unhandled_key))
 
     def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
         """Return coords shifted by (dx, dy)."""

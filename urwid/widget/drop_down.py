@@ -34,7 +34,6 @@ from .listbox import ListBox
 from .popup import PopUpLauncher
 from .scrollable import ScrollBar
 from .text import Text
-from .widget import WidgetWrap
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
@@ -78,24 +77,6 @@ class _DropDownItem(SelectableIcon):
         if on_choose := self._on_choose():
             on_choose(self._index)
         return True
-
-
-class _DropDownList(WidgetWrap[ScrollBar[ListBox[int]]]):
-    """The open list of a :class:`DropDown`, with a scroll bar shown only when the options do not all fit."""
-
-    def __init__(self, list_box: ListBox[int], on_cancel: Callable[[], None]) -> None:
-        super().__init__(ScrollBar(list_box))
-        # Weak, so the open list does not keep its DropDown alive.
-        self._on_cancel = weakref.WeakMethod(on_cancel)
-
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:  # type: ignore[override]
-        """Close the list without a change on the ``menu`` command (:kbd:`esc` by default)."""
-        unhandled = super().keypress(size, key)
-        if unhandled is not None and self._command_map[unhandled] == Command.MENU:
-            if on_cancel := self._on_cancel():
-                on_cancel()
-            return None
-        return unhandled
 
 
 class DropDown(PopUpLauncher[Columns]):
@@ -157,11 +138,12 @@ class DropDown(PopUpLauncher[Columns]):
         self._options_width = max(Text(option).pack()[0] for option in self._options)
         indicator_width = self.drop_down_indicator.pack()[0]
         self._fixed_width = self._options_width + 1 + indicator_width
-        # (columns, rows) of the last render, which the pop-up is placed and sized against.
-        self._launcher_size = (self._fixed_width, 1)
 
         self._label = SelectableIcon(self._options[0], 0, wrap=WrapMode.ELLIPSIS)
-        super().__init__(Columns([self._label, (indicator_width, self.drop_down_indicator)], dividechars=1))
+        super().__init__(
+            Columns([self._label, (indicator_width, self.drop_down_indicator)], dividechars=1),
+            close_on_menu=True,
+        )
 
         self._selected = 0
         self.selected = selected
@@ -195,19 +177,20 @@ class DropDown(PopUpLauncher[Columns]):
         self.close_pop_up()
         self.selected = index
 
-    def create_pop_up(self) -> _DropDownList:
-        """Return the list of all options, with the selected one focused."""
+    def create_pop_up(self) -> ScrollBar[ListBox[int]]:
+        """Return the list of all options, with the selected one focused; it scrolls when they do not all fit."""
         items = [
             AttrMap(_DropDownItem(option, index, self._choose), self._attr_map, self._focus_map)
             for index, option in enumerate(self._options)
         ]
         list_box = ListBox(SimpleFocusListWalker(items))
         list_box.focus_position = self._selected
-        return _DropDownList(list_box, self.close_pop_up)
+        return ScrollBar(list_box)
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
         """Return the list position directly below this widget, anchored to it so it can move above it."""
-        width, rows = self._launcher_size
+        # Before the first render, the size the widget packs to with no size given.
+        width, rows = self.launcher_size or (self._fixed_width, 1)
         return {
             "left": 0,
             "top": rows,
@@ -231,9 +214,7 @@ class DropDown(PopUpLauncher[Columns]):
         focus: bool = False,
     ) -> CompositeCanvas | Canvas:
         """Render the selected option and the indicator, with the list attached when it is open."""
-        size = size or (self._fixed_width,)
-        self._launcher_size = self.pack(size, focus)
-        return super().render(size, focus)
+        return super().render(size or (self._fixed_width,), focus)
 
     def keypress(
         self,

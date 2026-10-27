@@ -42,6 +42,7 @@ New features 🗹
 * Accept plain foreground canvases in CanvasOverlay by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1428
 * Name DEC private modes and act on DECRQM replies by @penguinolog in https://github.com/urwid/urwid/pull/1500
 * ⚠ Read the raw display's attributes back in ANSIText; see "Breaking Changes" above by @penguinolog in https://github.com/urwid/urwid/pull/1502
+* Add PopUpLauncher ``close_on_menu``, ``pop_up_widget`` and ``launcher_size`` by @penguinolog in https://github.com/urwid/urwid/pull/1513
 
 Deprecations ⚡
 +++++++++++++++

@@ -32,11 +32,11 @@ class PopUpDialog(urwid.WidgetWrap[urwid.AttrMap[urwid.Filler[urwid.Pile]]]):
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher[urwid.Button]):
-    """A button that opens a :class:`PopUpDialog` when clicked."""
+    """A button that opens a :class:`PopUpDialog` when clicked; :kbd:`esc` closes the dialog."""
 
     def __init__(self) -> None:
         """Initialize wrapping a "click-me" button that opens the pop-up when clicked."""
-        super().__init__(urwid.Button("click-me"))
+        super().__init__(urwid.Button("click-me"), close_on_menu=True)
         # pyrefly: ignore[implicit-any-lambda]  # connect_signal() takes an untyped callback
         urwid.connect_signal(self.original_widget, "click", lambda button: self.open_pop_up())
 

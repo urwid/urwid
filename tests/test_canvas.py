@@ -400,6 +400,29 @@ class CanvasTest(unittest.TestCase):
             canvas.coords["pop up"] = (2, 3, (widget, 4, 2))
             self.assertIsNone(canvas.get_pop_up_anchor_height())
 
+        def on_unhandled_key(key: str) -> str | None:
+            return key
+
+        with self.subTest("unhandled key callback moves with the pop-up"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            self.assertIsNone(canvas.get_pop_up_unhandled_key())
+            canvas.set_pop_up(widget, 1, 2, 4, 2, on_unhandled_key=on_unhandled_key)
+            canvas.coords = canvas.translate_coords(3, 4)
+            self.assertIs(on_unhandled_key, canvas.get_pop_up_unhandled_key())
+
+        with self.subTest("a pop-up set without a callback drops the previous callback"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2, on_unhandled_key=on_unhandled_key)
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertIsNone(canvas.get_pop_up_unhandled_key())
+
+        with self.subTest("a callback left by another pop-up is ignored"):
+            for other_pop_up in ((2, 3, (widget, 4, 2)), (0, 0, (urwid.SolidFill("+"), 4, 2))):
+                canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+                canvas.set_pop_up(widget, 0, 0, 4, 2, on_unhandled_key=on_unhandled_key)
+                canvas.coords["pop up"] = other_pop_up
+                self.assertIsNone(canvas.get_pop_up_unhandled_key())
+
     def test_finalize_twice_raises(self):
         widget = urwid.Text("")
         canv = urwid.TextCanvas()
