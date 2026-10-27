@@ -50,7 +50,7 @@ New features 🗹
 * Add ``WidgetDisable(..., disabled=False)`` and a settable ``WidgetDisable.disabled`` property by @penguinolog in https://github.com/urwid/urwid/pull/1518
 * ``LineBox`` titles accept text markup: ``LineBox(w, title=[("key", "F1"), " Help"])`` and ``set_title()`` by @penguinolog in https://github.com/urwid/urwid/pull/1519
 * Add ``ListBox(..., focus_when_empty=False)``, so an empty list does not take the focus, and an opt-in ``delegate_selectable`` that makes ``ScrollBar`` and ``Scrollable`` report the wrapped widget's ``selectable()`` by @penguinolog in https://github.com/urwid/urwid/pull/1520
-* Add the ``Thin5x4Font`` BigText font, letters for ``HalfBlock6x5Font`` and ``HalfBlockHeavy6x5Font``, and the missing ASCII punctuation for every BigText font that has letters by @penguinolog
+* Add the ``Thin5x4Font`` BigText font, letters for ``HalfBlock6x5Font`` and ``HalfBlockHeavy6x5Font``, and the missing ASCII punctuation for every BigText font that has letters by @penguinolog in https://github.com/urwid/urwid/pull/1521
 
 Deprecations ⚡
 +++++++++++++++
@@ -140,7 +140,7 @@ Progress bar
 
 BigText fonts
 ^^^^^^^^^^^^^
-* Draw ``0``, ``S``, ``I`` and ``|`` of the BigText fonts apart from ``O``, ``5`` and ``l``, which they matched, and slope the Half Block 5x4 backtick the right way by @penguinolog
+* Draw ``0``, ``S``, ``I`` and ``|`` of the BigText fonts apart from ``O``, ``5`` and ``l``, which they matched, and slope the Half Block 5x4 backtick the right way by @penguinolog in https://github.com/urwid/urwid/pull/1521
 
 Documentation 🕮
 ++++++++++++++++
