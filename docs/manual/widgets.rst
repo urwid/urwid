@@ -104,8 +104,8 @@ container widget depend on the widgets it contains and on its options.
    * - widget
      - sizing modes
    * - :class:`Text`, :class:`ANSIText`, :class:`TreeWidget`,
-       :class:`Button`, :class:`CheckBox`, :class:`RadioButton`,
-       :class:`DropDown`
+       :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
+       :class:`RadioButton`, :class:`DropDown`
      - ``'flow'`` and ``'fixed'``
    * - :class:`Edit` and its subclasses, :class:`Divider`,
        :class:`ProgressBar`
@@ -172,6 +172,34 @@ Controls
 when the user activates them with :kbd:`enter`, :kbd:`space` or a mouse
 click: ``'click'`` for a button and ``'change'`` for a check box or a radio
 button.  :class:`GridFlow` arranges a group of them in equal-width cells.
+
+A :class:`Button` shows its label between ``<`` and ``>``.  The ``left`` and
+``right`` keywords replace a bracket with other markup, such as ``"["``, and
+markup with no text, such as ``""``, leaves the bracket out, so
+``Button(label, left="", right="")`` is clickable plain text.  The cursor
+rests on the first character of the label while the button is in focus;
+``cursor_position=None`` hides it, as it does for a :class:`SelectableIcon`.
+
+SelectableIcon Widgets
+----------------------
+
+:class:`SelectableIcon` is a :class:`Text` widget that takes the focus and
+shows the cursor at a fixed position in its text while it is in focus:
+``cursor_position``, the first character by default.  It is the part of
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` that takes the
+focus, and it can be used on its own as a row of a menu or of a
+:class:`ListBox` that the user chooses by moving the focus to it::
+
+    rows = [
+        urwid.AttrMap(urwid.SelectableIcon(name), None, focus_map="reversed")
+        for name in ("red", "green", "blue")
+    ]
+    listbox = urwid.ListBox(urwid.SimpleFocusListWalker(rows))
+
+It handles no keys and no mouse events: it returns every key, so the
+container or the application acts on :kbd:`enter`.  ``cursor_position=None``
+shows no cursor, which makes it the same as ``Text(markup, selectable=True)``;
+see `ListBox Focus and Scrolling`_.
 
 DropDown Widgets
 ----------------
@@ -710,6 +738,12 @@ a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.
+
+A row of text that the user chooses by moving the focus to it can be created
+with ``Text(markup, selectable=True)``.  It takes the focus but shows no
+cursor and returns every key, so the :class:`ListBox` or the application
+handles them; wrap it in an :class:`AttrMap` with a ``focus_map`` to mark the
+row in focus.
 
 
 Dynamic ListBox with ListWalker

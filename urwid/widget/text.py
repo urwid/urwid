@@ -40,6 +40,8 @@ class Text(Widget):
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: text_layout.TextLayout | None = None,
+        *,
+        selectable: bool = False,
     ) -> None:
         """
         :param markup: content of text widget, one of:
@@ -57,6 +59,8 @@ class Text(Widget):
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :param selectable: ``True`` makes the widget take the focus, for example as a row of a list
+            that is chosen by moving the focus to it; it shows no cursor and returns every key
 
         >>> Text("Hello")
         <Text fixed/flow widget 'Hello'>
@@ -67,6 +71,8 @@ class Text(Widget):
         stuff
         >>> t.attrib
         [('bold', 5)]
+        >>> Text("Row", selectable=True)
+        <Text selectable fixed/flow widget 'Row'>
         """
         super().__init__()
         # (maxcol, translation) as one value: a reader either sees a width together with the translation
@@ -79,6 +85,9 @@ class Text(Widget):
         self._wrap_mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE
         self.set_text(markup)
         self.set_layout(align, wrap, layout)
+        if selectable:
+            # Only set when True, so a subclass's class-level ``_selectable = True`` is not shadowed.
+            self._selectable = True
 
     def _repr_words(self) -> list[str]:
         """Show the text in the repr and truncate if it's too long."""

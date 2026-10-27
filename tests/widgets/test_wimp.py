@@ -18,6 +18,17 @@ class SelectableIconTest(unittest.TestCase):
         self.assertEqual([b"[!] "], icon.render((4,), focus=True).text)
         self.assertEqual("left", icon.keypress((4,), "left"))
 
+    def test_no_cursor(self) -> None:
+        for name, position in (("none", None), ("past the text", 4)):
+            with self.subTest(name):
+                icon = urwid.SelectableIcon("[!]", cursor_position=position)
+
+                self.assertTrue(icon.selectable())
+                self.assertIsNone(icon.get_cursor_coords((4,)))
+                self.assertIsNone(icon.render((4,), focus=True).cursor)
+                self.assertIsNone(icon.render((), focus=True).cursor)
+                self.assertEqual([b"[!] "], icon.render((4,), focus=True).text)
+
 
 class ButtonTest(unittest.TestCase):
     def test_keyword_construction_and_pack(self) -> None:
@@ -70,6 +81,60 @@ class ButtonTest(unittest.TestCase):
 
     def test_squish(self):
         urwid.testing.check_flow_sizing(urwid.Button("hello"))
+
+    def test_cursor_position(self) -> None:
+        self.assertEqual((2, 0), urwid.Button("Ok").render((6,), focus=True).cursor)
+        self.assertEqual((3, 0), urwid.Button("Ok", cursor_position=1).render((6,), focus=True).cursor)
+        self.assertIsNone(urwid.Button("Ok", cursor_position=None).render((6,), focus=True).cursor)
+
+    def test_brackets(self) -> None:
+        for name, kwargs, expected in (
+            ("default", {}, b"< Ok >"),
+            ("wide", {"left": "[[", "right": "]]"}, b"[[ Ok ]]"),
+            ("left only", {"left": "["}, b"[ Ok >"),
+            ("no left", {"left": ""}, b"Ok >"),
+            ("no right", {"right": ""}, b"< Ok"),
+            ("none", {"left": "", "right": ""}, b"Ok"),
+            ("markup", {"left": ("attr", "["), "right": ["", ("attr", "]")]}, b"[ Ok ]"),
+        ):
+            with self.subTest(name):
+                button = urwid.Button("Ok", **kwargs)
+
+                self.assertEqual((len(expected), 1), button.pack())
+                self.assertEqual([expected], button.render(()).text)
+                urwid.testing.check_flow_sizing(button)
+
+    def test_bracket_markup_attributes(self) -> None:
+        button = urwid.Button("Ok", left=("attr", "["), right="]")
+
+        (row,) = button.render(()).content()
+
+        self.assertEqual(("attr", None, b"["), row[0])
+        self.assertEqual({None}, {attr for attr, _cs, _text in row[1:]})
+
+    def test_brackets_left_out_keep_click(self) -> None:
+        clicks: list[str] = []
+        button = urwid.Button("Link", left="", right="", on_press=lambda btn: clicks.append(btn.label))
+
+        self.assertTrue(button.mouse_event((4,), "mouse press", 1, 0, 0, True))
+        self.assertIsNone(button.keypress((4,), "enter"))
+        self.assertEqual(["Link", "Link"], clicks)
+
+    def test_class_brackets_keep_layout(self) -> None:
+        """A subclass that sets the class attributes keeps its brackets in width-1 columns at the same indexes."""
+
+        class SquareButton(urwid.Button):
+            button_left = urwid.Text("[")
+            button_right = urwid.Text("]")
+
+        button = SquareButton("Ok")
+        contents = button._w.contents
+
+        self.assertEqual([b"[ Ok ]"], button.render(()).text)
+        self.assertIs(SquareButton.button_left, contents[0][0])
+        self.assertIs(SquareButton.button_right, contents[2][0])
+        self.assertEqual((urwid.GIVEN, 1, False), contents[0][1])
+        self.assertEqual((urwid.GIVEN, 1, False), contents[2][1])
 
 
 class CheckBoxTest(unittest.TestCase):

@@ -266,12 +266,8 @@ class MenuItem(urwid.Text):
 
     def __init__(self, label: str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]) -> None:
         """Initialize unselected, with `label` as its text."""
-        super().__init__(label)
+        super().__init__(label, selectable=True)
         self.state = False
-
-    def selectable(self) -> bool:
-        """Return True: a menu item can always receive the focus."""
-        return True
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Select this item and end the dialog on :kbd:`enter`, otherwise return the key unhandled.
