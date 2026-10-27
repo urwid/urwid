@@ -103,6 +103,7 @@ Event loops
 * Run expired select alarms while input stays readable by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1424
 * Run expired ZMQ alarms while input stays readable by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1427
 * Fix event loop callback races and idle handling by @penguinolog in https://github.com/urwid/urwid/pull/1461
+* Wait for input on a descriptor opened from ``/dev/tty`` on macOS, which ``kqueue`` refuses with ``EINVAL``, in ``SelectEventLoop`` and the raw display by falling back to ``select()``; fixes https://github.com/urwid/urwid/issues/1025
 
 Containers, lists and walkers
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

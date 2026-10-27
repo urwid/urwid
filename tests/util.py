@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import errno
 import gc
+import selectors
 import typing
 
 import urwid
@@ -58,3 +60,11 @@ class CountingIndex:
     def __index__(self) -> int:
         self.calls += 1
         return self.value
+
+
+class TtyRefusingSelector(selectors.SelectSelector):
+    """Stand-in for ``KqueueSelector`` on macOS, which refuses to register a descriptor opened from ``/dev/tty``."""
+
+    def register(self, fileobj: typing.Any, events: int, data: typing.Any = None) -> selectors.SelectorKey:
+        """Refuse *fileobj* with ``EINVAL``."""
+        raise OSError(errno.EINVAL, "Invalid argument")

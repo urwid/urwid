@@ -4,6 +4,7 @@ import asyncio
 import concurrent.futures
 import errno
 import gc
+import selectors
 import signal
 import socket
 import sys
@@ -13,6 +14,7 @@ import unittest
 from unittest import mock
 
 import urwid
+from tests.util import TtyRefusingSelector
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -601,6 +603,41 @@ class SelectEventLoopTest(
             self._poll_once()
 
         self.assertEqual(["ready"], called)
+
+    def test_watch_refused_by_the_default_selector_is_called(self):
+        """A watch the default selector refuses with EINVAL, as kqueue on macOS refuses /dev/tty, is still called.
+
+        The refused selector is closed, so the fallback on every pass leaks no descriptor.
+        """
+        called = []
+        with (
+            ClosingSocketPair() as (rd, wr),
+            mock.patch.object(selectors, "DefaultSelector", TtyRefusingSelector),
+            mock.patch.object(
+                TtyRefusingSelector,
+                "close",
+                autospec=True,
+                side_effect=selectors.SelectSelector.close,
+            ) as refused_close,
+        ):
+            self.evl.watch_file(rd.fileno(), lambda: called.append("ready"))
+            wr.send(b"x")
+
+            self._poll_once()
+
+        self.assertEqual(["ready"], called)
+        refused_close.assert_called_once()
+
+    def test_watch_refused_with_another_error_is_raised(self):
+        """Only EINVAL selects the fallback: any other error from registering a watch propagates."""
+        refused = mock.Mock(side_effect=OSError(errno.EBADF, "Bad file descriptor"))
+        with ClosingSocketPair() as (rd, _wr), mock.patch.object(selectors.DefaultSelector, "register", refused):
+            self.evl.watch_file(rd.fileno(), lambda: None)
+
+            with self.assertRaises(OSError) as ctx:
+                self._poll_once()
+
+        self.assertEqual(errno.EBADF, ctx.exception.errno)
 
 
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
