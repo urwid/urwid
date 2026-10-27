@@ -47,6 +47,7 @@ New features 🗹
 * Add ``Edit.set_edit_text(..., edit_pos=...)``, the ``Edit`` signal ``"submit"`` and readline editing commands for ``Edit`` by @penguinolog in https://github.com/urwid/urwid/pull/1515
 * Add ``follow_end`` to ``SimpleFocusListWalker``, ``SimpleFocusDequeWalker``, ``MonitoredFocusList`` and ``MonitoredFocusDeque`` by @penguinolog in https://github.com/urwid/urwid/pull/1516
 * Add ``Text(..., selectable=True)``, ``SelectableIcon(cursor_position=None)`` and ``Button`` ``left``, ``right`` and ``cursor_position`` by @penguinolog in https://github.com/urwid/urwid/pull/1517
+* Add ``WidgetDisable(..., disabled=False)`` and a settable ``WidgetDisable.disabled`` property by @penguinolog in https://github.com/urwid/urwid/pull/1518
 
 Deprecations ⚡
 +++++++++++++++

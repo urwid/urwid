@@ -143,7 +143,10 @@ class SelectNavigationEntryHookTest(unittest.TestCase):
         self.assertEqual(2, outer.focus_position)
 
     def test_wrappers_forward(self) -> None:
-        """Decorations and WidgetWrap forward the hook to the widget they send keys to; WidgetDisable does not."""
+        """Decorations and WidgetWrap forward the hook to the widget they send keys to.
+
+        A disabled WidgetDisable does not.
+        """
 
         def inner() -> urwid.ListBox:
             listbox = urwid.ListBox([SelectableText("a"), SelectableText("b")], select_navigation=True)
@@ -157,6 +160,7 @@ class SelectNavigationEntryHookTest(unittest.TestCase):
             ("ScrollBar", urwid.ScrollBar, 0),
             ("WidgetPlaceholder", urwid.WidgetPlaceholder, 0),
             ("WidgetDisable", urwid.WidgetDisable, 1),
+            ("WidgetDisable enabled", lambda w: urwid.WidgetDisable(w, disabled=False), 0),
         )
         for name, wrap, expected in wrappers:
             with self.subTest(name):
