@@ -124,6 +124,11 @@ ScrollBar
 * Fix ScrollBar keypress before the first render by @penguinolog in https://github.com/urwid/urwid/pull/1465
 * Render ScrollBar with no rows at a size of no rows by @penguinolog in https://github.com/urwid/urwid/pull/1482
 
+Edit widget
+^^^^^^^^^^^
+* Move the ``Edit`` cursor before ``"postchange"`` is sent for an editing key, through ``set_edit_pos()`` so that an override still sees every move by @penguinolog in https://github.com/urwid/urwid/pull/1523
+* Scroll a focused ``Edit`` with ``wrap="ellipsis"`` to the cursor: the row with the cursor is clipped and the other rows keep their ellipsis by @penguinolog in https://github.com/urwid/urwid/pull/1523
+
 Numeric edit widgets
 ^^^^^^^^^^^^^^^^^^^^
 * Accept negative string defaults in IntegerEdit by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1436
@@ -132,6 +137,7 @@ Numeric edit widgets
 * Refuse a second decimal separator in FloatEdit by @nk-batman21 in https://github.com/urwid/urwid/pull/1493
 * Keep a lone zero in numeric edit widgets by @nk-batman21 in https://github.com/urwid/urwid/pull/1487
 * Trim leading zeros after the minus sign in NumEdit by @penguinolog in https://github.com/urwid/urwid/pull/1489
+* Send ``IntEdit`` change signals at most once per key: not again for the leading zeros it removes, and not at all when the text stays the same by @penguinolog in https://github.com/urwid/urwid/pull/1523
 
 Progress bar
 ^^^^^^^^^^^^

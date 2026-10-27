@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+import typing
 import unittest
 from unittest import mock
 
@@ -282,6 +283,131 @@ class EditTest(unittest.TestCase):
         e.set_edit_text("abcdef")
         self.assertEqual(positions, [2, 11, 3, 3])
 
+    def test_keypress_postchange_sees_new_edit_pos(self) -> None:
+        """Every editing key has moved the cursor before "postchange", also with a set_edit_text(text) override."""
+
+        class TextOnlyEdit(urwid.Edit):
+            """An Edit subclass overriding set_edit_text(text) without the edit_pos keyword."""
+
+            def set_edit_text(self, text: str) -> None:  # type: ignore[override]  # no edit_pos keyword
+                super().set_edit_text(text)
+
+        def record(seen: list[tuple[str, int]], edit: urwid.Edit, old: str) -> None:
+            seen.append((edit.edit_text, edit.edit_pos))
+
+        cm = urwid.CommandMap()
+        cm.bind(Command.DELETE_WORD_LEFT, "ctrl w")
+        cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
+        cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
+        cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cases = (
+            ("insert", "ab", 1, None, "X", "aXb", 2),
+            ("insert over highlight", "hello", 5, (1, 4), "X", "hXo", 2),
+            ("backspace", "abcd", 2, None, "backspace", "acd", 1),
+            ("backspace highlight", "hello", 5, (1, 4), "backspace", "ho", 1),
+            ("delete", "abc", 1, None, "delete", "ac", 1),
+            ("delete highlight", "hello", 0, (1, 4), "delete", "ho", 1),
+            ("delete word left", "foo bar baz", 7, None, "ctrl w", "foo  baz", 4),
+            ("delete word right", "foo bar baz", 3, None, "meta d", "foo baz", 3),
+            ("delete to line start", "foo bar baz", 7, None, "ctrl u", " baz", 0),
+            ("delete to line end", "foo bar baz", 3, None, "ctrl k", "foo", 3),
+        )
+        for cls in (urwid.Edit, TextOnlyEdit):
+            for label, text, pos, highlight, key, expected_text, expected_pos in cases:
+                with self.subTest(cls=cls.__name__, case=label):
+                    e = cls("", text, edit_pos=pos)
+                    e._command_map = cm
+                    e.highlight = highlight
+                    seen: list[tuple[str, int]] = []
+                    urwid.connect_signal(e, "postchange", record, user_args=[seen])
+                    self.assertIsNone(e.keypress((20,), key))
+                    self.assertEqual(seen, [(expected_text, expected_pos)])
+                    self.assertEqual(e.edit_pos, expected_pos)
+
+    def test_keypress_keeps_cursor_moved_by_postchange_handler(self) -> None:
+        """A "postchange" handler that moves the cursor, directly or by a nested key, keeps its position."""
+
+        def move_home(edit: urwid.Edit, old: str) -> None:
+            edit.set_edit_pos(0)
+
+        def type_b_after_a(edit: urwid.Edit, old: str) -> None:
+            if edit.edit_text == "a":
+                edit.keypress((20,), "b")
+
+        moved = urwid.Edit("", "ab")
+        urwid.connect_signal(moved, "postchange", move_home)
+        moved.keypress((20,), "x")
+        self.assertEqual((moved.edit_text, moved.edit_pos), ("abx", 0))
+
+        nested = urwid.Edit()
+        urwid.connect_signal(nested, "postchange", type_b_after_a)
+        nested.keypress((20,), "a")
+        self.assertEqual((nested.edit_text, nested.edit_pos), ("ab", 2))
+
+    def test_keypress_moves_cursor_through_set_edit_pos_override(self) -> None:
+        """An editing key moves the cursor through an overridden set_edit_pos(), before "postchange"."""
+
+        class RecordingEdit(urwid.Edit):
+            """An Edit subclass recording every set_edit_pos() call with the text it was made for."""
+
+            def __init__(self, edit_text: str) -> None:
+                self.moves: list[tuple[str, int]] = []
+                super().__init__("", edit_text)
+
+            def set_edit_pos(self, pos: int) -> None:
+                self.moves.append((self.edit_text, pos))
+                super().set_edit_pos(pos)
+
+        def count_moves(edit: RecordingEdit, old: str) -> None:
+            seen.append(len(edit.moves))
+
+        e = RecordingEdit("ab")
+        seen: list[int] = []
+        urwid.connect_signal(e, "postchange", count_moves)
+        e.moves.clear()
+        e.keypress((20,), "x")
+        e.keypress((20,), "backspace")
+        self.assertEqual(e.moves, [("abx", 3), ("ab", 2)])
+        self.assertEqual(seen, [1, 2])
+
+    def test_keypress_cursor_kept_by_set_edit_text_called_from_handler(self) -> None:
+        """A set_edit_text() call made by a "change" handler keeps its own cursor rule."""
+        e = urwid.Edit("", "ab", edit_pos=1)
+        calls: list[int] = []
+
+        def on_change(edit: urwid.Edit, new_text: str) -> None:
+            if not calls:
+                calls.append(edit.edit_pos)
+                edit.set_edit_text("zz")
+                calls.append(edit.edit_pos)
+
+        urwid.connect_signal(e, "change", on_change)
+        e.keypress((20,), "X")
+        self.assertEqual(calls, [1, 1])
+        self.assertEqual((e.edit_text, e.edit_pos), ("aXb", 2))
+
+    def test_keypress_rejected_by_set_edit_text_override(self) -> None:
+        """A set_edit_text() override that raises leaves the text, the cursor and the next call unchanged."""
+
+        class RejectingEdit(urwid.Edit):
+            """An Edit subclass whose set_edit_text() refuses every text while reject is set."""
+
+            reject = False
+
+            def set_edit_text(self, text: str) -> None:  # type: ignore[override]  # no edit_pos keyword
+                if self.reject:
+                    raise ValueError(text)
+                super().set_edit_text(text)
+
+        e = RejectingEdit("", "ab", edit_pos=1)
+        e.reject = True
+        with self.assertRaises(ValueError):
+            e.keypress((20,), "X")
+        self.assertEqual((e.edit_text, e.edit_pos), ("ab", 1))
+        e.reject = False
+        e.set_edit_text("abc")
+        self.assertEqual(e.edit_pos, 1)
+
     def test_keypress_readline_commands(self) -> None:
         """The readline commands move and delete by word and to the line ends, and return the key at a boundary."""
         cm = urwid.CommandMap()
@@ -436,6 +562,39 @@ class EditTest(unittest.TestCase):
         e.set_edit_pos(0)
         canv = e.render((5,), focus=True)
         self.assertEqual(canv.cursor[0], 0)
+
+    def test_render_ellipsis_scrolls_to_cursor(self) -> None:
+        """In focus, an ellipsis Edit clips and scrolls to the cursor; out of focus, it shows the ellipsis again."""
+        with set_temporary_encoding("utf-8"):
+            e = urwid.Edit("", "abcdefghij", wrap=urwid.ELLIPSIS)
+            for pos, row in ((2, "abcde"), (7, "defgh"), (10, "ghij ")):
+                with self.subTest(pos=pos):
+                    e.set_edit_pos(pos)
+                    canv = e.render((5,), focus=True)
+                    self.assertEqual(canv.text, [row.encode()])
+                    self.assertEqual(canv.cursor, (min(pos, 4), 0))
+            self.assertEqual(e.render((5,)).text, ["abcd…".encode()])
+
+            m = urwid.Edit("", "abcdefghij\nklmnopqrstu", multiline=True, wrap=urwid.ELLIPSIS, edit_pos=19)
+            canv = m.render((5,), focus=True)
+            self.assertEqual(canv.text, ["abcd…".encode(), b"opqrs"])
+            self.assertEqual(canv.cursor, (4, 1))
+
+        class FirstLineEllipsisLayout(urwid.StandardTextLayout):
+            """A layout whose ellipsis mode shows the first line only, so it has fewer rows than clip."""
+
+            def layout(
+                self,
+                text: str | bytes,
+                width: int,
+                align: typing.Literal["left", "center", "right"] | urwid.Align,
+                wrap: typing.Literal["any", "space", "clip", "ellipsis"] | urwid.WrapMode,
+            ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
+                rows = super().layout(text, width, align, wrap)
+                return rows[:1] if wrap == urwid.ELLIPSIS else rows
+
+        f = urwid.Edit("", "ab\ncd", multiline=True, wrap=urwid.ELLIPSIS, layout=FirstLineEllipsisLayout())
+        self.assertEqual(f.render((5,), focus=True).rows(), f.rows((5,), True))
 
     def test_cursor_after_control_characters(self) -> None:
         """The cursor sits where its character is drawn, with the control characters left out of the canvas."""
@@ -648,6 +807,27 @@ class IntEditTest(unittest.TestCase):
         e.keypress((10,), "end")
         self.assertEqual(e.edit_text, "0")
         self.assertEqual(e.value(), 0)
+
+    def test_keypress_postchange_once_per_change(self) -> None:
+        """A key sends "postchange" once with the trimmed text and cursor, and not at all when the text stays."""
+
+        def record(seen: list[tuple[str, int]], edit: urwid.IntEdit, old: str) -> None:
+            seen.append((edit.edit_text, edit.edit_pos))
+
+        cases: tuple[tuple[str, str, tuple[str, ...], list[tuple[str, int]]], ...] = (
+            ("digit after zero", "0", ("7",), [("7", 1)]),
+            ("zero after zero", "0", ("0",), []),
+            ("digits into empty", "", ("0", "5"), [("0", 1), ("5", 1)]),
+            ("zeros trimmed after delete", "5002", ("home", "delete", "end"), [("002", 0), ("2", 1)]),
+        )
+        for label, text, keys, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.IntEdit("", text)
+                seen: list[tuple[str, int]] = []
+                urwid.connect_signal(e, "postchange", record, user_args=[seen])
+                for key in keys:
+                    self.assertIsNone(e.keypress((10,), key))
+                self.assertEqual(seen, expected)
 
     def test_keypress_unhandled_passthrough(self) -> None:
         e = urwid.IntEdit()
