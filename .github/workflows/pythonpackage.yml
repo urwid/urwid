@@ -104,14 +104,22 @@ jobs:
       max-parallel: 6
       matrix:
         os: [ "ubuntu-latest", "windows-latest" ]
-        # , "macos-latest"
-        # enable macOS only if OS specific branch will be added
         # A "t" suffix selects the free-threaded (PEP 703, --disable-gil) build.
         python-version: [ "3.11", "3.12", "3.13", "3.14", "3.15", "3.13t", "3.14t", "3.15t", "pypy3.11" ]
         exclude:
           # trio needs cffi on Windows, which publishes no 3.13t wheel and refuses to build for it.
           - os: "windows-latest"
             python-version: "3.13t"
+        # urwid has no macOS-specific code: macOS runs the POSIX paths Linux covers, so the oldest and newest
+        # CPython, plus the newest free-threaded build, are enough to catch selector (kqueue) and other POSIX
+        # differences.
+        include:
+          - os: "macos-latest"
+            python-version: "3.11"
+          - os: "macos-latest"
+            python-version: "3.15"
+          - os: "macos-latest"
+            python-version: "3.15t"
 
     steps:
       - uses: actions/checkout@v7
