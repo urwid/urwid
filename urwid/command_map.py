@@ -46,6 +46,12 @@ class Command(enum.StrEnum):
     MENU = "menu"
     SELECT_NEXT = "next selectable"
     SELECT_PREVIOUS = "prev selectable"
+    WORD_LEFT = "cursor word left"
+    WORD_RIGHT = "cursor word right"
+    DELETE_WORD_LEFT = "delete word left"
+    DELETE_WORD_RIGHT = "delete word right"
+    DELETE_TO_LINE_START = "delete to start of line"
+    DELETE_TO_LINE_END = "delete to end of line"
 
 
 REDRAW_SCREEN: typing.Literal[Command.REDRAW_SCREEN] = Command.REDRAW_SCREEN
@@ -85,6 +91,15 @@ class CommandMap(MutableMapping[str, str | Command | None]):
 
     Only containers created with ``select_navigation=True`` handle ``'next selectable'`` and
     ``'prev selectable'``, see :ref:`select-navigation`.
+
+    :class:`Edit` also handles these readline-style commands, which no key is mapped to by default:
+    ``'cursor word left'``, ``'cursor word right'``, ``'delete word left'``, ``'delete word right'``,
+    ``'delete to start of line'`` and ``'delete to end of line'``.
+    A word is a run of letters and digits, and a line ends at a newline.
+
+    >>> cm = CommandMap()
+    >>> cm.bind(Command.WORD_LEFT, "meta b")
+    >>> cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
     """
 
     def __iter__(self) -> Iterator[str]:

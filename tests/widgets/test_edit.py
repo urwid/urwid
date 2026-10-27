@@ -5,6 +5,7 @@ import unittest
 from unittest import mock
 
 import urwid
+from urwid.command_map import Command
 from urwid.util import set_temporary_encoding
 
 
@@ -241,6 +242,116 @@ class EditTest(unittest.TestCase):
     def test_keypress_enter_not_multiline(self) -> None:
         e = urwid.Edit("", "ab")
         self.assertEqual(e.keypress((20,), "enter"), "enter")
+
+    def test_submit_signal(self) -> None:
+        """A single-line Edit sends "submit" on enter and still returns the key; a multiline one does not."""
+        submitted: list[tuple[urwid.Edit, str]] = []
+        e = urwid.Edit("", "ab")
+        urwid.connect_signal(e, "submit", lambda edit, text: submitted.append((edit, text)))
+        self.assertEqual(e.keypress((20,), "enter"), "enter")
+        self.assertEqual(e.keypress((20,), "esc"), "esc")
+        self.assertEqual(submitted, [(e, "ab")])
+
+        m = urwid.Edit("", "ab", multiline=True)
+        urwid.connect_signal(m, "submit", lambda edit, text: submitted.append((edit, text)))
+        m.keypress((20,), "enter")
+        self.assertEqual(submitted, [(e, "ab")])
+
+        i = urwid.IntEdit("", 12)
+        urwid.connect_signal(i, "submit", lambda edit, text: submitted.append((edit, text)))
+        self.assertEqual(i.keypress((20,), " "), " ")
+        self.assertEqual(i.keypress((20,), "enter"), "enter")
+        self.assertEqual(submitted, [(e, "ab"), (i, "12")])
+
+        r = urwid.Edit("", "ab")
+        r._command_map = urwid.CommandMap()
+        r._command_map["enter"] = Command.MAX_LEFT
+        urwid.connect_signal(r, "submit", lambda edit, text: submitted.append((edit, text)))
+        self.assertIsNone(r.keypress((20,), "enter"))
+        self.assertEqual(r.edit_pos, 0)
+        self.assertEqual(submitted, [(e, "ab"), (i, "12")])
+
+    def test_set_edit_text_edit_pos(self) -> None:
+        """edit_pos is set, clipped, before "postchange"; None keeps the current position clipped to the text."""
+        positions: list[int] = []
+        e = urwid.Edit("", "hello", edit_pos=4)
+        urwid.connect_signal(e, "postchange", lambda edit, old: positions.append(edit.edit_pos))
+        e.set_edit_text("hi")
+        e.set_edit_text("hello world", edit_pos=11)
+        e.set_edit_text("abc", edit_pos=10)
+        e.set_edit_text("abcdef")
+        self.assertEqual(positions, [2, 11, 3, 3])
+
+    def test_keypress_readline_commands(self) -> None:
+        """The readline commands move and delete by word and to the line ends, and return the key at a boundary."""
+        cm = urwid.CommandMap()
+        cm.bind(Command.WORD_LEFT, "meta b")
+        cm.bind(Command.WORD_RIGHT, "meta f")
+        cm.bind(Command.DELETE_WORD_LEFT, "ctrl w")
+        cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
+        cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
+        cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cases = (
+            ("one, two", 8, "meta b", "one, two", 5, None),
+            ("one, two", 5, "meta b", "one, two", 0, None),
+            ("one, two", 0, "meta b", "one, two", 0, "meta b"),
+            ("one, two", 0, "meta f", "one, two", 3, None),
+            ("one, two", 3, "meta f", "one, two", 8, None),
+            ("one, two", 8, "meta f", "one, two", 8, "meta f"),
+            ("one, two  ", 10, "ctrl w", "one, ", 5, None),
+            ("one, two", 3, "meta d", "one", 3, None),
+            ("café au", 7, "meta b", "café au", 6, None),
+            ("café au", 6, "meta b", "café au", 0, None),
+            ("a ❤️ b", 5, "meta b", "a ❤️ b", 0, None),
+            ("a ❤️ b", 6, "ctrl w", "a ❤️ ", 5, None),
+            ("a ❤️", 4, "ctrl w", "", 0, None),
+            ("one two", 1, "meta d", "o two", 1, None),
+            ("one, two", 4, "meta d", "one,", 4, None),
+            ("ab\ncd ef", 6, "ctrl u", "ab\nef", 3, None),
+            ("ab\ncd ef", 3, "ctrl u", "ab\ncd ef", 3, "ctrl u"),
+            ("ab\ncd\nef", 4, "ctrl k", "ab\nc\nef", 4, None),
+            ("ab\ncd", 3, "ctrl k", "ab\n", 3, None),
+            ("ab", 2, "ctrl k", "ab", 2, "ctrl k"),
+            (b"one two", 7, "ctrl w", b"one ", 4, None),
+            (b"ab\ncd", 4, "ctrl u", b"ab\nd", 3, None),
+        )
+        for text, pos, key, expected_text, expected_pos, returned in cases:
+            with self.subTest(text=text, pos=pos, key=key):
+                e = urwid.Edit(b"" if isinstance(text, bytes) else "", text, multiline=True, edit_pos=pos)
+                e._command_map = cm
+                self.assertEqual(e.keypress((20,), key), returned)
+                self.assertEqual((e.edit_text, e.edit_pos), (expected_text, expected_pos))
+
+    def test_keypress_readline_word_bytes_wide_encoding(self) -> None:
+        """A double-byte character is not split, even when its trail byte is an ASCII letter."""
+        with set_temporary_encoding("big5"):
+            e = urwid.Edit(b"", b"x \xa4\x41")
+            e._command_map = urwid.CommandMap()
+            e._command_map.bind(Command.DELETE_WORD_LEFT, "ctrl w")
+            e.keypress((20,), "ctrl w")
+            self.assertEqual((e.edit_text, e.edit_pos), (b"x ", 2))
+
+    def test_keypress_readline_word_masked(self) -> None:
+        """A masked text is one word, so the cursor does not reveal where the hidden text has spaces."""
+        e = urwid.Edit("", "one two", mask="*", edit_pos=4)
+        e._command_map = urwid.CommandMap()
+        e._command_map.bind(Command.WORD_LEFT, "meta b")
+        e._command_map.bind(Command.WORD_RIGHT, "meta f")
+        e.keypress((20,), "meta f")
+        self.assertEqual(e.edit_pos, 7)
+        e.keypress((20,), "meta b")
+        self.assertEqual(e.edit_pos, 0)
+        e._command_map.bind(Command.DELETE_WORD_RIGHT, "meta d")
+        e.keypress((20,), "meta d")
+        self.assertEqual(e.edit_text, "")
+
+    def test_readline_commands_unbound_by_default(self) -> None:
+        """No key reaches the readline commands unless the application binds it."""
+        e = urwid.Edit("", "one two")
+        for key in ("ctrl a", "ctrl e", "ctrl u", "ctrl k", "ctrl w", "meta b", "meta f", "meta d", "meta backspace"):
+            with self.subTest(key=key):
+                self.assertEqual(e.keypress((20,), key), key)
+                self.assertEqual((e.edit_text, e.edit_pos), ("one two", 7))
 
     def test_keypress_up_down_raises_when_pref_col_none(self) -> None:
         e = urwid.Edit("", "hello")
