@@ -139,6 +139,7 @@ Documentation 🕮
 ++++++++++++++++
 * Complete the parameter, return, exception and warning fields in docstrings by @penguinolog in https://github.com/urwid/urwid/pull/1494
 * Forward the mouse to the child in the terminal demo by @penguinolog in https://github.com/urwid/urwid/pull/1503
+* Document receiving Ctrl+S and Ctrl+Q as keys through ``tty_signal_keys(start="undefined", stop="undefined")`` by @penguinolog in https://github.com/urwid/urwid/pull/1293
 
 Refactoring 🛠
 ++++++++++++++
