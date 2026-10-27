@@ -144,3 +144,65 @@ class WidgetDisableTest(unittest.TestCase):
         self.assertEqual(button.sizing(), disabled.sizing())
         self.assertEqual(button.pack(()), disabled.pack(()))
         self.assertIsNone(disabled.render((10,), focus=True).cursor)
+        self.assertEqual("x", disabled.keypress((10,), "x"))
+        self.assertFalse(disabled.mouse_event((10,), "mouse press", 1, 3, 0, True))
+        for name in ("get_cursor_coords", "get_pref_col", "move_cursor_to_coords"):
+            with self.subTest(name):
+                self.assertFalse(hasattr(disabled, name))
+
+    def test_enabled_passes_through(self) -> None:
+        """With disabled=False, input, focus and the cursor reach the wrapped widget."""
+        edit = urwid.Edit("", "ab")
+        enabled = urwid.WidgetDisable(edit, disabled=False)
+
+        self.assertFalse(enabled.disabled)
+        self.assertTrue(enabled.selectable())
+        self.assertIsNone(enabled.keypress((10,), "c"))
+        self.assertEqual("abc", edit.edit_text)
+        self.assertEqual((3, 0), enabled.get_cursor_coords((10,)))
+        self.assertEqual(3, enabled.get_pref_col((10,)))
+        self.assertTrue(enabled.move_cursor_to_coords((10,), 1, 0))
+        self.assertEqual(1, edit.edit_pos)
+        self.assertEqual((1, 0), enabled.render((10,), focus=True).cursor)
+
+        clicks: list[urwid.Button] = []
+        button = urwid.Button("Ok", on_press=clicks.append)
+        self.assertTrue(urwid.WidgetDisable(button, disabled=False).mouse_event((10,), "mouse press", 1, 3, 0, True))
+        self.assertEqual([button], clicks)
+
+    def test_enabled_without_cursor_methods(self) -> None:
+        """A wrapped widget without the cursor methods has none through the enabled decoration either."""
+        enabled = urwid.WidgetDisable(urwid.Text("t"), disabled=False)
+
+        for name in ("get_cursor_coords", "get_pref_col", "move_cursor_to_coords"):
+            with self.subTest(name):
+                self.assertFalse(hasattr(enabled, name))
+
+    def test_toggle_redraws_and_moves_focus(self) -> None:
+        """Setting disabled redraws the widget and changes whether a container can focus it."""
+        edit = urwid.Edit("", "ab")
+        toggled = urwid.WidgetDisable(edit)
+        pile = urwid.Pile([toggled, urwid.Edit("", "cd")])
+
+        self.assertEqual(1, pile.focus_position)
+        self.assertIsNone(toggled.render((10,), focus=True).cursor)
+
+        toggled.disabled = False
+        self.assertEqual((2, 0), toggled.render((10,), focus=True).cursor)
+        pile.focus_position = 0
+        self.assertEqual((2, 0), pile.render((10,), focus=True).cursor)
+
+        toggled.disabled = True
+        self.assertIsNone(pile.render((10,), focus=True).cursor)
+        self.assertEqual("x", pile.keypress((10,), "x"))
+        self.assertEqual("ab", edit.edit_text)
+
+    def test_size_methods_pass_focus_only_while_enabled(self) -> None:
+        """rows() and pack() pass the focus to the wrapped widget only while enabled."""
+        for disabled, expected_focus in ((True, False), (False, True)):
+            inner = mock.Mock(spec=urwid.Text)
+            decorated = urwid.WidgetDisable(inner, disabled=disabled)
+            for name in ("rows", "pack"):
+                with self.subTest(disabled=disabled, method=name):
+                    getattr(decorated, name)((10,), True)
+                    getattr(inner, name).assert_called_once_with((10,), expected_focus)

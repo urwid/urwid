@@ -296,9 +296,12 @@ Special Widgets
 These decoration widgets change how the widget they wrap takes part in the
 interface, not how it looks:
 
-* :class:`WidgetDisable` disables interaction with the wrapped widget: it is
-  never selectable, it is skipped by focus navigation, and it always renders
-  the wrapped widget without focus.
+* :class:`WidgetDisable` disables interaction with the wrapped widget: while
+  its ``disabled`` property is ``True`` (the default), it is never selectable,
+  it is skipped by focus navigation, and it always renders the wrapped widget
+  without focus.  Setting the property to ``False`` enables the wrapped widget
+  again without replacing the decoration; a disabled look, such as an
+  :class:`AttrMap` around it, is up to the application.
 * :class:`WidgetPlaceholder` shows the widget stored in its
   ``original_widget`` property, and assigning a new widget to that property
   replaces the widget shown without modifying the container that holds the
@@ -485,7 +488,7 @@ Decoration widgets such as :class:`Padding`, :class:`AttrMap` and
 :class:`LineBox`, and :class:`WidgetWrap` subclasses, forward the method to
 the widget they send keys to; a subclass that sends keys to another widget
 overrides ``enter_selectable()`` to match.  :class:`WidgetDisable` is never
-entered.  :class:`PopUpTarget` does not forward the method and keeps every
+entered while it is disabled.  :class:`PopUpTarget` does not forward the method and keeps every
 focus under it, because the widget that receives its keys is known only
 after the pop-ups were laid out at the current size.
 
