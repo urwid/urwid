@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import typing
 
+from urwid.util import decompose_tagmarkup
+
 from .columns import Columns
 from .constants import BOX_SYMBOLS, Align, WHSettings
 from .divider import Divider
@@ -15,6 +17,8 @@ from .widget_decoration import WidgetDecoration, delegate_to_widget_mixin
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
     from typing import Literal
+
+    from urwid.util import _TagMarkup
 
     from .widget import AbstractWidget, Widget, _DelegateToWidgetAfterDecorationMixin
 
@@ -38,7 +42,7 @@ class LineBox(
     def __init__(
         self,
         original_widget: WrappedWidget,
-        title: str = "",
+        title: _TagMarkup = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
         title_attr: Hashable = None,
         tlcorner: str = BOX_SYMBOLS.LIGHT.TOP_LEFT,
@@ -54,7 +58,7 @@ class LineBox(
         Draw a line around original_widget.
 
         Use 'title' to set an initial title text with will be centered
-        on top of the box.
+        on top of the box. It may be any text markup accepted by :class:`Text`.
 
         Use `title_attr` to apply a specific attribute to the title text.
 
@@ -113,7 +117,8 @@ class LineBox(
         To make Table constructions, some lineboxes need to be drawn without sides
         and T or CROSS symbols used for corners of cells.
 
-        :raises ValueError: a *title* is given while *tline* is empty, or *title_align* is not a supported alignment.
+        :raises ValueError: a *title* with text is given while *tline* is empty,
+            or *title_align* is not a supported alignment.
         """
         w_lline = SolidFill(lline)
         w_rline = SolidFill(rline)
@@ -121,13 +126,14 @@ class LineBox(
         w_tlcorner, w_tline, w_trcorner = Text(tlcorner), Divider(tline), Text(trcorner)
         w_blcorner, w_bline, w_brcorner = Text(blcorner), Divider(bline), Text(brcorner)
 
-        if not tline and title:
+        formatted_title = self.format_title(title)
+        if not tline and title and formatted_title:
             raise ValueError("Cannot have a title when tline is empty string")
 
         if title_attr:
-            self.title_widget = Text((title_attr, self.format_title(title)))
+            self.title_widget = Text((title_attr, formatted_title))
         else:
-            self.title_widget = Text(self.format_title(title))
+            self.title_widget = Text(formatted_title)
 
         if tline:
             if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
@@ -203,14 +209,22 @@ class LineBox(
     def _w(self) -> Pile:
         return self._wrapped_widget
 
-    def format_title(self, text: str) -> str:
-        """Return ``text`` padded with spaces for display in the box's top border, or an empty string if unset."""
-        if text:
+    def format_title(self, text: _TagMarkup) -> _TagMarkup:
+        """
+        Return ``text`` padded with spaces for display in the box's top border, or an empty string if unset.
+
+        A string stays a string; other text markup is returned as the list ``[" ", text, " "]``.
+        Markup with no text, such as ``("attr", "")``, counts as unset.
+        """
+        if not text:
+            return ""
+        if isinstance(text, str):
             return f" {text} "
+        if not decompose_tagmarkup(text)[0]:
+            return ""
+        return [" ", text, " "]
 
-        return ""
-
-    def set_title(self, text: str) -> None:
+    def set_title(self, text: _TagMarkup) -> None:
         """
         Set the title shown in the top line of the box.
 

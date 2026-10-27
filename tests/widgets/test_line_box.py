@@ -74,6 +74,40 @@ class LineBoxTest(unittest.TestCase):
             [line.decode("utf-8") for line in l.render(()).text],
         )
 
+    def test_title_markup(self) -> None:
+        box = urwid.LineBox(urwid.Text("Some text"), title=[("key", "F1"), " Help"])
+        self.assertEqual(
+            ["┌─ F1 Help ─┐", "│Some text  │", "└───────────┘"],
+            [line.decode("utf-8") for line in box.render((13,)).text],
+        )
+        self.assertEqual((" F1 Help ", [(None, 1), ("key", 2)]), box.title_widget.get_text())
+
+        box.set_title(("key", "New"))
+        self.assertEqual((" New ", [(None, 1), ("key", 3)]), box.title_widget.get_text())
+
+        box.set_title(b"Bytes")
+        self.assertEqual(" Bytes ", box.title_widget.text)
+
+        box = urwid.LineBox(urwid.Text("Some text"), title=["Title"], title_attr="title")
+        self.assertEqual((" Title ", [("title", 7)]), box.title_widget.get_text())
+
+        for empty in ([], b"", ("key", ""), ["", ("key", b"")]):
+            with self.subTest(title=empty):
+                box = urwid.LineBox(urwid.Text("abc"), title=empty)
+                self.assertEqual(
+                    ["┌───┐", "│abc│", "└───┘"],
+                    [line.decode("utf-8") for line in box.render(()).text],
+                )
+                box.set_title(empty)
+                self.assertEqual("", box.title_widget.text)
+                self.assertIsNone(urwid.LineBox(urwid.Text("abc"), title=empty, tline="").tline_widget)
+
+        class BracketTitleLineBox(urwid.LineBox):
+            def format_title(self, text: object) -> str:
+                return f"[{text}]"
+
+        self.assertIsNone(BracketTitleLineBox(urwid.Text("abc"), tline="").tline_widget)
+
     def test_negative(self):
         wrapped = urwid.Text("")
         with self.assertRaises(ValueError) as ctx:

@@ -48,6 +48,7 @@ New features 🗹
 * Add ``follow_end`` to ``SimpleFocusListWalker``, ``SimpleFocusDequeWalker``, ``MonitoredFocusList`` and ``MonitoredFocusDeque`` by @penguinolog in https://github.com/urwid/urwid/pull/1516
 * Add ``Text(..., selectable=True)``, ``SelectableIcon(cursor_position=None)`` and ``Button`` ``left``, ``right`` and ``cursor_position`` by @penguinolog in https://github.com/urwid/urwid/pull/1517
 * Add ``WidgetDisable(..., disabled=False)`` and a settable ``WidgetDisable.disabled`` property by @penguinolog in https://github.com/urwid/urwid/pull/1518
+* ``LineBox`` titles accept text markup: ``LineBox(w, title=[("key", "F1"), " Help"])`` and ``set_title()`` by @penguinolog in https://github.com/urwid/urwid/pull/1519
 
 Deprecations ⚡
 +++++++++++++++
