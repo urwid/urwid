@@ -300,6 +300,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
     """
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
+    follow_end: bool = False
+    """Move the focus from the last item to the new last item when items are added after it."""
 
     def __init__(
         self,
@@ -307,6 +309,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         maxlen: int | None = None,
         *,
         focus: int = 0,
+        follow_end: bool = False,
     ) -> None:
         """Initialize a deque that tracks one item as the focus item.
 
@@ -327,10 +330,27 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([], focus=None)
 
+        With *follow_end*, items added after a focused last item take the focus, also when a bounded deque
+        evicts its head item to make room, as in a log view:
+
+        >>> mfd = MonitoredFocusDeque([10, 11], maxlen=2, focus=1, follow_end=True)
+        >>> mfd.append(12)
+        >>> mfd
+        MonitoredFocusDeque([11, 12], maxlen=2, focus=1)
+        >>> mfd.focus = 0
+        >>> mfd.append(13)
+        >>> mfd
+        MonitoredFocusDeque([12, 13], maxlen=2, focus=0)
+
+        :param iterable: the initial items
+        :param maxlen: the maximum length, or ``None`` for an unbounded deque
+        :param focus: the index of the initial focus item
+        :param follow_end: the initial value of :attr:`follow_end`
         :raises TypeError: *focus* is not an integer.
         :raises IndexError: *focus* is not an index of the items kept, which is ignored when there are none.
         """
         super().__init__(iterable, maxlen)
+        self.follow_end = follow_end
         if not self:
             self._focus = 0
             return
@@ -444,6 +464,17 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         new_len = len(self) - num_removed + num_inserted
         return max(0, min(focus, new_len - 1))
 
+    def _focus_after_append(self, focus: int) -> int | Callable[[], int]:
+        """Return the focus for :meth:`_modify` when items are added at the right end.
+
+        :param focus: the focus position without :attr:`follow_end`
+        :returns: a callable giving the new last index when :attr:`follow_end` is set and the last item has the
+            focus, otherwise *focus*
+        """
+        if self.follow_end and self and self._focus == len(self) - 1:
+            return lambda: len(self) - 1
+        return focus
+
     def _modify(
         self,
         focus: int | Callable[[], int],
@@ -511,7 +542,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
 
         Unless the deque was empty, focus is unaffected -- unless the deque is already at
         ``maxlen``, in which case the head item is evicted and focus follows it:
-        ``focus = max(0, focus - 1)``.
+        ``focus = max(0, focus - 1)``. With :attr:`follow_end`, a focused last item passes the focus to *item*.
 
         :param item: item to append
 
@@ -531,7 +562,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = max(0, self._focus - 1)
         else:
             focus = self._focus
-        self._modify(focus, super(MonitoredDeque, self).append, item)
+        self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).append, item)
 
     def appendleft(self, item: _T) -> None:
         """Append ``item`` to the left end of the deque.
@@ -580,7 +611,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         else:
             evicted = 0
         focus = max(0, self._focus - evicted) if self else 0
-        self._modify(focus, super(MonitoredDeque, self).extend, items_list)
+        self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).extend, items_list)
 
     def __iadd__(self, items: Iterable[_T]) -> Self:
         """Extend the deque in place with ``items``, adjusting the focus like :meth:`extend`.
@@ -612,7 +643,11 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         total = len(self) * count
         evicted = total - self.maxlen if self.maxlen is not None and total > self.maxlen else 0
         focus = max(0, self._focus - evicted) if self else 0
-        self._modify(focus, super(MonitoredDeque, self).__imul__, _bounded_repeat_count(len(self), self.maxlen, count))
+        self._modify(
+            self._focus_after_append(focus),
+            super(MonitoredDeque, self).__imul__,
+            _bounded_repeat_count(len(self), self.maxlen, count),
+        )
         return self
 
     def extendleft(self, items: Iterable[_T]) -> None:
@@ -698,6 +733,9 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         else:
             idx = min(position, len(self))
         focus = self._adjust_focus_on_single_change(idx, 0, 1)
+        if idx == len(self):
+            self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).insert, position, item)
+            return
         self._modify(focus, super(MonitoredDeque, self).insert, position, item)
 
     def remove(self, value: _T) -> None:

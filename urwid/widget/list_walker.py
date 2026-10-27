@@ -303,7 +303,7 @@ class SimpleFocusListWalker(
 ):
     """ListWalker like :class:`SimpleListWalker` that also keeps focus tracking items across edits."""
 
-    def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
+    def __init__(self, contents: Iterable[_T], wrap_around: bool = False, *, follow_end: bool = False) -> None:
         """Initialize a list walker, which can be treated as a list since it inherits :class:`MonitoredList`.
 
         Changes made to this object (when it is treated as a list) are detected automatically
@@ -314,11 +314,14 @@ class SimpleFocusListWalker(
 
         :param contents: list to copy into this object
         :param wrap_around: if true, jumps to beginning/end of list on move
+        :param follow_end: if true, items added after a focused last item take the focus, so a :class:`ListBox`
+            showing a growing log keeps showing its newest line until the user moves the focus up;
+            see :attr:`MonitoredFocusList.follow_end`
         :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusListWalker expecting iterable object, got: {contents!r}")
-        super().__init__(contents)
+        super().__init__(contents, follow_end=follow_end)
         self.wrap_around = wrap_around
 
     def _modified(self) -> None:

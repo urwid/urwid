@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import operator
 import unittest
 
@@ -345,6 +346,39 @@ class PositionsArgumentTest(unittest.TestCase):
                     walker = walker_class([0, 1, 2])
                     with self.assertRaises(TypeError):
                         walker.positions(*args, **kwargs)  # type: ignore[call-overload]
+
+
+class FollowEndWalkerTest(unittest.TestCase):
+    """The focus walkers pass ``follow_end`` on, keep it in copies, and keep a ListBox on the newest line."""
+
+    walker_classes = (urwid.SimpleFocusListWalker, urwid.SimpleFocusDequeWalker)
+
+    def test_constructor_and_copies_keep_the_setting(self) -> None:
+        """Check the default, the keyword, and the setting in copies; the pickle tests check pickling."""
+        for walker_class in self.walker_classes:
+            with self.subTest(walker=walker_class.__name__):
+                self.assertFalse(walker_class([0]).follow_end)
+                walker = walker_class([0], follow_end=True)
+                for result in (copy.copy(walker), copy.deepcopy(walker)):
+                    self.assertTrue(result.follow_end)
+
+    def test_listbox_shows_the_newest_line(self) -> None:
+        """Check a ListBox follows appended lines while its focus is on the last one, and stops once it moves up."""
+        size = (10, 3)
+        for walker_class in self.walker_classes:
+            with self.subTest(walker=walker_class.__name__):
+                walker = walker_class([urwid.SelectableIcon(str(number)) for number in range(3)], follow_end=True)
+                listbox = urwid.ListBox(walker)
+                listbox.focus_position = 2
+                for number in range(3, 6):
+                    walker.append(urwid.SelectableIcon(str(number)))
+                self.assertEqual(5, listbox.focus_position)
+                self.assertEqual([b"3", b"4", b"5"], [row.rstrip() for row in listbox.render(size).text])
+
+                listbox.keypress(size, "up")
+                walker.append(urwid.SelectableIcon("6"))
+                self.assertEqual(4, listbox.focus_position)
+                self.assertEqual([b"3", b"4", b"5"], [row.rstrip() for row in listbox.render(size).text])
 
 
 if __name__ == "__main__":

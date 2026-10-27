@@ -217,7 +217,14 @@ class SimpleFocusDequeWalker(
     :class:`SimpleDequeWalker` -- it applies equally here.
     """
 
-    def __init__(self, contents: Iterable[_T], wrap_around: bool = False, maxlen: int | None = None) -> None:
+    def __init__(
+        self,
+        contents: Iterable[_T],
+        wrap_around: bool = False,
+        maxlen: int | None = None,
+        *,
+        follow_end: bool = False,
+    ) -> None:
         """Build the walker, wrapping *contents* in a focus-tracking deque.
 
         This class inherits :class:`MonitoredFocusDeque`, which means it can be treated as a deque.
@@ -234,12 +241,23 @@ class SimpleFocusDequeWalker(
         :param maxlen: if set, bounds the deque's length; the oldest items are silently evicted
             from the opposite end once full, and focus is adjusted to keep tracking a sensible
             item (see :class:`MonitoredFocusDeque`)
+        :param follow_end: if true, items added after a focused last item take the focus, so a :class:`ListBox`
+            showing a growing log keeps showing its newest line until the user moves the focus up;
+            see :attr:`MonitoredFocusDeque.follow_end`
         :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusDequeWalker expecting iterable object, got: {contents!r}")
-        super().__init__(contents, maxlen)
+        super().__init__(contents, maxlen, follow_end=follow_end)
         self.wrap_around = wrap_around
+
+    def copy(self) -> Self:
+        """Return a shallow copy with the same capacity, wrapping and :attr:`follow_end` settings."""
+        result = super().copy()
+        result.follow_end = self.follow_end
+        return result
+
+    __copy__ = copy
 
     def _modified(self) -> None:
         # Prefer ListWalker's signal emission over MonitoredDeque's callback hook.

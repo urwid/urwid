@@ -166,12 +166,16 @@ class DequeWalkerCopyTest(unittest.TestCase):
                             original = container([1, 2, 3], wrap_around=wrap, maxlen=limit)
                             if len(original) > 1:
                                 original.set_focus(1)
+                            if container is urwid.SimpleFocusDequeWalker:
+                                original.follow_end = True
                             result = pickle.loads(pickle.dumps(original, protocol=protocol))
                             self.assertIsInstance(result, container)
                             self.assertEqual(list(original), list(result))
                             self.assertEqual(limit, result.maxlen)
                             self.assertIs(wrap, result.wrap_around)
                             self.assertEqual(original.focus, result.focus)
+                            if container is urwid.SimpleFocusDequeWalker:
+                                self.assertIs(True, result.follow_end)
 
     def test_copy_stays_bounded(self) -> None:
         for container in (urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker):
