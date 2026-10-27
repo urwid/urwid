@@ -66,6 +66,7 @@ from urwid.font import (
     Sextant3x3Font,
     Thin3x3Font,
     Thin4x3Font,
+    Thin5x4Font,
     Thin6x6Font,
     get_all_fonts,
 )
@@ -383,6 +384,7 @@ __all__: tuple[str, ...] = (
     "TextLayout",
     "Thin3x3Font",
     "Thin4x3Font",
+    "Thin5x4Font",
     "Thin6x6Font",
     "TreeListBox",
     "TreeNode",
