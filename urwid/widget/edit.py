@@ -90,6 +90,7 @@ class Edit(WidgetWrap[Text]):
         mask: str | None = None,
         *,
         expand_tabs: bool = True,
+        max_length: int | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -104,6 +105,8 @@ class Edit(WidgetWrap[Text]):
         :param mask: hide text entered with this character, None:disable mask
         :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
             ``False``: a tab character
+        :param max_length: the longest :attr:`edit_text` allowed, see :attr:`max_length`
+        :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -113,6 +116,12 @@ class Edit(WidgetWrap[Text]):
         <Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
         >>> Edit("", "3.14", align="right")
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
+        >>> pin = Edit("PIN: ", "123", max_length=4)
+        >>> pin.keypress((20,), "4")
+        >>> pin.keypress((20,), "5")
+        '5'
+        >>> print(pin.edit_text)
+        1234
         """
         super().__init__(Text("", align, wrap, layout))
         self.multiline = multiline
@@ -121,6 +130,8 @@ class Edit(WidgetWrap[Text]):
         self._edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
         self._edit_text = ""
+        self._max_length: int | None = None
+        self.max_length = max_length
         self.highlight: tuple[int, int] | None = None
         self._mask: str | None = None
         self._shift_view_to_cursor = False
@@ -132,6 +143,25 @@ class Edit(WidgetWrap[Text]):
             edit_pos = len(edit_text)
         self.set_edit_pos(edit_pos)
         self.set_mask(mask)
+
+    @property
+    def max_length(self) -> int | None:
+        """The longest :attr:`edit_text` allowed, or ``None`` for no limit.
+
+        It is counted like :attr:`edit_pos`: in code points, or in bytes when the caption is bytes.
+        A key that would go over it is refused, see :meth:`keypress`; :meth:`set_edit_text` and :meth:`insert_text`
+        raise :exc:`ValueError` instead. Setting it negative or below the length of :attr:`edit_text` raises
+        :exc:`ValueError` too.
+        """
+        return self._max_length
+
+    @max_length.setter
+    def max_length(self, max_length: int | None) -> None:
+        if max_length is not None and max_length < 0:
+            raise ValueError(f"max_length must not be negative, got {max_length}")
+        if max_length is not None and len(self._edit_text) > max_length:
+            raise ValueError(f"max_length {max_length} is shorter than the text of length {len(self._edit_text)}")
+        self._max_length = max_length
 
     def selectable(self) -> bool:
         """Return True: this widget is always selectable.
@@ -354,6 +384,7 @@ class Edit(WidgetWrap[Text]):
                      must match the text in the caption
         :param edit_pos: cursor position to set before ``"postchange"`` is sent, clipped as by
             :meth:`set_edit_pos`; ``None`` keeps the current position, clipped to the new text
+        :raises ValueError: *text* is longer than :attr:`max_length`; the text is left as it was.
 
         >>> e = Edit()
         >>> e.set_edit_text("yes")
@@ -370,6 +401,8 @@ class Edit(WidgetWrap[Text]):
         """
         pending_edit_pos, self._pending_edit_pos = self._pending_edit_pos, None
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
+        if self._max_length is not None and len(text) > self._max_length:
+            raise ValueError(f"text of length {len(text)} is longer than max_length {self._max_length}")
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -428,6 +461,7 @@ class Edit(WidgetWrap[Text]):
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
+        :raises ValueError: the result is longer than :attr:`max_length`; the text is left as it was.
 
         >>> e = Edit("", "42")
         >>> e.insert_text(".5")
@@ -483,6 +517,18 @@ class Edit(WidgetWrap[Text]):
         result_pos += len(text)
         return (result_text, result_pos)
 
+    def _insert_typed_text(self, text: str | bytes) -> bool:
+        """Insert the text a key produced, unless it would make :attr:`edit_text` longer than :attr:`max_length`.
+
+        :returns: whether the text was inserted.
+        """
+        text = self._normalize_to_caption(text)
+        result_text, _result_pos = self.insert_text_result(text)  # type: ignore[arg-type]  # normalised to the caption
+        if self.max_length is not None and len(result_text) > self.max_length:
+            return False
+        self.insert_text(text)  # type: ignore[arg-type]  # normalised to the caption
+        return True
+
     def keypress(
         self,
         size: tuple[int],  # type: ignore[override]
@@ -490,6 +536,9 @@ class Edit(WidgetWrap[Text]):
     ) -> str | None:
         """
         Handle editing keystrokes, return others.
+
+        A key whose text would make :attr:`edit_text` longer than :attr:`max_length` inserts nothing and is
+        returned, as :class:`IntEdit` returns a digit past its limit. A tab is inserted whole or not at all.
 
         The readline delete commands described in :class:`~urwid.CommandMap` go through :meth:`set_edit_text`.
         A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
@@ -513,15 +562,12 @@ class Edit(WidgetWrap[Text]):
         """
         pos = self.edit_pos
         if self.valid_char(key):
-            if isinstance(key, str) and not isinstance(self._caption, str):
-                key = key.encode("utf-8")  # type: ignore[assignment]
-            self.insert_text(key)
-            return None
+            typed = key.encode("utf-8") if isinstance(key, str) and not isinstance(self._caption, str) else key
+            return None if self._insert_typed_text(typed) else key
 
         if key == "tab" and self.allow_tab:
             if not self.expand_tabs:
-                self.insert_text("\t")
-                return None
+                return None if self._insert_typed_text("\t") else key
             layout = self._w.layout
             if not isinstance(layout, text_layout.StandardTextLayout):
                 layout = text_layout.default_layout  # a custom layout has no tab stops
@@ -533,14 +579,13 @@ class Edit(WidgetWrap[Text]):
                 if idx:
                     column = layout.next_tab_stop(column)
                 column += calc_width(chunk, 0, len(chunk))
-            if spaces := layout.next_tab_stop(column) - column:
-                self.insert_text(" " * spaces)
+            spaces = layout.next_tab_stop(column) - column
+            if spaces and not self._insert_typed_text(" " * spaces):
+                return key
             return None
 
         if key == "enter" and self.multiline:
-            key = "\n"
-            self.insert_text(key)
-            return None
+            return None if self._insert_typed_text("\n") else key
 
         command = self._command_map[key]
         if key == "enter" and command == Command.ACTIVATE:

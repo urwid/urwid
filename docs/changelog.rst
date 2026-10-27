@@ -51,6 +51,7 @@ New features 🗹
 * ``LineBox`` titles accept text markup: ``LineBox(w, title=[("key", "F1"), " Help"])`` and ``set_title()`` by @penguinolog in https://github.com/urwid/urwid/pull/1519
 * Add ``ListBox(..., focus_when_empty=False)``, so an empty list does not take the focus, and an opt-in ``delegate_selectable`` that makes ``ScrollBar`` and ``Scrollable`` report the wrapped widget's ``selectable()`` by @penguinolog in https://github.com/urwid/urwid/pull/1520
 * Add the ``Thin5x4Font`` BigText font, letters for ``HalfBlock6x5Font`` and ``HalfBlockHeavy6x5Font``, and the missing ASCII punctuation for every BigText font that has letters by @penguinolog in https://github.com/urwid/urwid/pull/1521
+* Add ``Edit(..., max_length=None)`` and a settable ``Edit.max_length`` property: a key that would go over it is returned unhandled, and longer text from the constructor, ``set_edit_text()`` or ``insert_text()``, or a limit below the current text, raises ``ValueError`` by @penguinolog in https://github.com/urwid/urwid/pull/1524
 
 Deprecations ⚡
 +++++++++++++++
