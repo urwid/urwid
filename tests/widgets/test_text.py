@@ -29,6 +29,32 @@ class TextTest(unittest.TestCase):
                 got = self.t.render((18,))._text
                 assert got == expected, f"got: {got!r} expected: {expected!r}"
 
+    def test_selectable(self) -> None:
+        plain = urwid.Text("plain")
+        row = urwid.Text("row", selectable=True)
+
+        self.assertFalse(plain.selectable())
+        self.assertTrue(row.selectable())
+        self.assertEqual("enter", row.keypress((5,), "enter"))
+        self.assertIsNone(row.render((5,), focus=True).cursor)
+
+        listbox = urwid.ListBox(urwid.SimpleFocusListWalker([plain, row]))
+        listbox.render((5, 2), focus=True)
+        self.assertEqual(1, listbox.focus_position)
+
+    def test_selectable_false_keeps_class_attribute(self) -> None:
+        """The default does not shadow a subclass's class-level ``_selectable``."""
+
+        class AlwaysSelectable(urwid.Text):
+            _selectable = True
+
+            def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:
+                return key
+
+        self.assertTrue(AlwaysSelectable("x").selectable())
+        self.assertTrue(urwid.SelectableIcon("x").selectable())
+        self.assertNotIn("_selectable", vars(urwid.Text("x")))
+
     def test5_encode_error(self):
         with set_temporary_encoding("ascii"):
             expected = [b"?  "]

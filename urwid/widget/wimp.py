@@ -55,20 +55,21 @@ class SelectableIcon(Text):
     def __init__(
         self,
         text: _TagMarkup,
-        cursor_position: int = 0,
+        cursor_position: int | None = 0,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
     ) -> None:
         """Create a text widget that is selectable.
 
-        A cursor is displayed at a fixed location in the text when in focus.
+        A cursor is displayed at a fixed location in the text when in focus, unless *cursor_position* is ``None``.
         This widget has no special handling of keyboard or mouse input.
 
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
-                                text when this widget is in focus
+                                text when this widget is in focus;
+                                ``None`` shows no cursor
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
@@ -98,6 +99,7 @@ class SelectableIcon(Text):
         [b'((*))']
         >>> si.render((), focus=True).cursor
         (2, 0)
+        >>> SelectableIcon("item", None).render((8,), focus=True).cursor
         """
         c: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
@@ -111,7 +113,7 @@ class SelectableIcon(Text):
 
         This method is required for widgets that display a cursor.
         """
-        if self._cursor_position > len(self.text):
+        if self._cursor_position is None or self._cursor_position > len(self.text):
             return None
         # find out where the cursor will be displayed based on
         # the text layout
@@ -637,6 +639,16 @@ class RadioButton(CheckBox):
     state = property(CheckBox.get_state, set_state)
 
 
+def _button_bracket(default: Text, markup: _TagMarkup | None) -> list[tuple[int, Text]]:
+    """Return the :class:`Button` column for one bracket: none when *markup* has no text."""
+    if markup is None:
+        return [(1, default)]
+    bracket = Text(markup)
+    if not bracket.text:
+        return []
+    return [(bracket.pack()[0], bracket)]
+
+
 class Button(WidgetWrap[Columns]):
     """Selectable widget that emits a ``click`` signal when activated."""
 
@@ -655,6 +667,9 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
+        cursor_position: int | None = ...,
+        left: _TagMarkup | None = ...,
+        right: _TagMarkup | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -667,6 +682,9 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
+        cursor_position: int | None = ...,
+        left: _TagMarkup | None = ...,
+        right: _TagMarkup | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -678,6 +696,9 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
+        cursor_position: int | None = 0,
+        left: _TagMarkup | None = None,
+        right: _TagMarkup | None = None,
     ) -> None:
         """Create the Button widget.
 
@@ -688,6 +709,12 @@ class Button(WidgetWrap[Columns]):
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
+        :param cursor_position: position of the cursor in the label when the button is in focus;
+            ``None`` shows no cursor, see :class:`SelectableIcon`
+        :param left: markup for the left bracket, in a column as wide as its text;
+            ``None`` uses :attr:`button_left` in a column of width 1, and markup with no text
+            leaves out the bracket together with the space after it
+        :param right: markup for the right bracket, the same way as *left* with :attr:`button_right`
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 
@@ -715,10 +742,15 @@ class Button(WidgetWrap[Columns]):
         >>> with set_temporary_encoding("utf-8"):
         ...     wrapped_button.render((7,), focus=False).text[0].decode("utf-8")
         '< Lo… >'
+        >>> Button("Ok", left="[[", right="]]").render((8,)).text
+        [b'[[ Ok ]]']
+        >>> Button("Link", left="", right="").render((4,)).text
+        [b'Link']
+        >>> Button("Ok", cursor_position=None).render((6,), focus=True).cursor
         """
-        self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
+        self._label = SelectableIcon(label, cursor_position, align=align, wrap=wrap, layout=layout)
         cols = Columns(
-            [(1, self.button_left), self._label, (1, self.button_right)],
+            [*_button_bracket(self.button_left, left), self._label, *_button_bracket(self.button_right, right)],
             dividechars=1,
         )
         super().__init__(cols)
