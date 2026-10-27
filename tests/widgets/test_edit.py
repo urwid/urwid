@@ -774,6 +774,27 @@ class IntEditTest(unittest.TestCase):
         self.assertEqual(e.edit_text, "0")
         self.assertEqual(e.value(), 0)
 
+    def test_keypress_postchange_once_per_change(self) -> None:
+        """A key sends "postchange" once with the trimmed text and cursor, and not at all when the text stays."""
+
+        def record(seen: list[tuple[str, int]], edit: urwid.IntEdit, old: str) -> None:
+            seen.append((edit.edit_text, edit.edit_pos))
+
+        cases: tuple[tuple[str, str, tuple[str, ...], list[tuple[str, int]]], ...] = (
+            ("digit after zero", "0", ("7",), [("7", 1)]),
+            ("zero after zero", "0", ("0",), []),
+            ("digits into empty", "", ("0", "5"), [("0", 1), ("5", 1)]),
+            ("zeros trimmed after delete", "5002", ("home", "delete", "end"), [("002", 0), ("2", 1)]),
+        )
+        for label, text, keys, expected in cases:
+            with self.subTest(case=label):
+                e = urwid.IntEdit("", text)
+                seen: list[tuple[str, int]] = []
+                urwid.connect_signal(e, "postchange", record, user_args=[seen])
+                for key in keys:
+                    self.assertIsNone(e.keypress((10,), key))
+                self.assertEqual(seen, expected)
+
     def test_keypress_unhandled_passthrough(self) -> None:
         e = urwid.IntEdit()
         self.assertEqual(e.keypress((10,), "shift f1"), "shift f1")

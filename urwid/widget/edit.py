@@ -892,12 +892,38 @@ class IntEdit(Edit):
         if unhandled := super().keypress(size, key):
             return unhandled
 
-        # trim leading zeros, but keep a lone zero
-        while self.edit_pos > 0 and self.edit_text[:1] == "0" and self.edit_text[1:2].isdigit():
-            self.set_edit_pos(self.edit_pos - 1)
-            self.set_edit_text(self.edit_text[1:])
+        text, pos = self._strip_leading_zeros(self.edit_text, self.edit_pos)
+        if text != self.edit_text:
+            self._set_edit_text_and_pos(text, pos)
 
         return None
+
+    def insert_text(self, text: str) -> None:
+        """Insert text at the cursor position and update the cursor, removing the leading zeros before the cursor.
+
+        The result is set at once, so "change" and "postchange" are sent once, and not at all when the text stays
+        the same.
+
+        :param text: text for inserting, type (bytes or unicode) must match the text in the caption
+
+        >>> e = IntEdit("", 0)
+        >>> e.insert_text("7")
+        >>> e
+        <IntEdit selectable flow widget '7' edit_pos=1>
+        """
+        result_text, result_pos = self._strip_leading_zeros(*self.insert_text_result(text))
+        if result_text == self.edit_text:
+            self.set_edit_pos(result_pos)
+        else:
+            self._set_edit_text_and_pos(result_text, result_pos)
+
+    @staticmethod
+    def _strip_leading_zeros(text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return *text* without the leading zeros before *pos*, keeping a lone zero, and *pos* moved with it."""
+        zeros = 0
+        while zeros < pos and text[zeros : zeros + 1] == "0" and text[zeros + 1 : zeros + 2].isdigit():
+            zeros += 1
+        return text[zeros:], pos - zeros
 
     def value(self) -> int:
         """
