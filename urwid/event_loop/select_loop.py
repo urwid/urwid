@@ -26,15 +26,17 @@ from __future__ import annotations
 import contextlib
 import heapq
 import logging
-import selectors
 import time
 import typing
 from contextlib import suppress
 from itertools import count
 
+from urwid._selectors import read_selector
+
 from .abstract_loop import EventLoop, ExitMainLoop
 
 if typing.TYPE_CHECKING:
+    import selectors
     from collections.abc import Callable, Iterator
     from concurrent.futures import Executor, Future
     from typing import ParamSpec
@@ -174,10 +176,7 @@ class SelectEventLoop(EventLoop):
         entering_idle = False
         ready: list[selectors.SelectorKey]
 
-        with selectors.DefaultSelector() as selector:
-            for fd, callback in self._watch_files.items():
-                selector.register(fd, selectors.EVENT_READ, callback)
-
+        with read_selector(self._watch_files.items()) as selector:
             if self._alarms or self._did_something:
                 timeout = 0.0
 

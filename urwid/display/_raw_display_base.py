@@ -40,6 +40,7 @@ import sys
 import typing
 
 from urwid import _deprecation, signals, str_util, util
+from urwid._selectors import read_selector
 
 from . import escape
 from .common import (
@@ -1197,10 +1198,7 @@ class Screen(BaseScreen, RealTerminal):
         fd_list = self.get_input_descriptors()
 
         logger.debug(f"Waiting for input: descriptors={fd_list!r}, timeout={timeout!r}")
-        with selectors.DefaultSelector() as selector:
-            for fd in fd_list:
-                selector.register(fd, selectors.EVENT_READ)
-
+        with read_selector((fd, None) for fd in fd_list) as selector:
             ready = selector.select(timeout)
 
         logger.debug(f"Input ready: {ready}")

@@ -6,8 +6,10 @@ import io
 import itertools
 import os
 import pathlib
+import selectors
 import shutil
 import signal
+import socket
 import stat
 import struct
 import sys
@@ -18,6 +20,7 @@ import weakref
 from unittest import mock
 
 import urwid
+from tests.util import TtyRefusingSelector
 from urwid import signals
 from urwid.display import _raw_display_base, escape
 from urwid.display._raw_display_base import TermModes, detect_term_colors, detect_terminal_properties
@@ -783,6 +786,20 @@ class TestRawDisplay(unittest.TestCase):
         self.assertEqual([], codes)
         # The pipe is now empty: a second call must not find anything left to drain either.
         self.assertEqual([], s.get_available_raw_input())
+
+    def test_input_refused_by_the_default_selector_is_reported_ready(self):
+        """Input the default selector refuses with EINVAL, as kqueue on macOS refuses /dev/tty, is still waited for."""
+        s = urwid.display.raw.Screen()
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+        s.get_input_descriptors = lambda: [rd.fileno()]
+        wr.send(b"x")
+
+        with mock.patch.object(selectors, "DefaultSelector", TtyRefusingSelector):
+            ready = s._wait_for_input_ready(0)
+
+        self.assertEqual([rd.fileno()], ready)
 
     def test_resize_drops_screen_buffer_in_parse_input(self):
         """The resize handler leaves the screen buffer to the drawing thread, which drops it with the report."""
