@@ -87,6 +87,13 @@ class TestScrollable(unittest.TestCase):
         widget = urwid.Scrollable(urwid.Text("hi"))
         self.assertTrue(widget.selectable())
 
+    def test_delegate_selectable(self):
+        """With ``delegate_selectable`` Scrollable reports what the wrapped widget does."""
+        for content, expected in ((urwid.Text("hi"), False), (urwid.Edit("hi"), True)):
+            with self.subTest(content=content):
+                widget = urwid.Scrollable(content, delegate_selectable=True)
+                self.assertIs(expected, widget.selectable())
+
     def test_render_pads_height_and_trims_width(self):
         """A fixed widget wider than the viewport but short enough to fit vertically is padded to the full height,
         has its scroll position reset, and is trimmed horizontally.
@@ -630,6 +637,21 @@ class TestScrollBarScrollable(unittest.TestCase):
 
     def test_selectable(self):
         widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text("hi")))
+        self.assertTrue(widget.selectable())
+
+    def test_delegate_selectable(self):
+        """With ``delegate_selectable`` ScrollBar follows an empty ListBox; without it, it stays selectable."""
+        walker = urwid.SimpleFocusListWalker([])
+        listbox = urwid.ListBox(walker, focus_when_empty=False)
+        self.assertTrue(urwid.ScrollBar(listbox).selectable())
+
+        widget = urwid.ScrollBar(listbox, delegate_selectable=True)
+        self.assertFalse(widget.selectable())
+        walker.append(urwid.Text("a"))
+        self.assertTrue(widget.selectable())
+
+        widget.delegate_selectable = False
+        walker.clear()
         self.assertTrue(widget.selectable())
 
     def test_scrollbar_side_property(self):

@@ -171,10 +171,19 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return frozenset((Sizing.BOX,))
 
     def selectable(self) -> bool:
-        """Return ``True``: a scrollable widget always accepts the input focus."""
-        return True
+        """Return whether the widget accepts the input focus.
 
-    def __init__(self, widget: WrappedScrollWidget, force_forward_keypress: bool = False) -> None:
+        Always ``True``, unless :attr:`delegate_selectable` is set: then what the wrapped widget returns.
+        """
+        return not self.delegate_selectable or self._original_widget.selectable()
+
+    def __init__(
+        self,
+        widget: WrappedScrollWidget,
+        force_forward_keypress: bool = False,
+        *,
+        delegate_selectable: bool = False,
+    ) -> None:
         """Box widget that makes a fixed or flow widget vertically scrollable.
 
         .. note::
@@ -187,6 +196,11 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             It would be better to scroll until the next focusable widget is in sight first.
             But for that to work we must somehow obtain a list of focusable rows in the original canvas.
 
+        :param widget: fixed or flow widget to scroll.
+        :param force_forward_keypress: pass every key to *widget* first, even when it shows no cursor.
+        :param delegate_selectable: take the input focus only when *widget* is selectable.
+            A widget that is not, such as a :class:`Text`, then cannot be scrolled by keys.
+
         :raises ValueError: *widget* is neither a FIXED nor a FLOW widget.
         """
         if not widget.sizing() & frozenset((Sizing.FIXED, Sizing.FLOW)):
@@ -198,6 +212,8 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         self._old_cursor_coords: tuple[int, int] | None = None
         self._rows_max_cached = 0
         self.force_forward_keypress = force_forward_keypress
+        # whether selectable() asks the wrapped widget instead of reporting True
+        self.delegate_selectable = delegate_selectable
         super().__init__(widget)
 
     def render(
@@ -598,8 +614,11 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         return size
 
     def selectable(self) -> bool:
-        """Return ``True``: a scrollbar-wrapped widget always accepts the input focus."""
-        return True
+        """Return whether the widget accepts the input focus.
+
+        Always ``True``, unless :attr:`delegate_selectable` is set: then what the wrapped widget returns.
+        """
+        return not self.delegate_selectable or self._original_widget.selectable()
 
     def __init__(
         self,
@@ -611,6 +630,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         *,
         visible: bool | None = None,
         scroll_by_focus: bool = False,
+        delegate_selectable: bool = False,
         end_markers: tuple[str, str] | None = None,
         attr: Hashable = None,
         focus_attr: Hashable = None,
@@ -637,6 +657,9 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             which has no `set_scrollpos`, by moving its focus to the widget at the top of the new view.
             The focus then changes without passing through the ListBox ``keypress`` or ``mouse_event``,
             so this is off by default for code that tracks the focus there.
+        :param delegate_selectable: take the input focus only when `widget` is selectable;
+            a :class:`ListBox` created with ``focus_when_empty=False`` is not while it is empty.
+            Off by default, so a wrapped widget that is not selectable can still be scrolled by keys.
         :param end_markers: characters drawn in the first and the last scrollbar row, or ``None`` for no markers,
             such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``.
             They are drawn only when the scrollbar has at least 3 rows,
@@ -672,6 +695,8 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self.scrollbar_width = max(1, width)
         self.visible = visible
         self.scroll_by_focus = scroll_by_focus
+        # whether selectable() asks the wrapped widget instead of reporting True
+        self.delegate_selectable = delegate_selectable
         self._end_markers = end_markers
         self._attr = attr
         self._focus_attr = attr if focus_attr is None else focus_attr

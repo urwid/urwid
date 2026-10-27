@@ -615,6 +615,10 @@ In case of other widget types, they should be wrapped to support BOX sizing.
   to the widget at the top of the new view (at the end of the list the view may shift to fill the rows);
   the focus stays when the view does.
   It is off by default, because this focus change does not pass through the :class:`ListBox` input methods.
+* :class:`ScrollBar` and :class:`Scrollable` always accept the input focus.
+  With ``delegate_selectable=True`` they accept it only when the wrapped widget is selectable,
+  so a container moves the focus past a :class:`ListBox` created with ``focus_when_empty=False`` while it is empty.
+  It is off by default, because a wrapped widget that is not selectable then cannot be scrolled by keys.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.
@@ -747,6 +751,13 @@ with ``Text(markup, selectable=True)``.  It takes the focus but shows no
 cursor and returns every key, so the :class:`ListBox` or the application
 handles them; wrap it in an :class:`AttrMap` with a ``focus_map`` to mark the
 row in focus.
+
+A :class:`ListBox` accepts the input focus even when it is empty.  Created
+with ``focus_when_empty=False`` it is not selectable while its body is empty,
+so a container moves the focus past it; wrap it in a :class:`ScrollBar` with
+``delegate_selectable=True`` to keep that behind a scrollbar.  While such a
+ListBox is in focus and empty, its container passes the keys on to its own
+parent instead.
 
 
 Dynamic ListBox with ListWalker

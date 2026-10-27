@@ -218,6 +218,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: ListWalker[_K, AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        focus_when_empty: bool = True,
     ) -> None: ...
 
     @typing.overload
@@ -226,6 +227,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: Iterable[AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        focus_when_empty: bool = True,
     ) -> None: ...
 
     def __init__(
@@ -233,6 +235,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: ListWalker[_K, AbstractFlowWidget] | Iterable[AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        focus_when_empty: bool = True,
     ) -> None:
         """Create the ListBox widget.
 
@@ -240,6 +243,8 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
             that contains widgets to be displayed inside the list box
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
+        :param focus_when_empty: whether the ListBox accepts the input focus while its body is empty;
+            ``False`` lets a container move the focus past an empty ListBox.
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
@@ -285,6 +290,15 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         self._rendered_size = 0, 0
 
         self.select_navigation = select_navigation
+        # whether selectable() reports True while the body has no focus widget
+        self.focus_when_empty = focus_when_empty
+
+    def selectable(self) -> bool:
+        """Return whether the ListBox accepts the input focus.
+
+        With :attr:`focus_when_empty` ``False`` it does not while its body is empty.
+        """
+        return self._selectable and (self.focus_when_empty or self._body.get_focus()[0] is not None)
 
     def _invalidate(self) -> None:
         """Drop the cached canvases and the cached :meth:`rows_max` result."""
