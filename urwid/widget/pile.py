@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import itertools
 import math
 import sys
@@ -73,7 +74,13 @@ class Pile(
         ]
     ],
 ):
-    """A pile of widgets stacked vertically from top to bottom."""
+    """A pile of widgets stacked vertically from top to bottom.
+
+    Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
+    Its handlers receive the container, the old and the new focus position, which is ``None`` while it is empty.
+    """
+
+    signals: typing.ClassVar[list[str]] = ["focus changed"]
 
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
@@ -321,6 +328,8 @@ class Pile(
 
         self.pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = 0
         self.select_navigation = select_navigation
+        # connected last, so that filling the contents during construction sends no signal
+        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:

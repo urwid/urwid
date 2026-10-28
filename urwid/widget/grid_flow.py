@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import typing
 import warnings
 import weakref
@@ -46,7 +47,12 @@ class GridFlow(
     """Flow widget that renders all the widgets it contains the same width.
 
     Arranges them from left to right and top to bottom.
+
+    Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
+    Its handlers receive the container, the old and the new focus position, which is ``None`` while it is empty.
     """
+
+    signals: typing.ClassVar[list[str]] = ["focus changed"]
 
     def sizing(self) -> frozenset[Sizing]:
         """Widget sizing.
@@ -120,6 +126,7 @@ class GridFlow(
         self._contents_generation = 0
         self._contents.set_modified_callback(self._contents_changed)
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
+        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
         self._contents.set_validate_contents_modified(self._contents_modified)
         self._cell_width = cell_width
         self.h_sep = h_sep

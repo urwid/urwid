@@ -529,6 +529,35 @@ returned at its end.  Another list walker that repeats a position is treated
 as ending where the walk comes back to the focus: the search does not loop,
 but the key is returned only when no other selectable widget is left.
 
+.. _focus-changed-signal:
+
+Reacting to Focus Changes
+-------------------------
+
+:class:`Pile`, :class:`Columns` and :class:`GridFlow` send the
+``"focus changed"`` signal after their focus position changed: by a key, a
+mouse click, the ``focus_position`` setter, or a change of ``contents`` that
+moves the focus to another position.  Replacing the widget in focus at the
+same position is not reported.  A handler receives the container, the old and
+the new position; a position is ``None`` while the container is empty.  The
+handler runs after the change, so the container already reports the new
+focus::
+
+    def on_focus_changed(pile, old_position, new_position):
+        status.set_text(f"field {new_position}")
+
+    urwid.connect_signal(pile, "focus changed", on_focus_changed)
+
+The signal is sent once for a change of ``contents``, after the contents
+list's modified callback.  Replacing the callback set with
+``contents.set_focus_changed_callback()``, which runs before the change, does
+not stop the signal.
+
+A handler that moves the focus again sends a new signal before the remaining
+handlers of the first one run, so those see the second change first.  The
+arguments of each signal, not the current ``focus_position``, describe the
+change it reports.
+
 
 Pile Widgets
 ------------
