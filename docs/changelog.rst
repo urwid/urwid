@@ -119,6 +119,8 @@ Containers, lists and walkers
 * Fix Columns cursor and positions for hidden columns by @penguinolog in https://github.com/urwid/urwid/pull/1467
 * Stop base_widget at mock objects by @penguinolog in https://github.com/urwid/urwid/pull/1468
 * Pickle widgets with protocols 0 and 1 on GraalPy, which built them from ``typing.Generic`` and failed by @penguinolog in https://github.com/urwid/urwid/pull/1510
+* Report a ``GridFlow`` mouse event as handled only when a cell handled it or the focus moved, so a parent ``ListBox`` scrolls on the wheel over it; a click on empty space now reaches ``unhandled_input``, as for ``Pile`` and ``Columns`` by @penguinolog in https://github.com/urwid/urwid/pull/1526
+* Skip a child sized ``(GIVEN, 0)``, which is not drawn, when the arrow keys or Tab move the focus in ``Pile``, ``Columns`` and ``GridFlow`` by @penguinolog in https://github.com/urwid/urwid/pull/1526
 
 ScrollBar
 ^^^^^^^^^

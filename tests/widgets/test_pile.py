@@ -1028,6 +1028,35 @@ class PileTest(unittest.TestCase):
         self.assertIsNone(pile.keypress((10,), "down"))
         self.assertEqual(1, pile.focus_position)
 
+    def test_keypress_skips_given_zero(self) -> None:
+        """A child sized ``(GIVEN, 0)`` is not drawn, so neither the arrow keys nor Tab move the focus into it."""
+        for key, start, expected in (("down", 0, 2), ("up", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
+            with self.subTest(key=key):
+                pile = urwid.Pile(
+                    [
+                        SelectableText("a"),
+                        (urwid.GIVEN, 0, urwid.Filler(SelectableText("hidden"))),
+                        SelectableText("c"),
+                    ],
+                    select_navigation=True,
+                )
+                pile.focus_position = start
+                self.assertIsNone(pile.keypress((10,), key))
+                self.assertEqual(expected, pile.focus_position)
+
+    def test_select_reset_skips_given_zero(self) -> None:
+        """The reset past the last child and ``focus_first_selectable`` skip a hidden first child."""
+        pile = urwid.Pile(
+            [(urwid.GIVEN, 0, urwid.Filler(SelectableText("hidden"))), SelectableText("b"), SelectableText("c")],
+            select_navigation=True,
+        )
+        pile.focus_position = 2
+        self.assertEqual("tab", pile.keypress((10,), "tab"))
+        self.assertEqual(1, pile.focus_position)
+        pile.focus_position = 0
+        self.assertTrue(pile.focus_first_selectable())
+        self.assertEqual(1, pile.focus_position)
+
     def test_keypress_move_cursor_retries_rows(self) -> None:
         """The row-by-row cursor placement loop retries until move_cursor_to_coords succeeds."""
         pile = urwid.Pile([SelectableText("above"), urwid.Text("mid"), MultiRowCursorText("below")])

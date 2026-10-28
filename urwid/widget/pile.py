@@ -1057,20 +1057,12 @@ class Pile(
                 return self._select_keypress_unhandled(key)
             if self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents:
                 return key
-            # The child may have changed this Pile's contents or focus while handling the key.
-            i = self.focus_position
+            # The child may have changed this Pile's contents or focus while handling the key,
+            # so the sizes are recalculated and the candidates are taken from the current focus.
             _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
 
-        if self._command_map[key] == Command.UP:
-            candidates = tuple(range(i - 1, -1, -1))  # count backwards to 0
-        else:  # self._command_map[key] == 'cursor down'
-            candidates = tuple(range(i + 1, len(self.contents)))
-
-        for j in candidates:
+        for j in self._select_candidates(reverse=self._command_map[key] == Command.UP, from_edge=False):
             w = self.contents[j][0]
-            if not w.selectable():
-                continue
-
             self._update_pref_col_from_focus(size_args[self.focus_position])
             self.focus_position = j
             if not hasattr(w, "move_cursor_to_coords"):
