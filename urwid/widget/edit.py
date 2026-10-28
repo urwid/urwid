@@ -754,7 +754,7 @@ class Edit(WidgetWrap[Text]):
 
         pos = text_layout.calc_pos(self.get_text()[0], trans, x, y)
         e_pos = min(max(pos - len(self.caption), 0), len(self.edit_text))
-        self.edit_pos = e_pos
+        self.set_edit_pos(e_pos)
         self.pref_col_maxcol = x, maxcol
         self._invalidate()
         return True

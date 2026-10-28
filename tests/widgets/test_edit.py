@@ -450,6 +450,33 @@ class EditTest(unittest.TestCase):
         self.assertEqual(e.moves, [("abx", 3), ("ab", 2)])
         self.assertEqual(seen, [1, 2])
 
+    def test_move_cursor_to_coords_through_set_edit_pos_override(self) -> None:
+        """Up, down, home, end and a mouse click move the cursor through an overridden set_edit_pos()."""
+
+        class RecordingEdit(urwid.Edit):
+            """An Edit subclass recording every set_edit_pos() call."""
+
+            def __init__(self) -> None:
+                self.moves: list[int] = []
+                super().__init__("", "one\ntwo\nthree", multiline=True, edit_pos=5)
+                self.moves.clear()
+
+            def set_edit_pos(self, pos: int) -> None:
+                self.moves.append(pos)
+                super().set_edit_pos(pos)
+
+        for key, expected in (("up", 1), ("down", 9), ("home", 4), ("end", 7)):
+            with self.subTest(key=key):
+                e = RecordingEdit()
+                self.assertIsNone(e.keypress((20,), key))
+                self.assertEqual(e.moves, [expected])
+                self.assertEqual(e.edit_pos, expected)
+
+        e = RecordingEdit()
+        self.assertTrue(e.mouse_event((20,), "mouse press", 1, 2, 2, True))
+        self.assertEqual(e.moves, [10])
+        self.assertEqual(e.edit_pos, 10)
+
     def test_keypress_cursor_after_set_edit_text_override_moves_it(self) -> None:
         """An editing key leaves the cursor at the edit when a set_edit_text() override moves it after the base call."""
 
