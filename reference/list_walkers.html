@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>List Walker Classes &#8212; Urwid 4.2.3</title>
+    <title>List Walker Classes &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
@@ -106,7 +106,7 @@ method defined in a subclass.</p>
 <h2>List-like List Walkers<a class="headerlink" href="#list-like-list-walkers" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.SimpleFocusListWalker">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusListWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusListWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">follow_end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusListWalker" title="Link to this definition">¶</a></dt>
 <dd><p>ListWalker like <a class="reference internal" href="#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a> that also keeps focus tracking items across edits.</p>
 <p>Initialize a list walker, which can be treated as a list since it inherits <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredList</span></code>.</p>
 <p>Changes made to this object (when it is treated as a list) are detected automatically
@@ -118,6 +118,9 @@ cause the focus to be updated intelligently.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>contents</strong> – list to copy into this object</p></li>
 <li><p><strong>wrap_around</strong> – if true, jumps to beginning/end of list on move</p></li>
+<li><p><strong>follow_end</strong> – if true, items added after a focused last item take the focus, so a <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>
+showing a growing log keeps showing its newest line until the user moves the focus up;
+see <code class="xref py py-attr docutils literal notranslate"><span class="pre">MonitoredFocusList.follow_end</span></code></p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -140,13 +143,24 @@ cause the focus to be updated intelligently.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SimpleFocusListWalker.positions">
-<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.positions" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleFocusListWalker.positions" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return an iterable of positions. Optional method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – <em>reverse</em> passed positionally, the deprecated form</p></li>
+<li><p><strong>reverse</strong> – if true, return positions in reverse order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – more than one positional argument is given, or <em>reverse</em> is given both ways.</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>Passing <em>reverse</em> positionally is deprecated. Pass it by keyword.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -229,13 +243,24 @@ and will cause ListBox objects using this list walker to be updated.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SimpleListWalker.positions">
-<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.positions" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleListWalker.positions" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return an iterable of positions. Optional method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – <em>reverse</em> passed positionally, the deprecated form</p></li>
+<li><p><strong>reverse</strong> – if true, return positions in reverse order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – more than one positional argument is given, or <em>reverse</em> is given both ways.</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>Passing <em>reverse</em> positionally is deprecated. Pass it by keyword.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -285,7 +310,7 @@ and will cause ListBox objects using this list walker to be updated.</p>
 <h2>Deque-like List Walkers<a class="headerlink" href="#deque-like-list-walkers" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusDequeWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">SimpleFocusDequeWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">contents</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxlen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">follow_end</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker" title="Link to this definition">¶</a></dt>
 <dd><p>A <a class="reference internal" href="#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a> backed by a <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredFocusDeque</span></code>.</p>
 <p>Mirrors <a class="reference internal" href="#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a> method-for-method, adapted to
 <code class="docutils literal notranslate"><span class="pre">deque</span></code>’s narrower API. See the performance caveat documented on
@@ -305,12 +330,21 @@ intelligently.</p>
 <li><p><strong>maxlen</strong> – if set, bounds the deque’s length; the oldest items are silently evicted
 from the opposite end once full, and focus is adjusted to keep tracking a sensible
 item (see <code class="xref py py-class docutils literal notranslate"><span class="pre">MonitoredFocusDeque</span></code>)</p></li>
+<li><p><strong>follow_end</strong> – if true, items added after a focused last item take the focus, so a <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>
+showing a growing log keeps showing its newest line until the user moves the focus up;
+see <code class="xref py py-attr docutils literal notranslate"><span class="pre">MonitoredFocusDeque.follow_end</span></code></p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ListWalkerError</strong> – <em>contents</em> is not iterable.</p>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.copy" title="Link to this definition">¶</a></dt>
+<dd><p>Return a shallow copy with the same capacity, wrapping and <code class="xref py py-attr docutils literal notranslate"><span class="pre">follow_end</span></code> settings.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.next_position">
 <span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsIndex</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.next_position" title="Link to this definition">¶</a></dt>
@@ -327,13 +361,24 @@ item (see <code class="xref py py-class docutils literal notranslate"><span clas
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SimpleFocusDequeWalker.positions">
-<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleFocusDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return an iterable of positions. Optional method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – <em>reverse</em> passed positionally, the deprecated form</p></li>
+<li><p><strong>reverse</strong> – if true, return positions in reverse order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – more than one positional argument is given, or <em>reverse</em> is given both ways.</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>Passing <em>reverse</em> positionally is deprecated. Pass it by keyword.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -429,13 +474,24 @@ from the opposite end once full</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.SimpleDequeWalker.positions">
-<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.SimpleDequeWalker.positions" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return an iterable of positions. Optional method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>reverse</strong> – if true, return positions in reverse order</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>args</strong> – <em>reverse</em> passed positionally, the deprecated form</p></li>
+<li><p><strong>reverse</strong> – if true, return positions in reverse order</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – more than one positional argument is given, or <em>reverse</em> is given both ways.</p>
 </dd>
 </dl>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>Passing <em>reverse</em> positionally is deprecated. Pass it by keyword.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -508,6 +564,18 @@ from the opposite end once full</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="urwid.TreeWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#urwid.TreeNode" title="urwid.TreeNode"><span class="pre">TreeNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TreeWalker.positions" title="Link to this definition">¶</a></dt>
+<dd><p>Yield the visible nodes of the focused node’s tree in display order.</p>
+<p>The children of a collapsed node are not visible, so they are not yielded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reverse</strong> – yield from the last visible node up to the root instead.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="urwid.TreeWalker.set_focus">
 <span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.TreeNode" title="urwid.widget.treetools.TreeNode"><span class="pre">TreeNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TreeWalker.set_focus" title="Link to this definition">¶</a></dt>
 <dd><p>Set the node in focus and notify listeners that the walker was modified.</p>
@@ -529,12 +597,28 @@ from the opposite end once full</p></li>
 <dt class="sig sig-object py" id="urwid.TreeNode.change_key">
 <span class="sig-name descname"><span class="pre">change_key</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TreeNode.change_key" title="Link to this definition">¶</a></dt>
 <dd><p>Rename this node to <code class="docutils literal notranslate"><span class="pre">key</span></code>, updating the parent’s reference to it as well.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>TreeWidgetError</strong> – this node is the root.
+The parent is not loaded yet and <a class="reference internal" href="#urwid.TreeNode.load_parent" title="urwid.TreeNode.load_parent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">load_parent()</span></code></a> is not overridden.
+<em>key</em> is already a key among the parent’s children, this node’s own key included.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TreeNode.get_depth">
 <span class="sig-name descname"><span class="pre">get_depth</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.TreeNode.get_depth" title="Link to this definition">¶</a></dt>
 <dd><p>Return this node’s depth in the tree, computing and caching it if necessary.</p>
+<p>The ancestors are walked in a loop rather than recursively, so the depth of the tree is not limited by the
+interpreter’s recursion limit.
+Every ancestor whose depth was unknown caches its own depth as well.
+The walk stops at an ancestor whose class overrides this method, and uses the depth that ancestor returns.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>TreeWidgetError</strong> – the parent links form a cycle.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -551,13 +635,13 @@ from the opposite end once full</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TreeNode.get_parent">
-<span class="sig-name descname"><span class="pre">get_parent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.ParentNode" title="urwid.widget.treetools.ParentNode"><span class="pre">ParentNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TreeNode.get_parent" title="Link to this definition">¶</a></dt>
-<dd><p>Return this node’s parent, loading it with <a class="reference internal" href="#urwid.TreeNode.load_parent" title="urwid.TreeNode.load_parent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">load_parent()</span></code></a> if necessary.</p>
+<span class="sig-name descname"><span class="pre">get_parent</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.ParentNode" title="urwid.widget.treetools.ParentNode"><span class="pre">ParentNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.TreeNode.get_parent" title="Link to this definition">¶</a></dt>
+<dd><p>Return this node’s parent, loading it with <a class="reference internal" href="#urwid.TreeNode.load_parent" title="urwid.TreeNode.load_parent"><code class="xref py py-meth docutils literal notranslate"><span class="pre">load_parent()</span></code></a> if necessary, or None for the root.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.TreeNode.get_root">
-<span class="sig-name descname"><span class="pre">get_root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.ParentNode" title="urwid.widget.treetools.ParentNode"><span class="pre">ParentNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TreeNode.get_root" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">get_root</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.TreeNode" title="urwid.widget.treetools.TreeNode"><span class="pre">TreeNode</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.TreeNode.get_root" title="Link to this definition">¶</a></dt>
 <dd><p>Return the root node of the tree this node belongs to.</p>
 </dd></dl>
 
@@ -649,6 +733,7 @@ from the opposite end once full</p></li>
 <dt class="sig sig-object py" id="urwid.ParentNode.get_child_keys">
 <span class="sig-name descname"><span class="pre">get_child_keys</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reload</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.ParentNode.get_child_keys" title="Link to this definition">¶</a></dt>
 <dd><p>Return a possibly ordered list of child keys.</p>
+<p>A reload also drops the cached child nodes whose keys are no longer in the list.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -770,6 +855,7 @@ from the opposite end once full</p></li>
 </li>
 <li><a class="reference internal" href="#deque-like-list-walkers">Deque-like List Walkers</a><ul>
 <li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.copy"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.copy()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.next_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.next_position()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.positions"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.positions()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.SimpleFocusDequeWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker.prev_position()</span></code></a></li>
@@ -793,6 +879,7 @@ from the opposite end once full</p></li>
 <li><a class="reference internal" href="#urwid.TreeWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_focus()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWalker.get_next"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_next()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWalker.get_prev"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_prev()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TreeWalker.positions"><code class="docutils literal notranslate"><span class="pre">TreeWalker.positions()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TreeWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">TreeWalker.set_focus()</span></code></a></li>
 </ul>
 </li>
@@ -879,14 +966,14 @@ from the opposite end once full</p></li>
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

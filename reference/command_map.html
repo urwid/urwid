@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Command Map &#8212; Urwid 4.2.3</title>
+    <title>Command Map &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
@@ -68,7 +68,54 @@
 <dt><kbd class="kbd docutils literal notranslate">space</kbd>, <kbd class="kbd docutils literal notranslate">enter</kbd></dt><dd><p><code class="docutils literal notranslate"><span class="pre">'activate'</span></code></p>
 </dd>
 </dl>
+<p>Only containers created with <code class="docutils literal notranslate"><span class="pre">select_navigation=True</span></code> handle <code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code> and
+<code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code>, see <a class="reference internal" href="../manual/widgets.html#select-navigation"><span class="std std-ref">Moving the Focus with Tab</span></a>.</p>
+<p><a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> also handles these readline-style commands, which no key is mapped to by default:
+<code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">right'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">right'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code> and <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code>.
+A word is a run of letters, digits and underscores, and a line ends at a newline.</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code> stops at punctuation, as readline’s <code class="docutils literal notranslate"><span class="pre">backward-kill-word</span></code> (<kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">backspace</kbd>) does,
+except that an underscore is part of a word here.
+It is not bash’s <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">w</kbd> (<code class="docutils literal notranslate"><span class="pre">unix-word-rubout</span></code>), which deletes back to the previous whitespace.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code> and <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code> work on lines that end at a newline.
+<code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">left'</span></code> and <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">right'</span></code> move to the edge of the screen row instead,
+so on a wrapped line they stop earlier than the deletes reach.</p></li>
+</ul>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span> <span class="o">=</span> <span class="n">CommandMap</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">WORD_LEFT</span><span class="p">,</span> <span class="s2">"meta b"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">DELETE_TO_LINE_START</span><span class="p">,</span> <span class="s2">"ctrl u"</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>Initialize the command map with the class’s default key-to-command bindings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.CommandMap.bind">
+<span class="sig-name descname"><span class="pre">bind</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Command</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CommandMap.bind" title="Link to this definition">¶</a></dt>
+<dd><p>Bind <code class="docutils literal notranslate"><span class="pre">keys</span></code> to <code class="docutils literal notranslate"><span class="pre">command</span></code>, refusing a key that is already bound to a different command.</p>
+<p>A key already bound to <code class="docutils literal notranslate"><span class="pre">command</span></code> is accepted.
+Item assignment (<code class="docutils literal notranslate"><span class="pre">command_map[key]</span> <span class="pre">=</span> <span class="pre">command</span></code>) remains the way to rebind a key on purpose.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span> <span class="o">=</span> <span class="n">CommandMap</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"quit"</span><span class="p">,</span> <span class="s2">"q"</span><span class="p">,</span> <span class="s2">"ctrl c"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="s2">"quit"</span><span class="p">,</span> <span class="s2">"ctrl l"</span><span class="p">)</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Key 'ctrl l' is already bound to 'redraw screen', cannot also bind it to 'quit'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>command</strong> – the command to bind.</p></li>
+<li><p><strong>keys</strong> – keystrokes to bind to <code class="docutils literal notranslate"><span class="pre">command</span></code>, added to those it already has.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – a key in <code class="docutils literal notranslate"><span class="pre">keys</span></code> is already bound to a different command;
+the command map is left unchanged.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.CommandMap.clear_command">
 <span class="sig-name descname"><span class="pre">clear_command</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">command</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Command</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CommandMap.clear_command" title="Link to this definition">¶</a></dt>
@@ -104,6 +151,7 @@
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">Command Map</a><ul>
 <li><a class="reference internal" href="#urwid.CommandMap"><code class="docutils literal notranslate"><span class="pre">CommandMap</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.CommandMap.bind"><code class="docutils literal notranslate"><span class="pre">CommandMap.bind()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.clear_command"><code class="docutils literal notranslate"><span class="pre">CommandMap.clear_command()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.copy"><code class="docutils literal notranslate"><span class="pre">CommandMap.copy()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.restore_defaults"><code class="docutils literal notranslate"><span class="pre">CommandMap.restore_defaults()</span></code></a></li>
@@ -157,14 +205,14 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

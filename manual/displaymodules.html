@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 4.2.3</title>
+    <title>Display Modules &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -91,14 +91,14 @@ below.</p>
 </tr>
 <tr class="row-odd"><td><p>compatible with any terminal</p></td>
 <td><p>no</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id5" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id6" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>UTF-8 support</p></td>
 <td><p>YES</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id6" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id7" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>bright foreground without bold</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id7" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id8" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a></p></td>
 <td><p>no</p></td>
 </tr>
 <tr class="row-even"><td><p>88-/256-/24-bit color support</p></td>
@@ -113,21 +113,29 @@ below.</p>
 <td><p>YES</p></td>
 <td><p>no</p></td>
 </tr>
+<tr class="row-odd"><td><p>OSC 8 hyperlinks</p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id9" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a></p></td>
+<td><p>no</p></td>
+</tr>
 </tbody>
 </table>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id5" role="doc-footnote">
+<aside class="footnote brackets" id="id6" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">1</a><span class="fn-bracket">]</span></span>
 <p>if the termcap entry exists and TERM environment variable is set
 correctly</p>
 </aside>
-<aside class="footnote brackets" id="id6" role="doc-footnote">
+<aside class="footnote brackets" id="id7" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">2</a><span class="fn-bracket">]</span></span>
 <p>if python is linked against the wide version of ncurses</p>
 </aside>
-<aside class="footnote brackets" id="id7" role="doc-footnote">
+<aside class="footnote brackets" id="id8" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">3</a><span class="fn-bracket">]</span></span>
 <p>when using xterm or gnome-terminal</p>
+</aside>
+<aside class="footnote brackets" id="id9" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">4</a><span class="fn-bracket">]</span></span>
+<p>after <code class="docutils literal notranslate"><span class="pre">set_terminal_properties(hyperlinks=True)</span></code>, see <a class="reference internal" href="displayattributes.html#hyperlinks"><span class="std std-ref">Hyperlinks</span></a></p>
 </aside>
 </aside>
 </section>
@@ -170,7 +178,7 @@ LCD character display devices and a complete implementation of a
 </section>
 </section>
 <section id="setting-a-palette">
-<span id="id8"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Link to this heading">¶</a></h2>
+<span id="id10"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> constructor takes a <em>palette</em> parameter that it passes
 to the <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">register_palette()</span></code></a> method of your display module.</p>
 <p>A palette is a list of <a class="reference internal" href="displayattributes.html#display-attributes"><span class="std std-ref">display attribute</span></a> names and foreground
@@ -258,14 +266,14 @@ available.</p>
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Encodings Supported &#8212; Urwid 4.2.3</title>
+    <title>Encodings Supported &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
@@ -66,7 +66,7 @@ user will see “mojibake” (garbage) on their screen.</p>
 encoding that does not round-trip to Unicode properly, or if you’re absolutely
 sure you know what you’re doing.</p>
 <section id="unicode-support">
-<h2>Unicode Support<a class="headerlink" href="#unicode-support" title="Link to this heading">¶</a></h2>
+<span id="id1"></span><h2>Unicode Support<a class="headerlink" href="#unicode-support" title="Link to this heading">¶</a></h2>
 <p>Urwid has a basic understanding of character widths so that the text layout
 code can properly wrap and display most text. There is currently no support for
 right-to-left text.</p>
@@ -81,7 +81,26 @@ graphic characters:</p>
 </pre></div>
 </div>
 <p>If you use these characters with a non-UTF-8 encoding they will be sent using
-the alternate character set sequences supported by some terminals.</p>
+the alternate character set sequences supported by some terminals. This also
+applies to the UTF-8 output of a program running in a <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a>
+widget.</p>
+<p>Any other character that a non-UTF-8 encoding cannot represent is sent as
+<code class="docutils literal notranslate"><span class="pre">?</span></code>. <a class="reference internal" href="../reference/global_settings.html#urwid.set_ascii_fallbacks" title="urwid.set_ascii_fallbacks"><code class="xref py py-func docutils literal notranslate"><span class="pre">urwid.set_ascii_fallbacks()</span></code></a> sets a replacement for such
+characters, for example for the Linux console or a serial console:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">set_ascii_fallbacks</span><span class="p">({</span>
+    <span class="s2">"</span><span class="se">\N{BULLET}</span><span class="s2">"</span><span class="p">:</span> <span class="s2">"*"</span><span class="p">,</span>
+    <span class="s2">"</span><span class="se">\N{FULL BLOCK}</span><span class="s2">"</span><span class="p">:</span> <span class="s2">"</span><span class="se">\N{BOX DRAWINGS LIGHT VERTICAL}</span><span class="s2">"</span><span class="p">,</span>
+<span class="p">})</span>
+</pre></div>
+</div>
+<p>Each key is a single character one column wide, and each replacement is a
+single printable ASCII character or one of the DEC graphic characters above.
+Text layout is measured before the replacement is applied, so a combining or
+wide character is rejected as a key: its replacement would not occupy the same
+columns. The DEC graphic characters are translated first, so a replacement for
+one of them is never used, and the table is not used with UTF-8. Byte text
+markup uses only the printable ASCII replacements, since byte text cannot carry
+the DEC graphic characters.</p>
 </section>
 <section id="pass-through-support">
 <h2>Pass-through Support<a class="headerlink" href="#pass-through-support" title="Link to this heading">¶</a></h2>
@@ -182,14 +201,14 @@ Unicode text to display the characters it supports.</p>
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

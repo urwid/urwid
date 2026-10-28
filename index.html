@@ -4,12 +4,12 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title> &#8212; Urwid 4.2.3</title>
+    <title> &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="_static/documentation_options.js?v=e756e73c"></script>
+    <script src="_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="_static/doctools.js?v=fd6eb6e6"></script>
     <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -23,7 +23,7 @@
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              accesskey="I">index</a></li>
-        <li class="nav-item nav-item-0"><a href="#">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">Urwid 5.0.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href=""></a></li> 
       </ul>
     </div>  
@@ -39,8 +39,8 @@
 
 <ul>
 
-<li><a href="https://pypi.org/packages/source/u/urwid/urwid-4.2.3.tar.gz"
->Download: urwid-4.2.3.tar.gz</a></li>
+<li><a href="https://pypi.org/packages/source/u/urwid/urwid-5.0.0.tar.gz"
+>Download: urwid-5.0.0.tar.gz</a></li>
 
 <li><a href="changelog.html">Changelog</a></li>
 </ul>
@@ -67,10 +67,10 @@
 
 <h4>Python Versions</h4>
 <ul>
-<li><strong>CPython 3.9, 3.10, 3.11, 3.12, 3.13, 3.14, 3.15</strong> - Full support for all extras</li>
+<li><strong>CPython 3.11, 3.12, 3.13, 3.14, 3.15</strong> - Full support for all extras</li>
 <li><strong>CPython 3.13+ with free-threading</strong> (PEP 703 --disable-gil) - Pure-Python extras only (tornado, trio, twisted, serial, lcd)</li>
-<li><strong>PyPy 3.x</strong> - Compatible extras (tornado, trio, serial, lcd)</li>
-<li><strong>GraalPy 3.11, 3.12</strong> (experimental) - Compatible extras (tornado, serial, lcd)</li>
+<li><strong>PyPy 3.11</strong> - Compatible extras (tornado, trio, serial, lcd)</li>
+<li><strong>GraalPy 3.12, 3.13</strong> (experimental) - Compatible extras (tornado, serial, lcd)</li>
 </ul>
 
 <h4>Operating System</h4>
@@ -79,6 +79,7 @@
 <li><strong>Windows 10+:</strong> Limited support
   <ul>
   <li>Curses display module requires additional setup (windows-curses package)</li>
+  <li>Curses display module is not available on PyPy for Windows (no <code>_curses</code> module and no windows-curses wheels)</li>
   <li>ANSI support required</li>
   <li>Not supported: Terminal widget, file descriptor operations (except sockets), ZMQ event loop</li>
   <li>ZMQ: Not available on Windows (platform limitation)</li>
@@ -215,13 +216,13 @@ Reference</a></p>
         <li class="right" style="margin-right: 10px">
           <a href="genindex.html" title="General Index"
              >index</a></li>
-        <li class="nav-item nav-item-0"><a href="#">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="#">Urwid 5.0.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href=""></a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

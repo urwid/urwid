@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Attributes &#8212; Urwid 4.2.3</title>
+    <title>Display Attributes &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
@@ -54,7 +54,8 @@ or other interfaces to switch modes.</p>
 on your screen instance), you may specify attributes for 16-color, monochrome
 and high color modes. You can then switch between these modes with
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">screen.set_terminal_properties()</span></code>,
-where <code class="docutils literal notranslate"><span class="pre">screen</span></code> is your screen instance or <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MainLoop.screen</span></code></a>.</p>
+where <code class="docutils literal notranslate"><span class="pre">screen</span></code> is your screen instance or <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MainLoop.screen</span></code></a>.
+The same method turns on terminal hyperlinks with <code class="docutils literal notranslate"><span class="pre">hyperlinks=True</span></code> (see <a class="reference internal" href="#hyperlinks"><span class="std std-ref">Hyperlinks</span></a>).</p>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">register_palette()</span> <span class="pre">reference</span></code></a>,</p>
@@ -99,9 +100,11 @@ display attribute <code class="docutils literal notranslate"><span class="pre">'
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">((</span><span class="s1">'attr1'</span><span class="p">,</span> <span class="p">[</span><span class="sa">u</span><span class="s2">"nesting example "</span><span class="p">,</span> <span class="p">(</span><span class="s1">'attr2'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"inside"</span><span class="p">),</span> <span class="sa">u</span><span class="s2">" outside"</span><span class="p">]))</span>
 </pre></div>
 </div>
-<p>When markup is nested only the innermost attribute applies. Here <code class="docutils literal notranslate"><span class="pre">&quot;inside&quot;</span></code>
+<p>When markup is nested the inner attribute is placed over the outer one. Here <code class="docutils literal notranslate"><span class="pre">&quot;inside&quot;</span></code>
 has attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code> and all the rest of the text has attribute
-<code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>.</p>
+<code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>. A color that <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code> leaves to <code class="docutils literal notranslate"><span class="pre">'inherit'</span></code> is taken from <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>
+(see <a class="reference internal" href="#inherit-foreground-background"><span class="std std-ref">Inherited Foreground and Background</span></a>). <a class="reference internal" href="../reference/widget.html#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Text.get_text()</span></code></a> returns such a run as
+<code class="docutils literal notranslate"><span class="pre">LayeredAttr('attr2',</span> <span class="pre">'attr1')</span></code>.</p>
 </section>
 <section id="assigning-display-attributes-with-attrmap">
 <h3>Assigning Display Attributes with AttrMap<a class="headerlink" href="#assigning-display-attributes-with-attrmap" title="Link to this heading">¶</a></h3>
@@ -127,6 +130,14 @@ whitespace will appear with display attribute <code class="docutils literal notr
 the <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget that are using <code class="docutils literal notranslate"><span class="pre">'attr1'</span></code>.  The result is the <code class="docutils literal notranslate"><span class="pre">&quot;hello&quot;</span></code>
 text appearing with display attribute <code class="docutils literal notranslate"><span class="pre">'attr2'</span></code> and all other text and whitespace
 appearing in the default display attribute.</p>
+<p>The attributes of the wrapped widget are placed over the attribute <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> gives to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, so a color they leave to <code class="docutils literal notranslate"><span class="pre">'inherit'</span></code> is taken from it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">AttrMap</span><span class="p">(</span><span class="n">Pile</span><span class="p">([</span><span class="n">Text</span><span class="p">((</span><span class="s1">'red_fg'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"error"</span><span class="p">)),</span> <span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">"plain"</span><span class="p">)]),</span> <span class="s1">'panel_bg'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">('red_fg',</span> <span class="pre">'dark</span> <span class="pre">red',</span> <span class="pre">'inherit')</span></code> and <code class="docutils literal notranslate"><span class="pre">('panel_bg',</span> <span class="pre">'inherit',</span> <span class="pre">'dark</span> <span class="pre">blue')</span></code> in the
+palette, <code class="docutils literal notranslate"><span class="pre">&quot;error&quot;</span></code> is dark red and all other text and whitespace is in the default foreground,
+everything on dark blue.</p>
 <p><a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> can also change display attributes differently when they are in focus.
 This can be used to “highlight” one or more widgets to make your interface more
 user friendly.  To use this feature set the <code class="docutils literal notranslate"><span class="pre">focus_map</span></code> parameter when creating the
@@ -206,13 +217,13 @@ user friendly.  To use this feature set the <code class="docutils literal notran
 <td></td>
 <td><p>some support</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="#id5"><span class="std std-ref">256-color foreground/background</span></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="#id6"><span class="std std-ref">256-color foreground/background</span></a></p></td>
 <td><p>YES</p></td>
 <td></td>
 <td></td>
 <td><p>some support</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="#id7"><span class="std std-ref">88-color foreground/background</span></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="#id8"><span class="std std-ref">88-color foreground/background</span></a></p></td>
 <td><p>w/palette setting</p></td>
 <td><p>urxvt</p></td>
 <td></td>
@@ -272,6 +283,58 @@ way to tell what the default colors are, so it is best to use default
 foregrounds and backgrounds together (not with other colors) to ensure good
 contrast.</p>
 </section>
+<section id="inherited-foreground-and-background">
+<span id="inherit-foreground-background"></span><h3>Inherited Foreground and Background<a class="headerlink" href="#inherited-foreground-and-background" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'inherit'</span></code></p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">'inherit'</span></code> may be specified as a foreground or background color (with settings:
+<code class="docutils literal notranslate"><span class="pre">'inherit,bold'</span></code>) to take that color from the enclosing display attribute: the
+attribute of the outer markup, or the attribute an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> around the widget gives to
+<code class="docutils literal notranslate"><span class="pre">None</span></code>. With nothing enclosing it, the color comes from the <code class="docutils literal notranslate"><span class="pre">None</span></code> palette entry, so
+registering <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">'default',</span> <span class="pre">'dark</span> <span class="pre">magenta')</span></code> gives every attribute with an <code class="docutils literal notranslate"><span class="pre">'inherit'</span></code>
+background a dark magenta background. A color is resolved separately for each run of text, so
+the text after a run with its own background shows the enclosing background again.</p>
+<p>This lets a few foreground-only and background-only palette entries replace an entry for every
+combination of them. To highlight the focused row of a list whose text uses many foreground
+colors, give those entries an <code class="docutils literal notranslate"><span class="pre">'inherit'</span></code> background and wrap each row:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="p">(</span><span class="s1">'method'</span><span class="p">,</span> <span class="s1">'light green'</span><span class="p">,</span> <span class="s1">'inherit'</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'size'</span><span class="p">,</span> <span class="s1">'brown'</span><span class="p">,</span> <span class="s1">'inherit'</span><span class="p">),</span>
+    <span class="p">(</span><span class="s1">'focus_bg'</span><span class="p">,</span> <span class="s1">'inherit'</span><span class="p">,</span> <span class="s1">'dark blue'</span><span class="p">),</span>
+<span class="p">]</span>
+<span class="n">row</span> <span class="o">=</span> <span class="n">AttrMap</span><span class="p">(</span><span class="n">Columns</span><span class="p">([</span><span class="n">Text</span><span class="p">((</span><span class="s1">'method'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"GET"</span><span class="p">)),</span> <span class="n">Text</span><span class="p">((</span><span class="s1">'size'</span><span class="p">,</span> <span class="sa">u</span><span class="s2">"1k"</span><span class="p">))]),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s1">'focus_bg'</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>When an attribute inherits a color, a setting (<code class="docutils literal notranslate"><span class="pre">'bold'</span></code>, <code class="docutils literal notranslate"><span class="pre">'underline'</span></code>, …) it does not
+mention is taken from the enclosing attribute, and <code class="docutils literal notranslate"><span class="pre">'no-'</span></code> turns one off: with
+<code class="docutils literal notranslate"><span class="pre">('plain',</span> <span class="pre">'inherit,no-bold',</span> <span class="pre">'inherit')</span></code> inside a bold attribute, the text is not bold. An
+attribute that sets both colors, including <code class="docutils literal notranslate"><span class="pre">'default'</span></code> and <code class="docutils literal notranslate"><span class="pre">''</span></code>, hides the enclosing
+attribute completely, settings included. Attributes are combined from the outermost inward, so
+each one keeps what all of the attributes around it set. <a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> turns an SGR reset
+such as <code class="docutils literal notranslate"><span class="pre">ESC[24m</span></code> into <code class="docutils literal notranslate"><span class="pre">'no-underline'</span></code>, so the reset also applies to the enclosing attribute.
+It keeps bold apart from the color: <code class="docutils literal notranslate"><span class="pre">ESC[1;31m</span></code> is <code class="docutils literal notranslate"><span class="pre">'dark</span> <span class="pre">red,bold'</span></code>, which the raw display draws
+in light red where the terminal shows bold text in bright colors.</p>
+<p>A change to a palette entry shows on the next <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.draw_screen()</span></code></a>, and neither the
+widgets nor the screen have to be redrawn for it: the raw and web displays compare each drawn
+row by its resolved colors and write again only the rows whose colors changed, and curses
+writes every row on each draw.</p>
+<p><a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec.layered_over" title="urwid.AttrSpec.layered_over"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AttrSpec.layered_over()</span></code></a> combines two specifications. Canvases record the enclosing
+attributes as a <a class="reference internal" href="../reference/attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a>; a custom display module turns any canvas attribute into an
+<a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> with <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.resolve_attr" title="urwid.BaseScreen.resolve_attr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.resolve_attr()</span></code></a> instead of reading the palette itself.
+An <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> can replace a <a class="reference internal" href="../reference/attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a> as a whole by using it as a key.</p>
+<p>Code written for earlier releases sees these differences, also with palettes that never use
+<code class="docutils literal notranslate"><span class="pre">'inherit'</span></code>:</p>
+<ul class="simple">
+<li><p>Nested markup and attributes inside an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> appear as <a class="reference internal" href="../reference/attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a> in
+<a class="reference internal" href="../reference/widget.html#urwid.Text.get_text" title="urwid.Text.get_text"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Text.get_text()</span></code></a> and in canvas content, where they used to be the innermost name.</p></li>
+<li><p>A display module that reads <code class="docutils literal notranslate"><span class="pre">self._palette</span></code> itself shows layered attributes in default
+colors; it calls <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.resolve_attr" title="urwid.BaseScreen.resolve_attr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.resolve_attr()</span></code></a> instead.</p></li>
+<li><p>An attribute an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> maps to <code class="docutils literal notranslate"><span class="pre">None</span></code> shows the map’s <code class="docutils literal notranslate"><span class="pre">None</span></code> attribute.</p></li>
+<li><p><a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec.copy_modified" title="urwid.AttrSpec.copy_modified"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AttrSpec.copy_modified()</span></code></a> without <code class="docutils literal notranslate"><span class="pre">colors</span></code> keeps the 88-color or true-color mode of the
+specification, and uses 256 colors otherwise, instead of the fewest colors it needs.</p></li>
+</ul>
+</section>
 <section id="bold-underline-standout">
 <span id="id4"></span><h3>Bold, Underline, Standout<a class="headerlink" href="#bold-underline-standout" title="Link to this heading">¶</a></h3>
 <ul class="simple">
@@ -284,7 +347,8 @@ contrast.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">'faint'</span></code></p></li>
 </ul>
 <p>These settings may be tagged on to foreground colors using commas, eg: <code class="docutils literal notranslate"><span class="pre">'light</span>
-<span class="pre">gray,underline,bold,strikethrough'</span></code></p>
+<span class="pre">gray,underline,bold,strikethrough'</span></code>. <code class="docutils literal notranslate"><span class="pre">'no-'</span></code> in front of one turns it off over an enclosing
+attribute (see <a class="reference internal" href="#inherit-foreground-background"><span class="std std-ref">Inherited Foreground and Background</span></a>).</p>
 <p>For monochrome mode combinations of these are the only values that may be used.</p>
 <p>Many terminals will turn foreground colors into their bright versions when you
 use bold, eg: <code class="docutils literal notranslate"><span class="pre">'dark</span> <span class="pre">blue,bold'</span></code> might look the same as <code class="docutils literal notranslate"><span class="pre">'light</span> <span class="pre">blue'</span></code>.
@@ -292,6 +356,52 @@ Some terminals also will display bright colors in a bold font even if you don’
 specify bold. To inhibit this you can try setting <code class="docutils literal notranslate"><span class="pre">bright_is_bold=False</span></code> with
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.set_terminal_properties()</span></code>, but it is not always supported.</p>
 <p><code class="docutils literal notranslate"><span class="pre">'standout'</span></code> is usually displayed as the foreground and background colors reversed.</p>
+</section>
+<section id="hyperlinks">
+<span id="id5"></span><h3>Hyperlinks<a class="headerlink" href="#hyperlinks" title="Link to this heading">¶</a></h3>
+<p>Text can be drawn as a terminal hyperlink (OSC 8), which the user opens by clicking it.
+A link is not part of a palette entry: it belongs to a run of text, so it is an <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>
+with the <code class="docutils literal notranslate"><span class="pre">hyperlink</span></code> keyword.
+Its colors default to <code class="docutils literal notranslate"><span class="pre">'inherit'</span></code>, so it can be placed inside any other display attribute:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="p">(</span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">hyperlink</span><span class="o">=</span><span class="s2">"https://urwid.org"</span><span class="p">),</span> <span class="s2">"urwid"</span><span class="p">))])</span>
+</pre></div>
+</div>
+<p>The text keeps the colors and settings of <code class="docutils literal notranslate"><span class="pre">&quot;bold&quot;</span></code> and gains the link.
+An attribute without a link takes the link of the attribute around it, and
+<a class="reference internal" href="../reference/attrspec.html#urwid.NO_HYPERLINK" title="urwid.NO_HYPERLINK"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a> turns it off: <code class="docutils literal notranslate"><span class="pre">AttrSpec(hyperlink=NO_HYPERLINK)</span></code> inside a link is drawn unlinked.
+<a class="reference internal" href="../reference/attrspec.html#urwid.Hyperlink" title="urwid.Hyperlink"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hyperlink</span></code></a> also takes an <code class="docutils literal notranslate"><span class="pre">id</span></code>, which makes the terminal highlight several separate runs as one link.
+A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.</p>
+<p><a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a> turn the OSC 8 sequences in their input into such attributes.
+SGR sequences, <code class="docutils literal notranslate"><span class="pre">ESC[0m</span></code> included, leave the link in place, as they do in a terminal.
+An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.</p>
+<p>The raw display draws links only after
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">screen.set_terminal_properties(hyperlinks=True)</span></code>.
+No terminal query for OSC 8 support exists, and a terminal without it may show the link sequences as text,
+so an application turns links on when it knows its terminal supports them.
+These terminals support OSC 8:</p>
+<ul class="simple">
+<li><p>VTE 0.50 and later (GNOME Terminal, Tilix and others)</p></li>
+<li><p>iTerm2 3.1 and later</p></li>
+<li><p>kitty 0.19 and later</p></li>
+<li><p>WezTerm</p></li>
+<li><p>foot 1.7 and later</p></li>
+<li><p>Alacritty 0.11 and later</p></li>
+<li><p>Windows Terminal 1.4 and later</p></li>
+<li><p>Konsole, when turned on in its settings</p></li>
+<li><p>Ghostty</p></li>
+<li><p>mintty 2.9.7 and later</p></li>
+<li><p>the VS Code terminal 1.72 and later</p></li>
+<li><p>tmux 3.4 and later, with <code class="docutils literal notranslate"><span class="pre">set</span> <span class="pre">-as</span> <span class="pre">terminal-features</span> <span class="pre">&quot;*:hyperlinks&quot;</span></code></p></li>
+</ul>
+<p>GNU screen does not support it.</p>
+<p>The curses and LCD displays draw linked text without the link.
+The HTML screenshot and web displays turn a link into an <code class="docutils literal notranslate"><span class="pre">&lt;a&gt;</span></code> element when its scheme is
+<code class="docutils literal notranslate"><span class="pre">http</span></code>, <code class="docutils literal notranslate"><span class="pre">https</span></code>, <code class="docutils literal notranslate"><span class="pre">mailto</span></code>, <code class="docutils literal notranslate"><span class="pre">sftp</span></code> or <code class="docutils literal notranslate"><span class="pre">file</span></code>, and draw any other link as plain text,
+since a scheme such as <code class="docutils literal notranslate"><span class="pre">javascript</span></code> would run script in the page.</p>
+<p>An application can also write OSC 8 bytes itself, in a canvas run with the <code class="docutils literal notranslate"><span class="pre">&quot;U&quot;</span></code> character set.
+The raw display writes such a run unchanged: the link it opens belongs to the application, which also closes it.
+urwid’s own links wrap only the runs whose attribute has a link, and the next such run after a <code class="docutils literal notranslate"><span class="pre">&quot;U&quot;</span></code> run
+opens its link again.</p>
 </section>
 <section id="bright-background-colors">
 <span id="bright-background"></span><h3>“Bright” Background Colors<a class="headerlink" href="#bright-background-colors" title="Link to this heading">¶</a></h3>
@@ -325,7 +435,7 @@ of 24-bit color mode unless properly configured.</p>
 </div>
 </section>
 <section id="color-foreground-and-background-colors">
-<span id="id5"></span><h3>256-Color Foreground and Background Colors<a class="headerlink" href="#color-foreground-and-background-colors" title="Link to this heading">¶</a></h3>
+<span id="id6"></span><h3>256-Color Foreground and Background Colors<a class="headerlink" href="#color-foreground-and-background-colors" title="Link to this heading">¶</a></h3>
 <p>In 256-color mode you have the 16 basic colors, a 6 * 6 * 6 color cube and a gray
 scale with 24 entries (white and black not included).</p>
 <p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal notranslate"><span class="pre">0</span></code>,
@@ -341,8 +451,8 @@ gray scale entries <code class="docutils literal notranslate"><span class="pre">
 <p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/palette_test.py">palette_test.py</a> example program</p>
 </div>
 </section>
-<section id="id7">
-<span id="id8"></span><h3>88-Color Foreground and Background Colors<a class="headerlink" href="#id7" title="Link to this heading">¶</a></h3>
+<section id="id8">
+<span id="id9"></span><h3>88-Color Foreground and Background Colors<a class="headerlink" href="#id8" title="Link to this heading">¶</a></h3>
 <p>In 88-color mode you have the 16 basic colors, a 4 * 4 * 4 color cube and a gray
 scale with 8 entries (white and black not included).</p>
 <p>The color cube is weighted towards the brighter colors, with RGB points at <code class="docutils literal notranslate"><span class="pre">0</span></code>,
@@ -358,12 +468,18 @@ gray scale entries <code class="docutils literal notranslate"><span class="pre">
 </div>
 </section>
 <section id="rgb-palette-setting">
-<span id="id10"></span><h3>RGB Palette Setting<a class="headerlink" href="#rgb-palette-setting" title="Link to this heading">¶</a></h3>
+<span id="id11"></span><h3>RGB Palette Setting<a class="headerlink" href="#rgb-palette-setting" title="Link to this heading">¶</a></h3>
 <p>A few terminals have the ability to customize the terminal palette’s RGB
-values with <code class="xref py py-meth docutils literal notranslate"><span class="pre">raw_display.Screen.modify_terminal_palette()</span></code>.
+values with <code class="xref py py-meth docutils literal notranslate"><span class="pre">display.raw.Screen.modify_terminal_palette()</span></code>.
 There is no automatic way to tell if this is supported by a user’s
 terminal, so this feature shouldn’t be relied on.</p>
-<p><code class="xref py py-meth docutils literal notranslate"><span class="pre">raw_display.Screen.reset_default_terminal_palette()</span></code> is used to
+<p>Most terminals take the xterm OSC 4 sequence.
+On the Linux console (<code class="docutils literal notranslate"><span class="pre">TERM=linux</span></code> and its variants) the console’s own sequence is used instead,
+which covers only the 16 basic colors: entries 16-255 are skipped there.
+Check which terminal is in use (<code class="docutils literal notranslate"><span class="pre">Screen.term</span></code>) before relying on a modified palette.
+The modified entries are reset to the terminal’s default when the screen stops;
+the Linux console resets all 16 entries, and fbterm, which has no reset sequence, keeps them.</p>
+<p><code class="xref py py-meth docutils literal notranslate"><span class="pre">display.raw.Screen.reset_default_terminal_palette()</span></code> is used to
 reset the palette in the <code class="docutils literal notranslate"><span class="pre">palette_test.py</span></code> example program when switching modes.</p>
 </section>
 </section>
@@ -412,11 +528,13 @@ edit boxes).</p>
 <li><a class="reference internal" href="#standard-foreground-colors">16 Standard Foreground Colors</a></li>
 <li><a class="reference internal" href="#standard-background-colors">8 Standard Background Colors</a></li>
 <li><a class="reference internal" href="#default-foreground-and-background">Default Foreground and Background</a></li>
+<li><a class="reference internal" href="#inherited-foreground-and-background">Inherited Foreground and Background</a></li>
 <li><a class="reference internal" href="#bold-underline-standout">Bold, Underline, Standout</a></li>
+<li><a class="reference internal" href="#hyperlinks">Hyperlinks</a></li>
 <li><a class="reference internal" href="#bright-background-colors">“Bright” Background Colors</a></li>
 <li><a class="reference internal" href="#bit-foreground-and-background-colors">24-Bit Foreground and Background Colors</a></li>
 <li><a class="reference internal" href="#color-foreground-and-background-colors">256-Color Foreground and Background Colors</a></li>
-<li><a class="reference internal" href="#id7">88-Color Foreground and Background Colors</a></li>
+<li><a class="reference internal" href="#id8">88-Color Foreground and Background Colors</a></li>
 <li><a class="reference internal" href="#rgb-palette-setting">RGB Palette Setting</a></li>
 </ul>
 </li>
@@ -473,14 +591,14 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

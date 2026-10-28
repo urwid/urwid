@@ -29,6 +29,17 @@ WidgetContainerMixin
 
 .. autoclass:: WidgetContainerMixin
 
+SelectNavigationMixin
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationMixin
+   :private-members: _select_candidates, _select_enter_focus, _select_keypress_unhandled
+
+SelectNavigationListContentsMixin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationListContentsMixin
+
 
 Basic Widget Classes
 --------------------
@@ -47,21 +58,6 @@ IntEdit
 ~~~~~~~
 
 .. autoclass:: IntEdit
-
-Button
-~~~~~~
-
-.. autoclass:: Button
-
-CheckBox
-~~~~~~~~
-
-.. autoclass:: CheckBox
-
-RadioButton
-~~~~~~~~~~~
-
-.. autoclass:: RadioButton
 
 TreeWidget
 ~~~~~~~~~~
@@ -83,6 +79,32 @@ FloatEdit
 ~~~~~~~~~~~
 
 .. autoclass:: FloatEdit
+
+
+Control Widget Classes
+----------------------
+
+.. currentmodule:: urwid
+
+Button
+~~~~~~
+
+.. autoclass:: Button
+
+CheckBox
+~~~~~~~~
+
+.. autoclass:: CheckBox
+
+RadioButton
+~~~~~~~~~~~
+
+.. autoclass:: RadioButton
+
+DropDown
+~~~~~~~~
+
+.. autoclass:: DropDown
 
 
 Special cases text widgets
@@ -134,6 +156,9 @@ SolidFill
 
 .. autoclass:: SolidFill
 
+Pop-up Widget Classes
+---------------------
+
 PopUpLauncher
 ~~~~~~~~~~~~~
 
@@ -144,15 +169,18 @@ PopUpTarget
 
 .. autoclass:: PopUpTarget
 
-WidgetPlaceholder
-~~~~~~~~~~~~~~~~~
-
-.. autoclass:: WidgetPlaceholder
+Special Widget Classes
+----------------------
 
 WidgetDisable
 ~~~~~~~~~~~~~
 
 .. autoclass:: WidgetDisable
+
+WidgetPlaceholder
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetPlaceholder
 
 Container Widget Classes
 ------------------------
@@ -240,5 +268,8 @@ ScrollBar
 ~~~~~~~~~
 
 .. autoclass:: ScrollBar
+
+.. autoclass:: urwid.widget.scrollable.ScrollbarSymbols
+   :undoc-members:
 
 .. currentmodule:: urwid

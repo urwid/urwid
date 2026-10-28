@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Raw Display Attributes &#8212; Urwid 4.2.3</title>
+    <title>Raw Display Attributes &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
@@ -47,7 +47,7 @@
 <h1>Raw Display Attributes<a class="headerlink" href="#raw-display-attributes" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrSpec">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrSpec</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'inherit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'inherit'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperlink</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Hyperlink" title="urwid.Hyperlink"><span class="pre">Hyperlink</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrSpec" title="Link to this definition">¶</a></dt>
 <dd><p>Text attribute specification, encoding foreground and background colors and display settings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -55,6 +55,7 @@
 <li><p><strong>fg</strong> – <p>a string containing a comma-separated foreground color and settings</p>
 <p>Color values:
 ‘default’ (use the terminal’s default foreground),
+‘inherit’ (take the color from the enclosing attribute, see <a class="reference internal" href="#urwid.AttrSpec.layered_over" title="urwid.AttrSpec.layered_over"><code class="xref py py-meth docutils literal notranslate"><span class="pre">layered_over()</span></code></a>),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
 ‘dark magenta’, ‘dark cyan’, ‘light gray’, ‘dark gray’,
 ‘light red’, ‘light green’, ‘yellow’, ‘light blue’,
@@ -68,7 +69,9 @@
 ‘#fff’, ‘g100’, ‘g#ff’ (white)
 ‘h8’ (color number 8), ‘h255’ (color number 255)</p>
 <p>Setting:
-‘bold’, ‘italics’, ‘underline’, ‘blink’, ‘standout’, ‘strikethrough’, ‘faint’</p>
+‘bold’, ‘italics’, ‘underline’, ‘blink’, ‘standout’, ‘strikethrough’, ‘faint’;
+with ‘no-’ in front (‘no-bold’) a setting is turned off rather than taken from the
+enclosing attribute; it is part of the attribute, so ‘red,no-bold’ and ‘red’ are unequal</p>
 <p>Some terminals use ‘bold’ for bright colors.
 Most terminals ignore the ‘blink’ setting.
 If the color is not given then ‘default’ will be assumed.</p>
@@ -76,21 +79,28 @@ If the color is not given then ‘default’ will be assumed.</p>
 <li><p><strong>bg</strong> – <p>a string containing the background color</p>
 <p>Color values:
 ‘default’ (use the terminal’s default background),
+‘inherit’ (take the color from the enclosing attribute),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
 ‘dark magenta’, ‘dark cyan’, ‘light gray’</p>
 <p>High-color exaples:
 see fg examples above</p>
 <p>An empty string will be treated the same as ‘default’.</p>
 </p></li>
-<li><p><strong>colors</strong> – the maximum colors available for the specification</p></li>
-</ul>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>AttrSpecError</strong> – <p><em>colors</em> is not a supported palette size, or <em>fg</em>/<em>bg</em> need more colours than <em>colors</em>.</p>
+<li><p><strong>colors</strong> – <p>the maximum colors available for the specification</p>
 <p>Valid values include: 1, 16, 88, 256, and 2**24.  High-color
 values are only usable with 88, 256, or 2**24 colors.  With
 1 color only the foreground settings may be used.</p>
-</p>
+</p></li>
+<li><p><strong>hyperlink</strong> – the terminal hyperlink of the text, a string being its URI;
+<code class="docutils literal notranslate"><span class="pre">None</span></code> takes the link of the enclosing attribute, and <a class="reference internal" href="#urwid.NO_HYPERLINK" title="urwid.NO_HYPERLINK"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a> hides it.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>AttrSpecError</strong> – <em>colors</em> is not a supported palette size.
+<em>fg</em> or <em>bg</em> is invalid, or needs more colours than <em>colors</em>.</p></li>
+<li><p><strong>ValueError</strong> – <em>hyperlink</em> is a string that is not a valid <a class="reference internal" href="#urwid.Hyperlink" title="urwid.Hyperlink"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hyperlink</span></code></a> URI.</p></li>
+</ul>
 </dd>
 </dl>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"dark red"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
@@ -101,6 +111,10 @@ values are only usable with 88, 256, or 2**24 colors.  With
 <span class="go">AttrSpec('#dda', '#006')</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"#ddb"</span><span class="p">,</span> <span class="s2">"#004"</span><span class="p">,</span> <span class="mi">88</span><span class="p">)</span>
 <span class="go">AttrSpec('#ccc', '#000', colors=88)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"inherit,bold"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">)</span>
+<span class="go">AttrSpec('inherit,bold', 'dark blue')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">hyperlink</span><span class="o">=</span><span class="s2">"https://urwid.org"</span><span class="p">)</span>
+<span class="go">AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -119,6 +133,12 @@ values are only usable with 88, 256, or 2**24 colors.  With
 <dt class="sig sig-object py" id="urwid.AttrSpec.background_high">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">background_high</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.AttrSpec.background_high" title="Link to this definition">¶</a></dt>
 <dd><p>Return whether the background color is a 88- or 256-color palette entry.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.AttrSpec.background_inherit">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">background_inherit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.AttrSpec.background_inherit" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether the background color is taken from the enclosing attribute.</p>
 </dd></dl>
 
 <dl class="py property">
@@ -154,8 +174,30 @@ values are only usable with 88, 256, or 2**24 colors.  With
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.AttrSpec.copy_modified">
-<span class="sig-name descname"><span class="pre">copy_modified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#urwid.AttrSpec.copy_modified" title="Link to this definition">¶</a></dt>
-<dd><p>Return a new <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>, replacing <em>fg</em>, <em>bg</em>, and/or <em>colors</em> with the given values.</p>
+<span class="sig-name descname"><span class="pre">copy_modified</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">hyperlink</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Hyperlink" title="urwid.Hyperlink"><span class="pre">Hyperlink</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="pre">_Keep.KEEP</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">_Keep.KEEP</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Self</span></span></span><a class="headerlink" href="#urwid.AttrSpec.copy_modified" title="Link to this definition">¶</a></dt>
+<dd><p>Return a new <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>, replacing <em>fg</em>, <em>bg</em>, <em>colors</em> and/or <em>hyperlink</em> with the given values.</p>
+<p>Without <em>colors</em>, the result uses 88 colors or true color when this specification was made for them,
+else 256 colors, so a color can be added to a specification that has none.
+The hyperlink is kept unless <em>hyperlink</em> is given; <code class="docutils literal notranslate"><span class="pre">None</span></code> makes the result take the enclosing one.</p>
+<p>The result is built with this object’s class.
+The <em>hyperlink</em> keyword is passed to its constructor only when the result has a link,
+so a subclass whose constructor takes only <em>fg</em>, <em>bg</em> and <em>colors</em> works for every other change.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>AttrSpecError</strong> – <em>colors</em> is not a supported palette size, or <em>fg</em> or <em>bg</em> is invalid or needs
+more colors than the result has.</p></li>
+<li><p><strong>ValueError</strong> – <em>hyperlink</em> is a string that is not a valid <a class="reference internal" href="#urwid.Hyperlink" title="urwid.Hyperlink"><code class="xref py py-class docutils literal notranslate"><span class="pre">Hyperlink</span></code></a> URI.</p></li>
+<li><p><strong>TypeError</strong> – the result has a link and the constructor of this object’s class does not accept it.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"inherit,bold"</span><span class="p">,</span> <span class="s2">"inherit"</span><span class="p">)</span><span class="o">.</span><span class="n">copy_modified</span><span class="p">(</span><span class="n">bg</span><span class="o">=</span><span class="s2">"dark blue"</span><span class="p">)</span>
+<span class="go">AttrSpec('inherit,bold', 'dark blue')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">hyperlink</span><span class="o">=</span><span class="s2">"https://urwid.org"</span><span class="p">)</span><span class="o">.</span><span class="n">copy_modified</span><span class="p">(</span><span class="n">hyperlink</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="go">AttrSpec('inherit', 'inherit')</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py property">
@@ -183,6 +225,12 @@ values are only usable with 88, 256, or 2**24 colors.  With
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="urwid.AttrSpec.foreground_inherit">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">foreground_inherit</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.AttrSpec.foreground_inherit" title="Link to this definition">¶</a></dt>
+<dd><p>Return whether the foreground color is taken from the enclosing attribute.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrSpec.foreground_number">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">foreground_number</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#urwid.AttrSpec.foreground_number" title="Link to this definition">¶</a></dt>
 <dd><p>Return the encoded foreground color number.</p>
@@ -200,7 +248,7 @@ values are only usable with 88, 256, or 2**24 colors.  With
 <dd><p>Return <code class="docutils literal notranslate"><span class="pre">(fg_red,</span> <span class="pre">fg_green,</span> <span class="pre">fg_blue,</span> <span class="pre">bg_red,</span> <span class="pre">bg_green,</span> <span class="pre">bg_blue)</span></code> color components.</p>
 <p>Each component is in the range 0-255.
 Values are taken from the XTerm defaults and may not exactly match the user’s terminal.</p>
-<p>If the foreground or background is ‘default’ then all their compenents will be returned as None.</p>
+<p>If the foreground or background is ‘default’ or ‘inherit’ then all their components will be returned as None.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow"</span><span class="p">,</span> <span class="s2">"#ccf"</span><span class="p">,</span> <span class="n">colors</span><span class="o">=</span><span class="mi">88</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
 <span class="go">(255, 255, 0, 205, 205, 255)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"default"</span><span class="p">,</span> <span class="s2">"g92"</span><span class="p">)</span><span class="o">.</span><span class="n">get_rgb_values</span><span class="p">()</span>
@@ -215,9 +263,49 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="urwid.AttrSpec.hyperlink">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">hyperlink</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#urwid.Hyperlink" title="urwid.display.common.Hyperlink"><span class="pre">Hyperlink</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.AttrSpec.hyperlink" title="Link to this definition">¶</a></dt>
+<dd><p>Return the terminal hyperlink, <code class="docutils literal notranslate"><span class="pre">None</span></code> when it is taken from the enclosing attribute.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrSpec.italics">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">italics</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.AttrSpec.italics" title="Link to this definition">¶</a></dt>
 <dd><p>Return whether the italics setting is enabled.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.AttrSpec.layered_over">
+<span class="sig-name descname"><span class="pre">layered_over</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="m"><span class="pre">1</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">88</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">256</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="m"><span class="pre">16777216</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a></span></span><a class="headerlink" href="#urwid.AttrSpec.layered_over" title="Link to this definition">¶</a></dt>
+<dd><p>Return this attribute with its ‘inherit’ colors and its missing hyperlink taken from <em>outer</em>.</p>
+<p>An attribute with no ‘inherit’ color is opaque: its colors and settings are kept unchanged.
+Otherwise, each setting this attribute turns on (‘bold’) or off (‘no-bold’) is kept,
+and a setting it does not mention is taken from <em>outer</em>.
+The result may still inherit a color, when <em>outer</em> inherits it too.
+The hyperlink is resolved on its own: without one, this attribute takes the hyperlink of <em>outer</em>.
+The result is a plain <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> whenever it differs from this attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outer</strong> – the enclosing attribute</p></li>
+<li><p><strong>colors</strong> – the color mode of the result, normally the terminal’s;
+<code class="docutils literal notranslate"><span class="pre">None</span></code> uses the larger color mode of the two attributes</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AttrSpecError</strong> – a color of either attribute needs more colors than <em>colors</em>.</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"dark red,bold"</span><span class="p">,</span> <span class="s2">"inherit"</span><span class="p">)</span><span class="o">.</span><span class="n">layered_over</span><span class="p">(</span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"inherit,underline"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">))</span>
+<span class="go">AttrSpec('dark red,bold,underline', 'dark blue')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"dark red"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)</span><span class="o">.</span><span class="n">layered_over</span><span class="p">(</span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">))</span>
+<span class="go">AttrSpec('dark red', 'default')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"inherit,no-bold"</span><span class="p">,</span> <span class="s2">"inherit"</span><span class="p">)</span><span class="o">.</span><span class="n">layered_over</span><span class="p">(</span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow,bold,underline"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">))</span>
+<span class="go">AttrSpec('yellow,underline,no-bold', 'dark blue')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"dark red"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)</span><span class="o">.</span><span class="n">layered_over</span><span class="p">(</span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow,bold"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">,</span> <span class="n">hyperlink</span><span class="o">=</span><span class="s2">"https://a.b"</span><span class="p">))</span>
+<span class="go">AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://a.b', id=''))</span>
+</pre></div>
+</div>
 </dd></dl>
 
 <dl class="py property">
@@ -232,10 +320,115 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
 <dd><p>Return whether the strikethrough setting is enabled.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.AttrSpec.style_only">
+<span class="sig-name descname"><span class="pre">style_only</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.AttrSpec" title="urwid.display.common.AttrSpec"><span class="pre">AttrSpec</span></a></span></span><a class="headerlink" href="#urwid.AttrSpec.style_only" title="Link to this definition">¶</a></dt>
+<dd><p>Return this attribute without its hyperlink, for code that only draws colors and settings.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">AttrSpec</span><span class="p">(</span><span class="s2">"yellow"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">,</span> <span class="n">hyperlink</span><span class="o">=</span><span class="s2">"https://urwid.org"</span><span class="p">)</span><span class="o">.</span><span class="n">style_only</span><span class="p">()</span>
+<span class="go">AttrSpec('yellow', 'dark blue')</span>
+</pre></div>
+</div>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="urwid.AttrSpec.underline">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">underline</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.AttrSpec.underline" title="Link to this definition">¶</a></dt>
 <dd><p>Return whether the underline setting is enabled.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.Hyperlink">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">Hyperlink</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">uri</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Hyperlink" title="Link to this definition">¶</a></dt>
+<dd><p>Terminal hyperlink (OSC 8) carried by an <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>.</p>
+<p>The fields keep the names of the OSC 8 specification.
+Only printable ASCII is accepted, so a link cannot inject other escape sequences.
+The URI is limited to 2083 characters and the id to 250: these are urwid’s compatibility limits,
+taken from the terminals that refuse longer values (VTE and iTerm2 for the URI, VTE for the id).
+The specification itself sets no limit.</p>
+<p>An empty URI is the explicit “no link” state, <a class="reference internal" href="#urwid.NO_HYPERLINK" title="urwid.NO_HYPERLINK"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a>:
+it hides the link of an enclosing attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> – the link target</p></li>
+<li><p><strong>id</strong> – groups the cells of one link that the terminal highlights together,
+when the link is drawn in several separate runs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – <em>uri</em> or <em>id</em> holds a character outside printable ASCII or is too long,
+<em>id</em> holds <code class="docutils literal notranslate"><span class="pre">:</span></code> or <code class="docutils literal notranslate"><span class="pre">;</span></code>, or <em>id</em> is given with an empty <em>uri</em>.</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Hyperlink</span><span class="p">(</span><span class="s2">"https://urwid.org"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"home"</span><span class="p">)</span>
+<span class="go">Hyperlink(uri='https://urwid.org', id='home')</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.NO_HYPERLINK">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">NO_HYPERLINK</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">Hyperlink(uri='',</span> <span class="pre">id='')</span></span><a class="headerlink" href="#urwid.NO_HYPERLINK" title="Link to this definition">¶</a></dt>
+<dd><p>Terminal hyperlink (OSC 8) carried by an <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>.</p>
+<p>The fields keep the names of the OSC 8 specification.
+Only printable ASCII is accepted, so a link cannot inject other escape sequences.
+The URI is limited to 2083 characters and the id to 250: these are urwid’s compatibility limits,
+taken from the terminals that refuse longer values (VTE and iTerm2 for the URI, VTE for the id).
+The specification itself sets no limit.</p>
+<p>An empty URI is the explicit “no link” state, <a class="reference internal" href="#urwid.NO_HYPERLINK" title="urwid.NO_HYPERLINK"><code class="xref py py-data docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a>:
+it hides the link of an enclosing attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>uri</strong> – the link target</p></li>
+<li><p><strong>id</strong> – groups the cells of one link that the terminal highlights together,
+when the link is drawn in several separate runs</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – <em>uri</em> or <em>id</em> holds a character outside printable ASCII or is too long,
+<em>id</em> holds <code class="docutils literal notranslate"><span class="pre">:</span></code> or <code class="docutils literal notranslate"><span class="pre">;</span></code>, or <em>id</em> is given with an empty <em>uri</em>.</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">Hyperlink</span><span class="p">(</span><span class="s2">"https://urwid.org"</span><span class="p">,</span> <span class="nb">id</span><span class="o">=</span><span class="s2">"home"</span><span class="p">)</span>
+<span class="go">Hyperlink(uri='https://urwid.org', id='home')</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.LayeredAttr">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">LayeredAttr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.LayeredAttr" title="Link to this definition">¶</a></dt>
+<dd><p>Display attribute made of other display attributes stacked innermost first.</p>
+<p>A screen resolves it by placing each layer over the next one with <a class="reference internal" href="#urwid.AttrSpec.layered_over" title="urwid.AttrSpec.layered_over"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AttrSpec.layered_over()</span></code></a>,
+so a layer whose foreground or background is ‘inherit’ shows the color of the layer under it.
+Layers are palette names or <a class="reference internal" href="#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> instances.</p>
+<p>Stack <em>layers</em>, innermost first.</p>
+<p>A layer that is itself a <a class="reference internal" href="#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a> is replaced by its layers, <code class="docutils literal notranslate"><span class="pre">None</span></code> (no attribute) is left out,
+and a layer repeated next to itself is kept once.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.LayeredAttr.layer">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">layer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inner</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Hashable</span></span></span><a class="headerlink" href="#urwid.LayeredAttr.layer" title="Link to this definition">¶</a></dt>
+<dd><p>Return <em>inner</em> placed over <em>outer</em>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">None</span></code> (no attribute) takes part in no stack: when either is <code class="docutils literal notranslate"><span class="pre">None</span></code>, <em>inner</em> is returned.
+The stack is built as the constructor builds it, and a single remaining layer is returned as it is
+rather than wrapped.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">LayeredAttr</span><span class="o">.</span><span class="n">layer</span><span class="p">(</span><span class="s2">"red"</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="go">'red'</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">LayeredAttr</span><span class="o">.</span><span class="n">layer</span><span class="p">(</span><span class="s2">"red"</span><span class="p">,</span> <span class="n">LayeredAttr</span><span class="o">.</span><span class="n">layer</span><span class="p">(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"blue_bg"</span><span class="p">))</span>
+<span class="go">LayeredAttr('red', 'bold', 'blue_bg')</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">LayeredAttr</span><span class="o">.</span><span class="n">layer</span><span class="p">(</span><span class="s2">"red"</span><span class="p">,</span> <span class="s2">"red"</span><span class="p">)</span>
+<span class="go">'red'</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.LayeredAttr.layers">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">layers</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.LayeredAttr.layers" title="Link to this definition">¶</a></dt>
+<dd><p>Return the layers, innermost first.</p>
 </dd></dl>
 
 </dd></dl>
@@ -258,6 +451,7 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
 <li><a class="reference internal" href="#urwid.AttrSpec.background"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.background_basic"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background_basic</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.background_high"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background_high</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrSpec.background_inherit"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background_inherit</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.background_number"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background_number</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.background_true"><code class="docutils literal notranslate"><span class="pre">AttrSpec.background_true</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.blink"><code class="docutils literal notranslate"><span class="pre">AttrSpec.blink</span></code></a></li>
@@ -268,13 +462,24 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
 <li><a class="reference internal" href="#urwid.AttrSpec.foreground"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.foreground_basic"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground_basic</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.foreground_high"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground_high</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrSpec.foreground_inherit"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground_inherit</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.foreground_number"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground_number</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.foreground_true"><code class="docutils literal notranslate"><span class="pre">AttrSpec.foreground_true</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.get_rgb_values"><code class="docutils literal notranslate"><span class="pre">AttrSpec.get_rgb_values()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrSpec.hyperlink"><code class="docutils literal notranslate"><span class="pre">AttrSpec.hyperlink</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.italics"><code class="docutils literal notranslate"><span class="pre">AttrSpec.italics</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrSpec.layered_over"><code class="docutils literal notranslate"><span class="pre">AttrSpec.layered_over()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.standout"><code class="docutils literal notranslate"><span class="pre">AttrSpec.standout</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.strikethrough"><code class="docutils literal notranslate"><span class="pre">AttrSpec.strikethrough</span></code></a></li>
+<li><a class="reference internal" href="#urwid.AttrSpec.style_only"><code class="docutils literal notranslate"><span class="pre">AttrSpec.style_only()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.AttrSpec.underline"><code class="docutils literal notranslate"><span class="pre">AttrSpec.underline</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#urwid.Hyperlink"><code class="docutils literal notranslate"><span class="pre">Hyperlink</span></code></a></li>
+<li><a class="reference internal" href="#urwid.NO_HYPERLINK"><code class="docutils literal notranslate"><span class="pre">NO_HYPERLINK</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LayeredAttr"><code class="docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.LayeredAttr.layer"><code class="docutils literal notranslate"><span class="pre">LayeredAttr.layer()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.LayeredAttr.layers"><code class="docutils literal notranslate"><span class="pre">LayeredAttr.layers</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -325,14 +530,14 @@ Values are taken from the XTerm defaults and may not exactly match the user’s 
         <li class="right" >
           <a href="global_settings.html" title="Global Settings"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Raw Display Attributes</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

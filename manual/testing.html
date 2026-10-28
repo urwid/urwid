@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Testing Widgets &#8212; Urwid 5.0.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/manual/testing.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Urwid Reference" href="../reference/index.html" />
+    <link rel="prev" title="Canvas Cache" href="canvascache.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../reference/index.html" title="Urwid Reference"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="canvascache.html" title="Canvas Cache"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Testing Widgets</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="testing-widgets">
+<span id="testing"></span><h1>Testing Widgets<a class="headerlink" href="#testing-widgets" title="Link to this heading">¶</a></h1>
+<p>A widget renders to a canvas and handles keys and mouse events through plain method calls, so a test needs no
+terminal. The <a class="reference internal" href="../reference/testing.html#module-urwid.testing" title="urwid.testing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.testing</span></code></a> module collects the helpers such tests keep rewriting. It is not imported by
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid</span></code>, so the examples below start with:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScriptedScreen</span><span class="p">,</span> <span class="n">check_sizing</span><span class="p">,</span> <span class="n">press</span><span class="p">,</span> <span class="n">render_runs</span><span class="p">,</span> <span class="n">render_text</span>
+</pre></div>
+</div>
+<p>Every check raises <code class="xref py py-exc docutils literal notranslate"><span class="pre">AssertionError</span></code> with a message that names the call and the mismatch, and the module
+imports no test framework, so the helpers work with <code class="xref py py-mod docutils literal notranslate"><span class="pre">unittest</span></code>, pytest or any other runner.</p>
+<section id="rendering">
+<h2>Rendering<a class="headerlink" href="#rendering" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.render_text" title="urwid.testing.render_text"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_text()</span></code></a> renders a widget and returns its rows as text, and <a class="reference internal" href="../reference/testing.html#urwid.testing.render_runs" title="urwid.testing.render_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_runs()</span></code></a> returns each row as
+<code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">text)</span></code> runs:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_text</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"ab cd"</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+<span class="go">['ab ', 'cd ']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_runs</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">"!"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+<span class="go">[[('bold', 'Hi'), (None, '!')]]</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.resolve_attr" title="urwid.testing.resolve_attr"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_attr()</span></code></a> and <a class="reference internal" href="../reference/testing.html#urwid.testing.resolve_runs" title="urwid.testing.resolve_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_runs()</span></code></a> show the colors a screen with a given palette draws those attributes
+with.</p>
+</section>
+<section id="sizing-checks">
+<h2>Sizing checks<a class="headerlink" href="#sizing-checks" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.check_sizing" title="urwid.testing.check_sizing"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_sizing()</span></code></a> renders a widget at the degenerate and full sizes of each of its sizing modes, with focus off
+and on, and checks that the canvas has the size the widget promised and a cursor inside it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_sizing</span><span class="p">(</span><span class="n">Pile</span><span class="p">([</span><span class="n">Text</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)]))</span>
+</pre></div>
+</div>
+<p>The checks empty the canvas cache before every case, so they belong in tests, not in a running application.</p>
+</section>
+<section id="input">
+<h2>Input<a class="headerlink" href="#input" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.press" title="urwid.testing.press"><code class="xref py py-func docutils literal notranslate"><span class="pre">press()</span></code></a> sends keys and returns the ones the widget did not handle; <a class="reference internal" href="../reference/testing.html#urwid.testing.click" title="urwid.testing.click"><code class="xref py py-func docutils literal notranslate"><span class="pre">click()</span></code></a> sends one mouse event with
+named arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">press</span><span class="p">(</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"esc"</span><span class="p">)</span>
+<span class="go">['esc']</span>
+</pre></div>
+</div>
+</section>
+<section id="whole-applications">
+<h2>Whole applications<a class="headerlink" href="#whole-applications" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.ScriptedScreen" title="urwid.testing.ScriptedScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScriptedScreen</span></code></a> stands in for the terminal of a <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>. It returns a fixed screen size,
+feeds scripted batches of input, stops the loop once they are used up, and records every distinct frame drawn:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Filler</span><span class="p">,</span> <span class="n">MainLoop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span> <span class="o">=</span> <span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="o">=</span><span class="p">[[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"backspace"</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MainLoop</span><span class="p">(</span><span class="n">Filler</span><span class="p">(</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">)),</span> <span class="n">screen</span><span class="o">=</span><span class="n">screen</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span><span class="o">.</span><span class="n">last_text</span>
+<span class="go">['&gt; a   ']</span>
+</pre></div>
+</div>
+<p>To keep the frames as HTML for documentation instead, use <a class="reference internal" href="../reference/display_modules.html#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.display.html_fragment.HtmlGenerator</span></code></a>.</p>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p><h3>Table of contents</h3>
+    <ul><li><a href="index.html">Manual</a></li><ul>
+<li><a class="reference internal" href="#">Testing Widgets</a><ul>
+<li><a class="reference internal" href="#rendering">Rendering</a></li>
+<li><a class="reference internal" href="#sizing-checks">Sizing checks</a></li>
+<li><a class="reference internal" href="#input">Input</a></li>
+<li><a class="reference internal" href="#whole-applications">Whole applications</a></li>
+</ul>
+</li>
+</ul>
+
+    </ul>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="canvascache.html"
+                          title="previous chapter">Canvas Cache</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../reference/index.html"
+                          title="next chapter">Urwid Reference</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/manual/testing.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../reference/index.html" title="Urwid Reference"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="canvascache.html" title="Canvas Cache"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Testing Widgets</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

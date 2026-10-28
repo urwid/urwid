@@ -149,9 +149,9 @@ should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in :ref:`foreground-background`.
 
 * Behind the scenes our :class:`MainLoop` class has created a
-  :class:`raw_display.Screen` object for drawing the screen. The program
+  :class:`display.raw.Screen` object for drawing the screen. The program
   is put into 256-color mode by using the screen object's
-  :meth:`set_terminal_properties() <raw_display.Screen.set_terminal_properties>` method.
+  :meth:`set_terminal_properties() <display.raw.Screen.set_terminal_properties>` method.
 
 This example also demonstrates how you can build the widgets to display
 in a top-down order instead of the usual bottom-up order. In some

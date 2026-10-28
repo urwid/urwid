@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Testing Helpers &#8212; Urwid 5.0.0</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/reference/testing.html" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Text Layout Classes" href="text_layout.html" />
+    <link rel="prev" title="Canvas Classes and Functions" href="canvas.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="canvas.html" title="Canvas Classes and Functions"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="module-urwid.testing">
+<span id="testing-helpers"></span><h1>Testing Helpers<a class="headerlink" href="#module-urwid.testing" title="Link to this heading">¶</a></h1>
+<section id="rendering">
+<h2>Rendering<a class="headerlink" href="#rendering" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.render_text">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">render_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.render_text" title="Link to this definition">¶</a></dt>
+<dd><p>Render <em>widget</em> and return the text of each row.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pile</span><span class="p">,</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_text</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"ab cd"</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+<span class="go">['ab ', 'cd ']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_text</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"ab cd"</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="n">strip</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">['ab', 'cd']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_text</span><span class="p">(</span><span class="n">Pile</span><span class="p">([</span><span class="n">Text</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)]),</span> <span class="p">())</span>
+<span class="go">['x']</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to render</p></li>
+<li><p><strong>size</strong> – size to render <em>widget</em> with: <code class="docutils literal notranslate"><span class="pre">()</span></code>, <code class="docutils literal notranslate"><span class="pre">(cols,)</span></code> or <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code></p></li>
+<li><p><strong>focus</strong> – whether <em>widget</em> is rendered in focus</p></li>
+<li><p><strong>strip</strong> – remove trailing whitespace from every row</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>one string per canvas row, decoded with the target encoding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.render_runs">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">render_runs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.render_runs" title="Link to this definition">¶</a></dt>
+<dd><p>Render <em>widget</em> and return each row as runs of display attribute and text.</p>
+<p>Adjacent runs with the same attribute are merged, so the result does not depend on where the canvas splits
+runs for character sets or run-length encoding.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">render_runs</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">"!"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+<span class="go">[[('bold', 'Hi'), (None, '!')]]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to render</p></li>
+<li><p><strong>size</strong> – size to render <em>widget</em> with: <code class="docutils literal notranslate"><span class="pre">()</span></code>, <code class="docutils literal notranslate"><span class="pre">(cols,)</span></code> or <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code></p></li>
+<li><p><strong>focus</strong> – whether <em>widget</em> is rendered in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>one list of <code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">text)</span></code> pairs per canvas row, the text decoded with the target encoding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.resolve_attr">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">resolve_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">PaletteEntry</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a></span></span><a class="headerlink" href="#urwid.testing.resolve_attr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> a screen with <em>palette</em> draws display attribute <em>attr</em> with.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">resolve_attr</span><span class="p">(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="p">[(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"dark red,bold"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)],</span> <span class="n">colors</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="go">AttrSpec('dark red,bold', 'default')</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attr</strong> – display attribute of a canvas run, such as one returned by <a class="reference internal" href="#urwid.testing.render_runs" title="urwid.testing.render_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_runs()</span></code></a></p></li>
+<li><p><strong>palette</strong> – palette entries, as passed to <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a></p></li>
+<li><p><strong>colors</strong> – number of colors of the screen: 1, 16, 88, 256 or <code class="docutils literal notranslate"><span class="pre">2**24</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the attribute the screen resolves <em>attr</em> to; see <a class="reference internal" href="display_modules.html#urwid.BaseScreen.resolve_attr" title="urwid.BaseScreen.resolve_attr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">urwid.BaseScreen.resolve_attr()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – <em>colors</em> is not one of the supported numbers of colors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.resolve_runs">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">resolve_runs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">runs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">PaletteEntry</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">colors</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.resolve_runs" title="Link to this definition">¶</a></dt>
+<dd><p>Resolve the attribute of every run returned by <a class="reference internal" href="#urwid.testing.render_runs" title="urwid.testing.render_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_runs()</span></code></a>, keeping the text.</p>
+<p>Runs are not merged again, although two attributes may resolve to the same <a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">runs</span> <span class="o">=</span> <span class="n">render_runs</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">"!"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">resolve_runs</span><span class="p">(</span><span class="n">runs</span><span class="p">,</span> <span class="p">[(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"dark red,bold"</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">)],</span> <span class="n">colors</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+<span class="go">[[(AttrSpec('dark red,bold', 'default'), 'Hi'), (AttrSpec('default', 'default'), '!')]]</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>runs</strong> – rows of <code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">text)</span></code> pairs</p></li>
+<li><p><strong>palette</strong> – palette entries, as passed to <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a></p></li>
+<li><p><strong>colors</strong> – number of colors of the screen: 1, 16, 88, 256 or <code class="docutils literal notranslate"><span class="pre">2**24</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>rows of <code class="docutils literal notranslate"><span class="pre">(AttrSpec,</span> <span class="pre">text)</span></code> pairs, in the shape of <em>runs</em>.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – <em>colors</em> is not one of the supported numbers of colors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="sizing-checks">
+<h2>Sizing checks<a class="headerlink" href="#sizing-checks" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.check_sizing">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">check_sizing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.check_sizing" title="Link to this definition">¶</a></dt>
+<dd><p>Run the sizing check for each sizing mode in <code class="docutils literal notranslate"><span class="pre">widget.sizing()</span></code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The check empties the canvas cache before every rendered case, so it is for tests, not for a running
+application.</p>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Pile</span><span class="p">,</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_sizing</span><span class="p">(</span><span class="n">Pile</span><span class="p">([</span><span class="n">Text</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)]))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to check</p></li>
+<li><p><strong>cols</strong> – number of columns, passed to <a class="reference internal" href="#urwid.testing.check_box_sizing" title="urwid.testing.check_box_sizing"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_box_sizing()</span></code></a> and <a class="reference internal" href="#urwid.testing.check_flow_sizing" title="urwid.testing.check_flow_sizing"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_flow_sizing()</span></code></a></p></li>
+<li><p><strong>rows</strong> – number of rows, passed to <a class="reference internal" href="#urwid.testing.check_box_sizing" title="urwid.testing.check_box_sizing"><code class="xref py py-func docutils literal notranslate"><span class="pre">check_box_sizing()</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – <code class="docutils literal notranslate"><span class="pre">widget.sizing()</span></code> is empty, or one of the checks fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.check_box_sizing">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">check_box_sizing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.check_box_sizing" title="Link to this definition">¶</a></dt>
+<dd><p>Check that the box widget <em>widget</em> renders canvases of the requested size, including degenerate sizes.</p>
+<p>The sizes <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">0)</span></code>, <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">1)</span></code>, <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">rows)</span></code>, <code class="docutils literal notranslate"><span class="pre">(1,</span> <span class="pre">rows)</span></code> and <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code> are rendered with
+focus off and on. Each canvas must have the requested columns and rows, and a cursor, when set, must lie
+inside it.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The check empties the canvas cache before every rendered case, so it is for tests, not for a running
+application.</p>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Filler</span><span class="p">,</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_box_sizing</span><span class="p">(</span><span class="n">Filler</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"x"</span><span class="p">)))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – box widget to check</p></li>
+<li><p><strong>cols</strong> – number of columns of the full size</p></li>
+<li><p><strong>rows</strong> – number of rows of the full size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – a canvas has the wrong size or its cursor lies outside it.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.check_flow_sizing">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">check_flow_sizing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractFlowWidget</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.check_flow_sizing" title="Link to this definition">¶</a></dt>
+<dd><p>Check that the flow widget <em>widget</em> renders as many rows as its <code class="docutils literal notranslate"><span class="pre">rows()</span></code> reports.</p>
+<p>The widths 0, 1 and <em>cols</em> are rendered with focus off and on. Each canvas must have the requested columns
+and the rows <code class="docutils literal notranslate"><span class="pre">widget.rows()</span></code> returned before the render; in focus, its cursor must equal
+<code class="docutils literal notranslate"><span class="pre">widget.get_cursor_coords()</span></code> when the widget has that method; a cursor, when set, must lie inside it.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The check empties the canvas cache before every rendered case, so it is for tests, not for a running
+application.</p>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_flow_sizing</span><span class="p">(</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">,</span> <span class="s2">"abc"</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – flow widget to check</p></li>
+<li><p><strong>cols</strong> – number of columns of the full width</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – a canvas has the wrong size or a cursor that does not match the widget.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.check_fixed_sizing">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">check_fixed_sizing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.check_fixed_sizing" title="Link to this definition">¶</a></dt>
+<dd><p>Check that the fixed widget <em>widget</em> renders a canvas of the size its <code class="docutils literal notranslate"><span class="pre">pack(())</span></code> reports.</p>
+<p>The widget is rendered with focus off and on; a cursor, when set, must lie inside the canvas.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The check empties the canvas cache before every rendered case, so it is for tests, not for a running
+application.</p>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">check_fixed_sizing</span><span class="p">(</span><span class="n">Text</span><span class="p">(</span><span class="s2">"x"</span><span class="p">))</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>widget</strong> – fixed widget to check</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>AssertionError</strong> – a canvas size differs from <code class="docutils literal notranslate"><span class="pre">pack(())</span></code> or its cursor lies outside it.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="input">
+<h2>Input<a class="headerlink" href="#input" title="Link to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.press">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">press</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.press" title="Link to this definition">¶</a></dt>
+<dd><p>Send <em>keys</em> to <code class="docutils literal notranslate"><span class="pre">widget.keypress()</span></code> in order and return the keys it did not handle.</p>
+<p>The returned key is collected, not the sent one, since a widget may translate a key.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edit</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span> <span class="o">=</span> <span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">press</span><span class="p">(</span><span class="n">edit</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">,</span> <span class="s2">"esc"</span><span class="p">)</span>
+<span class="go">['esc']</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">edit</span><span class="o">.</span><span class="n">edit_text</span>
+<span class="go">'ab'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to send the keys to</p></li>
+<li><p><strong>size</strong> – size passed to <code class="docutils literal notranslate"><span class="pre">keypress()</span></code></p></li>
+<li><p><strong>keys</strong> – key names, such as <code class="docutils literal notranslate"><span class="pre">&quot;a&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;enter&quot;</span></code></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the keys <code class="docutils literal notranslate"><span class="pre">keypress()</span></code> returned, in order.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.click">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mouse</span> <span class="pre">press'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.testing.click" title="Link to this definition">¶</a></dt>
+<dd><p>Send one mouse event to <code class="docutils literal notranslate"><span class="pre">widget.mouse_event()</span></code> and return whether it was handled.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">click</span><span class="p">(</span><span class="n">Button</span><span class="p">(</span><span class="s2">"OK"</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="go">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to send the event to</p></li>
+<li><p><strong>size</strong> – size passed to <code class="docutils literal notranslate"><span class="pre">mouse_event()</span></code></p></li>
+<li><p><strong>col</strong> – column of the event, relative to the widget</p></li>
+<li><p><strong>row</strong> – row of the event, relative to the widget</p></li>
+<li><p><strong>button</strong> – mouse button number</p></li>
+<li><p><strong>event</strong> – event name, such as <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">press&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">release&quot;</span></code></p></li>
+<li><p><strong>focus</strong> – whether <em>widget</em> is in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> when <code class="docutils literal notranslate"><span class="pre">mouse_event()</span></code> returned a true value.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="harness-screen">
+<h2>Harness screen<a class="headerlink" href="#harness-screen" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">ScriptedScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(80,</span> <span class="pre">24)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.testing.ScriptedScreen" title="Link to this definition">¶</a></dt>
+<dd><p>Screen without a terminal that records what is drawn and feeds scripted input to <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">MainLoop(widget,</span> <span class="pre">palette,</span> <span class="pre">screen=ScriptedScreen(...))</span></code> works with <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, which
+feeds one batch of <em>inputs</em> after every redraw and stops with <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> once they are used up,
+and with <a class="reference internal" href="main_loop.html#urwid.MainLoop.process_input" title="urwid.MainLoop.process_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process_input()</span></code></a> plus <a class="reference internal" href="main_loop.html#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a> called by hand.</p>
+<p>A draw whose size, content (text and attributes) and cursor equal those of the last recorded frame is not
+recorded again, so <a class="reference internal" href="#urwid.testing.ScriptedScreen.canvases" title="urwid.testing.ScriptedScreen.canvases"><code class="xref py py-attr docutils literal notranslate"><span class="pre">canvases</span></code></a> is the same sequence of distinct screens under every event loop, while the
+number of draws differs between them. Assert the frames and <a class="reference internal" href="#urwid.testing.ScriptedScreen.last_text" title="urwid.testing.ScriptedScreen.last_text"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_text</span></code></a>, not a count of draws.</p>
+<p>The input batches are consumed, so one screen scripts one <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>. Alarms still pending
+after the last batch never fire.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edit</span><span class="p">,</span> <span class="n">Filler</span><span class="p">,</span> <span class="n">MainLoop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span> <span class="o">=</span> <span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="o">=</span><span class="p">[[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"backspace"</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MainLoop</span><span class="p">(</span><span class="n">Filler</span><span class="p">(</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">)),</span> <span class="n">screen</span><span class="o">=</span><span class="n">screen</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">frame</span><span class="o">.</span><span class="n">decoded_text</span> <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">screen</span><span class="o">.</span><span class="n">canvases</span><span class="p">]</span>
+<span class="go">[('&gt;     ',), ('&gt; ab  ',), ('&gt; a   ',)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span><span class="o">.</span><span class="n">last_text</span>
+<span class="go">['&gt; a   ']</span>
+</pre></div>
+</div>
+<p>Create an unstarted screen.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> – <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code> returned by <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_cols_rows" title="urwid.testing.ScriptedScreen.get_cols_rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_cols_rows()</span></code></a>; assign <a class="reference internal" href="#urwid.testing.ScriptedScreen.size" title="urwid.testing.ScriptedScreen.size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">size</span></code></a> to resize, then
+script a <code class="docutils literal notranslate"><span class="pre">&quot;window</span> <span class="pre">resize&quot;</span></code> key</p></li>
+<li><p><strong>inputs</strong> – batches of keys and mouse event tuples, one batch returned by each <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_input" title="urwid.testing.ScriptedScreen.get_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_input()</span></code></a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>TypeError</strong> – a batch is not a sequence of keys and mouse event tuples.</p>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.canvases">
+<span class="sig-name descname"><span class="pre">canvases</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.canvases" title="Link to this definition">¶</a></dt>
+<dd><p>distinct frames drawn, oldest first; <code class="docutils literal notranslate"><span class="pre">canvases[-1]</span></code> is the screen shown last</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.draw_count">
+<span class="sig-name descname"><span class="pre">draw_count</span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.draw_count" title="Link to this definition">¶</a></dt>
+<dd><p>number of <a class="reference internal" href="#urwid.testing.ScriptedScreen.draw_screen" title="urwid.testing.ScriptedScreen.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a> calls, recorded or not</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.draw_screen">
+<span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.draw_screen" title="Link to this definition">¶</a></dt>
+<dd><p>Record <em>canvas</em> unless it shows the same frame as the last one, then schedule the next input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>size</strong> – <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code> the canvas was rendered for</p></li>
+<li><p><strong>canvas</strong> – canvas to show</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.get_cols_rows">
+<span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.get_cols_rows" title="Link to this definition">¶</a></dt>
+<dd><p>Return <a class="reference internal" href="#urwid.testing.ScriptedScreen.size" title="urwid.testing.ScriptedScreen.size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">size</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.get_input">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">False</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.get_input" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
+<dd><p>Return the next input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>raw_keys</strong> – also return the raw key codes, which are always empty</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the batch, or <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">[])</span></code> when <em>raw_keys</em> is true.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><strong>ExitMainLoop</strong></a> – the scripted batches are used up.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.hook_event_loop">
+<span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.hook_event_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Feed the input batches to <em>callback</em> through alarms of <em>event_loop</em>, one after every draw.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event_loop</strong> – event loop to schedule the batches on</p></li>
+<li><p><strong>callback</strong> – function taking the keys and the raw key codes of one batch</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.last_text">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">last_text</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.last_text" title="Link to this definition">¶</a></dt>
+<dd><p>Return the text of each row of the frame drawn last.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>IndexError</strong> – nothing has been drawn yet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.size" title="Link to this definition">¶</a></dt>
+<dd><p><code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code> returned by <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_cols_rows" title="urwid.testing.ScriptedScreen.get_cols_rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_cols_rows()</span></code></a></p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.unhook_event_loop">
+<span class="sig-name descname"><span class="pre">unhook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.unhook_event_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Cancel a pending input batch and forget the event loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>event_loop</strong> – event loop passed to <a class="reference internal" href="#urwid.testing.ScriptedScreen.hook_event_loop" title="urwid.testing.ScriptedScreen.hook_event_loop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">hook_event_loop()</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p><h3>Table of contents</h3>
+    <ul><li><a href="index.html">Reference</a></li><ul>
+<li><a class="reference internal" href="#">Testing Helpers</a><ul>
+<li><a class="reference internal" href="#rendering">Rendering</a><ul>
+<li><a class="reference internal" href="#urwid.testing.render_text"><code class="docutils literal notranslate"><span class="pre">render_text()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.render_runs"><code class="docutils literal notranslate"><span class="pre">render_runs()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.resolve_attr"><code class="docutils literal notranslate"><span class="pre">resolve_attr()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.resolve_runs"><code class="docutils literal notranslate"><span class="pre">resolve_runs()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#sizing-checks">Sizing checks</a><ul>
+<li><a class="reference internal" href="#urwid.testing.check_sizing"><code class="docutils literal notranslate"><span class="pre">check_sizing()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.check_box_sizing"><code class="docutils literal notranslate"><span class="pre">check_box_sizing()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.check_flow_sizing"><code class="docutils literal notranslate"><span class="pre">check_flow_sizing()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.check_fixed_sizing"><code class="docutils literal notranslate"><span class="pre">check_fixed_sizing()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#input">Input</a><ul>
+<li><a class="reference internal" href="#urwid.testing.press"><code class="docutils literal notranslate"><span class="pre">press()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.click"><code class="docutils literal notranslate"><span class="pre">click()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#harness-screen">Harness screen</a><ul>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.canvases"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.canvases</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.draw_count"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.draw_count</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.draw_screen"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.draw_screen()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.get_cols_rows()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.get_input"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.get_input()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.hook_event_loop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.last_text"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.last_text</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.size"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.size</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.ScriptedScreen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.unhook_event_loop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+    </ul>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="canvas.html"
+                          title="previous chapter">Canvas Classes and Functions</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="text_layout.html"
+                          title="next chapter">Text Layout Classes</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/reference/testing.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="text_layout.html" title="Text Layout Classes"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="canvas.html" title="Canvas Classes and Functions"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

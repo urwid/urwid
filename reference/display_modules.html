@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 4.2.3</title>
+    <title>Display Modules &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -48,7 +48,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.BaseScreen">
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BaseScreen</span></span><a class="headerlink" href="#urwid.BaseScreen" title="Link to this definition">¶</a></dt>
-<dd><p>Base class for Screen classes (raw_display.Screen, …, etc.).</p>
+<dd><p>Base class for Screen classes (display.raw.Screen, …, etc.).</p>
 <p>Initialize an unstarted screen with an empty palette.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BaseScreen.clear">
@@ -105,6 +105,7 @@ of the tuple values.</p>
 color and settings</p>
 <p>Color values:
 ‘default’ (use the terminal’s default foreground),
+‘inherit’ (take the color from the enclosing attribute),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
 ‘dark magenta’, ‘dark cyan’, ‘light gray’, ‘dark gray’,
 ‘light red’, ‘light green’, ‘yellow’, ‘light blue’,
@@ -118,6 +119,7 @@ ignore the ‘blink’ setting.  If the color is not given then
 <li><p><strong>background</strong> – <p>a string containing the background color</p>
 <p>Background color values:
 ‘default’ (use the terminal’s default background),
+‘inherit’ (take the color from the enclosing attribute),
 ‘black’, ‘dark red’, ‘dark green’, ‘brown’, ‘dark blue’,
 ‘dark magenta’, ‘dark cyan’, ‘light gray’</p>
 </p></li>
@@ -150,13 +152,25 @@ may be used</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="urwid.BaseScreen.run_wrapper">
-<span class="sig-name descname"><span class="pre">run_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fn</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.run_wrapper" title="Link to this definition">¶</a></dt>
-<dd><p>Start the screen, call a function, then stop the screen.</p>
-<p>Extra arguments are passed to <cite>start</cite>.</p>
-<div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 1.3.0: </span>Call <cite>start</cite> as a context manager instead. This API will be removed in version 5.0.</p>
-</div>
+<dt class="sig sig-object py" id="urwid.BaseScreen.resolve_attr">
+<span class="sig-name descname"><span class="pre">resolve_attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><span class="pre">AttrSpec</span></a></span></span><a class="headerlink" href="#urwid.BaseScreen.resolve_attr" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> to draw a canvas run with display attribute <em>attr</em>.</p>
+<p>Starting from the palette entry of <code class="docutils literal notranslate"><span class="pre">None</span></code>, each layer of <em>attr</em> (a palette name, an <a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a>
+or a <a class="reference internal" href="attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a>), outermost first, is placed over the result so far with
+<a class="reference internal" href="attrspec.html#urwid.AttrSpec.layered_over" title="urwid.AttrSpec.layered_over"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AttrSpec.layered_over()</span></code></a>. A name missing from the palette is drawn with ‘default’ colors,
+hiding the layers under it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>attr</strong> – display attribute of a canvas run</p></li>
+<li><p><strong>index</strong> – position in the palette entry tuple: 0 for 16 colors, 1 for monochrome,
+2 for 88 colors, 3 for 256 colors, 4 for true color</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>IndexError</strong> – <em>index</em> is outside 0-4 and a layer is a palette name.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -191,7 +205,10 @@ automatically be called at the end of the block:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.BaseScreen.stop">
 <span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.BaseScreen.stop" title="Link to this definition">¶</a></dt>
-<dd><p>Tear down the screen if it has been started. You shouldn’t override this method; override <code class="xref py py-meth docutils literal notranslate"><span class="pre">_stop()</span></code>.</p>
+<dd><p>Tear down the screen if it has been started.</p>
+<p>Emits <code class="docutils literal notranslate"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></code> once the screen is marked stopped,
+so an event loop hooked to the screen stops watching its input.</p>
+<p>You shouldn’t override this method; override <code class="xref py py-meth docutils literal notranslate"><span class="pre">_stop()</span></code>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -200,18 +217,23 @@ automatically be called at the end of the block:</p>
 <span id="raw-display"></span><h2>RAW display<a class="headerlink" href="#module-urwid.display.raw" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.raw.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextWriter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.raw.Screen" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.raw.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextWriter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extended_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.raw.Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Raw screen backend that drives a real POSIX terminal.</p>
 <p>Initialize a screen that directly prints escape codes to an output terminal.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – the terminal input, read through its file descriptor.</p></li>
+<li><p><strong>output</strong> – the terminal output, which the escape codes are written to.</p></li>
 <li><p><strong>bracketed_paste_mode</strong> – enable bracketed paste (<cite>begin</cite>/<cite>end paste</cite> keystrokes).
 None (default) auto-detects via DECRQM and enables it once confirmed supported;
 pass True/False to force it without probing.</p></li>
 <li><p><strong>focus_reporting</strong> – enable focus reporting (<cite>focus in</cite>/<cite>focus out</cite> keystrokes).
 None (default) auto-detects via DECRQM and enables it once confirmed supported;
 pass True/False to force it without probing.</p></li>
+<li><p><strong>extended_keys</strong> – report the keys the legacy encodings cannot tell apart, such as <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">enter'</span></code>
+and <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">i'</span></code> apart from <code class="docutils literal notranslate"><span class="pre">'tab'</span></code>, through the keyboard protocol the terminal supports.
+Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see <a class="reference internal" href="../manual/userinput.html#extended-keys"><span class="std std-ref">Extended Keys</span></a>.</p></li>
 </ul>
 </dd>
 </dl>
@@ -223,15 +245,25 @@ so the line discipline still turns Ctrl+C and Ctrl+Z into <code class="docutils 
 and delivers them to this process (urwid/urwid#1268).
 <code class="docutils literal notranslate"><span class="pre">SIGINT</span></code> is left for the application or its event loop to handle as it sees fit.
 <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code> is handled by this class:
-<cite>signal_init()</cite> installs a handler that restores the terminal before actually suspending the process,
-and the paired <cite>SIGCONT</cite> handler puts the terminal back into cbreak/alternate-buffer mode
-and forces a redraw on resume, so a stray Ctrl+Z does not leave a stale,
-unresponsive frame painted on screen.
-Applications that install their own <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code>/<code class="docutils literal notranslate"><span class="pre">SIGCONT</span></code> handlers on top of this one
+<cite>signal_init()</cite> installs a handler that wakes the input loop,
+which restores the terminal before actually suspending the process,
+then puts the terminal back into cbreak/alternate-buffer mode and forces a redraw on resume,
+so a stray Ctrl+Z does not leave a stale, unresponsive frame painted on screen.
+The suspend therefore waits until the application next reads input,
+through <cite>get_input()</cite> or the callback <cite>hook_event_loop()</cite> registers.
+Applications that install their own <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code> handler on top of this one
 should chain to the previous handler (as this class does) rather than replacing it outright,
 and multithreaded applications must call <cite>signal_init()</cite> and <cite>signal_restore()</cite> from the main thread,
 since only the main thread can receive process signals.</p>
 </div>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.raw.Screen.get_available_raw_input">
+<span class="sig-name descname"><span class="pre">get_available_raw_input</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.get_available_raw_input" title="Link to this definition">¶</a></dt>
+<dd><p>Return any currently available input, then carry out a suspend requested by <code class="docutils literal notranslate"><span class="pre">SIGTSTP</span></code>.</p>
+<p>The screen is stopped before the process suspends itself, and restarted and fully redrawn on resume.
+The flag is checked after the wake-up socket is drained, so a later request keeps its wake-up pending.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.get_cols_rows">
 <span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
@@ -253,6 +285,10 @@ that, you can safely ignore this.</p>
 <dd><p>Register the given callback with the event loop, to be called with new input whenever it’s available.</p>
 <p>The callback should be passed a list of processed keys and a list of unprocessed keycodes.</p>
 <p>Subclasses may wish to use parse_input to wrap the callback.</p>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0: </span>A subclass that defines <code class="docutils literal notranslate"><span class="pre">get_input_nonblocking()</span></code> is still polled through it.
+Override <a class="reference internal" href="#urwid.display.raw.Screen.get_available_raw_input" title="urwid.display.raw.Screen.get_available_raw_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_available_raw_input()</span></code></a> instead. This API will be removed in version 7.0.</p>
+</div>
 </dd></dl>
 
 <dl class="py method">
@@ -266,7 +302,7 @@ applications.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.signal_restore">
 <span class="sig-name descname"><span class="pre">signal_restore</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.signal_restore" title="Link to this definition">¶</a></dt>
-<dd><p>Restore the SIGTSTP, SIGCONT and SIGWINCH signal handlers, called in the finally block of run wrapper.</p>
+<dd><p>Restore the SIGTSTP and SIGWINCH signal handlers, called in the finally block of run wrapper.</p>
 <p>Override this function to call from main thread in threaded
 applications.</p>
 </dd></dl>
@@ -343,17 +379,9 @@ a ( keys pressed, raw keycodes ) tuple instead.</p>
 <li><p>Key combinations:  <kbd class="kbd docutils literal notranslate">shift</kbd> <kbd class="kbd docutils literal notranslate">f1</kbd>, <kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">a</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">b</kbd></p></li>
 <li><p>Window events:  <code class="docutils literal notranslate"><span class="pre">&quot;window</span> <span class="pre">resize&quot;</span></code></p></li>
 </ul>
-<p>When a narrow encoding is not enabled:</p>
+<p>Other characters, decoded from the terminal encoding (UTF-8, or a single- or double-byte encoding):</p>
 <ul class="simple">
-<li><p>“Extended ASCII” characters:  “xa1”, “xb2”, “xfe”</p></li>
-</ul>
-<p>When a wide encoding is enabled:</p>
-<ul class="simple">
-<li><p>Double-byte characters:  “xa1xea”, “xb2xd4”</p></li>
-</ul>
-<p>When utf8 encoding is enabled:</p>
-<ul class="simple">
-<li><p>Unicode characters: u”u00a5”, u’u253c”</p></li>
+<li><p>Unicode characters: “u00a5”, “u253c”, “u4e2d”</p></li>
 </ul>
 <p>Examples of mouse events returned:</p>
 <ul class="simple">
@@ -375,8 +403,8 @@ a ( keys pressed, raw keycodes ) tuple instead.</p>
 <span class="sig-name descname"><span class="pre">set_input_timeouts</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">complete_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_wait</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.curses.Screen.set_input_timeouts" title="Link to this definition">¶</a></dt>
 <dd><p>Set the get_input timeout values.</p>
 <p>All values have a granularity of 0.1s, ie. any value between 0.15 and 0.05 will be treated as
-0.1 and any value less than 0.05 will be treated as 0.  The
-maximum timeout value for this module is 25.5 seconds.</p>
+0.1 and any value less than 0.05 will be treated as 0.  Waits
+longer than 25.5 seconds are split into multiple curses waits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -399,7 +427,7 @@ in a row to stop urwid from consuming 100% cpu during a gradual window resize op
 click events along with keystrokes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – <em>enable</em> is false; tracking cannot be turned off.</p>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – <em>enable</em> is false while tracking is on; tracking cannot be turned off.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -576,9 +604,9 @@ since a browser can render any RGB color directly)</p></li>
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.display.html_fragment.screenshot_init">
 <span class="sig-prename descclassname"><span class="pre">urwid.display.html_fragment.</span></span><span class="sig-name descname"><span class="pre">screenshot_init</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_DecodedInput</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.html_fragment.screenshot_init" title="Link to this definition">¶</a></dt>
-<dd><p>Replace curses_display.Screen and raw_display.Screen class with HtmlGenerator.</p>
+<dd><p>Replace display.curses.Screen and display.raw.Screen class with HtmlGenerator.</p>
 <p>Call this function before executing an application that uses
-curses_display.Screen to have that code use HtmlGenerator instead.</p>
+display.curses.Screen to have that code use HtmlGenerator instead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -611,7 +639,7 @@ call get_cols_rows and read a new screen size.</p>
 </dd>
 </dl>
 <div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 4.1.8: </span>Patching <code class="docutils literal notranslate"><span class="pre">curses_display.Screen</span></code>/<code class="docutils literal notranslate"><span class="pre">raw_display.Screen</span></code> in place is deprecated and will stop working in
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.8: </span>Patching <code class="docutils literal notranslate"><span class="pre">display.curses.Screen</span></code>/<code class="docutils literal notranslate"><span class="pre">display.raw.Screen</span></code> in place is deprecated and will stop working in
 version 6.0. Assign <a class="reference internal" href="#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">HtmlGenerator</span></code></a> to your application’s screen manually instead.</p>
 </div>
 </dd></dl>
@@ -891,7 +919,7 @@ keys are released.</p>
 <li><a class="reference internal" href="#urwid.BaseScreen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">BaseScreen.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.register_palette"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.register_palette_entry"><code class="docutils literal notranslate"><span class="pre">BaseScreen.register_palette_entry()</span></code></a></li>
-<li><a class="reference internal" href="#urwid.BaseScreen.run_wrapper"><code class="docutils literal notranslate"><span class="pre">BaseScreen.run_wrapper()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.BaseScreen.resolve_attr"><code class="docutils literal notranslate"><span class="pre">BaseScreen.resolve_attr()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">BaseScreen.set_mouse_tracking()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.start"><code class="docutils literal notranslate"><span class="pre">BaseScreen.start()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BaseScreen.started"><code class="docutils literal notranslate"><span class="pre">BaseScreen.started</span></code></a></li>
@@ -900,6 +928,7 @@ keys are released.</p>
 </li>
 <li><a class="reference internal" href="#module-urwid.display.raw">RAW display</a><ul>
 <li><a class="reference internal" href="#urwid.display.raw.Screen"><code class="docutils literal notranslate"><span class="pre">Screen</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.display.raw.Screen.get_available_raw_input"><code class="docutils literal notranslate"><span class="pre">Screen.get_available_raw_input()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.raw.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.raw.Screen.get_input_descriptors"><code class="docutils literal notranslate"><span class="pre">Screen.get_input_descriptors()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.raw.Screen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.hook_event_loop()</span></code></a></li>
@@ -1036,14 +1065,14 @@ keys are released.</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

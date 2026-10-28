@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 4.2.3</title>
+    <title>Main Loop &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -82,6 +82,21 @@ that the application’s behaviour changes when the widgets change. If all your
 custom input handling is done from <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.unhandled_input()</span></code></a>,
 it will be difficult to extend as your application gets more complicated.</p>
 </section>
+<section id="running-another-program-in-the-terminal">
+<h2>Running Another Program in the Terminal<a class="headerlink" href="#running-another-program-in-the-terminal" title="Link to this heading">¶</a></h2>
+<p>An application can hand the terminal to another program for a while, such as an
+editor on a temporary file, a pager or a shell, with the
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.paused" title="urwid.MainLoop.paused"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.paused()</span></code></a> context manager:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">editor</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"EDITOR"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">"vi"</span><span class="p">]</span>  <span class="c1"># "vim -f", "code --wait" carry arguments</span>
+<span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">paused</span><span class="p">():</span>
+    <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">*</span><span class="n">editor</span><span class="p">,</span> <span class="n">path</span><span class="p">],</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The screen is stopped for the block and started again afterwards, with the mouse
+tracking restored and the whole screen redrawn at the terminal’s current size.
+The block holds the event loop until it ends, so no input, alarm or watched file
+is handled while the other program owns the terminal.</p>
+</section>
 <section id="event-loops">
 <span id="id2"></span><h2>Event Loops<a class="headerlink" href="#event-loops" title="Link to this heading">¶</a></h2>
 <p>Urwid’s event loop classes handle waiting for things for the
@@ -113,8 +128,7 @@ created if none is passed to <code class="xref py py-class docutils literal notr
 <section id="asyncioeventloop">
 <h3><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code><a class="headerlink" href="#asyncioeventloop" title="Link to this heading">¶</a></h3>
 <p>This event loop integrates with the asyncio module in Python.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
-<span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AsyncioEventLoop</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">asyncio</span><span class="o">.</span><span class="n">get_event_loop</span><span class="p">())</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">evl</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AsyncioEventLoop</span><span class="p">()</span>  <span class="c1"># the running asyncio loop, or a new SelectorEventLoop of its own</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">evl</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -221,6 +235,7 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Main Loop</a><ul>
 <li><a class="reference internal" href="#widgets-displayed">Widgets Displayed</a></li>
+<li><a class="reference internal" href="#running-another-program-in-the-terminal">Running Another Program in the Terminal</a></li>
 <li><a class="reference internal" href="#event-loops">Event Loops</a><ul>
 <li><a class="reference internal" href="#selecteventloop"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#asyncioeventloop"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a></li>
@@ -278,14 +293,14 @@ which forward API of the same method from <cite>tornado.ioloop.IOLoop</cite> (an
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

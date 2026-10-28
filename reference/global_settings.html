@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Global Settings &#8212; Urwid 4.2.3</title>
+    <title>Global Settings &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="signals.html" title="Signal Functions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Global Settings</a></li> 
       </ul>
@@ -52,11 +52,69 @@
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="urwid.set_ascii_fallbacks">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">set_ascii_fallbacks</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fallbacks</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.set_ascii_fallbacks" title="Link to this definition">¶</a></dt>
+<dd><p>Replace the table of replacements for characters the target encoding cannot encode.</p>
+<p>When the target encoding is not UTF-8, a character it cannot encode is output as its fallback from this table,
+or as <code class="docutils literal notranslate"><span class="pre">?</span></code> when the table has none. The table is consulted only for such characters: a character the
+encoding can encode (<code class="docutils literal notranslate"><span class="pre">é</span></code> in ISO-8859-1) is output as it is, and the table is not used at all with a UTF-8
+target encoding.</p>
+<p>The DEC drawing characters listed in <a class="reference internal" href="../manual/encodings.html#unicode-support"><span class="std std-ref">the manual</span></a> are translated to the terminal’s
+alternate character set before the table is consulted, so a fallback for one of them is never used.</p>
+<p>Text layout measures the original text, so a fallback has to occupy the same single column as the character
+it replaces:</p>
+<ul class="simple">
+<li><p>a key is one character, one column wide, and not printable ASCII;</p></li>
+<li><p>a value is one printable ASCII character or one of the DEC drawing characters, which is output through the
+alternate character set.</p></li>
+</ul>
+<p>A <code class="docutils literal notranslate"><span class="pre">str</span></code> element of byte text markup uses only the printable ASCII fallbacks, since byte text cannot carry
+the DEC drawing characters.</p>
+<p>Every call replaces the whole table, and <code class="docutils literal notranslate"><span class="pre">{}</span></code> clears it. The mapping is copied, so changing it afterwards
+has no effect. The table is validated as a whole: when an entry is rejected, the previous table stays in use.</p>
+<p>Canvases rendered before the call keep their old output; call <a class="reference internal" href="canvas.html#urwid.CanvasCache.clear" title="urwid.CanvasCache.clear"><code class="xref py py-meth docutils literal notranslate"><span class="pre">urwid.CanvasCache.clear()</span></code></a> to redraw them.
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.font</span></code> still reports a font that uses a non-DEC character as needing UTF-8, fallback or not.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urwid</span><span class="o">.</span><span class="n">set_ascii_fallbacks</span><span class="p">({</span><span class="s2">"•"</span><span class="p">:</span> <span class="s2">"*"</span><span class="p">,</span> <span class="s2">"█"</span><span class="p">:</span> <span class="s2">"│"</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urwid</span><span class="o">.</span><span class="n">set_ascii_fallbacks</span><span class="p">({})</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fallbacks</strong> – replacement character for each character, keyed by the character it replaces.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>TypeError</strong> – a key or a value is not a <code class="docutils literal notranslate"><span class="pre">str</span></code>.</p></li>
+<li><p><strong>ValueError</strong> – a key or a value breaks one of the rules above; the message names it.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.get_ascii_fallbacks">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">get_ascii_fallbacks</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.get_ascii_fallbacks" title="Link to this definition">¶</a></dt>
+<dd><p>Return the table set by <a class="reference internal" href="#urwid.set_ascii_fallbacks" title="urwid.set_ascii_fallbacks"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_ascii_fallbacks()</span></code></a>, read-only and as it was passed.</p>
+<p>A later <a class="reference internal" href="#urwid.set_ascii_fallbacks" title="urwid.set_ascii_fallbacks"><code class="xref py py-func docutils literal notranslate"><span class="pre">set_ascii_fallbacks()</span></code></a> call does not change the returned mapping.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urwid</span><span class="o">.</span><span class="n">set_ascii_fallbacks</span><span class="p">({</span><span class="s2">"•"</span><span class="p">:</span> <span class="s2">"*"</span><span class="p">})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">dict</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">get_ascii_fallbacks</span><span class="p">())</span>
+<span class="go">{'•': '*'}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">urwid</span><span class="o">.</span><span class="n">set_ascii_fallbacks</span><span class="p">({})</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="urwid.get_encoding_mode">
 <span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">get_encoding_mode</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'wide'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'narrow'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'utf8'</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.get_encoding_mode" title="Link to this definition">¶</a></dt>
 <dd><p>Get the mode Urwid is using when processing text strings.</p>
-<p>Returns ‘narrow’ for 8-bit encodings, ‘wide’ for CJK encodings
-or ‘utf8’ for UTF-8 encodings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>‘narrow’ for 8-bit encodings, ‘wide’ for CJK encodings or ‘utf8’ for UTF-8 encodings.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
@@ -80,6 +138,8 @@ or ‘utf8’ for UTF-8 encodings.</p>
     <ul><li><a href="index.html">Reference</a></li><ul>
 <li><a class="reference internal" href="#">Global Settings</a><ul>
 <li><a class="reference internal" href="#urwid.set_encoding"><code class="docutils literal notranslate"><span class="pre">set_encoding()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.set_ascii_fallbacks"><code class="docutils literal notranslate"><span class="pre">set_ascii_fallbacks()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.get_ascii_fallbacks"><code class="docutils literal notranslate"><span class="pre">get_ascii_fallbacks()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.get_encoding_mode"><code class="docutils literal notranslate"><span class="pre">get_encoding_mode()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.supports_unicode"><code class="docutils literal notranslate"><span class="pre">supports_unicode()</span></code></a></li>
 </ul>
@@ -130,14 +190,14 @@ or ‘utf8’ for UTF-8 encodings.</p>
         <li class="right" >
           <a href="signals.html" title="Signal Functions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Global Settings</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

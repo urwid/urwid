@@ -16,8 +16,9 @@ or other interfaces to switch modes.
 When setting up a palette with :class:`MainLoop` (or directly
 on your screen instance), you may specify attributes for 16-color, monochrome
 and high color modes. You can then switch between these modes with
-:meth:`screen.set_terminal_properties() <raw_display.Screen.set_terminal_properties>`,
+:meth:`screen.set_terminal_properties() <display.raw.Screen.set_terminal_properties>`,
 where ``screen`` is your screen instance or :attr:`MainLoop.screen`.
+The same method turns on terminal hyperlinks with ``hyperlinks=True`` (see :ref:`hyperlinks`).
 
 .. seealso::
    :meth:`register_palette() reference <BaseScreen.register_palette>`,
@@ -81,9 +82,11 @@ display attribute ``'attr2'``.
 
     Text(('attr1', [u"nesting example ", ('attr2', u"inside"), u" outside"]))
 
-When markup is nested only the innermost attribute applies. Here ``"inside"``
+When markup is nested the inner attribute is placed over the outer one. Here ``"inside"``
 has attribute ``'attr2'`` and all the rest of the text has attribute
-``'attr1'``.
+``'attr1'``. A color that ``'attr2'`` leaves to ``'inherit'`` is taken from ``'attr1'``
+(see :ref:`inherit-foreground-background`). :meth:`Text.get_text` returns such a run as
+``LayeredAttr('attr2', 'attr1')``.
 
 
 Assigning Display Attributes with AttrMap
@@ -117,6 +120,17 @@ The :class:`AttrMap` widget will apply display attribute ``'attr2'`` to all part
 the :class:`Text` widget that are using ``'attr1'``.  The result is the ``"hello"``
 text appearing with display attribute ``'attr2'`` and all other text and whitespace
 appearing in the default display attribute.
+
+The attributes of the wrapped widget are placed over the attribute :class:`AttrMap` gives to
+``None``, so a color they leave to ``'inherit'`` is taken from it:
+
+::
+
+    AttrMap(Pile([Text(('red_fg', u"error")), Text(u"plain")]), 'panel_bg')
+
+With ``('red_fg', 'dark red', 'inherit')`` and ``('panel_bg', 'inherit', 'dark blue')`` in the
+palette, ``"error"`` is dark red and all other text and whitespace is in the default foreground,
+everything on dark blue.
 
 
 :class:`AttrMap` can also change display attributes differently when they are in focus.
@@ -251,6 +265,65 @@ way to tell what the default colors are, so it is best to use default
 foregrounds and backgrounds together (not with other colors) to ensure good
 contrast.
 
+.. _inherit-foreground-background:
+
+Inherited Foreground and Background
+-----------------------------------
+
+* ``'inherit'``
+
+``'inherit'`` may be specified as a foreground or background color (with settings:
+``'inherit,bold'``) to take that color from the enclosing display attribute: the
+attribute of the outer markup, or the attribute an :class:`AttrMap` around the widget gives to
+``None``. With nothing enclosing it, the color comes from the ``None`` palette entry, so
+registering ``(None, 'default', 'dark magenta')`` gives every attribute with an ``'inherit'``
+background a dark magenta background. A color is resolved separately for each run of text, so
+the text after a run with its own background shows the enclosing background again.
+
+This lets a few foreground-only and background-only palette entries replace an entry for every
+combination of them. To highlight the focused row of a list whose text uses many foreground
+colors, give those entries an ``'inherit'`` background and wrap each row:
+
+::
+
+    palette = [
+        ('method', 'light green', 'inherit'),
+        ('size', 'brown', 'inherit'),
+        ('focus_bg', 'inherit', 'dark blue'),
+    ]
+    row = AttrMap(Columns([Text(('method', u"GET")), Text(('size', u"1k"))]), None, focus_map='focus_bg')
+
+When an attribute inherits a color, a setting (``'bold'``, ``'underline'``, ...) it does not
+mention is taken from the enclosing attribute, and ``'no-'`` turns one off: with
+``('plain', 'inherit,no-bold', 'inherit')`` inside a bold attribute, the text is not bold. An
+attribute that sets both colors, including ``'default'`` and ``''``, hides the enclosing
+attribute completely, settings included. Attributes are combined from the outermost inward, so
+each one keeps what all of the attributes around it set. :class:`ANSIText` turns an SGR reset
+such as ``ESC[24m`` into ``'no-underline'``, so the reset also applies to the enclosing attribute.
+It keeps bold apart from the color: ``ESC[1;31m`` is ``'dark red,bold'``, which the raw display draws
+in light red where the terminal shows bold text in bright colors.
+
+A change to a palette entry shows on the next :meth:`MainLoop.draw_screen`, and neither the
+widgets nor the screen have to be redrawn for it: the raw and web displays compare each drawn
+row by its resolved colors and write again only the rows whose colors changed, and curses
+writes every row on each draw.
+
+:meth:`AttrSpec.layered_over` combines two specifications. Canvases record the enclosing
+attributes as a :class:`LayeredAttr`; a custom display module turns any canvas attribute into an
+:class:`AttrSpec` with :meth:`BaseScreen.resolve_attr` instead of reading the palette itself.
+An :class:`AttrMap` can replace a :class:`LayeredAttr` as a whole by using it as a key.
+
+Code written for earlier releases sees these differences, also with palettes that never use
+``'inherit'``:
+
+* Nested markup and attributes inside an :class:`AttrMap` appear as :class:`LayeredAttr` in
+  :meth:`Text.get_text` and in canvas content, where they used to be the innermost name.
+* A display module that reads ``self._palette`` itself shows layered attributes in default
+  colors; it calls :meth:`BaseScreen.resolve_attr` instead.
+* An attribute an :class:`AttrMap` maps to ``None`` shows the map's ``None`` attribute.
+* :meth:`AttrSpec.copy_modified` without ``colors`` keeps the 88-color or true-color mode of the
+  specification, and uses 256 colors otherwise, instead of the fewest colors it needs.
+
 .. _bold-underline-standout:
 
 Bold, Underline, Standout
@@ -265,7 +338,8 @@ Bold, Underline, Standout
 * ``'faint'``
 
 These settings may be tagged on to foreground colors using commas, eg: ``'light
-gray,underline,bold,strikethrough'``
+gray,underline,bold,strikethrough'``. ``'no-'`` in front of one turns it off over an enclosing
+attribute (see :ref:`inherit-foreground-background`).
 
 For monochrome mode combinations of these are the only values that may be used.
 
@@ -276,6 +350,61 @@ specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
 :meth:`BaseScreen.set_terminal_properties`, but it is not always supported.
 
 ``'standout'`` is usually displayed as the foreground and background colors reversed.
+
+.. _hyperlinks:
+
+Hyperlinks
+----------
+
+Text can be drawn as a terminal hyperlink (OSC 8), which the user opens by clicking it.
+A link is not part of a palette entry: it belongs to a run of text, so it is an :class:`AttrSpec`
+with the ``hyperlink`` keyword.
+Its colors default to ``'inherit'``, so it can be placed inside any other display attribute:
+
+::
+
+    Text([("bold", (AttrSpec(hyperlink="https://urwid.org"), "urwid"))])
+
+The text keeps the colors and settings of ``"bold"`` and gains the link.
+An attribute without a link takes the link of the attribute around it, and
+:data:`NO_HYPERLINK` turns it off: ``AttrSpec(hyperlink=NO_HYPERLINK)`` inside a link is drawn unlinked.
+:class:`Hyperlink` also takes an ``id``, which makes the terminal highlight several separate runs as one link.
+A URI or id outside printable ASCII is refused, so a link cannot write other escape sequences to the terminal.
+
+:class:`ANSIText` and :class:`Terminal` turn the OSC 8 sequences in their input into such attributes.
+SGR sequences, ``ESC[0m`` included, leave the link in place, as they do in a terminal.
+An OSC 8 sequence urwid refuses ends the current link, so the text after it does not point at the previous target.
+
+The raw display draws links only after
+:meth:`screen.set_terminal_properties(hyperlinks=True) <display.raw.Screen.set_terminal_properties>`.
+No terminal query for OSC 8 support exists, and a terminal without it may show the link sequences as text,
+so an application turns links on when it knows its terminal supports them.
+These terminals support OSC 8:
+
+* VTE 0.50 and later (GNOME Terminal, Tilix and others)
+* iTerm2 3.1 and later
+* kitty 0.19 and later
+* WezTerm
+* foot 1.7 and later
+* Alacritty 0.11 and later
+* Windows Terminal 1.4 and later
+* Konsole, when turned on in its settings
+* Ghostty
+* mintty 2.9.7 and later
+* the VS Code terminal 1.72 and later
+* tmux 3.4 and later, with ``set -as terminal-features "*:hyperlinks"``
+
+GNU screen does not support it.
+
+The curses and LCD displays draw linked text without the link.
+The HTML screenshot and web displays turn a link into an ``<a>`` element when its scheme is
+``http``, ``https``, ``mailto``, ``sftp`` or ``file``, and draw any other link as plain text,
+since a scheme such as ``javascript`` would run script in the page.
+
+An application can also write OSC 8 bytes itself, in a canvas run with the ``"U"`` character set.
+The raw display writes such a run unchanged: the link it opens belongs to the application, which also closes it.
+urwid's own links wrap only the runs whose attribute has a link, and the next such run after a ``"U"`` run
+opens its link again.
 
 .. _bright-background:
 
@@ -367,11 +496,18 @@ RGB Palette Setting
 -------------------
 
 A few terminals have the ability to customize the terminal palette's RGB
-values with :meth:`raw_display.Screen.modify_terminal_palette`.
+values with :meth:`display.raw.Screen.modify_terminal_palette`.
 There is no automatic way to tell if this is supported by a user's
 terminal, so this feature shouldn't be relied on.
 
-:meth:`raw_display.Screen.reset_default_terminal_palette` is used to
+Most terminals take the xterm OSC 4 sequence.
+On the Linux console (``TERM=linux`` and its variants) the console's own sequence is used instead,
+which covers only the 16 basic colors: entries 16-255 are skipped there.
+Check which terminal is in use (``Screen.term``) before relying on a modified palette.
+The modified entries are reset to the terminal's default when the screen stops;
+the Linux console resets all 16 entries, and fbterm, which has no reset sequence, keeps them.
+
+:meth:`display.raw.Screen.reset_default_terminal_palette` is used to
 reset the palette in the ``palette_test.py`` example program when switching modes.
 
 

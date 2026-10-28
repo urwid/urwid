@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Signal Functions &#8212; Urwid 4.2.3</title>
+    <title>Signal Functions &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
@@ -64,9 +64,12 @@ instantiate your own Signals object.</p>
 <li><p><strong>name</strong> – the signal to listen for, typically a string</p></li>
 <li><p><strong>callback</strong> – the function to call when that signal is sent</p></li>
 <li><p><strong>user_arg</strong> – additional argument to callback
-(appended  after the arguments passed when the signal is emitted).
+(appended after the arguments passed when the signal is emitted).
 If None no arguments will be added.
-Don’t use this argument, use user_args instead.</p></li>
+This is the legacy form of passing user data, and new code should use user_args.
+It is not deprecated: it is too widely used to be removed,
+and the widgets’ own <code class="docutils literal notranslate"><span class="pre">user_data</span></code> arguments (<code class="docutils literal notranslate"><span class="pre">Button(on_press=...,</span> <span class="pre">user_data=...)</span></code>)
+rely on its order.</p></li>
 <li><p><strong>weak_args</strong> – <p>additional arguments passed to the callback
 (before any arguments passed when the signal
 is emitted and before any user_args).</p>
@@ -76,25 +79,26 @@ before passing them to callback) to prevent
 any objects referenced (indirectly) from
 weak_args from being kept alive just because
 they are referenced by this signal handler.</p>
-<p>Use this argument only as a keyword argument,
-since user_arg might be removed in the future.</p>
 </p></li>
-<li><p><strong>user_args</strong> – <p>additional arguments to pass to the callback,
+<li><p><strong>user_args</strong> – additional arguments to pass to the callback,
 (before any arguments passed when the signal
-is emitted but after any weak_args).</p>
-<p>Use this argument only as a keyword argument,
-since user_arg might be removed in the future.</p>
-</p></li>
+is emitted but after any weak_args).</p></li>
 </ul>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>NameError</strong> – <em>obj</em> does not support a signal called <em>name</em>.</p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>a key associated with this signal handler,
+which can be used to disconnect the signal later on using urwid.disconnect_signal_by_key.
+Alternatively, the signal handler can also be disconnected by calling urwid.disconnect_signal,
+which doesn’t need this key.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NameError</strong> – <em>obj</em> does not support a signal called <em>name</em>.</p>
 </dd>
 </dl>
 <p>When a matching signal is sent, callback will be called. The
-arguments it receives will be the user_args passed at connect
+arguments it receives will be the weak_args and user_args passed at connect
 time (as individual arguments) followed by all the positional
-parameters sent with the signal.</p>
+parameters sent with the signal, and then by user_arg when it is not None.</p>
 <p>As an example of using weak_args, consider the following snippet:</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">debug</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
@@ -125,11 +129,6 @@ in the weak_args list to connect_signal. Note that the
 weak_debug value passed is not a weak reference anymore, the
 signals code transparently dereferences the weakref parameter
 before passing it to print_debug.</p>
-<p>Returns a key associated by this signal handler, which can be
-used to disconnect the signal later on using
-urwid.disconnect_signal_by_key. Alternatively, the signal
-handler can also be disconnected by calling
-urwid.disconnect_signal, which doesn’t need this key.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -174,7 +173,7 @@ connect_signal().</p></li>
 <li><p><strong>callback</strong> – the callback function passed to connect_signal</p></li>
 <li><p><strong>user_arg</strong> – the user_arg parameter passed to connect_signal</p></li>
 <li><p><strong>weak_args</strong> – the weak_args parameter passed to connect_signal</p></li>
-<li><p><strong>user_args</strong> – the weak_args parameter passed to connect_signal</p></li>
+<li><p><strong>user_args</strong> – the user_args parameter passed to connect_signal</p></li>
 </ul>
 </dd>
 </dl>
@@ -210,7 +209,6 @@ signal callbacks or emitting any signals from that class’ objects.</p>
 <dt class="sig sig-object py" id="urwid.Signals.emit">
 <span class="sig-prename descclassname"><span class="pre">Signals.</span></span><span class="sig-name descname"><span class="pre">emit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">obj</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.Signals.emit" title="Link to this definition">¶</a></dt>
 <dd><p>Call each of the callbacks connected to this signal with the args arguments as positional parameters.</p>
-<p>Returns True if any of the callbacks returned True.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -218,6 +216,9 @@ signal callbacks or emitting any signals from that class’ objects.</p>
 <li><p><strong>name</strong> – the signal to send, typically a string</p></li>
 <li><p><strong>args</strong> – zero or more positional arguments to pass to the signal callback functions</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if any of the callbacks returned True.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -294,14 +295,14 @@ signal callbacks or emitting any signals from that class’ objects.</p>
         <li class="right" >
           <a href="list_walkers.html" title="List Walker Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Signal Functions</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

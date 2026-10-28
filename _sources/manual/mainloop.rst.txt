@@ -52,6 +52,23 @@ custom input handling is done from :meth:`MainLoop.unhandled_input`,
 it will be difficult to extend as your application gets more complicated.
 
 
+Running Another Program in the Terminal
+=======================================
+
+An application can hand the terminal to another program for a while, such as an
+editor on a temporary file, a pager or a shell, with the
+:meth:`MainLoop.paused` context manager::
+
+    editor = shlex.split(os.environ.get("EDITOR", "")) or ["vi"]  # "vim -f", "code --wait" carry arguments
+    with loop.paused():
+        subprocess.run([*editor, path], check=False)
+
+The screen is stopped for the block and started again afterwards, with the mouse
+tracking restored and the whole screen redrawn at the terminal's current size.
+The block holds the event loop until it ends, so no input, alarm or watched file
+is handled while the other program owns the terminal.
+
+
 .. _event-loops:
 
 Event Loops
@@ -101,8 +118,7 @@ This event loop integrates with the asyncio module in Python.
 
 ::
 
-    import asyncio
-    evl = urwid.AsyncioEventLoop(loop=asyncio.get_event_loop())
+    evl = urwid.AsyncioEventLoop()  # the running asyncio loop, or a new SelectorEventLoop of its own
     loop = urwid.MainLoop(widget, event_loop=evl)
 
 .. note::

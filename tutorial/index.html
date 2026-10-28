@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 4.2.3</title>
+    <title>Urwid Tutorial &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -101,7 +101,7 @@ each key pressed, exiting when the user presses <em>Q</em>.</p>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">show_or_exit</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
-<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 9</span>    <span class="n">txt</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span>
@@ -144,7 +144,7 @@ and the space above and below the text. It waits for a keypress before exiting.<
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
-<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
@@ -214,7 +214,7 @@ and will work in any terminal that supports 256-color mode. It will exit when
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
-<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
@@ -249,7 +249,7 @@ should define values for all the modes in their palette. Valid foreground,
 background and setting values are documented in <a class="reference internal" href="../manual/displayattributes.html#foreground-background"><span class="std std-ref">Foreground and Background Settings</span></a>.</p>
 <ul class="simple">
 <li><p>Behind the scenes our <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> class has created a
-<code class="xref py py-class docutils literal notranslate"><span class="pre">raw_display.Screen</span></code> object for drawing the screen. The program
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a> object for drawing the screen. The program
 is put into 256-color mode by using the screen object’s
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">set_terminal_properties()</span></code> method.</p></li>
 </ul>
@@ -289,7 +289,7 @@ for the new child widgets.</p></li>
 <span class="linenos"> 5</span>
 <span class="linenos"> 6</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_q</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 7</span>    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
-<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 8</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 9</span>
 <span class="linenos">10</span>
 <span class="linenos">11</span><span class="k">class</span><span class="w"> </span><span class="nc">QuestionBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">):</span>
@@ -363,7 +363,7 @@ user to exit the program.</p></li>
 <span class="linenos">18</span>
 <span class="linenos">19</span>
 <span class="linenos">20</span><span class="k">def</span><span class="w"> </span><span class="nf">on_exit_clicked</span><span class="p">(</span><span class="n">_button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
-<span class="linenos">21</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos">21</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos">22</span>
 <span class="linenos">23</span>
 <span class="linenos">24</span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">ask</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">on_ask_change</span><span class="p">)</span>
@@ -423,7 +423,7 @@ be updated when you press <em>ENTER</em>. <em>ENTER</em> on a blank line exits.<
 <span class="linenos">22</span>            <span class="k">return</span> <span class="n">key</span>
 <span class="linenos">23</span>        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">edit_text</span>
 <span class="linenos">24</span>        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="p">:</span>
-<span class="linenos">25</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos">25</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos">26</span>        <span class="c1"># replace or add response</span>
 <span class="linenos">27</span>        <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="o">.</span><span class="n">contents</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">=</span> <span class="p">[(</span><span class="n">answer</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus</span><span class="o">.</span><span class="n">options</span><span class="p">())]</span>
 <span class="linenos">28</span>        <span class="n">pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">focus_position</span>
@@ -512,7 +512,7 @@ This program lets you choose an option then repeats what you chose.</p>
 <span class="linenos">34</span>
 <span class="linenos">35</span>
 <span class="linenos">36</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">37</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos">37</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos">38</span>
 <span class="linenos">39</span>
 <span class="linenos">40</span><span class="n">main</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">(</span><span class="n">menu</span><span class="p">(</span><span class="s2">"Pythons"</span><span class="p">,</span> <span class="n">choices</span><span class="p">),</span> <span class="n">left</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
@@ -602,7 +602,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 43</span>
 <span class="linenos"> 44</span>
 <span class="linenos"> 45</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
-<span class="linenos"> 46</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 46</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 47</span>
 <span class="linenos"> 48</span>
 <span class="linenos"> 49</span><span class="n">menu_top</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span>
@@ -780,7 +780,7 @@ and new widget classes are used instead of factory functions.</p>
 <span class="linenos"> 63</span>
 <span class="linenos"> 64</span>
 <span class="linenos"> 65</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="n">MenuButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
-<span class="linenos"> 66</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 66</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 67</span>
 <span class="linenos"> 68</span>
 <span class="linenos"> 69</span><span class="n">menu_top</span> <span class="o">=</span> <span class="n">SubMenu</span><span class="p">(</span>
@@ -925,7 +925,7 @@ places.</p>
 <span class="linenos"> 42</span>
 <span class="linenos"> 43</span>
 <span class="linenos"> 44</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">ActionButton</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
-<span class="linenos"> 45</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">()</span>
+<span class="linenos"> 45</span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
 <span class="linenos"> 46</span>
 <span class="linenos"> 47</span>
 <span class="linenos"> 48</span><span class="n">map_top</span> <span class="o">=</span> <span class="n">Place</span><span class="p">(</span>
@@ -1071,13 +1071,13 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 4.2.3</title>
+    <title>Widgets &#8212; Urwid 5.0.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=e756e73c"></script>
+    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -98,8 +98,8 @@ how many screen rows they need.</p>
 <p>Occasionally it is also useful to have a widget that knows how many screen
 columns and rows it requires, regardless of the space available. This is
 called a fixed widget.</p>
-<table class="docutils align-default" id="id7">
-<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id7" title="Link to this table">¶</a></caption>
+<table class="docutils align-default" id="id10">
+<caption><span class="caption-text">How a Widget’s Size is Determined</span><a class="headerlink" href="#id10" title="Link to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20.0%" />
 <col style="width: 40.0%" />
@@ -133,17 +133,148 @@ called a fixed widget.</p>
 calculate their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> based on the <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> value.</p>
 <p>Fixed widgets expect the value <code class="docutils literal notranslate"><span class="pre">()</span></code> to be passed in to functions that take
 a size because they know their <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxcol</span></code> and <code class="xref py py-attr docutils literal notranslate"><span class="pre">maxrow</span></code> values.</p>
+<p>A widget may support more than one sizing mode, and <a class="reference internal" href="../reference/widget.html#urwid.Widget.sizing" title="urwid.Widget.sizing"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.sizing()</span></code></a>
+returns the set of modes it supports.  The sizing modes of a decoration or
+container widget depend on the widgets it contains and on its options.</p>
+<table class="docutils align-default" id="id11">
+<caption><span class="caption-text">Sizing Modes of the Included Widgets</span><a class="headerlink" href="#id11" title="Link to this table">¶</a></caption>
+<colgroup>
+<col style="width: 45.0%" />
+<col style="width: 55.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>widget</p></th>
+<th class="head"><p>sizing modes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.ANSIText" title="urwid.ANSIText"><code class="xref py py-class docutils literal notranslate"><span class="pre">ANSIText</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.TreeWidget" title="urwid.TreeWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">TreeWidget</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.SelectableIcon" title="urwid.SelectableIcon"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectableIcon</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> and its subclasses, <a class="reference internal" href="../reference/widget.html#urwid.Divider" title="urwid.Divider"><code class="xref py py-class docutils literal notranslate"><span class="pre">Divider</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.ProgressBar" title="urwid.ProgressBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ProgressBar</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'flow'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.BigText" title="urwid.BigText"><code class="xref py py-class docutils literal notranslate"><span class="pre">BigText</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'fixed'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.BarGraph" title="urwid.BarGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">BarGraph</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.GraphVScale" title="urwid.GraphVScale"><code class="xref py py-class docutils literal notranslate"><span class="pre">GraphVScale</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'box'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">LineBox</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.WidgetDisable" title="urwid.WidgetDisable"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetDisable</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a></p></td>
+<td><p>the modes of the wrapped widget</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Padding</span></code></a></p></td>
+<td><p>the modes of the wrapped widget, and <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code> as well when its width
+is a given number of columns; only <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> when its width is
+<code class="docutils literal notranslate"><span class="pre">'clip'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Filler" title="urwid.Filler"><code class="xref py py-class docutils literal notranslate"><span class="pre">Filler</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'box'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> as well when its height is <code class="docutils literal notranslate"><span class="pre">'pack'</span></code> or a
+given number of rows</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.BoxAdapter" title="urwid.BoxAdapter"><code class="xref py py-class docutils literal notranslate"><span class="pre">BoxAdapter</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'flow'</span></code>; the wrapped widget is a box widget</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a></p></td>
+<td><p>depend on the widgets they contain and their options</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'box'</span></code>, and <code class="docutils literal notranslate"><span class="pre">'flow'</span></code> and <code class="docutils literal notranslate"><span class="pre">'fixed'</span></code> as well when the size and
+position options of the top widget allow it</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frame</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.TreeListBox" title="urwid.TreeListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">TreeListBox</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'box'</span></code></p></td>
+</tr>
+</tbody>
+</table>
 </section>
 <section id="included-widgets">
 <span id="basic-grafic-widgets"></span><h2>Included Widgets<a class="headerlink" href="#included-widgets" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/widget.html#widget-classes"><span class="std std-ref">Widget class reference</span></a></p>
 <img alt="../_images/urwid_widgets_1.png" src="../_images/urwid_widgets_1.png" />
-<p>Basic and graphic widgets are the content with which users interact. They may
-also be used as part of custom widgets you create.</p>
+<p>Basic widgets, controls and graphic widgets are the content with which users
+interact. They may also be used as part of custom widgets you create.
+Controls are the widgets a user operates to make a choice: <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a>.
+The graphic widgets also include <a class="reference internal" href="../reference/widget.html#urwid.Terminal" title="urwid.Terminal"><code class="xref py py-class docutils literal notranslate"><span class="pre">Terminal</span></code></a>, a box widget that runs a
+child process and shows its terminal output.</p>
+<p>The color of a widget’s title in the figures shows the sizing modes it
+supports: blue for box, orange for flow and yellow for fixed.  A title in more
+than one color supports each of those modes.  In a decoration or container
+tile, the colors inside the box show which sizing modes the wrapped widgets
+use.  The table in <a class="reference internal" href="#box-flow-and-fixed-widgets">Box, Flow and Fixed Widgets</a> lists the exact sizing modes
+of each widget.</p>
 <img alt="../_images/urwid_widgets_2.png" src="../_images/urwid_widgets_2.png" />
 </section>
+<section id="controls">
+<span id="id2"></span><h2>Controls<a class="headerlink" href="#controls" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> send a signal
+when the user activates them with <kbd class="kbd docutils literal notranslate">enter</kbd>, <kbd class="kbd docutils literal notranslate">space</kbd> or a mouse
+click: <code class="docutils literal notranslate"><span class="pre">'click'</span></code> for a button and <code class="docutils literal notranslate"><span class="pre">'change'</span></code> for a check box or a radio
+button.  <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> arranges a group of them in equal-width cells.</p>
+<p>A <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a> shows its label between <code class="docutils literal notranslate"><span class="pre">&lt;</span></code> and <code class="docutils literal notranslate"><span class="pre">&gt;</span></code>.  The <code class="docutils literal notranslate"><span class="pre">left</span></code> and
+<code class="docutils literal notranslate"><span class="pre">right</span></code> keywords replace a bracket with other markup, such as <code class="docutils literal notranslate"><span class="pre">&quot;[&quot;</span></code>, and
+markup with no text, such as <code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, leaves the bracket out, so
+<code class="docutils literal notranslate"><span class="pre">Button(label,</span> <span class="pre">left=&quot;&quot;,</span> <span class="pre">right=&quot;&quot;)</span></code> is clickable plain text.  The cursor
+rests on the first character of the label while the button is in focus;
+<code class="docutils literal notranslate"><span class="pre">cursor_position=None</span></code> hides it, as it does for a <a class="reference internal" href="../reference/widget.html#urwid.SelectableIcon" title="urwid.SelectableIcon"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectableIcon</span></code></a>.</p>
+<section id="selectableicon-widgets">
+<h3>SelectableIcon Widgets<a class="headerlink" href="#selectableicon-widgets" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="../reference/widget.html#urwid.SelectableIcon" title="urwid.SelectableIcon"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectableIcon</span></code></a> is a <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget that takes the focus and
+shows the cursor at a fixed position in its text while it is in focus:
+<code class="docutils literal notranslate"><span class="pre">cursor_position</span></code>, the first character by default.  It is the part of
+<a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.RadioButton" title="urwid.RadioButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">RadioButton</span></code></a> that takes the
+focus, and it can be used on its own as a row of a menu or of a
+<a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> that the user chooses by moving the focus to it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectableIcon</span><span class="p">(</span><span class="n">name</span><span class="p">),</span> <span class="kc">None</span><span class="p">,</span> <span class="n">focus_map</span><span class="o">=</span><span class="s2">"reversed"</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"red"</span><span class="p">,</span> <span class="s2">"green"</span><span class="p">,</span> <span class="s2">"blue"</span><span class="p">)</span>
+<span class="p">]</span>
+<span class="n">listbox</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleFocusListWalker</span><span class="p">(</span><span class="n">rows</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>It handles no keys and no mouse events: it returns every key, so the
+container or the application acts on <kbd class="kbd docutils literal notranslate">enter</kbd>.  <code class="docutils literal notranslate"><span class="pre">cursor_position=None</span></code>
+shows no cursor, which makes it the same as <code class="docutils literal notranslate"><span class="pre">Text(markup,</span> <span class="pre">selectable=True)</span></code>;
+see <a class="reference internal" href="#listbox-focus-and-scrolling">ListBox Focus and Scrolling</a>.</p>
+</section>
+<section id="dropdown-widgets">
+<h3>DropDown Widgets<a class="headerlink" href="#dropdown-widgets" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> shows the selected option of a list of options, followed by
+an indicator.  <kbd class="kbd docutils literal notranslate">enter</kbd>, <kbd class="kbd docutils literal notranslate">space</kbd> or a mouse click opens a pop-up list
+of all the options with the selected one in focus.  Activating an option in
+the list selects it and closes the list, and <kbd class="kbd docutils literal notranslate">esc</kbd> closes the list
+without a change.  The list opens below the widget, or above it when it does
+not fit below, and it shows at most <code class="docutils literal notranslate"><span class="pre">max_visible_items</span></code> options at once and
+scrolls through the rest.</p>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DropDown.selected</span></code></a> property holds the index of the selected
+option, and <a class="reference internal" href="../reference/widget.html#urwid.DropDown.options" title="urwid.DropDown.options"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DropDown.options</span></code></a> holds the markup of every option.
+The <code class="docutils literal notranslate"><span class="pre">'change'</span></code> signal is sent with the new index before
+<a class="reference internal" href="../reference/widget.html#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DropDown.selected</span></code></a> changes, so a callback still reads the previous
+value from the widget:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">on_change</span><span class="p">(</span><span class="n">drop_down</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">DropDown</span><span class="p">,</span> <span class="n">new_index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">status</span><span class="o">.</span><span class="n">set_text</span><span class="p">([</span><span class="s2">"Selected: "</span><span class="p">,</span> <span class="n">drop_down</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="n">new_index</span><span class="p">]])</span>
+
+<span class="n">drop_down</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">DropDown</span><span class="p">([</span><span class="s2">"Red"</span><span class="p">,</span> <span class="s2">"Green"</span><span class="p">,</span> <span class="s2">"Blue"</span><span class="p">],</span> <span class="n">selected</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">drop_down</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">on_change</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The list is a pop-up, so <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> needs a <a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>;
+see <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> for the requirement.</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/tour.py">tour.py</a> example program shows two drop-down widgets.</p>
+</section>
+</section>
 <section id="decoration-widgets">
-<span id="id2"></span><h2>Decoration Widgets<a class="headerlink" href="#decoration-widgets" title="Link to this heading">¶</a></h2>
+<span id="id3"></span><h2>Decoration Widgets<a class="headerlink" href="#decoration-widgets" title="Link to this heading">¶</a></h2>
 <p>Decoration widgets alter the appearance or position of a single other widget.
 The widget they wrap is available as the
 <a class="reference internal" href="../reference/widget.html#urwid.WidgetDecoration.original_widget" title="urwid.WidgetDecoration.original_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">original_widget</span></code></a> property.
@@ -153,8 +284,61 @@ If you might be using more than one decoration widget you may use the
 <a class="reference internal" href="../reference/widget.html#urwid.Widget.base_widget" title="urwid.Widget.base_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Widget.base_widget</span></code></a> points to <code class="docutils literal notranslate"><span class="pre">self</span></code> on all non-decoration widgets, so
 it is safe to use in any situation.</p>
 </section>
+<section id="pop-up-widgets">
+<span id="id4"></span><h2>Pop-up Widgets<a class="headerlink" href="#pop-up-widgets" title="Link to this heading">¶</a></h2>
+<p>A pop-up is a widget drawn on top of the other widgets on the screen, such as
+a menu or the list of a <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a>.  Two decoration widgets work
+together to show it:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> wraps the widget that opens the pop-up.  A subclass
+implements <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.create_pop_up" title="urwid.PopUpLauncher.create_pop_up"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PopUpLauncher.create_pop_up()</span></code></a>, which returns the pop-up
+widget, and <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.get_pop_up_parameters" title="urwid.PopUpLauncher.get_pop_up_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PopUpLauncher.get_pop_up_parameters()</span></code></a>, which returns its
+position relative to the launcher and its size.  Calling
+<a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.open_pop_up" title="urwid.PopUpLauncher.open_pop_up"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PopUpLauncher.open_pop_up()</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.close_pop_up" title="urwid.PopUpLauncher.close_pop_up"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PopUpLauncher.close_pop_up()</span></code></a>
+opens and closes it, and <code class="docutils literal notranslate"><span class="pre">PopUpLauncher(...,</span> <span class="pre">close_on_menu=True)</span></code> also
+closes it when the pop-up leaves <kbd class="kbd docutils literal notranslate">esc</kbd> unhandled.
+<a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.pop_up_widget" title="urwid.PopUpLauncher.pop_up_widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PopUpLauncher.pop_up_widget</span></code></a> is the open pop-up, and
+<a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.launcher_size" title="urwid.PopUpLauncher.launcher_size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">PopUpLauncher.launcher_size</span></code></a> the size the launcher was last rendered
+at, which <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher.get_pop_up_parameters" title="urwid.PopUpLauncher.get_pop_up_parameters"><code class="xref py py-meth docutils literal notranslate"><span class="pre">PopUpLauncher.get_pop_up_parameters()</span></code></a> can place the pop-up
+against.</p></li>
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> is a box widget that draws the open pop-up of a
+launcher inside it, and any pop-up opened from that pop-up, as an
+<a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> over its own content.  A pop-up
+is shown only inside a <a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>.  <code class="docutils literal notranslate"><span class="pre">MainLoop(...,</span> <span class="pre">pop_ups=True)</span></code>
+wraps the topmost widget in one, so a pop-up can use the whole screen.</p></li>
+</ul>
+<p>A pop-up that would extend past an edge of the <a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> is moved,
+and shrunk when it is larger, to fit inside it.  When the parameters include
+<code class="docutils literal notranslate"><span class="pre">anchor_height</span></code>, the number of launcher rows directly above the pop-up, the
+pop-up is kept off those rows: it is placed below the launcher when it fits
+there, above the launcher when it fits there, and otherwise on the side with
+more rows, with its height clipped to that side.  A pop-up widget may itself be
+a <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> with its own pop-up open; that pop-up is placed
+relative to the pop-up that opened it.</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/pop_up.py">pop_up.py</a> example program shows a button that opens a pop-up, and
+<a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> (see <a class="reference internal" href="#controls"><span class="std std-ref">Controls</span></a>) is a <a class="reference internal" href="../reference/widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> whose
+pop-up is its list of options.</p>
+</section>
+<section id="special-widgets">
+<span id="id5"></span><h2>Special Widgets<a class="headerlink" href="#special-widgets" title="Link to this heading">¶</a></h2>
+<p>These decoration widgets change how the widget they wrap takes part in the
+interface, not how it looks:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.WidgetDisable" title="urwid.WidgetDisable"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetDisable</span></code></a> disables interaction with the wrapped widget: while
+its <code class="docutils literal notranslate"><span class="pre">disabled</span></code> property is <code class="docutils literal notranslate"><span class="pre">True</span></code> (the default), it is never selectable,
+it is skipped by focus navigation, and it always renders the wrapped widget
+without focus.  Setting the property to <code class="docutils literal notranslate"><span class="pre">False</span></code> enables the wrapped widget
+again without replacing the decoration; a disabled look, such as an
+<a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> around it, is up to the application.</p></li>
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a> shows the widget stored in its
+<code class="docutils literal notranslate"><span class="pre">original_widget</span></code> property, and assigning a new widget to that property
+replaces the widget shown without modifying the container that holds the
+placeholder.  It is useful for an interface with several pages, or for
+showing and hiding a menu or a status bar.</p></li>
+</ul>
+</section>
 <section id="container-widgets">
-<span id="id3"></span><h2>Container Widgets<a class="headerlink" href="#container-widgets" title="Link to this heading">¶</a></h2>
+<span id="id6"></span><h2>Container Widgets<a class="headerlink" href="#container-widgets" title="Link to this heading">¶</a></h2>
 <p>Container widgets divide their available space between their child widgets.
 This is how widget layouts are defined. When handling selectable widgets
 container widgets also keep track of which of their child widgets is in focus.
@@ -263,6 +447,104 @@ certain custom list walkers, and the reason goes back to the original way list
 walker interface was defined.  Note that a custom list walker might also generate
 an unbounded number of positions, so care should be used with this interface and
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>.</p>
+<section id="moving-the-focus-with-tab">
+<span id="select-navigation"></span><h3>Moving the Focus with Tab<a class="headerlink" href="#moving-the-focus-with-tab" title="Link to this heading">¶</a></h3>
+<p>The default command map binds <kbd class="kbd docutils literal notranslate">tab</kbd> and <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">n</kbd> to the
+<code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code> command and <kbd class="kbd docutils literal notranslate">shift</kbd> <kbd class="kbd docutils literal notranslate">tab</kbd> and <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">p</kbd> to the
+<code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code> command.  <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a>,
+<a class="reference internal" href="../reference/widget.html#urwid.Frame" title="urwid.Frame"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frame</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> handle these commands
+only when they are created with <code class="docutils literal notranslate"><span class="pre">select_navigation=True</span></code> (or have their
+<code class="docutils literal notranslate"><span class="pre">select_navigation</span></code> attribute set).  Otherwise the keys are returned
+unhandled, so an application that handles <kbd class="kbd docutils literal notranslate">tab</kbd> in its
+<code class="docutils literal notranslate"><span class="pre">unhandled_input</span></code> keeps working.</p>
+<p>An opted-in container handles <code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code> this way, and
+<code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code> the same way in the opposite direction:</p>
+<ol class="arabic simple">
+<li><p>The key goes to the child in focus first, like every other key.  A child
+that handles it keeps it: an <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> created with <code class="docutils literal notranslate"><span class="pre">allow_tab=True</span></code>
+inserts a tab, and an opted-in child container moves its own focus.</p></li>
+<li><p>When the child returns the key unhandled, the container moves its focus to
+the next selectable child and enters it (see below).  The following key
+presses go to that child until it returns the key unhandled again.</p></li>
+<li><p>When there is no selectable child after the focus, the container moves its
+focus back to its first selectable child, enters it, and returns the key
+unhandled.  An opted-in parent then moves on to its own next child.  At the
+outermost opted-in container the same key press has already put the focus
+on its first selectable child, and the key still reaches
+<code class="docutils literal notranslate"><span class="pre">unhandled_input</span></code>, which an application may use or ignore.</p></li>
+</ol>
+<p>Each key press is decided from the answer of the child in focus and from the
+current contents and focus of the container, so children added, removed or
+changed between key presses are taken into account.</p>
+<p>Entering a child means calling its <code class="docutils literal notranslate"><span class="pre">enter_selectable(reverse=...)</span></code> method,
+when it has one.  An opted-in container starts at its first selectable child
+(its last one, for <code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code>) and enters that child in turn.
+A container that is not opted in keeps its focus and is a single stop, the
+same as a widget without the method, such as a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> of records.
+Decoration widgets such as <a class="reference internal" href="../reference/widget.html#urwid.Padding" title="urwid.Padding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Padding</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> and
+<a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">LineBox</span></code></a>, and <a class="reference internal" href="../reference/widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetWrap</span></code></a> subclasses, forward the method to
+the widget they send keys to; a subclass that sends keys to another widget
+overrides <code class="docutils literal notranslate"><span class="pre">enter_selectable()</span></code> to match.  <a class="reference internal" href="../reference/widget.html#urwid.WidgetDisable" title="urwid.WidgetDisable"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetDisable</span></code></a> is never
+entered while it is disabled.  <a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a> does not forward the method and keeps every
+focus under it, because the widget that receives its keys is known only
+after the pop-ups were laid out at the current size.</p>
+<p>After a step or a reset, every opted-in container on the new focus path,
+reached through containers and decorations that implement the method, is at
+its first (last) selectable child.  Containers off the new focus path keep
+their focus until they are entered.</p>
+<p><code class="docutils literal notranslate"><span class="pre">container.focus_first_selectable()</span></code> and
+<code class="docutils literal notranslate"><span class="pre">container.focus_last_selectable()</span></code> move the focus to the first or last
+selectable child and enter it, whether or not the container is opted in.
+They return whether a selectable child exists.  <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> searches its
+whole body, not only the visible rows.</p>
+<p>A child of <a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> or <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> sized
+<code class="docutils literal notranslate"><span class="pre">(GIVEN,</span> <span class="pre">0)</span></code> is not drawn, so neither these commands nor the arrow keys
+move the focus to it.  A container whose only selectable children are sized
+this way still reports itself as selectable to its parent.</p>
+<p>Every focus change made by this navigation is an assignment to
+<code class="docutils literal notranslate"><span class="pre">container.focus_position</span></code>, so a subclass that overrides the
+<code class="docutils literal notranslate"><span class="pre">focus_position</span></code> setter sees each one.  <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> places the new
+focus like any undirected focus change: a visible widget stays where it is,
+and a widget out of view is centred.</p>
+<p>A custom container gets the same behaviour from <a class="reference internal" href="../reference/widget.html#urwid.SelectNavigationMixin" title="urwid.SelectNavigationMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectNavigationMixin</span></code></a>,
+or from <a class="reference internal" href="../reference/widget.html#urwid.SelectNavigationListContentsMixin" title="urwid.SelectNavigationListContentsMixin"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectNavigationListContentsMixin</span></code></a> when its positions are
+indexes into a <code class="docutils literal notranslate"><span class="pre">contents</span></code> list; the mixin documentation lists what the
+container has to provide.</p>
+<p><code class="docutils literal notranslate"><span class="pre">select_navigation=True</span></code> on a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> expects a finite body:
+<code class="docutils literal notranslate"><span class="pre">get_next()</span></code> and <code class="docutils literal notranslate"><span class="pre">get_prev()</span></code> of its list walker reach
+<code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> in both directions.  A body without an end never returns
+from the search.  A list walker created with
+<code class="docutils literal notranslate"><span class="pre">wrap_around=True</span></code>, such as <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>, is traversed
+from the first to the last position of its <code class="docutils literal notranslate"><span class="pre">positions()</span></code>, so the key is
+returned at its end.  Another list walker that repeats a position is treated
+as ending where the walk comes back to the focus: the search does not loop,
+but the key is returned only when no other selectable widget is left.</p>
+</section>
+<section id="reacting-to-focus-changes">
+<span id="focus-changed-signal"></span><h3>Reacting to Focus Changes<a class="headerlink" href="#reacting-to-focus-changes" title="Link to this heading">¶</a></h3>
+<p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a>, <a class="reference internal" href="../reference/widget.html#urwid.Columns" title="urwid.Columns"><code class="xref py py-class docutils literal notranslate"><span class="pre">Columns</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.GridFlow" title="urwid.GridFlow"><code class="xref py py-class docutils literal notranslate"><span class="pre">GridFlow</span></code></a> send the
+<code class="docutils literal notranslate"><span class="pre">&quot;focus</span> <span class="pre">changed&quot;</span></code> signal after their focus position changed: by a key, a
+mouse click, the <code class="docutils literal notranslate"><span class="pre">focus_position</span></code> setter, or a change of <code class="docutils literal notranslate"><span class="pre">contents</span></code> that
+moves the focus to another position.  Replacing the widget in focus at the
+same position is not reported.  A handler receives the container, the old and
+the new position; a position is <code class="docutils literal notranslate"><span class="pre">None</span></code> while the container is empty.  The
+handler runs after the change, so the container already reports the new
+focus:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">on_focus_changed</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="n">old_position</span><span class="p">,</span> <span class="n">new_position</span><span class="p">):</span>
+    <span class="n">status</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="sa">f</span><span class="s2">"field </span><span class="si">{</span><span class="n">new_position</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">pile</span><span class="p">,</span> <span class="s2">"focus changed"</span><span class="p">,</span> <span class="n">on_focus_changed</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The signal is sent once for a change of <code class="docutils literal notranslate"><span class="pre">contents</span></code>, after the contents
+list’s modified callback.  Replacing the callback set with
+<code class="docutils literal notranslate"><span class="pre">contents.set_focus_changed_callback()</span></code>, which runs before the change, does
+not stop the signal.</p>
+<p>A handler that moves the focus again sends a new signal before the remaining
+handlers of the first one run, so those see the second change first.  The
+arguments of each signal, not the current <code class="docutils literal notranslate"><span class="pre">focus_position</span></code>, describe the
+change it reports.</p>
+</section>
 <section id="pile-widgets">
 <h3>Pile Widgets<a class="headerlink" href="#pile-widgets" title="Link to this heading">¶</a></h3>
 <p><a class="reference internal" href="../reference/widget.html#urwid.Pile" title="urwid.Pile"><code class="xref py py-class docutils literal notranslate"><span class="pre">Pile</span></code></a> widgets are used to combine multiple widgets by stacking them vertically.
@@ -318,12 +600,31 @@ Scrolling is normally supported using keyboard positioning keys and mouse wheel.
 <h3>ScrollBar Widget<a class="headerlink" href="#scrollbar-widget" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> widget draw optional scrollbar on the right or left side of widget if scrolling is required
 (widget not fit in the desired amount of rows).
-The widget is always rendered BOX and wrapped widget is also should be BOX.
+With <code class="docutils literal notranslate"><span class="pre">visible=True</span></code> the scrollbar is drawn even when no scrolling is required,
+so the wrapped widget keeps the same width whatever its content.
+With <code class="docutils literal notranslate"><span class="pre">visible=False</span></code> it is never drawn: the wrapped widget gets the full width and still scrolls by keys and wheel.
+With <code class="docutils literal notranslate"><span class="pre">end_markers</span></code>, such as <code class="docutils literal notranslate"><span class="pre">(ScrollBar.Symbols.ARROW_TRIANGLE_UP,</span> <span class="pre">ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)</span></code>,
+the first and the last scrollbar row hold markers
+that scroll one step when clicked; a marker whose end of the content is visible is drawn with <code class="docutils literal notranslate"><span class="pre">marker_dim_attr</span></code>.
+<code class="docutils literal notranslate"><span class="pre">attr</span></code> and <code class="docutils literal notranslate"><span class="pre">thumb_attr</span></code> set the display attributes of the bar and the thumb,
+and <code class="docutils literal notranslate"><span class="pre">focus_attr</span></code> and <code class="docutils literal notranslate"><span class="pre">thumb_focus_attr</span></code> replace them when the scrollbar is rendered in focus.
+The widget reports BOX sizing, and the wrapped widget must support BOX.
+Around a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> it also accepts a flow size: it then takes the rows of the list,
+draws no scrollbar with <code class="docutils literal notranslate"><span class="pre">visible=None</span></code>, and fills the scrollbar with the thumb with <code class="docutils literal notranslate"><span class="pre">visible=True</span></code>.
 In case of other widget types, they should be wrapped to support BOX sizing.</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> make any FLOW or FIXED widget compatible with scrollable api.</p></li>
 <li><p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> can be used with <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> directly,
-all input is always handled by <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and it’s widgets.</p></li>
+all input outside the scrollbar and the mouse wheel over it are handled by <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> and it’s widgets.
+By default a click or drag on the scrollbar does nothing.
+With <code class="docutils literal notranslate"><span class="pre">scroll_by_focus=True</span></code> a click or drag on the scrollbar scrolls the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> by moving its focus
+to the widget at the top of the new view (at the end of the list the view may shift to fill the rows);
+the focus stays when the view does.
+It is off by default, because this focus change does not pass through the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> input methods.</p></li>
+<li><p><a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> and <a class="reference internal" href="../reference/widget.html#urwid.Scrollable" title="urwid.Scrollable"><code class="xref py py-class docutils literal notranslate"><span class="pre">Scrollable</span></code></a> always accept the input focus.
+With <code class="docutils literal notranslate"><span class="pre">delegate_selectable=True</span></code> they accept it only when the wrapped widget is selectable,
+so a container moves the focus past a <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> created with <code class="docutils literal notranslate"><span class="pre">focus_when_empty=False</span></code> while it is empty.
+It is off by default, because a wrapped widget that is not selectable then cannot be scrolled by keys.</p></li>
 </ul>
 <p>Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.</p>
@@ -345,7 +646,7 @@ This means, keyboard input maybe forwarded to the wrapped selectable widget even
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> should be used to scroll between widgets, which can be multiline by itself.</p>
 </section>
 <section id="scrollable-api">
-<span id="id4"></span><h3>Scrollable API<a class="headerlink" href="#scrollable-api" title="Link to this heading">¶</a></h3>
+<span id="id7"></span><h3>Scrollable API<a class="headerlink" href="#scrollable-api" title="Link to this heading">¶</a></h3>
 <p>Widget pretending to be scrolled via <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> should subclass <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a>
 and implement positioning API:</p>
 <dl class="py method">
@@ -400,12 +701,18 @@ If <cite>position</cite> is negative it is interpreted as lines from the bottom.
 </section>
 </section>
 <section id="listbox-contents">
-<span id="id5"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Link to this heading">¶</a></h2>
+<span id="id8"></span><h2>ListBox Contents<a class="headerlink" href="#listbox-contents" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
 Its contents are displayed stacked vertically, and the
 <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> allows the user to scroll through its content.
 One of the flow widgets displayed in the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is its
 focus widget.</p>
+<p>A <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> also accepts a flow size, although it reports BOX sizing only,
+so containers keep laying it out as a box widget.
+At a flow size it shows all its widgets, and <a class="reference internal" href="../reference/widget.html#urwid.ListBox.rows" title="urwid.ListBox.rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.rows()</span></code></a> returns the rows they take.
+The whole body is measured, so this is meant for lists short enough for a dialog.
+It needs a list walker that reports its length or an estimate of it, or a <a class="reference internal" href="../reference/list_walkers.html#urwid.TreeWalker" title="urwid.TreeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">TreeWalker</span></code></a>,
+and that does not wrap around.</p>
 <section id="listbox-focus-and-scrolling">
 <h3>ListBox Focus and Scrolling<a class="headerlink" href="#listbox-focus-and-scrolling" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> is a box widget that contains flow widgets.
@@ -445,6 +752,17 @@ a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.</p>
+<p>A row of text that the user chooses by moving the focus to it can be created
+with <code class="docutils literal notranslate"><span class="pre">Text(markup,</span> <span class="pre">selectable=True)</span></code>.  It takes the focus but shows no
+cursor and returns every key, so the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> or the application
+handles them; wrap it in an <a class="reference internal" href="../reference/widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> with a <code class="docutils literal notranslate"><span class="pre">focus_map</span></code> to mark the
+row in focus.</p>
+<p>A <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> accepts the input focus even when it is empty.  Created
+with <code class="docutils literal notranslate"><span class="pre">focus_when_empty=False</span></code> it is not selectable while its body is empty,
+so a container moves the focus past it; wrap it in a <a class="reference internal" href="../reference/widget.html#urwid.ScrollBar" title="urwid.ScrollBar"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScrollBar</span></code></a> with
+<code class="docutils literal notranslate"><span class="pre">delegate_selectable=True</span></code> to keep that behind a scrollbar.  While such a
+ListBox is in focus and empty, its container passes the keys on to its own
+parent instead.</p>
 </section>
 <section id="dynamic-listbox-with-listwalker">
 <h3>Dynamic ListBox with ListWalker<a class="headerlink" href="#dynamic-listbox-with-listwalker" title="Link to this heading">¶</a></h3>
@@ -540,6 +858,12 @@ above and below the focus widget.</p>
 <p>A <a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.</p>
+<p>A log or a progress view that grows at the end can be created with
+<code class="docutils literal notranslate"><span class="pre">SimpleFocusListWalker(...,</span> <span class="pre">follow_end=True)</span></code>, or with a bounded
+<a class="reference internal" href="../reference/list_walkers.html#urwid.SimpleFocusDequeWalker" title="urwid.SimpleFocusDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a> and the same keyword.  While the focus is on
+the last widget, appended widgets take the focus, so the <a class="reference internal" href="../reference/widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a>
+keeps showing the newest one.  Once the user moves the focus up, appending
+leaves it where it is.</p>
 <p>If you need to display a large number of widgets you should implement your own
 list walker that manages creating widgets as they are requested and destroying
 them later to avoid excessive memory use.</p>
@@ -552,7 +876,7 @@ walker classes.</p>
 </div>
 </section>
 <section id="list-walker-interface">
-<span id="id6"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Link to this heading">¶</a></h3>
+<span id="id9"></span><h3>List Walker Interface<a class="headerlink" href="#list-walker-interface" title="Link to this heading">¶</a></h3>
 <section id="list-walker-api-version-1">
 <h4>List Walker API Version 1<a class="headerlink" href="#list-walker-api-version-1" title="Link to this heading">¶</a></h4>
 <p>This API will remain available and is still the least restrictive option fo the programmer.
@@ -631,8 +955,10 @@ When this is defined it will be used by <code class="xref py py-meth docutils li
 <code class="xref py py-meth docutils literal notranslate"><span class="pre">ListBox.__reversed__()</span></code>:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="MyV2ListWalker.positions">
-<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Link to this definition">¶</a></dt>
-<dd><p>return a forward or reverse iterable of positions</p>
+<span class="sig-prename descclassname"><span class="pre">MyV2ListWalker.</span></span><span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#MyV2ListWalker.positions" title="Link to this definition">¶</a></dt>
+<dd><p>return a forward or reverse iterable of positions.
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code> always passes <em>reverse</em> by keyword, so a custom walker may accept it
+either positionally or as keyword-only.</p>
 </dd></dl>
 
 </section>
@@ -919,12 +1245,7 @@ specified) then this method must move the cursor to that position and return
 </section>
 <section id="widget-metaclass">
 <h2>Widget Metaclass<a class="headerlink" href="#widget-metaclass" title="Link to this heading">¶</a></h2>
-<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> base class has a metaclass defined that
-creates a <code class="docutils literal notranslate"><span class="pre">__super</span></code> attribute for calling your superclass:
-<code class="docutils literal notranslate"><span class="pre">self.__super</span></code> is the same as the usual <code class="docutils literal notranslate"><span class="pre">super(MyClassName,</span> <span class="pre">self)</span></code>.
-This shortcut is of little use with Python 3’s new <code class="docutils literal notranslate"><span class="pre">super()</span></code> syntax, but
-will likely be retained for backwards compatibility in future versions.</p>
-<p>This metaclass also uses <code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSignal</span></code>
+<p>The <a class="reference internal" href="../reference/widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> base class has a metaclass defined that uses <a class="reference internal" href="../reference/meta.html#urwid.MetaSignals" title="urwid.MetaSignals"><code class="xref py py-class docutils literal notranslate"><span class="pre">MetaSignals</span></code></a>
 to allow signals to be defined as a list of signal names
 in a <code class="docutils literal notranslate"><span class="pre">signals</span></code> class attribute.  This is equivalent to calling
 <a class="reference internal" href="../reference/signals.html#urwid.register_signal" title="urwid.register_signal"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_signal()</span></code></a> with the class name and list of signals and all those
@@ -951,8 +1272,17 @@ defined in superclasses after the class definition.</p>
 <li><a class="reference internal" href="#widget-layout">Widget Layout</a></li>
 <li><a class="reference internal" href="#box-flow-and-fixed-widgets">Box, Flow and Fixed Widgets</a></li>
 <li><a class="reference internal" href="#included-widgets">Included Widgets</a></li>
+<li><a class="reference internal" href="#controls">Controls</a><ul>
+<li><a class="reference internal" href="#selectableicon-widgets">SelectableIcon Widgets</a></li>
+<li><a class="reference internal" href="#dropdown-widgets">DropDown Widgets</a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#decoration-widgets">Decoration Widgets</a></li>
+<li><a class="reference internal" href="#pop-up-widgets">Pop-up Widgets</a></li>
+<li><a class="reference internal" href="#special-widgets">Special Widgets</a></li>
 <li><a class="reference internal" href="#container-widgets">Container Widgets</a><ul>
+<li><a class="reference internal" href="#moving-the-focus-with-tab">Moving the Focus with Tab</a></li>
+<li><a class="reference internal" href="#reacting-to-focus-changes">Reacting to Focus Changes</a></li>
 <li><a class="reference internal" href="#pile-widgets">Pile Widgets</a></li>
 <li><a class="reference internal" href="#columns-widgets">Columns Widgets</a></li>
 <li><a class="reference internal" href="#gridflow-widgets">GridFlow Widgets</a></li>
@@ -1055,14 +1385,14 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 4.2.3</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
     </div>
     <div class="footer" role="contentinfo">
     &#169; Copyright 2014, Ian Ward et al.
-      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.1.0.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
     </div>
   </body>
 </html>

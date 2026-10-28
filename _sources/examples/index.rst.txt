@@ -16,9 +16,11 @@ tour.py
    :scale: 50%
 .. image:: tour2.png
    :scale: 50%
+.. image:: tour3.png
+   :scale: 50%
 
 Show how many of the standard widgets may be arranged
-on the screen
+on the screen, including a DropDown with its list open
 
 
 graph.py
@@ -60,6 +62,12 @@ subproc.py
    :scale: 50%
 
 Monitor and display results from a subprocess
+
+
+external_editor.py
+------------------
+
+Hand the terminal to an external editor and show the text written in it
 
 
 palette_test.py

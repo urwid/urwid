@@ -93,6 +93,51 @@ calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 Fixed widgets expect the value ``()`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
 
+A widget may support more than one sizing mode, and :meth:`Widget.sizing`
+returns the set of modes it supports.  The sizing modes of a decoration or
+container widget depend on the widgets it contains and on its options.
+
+.. list-table:: Sizing Modes of the Included Widgets
+   :widths: 45 55
+   :header-rows: 1
+
+   * - widget
+     - sizing modes
+   * - :class:`Text`, :class:`ANSIText`, :class:`TreeWidget`,
+       :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
+       :class:`RadioButton`, :class:`DropDown`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Edit` and its subclasses, :class:`Divider`,
+       :class:`ProgressBar`
+     - ``'flow'``
+   * - :class:`BigText`
+     - ``'fixed'``
+   * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
+       :class:`Terminal`
+     - ``'box'``
+   * - :class:`AttrMap`, :class:`LineBox`, :class:`PopUpLauncher`,
+       :class:`WidgetDisable`, :class:`WidgetPlaceholder`
+     - the modes of the wrapped widget
+   * - :class:`Padding`
+     - the modes of the wrapped widget, and ``'fixed'`` as well when its width
+       is a given number of columns; only ``'flow'`` when its width is
+       ``'clip'``
+   * - :class:`Filler`
+     - ``'box'``, and ``'flow'`` as well when its height is ``'pack'`` or a
+       given number of rows
+   * - :class:`BoxAdapter`
+     - ``'flow'``; the wrapped widget is a box widget
+   * - :class:`Pile`, :class:`Columns`
+     - depend on the widgets they contain and their options
+   * - :class:`GridFlow`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Overlay`
+     - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
+       position options of the top widget allow it
+   * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
+       :class:`PopUpTarget`, :class:`ScrollBar`, :class:`Scrollable`
+     - ``'box'``
+
 .. _basic-grafic-widgets:
 
 Included Widgets
@@ -102,10 +147,91 @@ Included Widgets
 
 .. image:: images/urwid_widgets_1.png
 
-Basic and graphic widgets are the content with which users interact. They may
-also be used as part of custom widgets you create.
+Basic widgets, controls and graphic widgets are the content with which users
+interact. They may also be used as part of custom widgets you create.
+Controls are the widgets a user operates to make a choice: :class:`Button`,
+:class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
+The graphic widgets also include :class:`Terminal`, a box widget that runs a
+child process and shows its terminal output.
+
+The color of a widget's title in the figures shows the sizing modes it
+supports: blue for box, orange for flow and yellow for fixed.  A title in more
+than one color supports each of those modes.  In a decoration or container
+tile, the colors inside the box show which sizing modes the wrapped widgets
+use.  The table in `Box, Flow and Fixed Widgets`_ lists the exact sizing modes
+of each widget.
 
 .. image:: images/urwid_widgets_2.png
+
+.. _controls:
+
+Controls
+========
+
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` send a signal
+when the user activates them with :kbd:`enter`, :kbd:`space` or a mouse
+click: ``'click'`` for a button and ``'change'`` for a check box or a radio
+button.  :class:`GridFlow` arranges a group of them in equal-width cells.
+
+A :class:`Button` shows its label between ``<`` and ``>``.  The ``left`` and
+``right`` keywords replace a bracket with other markup, such as ``"["``, and
+markup with no text, such as ``""``, leaves the bracket out, so
+``Button(label, left="", right="")`` is clickable plain text.  The cursor
+rests on the first character of the label while the button is in focus;
+``cursor_position=None`` hides it, as it does for a :class:`SelectableIcon`.
+
+SelectableIcon Widgets
+----------------------
+
+:class:`SelectableIcon` is a :class:`Text` widget that takes the focus and
+shows the cursor at a fixed position in its text while it is in focus:
+``cursor_position``, the first character by default.  It is the part of
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` that takes the
+focus, and it can be used on its own as a row of a menu or of a
+:class:`ListBox` that the user chooses by moving the focus to it::
+
+    rows = [
+        urwid.AttrMap(urwid.SelectableIcon(name), None, focus_map="reversed")
+        for name in ("red", "green", "blue")
+    ]
+    listbox = urwid.ListBox(urwid.SimpleFocusListWalker(rows))
+
+It handles no keys and no mouse events: it returns every key, so the
+container or the application acts on :kbd:`enter`.  ``cursor_position=None``
+shows no cursor, which makes it the same as ``Text(markup, selectable=True)``;
+see `ListBox Focus and Scrolling`_.
+
+DropDown Widgets
+----------------
+
+:class:`DropDown` shows the selected option of a list of options, followed by
+an indicator.  :kbd:`enter`, :kbd:`space` or a mouse click opens a pop-up list
+of all the options with the selected one in focus.  Activating an option in
+the list selects it and closes the list, and :kbd:`esc` closes the list
+without a change.  The list opens below the widget, or above it when it does
+not fit below, and it shows at most ``max_visible_items`` options at once and
+scrolls through the rest.
+
+The :attr:`DropDown.selected` property holds the index of the selected
+option, and :attr:`DropDown.options` holds the markup of every option.
+The ``'change'`` signal is sent with the new index before
+:attr:`DropDown.selected` changes, so a callback still reads the previous
+value from the widget:
+
+::
+
+    def on_change(drop_down: urwid.DropDown, new_index: int) -> None:
+        status.set_text(["Selected: ", drop_down.options[new_index]])
+
+    drop_down = urwid.DropDown(["Red", "Green", "Blue"], selected=1)
+    urwid.connect_signal(drop_down, "change", on_change)
+
+The list is a pop-up, so :class:`DropDown` needs a :class:`PopUpTarget`;
+see :class:`DropDown` for the requirement.
+
+The tour.py_ example program shows two drop-down widgets.
+
+.. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
 
 .. _decoration-widgets:
 
@@ -120,6 +246,67 @@ If you might be using more than one decoration widget you may use the
 "most" original_widget.
 :attr:`Widget.base_widget` points to ``self`` on all non-decoration widgets, so
 it is safe to use in any situation.
+
+.. _pop-up-widgets:
+
+Pop-up Widgets
+==============
+
+A pop-up is a widget drawn on top of the other widgets on the screen, such as
+a menu or the list of a :class:`DropDown`.  Two decoration widgets work
+together to show it:
+
+* :class:`PopUpLauncher` wraps the widget that opens the pop-up.  A subclass
+  implements :meth:`PopUpLauncher.create_pop_up`, which returns the pop-up
+  widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
+  position relative to the launcher and its size.  Calling
+  :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
+  opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
+  closes it when the pop-up leaves :kbd:`esc` unhandled.
+  :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
+  :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
+  at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
+  against.
+* :class:`PopUpTarget` is a box widget that draws the open pop-up of a
+  launcher inside it, and any pop-up opened from that pop-up, as an
+  :class:`Overlay` over its own content.  A pop-up
+  is shown only inside a :class:`PopUpTarget`.  ``MainLoop(..., pop_ups=True)``
+  wraps the topmost widget in one, so a pop-up can use the whole screen.
+
+A pop-up that would extend past an edge of the :class:`PopUpTarget` is moved,
+and shrunk when it is larger, to fit inside it.  When the parameters include
+``anchor_height``, the number of launcher rows directly above the pop-up, the
+pop-up is kept off those rows: it is placed below the launcher when it fits
+there, above the launcher when it fits there, and otherwise on the side with
+more rows, with its height clipped to that side.  A pop-up widget may itself be
+a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
+relative to the pop-up that opened it.
+
+The pop_up.py_ example program shows a button that opens a pop-up, and
+:class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
+pop-up is its list of options.
+
+.. _pop_up.py: https://github.com/urwid/urwid/blob/master/examples/pop_up.py
+
+.. _special-widgets:
+
+Special Widgets
+===============
+
+These decoration widgets change how the widget they wrap takes part in the
+interface, not how it looks:
+
+* :class:`WidgetDisable` disables interaction with the wrapped widget: while
+  its ``disabled`` property is ``True`` (the default), it is never selectable,
+  it is skipped by focus navigation, and it always renders the wrapped widget
+  without focus.  Setting the property to ``False`` enables the wrapped widget
+  again without replacing the decoration; a disabled look, such as an
+  :class:`AttrMap` around it, is up to the application.
+* :class:`WidgetPlaceholder` shows the widget stored in its
+  ``original_widget`` property, and assigning a new widget to that property
+  replaces the widget shown without modifying the container that holds the
+  placeholder.  It is useful for an interface with several pages, or for
+  showing and hiding a menu or a status bar.
 
 .. _container-widgets:
 
@@ -258,6 +445,119 @@ walker interface was defined.  Note that a custom list walker might also generat
 an unbounded number of positions, so care should be used with this interface and
 :class:`ListBox`.
 
+.. _select-navigation:
+
+Moving the Focus with Tab
+-------------------------
+
+The default command map binds :kbd:`tab` and :kbd:`ctrl n` to the
+``'next selectable'`` command and :kbd:`shift tab` and :kbd:`ctrl p` to the
+``'prev selectable'`` command.  :class:`Pile`, :class:`Columns`,
+:class:`Frame`, :class:`ListBox` and :class:`GridFlow` handle these commands
+only when they are created with ``select_navigation=True`` (or have their
+``select_navigation`` attribute set).  Otherwise the keys are returned
+unhandled, so an application that handles :kbd:`tab` in its
+``unhandled_input`` keeps working.
+
+An opted-in container handles ``'next selectable'`` this way, and
+``'prev selectable'`` the same way in the opposite direction:
+
+#. The key goes to the child in focus first, like every other key.  A child
+   that handles it keeps it: an :class:`Edit` created with ``allow_tab=True``
+   inserts a tab, and an opted-in child container moves its own focus.
+#. When the child returns the key unhandled, the container moves its focus to
+   the next selectable child and enters it (see below).  The following key
+   presses go to that child until it returns the key unhandled again.
+#. When there is no selectable child after the focus, the container moves its
+   focus back to its first selectable child, enters it, and returns the key
+   unhandled.  An opted-in parent then moves on to its own next child.  At the
+   outermost opted-in container the same key press has already put the focus
+   on its first selectable child, and the key still reaches
+   ``unhandled_input``, which an application may use or ignore.
+
+Each key press is decided from the answer of the child in focus and from the
+current contents and focus of the container, so children added, removed or
+changed between key presses are taken into account.
+
+Entering a child means calling its ``enter_selectable(reverse=...)`` method,
+when it has one.  An opted-in container starts at its first selectable child
+(its last one, for ``'prev selectable'``) and enters that child in turn.
+A container that is not opted in keeps its focus and is a single stop, the
+same as a widget without the method, such as a :class:`ListBox` of records.
+Decoration widgets such as :class:`Padding`, :class:`AttrMap` and
+:class:`LineBox`, and :class:`WidgetWrap` subclasses, forward the method to
+the widget they send keys to; a subclass that sends keys to another widget
+overrides ``enter_selectable()`` to match.  :class:`WidgetDisable` is never
+entered while it is disabled.  :class:`PopUpTarget` does not forward the method and keeps every
+focus under it, because the widget that receives its keys is known only
+after the pop-ups were laid out at the current size.
+
+After a step or a reset, every opted-in container on the new focus path,
+reached through containers and decorations that implement the method, is at
+its first (last) selectable child.  Containers off the new focus path keep
+their focus until they are entered.
+
+``container.focus_first_selectable()`` and
+``container.focus_last_selectable()`` move the focus to the first or last
+selectable child and enter it, whether or not the container is opted in.
+They return whether a selectable child exists.  :class:`ListBox` searches its
+whole body, not only the visible rows.
+
+A child of :class:`Pile`, :class:`Columns` or :class:`GridFlow` sized
+``(GIVEN, 0)`` is not drawn, so neither these commands nor the arrow keys
+move the focus to it.  A container whose only selectable children are sized
+this way still reports itself as selectable to its parent.
+
+Every focus change made by this navigation is an assignment to
+``container.focus_position``, so a subclass that overrides the
+``focus_position`` setter sees each one.  :class:`ListBox` places the new
+focus like any undirected focus change: a visible widget stays where it is,
+and a widget out of view is centred.
+
+A custom container gets the same behaviour from :class:`SelectNavigationMixin`,
+or from :class:`SelectNavigationListContentsMixin` when its positions are
+indexes into a ``contents`` list; the mixin documentation lists what the
+container has to provide.
+
+``select_navigation=True`` on a :class:`ListBox` expects a finite body:
+``get_next()`` and ``get_prev()`` of its list walker reach
+``(None, None)`` in both directions.  A body without an end never returns
+from the search.  A list walker created with
+``wrap_around=True``, such as :class:`SimpleFocusListWalker`, is traversed
+from the first to the last position of its ``positions()``, so the key is
+returned at its end.  Another list walker that repeats a position is treated
+as ending where the walk comes back to the focus: the search does not loop,
+but the key is returned only when no other selectable widget is left.
+
+.. _focus-changed-signal:
+
+Reacting to Focus Changes
+-------------------------
+
+:class:`Pile`, :class:`Columns` and :class:`GridFlow` send the
+``"focus changed"`` signal after their focus position changed: by a key, a
+mouse click, the ``focus_position`` setter, or a change of ``contents`` that
+moves the focus to another position.  Replacing the widget in focus at the
+same position is not reported.  A handler receives the container, the old and
+the new position; a position is ``None`` while the container is empty.  The
+handler runs after the change, so the container already reports the new
+focus::
+
+    def on_focus_changed(pile, old_position, new_position):
+        status.set_text(f"field {new_position}")
+
+    urwid.connect_signal(pile, "focus changed", on_focus_changed)
+
+The signal is sent once for a change of ``contents``, after the contents
+list's modified callback.  Replacing the callback set with
+``contents.set_focus_changed_callback()``, which runs before the change, does
+not stop the signal.
+
+A handler that moves the focus again sends a new signal before the remaining
+handlers of the first one run, so those see the second change first.  The
+arguments of each signal, not the current ``focus_position``, describe the
+change it reports.
+
 
 Pile Widgets
 ------------
@@ -328,12 +628,31 @@ ScrollBar Widget
 ----------------
 The :class:`ScrollBar` widget draw optional scrollbar on the right or left side of widget if scrolling is required
 (widget not fit in the desired amount of rows).
-The widget is always rendered BOX and wrapped widget is also should be BOX.
+With ``visible=True`` the scrollbar is drawn even when no scrolling is required,
+so the wrapped widget keeps the same width whatever its content.
+With ``visible=False`` it is never drawn: the wrapped widget gets the full width and still scrolls by keys and wheel.
+With ``end_markers``, such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``,
+the first and the last scrollbar row hold markers
+that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
+``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
+and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
+The widget reports BOX sizing, and the wrapped widget must support BOX.
+Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
+draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
 * :class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
 * :class:`ListBox` can be used with :class:`ScrollBar` directly,
-  all input is always handled by :class:`ListBox` and it's widgets.
+  all input outside the scrollbar and the mouse wheel over it are handled by :class:`ListBox` and it's widgets.
+  By default a click or drag on the scrollbar does nothing.
+  With ``scroll_by_focus=True`` a click or drag on the scrollbar scrolls the :class:`ListBox` by moving its focus
+  to the widget at the top of the new view (at the end of the list the view may shift to fill the rows);
+  the focus stays when the view does.
+  It is off by default, because this focus change does not pass through the :class:`ListBox` input methods.
+* :class:`ScrollBar` and :class:`Scrollable` always accept the input focus.
+  With ``delegate_selectable=True`` they accept it only when the wrapped widget is selectable,
+  so a container moves the focus past a :class:`ListBox` created with ``focus_when_empty=False`` while it is empty.
+  It is off by default, because a wrapped widget that is not selectable then cannot be scrolled by keys.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.
@@ -410,6 +729,13 @@ Its contents are displayed stacked vertically, and the
 One of the flow widgets displayed in the :class:`ListBox` is its
 focus widget.
 
+A :class:`ListBox` also accepts a flow size, although it reports BOX sizing only,
+so containers keep laying it out as a box widget.
+At a flow size it shows all its widgets, and :meth:`ListBox.rows` returns the rows they take.
+The whole body is measured, so this is meant for lists short enough for a dialog.
+It needs a list walker that reports its length or an estimate of it, or a :class:`TreeWalker`,
+and that does not wrap around.
+
 ListBox Focus and Scrolling
 ---------------------------
 
@@ -453,6 +779,19 @@ a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.
+
+A row of text that the user chooses by moving the focus to it can be created
+with ``Text(markup, selectable=True)``.  It takes the focus but shows no
+cursor and returns every key, so the :class:`ListBox` or the application
+handles them; wrap it in an :class:`AttrMap` with a ``focus_map`` to mark the
+row in focus.
+
+A :class:`ListBox` accepts the input focus even when it is empty.  Created
+with ``focus_when_empty=False`` it is not selectable while its body is empty,
+so a container moves the focus past it; wrap it in a :class:`ScrollBar` with
+``delegate_selectable=True`` to keep that behind a scrollbar.  While such a
+ListBox is in focus and empty, its container passes the keys on to its own
+parent instead.
 
 
 Dynamic ListBox with ListWalker
@@ -570,6 +909,13 @@ A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
 
+A log or a progress view that grows at the end can be created with
+``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded
+:class:`SimpleFocusDequeWalker` and the same keyword.  While the focus is on
+the last widget, appended widgets take the focus, so the :class:`ListBox`
+keeps showing the newest one.  Once the user moves the focus up, appending
+leaves it where it is.
+
 If you need to display a large number of widgets you should implement your own
 list walker that manages creating widgets as they are requested and destroying
 them later to avoid excessive memory use.
@@ -653,9 +999,11 @@ There is an optional iteration helper method that may be defined in any list wal
 When this is defined it will be used by :meth:`ListBox.__iter__` and
 :meth:`ListBox.__reversed__`:
 
-.. method:: positions(reverse=False)
+.. method:: positions(*, reverse=False)
 
-   return a forward or reverse iterable of positions
+   return a forward or reverse iterable of positions.
+   :class:`ListBox` always passes *reverse* by keyword, so a custom walker may accept it
+   either positionally or as keyword-only.
 
 .. currentmodule:: urwid
 
@@ -832,13 +1180,7 @@ specified) then this method must move the cursor to that position and return
 Widget Metaclass
 ================
 
-The :class:`Widget` base class has a metaclass defined that
-creates a ``__super`` attribute for calling your superclass:
-``self.__super`` is the same as the usual ``super(MyClassName, self)``.
-This shortcut is of little use with Python 3's new ``super()`` syntax, but
-will likely be retained for backwards compatibility in future versions.
-
-This metaclass also uses :class:`MetaSignal`
+The :class:`Widget` base class has a metaclass defined that uses :class:`MetaSignals`
 to allow signals to be defined as a list of signal names
 in a ``signals`` class attribute.  This is equivalent to calling
 :func:`register_signal` with the class name and list of signals and all those
@@ -847,5 +1189,3 @@ defined in superclasses after the class definition.
 .. seealso::
 
     :class:`Widget metaclass WidgetMeta <WidgetMeta>`
-
-
