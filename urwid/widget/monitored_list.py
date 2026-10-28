@@ -241,6 +241,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     """
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
+    _focus_moved_callback: Callable[[int | None, int | None], typing.Any] | None = None
     _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
     follow_end: bool = False
     """Move the focus from the last item to the new last item when items are added after it."""
@@ -342,6 +343,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         ...
         IndexError: focus index is out of range: -2
         """
+        old_focus = self.focus
         if not self:
             self._focus = 0
             return
@@ -353,10 +355,15 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if index != self._focus:
             self._focus_changed(index)
         self._focus = index
+        self._focus_moved(old_focus)
 
     def _focus_changed(self, new_focus: int) -> None:
         if self._focus_changed_callback is not None:
             self._focus_changed_callback(new_focus)
+
+    def _focus_moved(self, old_focus: int | None) -> None:
+        if self._focus_moved_callback is not None and (new_focus := self.focus) != old_focus:
+            self._focus_moved_callback(old_focus, new_focus)
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
         r"""
@@ -384,6 +391,28 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         MonitoredFocusList([12, 13, 14, 2, 3, 10], focus=5)
         """
         self._focus_changed_callback = callback
+
+    def set_focus_moved_callback(self, callback: Callable[[int | None, int | None], typing.Any]) -> None:
+        r"""Assign a callback to be called after the focus index changed for any reason.
+
+        It is independent of :meth:`set_focus_changed_callback`, whose callback is called before the change.
+        A change of the contents is reported once, after its modified callback, also when that callback raised.
+        Only the index is compared: replacing the item in focus in place is not reported.
+
+        :param callback: a callable in the form ``callback(old_focus, new_focus)``; a focus is ``None`` when the list
+            is empty.
+
+        >>> import sys
+        >>> ml = MonitoredFocusList([1, 2, 3], focus=1)
+        >>> ml.set_focus_moved_callback(lambda old, new: sys.stdout.write(f"focus: {old} -> {new}\n"))
+        >>> ml.focus = 2
+        focus: 1 -> 2
+        >>> del ml[:]
+        focus: 2 -> None
+        >>> ml.extend([4, 5])
+        focus: None -> 1
+        """
+        self._focus_moved_callback = callback
 
     def _validate_contents_modified(
         self,
@@ -469,15 +498,26 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         :param kwargs: keyword arguments for *change*
         :returns: what ``change`` returns
         :raises Exception: whatever ``change`` raises, leaving the focus as it was and notifying nothing;
-            or whatever the focus-changed or the modified callback raises.
+            or whatever the focus-changed or the modified callback raises, after the focus moved callback ran.
         :raises TypeError: the new focus is not an integer; the change is applied and notified.
         :raises IndexError: the new focus is out of range; the change is applied and notified.
         """
-        rval = change(*args, **kwargs)
+        old_focus = self.focus
+        # the focus moved callback is called once, below, with the focus the whole change ends with
+        focus_moved_callback = self._focus_moved_callback
+        if focus_moved_callback is not None:
+            self._focus_moved_callback = None
         try:
-            self.focus = focus() if callable(focus) else focus
+            rval = change(*args, **kwargs)
+            try:
+                self.focus = focus() if callable(focus) else focus
+            finally:
+                self._modified()
         finally:
-            self._modified()
+            # a callback set during the change is kept; the report is also made when a callback raised
+            if focus_moved_callback is not None and self._focus_moved_callback is None:
+                self._focus_moved_callback = focus_moved_callback
+            self._focus_moved(old_focus)
         return rval
 
     # override all the list methods that modify the list

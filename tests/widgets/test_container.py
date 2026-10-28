@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
 import urwid
 from tests.util import SelectableText
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class CommonContainerTest(unittest.TestCase):
@@ -435,3 +439,73 @@ class SelectNavigationPublicMixinTest(unittest.TestCase):
         self.assertNotIsInstance(
             urwid.Overlay(urwid.SolidFill(), urwid.SolidFill(), "center", 1, "middle", 1), urwid.SelectNavigationMixin
         )
+
+
+class ContainerFocusChangedSignalTest(unittest.TestCase):
+    """``Pile``, ``Columns`` and ``GridFlow`` send ``"focus changed"`` after their focus position changed."""
+
+    containers: typing.ClassVar[dict[str, tuple[Callable[[list[urwid.Widget]], urwid.Widget], str, tuple[int]]]] = {
+        "Pile": (urwid.Pile, "down", (10,)),
+        "Columns": (urwid.Columns, "right", (30,)),
+        "GridFlow": (lambda cells: urwid.GridFlow(cells, 5, 1, 0, "left"), "right", (30,)),
+    }
+
+    def test_signal(self) -> None:
+        """Keys, the focus setter and contents changes are reported, also after the legacy callback is replaced."""
+        for name, (make, key, size) in self.containers.items():
+            with self.subTest(name):
+                widget = make([SelectableText("a"), SelectableText("b"), SelectableText("c")])
+                seen: list[tuple[str, urwid.Widget, int | None, int | None, int | None]] = []
+
+                def record(tag: str, sender: urwid.Widget, old: int | None, new: int | None) -> None:
+                    seen.append((tag, sender, old, new, sender.focus_position if sender.contents else None))
+
+                urwid.connect_signal(widget, "focus changed", record, user_args=["tag"])
+                self.assertIsNone(widget.keypress(size, key))
+                widget.focus_position = 1  # unchanged: not reported
+                widget.contents.set_focus_changed_callback(lambda new: None)
+                widget.focus_position = 2
+                del widget.contents[:]
+                self.assertEqual(
+                    [("tag", widget, 0, 1, 1), ("tag", widget, 1, 2, 2), ("tag", widget, 2, None, None)],
+                    seen,
+                )
+
+    def test_contents_change_reported_once(self) -> None:
+        """Inserting several items before the focus is reported once, with the final position."""
+        for name, (make, _key, _size) in self.containers.items():
+            with self.subTest(name):
+                widget = make([SelectableText("a"), SelectableText("b")])
+                seen: list[tuple[int | None, int | None]] = []
+                urwid.connect_signal(widget, "focus changed", lambda _w, old, new: seen.append((old, new)))
+                widget.contents[0:0] = [(SelectableText(str(i)), widget.options()) for i in range(3)]
+                self.assertEqual([(0, 3)], seen)
+
+    def test_grid_flow_mouse(self) -> None:
+        """A click on another cell of a ``GridFlow`` is reported."""
+        grid = urwid.GridFlow([SelectableText("a"), SelectableText("b")], 4, 1, 0, "left")
+        seen: list[tuple[int | None, int | None]] = []
+        urwid.connect_signal(grid, "focus changed", lambda _w, old, new: seen.append((old, new)))
+        grid.mouse_event((20,), "mouse press", 1, 6, 0, True)
+        self.assertEqual([(0, 1)], seen)
+
+    def test_subclass(self) -> None:
+        """A subclass with its own signals list connects the signal, and construction sends none."""
+
+        class Labelled(urwid.Pile):
+            signals: typing.ClassVar[list[str]] = ["labelled"]
+
+            def __init__(self, widget_list: list[urwid.Widget]) -> None:
+                super().__init__(widget_list, focus_item=1)
+                self.label = "set after the base"
+
+            def __getattr__(self, name: str) -> object:
+                # forwards unknown names to an attribute set only after the base __init__
+                return getattr(self.label, name)
+
+        pile = Labelled([SelectableText("a"), SelectableText("b")])
+        seen: list[tuple[int | None, int | None]] = []
+        urwid.connect_signal(pile, "focus changed", lambda _w, old, new: seen.append((old, new)))
+        pile.focus_position = 0
+        self.assertEqual(["labelled", "focus changed"], Labelled.signals)
+        self.assertEqual([(1, 0)], seen)

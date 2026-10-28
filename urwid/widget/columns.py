@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import math
 import sys
 import typing
@@ -65,7 +66,13 @@ class Columns(
         ]
     ],
 ):
-    """Widgets arranged horizontally in columns from left to right."""
+    """Widgets arranged horizontally in columns from left to right.
+
+    Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
+    Its handlers receive the container, the old and the new focus position, which is ``None`` while it is empty.
+    """
+
+    signals: typing.ClassVar[list[str]] = ["focus changed"]
 
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
@@ -365,6 +372,8 @@ class Columns(
         self.min_width = min_width
         self._cache_maxcol: int | None = None
         self.select_navigation = select_navigation
+        # connected last, so that filling the contents during construction sends no signal
+        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
 
     def _repr_words(self) -> list[str]:
         if len(self.contents) > 1:

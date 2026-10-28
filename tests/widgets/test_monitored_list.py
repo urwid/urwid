@@ -168,6 +168,94 @@ class MonitoredFocusListModifiedCallbackTest(unittest.TestCase):
         self.assertEqual("c", ml[ml.focus])
 
 
+class MonitoredFocusListFocusMovedCallbackTest(unittest.TestCase):
+    """The focus moved callback runs after the focus changed, once per operation."""
+
+    def test_operations_report_once_with_final_state(self) -> None:
+        """A change of the contents reports the old and the final focus once, with the contents already final."""
+        operations: dict[str, tuple[Callable[[urwid.MonitoredFocusList[int]], object], int | None]] = {
+            "del before focus": (lambda ml: ml.__delitem__(0), 1),
+            "del after focus": (lambda ml: ml.__delitem__(4), 2),
+            "set item": (lambda ml: ml.__setitem__(2, 7), 2),
+            "insert before focus": (lambda ml: ml.insert(0, -1), 3),
+            "append": (lambda ml: ml.append(6), 2),
+            "reverse": (lambda ml: ml.reverse(), 3),
+            "clear": (lambda ml: ml.clear(), None),
+            "focus": (lambda ml: setattr(ml, "focus", 4), 4),
+            "same focus": (lambda ml: setattr(ml, "focus", 2), 2),
+        }
+        for name, (operation, new_focus) in operations.items():
+            with self.subTest(name):
+                ml = urwid.MonitoredFocusList(range(6), focus=2)
+                seen: list[tuple[int | None, int | None, list[int], int | None]] = []
+                ml.set_focus_moved_callback(lambda old, new, ml=ml, seen=seen: seen.append((old, new, list(ml), ml.focus)))
+                operation(ml)
+                self.assertEqual(new_focus, ml.focus)
+                self.assertEqual([] if new_focus == 2 else [(2, new_focus, list(ml), new_focus)], seen)
+
+    def test_empty_list(self) -> None:
+        """Emptying the list reports ``None`` as the new focus, and filling it reports ``None`` as the old one."""
+        ml = urwid.MonitoredFocusList([1, 2], focus=1)
+        seen: list[tuple[int | None, int | None]] = []
+        ml.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        del ml[:]
+        ml.extend([3, 4, 5])
+        self.assertEqual([(1, None), (None, 2)], seen)
+
+    def test_focus_set_by_modified_callback(self) -> None:
+        """A focus the modified callback sets is reported once, together with the change."""
+        ml = urwid.MonitoredFocusList(range(6), focus=2)
+        ml.set_modified_callback(lambda: setattr(ml, "focus", 5) if ml.focus != 5 else None)
+        seen: list[tuple[int | None, int | None]] = []
+        ml.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        ml.insert(0, -1)
+        self.assertEqual([(2, 5)], seen)
+
+    def test_independent_of_focus_changed_callback(self) -> None:
+        """Replacing the focus changed callback keeps the focus moved callback, which runs after it."""
+        ml = urwid.MonitoredFocusList(range(3), focus=0)
+        order: list[str] = []
+        ml.set_focus_moved_callback(lambda old, new: order.append(f"moved {old} {new} {ml.focus}"))
+        ml.set_focus_changed_callback(lambda new: order.append(f"changed {new} {ml.focus}"))
+        ml.focus = 1
+        self.assertEqual(["changed 1 0", "moved 0 1 1"], order)
+
+    def test_applied_change_reported_when_a_callback_raises(self) -> None:
+        """A change whose modified callback raises is still reported, once."""
+        ml = urwid.MonitoredFocusList(range(6), focus=3)
+        seen: list[tuple[int | None, int | None]] = []
+        ml.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+
+        def fail() -> None:
+            raise RuntimeError
+
+        ml.set_modified_callback(fail)
+        with self.assertRaises(RuntimeError):
+            del ml[0]
+        self.assertEqual([(3, 2)], seen)
+
+    def test_callback_set_during_a_change_is_kept(self) -> None:
+        """A focus moved callback set by the modified callback replaces the one in use, and reports the change."""
+        ml = urwid.MonitoredFocusList(range(3), focus=1)
+        first: list[tuple[int | None, int | None]] = []
+        second: list[tuple[int | None, int | None]] = []
+        ml.set_focus_moved_callback(lambda old, new: first.append((old, new)))
+        ml.set_modified_callback(lambda: ml.set_focus_moved_callback(lambda old, new: second.append((old, new))))
+        ml.insert(0, -1)
+        self.assertEqual(([], [(1, 2)]), (first, second))
+
+    def test_failed_change_reports_nothing(self) -> None:
+        """A change that raises reports nothing, and the next change is reported again."""
+        ml = urwid.MonitoredFocusList(range(6), focus=2)
+        seen: list[tuple[int | None, int | None]] = []
+        ml.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        with self.assertRaises(ValueError):
+            ml[0:4:2] = [1, 2, 3]
+        self.assertEqual([], seen)
+        ml.focus = 3
+        self.assertEqual([(2, 3)], seen)
+
+
 class MonitoredFocusListClearValidationTest(unittest.TestCase):
     def test_clear_reports_removed_contents(self) -> None:
         for contents in ([], [1, 2, 3]):
