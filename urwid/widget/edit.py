@@ -972,8 +972,9 @@ class IntEdit(Edit):
     @staticmethod
     def _strip_leading_zeros(text: str | bytes, pos: int) -> tuple[str | bytes, int]:
         """Return *text* without the leading zeros before *pos*, keeping a lone zero, and *pos* moved with it."""
+        zero = b"0" if isinstance(text, bytes) else "0"
         zeros = 0
-        while zeros < pos and text[zeros : zeros + 1] == "0" and text[zeros + 1 : zeros + 2].isdigit():
+        while zeros < pos and text[zeros : zeros + 1] == zero and text[zeros + 1 : zeros + 2].isdigit():
             zeros += 1
         return text[zeros:], pos - zeros
 
