@@ -545,6 +545,31 @@ class ColumnsTest(unittest.TestCase):
     def test_keypress_empty_contents(self) -> None:
         self.assertEqual("x", urwid.Columns([]).keypress((10,), "x"))
 
+    def test_keypress_skips_given_zero(self) -> None:
+        """A column sized ``(GIVEN, 0)`` is not drawn, so neither the arrow keys nor Tab move the focus into it."""
+        for key, start, expected in (("right", 0, 2), ("left", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
+            with self.subTest(key=key):
+                columns = urwid.Columns(
+                    [SelectableText("a"), (urwid.GIVEN, 0, SelectableText("hidden")), SelectableText("c")],
+                    select_navigation=True,
+                )
+                columns.focus_position = start
+                self.assertIsNone(columns.keypress((20,), key))
+                self.assertEqual(expected, columns.focus_position)
+
+    def test_select_reset_skips_given_zero(self) -> None:
+        """The reset past the last column and ``focus_first_selectable`` skip a hidden first column."""
+        columns = urwid.Columns(
+            [(urwid.GIVEN, 0, SelectableText("hidden")), SelectableText("b"), SelectableText("c")],
+            select_navigation=True,
+        )
+        columns.focus_position = 2
+        self.assertEqual("tab", columns.keypress((20,), "tab"))
+        self.assertEqual(1, columns.focus_position)
+        columns.focus_position = 0
+        self.assertTrue(columns.focus_first_selectable())
+        self.assertEqual(1, columns.focus_position)
+
     def test_pack_fixed_pack_item_not_fixed(self) -> None:
         widget = urwid.Columns([(urwid.PACK, urwid.Text("x")), (urwid.PACK, urwid.ProgressBar(None, None))])
         with self.assertRaises(urwid.ColumnsError):

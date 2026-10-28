@@ -503,6 +503,11 @@ selectable child and enter it, whether or not the container is opted in.
 They return whether a selectable child exists.  :class:`ListBox` searches its
 whole body, not only the visible rows.
 
+A child of :class:`Pile`, :class:`Columns` or :class:`GridFlow` sized
+``(GIVEN, 0)`` is not drawn, so neither these commands nor the arrow keys
+move the focus to it.  A container whose only selectable children are sized
+this way still reports itself as selectable to its parent.
+
 Every focus change made by this navigation is an assignment to
 ``container.focus_position``, so a subclass that overrides the
 ``focus_position`` setter sees each one.  :class:`ListBox` places the new

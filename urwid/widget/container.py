@@ -327,7 +327,8 @@ class SelectNavigationListContentsMixin(
     """:class:`SelectNavigationMixin` for containers whose positions are indexes into ``self.contents``.
 
     It implements :meth:`_select_candidates` and :meth:`_select_enter_focus` from ``contents`` and
-    ``focus_position`` only, in the order of ``contents``.
+    ``focus_position`` only, in the order of ``contents``. A child whose options start with ``(GIVEN, 0)``
+    is not drawn, so it is not a candidate.
     """
 
     # Both base mixins declare `contents` and `focus_position`, with types that differ: this mixin uses the list forms.
@@ -350,7 +351,7 @@ class SelectNavigationListContentsMixin(
         """Index of child widget in focus."""
 
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
-        """Yield the positions of the selectable children in the order of ``contents``."""
+        """Yield the positions of the selectable children in the order of ``contents``, skipping hidden ones."""
         contents = self.contents
         # A child may have emptied the container while handling the key: there is no focus to start from then.
         if not contents:
@@ -361,7 +362,10 @@ class SelectNavigationListContentsMixin(
             focus = self.focus_position
             positions = range(focus - 1, -1, -1) if reverse else range(focus + 1, len(contents))
         for position in positions:
-            if contents[position][0].selectable():
+            widget, options = contents[position]
+            # A container defined outside urwid may keep options of any shape.
+            hidden = isinstance(options, tuple) and options[:2] == (WHSettings.GIVEN, 0)
+            if widget.selectable() and not hidden:
                 yield position
 
     def _select_enter_focus(self, *, reverse: bool) -> None:

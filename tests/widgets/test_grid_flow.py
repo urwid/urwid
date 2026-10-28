@@ -4,6 +4,7 @@ import unittest
 from unittest import mock
 
 import urwid
+from tests.util import SelectableText
 
 
 class GridFlowTest(unittest.TestCase):
@@ -204,6 +205,27 @@ class GridFlowTest(unittest.TestCase):
 
         self.assertTrue(gf.mouse_event((80,), "mouse press", 1, 35, 0, True))
         self.assertEqual(3, gf.focus_position)
+
+    def test_mouse_event_not_handled_by_a_cell(self) -> None:
+        """An event no cell handles and that moves no focus is unhandled, so a parent ListBox scrolls on the wheel."""
+        for name, button, col in (("wheel", 5, 2), ("click beside the cells", 1, 30)):
+            with self.subTest(name):
+                gf = urwid.GridFlow([urwid.Button("b")], 10, 1, 0, "left")
+                self.assertFalse(gf.mouse_event((40,), "mouse press", button, col, 0, True))
+
+        with self.subTest("click that only moves the focus"):
+            gf = urwid.GridFlow([SelectableText("a"), SelectableText("b")], 4, 1, 0, "left")
+            self.assertTrue(gf.mouse_event((20,), "mouse press", 1, 6, 0, True))
+            self.assertEqual(1, gf.focus_position)
+
+        rows = [urwid.Text(str(idx)) for idx in range(10)]
+        listbox = urwid.ListBox([*rows, urwid.GridFlow([urwid.Button("b")], 10, 1, 0, "left"), *rows])
+        listbox.focus_position = 10
+        listbox.render((20, 5), focus=True)
+        offset, _inset = listbox.get_focus_offset_inset((20, 5))
+        self.assertTrue(listbox.mouse_event((20, 5), "mouse press", 5, 2, offset, True))
+        listbox.render((20, 5), focus=True)
+        self.assertEqual(offset - 1, listbox.get_focus_offset_inset((20, 5))[0])
 
     def test_mouse_event_callback_can_shrink_contents(self):
         """A click whose callback replaces the contents with fewer cells keeps the new focus."""

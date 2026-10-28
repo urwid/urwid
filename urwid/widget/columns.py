@@ -1195,17 +1195,9 @@ class Columns(
         if self._command_map[key] not in {Command.LEFT, Command.RIGHT} or not self.contents:
             return key
 
-        # The child may have changed this Columns' contents or focus while handling the key.
-        i = self.focus_position
-        if self._command_map[key] == Command.LEFT:
-            candidates = list(range(i - 1, -1, -1))  # count backwards to 0
-        else:  # key == 'right'
-            candidates = list(range(i + 1, len(self.contents)))
-
-        for j in candidates:
-            if not self.contents[j][0].selectable():
-                continue
-
+        # The child may have changed this Columns' contents or focus while handling the key,
+        # so the candidates are taken from the current focus.
+        for j in self._select_candidates(reverse=self._command_map[key] == Command.LEFT, from_edge=False):
             self.focus_position = j
             return None
         return key

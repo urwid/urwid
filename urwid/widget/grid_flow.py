@@ -465,17 +465,22 @@ class GridFlow(
         col: int,
         row: int,
         focus: bool,
-    ) -> Literal[True]:
-        """Handle a mouse event, updating the focus based on the resulting display widget."""
+    ) -> bool | None:
+        """Handle a mouse event, updating the focus based on the resulting display widget.
+
+        :returns: ``True`` when a cell handled the event or the focus moved to another cell, otherwise the
+            result of the display widget, so an event such as the mouse wheel stays unhandled for a parent
+            like :class:`ListBox`.
+        """
         self.get_display_widget(size)
         focus_before = self.contents.focus
         generation_before = self._contents_generation
-        super().mouse_event(size, event, button, col, row, focus)
+        handled = super().mouse_event(size, event, button, col, row, focus)
         # Same as in keypress: a callback that set the focus or changed the contents wins
         # over the display widget, which was built before the event was dispatched.
         if self.contents.focus == focus_before and self._contents_generation == generation_before:
             self._set_focus_from_display_widget()
-        return True  # at a minimum we adjusted our focus
+        return handled or self.contents.focus != focus_before
 
     def get_pref_col(self, size: tuple[int] | tuple[()]) -> int | None:
         """Return pref col from display widget, or None if the widget in focus has no preferred column."""
