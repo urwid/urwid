@@ -138,6 +138,8 @@ class Edit(WidgetWrap[Text]):
         self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
         # cursor position the next set_edit_text() call applies before "postchange", see _set_edit_text_and_pos()
         self._pending_edit_pos: int | None = None
+        # cursor position set_edit_text() left after "postchange" when a pending one was given
+        self._applied_edit_pos: int | None = None
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -383,7 +385,9 @@ class Edit(WidgetWrap[Text]):
         :param text: text for editing, type (bytes or unicode)
                      must match the text in the caption
         :param edit_pos: cursor position to set before ``"postchange"`` is sent, clipped as by
-            :meth:`set_edit_pos`; ``None`` keeps the current position, clipped to the new text
+            :meth:`set_edit_pos`; ``None`` keeps the current position, clipped to the new text.
+            An override passes ``None`` on unchanged: an editing key gives its position to this method by another
+            route, which an explicit position replaces.
         :raises ValueError: *text* is longer than :attr:`max_length`; the text is left as it was.
 
         >>> e = Edit()
@@ -414,6 +418,8 @@ class Edit(WidgetWrap[Text]):
             self.set_edit_pos(pending_edit_pos)
 
         self._emit("postchange", old_text)
+        if pending_edit_pos is not None:
+            self._applied_edit_pos = self.edit_pos
         self._invalidate()
 
     def _set_edit_text_and_pos(self, text: str | bytes, pos: int) -> None:
@@ -421,16 +427,19 @@ class Edit(WidgetWrap[Text]):
 
         The position reaches :meth:`set_edit_text` through an attribute instead of its ``edit_pos`` argument,
         so that a subclass overriding it as ``set_edit_text(text)`` keeps working.
-        An override that never calls the base method gets the position afterwards, so that a cursor move made by
-        a "postchange" handler is kept otherwise.
+        The position is set again afterwards when the override never calls the base method, or moves the cursor
+        after it returns, as editing keys did before "postchange" saw the new position.
+        A cursor move made by a "postchange" handler is kept otherwise.
         """
         self._pending_edit_pos = pos
+        self._applied_edit_pos = None
         try:
             self.set_edit_text(text)  # type: ignore[arg-type]  # normalisation happen
-            unapplied = self._pending_edit_pos is not None
+            applied = self._applied_edit_pos
         finally:
             self._pending_edit_pos = None
-        if unapplied:
+            self._applied_edit_pos = None
+        if applied is None or self.edit_pos != applied:
             self.set_edit_pos(pos)
 
     def get_edit_text(self) -> str:
