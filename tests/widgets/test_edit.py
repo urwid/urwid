@@ -861,6 +861,38 @@ class EditRenderTest(unittest.TestCase):
 
 
 class IntEditTest(unittest.TestCase):
+    def test_bytes_caption_trims_zeros_and_preserves_cursor_and_signals(self) -> None:
+        for caption in ("", b""):
+            for initial, keys, expected, expected_pos, changes in (
+                ("0", ("7",), "7", 1, 1),
+                ("0", ("0",), "0", 1, 0),
+                ("0002", ("end",), "2", 1, 1),
+                ("5002", ("home", "delete", "end"), "2", 1, 2),
+            ):
+                with self.subTest(caption=caption, initial=initial, keys=keys):
+                    e = urwid.IntEdit(caption, initial)
+                    seen = []
+                    urwid.connect_signal(
+                        e, "postchange", lambda widget, old, seen=seen: seen.append((widget.edit_text, widget.edit_pos))
+                    )
+                    for key in keys:
+                        self.assertIsNone(e.keypress((20,), key))
+                    typed_expected = expected.encode("ascii") if isinstance(caption, bytes) else expected
+                    self.assertEqual(e.edit_text, typed_expected)
+                    self.assertEqual(e.edit_pos, expected_pos)
+                    self.assertEqual(e.value(), int(expected))
+                    self.assertEqual(len(seen), changes)
+                    if seen:
+                        self.assertEqual(seen[-1], (typed_expected, expected_pos))
+
+    def test_bytes_caption_insert_text_trims_zeros_before_cursor(self) -> None:
+        for caption, inserted, expected in (("", "7", "7"), (b"", b"7", b"7")):
+            with self.subTest(caption=caption):
+                e = urwid.IntEdit(caption, 0)
+                e.insert_text(inserted)
+                self.assertEqual(e.edit_text, expected)
+                self.assertEqual(e.edit_pos, 1)
+
     def test_valid_char(self) -> None:
         e = urwid.IntEdit()
         self.assertTrue(e.valid_char("5"))
