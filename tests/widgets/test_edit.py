@@ -450,6 +450,26 @@ class EditTest(unittest.TestCase):
         self.assertEqual(e.moves, [("abx", 3), ("ab", 2)])
         self.assertEqual(seen, [1, 2])
 
+    def test_keypress_cursor_after_set_edit_text_override_moves_it(self) -> None:
+        """An editing key leaves the cursor at the edit when a set_edit_text() override moves it after the base call."""
+
+        class CursorToEndEdit(urwid.Edit):
+            """An Edit subclass whose set_edit_text() puts the cursor at the end unless a position is given."""
+
+            def set_edit_text(self, text: str, edit_pos: int | None = None) -> None:
+                super().set_edit_text(text)
+                self.set_edit_pos(edit_pos if edit_pos else len(text))
+
+        for key, expected in (("X", ("abXcdef", 3)), ("backspace", ("acdef", 1))):
+            with self.subTest(key=key):
+                e = CursorToEndEdit("", "abcdef", edit_pos=2)
+                self.assertIsNone(e.keypress((20,), key))
+                self.assertEqual((e.edit_text, e.edit_pos), expected)
+
+        e = CursorToEndEdit("", "ab", edit_pos=0)
+        e.set_edit_text("abcd")
+        self.assertEqual(e.edit_pos, 4)
+
     def test_keypress_cursor_kept_by_set_edit_text_called_from_handler(self) -> None:
         """A set_edit_text() call made by a "change" handler keeps its own cursor rule."""
         e = urwid.Edit("", "ab", edit_pos=1)
