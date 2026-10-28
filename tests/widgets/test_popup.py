@@ -19,6 +19,19 @@ class ThingWithAPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
         return {"left": 1, "top": 1, "overlay_width": 10, "overlay_height": 3}
 
 
+class EmptyListPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
+    """Launcher whose pop-up is an empty container, which is false because its length is 0."""
+
+    def __init__(self) -> None:
+        super().__init__(urwid.SolidFill("x"))
+
+    def create_pop_up(self) -> urwid.ListBox:
+        return urwid.ListBox(urwid.SimpleFocusListWalker([]))
+
+    def get_pop_up_parameters(self) -> dict:
+        return {"left": 1, "top": 1, "overlay_width": 10, "overlay_height": 3}
+
+
 class PopUpLauncherTest(unittest.TestCase):
     def test_open_close(self) -> None:
         launcher = ThingWithAPopUp()
@@ -70,6 +83,15 @@ class PopUpLauncherTest(unittest.TestCase):
         self.assertEqual((left, top), (1, 1))
         self.assertEqual((overlay_width, overlay_height), (10, 3))
         self.assertIs(widget, launcher._pop_up_widget)
+
+    def test_render_with_empty_container_pop_up(self) -> None:
+        """An open pop-up is attached to the canvas even when the widget itself is false."""
+        launcher = EmptyListPopUp()
+        launcher.open_pop_up()
+        self.assertFalse(launcher.pop_up_widget)
+        pop_up = launcher.render((4, 2)).get_pop_up()
+        self.assertIsNotNone(pop_up)
+        self.assertIs(pop_up[2][0], launcher.pop_up_widget)
 
 
 class PopUpTargetTest(unittest.TestCase):

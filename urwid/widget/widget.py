@@ -832,6 +832,7 @@ if typing.TYPE_CHECKING:
         """Checker-only view of the class delegate_to_widget_mixin() builds, for a base listed before WidgetDecoration.
 
         Runtime behaviour and the documented contract are on delegate_to_widget_mixin().
+        The bodies raise NotImplementedError so that pylint does not infer a ``None`` return from a docstring-only body.
         _DelegateToWidgetAfterDecorationMixin repeats these declarations for a base listed after WidgetDecoration,
         because one typing class used in both positions gives a class inheriting from both an inconsistent MRO.
         Edit both together.
@@ -839,18 +840,23 @@ if typing.TYPE_CHECKING:
 
         def render(self, size: typing.Any, focus: bool = False) -> Canvas:
             """Render the delegate and wrap its canvas in a CompositeCanvas."""
+            raise NotImplementedError
 
         def selectable(self) -> bool:
             """Return whether the delegate can take the input focus."""
+            raise NotImplementedError
 
         def sizing(self) -> frozenset[Sizing]:
             """Return the delegate's sizing modes."""
+            raise NotImplementedError
 
         def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
             """Return the delegate's preferred size."""
+            raise NotImplementedError
 
         def keypress(self, size: typing.Any, key: str) -> str | None:
             """Pass the keypress to the delegate."""
+            raise NotImplementedError
 
         def mouse_event(
             self,
@@ -862,36 +868,46 @@ if typing.TYPE_CHECKING:
             focus: bool,
         ) -> bool | None:
             """Pass the mouse event to the delegate."""
+            raise NotImplementedError
 
         def rows(self, size: tuple[int], focus: bool = False) -> int:
             """Return the delegate's number of rows."""
+            raise NotImplementedError
 
         def get_cursor_coords(self, size: typing.Any, /) -> tuple[int, int] | None:
             """Return the delegate's cursor position."""
+            raise NotImplementedError
 
         def get_pref_col(self, size: typing.Any, /) -> int | None:
             """Return the delegate's preferred cursor column."""
+            raise NotImplementedError
 
         def move_cursor_to_coords(self, size: typing.Any, col: int, row: int, /) -> bool:
             """Move the delegate's cursor."""
+            raise NotImplementedError
 
     class _DelegateToWidgetAfterDecorationMixin(Widget):
         """Same declarations as _DelegateToWidgetMixin, for a base listed after WidgetDecoration; edit both together."""
 
         def render(self, size: typing.Any, focus: bool = False) -> Canvas:
             """Render the delegate and wrap its canvas in a CompositeCanvas."""
+            raise NotImplementedError
 
         def selectable(self) -> bool:
             """Return whether the delegate can take the input focus."""
+            raise NotImplementedError
 
         def sizing(self) -> frozenset[Sizing]:
             """Return the delegate's sizing modes."""
+            raise NotImplementedError
 
         def pack(self, size: typing.Any, focus: bool = False) -> tuple[int, int]:
             """Return the delegate's preferred size."""
+            raise NotImplementedError
 
         def keypress(self, size: typing.Any, key: str) -> str | None:
             """Pass the keypress to the delegate."""
+            raise NotImplementedError
 
         def mouse_event(
             self,
@@ -903,18 +919,23 @@ if typing.TYPE_CHECKING:
             focus: bool,
         ) -> bool | None:
             """Pass the mouse event to the delegate."""
+            raise NotImplementedError
 
         def rows(self, size: tuple[int], focus: bool = False) -> int:
             """Return the delegate's number of rows."""
+            raise NotImplementedError
 
         def get_cursor_coords(self, size: typing.Any, /) -> tuple[int, int] | None:
             """Return the delegate's cursor position."""
+            raise NotImplementedError
 
         def get_pref_col(self, size: typing.Any, /) -> int | None:
             """Return the delegate's preferred cursor column."""
+            raise NotImplementedError
 
         def move_cursor_to_coords(self, size: typing.Any, col: int, row: int, /) -> bool:
             """Move the delegate's cursor."""
+            raise NotImplementedError
 
 
 def delegate_to_widget_mixin(attribute_name: str) -> type[Widget]:

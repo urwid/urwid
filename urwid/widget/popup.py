@@ -145,7 +145,7 @@ class PopUpLauncher(
         """Render the wrapped widget, attaching the open pop-up widget to the canvas, if any."""
         canv = super().render(size, focus)
         self._launcher_size = (canv.cols(), canv.rows())
-        if self._pop_up_widget:
+        if self._pop_up_widget is not None:
             canv = CompositeCanvas(canv)
             canv.set_pop_up(
                 self._pop_up_widget,
