@@ -394,32 +394,34 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertEqual(top_position_rendered, widget.render(reduced_size).decoded_text)
 
     def test_mouse_left_click_scrollbar(self):
-        """Left click on the rendered scrollbar jumps to the clicked position."""
-        content = urwid.Text("\n".join(string.ascii_letters))  # 52 single-char lines
+        """Left click on the rendered scrollbar jumps to the clicked position, also through a decoration."""
         reduced_size = (3, 5)
-        widget = urwid.ScrollBar(urwid.Scrollable(content))
-        scrollable = widget.original_widget
         scrollbar_col = reduced_size[0] - 1  # right side scrollbar
+        for wrapped in (lambda w: w, trivial_AttrMap):
+            with self.subTest(wrapped=wrapped):
+                content = urwid.Text("\n".join(string.ascii_letters))  # 52 single-char lines
+                scrollable = urwid.Scrollable(content)
+                widget = urwid.ScrollBar(wrapped(scrollable))
 
-        self.assertEqual(0, scrollable.get_scrollpos())
+                self.assertEqual(0, scrollable.get_scrollpos())
 
-        # posmax == 52 - 5 == 47, thumb_height == 1, thumb travel == 5 - 1 == 4.
-        # Clicking the bottom row moves past the end and is clamped to posmax.
-        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, False))
-        self.assertEqual(47, scrollable.get_scrollpos())
+                # posmax == 52 - 5 == 47, thumb_height == 1, thumb travel == 5 - 1 == 4.
+                # Clicking the bottom row moves past the end and is clamped to posmax.
+                self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 4, False))
+                self.assertEqual(47, scrollable.get_scrollpos())
 
-        # Clicking the top row scrolls back to the top.
-        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 0, False))
-        self.assertEqual(0, scrollable.get_scrollpos())
+                # Clicking the top row scrolls back to the top.
+                self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 0, False))
+                self.assertEqual(0, scrollable.get_scrollpos())
 
-        # Intermediate rows map to the position whose thumb is drawn on the clicked row,
-        # nearest to row * posmax / travel: 35 would draw the thumb on row 2, so row 3 gets 36.
-        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 1, False))
-        self.assertEqual(12, scrollable.get_scrollpos())
+                # Intermediate rows map to the position whose thumb is drawn on the clicked row,
+                # nearest to row * posmax / travel: 35 would draw the thumb on row 2, so row 3 gets 36.
+                self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 1, False))
+                self.assertEqual(12, scrollable.get_scrollpos())
 
-        self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 3, False))
-        self.assertEqual(36, scrollable.get_scrollpos())
-        self.assertEqual("█", widget.render(reduced_size).text[3].decode()[-1])
+                self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 1, scrollbar_col, 3, False))
+                self.assertEqual(36, scrollable.get_scrollpos())
+                self.assertEqual("█", widget.render(reduced_size).text[3].decode()[-1])
 
     def test_thumb_drawn_on_clicked_row(self):
         """The position chosen for a row draws the thumb on that row, also where float truncation lowers it."""
@@ -694,11 +696,28 @@ class TestScrollBarScrollable(unittest.TestCase):
             widget.scrollbar_side = "top"
 
     def test_scrolling_base_widget_missing(self):
-        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text("hi")))
-        widget.original_widget = urwid.Text("hi")  # no longer wraps anything SupportsScroll-compatible
+        """The error names the innermost wrapped widget."""
+        for wrapped in (lambda w: w, trivial_AttrMap):
+            with self.subTest(wrapped=wrapped):
+                text = urwid.Text("hi")
+                widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text("hi")))
+                widget.original_widget = wrapped(text)  # no longer wraps anything SupportsScroll-compatible
 
-        with self.assertRaises(ScrollableError):
-            _ = widget.scrolling_base_widget
+                with self.assertRaises(ScrollableError) as ctx:
+                    _ = widget.scrolling_base_widget
+                self.assertEqual(f"Not compatible to be wrapped by ScrollBar: {text!r}", str(ctx.exception))
+
+    def test_mouse_event_after_scrolling_base_widget_removed(self):
+        """Without a scrollbar, mouse events still reach a replaced widget that cannot scroll."""
+        widget = urwid.ScrollBar(urwid.Scrollable(urwid.Text("hi")), visible=False)
+        content = ColumnRecorder("hi")
+        widget.original_widget = content  # no longer wraps anything SupportsScroll-compatible
+
+        for button in (1, 5):
+            with self.subTest(button=button):
+                content.seen.clear()
+                self.assertFalse(widget.mouse_event((10, 3), "mouse press", button, 1, 0, True))
+                self.assertEqual([(1, 0)], content.seen)
 
     def test_mouse_click_scrollbar_zero_thumb_travel(self):
         """When the thumb fills the whole trough, any click maps to position 0."""
@@ -882,14 +901,17 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertEqual(2, layout.thumb_height)
 
     def test_mouse_wheel_stops_at_the_last_row(self) -> None:
-        """The wheel scrolls down until the last row is shown, and no further."""
+        """The wheel scrolls down until the last row is shown, and no further, also through a decoration."""
         size = (10, 3)
-        scrollable = urwid.Scrollable(urwid.Text("\n".join("abcdefg")))
-        widget = urwid.ScrollBar(scrollable)
-        widget.render(size)
-        for _ in range(6):
-            self.assertTrue(widget.mouse_event(size, "mouse press", 5, 0, 0, False))
-        self.assertEqual(4, scrollable.get_scrollpos(size))
+        # Column 0 is the content, column 9 the scrollbar.
+        for wrapped, col in itertools.product((lambda w: w, trivial_AttrMap), (0, 9)):
+            with self.subTest(wrapped=wrapped, col=col):
+                scrollable = urwid.Scrollable(urwid.Text("\n".join("abcdefg")))
+                widget = urwid.ScrollBar(wrapped(scrollable))
+                widget.render(size)
+                for _ in range(6):
+                    self.assertTrue(widget.mouse_event(size, "mouse press", 5, col, 0, False))
+                self.assertEqual(4, scrollable.get_scrollpos(size))
 
     def test_mouse_wheel_keeps_the_position_while_content_fits(self) -> None:
         """The wheel leaves the position of content that fits, so it is used again once the content grows."""
