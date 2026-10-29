@@ -704,6 +704,9 @@ class Columns(
             return self._cache_column_widths
 
         widths = []
+        # the divider each column reserves on its right: none for a column of static width 0, which render hides,
+        # and one for every weighted column, even one that ends up 0 wide
+        dividers: list[int] = []
 
         weighted: list[tuple[int | float, int]] = []
         shared = maxcol + self.dividechars
@@ -718,11 +721,13 @@ class Columns(
             else:
                 static_w = self.min_width
 
-            if shared < static_w + self.dividechars and i > self.focus_position:
+            divider = self.dividechars if static_w > 0 or options[0] not in {WHSettings.GIVEN, WHSettings.PACK} else 0
+            if shared < static_w + divider and i > self.focus_position:
                 break
 
             widths.append(static_w)
-            shared -= static_w + self.dividechars
+            dividers.append(divider)
+            shared -= static_w + divider
             if options[0] not in {WHSettings.GIVEN, WHSettings.PACK}:
                 weighted.append((options[1], i))
 
@@ -730,7 +735,7 @@ class Columns(
         for i, width_ in enumerate(widths):
             if shared >= 0:
                 break
-            shared += width_ + self.dividechars
+            shared += width_ + dividers[i]
             widths[i] = 0
             if weighted and weighted[0][1] == i:
                 del weighted[0]
@@ -950,7 +955,8 @@ class Columns(
         if size:
             return super().pack(size, focus)
         widths, heights, _ = self.get_column_sizes(size, focus)
-        return (sum(widths) + self.dividechars * max(len(widths) - 1, 0), max(heights))
+        visible = sum(1 for width in widths if width > 0)
+        return (sum(widths) + self.dividechars * max(visible - 1, 0), max(heights))
 
     def render(
         self,
@@ -966,6 +972,8 @@ class Columns(
             be sized as a fixed widget.
         """
         widths, _, size_args = self.get_column_sizes(size, focus)
+        # a divider separates two visible columns: hidden columns and the end of the row get none
+        last_visible = max((i for i, width in enumerate(widths) if width > 0), default=-1)
 
         data: list[tuple[Canvas, int, bool, int]] = []
         for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
@@ -973,7 +981,7 @@ class Columns(
             if width <= 0:
                 continue
 
-            if i < len(widths) - 1:
+            if i < last_visible:
                 width += self.dividechars  # noqa: PLW2901
             data.append(
                 (
@@ -1030,6 +1038,8 @@ class Columns(
 
         see :meth:`Widget.move_cursor_coords` for details
 
+        A hidden column, one with a width of 0, is never chosen.
+
         :raises ValueError: the column sizes cannot be computed for *size*, for example *size* is ``()`` and the
             children cannot be sized as a fixed widget.
         """
@@ -1042,7 +1052,7 @@ class Columns(
         x = 0
         for i, (width, (w, _options)) in enumerate(zip(widths, self.contents, strict=False)):
             end: int = x + width
-            if w.selectable():
+            if width > 0 and w.selectable():
                 if not isinstance(col, int):
                     best = i, x, end, w
                     if col == Align.LEFT:
@@ -1183,6 +1193,7 @@ class Columns(
         """
         Pass keypress to the focus column.
 
+        A hidden focus column, one with a width of 0, gets no keys: the key is left unhandled by it.
         Unhandled :kbd:`left` and :kbd:`right` keys may cause a focus change.
         With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
 
@@ -1203,7 +1214,7 @@ class Columns(
         w, _ = self.contents[i]
         if self._command_map[key] not in {Command.UP, Command.DOWN, Command.PAGE_UP, Command.PAGE_DOWN}:
             self.pref_col = None
-        if w.selectable():
+        if widths[i] > 0 and w.selectable():
             # widget kind and size arguments matched separately
             if (processed := w.keypress(size_args[i], key)) is not None:  # type: ignore[arg-type]
                 key = processed

@@ -511,6 +511,55 @@ class ColumnsTest(unittest.TestCase):
             self.assertTrue(widget.mouse_event((5,), "mouse press", 1, 1, 0, True))
             self.assertEqual(1, edit.edit_pos)
 
+    def test_given_zero_column_has_no_divider(self) -> None:
+        """A column sized ``(GIVEN, 0)`` reserves no divider, as render draws none for it."""
+        with self.subTest("hidden middle column"):
+            widget = urwid.Columns(
+                [(4, urwid.Text("aaaa")), (0, urwid.Text("bbbb")), (4, urwid.Text("cccc"))],
+                dividechars=3,
+            )
+            self.assertEqual([4, 0, 4], widget.column_widths((11,)))
+            self.assertEqual([b"aaaa   cccc"], widget.render((11,)).text)
+
+        with self.subTest("pack column of width 0"):
+            widget = urwid.Columns(
+                [(4, urwid.Text("aaaa")), (urwid.PACK, urwid.Text("")), (4, urwid.Text("cccc"))],
+                dividechars=3,
+            )
+            self.assertEqual([4, 0, 4], widget.column_widths((11,)))
+            self.assertEqual([b"aaaa   cccc"], widget.render((11,)).text)
+
+        with self.subTest("hidden last column"):
+            widget = urwid.Columns([(4, urwid.Text("aaaa")), (0, urwid.Text("bbbb"))], dividechars=3)
+            self.assertEqual([4, 0], widget.column_widths((4,)))
+            self.assertEqual([b"aaaa"], widget.render((4,)).text)
+
+        with self.subTest("pack"):
+            widget = urwid.Columns(
+                [(0 if i % 2 else 1, SelectableText("x")) for i in range(14)],
+                dividechars=1,
+            )
+            self.assertEqual((13, 1), widget.pack(()))
+            self.assertEqual(13, widget.render(()).cols())
+
+    def test_hidden_column_gets_no_cursor_or_keys(self) -> None:
+        """The cursor movement does not focus a hidden column, and a hidden focus column gets no keys."""
+        for col, expected in (("left", 1), ("right", 1), (-1, 1), (0, 1)):
+            with self.subTest(col=col):
+                widget = urwid.Columns(
+                    [(0, urwid.Edit("", "a")), (3, urwid.Edit("", "b")), (0, urwid.Edit("", "c"))],
+                    focus_column=1,
+                )
+                self.assertTrue(widget.move_cursor_to_coords((5,), col, 0))
+                self.assertEqual(expected, widget.focus_position)
+
+        edit = urwid.Edit("", "abc")
+        widget = urwid.Columns([(3, SelectableText("a")), (0, edit)], focus_column=1)
+        self.assertEqual("x", widget.keypress((5,), "x"))
+        self.assertEqual("abc", edit.edit_text)
+        self.assertIsNone(widget.keypress((5,), "left"))
+        self.assertEqual(0, widget.focus_position)
+
     def test_focus_column(self):
         button_1 = urwid.Button("Selectable")
         button_2 = urwid.Button("Other selectable")
