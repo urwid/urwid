@@ -616,6 +616,18 @@ class KeyqueueTrieTest(unittest.TestCase):
         result = escape.input_trie.read_cursor_position(codes, more_available=False)
         self.assertEqual((("cursor position", 2, 4), [ord("z")]), result)
 
+    def test_read_cursor_position_length_limit(self):
+        """A report body is accepted up to 64 bytes, and a longer digit run is not held waiting for more input."""
+        report = [*b"[", *b"1" * 31, *b";", *b"2" * 32, *b"R"]
+        result = escape.input_trie.read_cursor_position(report, more_available=True)
+        self.assertEqual((("cursor position", int("2" * 32) - 1, int("1" * 31) - 1), []), result)
+        for codes in ([*b"[", *b"1" * 65], [*b"[1;", *b"2" * 63]):
+            with self.subTest(length=len(codes)):
+                self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=True))
+        actual, rest = escape.process_keyqueue([27, *b"[", *b"1" * 200], more_available=True)
+        self.assertListEqual(["meta ["], actual)
+        self.assertEqual(200, len(rest))
+
 
 class MouseBitTest(unittest.TestCase):
     def test_operators_return_int(self) -> None:

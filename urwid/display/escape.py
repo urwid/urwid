@@ -701,10 +701,13 @@ class KeyqueueTrie:
             return None
         if keys[0] != ord("["):
             return None
+        # "[", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "R": a longer run is not a report
+        limit = _CSI_PARAMETERS_MAX_LEN + 2
+        codes = keys[:limit]
         # read y value
         y = 0
         i = 1
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord(";"):
                 if not y:
@@ -715,13 +718,13 @@ class KeyqueueTrie:
             if not y and k == _ORD_0:
                 return None
             y = y * 10 + k - _ORD_0
-        if not keys[i:]:
-            if more_available:
+        if not codes[i:]:
+            if more_available and len(keys) < limit:
                 raise MoreInputRequired
             return None
         # read x value
         x = 0
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord("R"):
                 if not x:
@@ -732,7 +735,7 @@ class KeyqueueTrie:
             if not x and k == _ORD_0:
                 return None
             x = x * 10 + k - _ORD_0
-        if not keys[i:] and more_available:
+        if not codes[i:] and more_available and len(keys) < limit:
             raise MoreInputRequired
         return None
 
