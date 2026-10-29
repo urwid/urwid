@@ -139,6 +139,26 @@ class IsWideCharGraphemeTest(unittest.TestCase):
         assert str_util.is_wide_char(WAVE_SKIN, 0)
 
 
+class GraphemeBoundaryTest(unittest.TestCase):
+    def test_boundaries(self):
+        for label, text, inside, start, end in (
+            ("combining", CAFE + "x", 4, 3, 5),
+            ("flag", f"A{FLAG_CA}B", 2, 1, 3),
+            ("zwj", f"A{FAMILY}B", 3, 1, 1 + len(FAMILY)),
+            ("skin tone", f"A{WAVE_SKIN}", 2, 1, 3),
+        ):
+            with self.subTest(label):
+                assert str_util._grapheme_boundary(text, inside, forward=False) == start
+                assert str_util._grapheme_boundary(text, inside, forward=True) == end
+                for boundary in (0, start, end, len(text)):
+                    assert str_util._grapheme_boundary(text, boundary, forward=False) == boundary
+                    assert str_util._grapheme_boundary(text, boundary, forward=True) == boundary
+
+    def test_empty_text(self):
+        assert str_util._grapheme_boundary("", 0, forward=False) == 0
+        assert str_util._grapheme_boundary("", 0, forward=True) == 0
+
+
 # UTF-8 bytes test constants
 FLAG_CA_BYTES = FLAG_CA.encode("utf-8")  # 8 bytes
 FAMILY_BYTES = FAMILY.encode("utf-8")  # 18 bytes
@@ -208,3 +228,43 @@ class Utf8BytesGraphemeTest(unittest.TestCase):
         pos, col = str_util.calc_text_pos(text, 0, len(text), 3)
         assert pos == 1 + len(FLAG_CA_BYTES)
         assert col == 3
+
+    def test_grapheme_boundary_bytes(self):
+        text = f"A{FLAG_CA}B".encode()
+        end = 1 + len(FLAG_CA_BYTES)
+        # every byte inside the flag, including those inside one code point's multi-byte sequence
+        for inside in range(2, end):
+            with self.subTest(inside=inside):
+                assert str_util._grapheme_boundary(text, inside, forward=False) == 1
+                assert str_util._grapheme_boundary(text, inside, forward=True) == end
+        for boundary in (0, 1, end, len(text)):
+            with self.subTest(boundary=boundary):
+                assert str_util._grapheme_boundary(text, boundary, forward=False) == boundary
+                assert str_util._grapheme_boundary(text, boundary, forward=True) == boundary
+        assert str_util._grapheme_boundary(b"", 0, forward=True) == 0
+
+    def test_grapheme_boundary_invalid_bytes(self):
+        """Bytes that are not valid UTF-8 leave the position as it is."""
+        text = b"a\xff\xfeb"
+        for pos in range(len(text) + 1):
+            with self.subTest(pos=pos):
+                assert str_util._grapheme_boundary(text, pos, forward=False) == pos
+                assert str_util._grapheme_boundary(text, pos, forward=True) == pos
+
+
+class WideBytesGraphemeBoundaryTest(unittest.TestCase):
+    def setUp(self):
+        self._orig_encoding = str_util.get_byte_encoding()
+        str_util.set_byte_encoding("wide")
+
+    def tearDown(self):
+        str_util.set_byte_encoding(self._orig_encoding)
+
+    def test_second_half_of_double_byte_character(self):
+        text = b"a\xa4\xa4b"
+        assert str_util._grapheme_boundary(text, 2, forward=False) == 1
+        assert str_util._grapheme_boundary(text, 2, forward=True) == 3
+        for boundary in (0, 1, 3, 4):
+            with self.subTest(boundary=boundary):
+                assert str_util._grapheme_boundary(text, boundary, forward=False) == boundary
+                assert str_util._grapheme_boundary(text, boundary, forward=True) == boundary

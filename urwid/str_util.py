@@ -486,6 +486,44 @@ def move_next_char(text: str | bytes, start_offs: int, end_offs: int) -> int:
     return start_offs + 1
 
 
+def _grapheme_boundary(text: str | bytes, pos: int, *, forward: bool) -> int:
+    """
+    Return *pos* when it is a grapheme cluster boundary of *text*, otherwise the nearest boundary in one direction.
+
+    :param text: unicode text, or a byte string in the target _byte_encoding
+    :param pos: offset into *text*, from ``0`` to ``len(text)``
+    :param forward: return the end of the cluster containing *pos* instead of its start
+    :raises TypeError: the byte encoding is in use and *text* is not a byte string.
+    """
+    if pos <= 0 or pos >= len(text):
+        return pos
+    if isinstance(text, str):
+        # the cluster containing pos is the one before pos + 1
+        start = wcwidth.grapheme_boundary_before(text, pos + 1)
+        if start == pos or not forward:
+            return start
+        return start + len(_first_grapheme(text, start, len(text)))
+    if not isinstance(text, bytes):
+        raise TypeError(text)
+    if _byte_encoding == "utf8":
+        char_end = pos + 1
+        while char_end < len(text) and 0x80 <= text[char_end] < 0xC0:  # UTF-8 continuation byte
+            char_end += 1
+        try:
+            decoded = text[:char_end].decode("utf-8")
+            cluster_tail = decoded[wcwidth.grapheme_boundary_before(decoded, len(decoded)) :]
+            start = char_end - len(cluster_tail.encode("utf-8"))
+            if start == pos or not forward:
+                return start
+            return _decode_grapheme_at(text, start, len(text))[1]
+        except UnicodeDecodeError:
+            # text that is not valid UTF-8 has no clusters to keep whole, as calc_width tolerates it
+            return pos
+    if _byte_encoding == "wide" and within_double_byte(text, 0, pos) == 2:
+        return pos + 1 if forward else pos - 1
+    return pos
+
+
 def within_double_byte(text: bytes, line_start: int, pos: int) -> Literal[0, 1, 2]:
     """Return whether pos is within a double-byte encoded character.
 

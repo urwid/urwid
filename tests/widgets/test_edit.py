@@ -6,8 +6,15 @@ import unittest
 from unittest import mock
 
 import urwid
+import urwid.testing
 from urwid.command_map import Command
 from urwid.util import set_temporary_encoding
+
+# regional indicators U and S: the two together form one flag cluster
+RI_U = "\U0001f1fa"
+RI_S = "\U0001f1f8"
+# man + ZWJ + woman + ZWJ + girl, one cluster
+FAMILY = "\U0001f468\u200d\U0001f469\u200d\U0001f467"
 
 
 class EditTest(unittest.TestCase):
@@ -722,6 +729,90 @@ class EditTest(unittest.TestCase):
 
         f = urwid.Edit("", "ab\ncd", multiline=True, wrap=urwid.ELLIPSIS, layout=FirstLineEllipsisLayout())
         self.assertEqual(f.render((5,), focus=True).rows(), f.rows((5,), True))
+
+    def test_edit_pos_snaps_to_grapheme_cluster_start(self) -> None:
+        """A position set inside a grapheme cluster moves back to the cluster start."""
+        for label, text, inside, start in (
+            ("combining", "e\u0301x", 1, 0),
+            ("flag", f"a{RI_U}{RI_S}b", 2, 1),
+            ("zwj", f"a{FAMILY}b", 3, 1),
+        ):
+            with self.subTest(label):
+                e = urwid.Edit("", text)
+                e.set_edit_pos(inside)
+                self.assertEqual(e.edit_pos, start)
+                e.edit_pos = inside
+                self.assertEqual(e.edit_pos, start)
+                e.set_edit_text(text, edit_pos=inside)
+                self.assertEqual(e.edit_pos, start)
+
+    def test_typing_into_next_cluster_moves_cursor_past_it(self) -> None:
+        """A typed code point that joins the cluster after the cursor leaves the cursor after that cluster."""
+        e = urwid.Edit("", f"ab{RI_S}")
+        e.keypress((20,), "left")
+        self.assertEqual(e.insert_text_result(RI_U), (f"ab{RI_U}{RI_S}", 4))
+        e.keypress((20,), RI_U)
+        self.assertEqual((e.edit_text, e.edit_pos), (f"ab{RI_U}{RI_S}", 4))
+        e.keypress((20,), "c")
+        self.assertEqual(e.edit_text, f"ab{RI_U}{RI_S}c")
+
+        e = urwid.Edit("", RI_S, edit_pos=1)
+        e.insert_text(RI_U)
+        self.assertEqual((e.edit_text, e.edit_pos), (f"{RI_S}{RI_U}", 2))
+
+    def test_deleting_into_one_cluster_keeps_cursor_on_boundary(self) -> None:
+        """Deleting the character between two regional indicators leaves the cursor before the flag they form."""
+        for key, pos in (("backspace", 2), ("delete", 1)):
+            with self.subTest(key):
+                e = urwid.Edit("", f"{RI_U}x{RI_S}", edit_pos=pos)
+                e.keypress((20,), key)
+                self.assertEqual((e.edit_text, e.edit_pos), (f"{RI_U}{RI_S}", 0))
+                e.keypress((20,), "c")
+                self.assertEqual(e.edit_text, f"c{RI_U}{RI_S}")
+
+    def test_mouse_click_on_wide_character(self) -> None:
+        """A click on either half of a double-width character puts the cursor at its start."""
+        for col in (2, 3):
+            with self.subTest(col=col):
+                e = urwid.Edit("", "ab日x")
+                self.assertTrue(e.mouse_event((20,), "mouse press", 1, col, 0, True))
+                self.assertEqual(e.edit_pos, 2)
+
+    def test_clip_scroll_keeps_wide_characters_whole(self) -> None:
+        """Scrolling a clipped row never cuts a double-width character, and shows the one under the cursor."""
+        with set_temporary_encoding("utf-8"):
+            for wrap in (urwid.CLIP, urwid.ELLIPSIS):
+                for text, pos, cols, row, cursor in (
+                    ("日本語", 3, 4, "語  ", 2),
+                    ("日本語", 3, 2, "  ", 0),
+                    ("日本語", 3, 1, " ", 0),
+                    ("日本語x", 2, 3, "語x", 0),
+                    ("日本語x", 2, 1, " ", 0),
+                    # the cursor column fits, but the wide character under it crosses the right edge
+                    ("a日本", 1, 2, "日", 0),
+                    ("ab日", 2, 3, "b日", 1),
+                ):
+                    with self.subTest(wrap=wrap, text=text, cols=cols):
+                        canv = urwid.Edit("", text, wrap=wrap, edit_pos=pos).render((cols,), focus=True)
+                        self.assertEqual(canv.text, [row.encode()])
+                        self.assertEqual(canv.cursor, (cursor, 0))
+
+            for pos in range(5):
+                with self.subTest(pos=pos):
+                    e = urwid.Edit("", "日本語ab", wrap=urwid.CLIP, edit_pos=pos)
+                    urwid.testing.check_flow_sizing(e, cols=4)
+                    urwid.testing.check_flow_sizing(e, cols=2)
+
+    def test_invalid_utf8_bytes_edit(self) -> None:
+        """A bytes Edit holding text that is not valid UTF-8 keeps the cursor where it is set, and scrolls."""
+        with set_temporary_encoding("utf-8"):
+            e = urwid.Edit(b"", b"a\xff\xfeb", edit_pos=1, wrap=urwid.CLIP)
+            e.keypress((20,), "x")
+            self.assertEqual((e.edit_text, e.edit_pos), (b"ax\xff\xfeb", 2))
+            e.set_edit_pos(3)
+            self.assertEqual(e.edit_pos, 3)
+            with self.assertWarns(UnicodeWarning):
+                self.assertEqual(e.get_cursor_coords((2,)), (1, 0))
 
     def test_cursor_after_control_characters(self) -> None:
         """The cursor sits where its character is drawn, with the control characters left out of the canvas."""
