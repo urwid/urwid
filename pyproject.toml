@@ -402,6 +402,31 @@ missing-module-attribute = "ignore"
 pythonVersion = "3.11"
 # The same paths as [tool.pyrefly] project-includes.
 include = [ "examples", "tests/type_checks", "urwid" ]
+# Per-path exceptions matching the [tool.mypy] overrides and [tool.pyrefly] sub-configs.
+# The first environment whose root holds a file wins.
+# An environment root is also its import root, so each one names the project root to keep "import urwid" resolving.
+[[tool.pyright.executionEnvironments]]
+# Widgets override render, keypress, mouse_event and similar methods with narrower sizing signatures on purpose.
+root = "urwid/widget"
+extraPaths = [ "." ]
+reportIncompatibleMethodOverride = false
+
+[[tool.pyright.executionEnvironments]]
+root = "examples"
+extraPaths = [ "." ]
+reportIncompatibleMethodOverride = false
+
+[[tool.pyright.executionEnvironments]]
+# The curses window is None until start(), and checking for that before each operation is too expensive.
+root = "urwid/display/curses.py"
+extraPaths = [ "." ]
+reportOptionalMemberAccess = false
+
+[[tool.pyright.executionEnvironments]]
+# ctypes.windll exists on Windows only, and so does this module. pythonPlatform = "Windows" here does not resolve it.
+root = "urwid/display/_win32.py"
+extraPaths = [ "." ]
+reportAttributeAccessIssue = false
 
 [tool.pytest.ini_options]
 minversion = "6.0"

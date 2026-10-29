@@ -774,7 +774,7 @@ class SolidCanvas(Canvas):
         if col != 1:
             raise ValueError(f"Invalid fill_char: {fill_char!r}")
         self._text, cs = apply_target_encoding(fill_char[:end])
-        self._cs = cs[0][0]
+        self._cs: Literal["0", "U"] | None = cs[0][0]
         self.size = cols, rows
         self.cursor = None
 
@@ -801,7 +801,7 @@ class SolidCanvas(Canvas):
             rows = self.size[1]
         def_attr = attr.get(None) if attr else None
 
-        line = [(def_attr, self._cs, self._text * cols)]
+        line: _ContentLine = [(def_attr, self._cs, self._text * cols)]
         for _ in range(rows):
             yield line
 

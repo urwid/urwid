@@ -167,18 +167,18 @@ class Frame(
         return self.focus_part
 
     @focus_position.setter
-    def focus_position(self, part: Literal["header", "footer", "body"]) -> None:
+    def focus_position(self, position: Literal["header", "footer", "body"]) -> None:
         """
         Determine which part of the frame is in focus.
 
-        :param part: 'header', 'footer' or 'body'
-        :raises IndexError: *part* is not one of the three frame parts, or names a part this Frame does not have.
+        :param position: 'header', 'footer' or 'body'
+        :raises IndexError: *position* is not one of the three frame parts, or names a part this Frame does not have.
         """
-        if part not in {"header", "footer", "body"}:
-            raise IndexError(f"Invalid position for Frame: {part}")
-        if (part == "header" and self._header is None) or (part == "footer" and self._footer is None):
-            raise IndexError(f"This Frame has no {part}")
-        self.focus_part = part
+        if position not in {"header", "footer", "body"}:
+            raise IndexError(f"Invalid position for Frame: {position}")
+        if (position == "header" and self._header is None) or (position == "footer" and self._footer is None):
+            raise IndexError(f"This Frame has no {position}")
+        self.focus_part = position
         self._invalidate()
 
     @property

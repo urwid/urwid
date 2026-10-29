@@ -31,7 +31,8 @@ import logging
 import signal
 import typing
 
-from gi.repository import GLib
+# PyGObject is only installed with the "glib" extra, which needs system libraries.
+from gi.repository import GLib  # pyright: ignore[reportMissingImports]
 
 from urwid import _deprecation
 
