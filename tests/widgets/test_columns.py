@@ -594,17 +594,45 @@ class ColumnsTest(unittest.TestCase):
     def test_keypress_empty_contents(self) -> None:
         self.assertEqual("x", urwid.Columns([]).keypress((10,), "x"))
 
-    def test_keypress_skips_given_zero(self) -> None:
-        """A column sized ``(GIVEN, 0)`` is not drawn, so neither the arrow keys nor Tab move the focus into it."""
-        for key, start, expected in (("right", 0, 2), ("left", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
-            with self.subTest(key=key):
-                columns = urwid.Columns(
-                    [SelectableText("a"), (urwid.GIVEN, 0, SelectableText("hidden")), SelectableText("c")],
-                    select_navigation=True,
-                )
-                columns.focus_position = start
-                self.assertIsNone(columns.keypress((20,), key))
-                self.assertEqual(expected, columns.focus_position)
+    def test_keypress_skips_hidden_column(self) -> None:
+        """A column that is not drawn, ``(GIVEN, 0)`` or packed to 0, is skipped by the arrow keys and Tab."""
+        for hidden in ((urwid.GIVEN, 0, SelectableText("hidden")), (urwid.PACK, SelectableText(""))):
+            for key, start, expected in (("right", 0, 2), ("left", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
+                with self.subTest(hidden=hidden[0], key=key):
+                    columns = urwid.Columns(
+                        [SelectableText("a"), hidden, SelectableText("c")],
+                        select_navigation=True,
+                    )
+                    columns.focus_position = start
+                    self.assertIsNone(columns.keypress((20,), key))
+                    self.assertEqual(expected, columns.focus_position)
+
+    def test_select_pack_column_hidden_by_last_layout(self) -> None:
+        """The focus moves skip a pack column only while its widget packs to 0, focused or not, in the last layout."""
+
+        class WideWhenFocused(SelectableText):
+            """Selectable text that packs 3 columns wide when focused and 0 otherwise."""
+
+            def pack(self, size=(), focus=False):
+                return (3 if focus else 0, 1)
+
+        with self.subTest("0 wide only while unfocused"):
+            columns = urwid.Columns([(urwid.PACK, SelectableText("a")), (urwid.PACK, WideWhenFocused(""))])
+            self.assertIsNone(columns.keypress((20,), "right"))
+            self.assertEqual(1, columns.focus_position)
+
+        with self.subTest("focus_first_selectable"):
+            columns = urwid.Columns([(urwid.PACK, SelectableText("")), SelectableText("b")], focus_column=1)
+            columns.column_widths((20,), focus=True)
+            self.assertTrue(columns.focus_first_selectable())
+            self.assertEqual(1, columns.focus_position)
+
+        with self.subTest("contents changed after the layout"):
+            columns = urwid.Columns([(urwid.PACK, SelectableText("")), SelectableText("b")], focus_column=1)
+            columns.column_widths((20,), focus=True)
+            columns.contents.insert(0, (SelectableText("a"), columns.options()))
+            self.assertTrue(columns.focus_first_selectable())
+            self.assertEqual(0, columns.focus_position)
 
     def test_select_reset_skips_given_zero(self) -> None:
         """The reset past the last column and ``focus_first_selectable`` skip a hidden first column."""

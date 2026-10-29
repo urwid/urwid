@@ -295,6 +295,7 @@ class Columns(
         """
         self._cache_column_widths: list[int] = []
         self._cache_pack_widths: dict[int, int] = {}
+        self._cache_hidden_packs: frozenset[int] = frozenset()
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -434,6 +435,8 @@ class Columns(
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
+        # the hidden pack columns of the last layout are kept by position, which a change of the contents moves
+        self._cache_hidden_packs = frozenset()
         self._invalidate()
 
     def selectable(self) -> bool:
@@ -607,6 +610,15 @@ class Columns(
         self._cache_maxcol = None
         super()._invalidate()
 
+    def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
+        """Yield the selectable positions as the base class does, skipping pack columns the last layout found 0 wide.
+
+        A pack column counts as 0 wide only when its widget packs to 0 columns focused as well as unfocused.
+        """
+        for position in super()._select_candidates(reverse=reverse, from_edge=from_edge):
+            if position not in self._cache_hidden_packs:
+                yield position
+
     @property
     def focus(self) -> AbstractWidget | None:
         """The child widget in focus or None when Columns is empty."""
@@ -653,10 +665,10 @@ class Columns(
         maxcol = size[0]
 
         def pack_width(
-            index: int,
             widget: AbstractWidget,
             size_kind: WHSettings,
             is_box: bool,
+            focused: bool,
         ) -> int:
             """Calculate the width a 'pack' column takes by packing its widget.
 
@@ -675,14 +687,14 @@ class Columns(
                 if Sizing.FIXED in w_sizing:
                     candidate_size = widget.pack(
                         (),
-                        focus and index == self.focus_position,
+                        focused,
                     )[0]
 
                 if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
                     # FIXME: should be able to pack with a different maxcol value
                     candidate_size = widget.pack(
                         (maxcol,),
-                        focus and index == self.focus_position,
+                        focused,
                     )[0]
 
                 return candidate_size
@@ -693,13 +705,21 @@ class Columns(
                 ColumnsWarning,
                 stacklevel=4,
             )
-            return widget.pack((maxcol,), focus and index == self.focus_position)[0]
+            return widget.pack((maxcol,), focused)[0]
 
         # 'pack' widgets can change their packed width without invalidating the cache,
         # so recompute their widths and reuse the cached result only when nothing changed.
         pack_widths = {
-            i: pack_width(i, w, t, b) for i, (w, (t, width, b)) in enumerate(self.contents) if t == WHSettings.PACK
+            i: pack_width(w, t, b, focus and i == self.focus_position)
+            for i, (w, (t, width, b)) in enumerate(self.contents)
+            if t == WHSettings.PACK
         }
+        # pack columns 0 wide even when focused: the focus navigation skips them, as it does (GIVEN, 0) ones
+        self._cache_hidden_packs = frozenset(
+            i
+            for i, width in pack_widths.items()
+            if width == 0 and pack_width(self.contents[i][0], WHSettings.PACK, self.contents[i][1][2], True) == 0
+        )
         if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
             return self._cache_column_widths
 
