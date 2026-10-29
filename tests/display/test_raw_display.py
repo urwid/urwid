@@ -579,6 +579,10 @@ class TestRawDisplay(unittest.TestCase):
             "linux": linux,
             "linux-16color": linux,
             "linux.utf8": linux,
+            # versioned terminfo names of the Linux console
+            "linux2.6.26": linux,
+            "linux3.0": linux,
+            "linuxfoo": osc4,
         }.items():
             with self.subTest(term=term):
                 s = urwid.display.raw.Screen()
@@ -900,6 +904,8 @@ class TestTerminalProperties(unittest.TestCase):
             ("xterm-direct", 16777216, True, False, False, True),
             ("linux", 16, True, True, True, True),
             ("linux-16color", 16, True, True, True, True),
+            ("linux2.6", 16, True, True, True, True),
+            ("linux3.0", 16, True, True, True, True),
             ("gnome-256color", 256, True, False, False, True),
             ("konsole", 16, True, False, False, True),
             ("konsole-direct", 16777216, True, False, False, True),

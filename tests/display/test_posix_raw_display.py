@@ -367,6 +367,32 @@ class TestGpmTracking(unittest.TestCase):
         mock_set_blocking.assert_called_once_with(99, False)
         self.assertIs(mock_proc, s.gpm_mev)
 
+    @mock.patch.dict(os.environ, {"TERM": "xterm"})
+    @mock.patch("os.set_blocking")
+    @mock.patch("urwid.display._posix_raw_display.Popen")
+    @mock.patch("os.path.isfile", return_value=True)
+    def test_start_gpm_tracking_follows_the_screen_term(self, mock_isfile, mock_popen_cls, mock_set_blocking):
+        """The helper starts for every Linux console name the screen's term holds, whatever TERM says now."""
+        # pylint: disable=protected-access  # the gpm start is called directly, as in the tests above
+        for term, started in (
+            ("linux", True),
+            ("linux-16color", True),
+            ("linux.utf8", True),
+            ("linux2.6.26", True),
+            ("linux3.0", True),
+            ("linuxfoo", False),
+            ("screen.linux", False),
+        ):
+            with self.subTest(term=term):
+                mock_popen_cls.reset_mock()
+                s = _make_screen()
+                s.term = term
+
+                s._start_gpm_tracking()
+
+                self.assertEqual(started, mock_popen_cls.called)
+                self.assertEqual(started, s.gpm_mev is mock_popen_cls.return_value)
+
     @mock.patch.dict(os.environ, {"TERM": "linux"})
     @mock.patch("urwid.display._posix_raw_display.Popen")
     @mock.patch("os.path.isfile", return_value=True)

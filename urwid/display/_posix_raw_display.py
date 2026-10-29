@@ -213,7 +213,7 @@ class Screen(_raw_display_base.Screen):
         """
         if not os.path.isfile("/usr/bin/mev"):
             return
-        if not os.environ.get("TERM", "").lower().startswith("linux"):
+        if not _raw_display_base._is_linux_console(self.term):  # pylint: disable=protected-access  # same package
             return
 
         m = Popen(

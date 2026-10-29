@@ -222,13 +222,18 @@ def _term_families(term: str) -> frozenset[str]:
     return frozenset(families)
 
 
+# ``linux``, optionally with a kernel version as in the terminfo names ``linux2.6`` and ``linux3.0``,
+# then the end of the name or a ``-`` or ``.`` suffix.
+_LINUX_CONSOLE_TERM = re.compile(r"linux(?:\d+(?:\.\d+)*)?(?:[-.]|$)", re.IGNORECASE)
+
+
 def _is_linux_console(term: str) -> bool:
     """Tell whether a TERM value names the Linux virtual console.
 
-    ``linux``, ``linux-16color`` and ``linux.utf8`` do.
+    ``linux``, ``linux-16color``, ``linux.utf8`` and the versioned terminfo names such as ``linux2.6.26`` do.
     A multiplexer that names its outer terminal, such as ``screen.linux``, is not the console.
     """
-    return term.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
+    return _LINUX_CONSOLE_TERM.match(term) is not None
 
 
 def _parse_force_color(value: str) -> _ColorCount:
