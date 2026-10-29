@@ -8,6 +8,7 @@ import sys
 import unittest
 from unittest import mock
 
+import urwid
 from urwid import signals
 from urwid.display import escape
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
@@ -287,6 +288,33 @@ class TestSignalHandlers(unittest.TestCase):
             s.get_available_raw_input()
 
         mock_kill.assert_called_once_with(os.getpid(), signal.SIGTSTP)
+
+    def test_suspend_from_a_main_loop_watch_re_hooks_the_event_loop(self):
+        """A suspend carried out from the main loop's input watch leaves the loop watching the restarted screen.
+
+        While the process is suspended, the screen is stopped and the loop watches nothing.
+        """
+        # pylint: disable=protected-access  # the event loop's watches and the screen's pipe have no public view
+        s = self._started_screen()
+        event_loop = urwid.SelectEventLoop()
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=s, event_loop=event_loop, handle_mouse=False)
+        loop.start()
+        self.addCleanup(loop.stop)
+        watched = set(event_loop._watch_files)
+        state_at_kill = []
+
+        def fake_kill(pid: int, signum: int) -> None:
+            state_at_kill.append((signum, s.started, dict(event_loop._watch_files)))
+
+        signal.getsignal(signal.SIGTSTP)(signal.SIGTSTP, None)
+        with mock.patch("os.kill", side_effect=fake_kill):
+            # what the event loop calls when the wake-up byte makes the descriptor readable
+            event_loop._watch_files[s._resize_pipe_rd.fileno()]()
+
+        self.assertEqual([(signal.SIGTSTP, False, {})], state_at_kill)
+        self.assertTrue(s.started)
+        self.assertEqual(watched, set(event_loop._watch_files))
+        self.assertIn(s._resize_pipe_rd.fileno(), watched)
 
     @mock.patch("os.kill")
     def test_stop_discards_a_pending_suspend(self, mock_kill):
