@@ -605,13 +605,17 @@ class TestRawDisplay(unittest.TestCase):
     def test_modify_terminal_palette_rejects_unrepresentable_entries(self) -> None:
         """An entry the terminal's sequence cannot carry raises before anything is written.
 
-        A None component is rejected by every terminal. The Linux console sequence has one hex digit
+        A value that is not an integer is rejected by every terminal. The Linux console sequence has one hex digit
         for the index and two per component, so a wider value would end the sequence early.
         """
         for term, entry, error in (
             ("xterm-256color", (1, None, 0, 0), TypeError),
+            ("xterm-256color", (1, 0.5, 0, 0), TypeError),
+            ("xterm-256color", ("1", 0, 0, 0), TypeError),
             ("fbterm", (1, 0, None, 0), TypeError),
+            ("fbterm", (1, 0, "0", 0), TypeError),
             ("linux", (1, 0, 0, None), TypeError),
+            ("linux", (1.0, 0, 0, 0), TypeError),
             ("linux", (256, 0, 0, 0), ValueError),
             ("linux", (-1, 0, 0, 0), ValueError),
             ("linux", (1, 256, 0, 0), ValueError),

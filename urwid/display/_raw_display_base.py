@@ -27,6 +27,7 @@ import contextlib
 import dataclasses
 import errno
 import functools
+import operator
 import os
 import pathlib
 import platform
@@ -44,6 +45,8 @@ from urwid._selectors import read_selector
 
 from . import escape
 from .common import (
+    _COLOR_VALUES_88,
+    _COLOR_VALUES_256,
     _RESOLVED_ATTRS_LIMIT,
     UNPRINTABLE_C1_TRANS_TABLE,
     UNPRINTABLE_TRANS_TABLE,
@@ -1671,17 +1674,11 @@ class Screen(BaseScreen, RealTerminal):
         else:
             colors = self.colors
 
-        def rgb_values(n: int) -> tuple[int | None, int | None, int | None]:
-            if colors == 16:
-                aspec = AttrSpec(f"h{n:d}", "", 256)
-            else:
-                aspec = AttrSpec(f"h{n:d}", "", typing.cast("Literal[1, 16, 88, 256, 16777216]", colors))
-            return aspec.get_rgb_values()[:3]
-
-        entries = [(n, *rgb_values(n)) for n in range(min(colors, 256))]
+        values = _COLOR_VALUES_88 if colors == 88 else _COLOR_VALUES_256
+        entries = [(n, *values[n]) for n in range(min(colors, 256))]
         self.modify_terminal_palette(entries)
 
-    def modify_terminal_palette(self, entries: list[tuple[int, int | None, int | None, int | None]]) -> None:
+    def modify_terminal_palette(self, entries: Iterable[tuple[int, int, int, int]]) -> None:
         """Attempt to set part of the terminal palette; this does not work on all terminals.
 
         The changes are sent as a single escape sequence so they should all take effect at the same time.
@@ -1695,16 +1692,23 @@ class Screen(BaseScreen, RealTerminal):
         before relying on the change.
 
         :param entries: list of (index, red, green, blue) tuples.
-        :raises TypeError: a red, green or blue value is None.
+        :raises TypeError: an index or a red, green or blue value is not an integer.
         :raises ValueError: on the Linux console, an index or a red, green or blue value is outside 0-255,
             which its sequence cannot carry.
         """
+        checked: list[tuple[int, int, int, int]] = []
+        for entry in entries:
+            try:
+                index, red, green, blue = map(operator.index, entry)
+            except TypeError as exc:
+                raise TypeError(f"Palette entry has a value that is not an integer: {entry!r}") from exc
+            checked.append((index, red, green, blue))
+        entries = checked
+
         if _is_linux_console(self.term):
             sequences: list[str] = []
-            applied: list[tuple[int, int | None, int | None, int | None]] = []
+            applied: list[tuple[int, int, int, int]] = []
             for index, red, green, blue in entries:
-                if red is None or green is None or blue is None:
-                    raise TypeError(f"Palette entry {index} has no value for a color component")
                 if index not in range(256) or any(value not in range(256) for value in (red, green, blue)):
                     raise ValueError(f"Linux console palette entry out of range: {(index, red, green, blue)!r}")
                 if index < 16:
