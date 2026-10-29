@@ -289,7 +289,9 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             canv.pad_trim_top_bottom(0, fill_height)
 
         if canv_cols <= maxcol and canv_rows <= maxrow:
-            # Canvas is small enough to fit without trimming
+            # Canvas is small enough to fit without trimming.
+            # A scroll key pressed meanwhile had nothing to scroll, so it must not move the view once the canvas grows.
+            self._scroll_action = None
             return canv
 
         self._adjust_trim_top(canv, size)
@@ -950,19 +952,39 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
         raise ScrollableError(f"Not compatible to be wrapped by ScrollBar: {w!r}")
 
+    def _focused_original_geometry(self, size: tuple[int] | tuple[int, int]) -> tuple[tuple[int, int], int]:
+        """Return the size the wrapped widget is rendered at in focus within *size*, and the column it starts at."""
+        ow_size = self._original_widget_size
+        box_size = self._box_size(size, True)
+        if box_size != self._rendered_size:
+            # Not rendered at this size yet: before the first render, or after a resize.
+            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size, True)
+            ow_size = box_size if layout is None else layout.ow_size
+        if self._scrollbar_side == SCROLLBAR_LEFT:
+            return ow_size, box_size[0] - ow_size[0]
+        return ow_size, 0
+
     def keypress(
         self,
         size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Forward a keypress to the wrapped widget, at the size it is rendered at within ``size``."""
-        ow_size = self._original_widget_size
-        box_size = self._box_size(size, True)
-        if box_size != self._rendered_size:
-            # Not rendered at this size yet: a key before the first render, or after a resize.
-            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size)
-            ow_size = box_size if layout is None else layout.ow_size
+        ow_size, _ = self._focused_original_geometry(size)
         return self._original_widget.keypress(ow_size, key)
+
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+        """Return the cursor of the wrapped widget, moved past the scrollbar columns when they are on the left.
+
+        :returns: ``None`` when the wrapped widget has no ``get_cursor_coords`` or no cursor.
+        """
+        if not hasattr(self._original_widget, "get_cursor_coords"):
+            return None
+        ow_size, col_offset = self._focused_original_geometry(size)
+        if (coords := self._original_widget.get_cursor_coords(ow_size)) is None:
+            return None
+        col, row = coords
+        return col + col_offset, row
 
     def mouse_event(
         self,
@@ -1046,16 +1068,14 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         if not on_scrollbar and hasattr(ow, "mouse_event"):
             handled = ow.mouse_event(ow_size, event, button, ow_col, row, focus)
 
-        if not handled and supports_scroll:
-            if button == 4:  # scroll wheel up
-                pos = ow.get_scrollpos(ow_size)
-                newpos = max(pos - 1, 0)
+        if not handled and supports_scroll and button in {4, 5}:  # scroll wheel up, down
+            pos = ow.get_scrollpos(ow_size)
+            posmax = ow.rows_max(ow_size) - ow_size[1]
+            # Content that fits keeps its position, as with the scroll keys, and the wheel stops at the last row.
+            if posmax > 0:
+                newpos = max(pos - 1, 0) if button == 4 else min(pos + 1, posmax)
                 ow.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
-                return True
-            if button == 5:  # scroll wheel down
-                pos = ow.get_scrollpos(ow_size)
-                ow.set_scrollpos(pos + 1)  # type: ignore[attr-defined]  # gated
-                return True
+            return True
 
         return handled
 

@@ -122,6 +122,35 @@ class TestScrollable(unittest.TestCase):
         self.assertEqual(45, widget.get_scrollpos())
         self.assertEqual(reference_canv.decoded_text, canv.decoded_text)
 
+    def test_scroll_keys_while_content_fits_are_dropped(self):
+        """Scroll keys pressed while the content fits do not move the view once the content grows."""
+        size = (5, 3)
+        content = urwid.Text("")
+        widget = urwid.Scrollable(content)
+        widget.render(size)
+        self.assertEqual([], urwid.testing.press(widget, size, "down", "page down"))
+        widget.render(size)
+        content.set_text("\n".join("abcdefg"))
+        self.assertEqual(["a    ", "b    ", "c    "], urwid.testing.render_text(widget, size))
+
+    def test_scrollpos_kept_while_content_fits(self):
+        """A position set while the content fits, or reached before it shrank, is used again once it grows."""
+        size = (5, 3)
+        rows = "\n".join("abcdefg")
+        for start, position, expected in (
+            ("x", -1, ["e    ", "f    ", "g    "]),  # counted from the bottom
+            (rows, 3, ["d    ", "e    ", "f    "]),  # the content shrinks and grows again
+        ):
+            with self.subTest(position=position):
+                content = urwid.Text(start)
+                widget = urwid.Scrollable(content)
+                widget.set_scrollpos(position)
+                widget.render(size)
+                content.set_text("x")
+                widget.render(size)
+                content.set_text(rows)
+                self.assertEqual(expected, urwid.testing.render_text(widget, size))
+
     def test_cursor_hidden_when_scrolled_out_of_view(self):
         """Scrolling the cursor's row out of the visible canvas hides it (unrelated to automove_cursor)."""
         edit = urwid.Edit("", "\n".join(f"line{index}" for index in range(10)), multiline=True)
@@ -852,6 +881,57 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertEqual(5, layout.posmax)
         self.assertEqual(2, layout.thumb_height)
 
+    def test_mouse_wheel_stops_at_the_last_row(self) -> None:
+        """The wheel scrolls down until the last row is shown, and no further."""
+        size = (10, 3)
+        scrollable = urwid.Scrollable(urwid.Text("\n".join("abcdefg")))
+        widget = urwid.ScrollBar(scrollable)
+        widget.render(size)
+        for _ in range(6):
+            self.assertTrue(widget.mouse_event(size, "mouse press", 5, 0, 0, False))
+        self.assertEqual(4, scrollable.get_scrollpos(size))
+
+    def test_mouse_wheel_keeps_the_position_while_content_fits(self) -> None:
+        """The wheel leaves the position of content that fits, so it is used again once the content grows."""
+        size = (10, 3)
+        rows = "\n".join("abcdefg")
+        for start, position, button, expected in (
+            ("1\n2\n3", -1, 5, ["e", "f", "g"]),  # counted from the bottom, on content exactly as tall as the view
+            (rows, 3, 4, ["d", "e", "f"]),  # reached before the content shrank
+        ):
+            with self.subTest(position=position, button=button):
+                content = urwid.Text(start)
+                scrollable = urwid.Scrollable(content)
+                widget = urwid.ScrollBar(scrollable)
+                scrollable.set_scrollpos(position)
+                widget.render(size)
+                content.set_text(start if position < 0 else "x")
+                widget.render(size)
+                self.assertTrue(widget.mouse_event(size, "mouse press", button, 0, 0, False))
+                widget.render(size)
+                content.set_text(rows)
+                self.assertEqual(expected, [line.strip(" █") for line in urwid.testing.render_text(widget, size)])
+
+    def test_empty_text(self) -> None:
+        """An empty Text has no cursor, and the keys and the wheel leave it at the top, on either side and visibility."""
+        size = (10, 3)
+        for side, visible in itertools.product(("right", "left"), (None, True, False)):
+            with self.subTest(side=side, visible=visible):
+                content = urwid.Text("")
+                scrollable = urwid.Scrollable(content)
+                widget = urwid.ScrollBar(scrollable, side=side, visible=visible)
+                self.assertIsNone(widget.render(size, focus=True).cursor)
+                self.assertIsNone(widget.get_cursor_coords(size))
+                urwid.testing.check_sizing(urwid.BoxAdapter(widget, 3))
+
+                widget.render(size, focus=True)
+                urwid.testing.press(widget, size, "down")
+                widget.mouse_event(size, "mouse press", 5, 5, 0, True)
+                widget.render(size, focus=True)
+                self.assertEqual(0, scrollable.get_scrollpos(size))
+                content.set_text("\n".join("abcdefg"))
+                self.assertEqual("a", widget.render(size, focus=True).decoded_text[0].strip(" █"))
+
 
 class TestScrollBarListBox(unittest.TestCase):
     def test_relative_non_selectable(self):
@@ -1109,6 +1189,37 @@ class TestScrollBarListBox(unittest.TestCase):
                 self.assertEqual([(edge_ow_col, 0), (edge_ow_col, 0)], seen)
                 self.assertEqual(0, listbox.get_scrollpos())
 
+    def test_get_cursor_coords(self) -> None:
+        """The cursor of the wrapped ListBox is reported where it is drawn, before and after a render."""
+        size = (10, 3)
+        for side, items, expected in (
+            ("right", 5, (3, 0)),
+            ("left", 5, (5, 0)),  # past the 2 scrollbar columns
+            ("right", 1, (3, 0)),
+            ("left", 1, (3, 0)),  # no scrollbar is drawn when the content fits
+        ):
+            with self.subTest(side=side, items=items):
+                listbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Edit("", "abc") for _ in range(items)]))
+                widget = urwid.ScrollBar(listbox, side=side, width=2)
+                self.assertEqual(expected, widget.get_cursor_coords(size))
+                self.assertEqual(expected, widget.render(size, focus=True).cursor)
+                self.assertEqual(expected, widget.get_cursor_coords(size))
+
+    def test_get_cursor_coords_without_cursor(self) -> None:
+        """No cursor is reported when the wrapped widget has none, or has no get_cursor_coords."""
+        for wrapped in (
+            urwid.ListBox([urwid.Text("a")]),
+            urwid.Scrollable(urwid.Edit("", "abc")),  # draws a cursor, but has no get_cursor_coords
+        ):
+            with self.subTest(wrapped=type(wrapped).__name__):
+                self.assertIsNone(urwid.ScrollBar(wrapped).get_cursor_coords((10, 3)))
+
+    def test_check_sizing_in_box_adapter(self) -> None:
+        """A BoxAdapter reports the cursor a ScrollBar draws."""
+        urwid.testing.check_sizing(
+            urwid.BoxAdapter(urwid.ScrollBar(urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Edit("> ", "abc")]))), 3)
+        )
+
     def test_minimal_height(self):
         """If we have only 1 line render height and thumb position in the middle - do not render top."""
         widget = urwid.ScrollBar(
@@ -1265,6 +1376,21 @@ class TestScrollBarFlowSize(unittest.TestCase):
                     urwid.ListBox([urwid.Edit("", "abcd"), urwid.Edit("", "efgh")]), side=side, visible=visible
                 )
                 urwid.testing.check_flow_sizing(widget)
+
+    def test_get_cursor_coords(self) -> None:
+        """The cursor of the Edit below the wrapped Text is reported where a flow render draws it."""
+        for side, visible, expected in (
+            ("right", None, (3, 3)),
+            ("left", None, (3, 3)),  # no scrollbar at a flow size
+            ("left", False, (3, 3)),
+            ("right", True, (3, 4)),  # the Text wraps to one more row next to the scrollbar
+            ("left", True, (4, 4)),
+        ):
+            with self.subTest(side=side, visible=visible):
+                widget = self.make(side=side, visible=visible)
+                widget.render((10,), focus=True)  # moves the ListBox focus to the Edit, the only selectable row
+                self.assertEqual(expected, widget.get_cursor_coords((10,)))
+                self.assertEqual(expected, widget.render((10,), focus=True).cursor)
 
     def test_render_without_scrollbar_over_rows_the_estimate_misses(self) -> None:
         """A flow render draws no scrollbar, or a full thumb when it is visible, whatever the item count says."""
