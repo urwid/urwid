@@ -49,6 +49,10 @@ CTRL+SHIFT+F5 ``'shift ctrl f5'``
 ALT+J         ``'meta j'``
 ============= =================
 
+A control sequence that Urwid does not recognise is returned as a single key
+holding the characters after ``ESC [``, so that its characters are not received
+as typed text: ``ESC [ 1;2X`` returns ``'<csi 1;2X>'``.
+
 With Unicode :ref:`text encoding <text-encodings>` you will also receive
 Unicode strings for any non-ASCII characters:
 
