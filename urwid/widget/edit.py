@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import string
 import sys
 import typing
@@ -11,7 +12,7 @@ from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
-from urwid.str_util import calc_width, is_wide_char, move_next_char, move_prev_char
+from urwid.str_util import _grapheme_boundary, calc_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import decompose_tagmarkup
 
 from .constants import Align, Sizing, WrapMode
@@ -337,7 +338,8 @@ class Edit(WidgetWrap[Text]):
     def set_edit_pos(self, pos: int) -> None:
         """Set the cursor position with a self.edit_text offset.
 
-        Clips pos to [0, len(edit_text)].
+        Clips pos to [0, len(edit_text)], then moves a position inside a grapheme cluster back to
+        the cluster start, so that the cursor never splits what is drawn as one character.
 
         :param pos: cursor position
 
@@ -353,8 +355,12 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_pos = 20
         >>> e.edit_pos
         4
+        >>> e = Edit("", "e" + chr(0x301) + "x")  # "e" followed by a combining acute accent
+        >>> e.set_edit_pos(1)
+        >>> e.edit_pos
+        0
         """
-        pos = min(max(pos, 0), len(self._edit_text))
+        pos = _grapheme_boundary(self._edit_text, min(max(pos, 0), len(self._edit_text)), forward=False)
         self.highlight = None
         self.pref_col_maxcol = None, None
         self._edit_pos = pos
@@ -500,6 +506,7 @@ class Edit(WidgetWrap[Text]):
         """Return result of insert_text(text) without actually performing the insertion.
 
         Handy for pre-validation.
+        When the inserted text joins the grapheme cluster after it, the returned position is the end of that cluster.
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
@@ -523,7 +530,7 @@ class Edit(WidgetWrap[Text]):
             detail = repr((self.edit_text, result_text, text)) if self._mask is None else "masked text"
             raise ValueError(detail).with_traceback(exc.__traceback__) from exc
 
-        result_pos += len(text)
+        result_pos = _grapheme_boundary(result_text, result_pos + len(text), forward=True)
         return (result_text, result_pos)
 
     def _insert_typed_text(self, text: str | bytes) -> bool:
@@ -856,14 +863,60 @@ class Edit(WidgetWrap[Text]):
                 *trans[y + 1 :],
             ]
 
-        if x >= maxcol:
+        pos = self.edit_pos + len(self.caption)
+        # the cursor after the last character of a row, or on bytes that are not valid UTF-8, needs one column
+        cursor_width = 1
+        if pos < len(text) and text[pos : pos + 1] not in {"\n", b"\n"}:
+            with contextlib.suppress(UnicodeDecodeError):
+                cursor_width = max(calc_width(text, pos, move_next_char(text, pos, len(text))), 1)
+        if x + cursor_width > maxcol:
+            if cursor_width > maxcol:
+                # the character under the cursor cannot be shown whole: start the row with it
+                shift = x
+            else:
+                try:
+                    shift = self._boundary_column(text, trans[y], x + cursor_width - maxcol)
+                except UnicodeDecodeError:
+                    shift = x + cursor_width - maxcol  # a row that is not valid UTF-8 has no characters to keep whole
             return [
                 *trans[:y],
-                *[text_layout.shift_line(trans[y], -(x - maxcol + 1))],
+                *[text_layout.shift_line(trans[y], -shift)],
                 *trans[y + 1 :],
             ]
 
         return trans
+
+    @staticmethod
+    def _boundary_column(
+        text: str | bytes,
+        line: list[tuple[int, int, int | bytes] | tuple[int, int | None]],
+        min_col: int,
+    ) -> int:
+        """Return the first screen column of *line*, from *min_col* on, that does not split a character.
+
+        :param text: text that *line* is a layout row of
+        :param line: one row of a layout structure
+        :param min_col: the column to start looking from
+        :returns: *min_col* or the column after it where the next character starts;
+            the width of *line* when no character starts after *min_col*.
+        """
+        col = 0
+        for seg in line:
+            s = text_layout.LayoutSegment(seg)
+            if s.offs is None or s.end is None:
+                # a shift, inserted spaces or inserted text: no character spans its columns
+                if col + s.sc >= min_col:
+                    return max(col, min_col)
+                col += s.sc
+                continue
+            pos = s.offs
+            while col < min_col and pos < s.end:
+                next_pos = move_next_char(text, pos, s.end)
+                col += calc_width(text, pos, next_pos)
+                pos = next_pos
+            if col >= min_col:
+                return col
+        return col
 
     def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
         """
