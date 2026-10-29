@@ -2,6 +2,26 @@
 Changelog
 ---------
 
+Urwid 5.0.1
+============
+
+2026-10-29
+
+Bug fixes 🕷
+++++++++++++
+* Draw false pop-up widgets and fix delegate stub returns by @penguinolog in https://github.com/urwid/urwid/pull/1530
+* Move the Edit cursor through set_edit_pos() on up, down, home, end and clicks by @nk-batman21 in https://github.com/urwid/urwid/pull/1531
+* Report the wrapped widget's cursor from ScrollBar by @penguinolog in https://github.com/urwid/urwid/pull/1533
+* Keep the Edit cursor on grapheme cluster boundaries by @penguinolog in https://github.com/urwid/urwid/pull/1534
+* fix: preserve numeric IntegerEdit defaults in non-decimal bases by @charan-rathore in https://github.com/urwid/urwid/pull/1532
+* Scroll a decorated widget from ScrollBar by @penguinolog in https://github.com/urwid/urwid/pull/1535
+* Tighten IntegerEdit default validation by @penguinolog in https://github.com/urwid/urwid/pull/1536
+* Hide zero-width Columns columns from layout, cursor and keys by @penguinolog in https://github.com/urwid/urwid/pull/1540
+* Decode unknown CSI keys, versioned Linux console names, palette types by @penguinolog in https://github.com/urwid/urwid/pull/1541
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.0.0...5.0.1
+
 Urwid 5.0.0
 ============
 
