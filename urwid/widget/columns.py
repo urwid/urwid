@@ -295,6 +295,7 @@ class Columns(
         """
         self._cache_column_widths: list[int] = []
         self._cache_pack_widths: dict[int, int] = {}
+        self._cache_hidden_packs: frozenset[int] = frozenset()
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -362,14 +363,14 @@ class Columns(
             if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
 
-        self.dividechars = dividechars
+        self._dividechars = dividechars
 
         if self.contents and focus_column is not None:
             if not isinstance(focus_column, int):
                 raise ValueError(f"Widget not found in Columns contents: {focus_column!r}")
             self.focus_position = focus_column
         self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
-        self.min_width = min_width
+        self._min_width = min_width
         self._cache_maxcol: int | None = None
         self.select_navigation = select_navigation
         # connected last, so that filling the contents during construction sends no signal
@@ -434,6 +435,8 @@ class Columns(
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
+        # the hidden pack columns of the last layout are kept by position, which a change of the contents moves
+        self._cache_hidden_packs = frozenset()
         self._invalidate()
 
     def selectable(self) -> bool:
@@ -608,6 +611,35 @@ class Columns(
         super()._invalidate()
 
     @property
+    def dividechars(self) -> int:
+        """Number of blank characters between two visible columns."""
+        return self._dividechars
+
+    @dividechars.setter
+    def dividechars(self, dividechars: int) -> None:
+        self._dividechars = dividechars
+        self._invalidate()
+
+    @property
+    def min_width(self) -> int:
+        """Minimum width of a weighted column."""
+        return self._min_width
+
+    @min_width.setter
+    def min_width(self, min_width: int) -> None:
+        self._min_width = min_width
+        self._invalidate()
+
+    def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
+        """Yield the selectable positions as the base class does, skipping pack columns the last layout found 0 wide.
+
+        A pack column counts as 0 wide only when its widget packs to 0 columns focused as well as unfocused.
+        """
+        for position in super()._select_candidates(reverse=reverse, from_edge=from_edge):
+            if position not in self._cache_hidden_packs:
+                yield position
+
+    @property
     def focus(self) -> AbstractWidget | None:
         """The child widget in focus or None when Columns is empty."""
         if not self.contents:
@@ -653,10 +685,10 @@ class Columns(
         maxcol = size[0]
 
         def pack_width(
-            index: int,
             widget: AbstractWidget,
             size_kind: WHSettings,
             is_box: bool,
+            focused: bool,
         ) -> int:
             """Calculate the width a 'pack' column takes by packing its widget.
 
@@ -675,14 +707,14 @@ class Columns(
                 if Sizing.FIXED in w_sizing:
                     candidate_size = widget.pack(
                         (),
-                        focus and index == self.focus_position,
+                        focused,
                     )[0]
 
                 if Sizing.FLOW in w_sizing and (not candidate_size or candidate_size > maxcol):
                     # FIXME: should be able to pack with a different maxcol value
                     candidate_size = widget.pack(
                         (maxcol,),
-                        focus and index == self.focus_position,
+                        focused,
                     )[0]
 
                 return candidate_size
@@ -693,17 +725,28 @@ class Columns(
                 ColumnsWarning,
                 stacklevel=4,
             )
-            return widget.pack((maxcol,), focus and index == self.focus_position)[0]
+            return widget.pack((maxcol,), focused)[0]
 
         # 'pack' widgets can change their packed width without invalidating the cache,
         # so recompute their widths and reuse the cached result only when nothing changed.
         pack_widths = {
-            i: pack_width(i, w, t, b) for i, (w, (t, width, b)) in enumerate(self.contents) if t == WHSettings.PACK
+            i: pack_width(w, t, b, focus and i == self.focus_position)
+            for i, (w, (t, width, b)) in enumerate(self.contents)
+            if t == WHSettings.PACK
         }
+        # pack columns 0 wide even when focused: the focus navigation skips them, as it does (GIVEN, 0) ones
+        self._cache_hidden_packs = frozenset(
+            i
+            for i, width in pack_widths.items()
+            if width == 0 and pack_width(self.contents[i][0], WHSettings.PACK, self.contents[i][1][2], True) == 0
+        )
         if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
             return self._cache_column_widths
 
         widths = []
+        # the divider each column reserves on its right: none for a column of static width 0, which render hides,
+        # and one for every weighted column, even one that ends up 0 wide
+        dividers: list[int] = []
 
         weighted: list[tuple[int | float, int]] = []
         shared = maxcol + self.dividechars
@@ -718,11 +761,13 @@ class Columns(
             else:
                 static_w = self.min_width
 
-            if shared < static_w + self.dividechars and i > self.focus_position:
+            divider = self.dividechars if static_w > 0 or options[0] not in {WHSettings.GIVEN, WHSettings.PACK} else 0
+            if shared < static_w + divider and i > self.focus_position:
                 break
 
             widths.append(static_w)
-            shared -= static_w + self.dividechars
+            dividers.append(divider)
+            shared -= static_w + divider
             if options[0] not in {WHSettings.GIVEN, WHSettings.PACK}:
                 weighted.append((options[1], i))
 
@@ -730,7 +775,7 @@ class Columns(
         for i, width_ in enumerate(widths):
             if shared >= 0:
                 break
-            shared += width_ + self.dividechars
+            shared += width_ + dividers[i]
             widths[i] = 0
             if weighted and weighted[0][1] == i:
                 del weighted[0]
@@ -950,7 +995,8 @@ class Columns(
         if size:
             return super().pack(size, focus)
         widths, heights, _ = self.get_column_sizes(size, focus)
-        return (sum(widths) + self.dividechars * max(len(widths) - 1, 0), max(heights))
+        visible = sum(1 for width in widths if width > 0)
+        return (sum(widths) + self.dividechars * max(visible - 1, 0), max(heights))
 
     def render(
         self,
@@ -966,6 +1012,8 @@ class Columns(
             be sized as a fixed widget.
         """
         widths, _, size_args = self.get_column_sizes(size, focus)
+        # a divider separates two visible columns: hidden columns and the end of the row get none
+        last_visible = max((i for i, width in enumerate(widths) if width > 0), default=-1)
 
         data: list[tuple[Canvas, int, bool, int]] = []
         for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
@@ -973,7 +1021,7 @@ class Columns(
             if width <= 0:
                 continue
 
-            if i < len(widths) - 1:
+            if i < last_visible:
                 width += self.dividechars  # noqa: PLW2901
             data.append(
                 (
@@ -1030,6 +1078,8 @@ class Columns(
 
         see :meth:`Widget.move_cursor_coords` for details
 
+        A hidden column, one with a width of 0, is never chosen.
+
         :raises ValueError: the column sizes cannot be computed for *size*, for example *size* is ``()`` and the
             children cannot be sized as a fixed widget.
         """
@@ -1042,7 +1092,7 @@ class Columns(
         x = 0
         for i, (width, (w, _options)) in enumerate(zip(widths, self.contents, strict=False)):
             end: int = x + width
-            if w.selectable():
+            if width > 0 and w.selectable():
                 if not isinstance(col, int):
                     best = i, x, end, w
                     if col == Align.LEFT:
@@ -1183,6 +1233,7 @@ class Columns(
         """
         Pass keypress to the focus column.
 
+        A hidden focus column, one with a width of 0, gets no keys: the key is left unhandled by it.
         Unhandled :kbd:`left` and :kbd:`right` keys may cause a focus change.
         With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
 
@@ -1203,7 +1254,7 @@ class Columns(
         w, _ = self.contents[i]
         if self._command_map[key] not in {Command.UP, Command.DOWN, Command.PAGE_UP, Command.PAGE_DOWN}:
             self.pref_col = None
-        if w.selectable():
+        if widths[i] > 0 and w.selectable():
             # widget kind and size arguments matched separately
             if (processed := w.keypress(size_args[i], key)) is not None:  # type: ignore[arg-type]
                 key = processed
