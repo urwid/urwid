@@ -37,6 +37,45 @@ class IntegerEditNegativeDefaultTest(unittest.TestCase):
                 self.assertEqual(expected, edit.value())
 
 
+class IntegerEditNumericDefaultTest(unittest.TestCase):
+    def test_invalid_bases_are_rejected(self):
+        for base in (-1, 0, 1, 37):
+            for default in (None, "", 42):
+                with self.subTest(base=base, default=default), self.assertRaises(ValueError):
+                    IntegerEdit(default=default, base=base)
+
+    def test_numeric_defaults_preserve_value_in_each_base(self):
+        for base, text in ((2, "101010"), (8, "52"), (10, "42"), (16, "2A"), (36, "16")):
+            for default in (42, Decimal(42)):
+                with self.subTest(base=base, default=default):
+                    edit = IntegerEdit(default=default, base=base)
+                    self.assertEqual(text, edit.edit_text)
+                    self.assertEqual(Decimal(42), edit.value())
+                    self.assertEqual(42, int(edit))
+
+    def test_negative_numeric_defaults_use_the_selected_base(self):
+        for base, text in ((2, "-101010"), (16, "-2A"), (36, "-16")):
+            for default in (-42, Decimal(-42)):
+                with self.subTest(base=base, default=default):
+                    edit = IntegerEdit(default=default, base=base, allow_negative=True)
+                    self.assertEqual(text, edit.edit_text)
+                    self.assertEqual(-42, int(edit))
+
+    def test_string_defaults_stay_radix_literals(self):
+        for default, base, value in (("42", 16, 66), ("0010", 2, 2), ("ff", 16, 255)):
+            with self.subTest(default=default, base=base):
+                edit = IntegerEdit(default=default, base=base)
+                self.assertEqual(default, edit.edit_text)
+                self.assertEqual(value, int(edit))
+
+    def test_zero_numeric_default(self):
+        for base in (2, 8, 10, 16, 36):
+            with self.subTest(base=base):
+                edit = IntegerEdit(default=0, base=base)
+                self.assertEqual("0", edit.edit_text)
+                self.assertEqual(0, int(edit))
+
+
 class FloatEditNoPreservePrecicionTest(unittest.TestCase):
     def test(self):
         # "1" is just an int, and "1." a forced float 1.0 with a trimmed end
