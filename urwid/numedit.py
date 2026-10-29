@@ -159,7 +159,7 @@ class IntegerEdit(NumEdit):
         """Initialize an edit widget restricted to integer values.
 
         :param caption: caption markup
-        :param default: default edit value
+        :param default: numeric initial value, or a string of digits in the selected base
         :param base: the numeric base of the value, from 2 to 36
         :param allow_negative: accept a leading minus sign in string defaults and input
         :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
@@ -215,6 +215,8 @@ class IntegerEdit(NumEdit):
             ...
         ValueError: not an 'integer Decimal' instance
         """
+        if not 2 <= base <= 36:
+            raise ValueError(f"invalid base: {base}; expected a value from 2 to 36")
         self.base = base
         val = ""
         allowed_chars = self.ALLOWED[: self.base]
@@ -235,8 +237,17 @@ class IntegerEdit(NumEdit):
                 # a Decimal instance with no fractional part
                 raise ValueError("not an 'integer Decimal' instance")
 
-            # convert possible int, long or Decimal to str
-            val = str(default)
+            if isinstance(default, str) or base == 10:
+                val = str(default)
+            else:
+                number = int(default)
+                sign = "-" if number < 0 else ""
+                number = abs(number)
+                converted_digits = []
+                while number:
+                    number, remainder = divmod(number, base)
+                    converted_digits.append(self.ALLOWED[remainder])
+                val = sign + ("".join(reversed(converted_digits)) or "0")
 
         super().__init__(
             allowed_chars,
