@@ -950,19 +950,39 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
         raise ScrollableError(f"Not compatible to be wrapped by ScrollBar: {w!r}")
 
+    def _focused_original_geometry(self, size: tuple[int] | tuple[int, int]) -> tuple[tuple[int, int], int]:
+        """Return the size the wrapped widget is rendered at in focus within *size*, and the column it starts at."""
+        ow_size = self._original_widget_size
+        box_size = self._box_size(size, True)
+        if box_size != self._rendered_size:
+            # Not rendered at this size yet: before the first render, or after a resize.
+            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size, True)
+            ow_size = box_size if layout is None else layout.ow_size
+        if self._scrollbar_side == SCROLLBAR_LEFT:
+            return ow_size, box_size[0] - ow_size[0]
+        return ow_size, 0
+
     def keypress(
         self,
         size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Forward a keypress to the wrapped widget, at the size it is rendered at within ``size``."""
-        ow_size = self._original_widget_size
-        box_size = self._box_size(size, True)
-        if box_size != self._rendered_size:
-            # Not rendered at this size yet: a key before the first render, or after a resize.
-            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size)
-            ow_size = box_size if layout is None else layout.ow_size
+        ow_size, _ = self._focused_original_geometry(size)
         return self._original_widget.keypress(ow_size, key)
+
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+        """Return the cursor of the wrapped widget, moved past the scrollbar columns when they are on the left.
+
+        :returns: ``None`` when the wrapped widget has no ``get_cursor_coords`` or no cursor.
+        """
+        if not hasattr(self._original_widget, "get_cursor_coords"):
+            return None
+        ow_size, col_offset = self._focused_original_geometry(size)
+        if (coords := self._original_widget.get_cursor_coords(ow_size)) is None:
+            return None
+        col, row = coords
+        return col + col_offset, row
 
     def mouse_event(
         self,

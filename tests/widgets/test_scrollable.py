@@ -1109,6 +1109,37 @@ class TestScrollBarListBox(unittest.TestCase):
                 self.assertEqual([(edge_ow_col, 0), (edge_ow_col, 0)], seen)
                 self.assertEqual(0, listbox.get_scrollpos())
 
+    def test_get_cursor_coords(self) -> None:
+        """The cursor of the wrapped ListBox is reported where it is drawn, before and after a render."""
+        size = (10, 3)
+        for side, items, expected in (
+            ("right", 5, (3, 0)),
+            ("left", 5, (5, 0)),  # past the 2 scrollbar columns
+            ("right", 1, (3, 0)),
+            ("left", 1, (3, 0)),  # no scrollbar is drawn when the content fits
+        ):
+            with self.subTest(side=side, items=items):
+                listbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Edit("", "abc") for _ in range(items)]))
+                widget = urwid.ScrollBar(listbox, side=side, width=2)
+                self.assertEqual(expected, widget.get_cursor_coords(size))
+                self.assertEqual(expected, widget.render(size, focus=True).cursor)
+                self.assertEqual(expected, widget.get_cursor_coords(size))
+
+    def test_get_cursor_coords_without_cursor(self) -> None:
+        """No cursor is reported when the wrapped widget has none, or has no get_cursor_coords."""
+        for wrapped in (
+            urwid.ListBox([urwid.Text("a")]),
+            urwid.Scrollable(urwid.Edit("", "abc")),  # draws a cursor, but has no get_cursor_coords
+        ):
+            with self.subTest(wrapped=type(wrapped).__name__):
+                self.assertIsNone(urwid.ScrollBar(wrapped).get_cursor_coords((10, 3)))
+
+    def test_check_sizing_in_box_adapter(self) -> None:
+        """A BoxAdapter reports the cursor a ScrollBar draws."""
+        urwid.testing.check_sizing(
+            urwid.BoxAdapter(urwid.ScrollBar(urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Edit("> ", "abc")]))), 3)
+        )
+
     def test_minimal_height(self):
         """If we have only 1 line render height and thumb position in the middle - do not render top."""
         widget = urwid.ScrollBar(
@@ -1265,6 +1296,21 @@ class TestScrollBarFlowSize(unittest.TestCase):
                     urwid.ListBox([urwid.Edit("", "abcd"), urwid.Edit("", "efgh")]), side=side, visible=visible
                 )
                 urwid.testing.check_flow_sizing(widget)
+
+    def test_get_cursor_coords(self) -> None:
+        """The cursor of the Edit below the wrapped Text is reported where a flow render draws it."""
+        for side, visible, expected in (
+            ("right", None, (3, 3)),
+            ("left", None, (3, 3)),  # no scrollbar at a flow size
+            ("left", False, (3, 3)),
+            ("right", True, (3, 4)),  # the Text wraps to one more row next to the scrollbar
+            ("left", True, (4, 4)),
+        ):
+            with self.subTest(side=side, visible=visible):
+                widget = self.make(side=side, visible=visible)
+                widget.render((10,), focus=True)  # moves the ListBox focus to the Edit, the only selectable row
+                self.assertEqual(expected, widget.get_cursor_coords((10,)))
+                self.assertEqual(expected, widget.render((10,), focus=True).cursor)
 
     def test_render_without_scrollbar_over_rows_the_estimate_misses(self) -> None:
         """A flow render draws no scrollbar, or a full thumb when it is visible, whatever the item count says."""
