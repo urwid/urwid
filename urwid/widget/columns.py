@@ -363,14 +363,14 @@ class Columns(
             if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", ColumnsWarning, stacklevel=3)
 
-        self.dividechars = dividechars
+        self._dividechars = dividechars
 
         if self.contents and focus_column is not None:
             if not isinstance(focus_column, int):
                 raise ValueError(f"Widget not found in Columns contents: {focus_column!r}")
             self.focus_position = focus_column
         self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
-        self.min_width = min_width
+        self._min_width = min_width
         self._cache_maxcol: int | None = None
         self.select_navigation = select_navigation
         # connected last, so that filling the contents during construction sends no signal
@@ -609,6 +609,26 @@ class Columns(
         """Drop the cached column widths and the cached canvases."""
         self._cache_maxcol = None
         super()._invalidate()
+
+    @property
+    def dividechars(self) -> int:
+        """Number of blank characters between two visible columns."""
+        return self._dividechars
+
+    @dividechars.setter
+    def dividechars(self, dividechars: int) -> None:
+        self._dividechars = dividechars
+        self._invalidate()
+
+    @property
+    def min_width(self) -> int:
+        """Minimum width of a weighted column."""
+        return self._min_width
+
+    @min_width.setter
+    def min_width(self, min_width: int) -> None:
+        self._min_width = min_width
+        self._invalidate()
 
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
         """Yield the selectable positions as the base class does, skipping pack columns the last layout found 0 wide.

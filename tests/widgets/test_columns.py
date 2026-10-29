@@ -634,6 +634,21 @@ class ColumnsTest(unittest.TestCase):
             self.assertTrue(columns.focus_first_selectable())
             self.assertEqual(0, columns.focus_position)
 
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting ``dividechars`` or ``min_width`` lays the columns out again and redraws them."""
+        with self.subTest("dividechars"):
+            widget = urwid.Columns([(4, urwid.Text("aaaa")), (4, urwid.Text("cccc"))])
+            self.assertEqual([b"aaaacccc"], widget.render((8,)).text)
+            widget.dividechars = 1
+            self.assertEqual([4], widget.column_widths((8,)))
+            self.assertEqual([b"aaaa    "], widget.render((8,)).text)
+
+        with self.subTest("min_width"):
+            widget = urwid.Columns([urwid.Text("a"), urwid.Text("b"), urwid.Text("c")])
+            self.assertEqual([1, 1], widget.column_widths((2,)))
+            widget.min_width = 2
+            self.assertEqual([2], widget.column_widths((2,)))
+
     def test_select_reset_skips_given_zero(self) -> None:
         """The reset past the last column and ``focus_first_selectable`` skip a hidden first column."""
         columns = urwid.Columns(
