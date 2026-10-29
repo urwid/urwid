@@ -1366,7 +1366,9 @@ class Screen(BaseScreen, RealTerminal):
 
         for row in canvas.content():
             y += 1
-            drawn_row = [(self._attr_to_escape(a), cs, run) for a, cs, run in row]
+            drawn_row: list[tuple[str, Literal["0", "U"] | None, bytes]] = [
+                (self._attr_to_escape(a), cs, run) for a, cs, run in row
+            ]
             sb.append(row)
             drawn_rows.append(drawn_row)
             if osb and y < len(osb) and osb[y] == drawn_row:

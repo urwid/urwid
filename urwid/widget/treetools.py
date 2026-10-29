@@ -53,21 +53,21 @@ if typing.TYPE_CHECKING:
 __all__ = ("ParentNode", "TreeListBox", "TreeNode", "TreeWalker", "TreeWidget", "TreeWidgetError")
 
 _T = typing.TypeVar("_T")
-_Node = typing.TypeVar("_Node", bound="TreeNode[typing.Any] | ParentNode[typing.Any]")
+_Node_co = typing.TypeVar("_Node_co", bound="TreeNode[typing.Any] | ParentNode[typing.Any]", covariant=True)
 
 
 class TreeWidgetError(RuntimeError):
     """Error raised for invalid tree widget usage."""
 
 
-class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
+class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
     unexpanded_icon: Widget = SelectableIcon("+", 0)
     expanded_icon: Widget = SelectableIcon("-", 0)
 
-    def __init__(self, node: _Node) -> None:
+    def __init__(self, node: _Node_co) -> None:
         """Build the widget representing `node`, expanded as :meth:`is_initially_expanded` says.
 
         .. deprecated:: 4.0.4
@@ -168,7 +168,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node]):
         """Create the inner widget displaying this node's text."""
         return Text(self.get_display_text())
 
-    def get_node(self) -> _Node:
+    def get_node(self) -> _Node_co:
         """Return the TreeNode this widget represents."""
         return self._node
 

@@ -376,6 +376,7 @@ class Columns(
         self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
 
     def _repr_words(self) -> list[str]:
+        """Return the base repr words followed by the number of items in the contents."""
         if len(self.contents) > 1:
             contents_string = f"({len(self.contents)} items)"
         elif self.contents:
@@ -385,6 +386,10 @@ class Columns(
         return [*super()._repr_words(), contents_string]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
+        """Return the constructor arguments that differ from their defaults, for the repr.
+
+        The focus position is included only when there is more than one item.
+        """
         attrs = {
             **super()._repr_attrs(),
             "dividechars": self.dividechars,
@@ -502,7 +507,7 @@ class Columns(
     @contents.setter
     def contents(
         self,
-        c: Sequence[
+        new_contents: Sequence[
             tuple[
                 AbstractFlowWidget | AbstractFixedWidget,
                 tuple[Literal[WHSettings.PACK], None, bool],
@@ -513,7 +518,12 @@ class Columns(
             ]
         ],
     ) -> None:
-        self._contents[:] = c
+        """Replace the contents with *new_contents*.
+
+        :param new_contents: `(widget, options)` tuples, with options made by the :meth:`options` method
+        :raises ColumnsError: an item is not a valid ``(widget, options)`` pair.
+        """
+        self._contents[:] = new_contents
 
     @typing.overload
     @staticmethod
@@ -593,6 +603,7 @@ class Columns(
         raise ColumnsError(f"invalid combination: width_type={width_type!r}, width_amount={width_amount!r}")
 
     def _invalidate(self) -> None:
+        """Drop the cached column widths and the cached canvases."""
         self._cache_maxcol = None
         super()._invalidate()
 

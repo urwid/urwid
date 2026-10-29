@@ -683,10 +683,11 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         raise IndexError(f"No focus_position, {self!r} is not a container widget")
 
     @focus_position.setter
-    def focus_position(self, val: typing.Any) -> None:
+    def focus_position(self, position: typing.Any) -> None:
         """
         Reject setting a focus position: this widget is not a container widget.
 
+        :param position: the focus position that cannot be set
         :raises IndexError: this widget is not a container widget.
         """
         raise IndexError(f"No focus_position, {self!r} is not a container widget")

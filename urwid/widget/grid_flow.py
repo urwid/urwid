@@ -139,6 +139,7 @@ class GridFlow(
         super().__init__(self.generate_display_widget((maxcol,)))
 
     def _repr_words(self) -> list[str]:
+        """Return the base repr words followed by the number of items in the contents."""
         if len(self.contents) > 1:
             contents_string = f"({len(self.contents)} items)"
         elif self.contents:
@@ -148,6 +149,10 @@ class GridFlow(
         return [*super()._repr_words(), contents_string]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
+        """Return the constructor arguments that differ from their defaults, for the repr.
+
+        The focus position is included only when there is more than one item.
+        """
         attrs = {
             **super()._repr_attrs(),
             "cell_width": self.cell_width,
@@ -174,6 +179,7 @@ class GridFlow(
         return len(self._contents)
 
     def _invalidate(self) -> None:
+        """Drop the cached display widget and the cached canvases."""
         self._cache_maxcol = None
         super()._invalidate()
 
@@ -210,6 +216,11 @@ class GridFlow(
 
     @cell_width.setter
     def cell_width(self, width: int) -> None:
+        """Set every cell to *width* screen columns, keeping the focus position.
+
+        :param width: the new width of each cell
+        :raises IndexError: the GridFlow is empty.
+        """
         focus_position = self.focus_position
         self.contents = [(w, (WHSettings.GIVEN, width)) for (w, options) in self.contents]
         self.focus_position = focus_position
@@ -231,8 +242,13 @@ class GridFlow(
         return self._contents
 
     @contents.setter
-    def contents(self, c: Sequence[GridFlowContentsItem]) -> None:
-        self._contents[:] = c
+    def contents(self, new_contents: Sequence[GridFlowContentsItem]) -> None:
+        """Replace the contents with *new_contents*.
+
+        :param new_contents: `(widget, options)` tuples, with options made by the :meth:`options` method
+        :raises GridFlowError: an item is not a valid ``(widget, options)`` pair.
+        """
+        self._contents[:] = new_contents
 
     def options(
         self,
@@ -290,6 +306,14 @@ class GridFlow(
         self.contents.focus = position
 
     def _get_maxcol(self, size: tuple[int] | tuple[()]) -> int:
+        """Return the number of screen columns to lay the cells out in.
+
+        A flow size gives the width directly, and a :exc:`GridFlowWarning` is issued when it is narrower than one cell.
+        A fixed size uses the width of all cells in one row.
+
+        :param size: ``(maxcol,)`` for a flow size, ``()`` for a fixed size
+        :returns: the width in screen columns, 0 for an empty GridFlow with a fixed size
+        """
         if size:
             (maxcol,) = size
             if self and maxcol < self.cell_width:
