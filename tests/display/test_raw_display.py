@@ -579,6 +579,10 @@ class TestRawDisplay(unittest.TestCase):
             "linux": linux,
             "linux-16color": linux,
             "linux.utf8": linux,
+            # versioned terminfo names of the Linux console
+            "linux2.6.26": linux,
+            "linux3.0": linux,
+            "linuxfoo": osc4,
         }.items():
             with self.subTest(term=term):
                 s = urwid.display.raw.Screen()
@@ -601,13 +605,17 @@ class TestRawDisplay(unittest.TestCase):
     def test_modify_terminal_palette_rejects_unrepresentable_entries(self) -> None:
         """An entry the terminal's sequence cannot carry raises before anything is written.
 
-        A None component is rejected by every terminal. The Linux console sequence has one hex digit
+        A value that is not an integer is rejected by every terminal. The Linux console sequence has one hex digit
         for the index and two per component, so a wider value would end the sequence early.
         """
         for term, entry, error in (
             ("xterm-256color", (1, None, 0, 0), TypeError),
+            ("xterm-256color", (1, 0.5, 0, 0), TypeError),
+            ("xterm-256color", ("1", 0, 0, 0), TypeError),
             ("fbterm", (1, 0, None, 0), TypeError),
+            ("fbterm", (1, 0, "0", 0), TypeError),
             ("linux", (1, 0, 0, None), TypeError),
+            ("linux", (1.0, 0, 0, 0), TypeError),
             ("linux", (256, 0, 0, 0), ValueError),
             ("linux", (-1, 0, 0, 0), ValueError),
             ("linux", (1, 256, 0, 0), ValueError),
@@ -900,6 +908,8 @@ class TestTerminalProperties(unittest.TestCase):
             ("xterm-direct", 16777216, True, False, False, True),
             ("linux", 16, True, True, True, True),
             ("linux-16color", 16, True, True, True, True),
+            ("linux2.6", 16, True, True, True, True),
+            ("linux3.0", 16, True, True, True, True),
             ("gnome-256color", 256, True, False, False, True),
             ("konsole", 16, True, False, False, True),
             ("konsole-direct", 16777216, True, False, False, True),

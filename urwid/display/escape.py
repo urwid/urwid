@@ -76,7 +76,8 @@ _ORD_0: typing.Final = ord("0")
 _ORD_9: typing.Final = ord("9")
 # longest "Pb;Px;Py" body of an SGR mouse report accepted before its "M"/"m" terminator
 _SGR_MOUSE_MAX_LEN: typing.Final = 32
-# longest parameter body of a key report or a terminal reply accepted before its final byte
+# longest body of a control sequence accepted before its final byte:
+# the parameters of a key report or a terminal reply, or the parameter and intermediate bytes of an unrecognised one
 _CSI_PARAMETERS_MAX_LEN: typing.Final = 64
 
 ###################
@@ -700,10 +701,13 @@ class KeyqueueTrie:
             return None
         if keys[0] != ord("["):
             return None
+        # "[", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "R": a longer run is not a report
+        limit = _CSI_PARAMETERS_MAX_LEN + 2
+        codes = keys[:limit]
         # read y value
         y = 0
         i = 1
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord(";"):
                 if not y:
@@ -714,13 +718,13 @@ class KeyqueueTrie:
             if not y and k == _ORD_0:
                 return None
             y = y * 10 + k - _ORD_0
-        if not keys[i:]:
-            if more_available:
+        if not codes[i:]:
+            if more_available and len(keys) < limit:
                 raise MoreInputRequired
             return None
         # read x value
         x = 0
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord("R"):
                 if not x:
@@ -731,7 +735,7 @@ class KeyqueueTrie:
             if not x and k == _ORD_0:
                 return None
             x = x * 10 + k - _ORD_0
-        if not keys[i:] and more_available:
+        if not codes[i:] and more_available and len(keys) < limit:
             raise MoreInputRequired
         return None
 
@@ -1001,6 +1005,30 @@ if IS_WINDOWS:
     _keyconv[358] = "end"
 
 
+def _control_sequence_length(codes: list[int], more_available: bool) -> int | None:
+    """Return the length of the ECMA-48 control sequence body at the start of *codes*.
+
+    :param codes: the codes following ``ESC [``.
+    :param more_available: if True then raise MoreInputRequired when the codes end before the final byte.
+    :returns: the number of codes up to and including the final byte, or None when the codes do not start with
+        at least one parameter or intermediate byte and a final byte, in that order,
+        within ``_CSI_PARAMETERS_MAX_LEN`` bytes before the final byte.
+        A final byte straight after ``ESC [`` is not taken, so that :kbd:`Alt+[` followed by a key stays two keys.
+    :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+    """
+    intermediate = False
+    for pos, code in enumerate(codes[: _CSI_PARAMETERS_MAX_LEN + 1]):
+        if 0x40 <= code <= 0x7E:
+            return pos + 1 if pos else None
+        if 0x20 <= code <= 0x2F:
+            intermediate = True
+        elif intermediate or not 0x30 <= code <= 0x3F:
+            return None
+    if more_available and len(codes) <= _CSI_PARAMETERS_MAX_LEN:
+        raise MoreInputRequired
+    return None
+
+
 def process_keyqueue(
     codes: list[int],
     more_available: bool,
@@ -1095,6 +1123,10 @@ def process_keyqueue(
         decoded, remaining_codes = result
         return [decoded], remaining_codes
 
+    # An unrecognised control sequence is one key: decoding it byte by byte would type its body as text.
+    if codes[1:2] == [ord("[")] and (length := _control_sequence_length(codes[2:], more_available)) is not None:
+        return [f"<csi {bytes(codes[2 : 2 + length]).decode('ascii')}>"], codes[2 + length :]
+
     if codes[1:3] == [27, 27]:
         # With a third ESC following, the second one cannot start a sequence the first one prefixes as meta,
         # so decode the first one alone rather than recursing once per ESC in an arbitrarily long run.
@@ -1103,8 +1135,9 @@ def process_keyqueue(
     if codes[1:]:
         # Meta keys -- ESC+Key form
         run, remaining_codes = process_keyqueue(codes[1:], more_available, keyboard_protocol=keyboard_protocol)
-        # A mouse event or a terminal report (cursor position, DECRPM, a query reply) cannot take a meta prefix.
-        if not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0]:
+        # A mouse event or a terminal report (cursor position, DECRPM, a query reply) cannot take a meta prefix,
+        # and an unrecognised control sequence may be such a report.
+        if not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0] or run[0].startswith("<csi "):
             return ["esc", *run], remaining_codes
         return [f"meta {run[0]}", *run[1:]], remaining_codes
 

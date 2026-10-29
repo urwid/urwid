@@ -90,6 +90,40 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         self.assertListEqual(["meta ["], actual)
         self.assertListEqual([ord("1")], rest)
 
+    def test_unrecognised_control_sequence(self):
+        """An unrecognised control sequence is consumed whole instead of being decoded as meta [ and characters."""
+        for sequence, key in (
+            (b"\x1b[1;2X", "<csi 1;2X>"),
+            (b"\x1b[?1;2z", "<csi ?1;2z>"),
+            (b"\x1b[1;5I", "<csi 1;5I>"),
+            (b"\x1b[99~", "<csi 99~>"),
+            (b"\x1b[>1 q", "<csi >1 q>"),
+            (b"\x1b[" + b">" * 64 + b"q", f"<csi {'>' * 64}q>"),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([*sequence, ord("x")], more_available=False)
+                self.assertListEqual([key], actual)
+                self.assertListEqual([ord("x")], rest)
+                for length in range(3, len(sequence)):
+                    with self.assertRaises(escape.MoreInputRequired):
+                        escape.process_keyqueue(list(sequence[:length]), more_available=True)
+
+    def test_unrecognised_control_sequence_after_escape(self):
+        """ESC before an unrecognised control sequence stays a key of its own, as the sequence may be a report."""
+        self.assertListEqual(["esc", "<csi 99~>"], self._decode_all([27, *b"\x1b[99~"]))
+        self.assertListEqual(["esc", "esc", "<csi 99~>"], self._decode_all([27, 27, *b"\x1b[99~"]))
+
+    def test_not_a_control_sequence(self):
+        """Codes after ESC [ that do not form a control sequence keep decoding as meta [ and separate keys."""
+        for codes, expected in (
+            ([*b"\x1b[1 2x"], ["meta [", "1", " ", "2", "x"]),
+            ([*b"\x1b[1", 0xC3, 0xA9], ["meta [", "1", "\xe9"]),
+            ([*b"\x1b[x"], ["meta [", "x"]),
+            ([*b"\x1b[", *b"1" * 65, *b"~"], ["meta [", *"1" * 65, "~"]),
+        ):
+            with self.subTest(codes=codes), util.set_temporary_encoding("utf-8"):
+                self.assertListEqual(expected, self._decode_all(codes))
+
     def test_mouse_press(self):
         codes = [27, 91, 77, 32, 41, 48]
         expected = [("mouse press", 1.0, 8, 15)]
@@ -275,12 +309,18 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
 
     def test_sgrmouse_malformed_is_not_a_report(self):
         """Input after ``ESC [ <`` that is not ``Pb;Px;Py`` decodes as keys instead of raising."""
-        for body in (b"hello M", b"1;2M", b";;M", b"1;2;3;4M", b"1;x;3M"):
+        for body, key, remaining in (
+            (b"hello M", "<csi <h>", b"ello M"),
+            (b"1;2M", "<csi <1;2M>", b""),
+            (b";;M", "<csi <;;M>", b""),
+            (b"1;2;3;4M", "<csi <1;2;3;4M>", b""),
+            (b"1;x;3M", "<csi <1;x>", b";3M"),
+        ):
             with self.subTest(body=body):
                 self.assertIsNone(escape.input_trie.read_sgrmouse_info(list(body), more_available=True))
                 actual, rest = escape.process_keyqueue([27, *b"[<", *body], more_available=False)
-                self.assertListEqual(["meta ["], actual)
-                self.assertListEqual(list(b"<" + body), rest)
+                self.assertListEqual([key], actual)
+                self.assertListEqual(list(remaining), rest)
 
     def test_sgrmouse_overlong_body_is_not_buffered(self):
         """A digit run far longer than any report is rejected rather than held waiting for a terminator."""
@@ -575,6 +615,18 @@ class KeyqueueTrieTest(unittest.TestCase):
         codes = [ord("["), ord("5"), ord(";"), ord("3"), ord("R"), ord("z")]
         result = escape.input_trie.read_cursor_position(codes, more_available=False)
         self.assertEqual((("cursor position", 2, 4), [ord("z")]), result)
+
+    def test_read_cursor_position_length_limit(self):
+        """A report body is accepted up to 64 bytes, and a longer digit run is not held waiting for more input."""
+        report = [*b"[", *b"1" * 31, *b";", *b"2" * 32, *b"R"]
+        result = escape.input_trie.read_cursor_position(report, more_available=True)
+        self.assertEqual((("cursor position", int("2" * 32) - 1, int("1" * 31) - 1), []), result)
+        for codes in ([*b"[", *b"1" * 65], [*b"[1;", *b"2" * 63]):
+            with self.subTest(length=len(codes)):
+                self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=True))
+        actual, rest = escape.process_keyqueue([27, *b"[", *b"1" * 200], more_available=True)
+        self.assertListEqual(["meta ["], actual)
+        self.assertEqual(200, len(rest))
 
 
 class MouseBitTest(unittest.TestCase):
