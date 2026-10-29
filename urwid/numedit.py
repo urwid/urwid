@@ -24,7 +24,9 @@
 from __future__ import annotations
 
 import decimal
+import operator
 import re
+import sys
 import typing
 
 from urwid import Edit, _deprecation
@@ -161,9 +163,12 @@ class IntegerEdit(NumEdit):
         :param caption: caption markup
         :param default: numeric initial value, or a string of digits in the selected base
         :param base: the numeric base of the value, from 2 to 36
-        :param allow_negative: accept a leading minus sign in string defaults and input
-        :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
-            consist of digits valid for *base*.
+        :param allow_negative: accept a negative default and a leading minus sign in input
+        :raises TypeError: *base* is not an integer.
+        :raises ValueError: *base* is outside 2 to 36.
+            *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, does not consist of digits
+            valid for *base*, is negative without *allow_negative*, or has more digits than
+            :func:`sys.get_int_max_str_digits` allows.
 
         >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
@@ -209,45 +214,60 @@ class IntegerEdit(NumEdit):
         >>> e, size = IntegerEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
-        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
+        ValueError: default: Only 'str', 'int' or Decimal input allowed
         >>> e, size = IntegerEdit("", decimal.Decimal("10.0")), (10,)
         Traceback (most recent call last):
             ...
         ValueError: not an 'integer Decimal' instance
         """
+        base = operator.index(base)
         if not 2 <= base <= 36:
             raise ValueError(f"invalid base: {base}; expected a value from 2 to 36")
         self.base = base
         val = ""
         allowed_chars = self.ALLOWED[: self.base]
         if default is not None:
-            if not isinstance(default, (int, str, decimal.Decimal)):
+            if isinstance(default, bool) or not isinstance(default, (int, str, decimal.Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
-            # convert to a long first, this will raise a ValueError
-            # in case a float is passed or some other error
-            if isinstance(default, str) and len(default):
-                # check if it is a valid initial value
-                validation_re = f"^[{allowed_chars}]+$"
+            if isinstance(default, str):
                 digits = default[1:] if allow_negative and default.startswith("-") else default
-                if not re.match(validation_re, digits, re.IGNORECASE):
+                if default and not re.fullmatch(f"[{allowed_chars}]+", digits, re.IGNORECASE):
+                    raise ValueError(f"invalid value: {default} for base {base}")
+                val = default
+
+            else:
+                if isinstance(default, decimal.Decimal):
+                    # NaN and infinity have a str exponent; a negative exponent is a fractional part, even "10.0"
+                    exponent = default.as_tuple().exponent
+                    if not isinstance(exponent, int) or exponent < 0:
+                        raise ValueError("not an 'integer Decimal' instance")
+                    # int() would build the whole value of a huge exponent before str() below can refuse it
+                    max_digits = sys.get_int_max_str_digits()
+                    # adjusted() of a zero is its exponent, so Decimal("0E+5000") is skipped as the zero it is
+                    if max_digits and default and default.adjusted() >= max_digits:
+                        raise ValueError(f"default has more than {max_digits} digits")
+
+                number = int(default)
+                if number < 0 and not allow_negative:
                     raise ValueError(f"invalid value: {default} for base {base}")
 
-            elif isinstance(default, decimal.Decimal) and default.as_tuple()[2] != 0:
-                # a Decimal instance with no fractional part
-                raise ValueError("not an 'integer Decimal' instance")
+                # str() refuses a value over sys.get_int_max_str_digits() at once, so the loop below stays short
+                decimal_text = str(number)
+                if base == 10:
+                    val = decimal_text
+                else:
+                    sign = "-" if number < 0 else ""
+                    number = abs(number)
+                    converted_digits = []
+                    while number:
+                        number, remainder = divmod(number, base)
+                        converted_digits.append(self.ALLOWED[remainder])
+                    val = sign + ("".join(reversed(converted_digits)) or "0")
 
-            if isinstance(default, str) or base == 10:
-                val = str(default)
-            else:
-                number = int(default)
-                sign = "-" if number < 0 else ""
-                number = abs(number)
-                converted_digits = []
-                while number:
-                    number, remainder = divmod(number, base)
-                    converted_digits.append(self.ALLOWED[remainder])
-                val = sign + ("".join(reversed(converted_digits)) or "0")
+            if val:
+                # fail here rather than in value(): int() refuses digit strings over sys.get_int_max_str_digits()
+                int(val, base)
 
         super().__init__(
             allowed_chars,
@@ -360,7 +380,7 @@ class FloatEdit(NumEdit):
         >>> e, size = FloatEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
-        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
+        ValueError: default: Only 'str', 'int' or Decimal input allowed
         """
         self.significance: decimal.Decimal | None = None
         self._decimal_separator = decimal_separator

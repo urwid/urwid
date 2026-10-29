@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import unittest
 from decimal import Decimal
 from itertools import product
@@ -69,11 +70,57 @@ class IntegerEditNumericDefaultTest(unittest.TestCase):
                 self.assertEqual(value, int(edit))
 
     def test_zero_numeric_default(self):
-        for base in (2, 8, 10, 16, 36):
-            with self.subTest(base=base):
-                edit = IntegerEdit(default=0, base=base)
+        zeros = (0, Decimal(0), Decimal("-0"), Decimal("0E+5000"))
+        for base, default, allow_negative in product((2, 8, 10, 16, 36), zeros, (False, True)):
+            with self.subTest(base=base, default=default, allow_negative=allow_negative):
+                edit = IntegerEdit(default=default, base=base, allow_negative=allow_negative)
                 self.assertEqual("0", edit.edit_text)
                 self.assertEqual(0, int(edit))
+
+    def test_non_integer_bases_are_rejected(self):
+        for base in (16.0, "16", Decimal(16)):
+            with self.subTest(base=base), self.assertRaises(TypeError):
+                IntegerEdit(default=42, base=base)
+
+    def test_bool_defaults_are_rejected(self):
+        for default, base in product((True, False), (2, 10, 16)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base)
+
+    def test_negative_numeric_defaults_require_opt_in(self):
+        for default, base in product((-42, Decimal(-42)), (2, 10, 16)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base)
+
+    def test_integral_decimal_with_positive_exponent(self):
+        for base, text in ((10, "100"), (16, "64")):
+            with self.subTest(base=base):
+                edit = IntegerEdit(default=Decimal("1E+2"), base=base)
+                self.assertEqual(text, edit.edit_text)
+                self.assertEqual(100, int(edit))
+
+    def test_non_integral_decimals_are_rejected(self):
+        for default, base in product(("10.0", "0.5", "NaN", "sNaN", "Infinity", "-Infinity"), (10, 16)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=Decimal(default), base=base, allow_negative=True)
+
+    def test_string_defaults_with_trailing_newline_are_rejected(self):
+        for default, base in (("42\n", 10), ("ff\n", 16), ("-42\n", 10)):
+            with self.subTest(default=default, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base, allow_negative=True)
+
+    @unittest.skipUnless(sys.get_int_max_str_digits(), "the integer string conversion length limit is disabled")
+    def test_defaults_over_the_digit_limit_are_rejected(self):
+        limit = sys.get_int_max_str_digits()
+        for default, base in (
+            (10**limit, 10),
+            (10**limit, 2),
+            (Decimal(f"1E+{limit}"), 16),
+            (3**limit, 3),
+            ("Z" * (limit + 1), 36),
+        ):
+            with self.subTest(default=type(default).__name__, base=base), self.assertRaises(ValueError):
+                IntegerEdit(default=default, base=base)
 
 
 class FloatEditNoPreservePrecicionTest(unittest.TestCase):
