@@ -289,7 +289,9 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             canv.pad_trim_top_bottom(0, fill_height)
 
         if canv_cols <= maxcol and canv_rows <= maxrow:
-            # Canvas is small enough to fit without trimming
+            # Canvas is small enough to fit without trimming.
+            # A scroll key pressed meanwhile had nothing to scroll, so it must not move the view once the canvas grows.
+            self._scroll_action = None
             return canv
 
         self._adjust_trim_top(canv, size)
@@ -1066,16 +1068,14 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         if not on_scrollbar and hasattr(ow, "mouse_event"):
             handled = ow.mouse_event(ow_size, event, button, ow_col, row, focus)
 
-        if not handled and supports_scroll:
-            if button == 4:  # scroll wheel up
-                pos = ow.get_scrollpos(ow_size)
-                newpos = max(pos - 1, 0)
+        if not handled and supports_scroll and button in {4, 5}:  # scroll wheel up, down
+            pos = ow.get_scrollpos(ow_size)
+            posmax = ow.rows_max(ow_size) - ow_size[1]
+            # Content that fits keeps its position, as with the scroll keys, and the wheel stops at the last row.
+            if posmax > 0:
+                newpos = max(pos - 1, 0) if button == 4 else min(pos + 1, posmax)
                 ow.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
-                return True
-            if button == 5:  # scroll wheel down
-                pos = ow.get_scrollpos(ow_size)
-                ow.set_scrollpos(pos + 1)  # type: ignore[attr-defined]  # gated
-                return True
+            return True
 
         return handled
 
