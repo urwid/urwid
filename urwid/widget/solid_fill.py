@@ -5,7 +5,7 @@ from __future__ import annotations
 from urwid.canvas import SolidCanvas
 
 from .constants import SHADE_SYMBOLS, Sizing
-from .widget import Widget
+from .widget import Widget, _InvalidatingAttribute
 
 
 class SolidFill(Widget):
@@ -16,6 +16,9 @@ class SolidFill(Widget):
     _sizing = frozenset([Sizing.BOX])
 
     Symbols = SHADE_SYMBOLS
+
+    #: Character the area is filled with.
+    fill_char = _InvalidatingAttribute[str]()
 
     def __init__(self, fill_char: str = " ") -> None:
         """

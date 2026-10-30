@@ -8,8 +8,9 @@ import typing
 import urwid
 
 if typing.TYPE_CHECKING:
+    import unittest
     import weakref
-    from collections.abc import Collection
+    from collections.abc import Callable, Collection
 
 
 class SelectableText(urwid.Text):
@@ -68,3 +69,31 @@ class TtyRefusingSelector(selectors.SelectSelector):
     def register(self, fileobj: typing.Any, events: int, data: typing.Any = None) -> selectors.SelectorKey:
         """Refuse *fileobj* with ``EINVAL``."""
         raise OSError(errno.EINVAL, "Invalid argument")
+
+
+def assert_attribute_redraws(
+    test: unittest.TestCase,
+    make: Callable[..., urwid.Widget],
+    size: tuple[int] | tuple[int, int],
+    name: str,
+    value: typing.Any,
+) -> None:
+    """Assert that setting attribute *name* of a rendered widget redraws it as one built with that value.
+
+    :param make: builds the widget; it is called with no arguments, and with ``name=value``.
+    :param size: size to render at; with one dimension, ``rows()`` is compared as well.
+    """
+    widget = make()
+    # The canvas cache holds canvases weakly: keep the old one alive, as a screen showing it does.
+    old_canvas = widget.render(size)
+    if len(size) == 1:
+        widget.rows(size)
+    setattr(widget, name, value)
+    expected = make(**{name: value})
+    expected_text = expected.render(size).text
+    test.assertNotEqual(old_canvas.text, expected_text, f"{name}={value!r} does not change the canvas")
+    test.assertEqual(expected_text, widget.render(size).text)
+    # Pickles and copies carry the instance state: it keeps the attribute under its own name across releases.
+    test.assertEqual(value, vars(widget)[name])
+    if len(size) == 1:
+        test.assertEqual(expected.rows(size), widget.rows(size))

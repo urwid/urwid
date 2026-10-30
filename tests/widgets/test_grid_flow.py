@@ -1,13 +1,25 @@
 from __future__ import annotations
 
+import typing
 import unittest
 from unittest import mock
 
 import urwid
-from tests.util import SelectableText
+from tests.util import SelectableText, assert_attribute_redraws
 
 
 class GridFlowTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``GridFlow`` redraws it and updates its rows."""
+
+        def make(**kwargs: typing.Any) -> urwid.GridFlow:
+            options = {"cell_width": 1, "h_sep": 1, "v_sep": 0, "align": "left", **kwargs}
+            return urwid.GridFlow([urwid.Text(char) for char in "abc"], **options)
+
+        for name, value in (("h_sep", 2), ("v_sep", 1), ("align", "right")):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (4,), name, value)
+
     def test_fixed(self):
         grid = urwid.GridFlow(
             (urwid.Button(tag, align=urwid.CENTER) for tag in ("OK", "Cancel", "Help")),

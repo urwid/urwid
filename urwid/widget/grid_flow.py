@@ -20,7 +20,7 @@ from .divider import Divider
 from .monitored_list import MonitoredFocusList
 from .padding import Padding
 from .pile import Pile
-from .widget import AbstractFlowWidget, WidgetError, WidgetWarning, WidgetWrap
+from .widget import AbstractFlowWidget, WidgetError, WidgetWarning, WidgetWrap, _InvalidatingAttribute
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
@@ -53,6 +53,15 @@ class GridFlow(
     """
 
     signals: typing.ClassVar[list[str]] = ["focus changed"]
+
+    #: Number of blank columns between two cells.
+    h_sep = _InvalidatingAttribute[int]()
+    #: Number of blank rows between two rows of cells.
+    v_sep = _InvalidatingAttribute[int]()
+    #: Alignment of each row of cells.
+    align = _InvalidatingAttribute[
+        Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int]
+    ]()
 
     def sizing(self) -> frozenset[Sizing]:
         """Widget sizing.

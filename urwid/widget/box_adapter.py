@@ -7,6 +7,7 @@ import typing
 from urwid.canvas import CompositeCanvas
 
 from .constants import Sizing
+from .widget import _InvalidatingAttribute
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
@@ -24,6 +25,9 @@ class BoxAdapter(WidgetDecoration[WrappedWidget]):
     """Adapter for using a box widget where a flow widget would usually go."""
 
     no_cache: typing.ClassVar[list[str]] = ["rows"]
+
+    #: Number of rows given to the box widget.
+    height = _InvalidatingAttribute[int]()
 
     def __init__(self, box_widget: WrappedWidget, height: int) -> None:
         """

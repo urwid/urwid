@@ -8,7 +8,7 @@ import typing
 from urwid.canvas import CompositeCanvas, SolidCanvas
 
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
-from .widget import Widget
+from .widget import Widget, _InvalidatingAttribute
 
 
 class DividerSymbols(enum.StrEnum):
@@ -40,6 +40,13 @@ class Divider(Widget):
     _sizing = frozenset([Sizing.FLOW])
 
     ignore_focus = True
+
+    #: Character repeated across the line.
+    div_char = _InvalidatingAttribute[str | bytes]()
+    #: Number of blank lines above the line.
+    top = _InvalidatingAttribute[int]()
+    #: Number of blank lines below the line.
+    bottom = _InvalidatingAttribute[int]()
 
     def __init__(
         self,

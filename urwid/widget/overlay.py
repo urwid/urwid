@@ -29,7 +29,7 @@ from .constants import (
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin
 from .filler import calculate_top_bottom_filler
 from .padding import calculate_left_right_padding
-from .widget import AbstractBoxWidget, AbstractWidget, Widget, WidgetError, WidgetWarning
+from .widget import AbstractBoxWidget, AbstractWidget, Widget, WidgetError, WidgetWarning, _InvalidatingAttribute
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
@@ -117,6 +117,19 @@ class Overlay(
         bottom=0,
     )
 
+    #: Number of columns of padding on the left of the top widget.
+    left = _InvalidatingAttribute[int]()
+    #: Number of columns of padding on the right of the top widget.
+    right = _InvalidatingAttribute[int]()
+    #: Number of rows of padding above the top widget.
+    top = _InvalidatingAttribute[int]()
+    #: Number of rows of padding below the top widget.
+    bottom = _InvalidatingAttribute[int]()
+    #: Minimum width of the top widget for a relative width, or ``None`` for no minimum.
+    min_width = _InvalidatingAttribute[int | None]()
+    #: Minimum height of the top widget for a relative height, or ``None`` for no minimum.
+    min_height = _InvalidatingAttribute[int | None]()
+
     def __init__(
         self,
         top_w: TopWidget,
@@ -183,8 +196,8 @@ class Overlay(
 
         self.top_w = top_w
         self.bottom_w = bottom_w
-        self.min_width: int | None = None
-        self.min_height: int | None = None
+        self.min_width = None
+        self.min_height = None
         self.left = 0
         self.right = 0
         self.top = 0

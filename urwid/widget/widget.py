@@ -38,6 +38,7 @@ from .constants import Sizing
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable
+    from typing import Self
 
 
 __all__ = (
@@ -813,6 +814,55 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         may render the cached canvas instead of creating a new one.
         """
         raise NotImplementedError
+
+
+_AttributeValue = typing.TypeVar("_AttributeValue")
+
+
+class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
+    """Widget attribute whose assignment invalidates the widget's cached canvases and rows.
+
+    The value is stored in the instance dictionary under the attribute's own name,
+    so the instance state, which pickles and copies carry, is the one a plain attribute has.
+    """
+
+    __slots__ = ("__weakref__", "_name")
+
+    def __init__(self) -> None:
+        self._name: str | None = None
+
+    def __set_name__(self, owner: type[AbstractWidget], name: str) -> None:
+        self._name = name
+
+    def _attribute_name(self) -> str:
+        """Return the name the attribute is declared under.
+
+        :raises TypeError: the attribute was not created in a class body, so it has no name.
+        """
+        if self._name is None:
+            msg = f"{type(self).__name__} is used outside a class body and has no attribute name"
+            raise TypeError(msg)
+        return self._name
+
+    @typing.overload
+    def __get__(self, instance: None, owner: type[AbstractWidget]) -> Self: ...
+
+    @typing.overload
+    def __get__(self, instance: AbstractWidget, owner: type[AbstractWidget]) -> _AttributeValue: ...
+
+    def __get__(self, instance: AbstractWidget | None, owner: type[AbstractWidget]) -> Self | _AttributeValue:
+        if instance is None:
+            return self
+        name = self._attribute_name()
+        try:
+            return typing.cast("_AttributeValue", vars(instance)[name])
+        except KeyError:
+            msg = f"{type(instance).__name__!r} object has no attribute {name!r}"
+            raise AttributeError(msg, name=name, obj=instance) from None
+
+    def __set__(self, instance: AbstractWidget, value: _AttributeValue) -> None:
+        vars(instance)[self._attribute_name()] = value
+        instance._invalidate()
 
 
 def fixed_size(size: tuple[()]) -> None:
