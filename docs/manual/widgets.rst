@@ -131,6 +131,9 @@ container widget depend on the widgets it contains and on its options.
      - depend on the widgets they contain and their options
    * - :class:`GridFlow`
      - ``'flow'`` and ``'fixed'``
+   * - :class:`Table`
+     - ``'box'`` and ``'flow'``, and ``'fixed'`` as well when no column is
+       weighted
    * - :class:`Overlay`
      - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
        position options of the top widget allow it
@@ -595,6 +598,12 @@ Columns widgets are selectable only if the column in focus is selectable.
 If a focus column is not specified the first selectable widget will be chosen as the
 focus column.
 
+The keys move the focus only to columns that are drawn.  A column 0 columns wide,
+or one left out because the columns do not fit the width, is skipped, since the
+user cannot see it.  A Columns wider than the screen therefore does not scroll to
+its hidden columns when the focus moves; it shows them again once it is wide
+enough.
+
 
 GridFlow Widgets
 ----------------
@@ -608,6 +617,66 @@ The GridFlow widget uses Pile, Columns, Padding and Divider widgets to build a
 display widget that will handle the keyboard input and rendering. When the
 GridFlow widget is resized it regenerates the display widget to accommodate the
 new space.
+
+
+Table Widgets
+-------------
+
+:class:`Table` lines up rows of cells under a header that stays in place
+while the rows scroll.  Each :class:`TableColumn` gives its column a width:
+``PACK`` for the widest cell, a number of screen columns, or
+``(WEIGHT, weight)`` for a share of the room the other columns leave::
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT),
+            urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+        ],
+        [["urwid", "1.2M", "console user interface library"]],
+        focus_attr="row focus",
+        unfocused_focus_attr="row marked",
+    )
+    table.body.append(["tour.py", "18K", "the example program"])
+
+A cell is a widget or text markup.  Markup becomes a text cell with the
+column's ``align`` and ``wrap``; a widget keeps its own, so pass an aligned
+widget where that matters.  A cell has to support ``'flow'`` sizing.  Only a
+cell that also supports ``'fixed'`` sizing is measured for a ``PACK`` column,
+so an :class:`Edit` column is best given a number or a weight.
+
+:attr:`Table.body` holds the rows.  A sequence of cells added to it becomes a
+:class:`TableRow`, which carries a ``data`` object for the caller, its own
+``attr`` and ``focus_attr``, and whether it is selectable.  Every row is
+selectable unless built otherwise, so a row of plain text takes the focus.
+A change that does not fit the columns raises :exc:`TableError` and leaves the
+rows as they were.
+
+When the columns do not fit, the weighted columns are at their minimum
+first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
+last resort the rightmost column is hidden.  A given width never shrinks.
+A hidden column is skipped by the keyboard.
+
+Cells are measured once, when their row is built.  A text cell the table
+made measures itself again when its text changes.  A widget passed as a cell
+whose width changes later needs :meth:`TableLayout.invalidate_widths`.
+
+The table sends ``"focus changed"`` like the other containers, and
+``"activate"`` with the focus position when the focused row leaves the
+``activate`` command (:kbd:`enter` or :kbd:`space`) unhandled.  A mouse click
+moves the focus and reaches the cell, as in a :class:`ListBox`.  A
+``row_attr(index, data)`` callable colours rows by their position or their
+data, for example in stripes; it runs each time a row is drawn.  The
+``unfocused_focus_attr`` map is applied over the row's own map, so its keys
+are the attributes the row's map produces.
+
+In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
+gives the natural width, so a table can size a dialog by itself.
+
+:class:`urwid.widget.TableLayout`, the part that shares the widths, also
+works without a table: rows built with :meth:`TableLayout.row` line up in a
+:class:`Pile` or a :class:`ListBox` of their own, such as the label and value
+columns of a form.
 
 
 Overlay Widgets

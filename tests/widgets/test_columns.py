@@ -619,7 +619,7 @@ class ColumnsTest(unittest.TestCase):
                     self.assertEqual(expected, columns.focus_position)
 
     def test_select_column_hidden_by_last_layout(self) -> None:
-        """The focus moves skip a column only while the last layout left it 0 wide, focused or not."""
+        """The focus moves skip a column only while the last layout left it 0 wide."""
 
         class WideWhenFocused(SelectableText):
             """Selectable text that packs 3 columns wide when focused and 0 otherwise."""
@@ -627,10 +627,10 @@ class ColumnsTest(unittest.TestCase):
             def pack(self, size=(), focus=False):
                 return (3 if focus else 0, 1)
 
-        with self.subTest("0 wide only while unfocused"):
+        with self.subTest("0 wide while unfocused"):
             columns = urwid.Columns([(urwid.PACK, SelectableText("a")), (urwid.PACK, WideWhenFocused(""))])
-            self.assertIsNone(columns.keypress((20,), "right"))
-            self.assertEqual(1, columns.focus_position)
+            self.assertEqual("right", columns.keypress((20,), "right"))
+            self.assertEqual(0, columns.focus_position)
 
         with self.subTest("weight 0 drawn min_width wide"):
             columns = urwid.Columns([SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b"))])
@@ -674,6 +674,109 @@ class ColumnsTest(unittest.TestCase):
                 columns.contents.insert(0, (SelectableText("a"), columns.options()))
                 self.assertTrue(columns.focus_first_selectable())
                 self.assertEqual(0, columns.focus_position)
+
+    def test_select_skips_every_zero_width_column(self) -> None:
+        """Left, right and select navigation skip a column of width 0, whatever left it 0 wide."""
+
+        class OverriddenWidths(urwid.Columns):
+            """Columns that lays out its middle column 0 wide through an overridden ``column_widths``."""
+
+            def column_widths(self, size, focus=False):
+                return [3, 0, size[0] - 3]
+
+        cases = {
+            "dropped for lack of room": (
+                lambda: urwid.Columns(
+                    [(5, SelectableText("a")), (5, SelectableText("b")), (5, SelectableText("c"))],
+                    focus_column=2,
+                    select_navigation=True,
+                ),
+                (5,),
+                2,
+                ("left", "shift tab"),
+                None,
+            ),
+            "packed to 0": (
+                lambda: urwid.Columns(
+                    [SelectableText("a"), (urwid.PACK, SelectableText("")), SelectableText("c")],
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+            "weight 0 with min_width 0": (
+                lambda: urwid.Columns(
+                    [SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b")), SelectableText("c")],
+                    min_width=0,
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+            "overridden column_widths": (
+                lambda: OverriddenWidths(
+                    [SelectableText("a"), SelectableText("b"), SelectableText("c")],
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+        }
+        for name, (make, size, start, keys, expected) in cases.items():
+            for key in keys:
+                with self.subTest(name, key=key):
+                    columns = make()
+                    columns.focus_position = start
+                    columns.render(size, focus=True)
+                    if expected is None:
+                        # every column left of the focus is dropped: the key is returned and the focus stays
+                        self.assertEqual(key, columns.keypress(size, key))
+                        self.assertEqual(start, columns.focus_position)
+                    else:
+                        self.assertIsNone(columns.keypress(size, key))
+                        self.assertEqual(expected, columns.focus_position)
+
+    def test_navigation_does_not_scroll_to_columns_left_out(self) -> None:
+        """Columns that do not fit the width are not reached by the keys, so the focus never moves off screen."""
+        for key, start in (("right", 0), ("left", 2), ("tab", 0), ("shift tab", 2)):
+            with self.subTest(key=key):
+                columns = urwid.Columns(
+                    [(10, SelectableText(str(i))) for i in range(3)],
+                    focus_column=start,
+                    select_navigation=True,
+                )
+                columns.render((15,), focus=True)
+                self.assertEqual(key, columns.keypress((15,), key))
+                self.assertEqual(start, columns.focus_position)
+
+    def test_hidden_focus_column_kept_through_resize(self) -> None:
+        """A resize that hides the focus column and one that shows it again leave the focus position unchanged."""
+        columns = urwid.Columns(
+            [(5, SelectableText("a")), (5, urwid.Edit("", "b")), (5, SelectableText("c"))],
+            focus_column=1,
+        )
+        columns.render((15,), focus=True)
+        self.assertEqual((5 + 1, 0), columns.get_cursor_coords((15,)))
+
+        with self.subTest("hidden"):
+            # the column left of the focus is dropped first, the one right of it is not laid out
+            self.assertEqual([0, 0], columns.column_widths((4,), focus=True))
+            columns.render((4,), focus=True)
+            self.assertIsNone(columns.get_cursor_coords((4,)))
+            for key in ("left", "right"):
+                self.assertEqual(key, columns.keypress((4,), key))
+                self.assertEqual(1, columns.focus_position)
+
+        with self.subTest("shown again"):
+            columns.render((15,), focus=True)
+            self.assertEqual(1, columns.focus_position)
+            self.assertEqual((5 + 1, 0), columns.get_cursor_coords((15,)))
 
     def test_layout_attributes_invalidate(self) -> None:
         """Setting ``dividechars`` or ``min_width`` lays the columns out again and redraws them."""
