@@ -21,6 +21,7 @@ from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
     _ContainerElementSizingFlag,
+    _UnfocusedFocusAttrMixin,
 )
 from .monitored_list import MonitoredFocusList
 from .widget import (
@@ -38,6 +39,8 @@ if typing.TYPE_CHECKING:
 
     # Imported by name for type checkers, see urwid._deprecation.
     from typing_extensions import deprecated
+
+    from .attr_map import _AttrMapLike
 else:
     from urwid._deprecation import deprecated
 
@@ -73,6 +76,7 @@ class Pile(
             tuple[Literal[WHSettings.WEIGHT], int | float],
         ]
     ],
+    _UnfocusedFocusAttrMixin,
 ):
     """A pile of widgets stacked vertically from top to bottom.
 
@@ -216,6 +220,7 @@ class Pile(
         focus_item: AbstractWidget | int | None = None,
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
     ) -> None:
         """Build the pile from a list of child widgets.
 
@@ -225,6 +230,8 @@ class Pile(
             unless no other row is selectable.
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
+        :param unfocused_focus_attr: attribute map applied to the focus child while the pile renders without
+            focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
         :warns PileWarning: an item of *widget_list* is not a widget.
 
@@ -339,6 +346,7 @@ class Pile(
 
         self.pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = 0
         self.select_navigation = select_navigation
+        self._set_unfocused_focus_attr(unfocused_focus_attr)
         # connected last, so that filling the contents during construction sends no signal
         self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
 
@@ -361,6 +369,7 @@ class Pile(
             **super()._repr_attrs(),
             "focus_item": self.focus_position if len(self._contents) > 1 else None,
             "select_navigation": self.select_navigation,
+            "unfocused_focus_attr": self._unfocused_focus_attr,
         }
         return remove_defaults(attrs, Pile.__init__)
 
@@ -386,6 +395,7 @@ class Pile(
         yield "widget_list", widget_list
         yield "focus_item", self.focus_position if self._contents else None
         yield "select_navigation", self.select_navigation, False
+        yield "unfocused_focus_attr", self._unfocused_focus_attr, None
 
     def __len__(self) -> int:
         """Return the number of widgets in the pile."""
@@ -1075,6 +1085,8 @@ class Pile(
             if height > 0:
                 # widget kind and size arguments matched separately
                 canv = w.render(w_size, focus=focus and item_focus)  # type: ignore[arg-type]
+                if item_focus and not focus:
+                    canv = self._mark_unfocused_focus(canv)
 
             if canv:
                 combinelist.append((canv, i, item_focus))

@@ -35,6 +35,7 @@ from .constants import Sizing, VAlign, WHSettings, normalize_valign
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationMixin,
+    _UnfocusedFocusAttrMixin,
 )
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
 from .filler import calculate_top_bottom_filler
@@ -54,6 +55,7 @@ if typing.TYPE_CHECKING:
 
     from urwid.canvas import Canvas, CompositeCanvas
 
+    from .attr_map import _AttrMapLike
     from .list_walker import ListBoxContentsProto
     from .widget import AbstractFlowWidget, AbstractWidget
 
@@ -218,7 +220,7 @@ class _SeenPositions(Container[typing.Any]):
         self._listed.append(position)
 
 
-class ListBox(Widget, SelectNavigationMixin[_K]):
+class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
     """Vertically stacked list of widgets."""
 
     _selectable = True
@@ -230,6 +232,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: ListWalker[_K, AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
     ) -> None: ...
 
@@ -239,6 +242,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: Iterable[AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
     ) -> None: ...
 
@@ -247,6 +251,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         body: ListWalker[_K, AbstractFlowWidget] | Iterable[AbstractFlowWidget],
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
     ) -> None:
         """Create the ListBox widget.
@@ -255,6 +260,8 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
             that contains widgets to be displayed inside the list box
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
+        :param unfocused_focus_attr: attribute map applied to the focus child while the list box renders without
+            focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         :param focus_when_empty: whether the ListBox accepts the input focus while its body is empty;
             ``False`` lets a container move the focus past an empty ListBox.
 
@@ -302,6 +309,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         self._rendered_size = 0, 0
 
         self.select_navigation = select_navigation
+        self._set_unfocused_focus_attr(unfocused_focus_attr)
         # whether selectable() reports True while the body has no focus widget
         self.focus_when_empty = focus_when_empty
 
@@ -718,6 +726,8 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
             combinelist.append((canvas, w_pos, False))
 
         focus_canvas = focus_widget.render((maxcol,), focus=focus)
+        if not focus:
+            focus_canvas = self._mark_unfocused_focus(focus_canvas)
 
         if focus_canvas.rows() != focus_rows:
             raise ListBoxError(

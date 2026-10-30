@@ -13,12 +13,31 @@ from .widget_decoration import WidgetDecoration
 if typing.TYPE_CHECKING:
     from .widget import AbstractWidget, _DelegateToWidgetMixin
 
+    # An attribute map in any form AttrMap takes; _attr_map_dict checks the keys and values are hashable at run time.
+    # dict is listed apart from Mapping because a type checker may fold Mapping into Hashable, and a dict is not
+    # Hashable. dict and Mapping take Any where they are invariant, so a dict[str, str] is accepted.
+    _AttrMapLike: typing.TypeAlias = Hashable | dict[typing.Any, typing.Any] | Mapping[typing.Any, Hashable]
+
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class AttrMapError(WidgetError):
     """AttrMap related errors."""
+
+
+def _attr_map_dict(attr_map: _AttrMapLike) -> dict[Hashable, Hashable]:
+    """Return *attr_map* as an attribute mapping dictionary.
+
+    A single attribute is returned as ``{None: attribute}``.
+
+    :raises AttrMapError: a key or value of the mapping is not hashable.
+    """
+    mapping = dict(attr_map) if isinstance(attr_map, Mapping) else {None: attr_map}
+    for from_attr, to_attr in mapping.items():
+        if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
+            raise AttrMapError(f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable")
+    return mapping
 
 
 if typing.TYPE_CHECKING:
@@ -111,14 +130,7 @@ class AttrMap(
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        mapping: dict[Hashable, Hashable] = dict(attr_map) if isinstance(attr_map, Mapping) else {None: attr_map}
-        for from_attr, to_attr in mapping.items():
-            if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
-                raise AttrMapError(
-                    f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
-                )
-
-        self._attr_map = mapping
+        self._attr_map = _attr_map_dict(attr_map)
         self._invalidate()
 
     attr_map = property(get_attr_map, set_attr_map)
@@ -153,17 +165,7 @@ class AttrMap(
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        mapping: dict[Hashable, Hashable] | None
-        if focus_map is None:
-            mapping = None
-        else:
-            mapping = dict(focus_map) if isinstance(focus_map, Mapping) else {None: focus_map}
-            for from_attr, to_attr in mapping.items():
-                if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
-                    raise AttrMapError(
-                        f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
-                    )
-        self._focus_map = mapping
+        self._focus_map = None if focus_map is None else _attr_map_dict(focus_map)
         self._invalidate()
 
     focus_map = property(get_focus_map, set_focus_map)

@@ -558,6 +558,15 @@ handlers of the first one run, so those see the second change first.  The
 arguments of each signal, not the current ``focus_position``, describe the
 change it reports.
 
+A focus child is drawn with its focus attributes only while its container is
+in focus.  To keep it marked when the focus moves to another part of the
+screen, give :class:`Pile`, :class:`Columns`, :class:`ListBox` or
+:class:`GridFlow` an ``unfocused_focus_attr``: while the container renders
+without focus, it applies that attribute map to the focus child's canvas, in
+any form :class:`AttrMap` takes::
+
+    listbox = urwid.ListBox(walker, unfocused_focus_attr={"item": "item selected"})
+
 
 Pile Widgets
 ------------

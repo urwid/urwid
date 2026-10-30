@@ -21,6 +21,7 @@ from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
     _ContainerElementSizingFlag,
+    _UnfocusedFocusAttrMixin,
 )
 from .monitored_list import MonitoredFocusList
 from .widget import (
@@ -36,6 +37,7 @@ from .widget import (
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
 
+    from .attr_map import _AttrMapLike
 
 # Flag combinations tested on every element of every ``Columns.sizing()`` call, hoisted out of the loop
 # so that the enum member lookups and the OR-ing happen once per import instead of once per element.
@@ -65,6 +67,7 @@ class Columns(
             tuple[Literal[WHSettings.GIVEN], int, bool] | tuple[Literal[WHSettings.WEIGHT], int | float, bool],
         ]
     ],
+    _UnfocusedFocusAttrMixin,
 ):
     """Widgets arranged horizontally in columns from left to right.
 
@@ -251,6 +254,7 @@ class Columns(
         box_columns: Iterable[int] | None = None,
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
     ) -> None:
         """Initialize a new Columns instance.
 
@@ -266,6 +270,8 @@ class Columns(
             required by columns not listed in *box_columns*.
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
+        :param unfocused_focus_attr: attribute map applied to the focus child while the columns renders without
+            focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
         :raises ValueError: *focus_column* is a widget that is not in *widget_list*.
         :warns ColumnsWarning: an item of *widget_list* is not a widget.
@@ -386,6 +392,7 @@ class Columns(
         self._min_width = min_width
         self._cache_maxcol: int | None = None
         self.select_navigation = select_navigation
+        self._set_unfocused_focus_attr(unfocused_focus_attr)
         # connected last, so that filling the contents during construction sends no signal
         self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
 
@@ -410,6 +417,7 @@ class Columns(
             "focus_column": self.focus_position if len(self._contents) > 1 else None,
             "min_width": self.min_width,
             "select_navigation": self.select_navigation,
+            "unfocused_focus_attr": self._unfocused_focus_attr,
         }
         return remove_defaults(attrs, Columns.__init__)
 
@@ -441,6 +449,7 @@ class Columns(
         yield "min_width", self.min_width
         yield "box_columns", box_columns
         yield "select_navigation", self.select_navigation, False
+        yield "unfocused_focus_attr", self._unfocused_focus_attr, None
 
     def __len__(self) -> int:
         """Return the number of columns."""
@@ -1057,15 +1066,12 @@ class Columns(
 
             if i < last_visible:
                 width += self.dividechars  # noqa: PLW2901
-            data.append(
-                (
-                    # widget kind and size arguments matched separately
-                    w.render(w_size, focus=focus and self.focus_position == i),  # type: ignore[arg-type]
-                    i,
-                    self.focus_position == i,
-                    width,
-                )
-            )
+            is_focus = self.focus_position == i
+            # widget kind and size arguments matched separately
+            canvas = w.render(w_size, focus=focus and is_focus)  # type: ignore[arg-type]
+            if is_focus and not focus:
+                canvas = self._mark_unfocused_focus(canvas)
+            data.append((canvas, i, is_focus, width))
 
         if not data:
             if size:
