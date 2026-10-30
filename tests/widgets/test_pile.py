@@ -192,6 +192,60 @@ class ParentMutatingText(SelectableText):
 
 
 class PileTest(unittest.TestCase):
+    def test_hidden_focus_gets_no_keys_or_cursor(self) -> None:
+        for rule in (0, (urwid.GIVEN, 0), (urwid.WEIGHT, 0)):
+            with self.subTest(rule=rule):
+                hidden = urwid.Edit("", "hidden")
+                item = (*rule, urwid.Filler(hidden)) if isinstance(rule, tuple) else (rule, urwid.Filler(hidden))
+                pile = urwid.Pile([item, (urwid.PACK, urwid.Edit("", "visible"))], focus_item=0)
+                canvas = pile.render((20, 5), True)
+                self.assertEqual("visible             ", canvas.decoded_text[0])
+                self.assertIsNone(canvas.cursor)
+                self.assertIsNone(pile.get_cursor_coords((20, 5)))
+                self.assertEqual("x", pile.keypress((20, 5), "x"))
+                self.assertEqual("hidden", hidden.edit_text)
+                self.assertEqual(0, pile.focus_position)
+                self.assertIsNone(pile.keypress((20, 5), "down"))
+                self.assertEqual(1, pile.focus_position)
+
+    def test_default_focus_skips_given_zero(self) -> None:
+        for item in ((0, urwid.Filler(urwid.Edit())), (urwid.GIVEN, 0, urwid.Filler(urwid.Edit()))):
+            with self.subTest(item=item[0]):
+                pile = urwid.Pile([item, (urwid.PACK, urwid.Edit())])
+                self.assertEqual(1, pile.focus_position)
+
+    def test_visible_focus_still_receives_keys(self) -> None:
+        visible = urwid.Edit("", "visible")
+        pile = urwid.Pile([(0, urwid.Filler(urwid.Edit())), (urwid.PACK, visible)], focus_item=1)
+        self.assertIsNone(pile.keypress((20, 5), "x"))
+        self.assertEqual("visiblex", visible.edit_text)
+        self.assertEqual((8, 0), pile.get_cursor_coords((20, 5)))
+
+    def test_hidden_focus_tab_navigation(self) -> None:
+        for key, start, expected in (("tab", 0, 1), ("shift tab", 2, 1), ("down", 0, 1), ("up", 2, 1)):
+            with self.subTest(key=key):
+                pile = urwid.Pile(
+                    [(0, urwid.Filler(urwid.Edit())), (urwid.PACK, urwid.Edit()), (0, urwid.Filler(urwid.Edit()))],
+                    focus_item=start,
+                    select_navigation=True,
+                )
+                self.assertIsNone(pile.keypress((20, 5), key))
+                self.assertEqual(expected, pile.focus_position)
+
+    def test_explicit_hidden_widget_focus_is_preserved(self) -> None:
+        hidden = urwid.Filler(urwid.Edit())
+        pile = urwid.Pile([(0, hidden), (urwid.PACK, urwid.Edit())], focus_item=hidden)
+        self.assertIs(hidden, pile.focus)
+        self.assertEqual("x", pile.keypress((20, 5), "x"))
+
+    def test_hidden_after_resize_gets_no_keys(self) -> None:
+        edit = urwid.Edit("", "value")
+        pile = urwid.Pile([urwid.Filler(edit)])
+        self.assertIsNone(pile.keypress((20, 1), "x"))
+        self.assertEqual("x", pile.keypress((20, 0), "x"))
+        self.assertEqual("valuex", edit.edit_text)
+        self.assertIsNone(pile.get_cursor_coords((20, 0)))
+
     def test_basic_sizing(self) -> None:
         box_only = urwid.SolidFill("#")
         flow_only = urwid.ProgressBar(None, None)

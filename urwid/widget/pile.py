@@ -317,7 +317,7 @@ class Pile(
                     raise PileError(f"initial widget list item invalid {original!r}")
             else:
                 raise PileError(f"initial widget list item invalid {original!r}")
-            if focus_item is None and w.selectable():
+            if focus_item is None and w.selectable() and self.contents[i][1] != (WHSettings.GIVEN, 0):
                 focus_item = i
 
             if not isinstance(w, AbstractWidget):
@@ -1041,6 +1041,9 @@ class Pile(
             i = self.focus_position
             _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
 
+            if heights[i] == 0:
+                return None
+
             if (coords := get_cursor_coords(size_args[i])) is not None:  # pylint: disable=not-callable
                 x, y = coords
                 if i > 0:
@@ -1057,6 +1060,7 @@ class Pile(
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
 
+        A hidden focus row, one with a height of 0, gets no keys.
         Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
         With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
 
@@ -1068,10 +1072,11 @@ class Pile(
         i = self.focus_position
         _widths, heights, size_args = self.get_rows_sizes(size, focus=self.selectable())
         if self.selectable():
-            if (processed := self.focus.keypress(size_args[i], key)) is not None:  # type: ignore[union-attr]
-                key = processed
-            else:
-                return None
+            if heights[i] > 0:
+                if (processed := self.focus.keypress(size_args[i], key)) is not None:  # type: ignore[union-attr]
+                    key = processed
+                else:
+                    return None
             if self.select_navigation and self._command_map[key] in _SELECT_COMMANDS:
                 return self._select_keypress_unhandled(key)
             if self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents:
