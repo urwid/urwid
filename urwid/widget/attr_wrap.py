@@ -9,11 +9,12 @@ from urwid import _deprecation
 from .attr_map import AttrMap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Mapping
+    from collections.abc import Hashable
 
     # Imported by name for type checkers, see urwid._deprecation.
     from typing_extensions import deprecated
 
+    from .attr_map import _AttrMapLike
     from .constants import Sizing
     from .widget import AbstractWidget
 else:
@@ -40,8 +41,8 @@ class AttrWrap(AttrMap[WrappedWidget]):
     def __init__(
         self,
         w: WrappedWidget,
-        attr: Hashable | Mapping[Hashable, Hashable],
-        focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
+        attr: _AttrMapLike,
+        focus_attr: _AttrMapLike = None,
     ) -> None:
         """Build the widget from an existing widget and attribute mapping.
 

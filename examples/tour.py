@@ -164,7 +164,11 @@ def main() -> None:
         ("important", "CheckBox"),
         " and ",
         ("important", "RadioButton"),
-        " widgets.",
+        " widgets.  The ",
+        ("important", "GridFlow"),
+        " of buttons below sets ",
+        ("important", "unfocused_focus_attr"),
+        ", so its focus button stays marked while the focus is elsewhere.",
     ]
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
@@ -378,6 +382,7 @@ def main() -> None:
                 1,
                 urwid.LEFT,
                 select_navigation=True,
+                unfocused_focus_attr={"buttn": "buttnl"},
             ),
             left=4,
             right=3,
@@ -475,6 +480,7 @@ def main() -> None:
         ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
+        ("buttnl", "white", "dark cyan", "bold"),
     ]
 
     # use appropriate Screen class

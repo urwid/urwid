@@ -509,3 +509,88 @@ class ContainerFocusChangedSignalTest(unittest.TestCase):
         pile.focus_position = 0
         self.assertEqual(["labelled", "focus changed"], Labelled.signals)
         self.assertEqual([(1, 0)], seen)
+
+
+def _cells(text: str) -> list[urwid.AttrMap]:
+    """Return one selectable cell per character of *text*, each with the attribute ``"plain"``."""
+    return [urwid.AttrMap(SelectableText(char), "plain") for char in text]
+
+
+# name: (build the container with the focus on "c", the size to render it at)
+_MARKING_CONTAINERS: dict[str, Callable[..., tuple[urwid.Widget, tuple[int] | tuple[int, int]]]] = {
+    "Pile": lambda **kwargs: (urwid.Pile(_cells("abcd"), focus_item=2, **kwargs), (1,)),
+    "Columns": lambda **kwargs: (urwid.Columns(_cells("abcd"), focus_column=2, **kwargs), (4,)),
+    "ListBox": lambda **kwargs: (_focused_list_box(**kwargs), (1, 4)),
+    # two rows, "a b" and "c d": the first row's own focus cell, "a", stays plain
+    "GridFlow": lambda **kwargs: (urwid.GridFlow(_cells("abcd"), 1, 1, 0, "left", focus=2, **kwargs), (3,)),
+}
+
+
+def _focused_list_box(**kwargs: typing.Any) -> urwid.ListBox:
+    """Return a ListBox over the cells "abcd" with the focus on "c"."""
+    list_box = urwid.ListBox(urwid.SimpleFocusListWalker(_cells("abcd")), **kwargs)
+    list_box.focus_position = 2
+    return list_box
+
+
+def _attributes(canvas: urwid.Canvas) -> dict[str, typing.Any]:
+    """Return the display attribute of every non-blank character of *canvas*."""
+    return {
+        char: attr
+        for row in canvas.content()
+        for attr, _charset, text in row
+        for char in text.decode("utf-8")
+        if char != " "
+    }
+
+
+class UnfocusedFocusAttrTest(unittest.TestCase):
+    def test_marks_the_focus_child_while_unfocused(self) -> None:
+        """``unfocused_focus_attr`` recolours only the focus child, as :class:`AttrMap` would, while unfocused."""
+        cases = (
+            # label, unfocused_focus_attr, render with focus, whether the focus child "c" is marked
+            ("single attribute", "mark", False, True),
+            ("attribute map", {"plain": "mark"}, False, True),
+            ("map missing the attribute", {"other": "mark"}, False, True),
+            ("not set", None, False, False),
+            ("rendered with focus", "mark", True, False),
+        )
+        for name, make in _MARKING_CONTAINERS.items():
+            for label, attr, focus, marked in cases:
+                with self.subTest(name, case=label):
+                    container, size = make(unfocused_focus_attr=attr)
+                    expected = dict.fromkeys("abcd", "plain")
+                    if marked:
+                        expected["c"] = _attributes(urwid.AttrMap(_cells("c")[0], attr).render((1,)))["c"]
+                    self.assertEqual(expected, _attributes(container.render(size, focus=focus)))
+
+    def test_setting_redraws(self) -> None:
+        """Setting ``unfocused_focus_attr`` on a rendered container redraws it, and ``None`` turns the marking off."""
+        for name, make in _MARKING_CONTAINERS.items():
+            with self.subTest(name):
+                container, size = make()
+                # the canvas cache holds canvases weakly: keep the old one alive, as a screen showing it does
+                old_canvas = container.render(size)
+                container.unfocused_focus_attr = "mark"
+                marked = _attributes(urwid.AttrMap(_cells("c")[0], "mark").render((1,)))["c"]
+                self.assertEqual(marked, _attributes(container.render(size))["c"])
+                self.assertEqual({None: "mark"}, container.unfocused_focus_attr)
+                container.unfocused_focus_attr = None
+                self.assertEqual("plain", _attributes(container.render(size))["c"])
+                self.assertEqual("plain", _attributes(old_canvas)["c"])
+
+    def test_mark_follows_the_focus(self) -> None:
+        """After the focus moves, the new focus child is marked and the old one is plain again."""
+        for name, make in _MARKING_CONTAINERS.items():
+            with self.subTest(name):
+                container, size = make(unfocused_focus_attr="mark")
+                container.render(size)
+                container.focus_position = 0
+                attributes = _attributes(container.render(size))
+                self.assertNotEqual("plain", attributes["a"])
+                self.assertEqual("plain", attributes["c"])
+
+    def test_rejects_unhashable_attributes(self) -> None:
+        """An attribute map with an unhashable value is rejected, as :class:`AttrMap` rejects it."""
+        with self.assertRaises(urwid.AttrMapError):
+            urwid.Pile(_cells("a"), unfocused_focus_attr={"plain": ["mark"]})

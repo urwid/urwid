@@ -8,15 +8,20 @@ import inspect
 import typing
 import warnings
 
+from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
 
+from .attr_map import _attr_map_dict
 from .constants import Sizing, WHSettings
 from .widget import AbstractWidget, Widget, WidgetWarning, _select_enter_child
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterable, Iterator, MutableSequence, Sequence
+    from collections.abc import Hashable, Iterable, Iterator, MutableSequence, Sequence
 
+    from urwid.canvas import Canvas
     from urwid.command_map import CommandMap
+
+    from .attr_map import _AttrMapLike
 
     _KT_contra = typing.TypeVar("_KT_contra", contravariant=True)
 
@@ -216,6 +221,50 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     @focus_position.setter
     def focus_position(self, position: int) -> None:
         """Index of child widget in focus."""
+
+
+class _UnfocusedFocusAttrMixin:
+    """Mixin for containers that keep their focus child marked while they render without focus."""
+
+    _unfocused_focus_attr: dict[Hashable, Hashable] | None
+
+    if typing.TYPE_CHECKING:
+
+        def _invalidate(self) -> None: ...
+
+    @property
+    def unfocused_focus_attr(self) -> dict[Hashable, Hashable] | None:
+        """Attribute map applied to the focus child while the container renders without focus.
+
+        ``None`` applies none.
+        It is set from what :class:`AttrMap` takes as its attribute map.
+        A single attribute is stored as ``{None: attribute}``, so the child's own attributes are placed over it.
+        A copy is returned.
+        """
+        return None if self._unfocused_focus_attr is None else self._unfocused_focus_attr.copy()
+
+    @unfocused_focus_attr.setter
+    def unfocused_focus_attr(self, attr_map: _AttrMapLike | None) -> None:
+        self._set_unfocused_focus_attr(attr_map)
+
+    def _set_unfocused_focus_attr(self, attr_map: _AttrMapLike | None) -> None:
+        """Store *attr_map* as an attribute mapping dictionary.
+
+        ``None`` turns the marking off.
+        The container is invalidated.
+
+        :raises AttrMapError: a key or value of *attr_map* is not hashable.
+        """
+        self._unfocused_focus_attr = None if attr_map is None else _attr_map_dict(attr_map)
+        self._invalidate()
+
+    def _mark_unfocused_focus(self, canvas: Canvas) -> Canvas:
+        """Return the focus child's *canvas*, with :attr:`unfocused_focus_attr` applied when it is set."""
+        if self._unfocused_focus_attr is None:
+            return canvas
+        marked = CompositeCanvas(canvas)
+        marked.fill_attr_apply(self._unfocused_focus_attr)
+        return marked
 
 
 class SelectNavigationMixin(WidgetContainerMixin[_KT_contra]):

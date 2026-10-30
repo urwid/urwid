@@ -15,6 +15,7 @@ from .constants import Align, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
+    _UnfocusedFocusAttrMixin,
 )
 from .divider import Divider
 from .monitored_list import MonitoredFocusList
@@ -26,6 +27,8 @@ if typing.TYPE_CHECKING:
     from collections.abc import Iterable, Iterator, Sequence
 
     from urwid.canvas import Canvas
+
+    from .attr_map import _AttrMapLike
 
 
 class GridFlowError(WidgetError):
@@ -43,6 +46,7 @@ GridFlowContentsItem = tuple[AbstractFlowWidget, GridFlowOptions]
 class GridFlow(
     WidgetWrap["Pile | Divider"],  # quoted: pylint cannot infer a base subscripted with a "|" union
     SelectNavigationListContentsMixin[GridFlowContentsItem],
+    _UnfocusedFocusAttrMixin,
 ):
     """Flow widget that renders all the widgets it contains the same width.
 
@@ -103,6 +107,7 @@ class GridFlow(
         focus: int | AbstractFlowWidget | None = None,
         *,
         select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
     ) -> None:
         """Create the GridFlow widget.
 
@@ -116,6 +121,8 @@ class GridFlow(
         :param focus: widget index or widget instance to focus on
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands
             over the cells in their contents order, see :ref:`select-navigation`.
+        :param unfocused_focus_attr: attribute map applied to the focus child while the grid renders without
+            focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         """
         prepared_contents: list[GridFlowContentsItem] = []
         focus_position: int = -1
@@ -142,6 +149,7 @@ class GridFlow(
         self.v_sep = v_sep
         self.align = align
         self.select_navigation = select_navigation
+        self._set_unfocused_focus_attr(unfocused_focus_attr)
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
         maxcol = self._get_maxcol(())
         self._cache_maxcol: int | None = maxcol
@@ -170,6 +178,7 @@ class GridFlow(
             "align": self.align,
             "focus": self.focus_position if len(self._contents) > 1 else None,
             "select_navigation": self.select_navigation,
+            "unfocused_focus_attr": self._unfocused_focus_attr,
         }
         return remove_defaults(attrs, GridFlow.__init__)
 
@@ -182,6 +191,7 @@ class GridFlow(
         yield "align", self.align
         yield "focus", self.focus_position
         yield "select_navigation", self.select_navigation, False
+        yield "unfocused_focus_attr", self._unfocused_focus_attr, None
 
     def __len__(self) -> int:
         """Return the number of cells."""
@@ -396,6 +406,8 @@ class GridFlow(
                 column_focused = True
             if i == self.focus_position:
                 p.focus_position = len(p.contents) - 1
+                # only the row holding the focus cell marks it, so the other rows' own focus cells stay plain
+                c.unfocused_focus_attr = self._unfocused_focus_attr
             used_space = sum(typing.cast("int", x[1][1]) for x in c.contents) + self.h_sep * len(c.contents)
             pad.width = used_space - self.h_sep
 
