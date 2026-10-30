@@ -7,8 +7,9 @@ import warnings
 from collections.abc import MutableSequence
 from typing import Literal
 
-from urwid import _deprecation
+from urwid import _deprecation, signals
 from urwid.canvas import CanvasOverlay, CompositeCanvas
+from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 
 from .constants import (
@@ -87,7 +88,14 @@ class Overlay(
 
     Top widget can be Box, Flow or Fixed.
     Bottom widget should be Box.
+
+    Sends ``"menu"`` when the top widget leaves a key for the ``menu`` command (:kbd:`esc` by default) unhandled.
+    Its handlers receive the overlay.
+    A handler returning ``True`` consumes the key.
+    Otherwise :meth:`keypress` returns the key, as it does without a handler.
     """
+
+    signals: typing.ClassVar[list[str]] = ["menu"]
 
     _selectable = True
 
@@ -678,12 +686,25 @@ class Overlay(
         size: tuple[()] | tuple[int] | tuple[int, int],
         key: str,
     ) -> str | None:
-        """Pass keypress to top_w."""
+        """Pass keypress to top_w.
+
+        A ``menu`` command key the top widget returns is sent as ``"menu"``.
+
+        :returns: ``None`` when the top widget or a ``"menu"`` handler handled the key,
+            otherwise the key the top widget returned.
+        """
         real_size = self.pack(size, True)
-        return self.top_w.keypress(
+        unhandled = self.top_w.keypress(
             self.top_w_size(real_size, *self.calculate_padding_filler(real_size, True)),
             key,
         )
+        if (
+            unhandled is not None
+            and self._command_map[unhandled] == Command.MENU
+            and signals.emit_signal(self, "menu", self)
+        ):
+            return None
+        return unhandled
 
     @property
     def focus(self) -> TopWidget:

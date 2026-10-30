@@ -368,9 +368,11 @@ case as a base class for a widget that will be replacing its own contents regula
   all the previous content with an :class:`Overlay` and a :class:`LineBox`.
   The position of each successive box is shifted right and down from the
   previous one.
-* *CascadingBoxes.keypress()* intercepts *ESC* keys to cause the current box
-  to be removed and the previous one to be shown.  This allows the user to
-  return to a previous menu level.
+* *CascadingBoxes.close_box()* is connected to the ``'menu'`` signal of every
+  :class:`Overlay` but the first.  The :class:`Overlay` sends it when the box
+  leaves an *ESC* key unhandled, and *close_box()* removes the current box to
+  show the previous one.  Returning ``True`` tells the :class:`Overlay` that the
+  key was handled.  This allows the user to return to a previous menu level.
 
 
 Horizontal Menu
