@@ -302,8 +302,9 @@ class Columns(
         """
         self._cache_column_widths: list[int] = []
         self._cache_pack_widths: dict[int, int] = {}
-        self._cache_hidden_packs: frozenset[int] = frozenset()
-        self._cache_hidden_weights: frozenset[int] = frozenset()
+        # the widths of the last layout, by position, or None before the first layout of the current contents:
+        # keyboard navigation skips the columns it left 0 wide or did not lay out
+        self._cache_layout_widths: tuple[int, ...] | None = None
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -457,9 +458,8 @@ class Columns(
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
-        # the hidden columns of the last layout are kept by position, which a change of the contents moves
-        self._cache_hidden_packs = frozenset()
-        self._cache_hidden_weights = frozenset()
+        # the widths of the last layout are kept by position, which a change of the contents moves
+        self._cache_layout_widths = None
         self._invalidate()
 
     def selectable(self) -> bool:
@@ -656,13 +656,11 @@ class Columns(
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
         """Yield the selectable positions as the base class does.
 
-        Columns the last layout hid are skipped:
-
-        - a pack column whose widget packs to 0 columns focused as well as unfocused;
-        - a weighted column that the weights and ``min_width`` left 0 wide, rather than the lack of room.
+        Columns the last layout left 0 wide are skipped, whatever the reason, because the user cannot see them.
         """
+        widths = self._cache_layout_widths
         for position in super()._select_candidates(reverse=reverse, from_edge=from_edge):
-            if position not in self._cache_hidden_packs and position not in self._cache_hidden_weights:
+            if widths is None or (position < len(widths) and widths[position]):
                 yield position
 
     @property
@@ -706,7 +704,8 @@ class Columns(
         """
         Return a list of column widths.
 
-        0 values in the list means hide the corresponding column completely
+        A width of 0 hides the corresponding column completely, and keyboard navigation skips it.
+        A subclass may override this method to lay the columns out itself; every sized layout uses its result.
         """
         maxcol = size[0]
 
@@ -760,13 +759,8 @@ class Columns(
             for i, (w, (t, width, b)) in enumerate(self.contents)
             if t == WHSettings.PACK
         }
-        # pack columns 0 wide even when focused: the focus navigation skips them, as it does (GIVEN, 0) ones
-        self._cache_hidden_packs = frozenset(
-            i
-            for i, width in pack_widths.items()
-            if width == 0 and pack_width(self.contents[i][0], WHSettings.PACK, self.contents[i][1][2], True) == 0
-        )
         if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
+            self._cache_layout_widths = tuple(self._cache_column_widths)
             return self._cache_column_widths
 
         widths = []
@@ -823,11 +817,10 @@ class Columns(
                 grow -= width
                 wtotal -= weight
 
-        # weighted columns left 0 wide by their weight and min_width: columns dropped for lack of room are not in it
-        self._cache_hidden_weights = frozenset(i for _weight, i in weighted if not widths[i])
         self._cache_maxcol = maxcol
         self._cache_column_widths = widths
         self._cache_pack_widths = pack_widths
+        self._cache_layout_widths = tuple(widths)
         return widths
 
     def _get_fixed_column_sizes(
@@ -921,21 +914,6 @@ class Columns(
             heights[idx] = max_height
             w_h_args[idx] = (widths[idx], max_height)
 
-        self._cache_hidden_packs = frozenset(
-            i
-            for i, (widget, (size_kind, _amount, _box)) in enumerate(self.contents)
-            if size_kind == WHSettings.PACK
-            and not widths[i]
-            and typing.cast("AbstractFixedWidget", widget).pack((), True)[0] == 0
-        )
-        self._cache_hidden_weights = frozenset(
-            i
-            for i, (_w, (size_kind, _amount, _box)) in enumerate(self.contents)
-            if size_kind == WHSettings.WEIGHT and not widths[i]
-        )
-        # column_widths keeps the hidden columns of its cached layout only while that layout is cached
-        self._cache_maxcol = None
-
         return (
             tuple(widths[idx] for idx in range(len(widths))),
             tuple(heights[idx] for idx in range(len(heights))),
@@ -954,9 +932,12 @@ class Columns(
             A FLOW render is requested and a BOX-only column is not listed in ``box_columns``.
         """
         if not size:
-            return self._get_fixed_column_sizes(focus=focus)
+            fixed_sizes = self._get_fixed_column_sizes(focus=focus)
+            self._cache_layout_widths = fixed_sizes[0]
+            return fixed_sizes
 
         widths = tuple(self.column_widths(size=size, focus=focus))
+        self._cache_layout_widths = widths
         # Every index gets a height and a render size argument before returning, either in the loop below
         # or in the box fixup after it, so plain lists are used instead of index-keyed dicts.
         heights: list[int] = [0] * len(widths)
@@ -1275,6 +1256,8 @@ class Columns(
 
         A hidden focus column, one with a width of 0, gets no keys: the key is left unhandled by it.
         Unhandled :kbd:`left` and :kbd:`right` keys may cause a focus change.
+        The focus moves only to columns the last layout drew, since a column the user cannot see takes no input:
+        a column left 0 wide or not laid out for lack of room is skipped until a resize shows it.
         With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
 
         :param size: Widget size correct for the supported sizing

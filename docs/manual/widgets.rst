@@ -595,6 +595,12 @@ Columns widgets are selectable only if the column in focus is selectable.
 If a focus column is not specified the first selectable widget will be chosen as the
 focus column.
 
+The keys move the focus only to columns that are drawn.  A column 0 columns wide,
+or one left out because the columns do not fit the width, is skipped, since the
+user cannot see it.  A Columns wider than the screen therefore does not scroll to
+its hidden columns when the focus moves; it shows them again once it is wide
+enough.
+
 
 GridFlow Widgets
 ----------------
