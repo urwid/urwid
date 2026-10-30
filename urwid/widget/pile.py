@@ -221,7 +221,8 @@ class Pile(
 
         :param widget_list: child widgets
         :param focus_item: child widget that gets the focus initially.
-            Chooses the first selectable widget if unset.
+            Chooses the first selectable widget if unset, skipping rows of height or weight 0
+            unless no other row is selectable.
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
@@ -246,6 +247,8 @@ class Pile(
         .. note:: If the Pile is treated as a box widget there must be at least
             one ``'weight'`` tuple in *widget_list*.
         """
+        self._cache_hidden_packs: frozenset[int] = frozenset()
+        self._cache_hidden_weights: frozenset[int] = frozenset()
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -265,6 +268,7 @@ class Pile(
         self._contents.set_focus_changed_callback(lambda f: self._invalidate())
         self._contents.set_validate_contents_modified(self._validate_contents_modified)
 
+        hidden_focus: int | None = None
         for i, original in enumerate(widget_list):
             if not isinstance(original, tuple):
                 w = original
@@ -317,12 +321,19 @@ class Pile(
                     raise PileError(f"initial widget list item invalid {original!r}")
             else:
                 raise PileError(f"initial widget list item invalid {original!r}")
-            if focus_item is None and w.selectable() and self.contents[i][1] != (WHSettings.GIVEN, 0):
-                focus_item = i
+            if focus_item is None and w.selectable():
+                options = self.contents[i][1]
+                # a box Pile draws a row of height or weight 0 with no rows
+                if options[0] == WHSettings.PACK or options[1]:
+                    focus_item = i
+                elif hidden_focus is None:
+                    hidden_focus = i
 
             if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
 
+        if focus_item is None:
+            focus_item = hidden_focus
         if self.contents and focus_item is not None:
             self.focus = focus_item
 
@@ -382,7 +393,19 @@ class Pile(
 
     def _contents_modified(self) -> None:
         """Invalidate this widget whenever the contents has been changed."""
+        # the hidden rows of the last layout are kept by position, which a change of the contents moves
+        self._cache_hidden_packs = frozenset()
+        self._cache_hidden_weights = frozenset()
         self._invalidate()
+
+    def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
+        """Yield the selectable positions as the base class does.
+
+        Rows the last layout hid are skipped, as recorded by :meth:`get_rows_sizes`.
+        """
+        for position in super()._select_candidates(reverse=reverse, from_edge=from_edge):
+            if position not in self._cache_hidden_packs and position not in self._cache_hidden_weights:
+                yield position
 
     def selectable(self) -> bool:
         """Return whether any child widget is selectable.
@@ -851,14 +874,54 @@ class Pile(
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
         """Get rows widths, heights and render size parameters.
 
+        Records the rows this layout hides, which the focus moves skip.
+
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
         if not size:
-            return self._get_fixed_rows_sizes(focus=focus)
-        if len(size) == 1:
-            return self._get_flow_rows_sizes(size, focus=focus)
+            sizes = self._get_fixed_rows_sizes(focus=focus)
+        elif len(size) == 1:
+            sizes = self._get_flow_rows_sizes(size, focus=focus)
+        else:
+            sizes = self._get_box_rows_sizes(size, focus=focus)
 
+        _widths, heights, size_args = sizes
+        if 0 not in heights:
+            self._cache_hidden_packs = self._cache_hidden_weights = frozenset()
+            return sizes
+
+        # A row 0 high is hidden when focusing it would not show it:
+        # a row of weight 0, which a box or fixed Pile gives no rows,
+        # or a row sized as a flow or fixed widget, with a size argument of 1 or 0 items, that is 0 rows focused too.
+        # A weighted row 0 high for lack of room is not hidden: the focus row gets rows first.
+        self._cache_hidden_weights = frozenset(
+            i
+            for i, (height, (_w, (height_type, amount))) in enumerate(zip(heights, self.contents, strict=False))
+            if not height and len(size) != 1 and height_type == WHSettings.WEIGHT and not amount
+        )
+        self._cache_hidden_packs = frozenset(
+            i
+            for i, (height, (w, _options)) in enumerate(zip(heights, self.contents, strict=False))
+            if not height
+            and i not in self._cache_hidden_weights
+            and len(size_args[i]) < 2
+            and (
+                # sized with the call its layout path used: rows() in a flow or fixed Pile, pack() otherwise
+                w.rows(size_args[i], True)  # type: ignore[arg-type,union-attr]
+                if len(size) != 2 and size_args[i]
+                else w.pack(size_args[i], True)[1]  # type: ignore[arg-type]
+            )
+            == 0
+        )
+        return sizes
+
+    def _get_box_rows_sizes(
+        self,
+        size: tuple[int, int],
+        focus: bool,
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
+        """Get rows widths, heights and render size parameters for a box Pile."""
         maxcol, maxrow = size
         if not self.contents:
             return (maxcol,), (maxrow,), ()
@@ -1077,13 +1140,15 @@ class Pile(
                     key = processed
                 else:
                     return None
-            if self.select_navigation and self._command_map[key] in _SELECT_COMMANDS:
-                return self._select_keypress_unhandled(key)
-            if self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents:
+            select = self.select_navigation and self._command_map[key] in _SELECT_COMMANDS
+            if not select and (self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents):
                 return key
-            # The child may have changed this Pile's contents or focus while handling the key,
-            # so the sizes are recalculated and the candidates are taken from the current focus.
-            _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
+            if self.contents:
+                # The child may have changed this Pile's contents or focus while handling the key,
+                # so the sizes and the hidden rows are recalculated and the candidates are taken from the current focus.
+                _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
+            if select:
+                return self._select_keypress_unhandled(key)
 
         for j in self._select_candidates(reverse=self._command_map[key] == Command.UP, from_edge=False):
             w = self.contents[j][0]

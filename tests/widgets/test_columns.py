@@ -595,20 +595,31 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual("x", urwid.Columns([]).keypress((10,), "x"))
 
     def test_keypress_skips_hidden_column(self) -> None:
-        """A column that is not drawn, ``(GIVEN, 0)`` or packed to 0, is skipped by the arrow keys and Tab."""
-        for hidden in ((urwid.GIVEN, 0, SelectableText("hidden")), (urwid.PACK, SelectableText(""))):
+        """A column that is not drawn is skipped by the arrow keys and Tab.
+
+        The cases are ``(GIVEN, 0)``, packed to 0, of weight 0 with a ``min_width`` of 0, and of weight 0 in a fixed
+        Columns.
+        """
+        for hidden, min_width, size in (
+            ((urwid.GIVEN, 0, SelectableText("hidden")), 1, (20,)),
+            ((urwid.PACK, SelectableText("")), 1, (20,)),
+            ((urwid.PACK, SelectableText("")), 1, ()),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 0, (20,)),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 1, ()),
+        ):
             for key, start, expected in (("right", 0, 2), ("left", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
-                with self.subTest(hidden=hidden[0], key=key):
+                with self.subTest(hidden=hidden[0], min_width=min_width, size=size, key=key):
                     columns = urwid.Columns(
                         [SelectableText("a"), hidden, SelectableText("c")],
+                        min_width=min_width,
                         select_navigation=True,
                     )
                     columns.focus_position = start
-                    self.assertIsNone(columns.keypress((20,), key))
+                    self.assertIsNone(columns.keypress(size, key))
                     self.assertEqual(expected, columns.focus_position)
 
-    def test_select_pack_column_hidden_by_last_layout(self) -> None:
-        """The focus moves skip a pack column only while its widget packs to 0, focused or not, in the last layout."""
+    def test_select_column_hidden_by_last_layout(self) -> None:
+        """The focus moves skip a column only while the last layout left it 0 wide, focused or not."""
 
         class WideWhenFocused(SelectableText):
             """Selectable text that packs 3 columns wide when focused and 0 otherwise."""
@@ -621,18 +632,48 @@ class ColumnsTest(unittest.TestCase):
             self.assertIsNone(columns.keypress((20,), "right"))
             self.assertEqual(1, columns.focus_position)
 
+        with self.subTest("weight 0 drawn min_width wide"):
+            columns = urwid.Columns([SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b"))])
+            self.assertIsNone(columns.keypress((20,), "right"))
+            self.assertEqual(1, columns.focus_position)
+
+        for key in ("right", "tab"):
+            with self.subTest("contents changed by the focus column", key=key):
+                columns = urwid.Columns(
+                    [
+                        ParentMutatingText(
+                            "a", lambda: columns.contents.append((SelectableText("new"), columns.options()))
+                        ),
+                        (urwid.WEIGHT, 0, SelectableText("hidden")),
+                        SelectableText("c"),
+                    ],
+                    min_width=0,
+                    select_navigation=True,
+                )
+                columns.render((20,), focus=True)
+                self.assertIsNone(columns.keypress((20,), key))
+                self.assertEqual(2, columns.focus_position)
+
+        with self.subTest("fixed layout between two equal layouts"):
+            columns = urwid.Columns([SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b")), SelectableText("c")])
+            columns.column_widths((20,), focus=True)
+            columns.get_column_sizes((), focus=True)
+            self.assertIsNone(columns.keypress((20,), "right"))
+            self.assertEqual(1, columns.focus_position)
+
         with self.subTest("focus_first_selectable"):
             columns = urwid.Columns([(urwid.PACK, SelectableText("")), SelectableText("b")], focus_column=1)
             columns.column_widths((20,), focus=True)
             self.assertTrue(columns.focus_first_selectable())
             self.assertEqual(1, columns.focus_position)
 
-        with self.subTest("contents changed after the layout"):
-            columns = urwid.Columns([(urwid.PACK, SelectableText("")), SelectableText("b")], focus_column=1)
-            columns.column_widths((20,), focus=True)
-            columns.contents.insert(0, (SelectableText("a"), columns.options()))
-            self.assertTrue(columns.focus_first_selectable())
-            self.assertEqual(0, columns.focus_position)
+        for hidden in ((urwid.PACK, SelectableText("")), (urwid.WEIGHT, 0, SelectableText(""))):
+            with self.subTest("contents changed after the layout", hidden=hidden[0]):
+                columns = urwid.Columns([hidden, SelectableText("b")], focus_column=1, min_width=0)
+                columns.column_widths((20,), focus=True)
+                columns.contents.insert(0, (SelectableText("a"), columns.options()))
+                self.assertTrue(columns.focus_first_selectable())
+                self.assertEqual(0, columns.focus_position)
 
     def test_layout_attributes_invalidate(self) -> None:
         """Setting ``dividechars`` or ``min_width`` lays the columns out again and redraws them."""
@@ -648,6 +689,25 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual([1, 1], widget.column_widths((2,)))
             widget.min_width = 2
             self.assertEqual([2], widget.column_widths((2,)))
+
+    def test_default_focus_skips_hidden_columns(self) -> None:
+        """A column that is not drawn gets the initial focus only when no other column is selectable."""
+        for hidden, min_width in (
+            ((urwid.GIVEN, 0, SelectableText("hidden")), 1),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 0),
+        ):
+            with self.subTest(hidden=hidden[0], other_selectable=True):
+                columns = urwid.Columns([hidden, SelectableText("b")], min_width=min_width)
+                self.assertEqual(1, columns.focus_position)
+            with self.subTest(hidden=hidden[0], other_selectable=False):
+                columns = urwid.Columns(
+                    [urwid.Text("a"), hidden, (*hidden[:-1], SelectableText("hidden"))],
+                    min_width=min_width,
+                )
+                self.assertEqual(1, columns.focus_position)
+        with self.subTest("weight 0 drawn min_width wide"):
+            columns = urwid.Columns([(urwid.WEIGHT, 0, SelectableText("a")), SelectableText("b")])
+            self.assertEqual(0, columns.focus_position)
 
     def test_select_reset_skips_given_zero(self) -> None:
         """The reset past the last column and ``focus_first_selectable`` skip a hidden first column."""
@@ -1280,6 +1340,14 @@ class ColumnsTest(unittest.TestCase):
             )
             columns.focus_position = 1
             self.assertEqual("left", columns.keypress((40,), "left"))
+
+        with self.subTest("All items removed, select navigation"):
+            columns = urwid.Columns(
+                [urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(slice(None)))],
+                select_navigation=True,
+            )
+            columns.focus_position = 1
+            self.assertEqual("tab", columns.keypress((40,), "tab"))
 
     def test_move_cursor_to_coords_child_changes_contents(self) -> None:
         """The focus does not move to a position the child's contents change made stale."""
