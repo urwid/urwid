@@ -19,6 +19,7 @@ from .constants import (
     simplify_height,
     simplify_valign,
 )
+from .widget import _InvalidatingAttribute
 from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
@@ -40,6 +41,13 @@ class FillerWarning(WidgetWarning):
 
 class Filler(WidgetDecoration[WrappedWidget]):
     """Box widget decoration that vertically aligns a flow or box widget within the available space."""
+
+    #: Number of blank rows above the body.
+    top = _InvalidatingAttribute[int]()
+    #: Number of blank rows below the body.
+    bottom = _InvalidatingAttribute[int]()
+    #: Minimum height of the body for a relative height, or ``None`` for no minimum.
+    min_height = _InvalidatingAttribute[int | None]()
 
     def __init__(
         self,
@@ -151,7 +159,6 @@ class Filler(WidgetDecoration[WrappedWidget]):
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
         self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)
 
-        self.min_height: int | None
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
         else:

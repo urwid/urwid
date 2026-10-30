@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import typing
 import unittest
 import warnings
 
 import urwid
 import urwid.testing
+from tests.util import assert_attribute_redraws
 
 
 class CursorWidget(urwid.Widget):
@@ -117,6 +119,23 @@ class TrimWidget(urwid.Widget):
 
 
 class FillerTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``Filler`` redraws it."""
+
+        def make_text(valign: str) -> typing.Callable[..., urwid.Filler]:
+            return lambda **kwargs: urwid.Filler(urwid.Text("ab"), valign=valign, **kwargs)
+
+        def make_relative(**kwargs: typing.Any) -> urwid.Filler:
+            return urwid.Filler(urwid.SolidFill("x"), height=("relative", 20), **kwargs)
+
+        for name, make, value in (
+            ("top", make_text("top"), 2),
+            ("bottom", make_text("bottom"), 2),
+            ("min_height", make_relative, 4),
+        ):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (2, 10), name, value)
+
     def ftest(
         self,
         desc: str,

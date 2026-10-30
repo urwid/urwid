@@ -1,11 +1,23 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
 import urwid
+from tests.util import assert_attribute_redraws
 
 
 class PaddingTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``Padding`` redraws it and updates its rows."""
+
+        def make(**kwargs: typing.Any) -> urwid.Padding:
+            return urwid.Padding(urwid.Text("ab", align="right"), width=("relative", 50), **kwargs)
+
+        for name, value in (("left", 3), ("right", 3), ("min_width", 8)):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (10,), name, value)
+
     def test_sizing(self) -> None:
         fixed_only = urwid.BigText("3", urwid.HalfBlock5x4Font())
         fixed_flow = urwid.Text("Some text", align=urwid.CENTER)

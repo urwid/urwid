@@ -19,6 +19,7 @@ from .constants import (
     simplify_align,
     simplify_width,
 )
+from .widget import _InvalidatingAttribute
 from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
@@ -40,6 +41,13 @@ class PaddingWarning(WidgetWarning):
 
 class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     """Decoration that adds blank columns to the left and/or right of a wrapped widget."""
+
+    #: Number of columns of padding on the left.
+    left = _InvalidatingAttribute[int]()
+    #: Number of columns of padding on the right.
+    right = _InvalidatingAttribute[int]()
+    #: Minimum width of the wrapped widget, or ``None`` for no minimum.
+    min_width = _InvalidatingAttribute[int | None]()
 
     def __init__(
         self,

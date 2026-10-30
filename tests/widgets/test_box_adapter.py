@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
 import urwid
+from tests.util import assert_attribute_redraws
 
 
 class StubCursorBox(urwid.SolidFill):
@@ -22,6 +24,14 @@ class StubCursorBox(urwid.SolidFill):
 
 
 class BoxAdapterTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``BoxAdapter`` redraws it and updates its rows."""
+
+        def make(**kwargs: typing.Any) -> urwid.BoxAdapter:
+            return urwid.BoxAdapter(urwid.SolidFill("x"), **{"height": 2, **kwargs})
+
+        assert_attribute_redraws(self, make, (3,), "height", 4)
+
     def test_not_a_box_widget(self) -> None:
         with self.assertRaises(urwid.widget.box_adapter.BoxAdapterError):
             urwid.BoxAdapter(urwid.Text("flow widget"), 5)

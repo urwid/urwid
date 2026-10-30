@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import typing
 import unittest
 import warnings
 
 import urwid
 import urwid.testing
 from urwid.widget import overlay as overlay_mod
+from tests.util import assert_attribute_redraws
 
 
 class NotAWidget:
@@ -36,6 +38,24 @@ class ZeroHeightFixed(urwid.Widget):
 
 
 class OverlayTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``Overlay`` redraws it."""
+
+        def maker(**base: typing.Any) -> typing.Callable[..., urwid.Overlay]:
+            options = {"align": "left", "width": 2, "valign": "top", "height": 1, **base}
+            return lambda **kwargs: urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), **{**options, **kwargs})
+
+        for name, make, value in (
+            ("left", maker(), 2),
+            ("right", maker(align="right"), 2),
+            ("top", maker(), 1),
+            ("bottom", maker(valign="bottom"), 1),
+            ("min_width", maker(width=("relative", 10)), 4),
+            ("min_height", maker(height=("relative", 25)), 3),
+        ):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (6, 4), name, value)
+
     def test_sizing_flow_fixed(self) -> None:
         top_w = urwid.Text("Flow and Fixed widget")
         bottom_w = urwid.SolidFill("#")
