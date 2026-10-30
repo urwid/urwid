@@ -6,6 +6,7 @@ import warnings
 
 import urwid
 import urwid.testing
+from urwid.command_map import Command
 from urwid.widget import overlay as overlay_mod
 from tests.util import assert_attribute_redraws
 
@@ -37,7 +38,51 @@ class ZeroHeightFixed(urwid.Widget):
         return urwid.SolidCanvas(" ", maxcol, maxrow)
 
 
+class KeyEater(urwid.SolidFill):
+    """A box widget that handles every key."""
+
+    _selectable = True
+
+    def keypress(self, size: tuple[int, int], key: str) -> None:
+        return None
+
+
 class OverlayTest(unittest.TestCase):
+    def test_menu_signal(self) -> None:
+        """A ``menu`` command key the top widget leaves unhandled is sent as ``"menu"``; ``True`` consumes it."""
+        cases = (
+            # label, top widget, key, key bound to menu, handler result (None: no handler), returned, calls
+            ("no handler", urwid.SolidFill, "esc", None, None, "esc", 0),
+            ("handler consumes", urwid.SolidFill, "esc", None, True, None, 1),
+            ("handler declines", urwid.SolidFill, "esc", None, False, "esc", 1),
+            ("top widget handles the key", KeyEater, "esc", None, True, None, 0),
+            ("other command", urwid.SolidFill, "enter", None, True, "enter", 0),
+            ("rebound key", urwid.SolidFill, "q", "q", True, None, 1),
+        )
+        for label, top_class, key, menu_key, result, returned, calls in cases:
+            with self.subTest(label):
+                overlay = urwid.Overlay(top_class("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                if menu_key is not None:
+                    overlay._command_map = overlay._command_map.copy()
+                    overlay._command_map[menu_key] = Command.MENU
+                senders: list[urwid.Overlay] = []
+                if result is not None:
+                    urwid.connect_signal(overlay, "menu", lambda sender: senders.append(sender) or result)  # noqa: B023
+
+                self.assertEqual(returned, overlay.keypress((6, 3), key))
+                self.assertEqual([overlay] * calls, senders)
+
+        for inner_result, outer_calls in ((False, 1), (True, 0)):
+            with self.subTest("nested", inner_consumes=inner_result):
+                inner = urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                outer = urwid.Overlay(inner, urwid.SolidFill(":"), "left", 4, "top", 2)
+                order: list[str] = []
+                urwid.connect_signal(inner, "menu", lambda _sender: order.append("inner") or inner_result)  # noqa: B023
+                urwid.connect_signal(outer, "menu", lambda _sender: order.append("outer") or True)
+
+                self.assertIsNone(outer.keypress((6, 3), "esc"))
+                self.assertEqual(["inner"] + ["outer"] * outer_calls, order)
+
     def test_layout_attributes_invalidate(self) -> None:
         """Setting a layout attribute of a rendered ``Overlay`` redraws it."""
 

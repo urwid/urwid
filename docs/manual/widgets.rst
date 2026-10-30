@@ -612,6 +612,9 @@ This widget can be used to create effects such as overlapping "windows" or pop-u
 
 The Overlay widget always treats the top widget as the one in focus.
 All keyboard input will be passed to the top widget.
+When the top widget leaves a key for the ``menu`` command (:kbd:`esc` by default) unhandled,
+the Overlay sends its ``"menu"`` signal with itself as the argument.
+A handler that returns ``True`` consumes the key, which makes it the place to close a dialog on :kbd:`esc`.
 
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.

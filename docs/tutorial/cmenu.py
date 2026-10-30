@@ -84,7 +84,7 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         self.open_box(box)
 
     def open_box(self, box: urwid.Widget) -> None:
-        self.original_widget = urwid.Overlay(
+        overlay = urwid.Overlay(
             urwid.LineBox(box),
             self.original_widget,
             align=urwid.CENTER,
@@ -98,15 +98,15 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
             top=self.box_level * 2,
             bottom=(self.max_box_levels - self.box_level - 1) * 2,
         )
+        if self.box_level > 0:
+            urwid.connect_signal(overlay, "menu", self.close_box)
+        self.original_widget = overlay
         self.box_level += 1
 
-    def keypress(self, size: tuple[int, int], key: str) -> str | None:
-        if key == "esc" and self.box_level > 1:
-            self.original_widget = self.original_widget[0]
-            self.box_level -= 1
-            return None
-
-        return super().keypress(size, key)
+    def close_box(self, overlay: urwid.Overlay[urwid.Widget, urwid.Widget]) -> bool:
+        self.original_widget = overlay.bottom_w
+        self.box_level -= 1
+        return True
 
 
 top = CascadingBoxes(menu_top)
