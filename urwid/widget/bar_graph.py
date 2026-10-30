@@ -622,16 +622,12 @@ def calculate_bargraph_display(
         # Patch the runs of the previous distinct row ("last") with the segments
         # starting on this row.  The segments in r are sorted by column and do not
         # overlap, so this is a straight interval patch of a tiled run list.
-        # Emitting a run merges it with the previous output run when the types match.
+        # The emitted pieces are merged into the previous output run when the
+        # types match; the merge is done inline (no per-run function call) so
+        # the hot loop stays as cheap as the original implementation.
         o: list[tuple[int, int]] = []
-
-        def emit(bar_type: int, width: int) -> None:
-            if width <= 0:
-                return
-            if o and o[-1][0] == bar_type:
-                o[-1] = (bar_type, o[-1][1] + width)
-            else:
-                o.append((bar_type, width))
+        o_a = -1  # type of the output run being accumulated (-1 = none yet)
+        o_n = 0
 
         i = 0  # index into "last"
         c = 0  # column the pending run starts at
@@ -639,7 +635,13 @@ def calculate_bargraph_display(
         for seg_num, start, end in r:
             # flush pending runs that end at or before the segment
             while c + pend_n <= start:
-                emit(pend_a, pend_n)
+                if pend_n:
+                    if pend_a == o_a:
+                        o_n += pend_n
+                    else:
+                        if o_n:
+                            o.append((o_a, o_n))
+                        o_a, o_n = pend_a, pend_n
                 i += 1
                 c += pend_n
                 pend_a, pend_n = last[i]
@@ -647,10 +649,26 @@ def calculate_bargraph_display(
             # the pending run overlaps the segment: keep its part left of the
             # segment (merged into the emitted segment when the types match)
             if pend_a == seg_num:
-                emit(seg_num, end - c)
+                if seg_num == o_a:
+                    o_n += end - c
+                else:
+                    if o_n:
+                        o.append((o_a, o_n))
+                    o_a, o_n = seg_num, end - c
             else:
-                emit(pend_a, start - c)
-                emit(seg_num, end - start)
+                if start > c:
+                    if pend_a == o_a:
+                        o_n += start - c
+                    else:
+                        if o_n:
+                            o.append((o_a, o_n))
+                        o_a, o_n = pend_a, start - c
+                if seg_num == o_a:
+                    o_n += end - start
+                else:
+                    if o_n:
+                        o.append((o_a, o_n))
+                    o_a, o_n = seg_num, end - start
 
             # consume the part of the pending runs covered by the segment
             while c + pend_n <= end:
@@ -665,12 +683,21 @@ def calculate_bargraph_display(
                 pend_n -= end - c
                 c = end
 
-        # flush the runs that continue from the previous row
-        while i < len(last):
-            emit(pend_a, pend_n)
-            i += 1
-            if i < len(last):
-                pend_a, pend_n = last[i]
+        # flush the runs that continue from the previous row.  The pending run
+        # still has positive width here; the rest continue unchanged in bulk
+        # (they alternate types with it, so no merge is needed at the boundary).
+        if i < len(last):
+            if pend_a == o_a:
+                o_n += pend_n
+            else:
+                if o_n:
+                    o.append((o_a, o_n))
+                o_n = pend_n
+            o.append((pend_a, o_n))
+            if i + 1 < len(last):
+                o.extend(last[i + 1 :])
+        elif o_n:
+            o.append((o_a, o_n))
         last = o
         y_count += 1
 
