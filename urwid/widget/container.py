@@ -223,8 +223,7 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
         """Index of child widget in focus."""
 
 
-# A mixin adds one public property to the containers that inherit it.
-class _UnfocusedFocusAttrMixin:  # pylint: disable=too-few-public-methods
+class _UnfocusedFocusAttrMixin:
     """Mixin for containers that keep their focus child marked while they render without focus."""
 
     _unfocused_focus_attr: dict[Hashable, Hashable] | None
