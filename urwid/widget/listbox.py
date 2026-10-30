@@ -108,6 +108,18 @@ def _snap_offset_inset(
     return offset_inset
 
 
+def _pref_col_of(widget: AbstractFlowWidget, maxcol: int) -> int | str | None:
+    """Return the preferred cursor column of *widget*, or ``None`` when it has none."""
+    pref_col = None
+    if hasattr(widget, "get_pref_col"):
+        pref_col = widget.get_pref_col((maxcol,))
+    if pref_col is None and hasattr(widget, "get_cursor_coords"):
+        coords = widget.get_cursor_coords((maxcol,))
+        if isinstance(coords, tuple):
+            pref_col, _y = coords
+    return pref_col
+
+
 class VisibleInfoMiddle(typing.NamedTuple):
     """Named tuple for ListBox internals."""
 
@@ -397,9 +409,34 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         focus_widget, focus_pos = self._body.get_focus()
         if focus_widget is None:  # list box is empty?
             return None, None, None
-        top_pos = focus_pos
 
-        offset_rows, inset_rows = self.get_focus_offset_inset((maxcol, maxrow))
+        return self._calculate_visible_around(
+            (maxcol, maxrow),
+            focus,
+            (focus_widget, focus_pos),
+            self.get_focus_offset_inset((maxcol, maxrow)),
+        )
+
+    def _calculate_visible_around(
+        self,
+        size: tuple[int, int],
+        focus: bool,
+        focus_at: tuple[AbstractFlowWidget, typing.Any],
+        offset_inset: tuple[int, int],
+    ) -> VisibleInfo:
+        """Return what :meth:`calculate_visible` returns, laid out around the widget and position in *focus_at*.
+
+        The body's focus is neither read nor moved, so the layout around a position other than the focus has no
+        side effect on the body.
+
+        :param focus_at: the widget to lay out as the focus, and its position in the body.
+        :param offset_inset: rows between the top of the list box and the start of that widget,
+            and rows of that widget hidden above the top of the list box.
+        """
+        (maxcol, maxrow) = size
+        focus_widget, focus_pos = focus_at
+        offset_rows, inset_rows = offset_inset
+
         #    force at least one line of focus to be visible
         if maxrow and offset_rows >= maxrow:
             offset_rows = maxrow - 1
@@ -986,6 +1023,28 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
                 return
             new_row_offset += rows
 
+    def _body_widget_at(self, position: typing.Any) -> AbstractFlowWidget | None:
+        """Return the body's widget at *position* without moving the body's focus.
+
+        It steps from a neighbour back to *position* with ``get_prev()`` and ``get_next()``.
+        A body that has no ``__getitem__`` supports that too.
+
+        :returns: the widget, or ``None`` when *position* is no longer in the body.
+        """
+        try:
+            prev_widget, prev_pos = self._body.get_prev(position)
+            if prev_widget is not None:
+                widget, pos = self._body.get_next(prev_pos)
+            else:
+                next_widget, next_pos = self._body.get_next(position)
+                if next_widget is None:
+                    return None
+                widget, pos = self._body.get_prev(next_pos)
+        except (IndexError, KeyError):
+            # A body may reject a position it no longer holds instead of reporting no neighbour.
+            return None
+        return widget if pos == position else None
+
     def _set_focus_complete(self, size: tuple[int, int], focus: bool) -> None:
         """Finish setting the position now that we have maxcol & maxrow.
 
@@ -1004,55 +1063,61 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         self.set_focus_pending = None
 
         # new position
-        _new_focus_widget, position = self._body.get_focus()
-        if focus_pos == position:
-            # do nothing
+        new_focus_widget, position = self._body.get_focus()
+        if focus_pos == position or new_focus_widget is None:
+            # nothing moved, or the body was emptied after ListBox.set_focus()
             return None
 
         if not hasattr(self._body, "set_focus"):
             raise TypeError(f"{type(self._body)}.set_focus is not implemented.")
 
-        # restore old focus temporarily
-        try:
-            self._body.set_focus(focus_pos)
-        except (IndexError, KeyError):
-            # A focus that did move means a "modified" signal callback raised, not that the position is gone.
-            if self._body.get_focus()[1] != position:
-                raise
-            # The body lost the old focus position after ListBox.set_focus().
-            # The walker still focuses the new position, and the placement below starts from it.
+        # The old focus is laid out where it is, without moving the body's focus back to it,
+        # so the body reports the single move ListBox.set_focus() made.
+        old_widget = self._body_widget_at(focus_pos)
+        if old_widget is not None:
+            visible = self._calculate_visible_around(
+                (maxcol, maxrow),
+                focus,
+                (old_widget, focus_pos),
+                self._offset_inset_of(old_widget, maxcol),
+            )
 
-        middle, top, bottom = self.calculate_visible((maxcol, maxrow), focus)
-        if middle is None or top is None or bottom is None:
-            return None
+            # The new focus among the rows around the old one: (widget, position, offset, side the old focus is on).
+            found: tuple[AbstractFlowWidget, typing.Any, int, Literal["above", "below"]] | None = None
+            offset = visible.middle.offset
+            for row_widget, pos, rows in visible.top.fill:
+                offset -= rows
+                if pos == position:
+                    found = row_widget, pos, offset, "below"
+                    break
+            if found is None:
+                offset = visible.middle.offset + visible.middle.focus_rows
+                for row_widget, pos, rows in visible.bottom.fill:
+                    if pos == position:
+                        found = row_widget, pos, offset, "above"
+                        break
+                    offset += rows
 
-        focus_offset, _focus_widget, focus_pos, focus_rows, _cursor = middle  # pylint: disable=unpacking-non-sequence
-        _trim_top, fill_above = top  # pylint: disable=unpacking-non-sequence
-        _trim_bottom, fill_below = bottom  # pylint: disable=unpacking-non-sequence
-
-        offset = focus_offset
-        for _widget, pos, rows in fill_above:
-            offset -= rows
-            if pos == position:
+            if found is not None:
+                target, pos, offset, side = found
                 # An undirected focus change must preserve the target's cursor and nested focus.
-                if coming_from is None and _widget.selectable():
-                    offset = _snap_offset_inset(offset, _widget.rows((maxcol,), True), maxrow, "below", maxrow - 1)
-                self.change_focus((maxcol, maxrow), pos, offset, "below" if coming_from is not None else None)
+                if coming_from is None and target.selectable():
+                    offset = _snap_offset_inset(offset, target.rows((maxcol,), True), maxrow, side, maxrow - 1)
+                # change_focus() reads the preferred column from the body's focus, which is the new focus already:
+                # hand it the old focus's column, and keep that column when the move is undirected.
+                old_pref_col = _pref_col_of(old_widget, maxcol)
+                pref_col = self.pref_col if old_pref_col is None else old_pref_col
+                if coming_from is None:
+                    self.change_focus((maxcol, maxrow), pos, offset)
+                    self.pref_col = pref_col
+                else:
+                    self.change_focus((maxcol, maxrow), pos, offset, side, (pref_col,))
                 return None
 
-        offset = focus_offset + focus_rows
-        for _widget, pos, rows in fill_below:
-            if pos == position:
-                if coming_from is None and _widget.selectable():
-                    offset = _snap_offset_inset(offset, _widget.rows((maxcol,), True), maxrow, "above", maxrow - 1)
-                self.change_focus((maxcol, maxrow), pos, offset, "above" if coming_from is not None else None)
-                return None
-            offset += rows
-
-        # failed to find widget among visible widgets
-        self._body.set_focus(position)
+        # The new focus is not visible from the old one, or the body lost the old focus position
+        # after ListBox.set_focus().
         widget, position = self._body.get_focus()
-        # focus was just set to `position`, so the walker has a focus widget
+        # the body focuses the new position, so it has a focus widget
         rows = typing.cast("AbstractFlowWidget", widget).rows((maxcol,), focus)
 
         if coming_from == "below":
@@ -1105,13 +1170,7 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         if widget is None:
             return
 
-        pref_col = None
-        if hasattr(widget, "get_pref_col"):
-            pref_col = widget.get_pref_col((maxcol,))
-        if pref_col is None and hasattr(widget, "get_cursor_coords"):
-            coords = widget.get_cursor_coords((maxcol,))
-            if isinstance(coords, tuple):
-                pref_col, _y = coords
+        pref_col = _pref_col_of(widget, maxcol)
         if pref_col is not None:
             self.pref_col = pref_col
 
@@ -1229,7 +1288,14 @@ class ListBox(Widget, SelectNavigationMixin[_K]):
         """
         (maxcol, _maxrow) = size
         focus_widget, _pos = self._body.get_focus()
-        focus_rows = typing.cast("AbstractFlowWidget", focus_widget).rows((maxcol,), True)
+        return self._offset_inset_of(typing.cast("AbstractFlowWidget", focus_widget), maxcol)
+
+    def _offset_inset_of(self, focus_widget: AbstractFlowWidget, maxcol: int) -> tuple[int, int]:
+        """Return (offset rows, inset rows) for *focus_widget* placed where the focus is.
+
+        :raises ListBoxError: the stored inset fraction is invalid or exceeds the rows of *focus_widget*.
+        """
+        focus_rows = focus_widget.rows((maxcol,), True)
         offset_rows = self.offset_rows
         inset_rows = 0
         if offset_rows == 0:
