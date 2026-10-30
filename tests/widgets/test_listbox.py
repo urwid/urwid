@@ -2951,6 +2951,30 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
         walker._widgets = []
         lbox.render((4, 5), focus=True)  # must not raise
 
+    def test_completion_reports_one_focus_move(self) -> None:
+        """Completing a ``set_focus()`` on the next render does not move the body's focus back and forth."""
+        cases = (
+            ("visible below", 0, 3, None),
+            ("visible above", 25, 23, None),
+            ("not visible", 0, 20, None),
+            ("coming from above", 0, 3, "above"),
+            ("coming from below", 25, 23, "below"),
+        )
+        for label, start, target, coming_from in cases:
+            with self.subTest(label):
+                walker = urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(50)])
+                lbox = urwid.ListBox(walker)
+                lbox.focus_position = start
+                lbox.render((10, 5), focus=True)
+                moves: list[tuple[int | None, int | None]] = []
+                walker.set_focus_moved_callback(lambda old, new: moves.append((old, new)))  # noqa: B023
+
+                lbox.set_focus(target, coming_from)
+                lbox.render((10, 5), focus=True)
+
+                self.assertEqual([(start, target)], moves)
+                self.assertEqual(target, lbox.focus_position)
+
     def test_body_emptied_before_render(self) -> None:
         """A focus change pending on a body emptied before the render leaves a blank canvas."""
         walker = urwid.SimpleListWalker([SelectableText("a"), SelectableText("b")])
@@ -2978,20 +3002,63 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
                 self.assertEqual(5, lbox.focus_position)
                 self.assertEqual([b"5   ", b"6   ", b"7   ", b"8   ", b"9   "], canvas.text)
 
-    def test_modified_callback_error_while_restoring_propagates(self) -> None:
-        """An error a "modified" signal callback raises while the old focus is restored is not swallowed."""
+    def test_body_rejecting_the_lost_old_focus(self) -> None:
+        """A body raising ``KeyError`` for the removed old focus position places the new focus by ``coming_from``."""
+
+        class KeyedWalker(urwid.ListWalker):
+            def __init__(self, keys: str) -> None:
+                self.keys = list(keys)
+                self.focus = self.keys[0]
+
+            def _index(self, key: str) -> int:
+                if key not in self.keys:
+                    raise KeyError(key)
+                return self.keys.index(key)
+
+            def get_focus(self) -> tuple[urwid.Widget, str]:
+                return SelectableText(self.focus), self.focus
+
+            def set_focus(self, key: str) -> None:
+                self._index(key)
+                self.focus = key
+                self._modified()
+
+            def get_next(self, key: str) -> tuple[urwid.Widget, str] | tuple[None, None]:
+                index = self._index(key) + 1
+                if index == len(self.keys):
+                    return None, None
+                return SelectableText(self.keys[index]), self.keys[index]
+
+            def get_prev(self, key: str) -> tuple[urwid.Widget, str] | tuple[None, None]:
+                index = self._index(key) - 1
+                if index < 0:
+                    return None, None
+                return SelectableText(self.keys[index]), self.keys[index]
+
+        walker = KeyedWalker("abcdefgh")
+        lbox = urwid.ListBox(walker)
+        lbox.render((4, 4), focus=True)
+        lbox.set_focus("c", coming_from="above")
+        walker.keys.remove("a")
+
+        canvas = lbox.render((4, 4), focus=True)
+
+        self.assertEqual("c", lbox.focus_position)
+        self.assertEqual([b"b   ", b"c   ", b"d   ", b"e   "], canvas.text)
+
+    def test_completion_does_not_signal_the_old_focus(self) -> None:
+        """A "modified" signal handler never sees the old focus while a ``set_focus()`` is completed."""
         walker = urwid.SimpleListWalker([SelectableText(str(i)) for i in range(3)])
         lbox = urwid.ListBox(walker)
         lbox.render((4, 5), focus=True)
         lbox.set_focus(2)
+        seen: list[int] = []
+        urwid.connect_signal(walker, "modified", lambda: seen.append(walker.focus))
 
-        def reject_first_row() -> None:
-            if walker.focus == 0:
-                raise KeyError(0)
+        lbox.render((4, 5), focus=True)
 
-        urwid.connect_signal(walker, "modified", reject_first_row)
-        with self.assertRaises(KeyError):
-            lbox.render((4, 5), focus=True)
+        self.assertNotIn(0, seen)
+        self.assertEqual(2, lbox.focus_position)
 
     def test_coming_from_scroll_down_then_up(self):
         items = [urwid.Text(str(i)) for i in range(20)]
