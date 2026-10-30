@@ -204,15 +204,9 @@ class PileTest(unittest.TestCase):
                 self.assertIsNone(pile.get_cursor_coords((20, 5)))
                 self.assertEqual("x", pile.keypress((20, 5), "x"))
                 self.assertEqual("hidden", hidden.edit_text)
+                self.assertEqual(0, pile.focus_position)
                 self.assertIsNone(pile.keypress((20, 5), "down"))
                 self.assertEqual(1, pile.focus_position)
-
-    def test_hidden_focus_key_is_unhandled(self) -> None:
-        hidden = urwid.Edit("", "hidden")
-        pile = urwid.Pile([(0, urwid.Filler(hidden)), (urwid.PACK, urwid.Edit())], focus_item=0)
-        self.assertEqual("x", pile.keypress((20, 5), "x"))
-        self.assertEqual("hidden", hidden.edit_text)
-        self.assertEqual(0, pile.focus_position)
 
     def test_default_focus_skips_given_zero(self) -> None:
         for item in ((0, urwid.Filler(urwid.Edit())), (urwid.GIVEN, 0, urwid.Filler(urwid.Edit()))):
