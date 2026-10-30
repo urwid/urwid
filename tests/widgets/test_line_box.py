@@ -74,6 +74,22 @@ class LineBoxTest(unittest.TestCase):
             [line.decode("utf-8") for line in l.render(()).text],
         )
 
+    def test_long_title_is_cut(self) -> None:
+        """A title wider than the top line is cut with an ellipsis between the corners, for every alignment."""
+        expected = ["┌ a very…┐", "│x       │", "└────────┘"]
+        for align in (urwid.LEFT, urwid.CENTER, urwid.RIGHT):
+            with self.subTest(align=align):
+                box = urwid.LineBox(urwid.Text("x"), title="a very long title here", title_align=align)
+                self.assertEqual(3, box.rows((10,)))
+                self.assertEqual(expected, [line.decode("utf-8") for line in box.render((10,)).text])
+                self.assertEqual(expected, [line.decode("utf-8") for line in box.render((10, 3)).text])
+
+            with self.subTest("set_title", align=align):
+                box = urwid.LineBox(urwid.Text("x"), title="ab", title_align=align)
+                box.render((10,))
+                box.set_title("a very long title here")
+                self.assertEqual(expected, [line.decode("utf-8") for line in box.render((10,)).text])
+
     def test_title_markup(self) -> None:
         box = urwid.LineBox(urwid.Text("Some text"), title=[("key", "F1"), " Help"])
         self.assertEqual(
@@ -280,7 +296,7 @@ class LineBoxTest(unittest.TestCase):
 
         self.assertEqual((6, 3), box.pack(()))
         self.assertEqual(
-            ["┌────┐", "│body│", "└────┘"],
+            ["┌ Ti…┐", "│body│", "└────┘"],
             [line.decode("utf-8") for line in box.render(()).text],
         )
         self.assertEqual(
