@@ -59,8 +59,8 @@ class AttrMap(
     def __init__(
         self,
         w: WrappedWidget,
-        attr_map: Hashable | Mapping[Hashable, Hashable],
-        focus_map: Hashable | Mapping[Hashable, Hashable] = None,
+        attr_map: _AttrMapLike,
+        focus_map: _AttrMapLike = None,
     ) -> None:
         """
         :param w: widget to wrap (stored as self.original_widget)
@@ -113,7 +113,7 @@ class AttrMap(
         # FIXME: a dictionary that detects modifications would be better
         return self._attr_map.copy()
 
-    def set_attr_map(self, attr_map: Hashable | Mapping[Hashable, Hashable]) -> None:
+    def set_attr_map(self, attr_map: _AttrMapLike) -> None:
         """
         Set the attribute mapping dictionary {from_attr: to_attr, ...}.
 
@@ -143,7 +143,7 @@ class AttrMap(
             return dict(self._focus_map)
         return None
 
-    def set_focus_map(self, focus_map: Hashable | Mapping[Hashable, Hashable] | None) -> None:
+    def set_focus_map(self, focus_map: _AttrMapLike | None) -> None:
         """Set the focus attribute mapping dictionary {from_attr: to_attr, ...}.
 
         If None this widget will use the attr mapping instead (no change

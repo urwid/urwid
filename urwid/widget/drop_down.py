@@ -37,11 +37,12 @@ from .text import Text
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterable, Mapping
+    from collections.abc import Callable, Iterable
 
     from urwid.canvas import Canvas, CompositeCanvas
     from urwid.util import _TagMarkup
 
+    from .attr_map import _AttrMapLike
     from .popup import PopUpParametersModel
 
 
@@ -112,8 +113,8 @@ class DropDown(PopUpLauncher[Columns]):
         *,
         selected: int = 0,
         max_visible_items: int = 10,
-        attr_map: Hashable | Mapping[Hashable, Hashable] = None,
-        focus_map: Hashable | Mapping[Hashable, Hashable] = None,
+        attr_map: _AttrMapLike = None,
+        focus_map: _AttrMapLike = None,
     ) -> None:
         """Create a drop-down over `options`, with the option at index `selected` shown.
 
