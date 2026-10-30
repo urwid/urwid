@@ -215,6 +215,26 @@ GridFlow
 
 .. autoclass:: GridFlow
 
+Table
+~~~~~
+
+.. autoclass:: Table
+
+TableRow
+~~~~~~~~
+
+.. autoclass:: TableRow
+
+TableColumn
+~~~~~~~~~~~
+
+.. autoclass:: TableColumn
+
+TableLayout
+~~~~~~~~~~~
+
+.. autoclass:: urwid.widget.TableLayout
+
 BoxAdapter
 ~~~~~~~~~~
 

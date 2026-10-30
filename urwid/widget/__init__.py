@@ -52,6 +52,7 @@ from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
 from .scrollable import Scrollable, ScrollableError, ScrollBar
 from .solid_fill import SolidFill
+from .table import Table, TableColumn, TableError, TableLayout, TableRow
 from .text import Text, TextError
 from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from .widget import (
@@ -162,6 +163,11 @@ __all__ = (
     "SimpleListWalker",
     "Sizing",
     "SolidFill",
+    "Table",
+    "TableColumn",
+    "TableError",
+    "TableLayout",
+    "TableRow",
     "Text",
     "TextError",
     "TreeListBox",

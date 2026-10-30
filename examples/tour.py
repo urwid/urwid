@@ -173,6 +173,23 @@ def main() -> None:
     text_button_list = ["Yes", "No", "Perhaps", "Certainly", "Partially", "Tuesdays Only", "Help"]
     text_cb_list = ["Wax", "Wash", "Buff", "Clear Coat", "Dry", "Racing Stripe"]
     text_rb_list = ["Morning", "Afternoon", "Evening", "Weekend"]
+    text_table: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "Table"),
+        (
+            " widget lines up rows of cells under a fixed header: every column is as wide as its widest cell, "
+            "a number, or a share of the rest.  This one shows at most four rows at a time, with a scrollbar "
+            "while they do not all fit, and keeps the focused row marked while the focus is elsewhere."
+        ),
+    ]
+    table_rows = [
+        ("urwid", "1.2M", "console user interface library"),
+        ("table.py", "34K", "the widget shown here"),
+        ("tour.py", "18K", "this program"),
+        ("palette", "1", "a single entry"),
+        ("canvas.py", "52K", "what widgets render to"),
+        ("\u4e2d\u6587", "2", "wide characters line up too"),
+    ]
     text_drop_down: list[str | tuple[str, str]] = [
         "A ",
         ("important", "DropDown"),
@@ -415,6 +432,28 @@ def main() -> None:
             left=4,
             right=3,
             min_width=13,
+        ),
+        blank,
+        blank,
+        urwid.Padding(urwid.Text(text_table), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Table(
+                [
+                    urwid.TableColumn("Name"),
+                    urwid.TableColumn("Size", align=urwid.RIGHT),
+                    urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+                ],
+                table_rows,
+                header_attr="important",
+                focus_attr="buttnf",
+                unfocused_focus_attr="buttnl",
+                max_rows=4,
+                scrollbar=None,
+            ),
+            left=4,
+            right=3,
+            min_width=20,
         ),
         blank,
         blank,
