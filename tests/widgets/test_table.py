@@ -262,6 +262,46 @@ class TableLayoutTest(unittest.TestCase):
         self.assertEqual(["a         x", "b         y"], render_text(pile, (11,)))
         self.assertIsNotNone(off_screen)
 
+    def test_shared_table_text_updates_all_columns(self) -> None:
+        """A generated text cell reused in another column keeps both widths current."""
+        layout = TableLayout([Column(), Column()])
+        first = layout.row(["a", "x"])
+        second = layout.row([first.cells[0], first.cells[0]])
+        pile = urwid.Pile([first, second])
+        self.assertEqual(["a x", "a a"], render_text(pile, (3,)))
+        typing.cast("urwid.Text", first.cells[0]).set_text("wide")
+        self.assertEqual((4, 4), layout.widths(9))
+        self.assertEqual(["wide x   ", "wide wide"], render_text(pile, (9,)))
+        typing.cast("urwid.Text", first.cells[0]).set_text("a")
+        self.assertEqual((1, 1), layout.widths(3))
+        self.assertEqual(["a x", "a a"], render_text(pile, (3,)))
+
+    def test_shared_table_text_survives_removed_row(self) -> None:
+        """Removing and collecting a borrowing row does not steal the original cell's updates."""
+        table = urwid.Table([Column()], [["a"]], header=False)
+        original = table.body[0]
+        borrowed = table.layout.row([original.cells[0]])
+        table.body.append(borrowed)
+        self.assertEqual(["a         ", "a         "], render_text(table, (10, 2)))
+        table.body.pop()
+        del borrowed
+        gc.collect()
+        typing.cast("urwid.Text", original.cells[0]).set_text("long text")
+        self.assertEqual((9,), table.layout.widths(10))
+        self.assertEqual(["long text "], render_text(table, (10, 1)))
+
+    def test_shared_table_text_updates_other_layout(self) -> None:
+        """Reusing a generated cell in another layout updates each independent maximum."""
+        layout = TableLayout([Column()])
+        first = layout.row(["a"])
+        other = TableLayout([Column()])
+        second = other.row([first.cells[0]])
+        typing.cast("urwid.Text", first.cells[0]).set_text("wide")
+        self.assertEqual((4,), layout.widths(10))
+        self.assertEqual((4,), other.widths(10))
+        self.assertEqual(["wide"], render_text(first, (4,)))
+        self.assertEqual(["wide"], render_text(second, (4,)))
+
     def test_caller_widget_needs_invalidate_widths(self) -> None:
         """A caller's text widget changed in place keeps the old width until invalidate_widths()."""
         layout = TableLayout([Column(), Column()])

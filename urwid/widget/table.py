@@ -87,13 +87,12 @@ class _TableText(Text):
     """Text cell made by a layout from text markup; changing its text re-measures its column."""
 
     def __init__(self, markup: _TagMarkup, align: Align, wrap: WrapMode) -> None:
-        self._row: weakref.ref[TableRow] | None = None
+        self._rows: weakref.WeakSet[TableRow] = weakref.WeakSet()
         super().__init__(markup, align, wrap)
 
     def _invalidate(self) -> None:
         super()._invalidate()
-        row = None if self._row is None else self._row()
-        if row is not None:
+        for row in list(self._rows):
             row._cell_changed(self)
 
 
@@ -535,7 +534,7 @@ class TableRow(WidgetWrap[_TableColumns]):
         self._measure()
         for cell in self._cells:
             if isinstance(cell, _TableText):
-                cell._row = weakref.ref(self)
+                cell._rows.add(self)
         layout._register(self)
 
     @property
@@ -631,14 +630,16 @@ class TableRow(WidgetWrap[_TableColumns]):
         """Measure *cell* again after its text changed, and update its column when the row is registered."""
         if self._span:
             return
-        index = next(index for index, own in enumerate(self._cells) if own is cell)
-        old = self._cell_widths[index]
         new = cell.pack((), False)[0]
-        if new == old:
-            return
-        self._cell_widths = (*self._cell_widths[:index], new, *self._cell_widths[index + 1 :])
-        if self._registered:
-            self._layout._cell_width_changed(index, old, new)
+        for index, own in enumerate(self._cells):
+            if own is not cell:
+                continue
+            old = self._cell_widths[index]
+            if new == old:
+                continue
+            self._cell_widths = (*self._cell_widths[:index], new, *self._cell_widths[index + 1 :])
+            if self._registered:
+                self._layout._cell_width_changed(index, old, new)
 
 
 # set_modified_callback raises by design, as in SimpleFocusListWalker
