@@ -23,7 +23,7 @@ from .text import Text, TextError
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterator, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterator, Mapping, MutableSequence, Sequence
     from typing import Literal
 
     from urwid.canvas import TextCanvas
@@ -135,6 +135,7 @@ class Edit(WidgetWrap[Text]):
         validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
         text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
         undo_limit: int = 0,
+        kill_buffer: MutableSequence[str | bytes] | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -160,6 +161,8 @@ class Edit(WidgetWrap[Text]):
         :param text_completer: called with :attr:`edit_text` and :attr:`edit_pos` for completions,
             see :attr:`text_completer`
         :param undo_limit: the number of changes :meth:`undo` can take back, see :attr:`undo_limit`
+        :param kill_buffer: list that the word and line delete commands put the deleted text into,
+            see :attr:`kill_buffer`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
             *undo_limit* is negative.
         :raises TagMarkupException: *placeholder* is not valid text markup.
@@ -230,6 +233,11 @@ class Edit(WidgetWrap[Text]):
         # (kind, text, position) after the last undo step, which a key of the same kind from there continues
         self._undo_run: tuple[str, str | bytes, int] | None = None
         self.undo_limit = undo_limit
+        self._kill_buffer = kill_buffer
+        # (length of the kill buffer, entry) after the last kill, while the next kill joins that entry
+        self._kill_last: tuple[int, str | bytes] | None = None
+        # True when the key in the editing transaction killed text, so that the chain of kills goes on
+        self._kill_now = False
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -254,6 +262,103 @@ class Edit(WidgetWrap[Text]):
         if max_length is not None and len(self._edit_text) > max_length:
             raise ValueError(f"max_length {max_length} is shorter than the text of length {len(self._edit_text)}")
         self._max_length = max_length
+
+    @property
+    def kill_buffer(self) -> MutableSequence[str | bytes] | None:
+        """The list that the readline word and line delete commands put the deleted text into, or ``None`` for none.
+
+        The application creates the list, and several edits may share it.
+        Deleted text joins the newest entry while the deletes follow one another in this edit, as in readline:
+        text deleted forward is appended to it, text deleted backward is put before it.
+        Any other key, a mouse event, a change from elsewhere, or a change of the list made by someone else
+        starts a new entry.
+        A masked edit puts nothing into the list.
+        :kbd:`backspace`, :kbd:`delete` and ``'delete char right'`` delete without putting the text into the list.
+
+        The ``'yank'`` command, which no key is mapped to by default, inserts the newest entry at the cursor.
+        The entry is not inserted, and the key is returned, when the keys of this edit could not type the result:
+        a newline in an edit without :attr:`multiline`, a letter in an :class:`IntEdit`, text that makes
+        :attr:`edit_text` longer than :attr:`max_length`.
+
+        >>> from urwid import CommandMap
+        >>> class ReadlineEdit(Edit):
+        ...     _command_map = CommandMap()
+        ...     _command_map.bind_readline()
+        >>> kills = []
+        >>> e = ReadlineEdit("", "one two three", kill_buffer=kills)
+        >>> e.keypress((20,), "ctrl w")
+        >>> e.keypress((20,), "ctrl w")
+        >>> kills
+        ['two three']
+        >>> e.keypress((20,), "ctrl y")
+        >>> print(e.edit_text)
+        one two three
+        """
+        return self._kill_buffer
+
+    @kill_buffer.setter
+    def kill_buffer(self, kill_buffer: MutableSequence[str | bytes] | None) -> None:
+        self._kill_buffer = kill_buffer
+        self._kill_last = None
+
+    def _kill(self, text: str | bytes, *, forward: bool) -> None:
+        """Put *text*, which a delete command removed, into :attr:`kill_buffer`.
+
+        It joins the entry of the previous kill when that entry is still the newest one this edit put in.
+        """
+        buffer = self._kill_buffer
+        if buffer is None or self._mask is not None:
+            return
+        last = self._kill_last
+        if last is not None and len(buffer) == last[0] and buffer[-1] is last[1]:
+            entry = last[1] + text if forward else text + last[1]  # type: ignore[operator]  # one edit, one type
+            buffer[-1] = entry
+        else:
+            entry = text
+            buffer.append(entry)
+        self._kill_last = (len(buffer), entry)
+        self._kill_now = True
+
+    def _yank(self) -> bool:
+        """Insert the newest entry of :attr:`kill_buffer` at the cursor, unless the keys could not type the result.
+
+        :returns: whether the entry was inserted.
+        """
+        if not self._kill_buffer:
+            return False
+        try:
+            text = self._normalize_to_caption(self._kill_buffer[-1])
+        except UnicodeError:
+            return False
+        result_text, _result_pos = self.insert_text_result(text)  # type: ignore[arg-type]  # normalised to the caption
+        if self._max_length is not None and len(result_text) > self._max_length:
+            return False
+        if not self._valid_insert(text, result_text):
+            return False
+        self.insert_text(text)  # type: ignore[arg-type]  # normalised to the caption
+        return True
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether keys could have typed *text*, which leaves *result_text*.
+
+        Each character of *text* passes :meth:`valid_char`, or is a newline with :attr:`multiline`,
+        or a tab with :attr:`allow_tab`.
+        A multibyte character of a byte string passes.
+        A subclass whose keys refuse some texts as a whole judges *result_text* as well.
+        """
+        pos = 0
+        while pos < len(text):
+            next_pos = pos + 1 if isinstance(text, str) else move_next_char(text, pos, len(text))
+            char = text[pos:next_pos]
+            if not (
+                (len(char) > 1 and isinstance(char, bytes))
+                or self.valid_char(char)  # type: ignore[arg-type]  # valid_char() takes bytes too
+                or (char in {"\n", b"\n"} and self.multiline)
+                or (char in {"\t", b"\t"} and self.allow_tab)
+            ):
+                return False
+            pos = next_pos
+        return True
 
     @property
     def undo_limit(self) -> int:
@@ -343,7 +448,7 @@ class Edit(WidgetWrap[Text]):
         finally:
             self._edit_depth -= 1
             self._undo_before = None  # a key that undoes records no step of its own
-            self._undo_run = None
+            self._undo_run = self._kill_last = None
             if self._edit_text != current[0]:
                 source.pop()
                 target.append(current)
@@ -360,12 +465,15 @@ class Edit(WidgetWrap[Text]):
         if not self._edit_depth:
             self._undo_before = (self._edit_text, self._edit_pos)
             self._undo_kind = None
+            self._kill_now = False
         self._edit_depth += 1
         try:
             yield
         finally:
             self._edit_depth -= 1
             if not self._edit_depth:
+                if not self._kill_now:
+                    self._kill_last = None  # any other key ends the chain of kills
                 before, self._undo_before = self._undo_before, None
                 kind, self._undo_kind = self._undo_kind, None
                 if before is None or before[0] == self._edit_text:
@@ -951,6 +1059,7 @@ class Edit(WidgetWrap[Text]):
             self._undo_stack.clear()
             self._redo_stack.clear()
             self._undo_before = self._undo_run = None
+            self._kill_last = None
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -1101,7 +1210,8 @@ class Edit(WidgetWrap[Text]):
         A key whose text would make :attr:`edit_text` longer than :attr:`max_length` inserts nothing and is
         returned, as :class:`IntEdit` returns a digit past its limit. A tab is inserted whole or not at all.
 
-        The readline delete commands described in :class:`~urwid.CommandMap` go through :meth:`set_edit_text`.
+        The readline delete commands described in :class:`~urwid.CommandMap` and ``'yank'`` go through
+        :meth:`set_edit_text`.
         A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
         once an application binds them, or the exception leaves :meth:`keypress`.
 
@@ -1128,7 +1238,7 @@ class Edit(WidgetWrap[Text]):
         :raises ValueError: the preferred cursor column could not be determined.
             A completion is longer than :attr:`max_length`.
         :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`text_completer`.
-            What it raises for the text of ``'undo'`` or ``'redo'``, see :meth:`undo`.
+            What it raises for the text of ``'undo'``, ``'redo'`` or ``'yank'``, see :meth:`undo`.
         """
         with self._editing():
             return self.__keypress(size, key)
@@ -1185,6 +1295,9 @@ class Edit(WidgetWrap[Text]):
         if command == Command.REDO:
             return None if self.redo() else key
 
+        if command == Command.YANK:
+            return None if self._yank() else key
+
         if command in {Command.WORD_LEFT, Command.WORD_RIGHT, Command.LINE_START, Command.LINE_END}:
             if command == Command.LINE_START:
                 new_pos = self._line_bounds(pos)[0]
@@ -1218,6 +1331,7 @@ class Edit(WidgetWrap[Text]):
             if start == end:
                 return key
             self._set_edit_text_and_pos(text[:start] + text[end:], start)
+            self._kill(text[start:end], forward=command in {Command.DELETE_WORD_RIGHT, Command.DELETE_TO_LINE_END})
             return None
 
         if self._command_map[key] == Command.LEFT:
@@ -1381,6 +1495,7 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_pos
         2
         """
+        self._kill_last = None  # a click may have moved the focus away and back
         if button == 1:
             return self.move_cursor_to_coords(size, col, row)
         return False
@@ -1696,6 +1811,13 @@ class IntEdit(Edit):
             self.set_edit_pos(result_pos)
         else:
             self._set_edit_text_and_pos(result_text, result_pos)
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is decimal digits, no more than :func:`sys.get_int_max_str_digits` allows."""
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode("ascii", "replace")  # a replaced byte is not a digit
+        max_digits = sys.get_int_max_str_digits()  # 0 means no limit
+        return all(char in string.digits for char in result_text) and not (max_digits and len(result_text) > max_digits)
 
     def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
         """Return a completer's replacement as the edit would hold it.

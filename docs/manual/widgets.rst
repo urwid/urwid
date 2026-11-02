@@ -258,7 +258,10 @@ An :class:`Edit` created with ``undo_limit`` keeps that many changes made by
 keys, which the ``'undo'`` and ``'redo'`` commands take back and make again;
 :meth:`CommandMap.bind_readline` maps :kbd:`ctrl _` to ``'undo'``.  Setting
 the text from the application clears this history, so that a reused edit does
-not bring back an earlier value.
+not bring back an earlier value.  An :class:`Edit` given a ``kill_buffer``
+list puts the text the word and line delete commands remove into it, and the ``'yank'``
+command (:kbd:`ctrl y` in the preset) inserts the newest entry; several edits
+can share one list.
 
 The tour.py_ example program shows such an edit.
 

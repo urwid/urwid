@@ -96,6 +96,12 @@ class NumEdit(Edit):
             return self._allow_negative and ch == "-" and self.edit_pos == 0 and "-" not in self.edit_text
         return False
 
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters, after one leading ``-`` with *allow_negative*."""
+        if self._allow_negative and result_text[:1] == "-":
+            result_text = result_text[1:]
+        return all(char.upper() in self._allowed for char in typing.cast("str", result_text))
+
     def keypress(
         self,
         size: tuple[int],  # type: ignore[override]
@@ -437,6 +443,12 @@ class FloatEdit(NumEdit):
         if ch == self._decimal_separator and ch in self.edit_text:
             return False
         return super().valid_char(ch)
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters with at most one decimal separator."""
+        return typing.cast("str", result_text).count(self._decimal_separator) <= 1 and super()._valid_insert(
+            text, result_text
+        )
 
     def value(self) -> decimal.Decimal | None:
         """Return the numeric value of self.edit_text."""

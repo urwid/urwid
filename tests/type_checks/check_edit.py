@@ -1,4 +1,4 @@
-"""Type checker fixture for the placeholder, validator, completer and undo options of Edit.
+"""Type checker fixture for the placeholder, validator, completer, undo and kill buffer options of Edit.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -8,7 +8,7 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Hashable, MutableSequence
     from typing import assert_type
 
     import urwid
@@ -25,7 +25,7 @@ if typing.TYPE_CHECKING:
         """Return whole replacements, as a completer does."""
         return [(text + "x", pos + 1)]
 
-    def edit_options(plain: dict[str, str]) -> None:
+    def edit_options(plain: dict[str, str], kills: list[str | bytes]) -> None:
         """Accept the new options in their documented forms, and type what the properties return."""
         edit = urwid.Edit(
             "Port: ",
@@ -36,6 +36,7 @@ if typing.TYPE_CHECKING:
             validation_focus_attr={urwid.Severity.ERROR: "error focus"},
             text_completer=complete,
             undo_limit=50,
+            kill_buffer=kills,
         )
         edit.validator = check_all
         edit.validator = None
@@ -49,4 +50,6 @@ if typing.TYPE_CHECKING:
         assert_type(edit.undo_limit, int)
         assert_type(edit.undo(), bool)
         assert_type(edit.redo(), bool)
+        assert_type(edit.kill_buffer, MutableSequence[str | bytes] | None)
         edit.undo_limit = 0
+        edit.kill_buffer = None

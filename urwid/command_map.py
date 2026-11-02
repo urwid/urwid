@@ -58,6 +58,7 @@ class Command(enum.StrEnum):
     DELETE_RIGHT = "delete char right"
     UNDO = "undo"
     REDO = "redo"
+    YANK = "yank"
     COMPLETE_NEXT = "complete next"
     COMPLETE_PREVIOUS = "complete previous"
 
@@ -107,6 +108,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     A word is a run of letters, digits and underscores, and a line ends at a newline.
     :meth:`bind_readline` maps the usual readline keys to them.
     An :class:`Edit` with an undo history handles ``'undo'`` and ``'redo'``, see :attr:`Edit.undo_limit`.
+    An :class:`Edit` with a kill buffer handles ``'yank'``, see :attr:`Edit.kill_buffer`.
     An :class:`Edit` with a text completer handles ``'complete next'`` and ``'complete previous'``, which no key is
     mapped to by default either; see :attr:`Edit.text_completer`.
 
@@ -221,6 +223,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         :kbd:`ctrl w`                           ``'delete space word left'``
         :kbd:`ctrl d`                           ``'delete char right'``
         :kbd:`ctrl _`                           ``'undo'``
+        :kbd:`ctrl y`                           ``'yank'``
         ======================================  ==================================================
 
         No other widget handles these commands, so the keys reach the containers above an :class:`Edit` unchanged,
@@ -251,6 +254,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         staged.bind(Command.DELETE_SPACE_WORD_LEFT, "ctrl w")
         staged.bind(Command.DELETE_RIGHT, "ctrl d")
         staged.bind(Command.UNDO, "ctrl _")
+        staged.bind(Command.YANK, "ctrl y")
         self._command = staged._command  # pylint: disable=protected-access
 
     def clear_command(self, command: str | Command) -> None:

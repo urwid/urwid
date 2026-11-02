@@ -321,7 +321,7 @@ def main() -> None:
             "editfc",
         ),
         blank,
-        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7, undo_limit=50), "editbx", "editfc"),
+        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7, undo_limit=50, kill_buffer=[]), "editbx", "editfc"),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),
