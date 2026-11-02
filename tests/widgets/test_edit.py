@@ -998,6 +998,107 @@ class EditRenderTest(unittest.TestCase):
         self.rtest(w, ["  hi"], (3, 0))
 
 
+class EditPlaceholderTest(unittest.TestCase):
+    def test_drawn_while_empty_focused_or_not(self) -> None:
+        e = urwid.Edit("? ", placeholder="name")
+        for focus in (False, True):
+            with self.subTest(focus=focus):
+                self.assertEqual(e.render((10,), focus=focus).text, [b"? name    "])
+        self.assertEqual(e.render((10,), focus=True).cursor, (2, 0))
+        e.keypress((10,), "x")
+        self.assertEqual(e.render((10,)).text, [b"? x       "])
+
+    def test_not_part_of_text(self) -> None:
+        e = urwid.Edit("? ", placeholder="name", max_length=1)
+        self.assertEqual(e.get_text(), ("? ", []))
+        self.assertEqual(e.edit_text, "")
+        self.assertEqual(e.pack((10,)), urwid.Edit("? ").pack((10,)))
+        self.assertIsNone(e.keypress((10,), "x"))
+
+    def test_attributes_follow_caption(self) -> None:
+        e = urwid.Edit("? ", placeholder=("hint", "name"))
+        self.assertEqual(
+            next(iter(e.render((8,)).content())),
+            [(None, None, b"? "), ("hint", None, b"name"), (None, None, b"  ")],
+        )
+
+    def test_never_masked(self) -> None:
+        e = urwid.Edit("pw: ", mask="*", placeholder="secret")
+        self.assertEqual(e.render((12,)).text, [b"pw: secret  "])
+        e.keypress((12,), "a")
+        self.assertEqual(e.render((12,)).text, [b"pw: *       "])
+
+    def test_bytes_caption(self) -> None:
+        e = urwid.Edit(b"? ", b"", placeholder="name")
+        self.assertEqual(e.render((8,)).text, [b"? name  "])
+
+    def test_not_drawn_when_caption_does_not_fit(self) -> None:
+        """A caption that needs a horizontal shift to show the cursor is drawn without the placeholder."""
+        e = urwid.Edit("longcaption", placeholder="x", wrap="clip")
+        self.assertEqual(e.render((5,)).text, [b"longc"])
+        self.assertEqual(e.render((5,), focus=True).text, [b"tion "])
+
+    def test_rows_by_mode(self) -> None:
+        cases = [
+            ("single-line default clips", False, None, [b"? a   "]),
+            ("single-line grows when asked", False, True, [b"? a   ", b"long  ", b"hint  "]),
+            ("multiline default grows", True, None, [b"? a   ", b"long  ", b"hint  "]),
+            ("multiline clips when asked", True, False, [b"? a   "]),
+        ]
+        for label, multiline, grow, expected in cases:
+            with self.subTest(label):
+                e = urwid.Edit("? ", multiline=multiline, placeholder="a long hint", placeholder_grow=grow)
+                rows = e.rows((6,))  # uncached: no canvas has been rendered yet
+                canvas = e.render((6,))
+                self.assertEqual(canvas.text, expected)
+                self.assertEqual(rows, canvas.rows())
+                self.assertEqual(e.render((6,), focus=True).cursor, (2, 0))
+
+    def test_clip_pads_to_caption_rows(self) -> None:
+        """A caption laid out on more rows than caption and placeholder together keeps its row count."""
+        e = urwid.Edit("ab ", placeholder="c")
+        rows = e.rows((2,))
+        canvas = e.render((2,))
+        self.assertEqual(rows, urwid.Edit("ab ").rows((2,)))
+        self.assertEqual(canvas.rows(), rows)
+
+    def test_cursor_with_right_alignment(self) -> None:
+        """The cursor stays where the caption alone puts it."""
+        e = urwid.Edit("? ", align="right", placeholder="name")
+        self.assertEqual(e.get_cursor_coords((10,)), urwid.Edit("? ", align="right").get_cursor_coords((10,)))
+        canvas = e.render((10,), focus=True)
+        self.assertEqual(canvas.text, [b"    ? name"])
+        self.assertEqual(canvas.cursor, (9, 0))
+
+    def test_setters_invalidate(self) -> None:
+        e = urwid.Edit("? ", multiline=True)
+        self.assertEqual(e.render((6,)).text, [b"?     "])
+        e.placeholder = "a long hint"
+        self.assertEqual(e.placeholder, "a long hint")
+        self.assertEqual(e.render((6,)).text, [b"? a   ", b"long  ", b"hint  "])
+        e.placeholder_grow = False
+        self.assertEqual(e.render((6,)).text, [b"? a   "])
+        self.assertEqual(e.rows((6,)), 1)
+        e.placeholder = None
+        self.assertEqual(e.render((6,)).text, [b"?     "])
+
+    def test_invalid_placeholder_raises_on_assignment(self) -> None:
+        with self.assertRaises(urwid.TagMarkupException):
+            urwid.Edit("? ", placeholder=5)
+        with self.assertRaises(UnicodeError):
+            urwid.Edit(b"? ", b"", placeholder="h\xe9")
+        e = urwid.Edit("? ", placeholder="name")
+        with self.assertRaises(urwid.TagMarkupException):
+            e.placeholder = 5
+        self.assertEqual(e.render((8,)).text, [b"? name  "])
+
+    def test_repr(self) -> None:
+        self.assertEqual(
+            repr(urwid.Edit("? ", placeholder="name")),
+            "<Edit selectable flow widget '' caption='? ' edit_pos=0 placeholder='name'>",
+        )
+
+
 class IntEditTest(unittest.TestCase):
     def test_bytes_caption_trims_zeros_and_preserves_cursor_and_signals(self) -> None:
         for caption in ("", b""):

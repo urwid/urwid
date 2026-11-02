@@ -92,6 +92,8 @@ class Edit(WidgetWrap[Text]):
         *,
         expand_tabs: bool = True,
         max_length: int | None = None,
+        placeholder: _TagMarkup | None = None,
+        placeholder_grow: bool | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -107,7 +109,12 @@ class Edit(WidgetWrap[Text]):
         :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
             ``False``: a tab character
         :param max_length: the longest :attr:`edit_text` allowed, see :attr:`max_length`
+        :param placeholder: markup drawn after the caption while :attr:`edit_text` is empty, see :attr:`placeholder`
+        :param placeholder_grow: whether a placeholder taller than the empty edit adds rows,
+            see :attr:`placeholder_grow`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
+        :raises TagMarkupException: *placeholder* is not valid text markup.
+        :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -123,13 +130,20 @@ class Edit(WidgetWrap[Text]):
         '5'
         >>> print(pin.edit_text)
         1234
+        >>> Edit("Address: ", placeholder="10.0.0.1").render((20,)).text
+        [b'Address: 10.0.0.1   ']
         """
         super().__init__(Text("", align, wrap, layout))
+        self._placeholder_grow: bool | None = placeholder_grow
         self.multiline = multiline
         self.allow_tab = allow_tab
         self.expand_tabs = expand_tabs
         self._edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
+        self._placeholder: _TagMarkup | None = None
+        # text and attributes of the placeholder markup, or None for no placeholder
+        self._placeholder_ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None
+        self.placeholder = placeholder
         self._edit_text = ""
         self._max_length: int | None = None
         self.max_length = max_length
@@ -166,6 +180,49 @@ class Edit(WidgetWrap[Text]):
             raise ValueError(f"max_length {max_length} is shorter than the text of length {len(self._edit_text)}")
         self._max_length = max_length
 
+    @property
+    def placeholder(self) -> _TagMarkup | None:
+        """Markup drawn after the caption while :attr:`edit_text` is empty, or ``None`` for none.
+
+        It is drawn focused or not, and it is never masked.
+        It is not part of the text: :meth:`get_text`, :attr:`edit_text`, :attr:`max_length` and :meth:`pack`
+        ignore it.
+        It is drawn after :attr:`caption` and its attributes, not after the caption part of :meth:`get_text`.
+        The cursor stays where it is without a placeholder, so with ``align="left"`` it is on its first column.
+        With ``align="center"`` or ``align="right"`` the placeholder moves the caption left, and the cursor is
+        inside the placeholder or after it.
+        The placeholder is not drawn when the caption alone does not leave the cursor a column to show in.
+
+        :raises TagMarkupException: on assignment, the markup is not valid text markup.
+        :raises UnicodeError: on assignment, the text cannot be converted to the type of the caption.
+        """
+        return self._placeholder
+
+    @placeholder.setter
+    def placeholder(self, placeholder: _TagMarkup | None) -> None:
+        if placeholder is None:
+            self._placeholder_ta = None
+        else:
+            text, attrib = decompose_tagmarkup(placeholder)
+            self._placeholder_ta = self._normalize_to_caption(text), attrib
+        self._placeholder = placeholder
+        self._invalidate()
+
+    @property
+    def placeholder_grow(self) -> bool | None:
+        """Whether a :attr:`placeholder` laid out on more rows than the empty edit adds rows.
+
+        ``False`` cuts the placeholder to the rows of the empty edit, so the height does not change on the first key.
+        ``True`` adds rows while the edit is empty.
+        ``None`` grows a :attr:`multiline` edit and cuts a single-line one.
+        """
+        return self._placeholder_grow
+
+    @placeholder_grow.setter
+    def placeholder_grow(self, placeholder_grow: bool | None) -> None:
+        self._placeholder_grow = placeholder_grow
+        self._invalidate()
+
     def selectable(self) -> bool:
         """Return True: this widget is always selectable.
 
@@ -195,6 +252,7 @@ class Edit(WidgetWrap[Text]):
             "wrap": self._w.wrap,
             "edit_pos": self._edit_pos,
             "mask": self._mask,
+            "placeholder": self._placeholder,
         }
         return remove_defaults(attrs, Edit.__init__)
 
@@ -818,8 +876,11 @@ class Edit(WidgetWrap[Text]):
         self._shift_view_to_cursor = focus
 
         (maxcol,) = size
-        text, attr = self.get_text()
-        trans = self.get_line_translation(maxcol, (text, attr))
+        if (placeholder := self._placeholder_layout(maxcol)) is not None:
+            text, attr, trans = placeholder
+        else:
+            text, attr = self.get_text()
+            trans = self.get_line_translation(maxcol, (text, attr))
         canv: TextCanvas | CompositeCanvas = apply_text_layout(text, attr, trans, maxcol)
 
         if focus:
@@ -831,6 +892,59 @@ class Edit(WidgetWrap[Text]):
         #    hstart, hstop = self.highlight_coords()
         #    d.coords['highlight'] = [ hstart, hstop ]
         return canv
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        r"""Return the number of rows the rendered edit requires, including a :attr:`placeholder` that grows it.
+
+        >>> Edit("", multiline=True, placeholder="line 1\nline 2").rows((20,))
+        2
+        """
+        if (placeholder := self._placeholder_layout(size[0])) is not None:
+            return len(placeholder[2])
+        return self._w.rows(size, focus)
+
+    def _placeholder_layout(
+        self,
+        maxcol: int,
+    ) -> (
+        tuple[
+            str | bytes,
+            list[tuple[Hashable, int]],
+            list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
+        ]
+        | None
+    ):
+        """Return the text, attributes and layout of the caption followed by the :attr:`placeholder`.
+
+        The layout has the rows :meth:`rows` reports.
+        It is laid out through the layout object, because the wrapped :class:`Text` caches the caption-only layout.
+
+        :returns: ``None`` when no placeholder is drawn: none is set, :attr:`edit_text` is not empty,
+            or the caption-only layout has to be shifted to show the cursor, which the placeholder layout would not be.
+        """
+        if self._placeholder_ta is None or self._edit_text:
+            return None
+        caption_trans = self._w.get_line_translation(maxcol)
+        shift_view_to_cursor, self._shift_view_to_cursor = self._shift_view_to_cursor, True
+        try:
+            # decided as if focused, so that rows() and an unfocused render() agree with a focused render()
+            shifted = self.get_line_translation(maxcol) != caption_trans
+        finally:
+            self._shift_view_to_cursor = shift_view_to_cursor
+        if shifted:
+            return None
+
+        placeholder_text, placeholder_attrib = self._placeholder_ta
+        text = self._caption + placeholder_text  # type: ignore[operator]  # type normalised
+        caption_attrib = self._attrib.copy()
+        if (uncovered := len(self._caption) - sum(run for _attr, run in caption_attrib)) > 0:
+            caption_attrib.append((None, uncovered))  # so that the placeholder's attributes start after the caption
+        attrib = [*caption_attrib, *placeholder_attrib]
+
+        trans = self._w.layout.layout(text, maxcol, self._w.align, self._w.wrap)
+        grow = self.multiline if self._placeholder_grow is None else self._placeholder_grow
+        rows = max(len(caption_trans), len(trans)) if grow else len(caption_trans)
+        return text, attrib, [*trans[:rows], *([] for _row in range(rows - len(trans)))]
 
     def get_line_translation(
         self,

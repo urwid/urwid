@@ -108,6 +108,7 @@ def main() -> None:
     text_edit_text3 = "add some text here -> -> -> ...."
     text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
     text_edit_text4 = "12345"
+    text_edit_cap5 = ("editcp", "This one shows a hint while empty: ")
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -287,6 +288,15 @@ def main() -> None:
         urwid.AttrMap(urwid.Edit(text_edit_cap3, text_edit_text3, wrap=urwid.CLIP), "editbx", "editfc"),
         blank,
         urwid.AttrMap(urwid.Edit(text_edit_cap4, text_edit_text4, max_length=8), "editbx", "editfc"),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(
+                text_edit_cap5,
+                placeholder=("edithint", "e.g. 8080"),
+            ),
+            "editbx",
+            "editfc",
+        ),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),
@@ -516,6 +526,7 @@ def main() -> None:
         ("editfc", "white", "dark blue", "bold"),
         ("editbx", "light gray", "dark blue"),
         ("editcp", "black", "light gray", "standout"),
+        ("edithint", "light cyan", "dark blue"),
         ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
