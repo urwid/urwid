@@ -56,6 +56,61 @@ class MonitoredDequeMaxlenParityTest(unittest.TestCase):
 
 
 class MonitoredDequeModifiedCallbackTest(unittest.TestCase):
+    def test_extension_from_self(self) -> None:
+        """Retain deque's self-extension behavior with and without bounded eviction."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen in (None, 3):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    reference = collections.deque(items, maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+                    getattr(reference, operation)(reference)
+                    getattr(items, operation)(items)
+                    self.assertEqual(list(reference), list(items))
+                    self.assertEqual([list(reference)], seen)
+
+    def test_partial_extension_notifies(self) -> None:
+        """A failed iterator retains consumed items and notifies once, including bounded evictions."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen in (None, 2):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+                    error = ValueError("broken input")
+
+                    def incoming(error=error):
+                        yield 3
+                        raise error
+
+                    with self.assertRaises(ValueError) as caught:
+                        getattr(items, operation)(incoming())
+                    self.assertIs(error, caught.exception)
+                    expected = [3, 1, 2] if operation == "extendleft" else [1, 2, 3]
+                    if maxlen is not None:
+                        expected = expected[:maxlen] if operation == "extendleft" else expected[-maxlen:]
+                    self.assertEqual(expected, list(items))
+                    self.assertEqual([expected], seen)
+
+    def test_failed_extension_without_change_does_not_notify(self) -> None:
+        """An immediate failure and a zero-capacity deque leave observers untouched."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            for maxlen, yields in ((None, False), (0, True)):
+                with self.subTest(operation=operation, maxlen=maxlen):
+                    items = urwid.MonitoredDeque([1, 2], maxlen=maxlen)
+                    seen = []
+                    items.set_modified_callback(lambda items=items, seen=seen: seen.append(list(items)))
+
+                    def incoming(yields=yields):
+                        if yields:
+                            yield 3
+                        raise ValueError("broken input")
+
+                    with self.assertRaises(ValueError):
+                        getattr(items, operation)(incoming())
+                    self.assertEqual([], seen)
+
     def test_modified_fires_once(self) -> None:
         counter = {"count": 0}
 

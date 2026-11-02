@@ -169,10 +169,10 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         # deque has no slice deletion, unlike list/MutableSequence -- see the class docstring.
         super().__delitem__(__key)
 
-    @_call_modified
     def __iadd__(self, __value: Iterable[_T]) -> Self:
         """Extend the deque in place with the items from `__value`."""
-        return super().__iadd__(__value)
+        self.extend(__value)
+        return self
 
     @_call_modified
     def __imul__(self, __value: typing.SupportsIndex) -> Self:
@@ -192,12 +192,31 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     @_call_modified
     def extend(self, __iterable: Iterable[_T]) -> None:
         """Extend the right end of the deque with items from ``__iterable``."""
-        super().extend(__iterable)
+        self._extend(super().extend, __iterable)
 
     @_call_modified
     def extendleft(self, __iterable: Iterable[_T]) -> None:
         """Extend the left end of the deque with items from ``__iterable``, in reverse order."""
-        super().extendleft(__iterable)
+        self._extend(super().extendleft, __iterable)
+
+    def _extend(self, extend: Callable[[Iterable[_T]], None], items: Iterable[_T]) -> None:
+        """Notify after a partial extension, even when a bounded deque's length stays unchanged."""
+        if items is self:
+            items = tuple(self)
+        consumed = False
+
+        def incoming() -> Iterator[_T]:
+            nonlocal consumed
+            for item in items:
+                consumed = True
+                yield item
+
+        try:
+            extend(incoming())
+        except BaseException:
+            if consumed and self.maxlen != 0:
+                self._modified()
+            raise
 
     @_call_modified
     def pop(self) -> _T:  # type: ignore[override]  # as on deque.pop in typeshed: no index, unlike MutableSequence.pop

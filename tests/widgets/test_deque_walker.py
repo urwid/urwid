@@ -10,6 +10,24 @@ import urwid
 
 
 class DequeWalkerConstructionTest(unittest.TestCase):
+    def test_partial_extension_invalidates_listbox(self) -> None:
+        """A cached ListBox redraws items retained before an iterator failed."""
+        for operation in ("extend", "extendleft", "__iadd__"):
+            with self.subTest(operation=operation):
+                walker = urwid.SimpleDequeWalker([urwid.Text("before")])
+                listbox = urwid.ListBox(walker)
+                before = listbox.render((8, 2))
+                self.assertEqual([b"before  ", b"        "], before.text)
+
+                def incoming():
+                    yield urwid.Text("added")
+                    raise ValueError("broken input")
+
+                with self.assertRaises(ValueError):
+                    getattr(walker, operation)(incoming())
+                expected = [b"added   ", b"before  "] if operation == "extendleft" else [b"before  ", b"added   "]
+                self.assertEqual(expected, listbox.render((8, 2)).text)
+
     def test_from_generator(self) -> None:
         walker = urwid.SimpleDequeWalker(str(num) for num in range(5))
         self.assertEqual(5, len(walker))
