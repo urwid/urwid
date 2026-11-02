@@ -562,6 +562,13 @@ list's modified callback.  Replacing the callback set with
 ``contents.set_focus_changed_callback()``, which runs before the change, does
 not stop the signal.
 
+:class:`Frame` sends the same signal after its focus part changed: by a key
+with ``select_navigation``, a mouse click, the ``focus_position`` or
+``focus_part`` setter, or the removal of the header or the footer in focus,
+which moves the focus to the body.  Its positions are ``'header'``,
+``'body'`` and ``'footer'``, never ``None``.  Replacing the widget of the part
+in focus is not reported.
+
 A handler that moves the focus again sends a new signal before the remaining
 handlers of the first one run, so those see the second change first.  The
 arguments of each signal, not the current ``focus_position``, describe the

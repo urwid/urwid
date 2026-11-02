@@ -53,7 +53,13 @@ class Frame(
     .. note:: The main difference between a Frame and a :class:`Pile` widget
         defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
         the Frame will not automatically change focus up and down in response to keystrokes.
+
+    Sends ``"focus changed"`` after :attr:`focus_part` changed, also when removing the header or the footer in focus
+    moves the focus to the body.
+    Its handlers receive the frame, the old and the new focus part.
     """
+
+    signals: typing.ClassVar[list[str]] = ["focus changed"]
 
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
@@ -87,7 +93,7 @@ class Frame(
         self._body = body
         self._footer = footer
         if focus_part in {"header", "footer", "body"}:
-            self.focus_part: Literal["header", "footer", "body"] = focus_part
+            self.focus_part = focus_part
         elif focus_part == header:
             self.focus_part = "header"
         elif focus_part == footer:
@@ -101,6 +107,21 @@ class Frame(
         _check_widget_subclass(header)
         _check_widget_subclass(body)
         _check_widget_subclass(footer)
+
+    def __setstate__(self, state: typing.Any) -> None:
+        """Restore the attributes from a pickle or a copy.
+
+        Pickles of urwid 5.0.x and older store the focus part as ``focus_part``, which is restored as ``_focus_part``.
+
+        :param state: the instance dictionary, or ``(dictionary, slots)`` for a subclass with slots.
+        """
+        attributes, slots = state if isinstance(state, tuple) else (state, None)
+        if attributes:
+            vars(self).update(
+                {("_focus_part" if name == "focus_part" else name): value for name, value in attributes.items()}
+            )
+        for name, value in (slots or {}).items():
+            setattr(self, name, value)
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         attrs = {
@@ -120,6 +141,26 @@ class Frame(
         yield "footer", self._footer
         yield "focus_part", self.focus_part
         yield "select_navigation", self.select_navigation, False
+
+    @property
+    def focus_part(self) -> Literal["header", "footer", "body"]:
+        """Return which part of the frame is in focus.
+
+        Setting it to another part redraws the frame and sends ``"focus changed"``.
+        Unlike the :attr:`focus_position` setter, it does not check that the frame has that part.
+        """
+        return self._focus_part
+
+    @focus_part.setter
+    def focus_part(self, part: Literal["header", "footer", "body"]) -> None:
+        # The previous part is absent while the constructor sets the first one,
+        # or when a subclass sets one before it calls the constructor.
+        # Setting the first part is not a change, so it is not reported.
+        old_part = vars(self).get("_focus_part")
+        self._focus_part: Literal["header", "footer", "body"] = part
+        if old_part is not None and part != old_part:
+            self._invalidate()
+            self._emit("focus changed", old_part, part)
 
     @property
     def header(self) -> HeaderWidget | None:

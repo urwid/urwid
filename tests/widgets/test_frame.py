@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+import typing
 import unittest
 
 import urwid
@@ -551,3 +553,105 @@ class FrameSelectNavigationTest(unittest.TestCase):
         frame.select_navigation = True
         self.assertIsNone(frame.keypress(self.size, "tab"))
         self.assertEqual("body", frame.focus_position)
+
+
+class ReducesToFrame:
+    """Reduces to a ``Frame`` with the given state, which copies restore as pickles do."""
+
+    def __init__(self, state: object) -> None:
+        """Keep the state to restore."""
+        self.state = state
+
+    def __reduce__(self) -> tuple[object, ...]:
+        """Return the reduction a pickled ``Frame`` has, with the kept state."""
+        return (urwid.Frame.__new__, (urwid.Frame,), self.state)
+
+
+class FrameFocusChangedSignalTest(unittest.TestCase):
+    """``Frame`` sends ``"focus changed"`` after its focus part changed."""
+
+    def test_signal(self) -> None:
+        """Report every way to move the focus once.
+
+        Construction and same-part changes are not reported.
+        """
+        frame = urwid.Frame(
+            urwid.Filler(SelectableText("body")),
+            SelectableText("header"),
+            SelectableText("footer"),
+            focus_part="header",
+            select_navigation=True,
+        )
+        seen: list[tuple[urwid.Widget, str, str, str, bool]] = []
+
+        def record(sender: urwid.Widget, old: str, new: str) -> None:
+            seen.append((sender, old, new, frame.focus_part, frame.footer is None))
+
+        urwid.connect_signal(frame, "focus changed", record)
+        frame.focus_position = "header"  # unchanged: not reported
+        frame.focus_position = "body"
+        self.assertIsNone(frame.keypress((10, 5), "tab"))
+        frame.mouse_event((10, 5), "mouse press", 1, 0, 0, True)
+        frame.contents["header"] = (SelectableText("other header"), None)  # same part: not reported
+        frame.focus_part = "footer"
+        del frame.contents["footer"]
+        self.assertEqual(
+            [
+                (frame, "header", "body", "body", False),
+                (frame, "body", "footer", "footer", False),
+                (frame, "footer", "header", "header", False),
+                (frame, "header", "footer", "footer", False),
+                (frame, "footer", "body", "body", True),
+            ],
+            seen,
+        )
+
+    def test_set_before_init(self) -> None:
+        """A subclass may set the focus part before it calls the base constructor."""
+
+        class Preset(urwid.Frame[urwid.SolidFill, SelectableText, None]):
+            """A frame that chooses its focus part before the base constructor runs."""
+
+            def __init__(self) -> None:
+                self.focus_part = "header"
+                super().__init__(urwid.SolidFill(), SelectableText("header"), focus_part="header")
+
+        self.assertEqual("header", Preset().focus_part)
+
+    def test_old_pickle_state(self) -> None:
+        """The state of urwid 5.0.x, with ``focus_part`` in place of ``_focus_part``, restores the focus part."""
+        frame: urwid.Frame[urwid.SolidFill, urwid.Text, None] = urwid.Frame(
+            urwid.SolidFill(),
+            urwid.Text("header"),
+            focus_part="header",
+        )
+        self.assertEqual("header", copy.copy(frame).focus_part)
+        old_state = {("focus_part" if name == "_focus_part" else name): value for name, value in vars(frame).items()}
+        for state in (old_state, (old_state, None)):
+            with self.subTest(type(state).__name__):
+                restored = typing.cast(
+                    "urwid.Frame[urwid.SolidFill, urwid.Text, None]",
+                    copy.copy(ReducesToFrame(state)),
+                )
+                self.assertIs(urwid.Frame, type(restored))
+                self.assertNotIn("focus_part", vars(restored))
+                self.assertEqual("header", restored.focus_part)
+
+    def test_subclass_signals(self) -> None:
+        """A subclass with its own signals list keeps ``"focus changed"``."""
+
+        class Labelled(urwid.Frame[urwid.SolidFill, SelectableText, None]):
+            """A frame that declares a signal of its own."""
+
+            signals: typing.ClassVar[list[str]] = ["labelled"]
+
+        frame = Labelled(urwid.SolidFill(), SelectableText("header"))
+        seen: list[tuple[str, str]] = []
+
+        def record(_sender: urwid.Widget, old: str, new: str) -> None:
+            seen.append((old, new))
+
+        urwid.connect_signal(frame, "focus changed", record)
+        frame.focus_position = "header"
+        self.assertEqual(["labelled", "focus changed"], Labelled.signals)
+        self.assertEqual([("body", "header")], seen)
