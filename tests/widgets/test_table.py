@@ -64,8 +64,12 @@ class TableLayoutTest(unittest.TestCase):
             with self.subTest(columns=columns, kwargs=kwargs), self.assertRaises(urwid.TableError):
                 TableLayout(columns, **kwargs)
 
-        with self.subTest("the index is named"), self.assertRaisesRegex(urwid.TableError, "column 1"):
-            TableLayout([Column(), Column(width=-1)])
+        for invalid in (Column(width=-1), Column(attr={"a": []})):
+            with (
+                self.subTest("the index is named", column=invalid),
+                self.assertRaisesRegex(urwid.TableError, "column 1"),
+            ):
+                TableLayout([Column(), invalid])
 
         with self.subTest("a given width of 0 ignores min_width"):
             self.assertEqual((0, 1), TableLayout([Column(width=0, min_width=0), Column()]).widths(5))
@@ -247,20 +251,22 @@ class TableLayoutTest(unittest.TestCase):
 
     def test_table_text_measures_itself(self) -> None:
         """set_text on a text cell the layout made re-measures its column, on screen and off."""
-        layout = TableLayout([Column(), Column()])
-        first = layout.row(["a", "x"])
-        second = layout.row(["b", "y"])
-        pile = urwid.Pile([first, second])
-        self.assertEqual(["a x", "b y"], render_text(pile, (3,)))
-        typing.cast("urwid.Text", first.cells[0]).set_text("wide")
-        self.assertEqual(["wide x", "b    y"], render_text(pile, (6,)))
-        typing.cast("urwid.Text", first.cells[0]).set_text("a")
-        self.assertEqual(["a x   ", "b y   "], render_text(pile, (6,)))
+        for attr in (None, "col"):
+            with self.subTest(attr=attr):
+                layout = TableLayout([Column(attr=attr), Column()])
+                first = layout.row(["a", "x"])
+                second = layout.row(["b", "y"])
+                pile = urwid.Pile([first, second])
+                self.assertEqual(["a x", "b y"], render_text(pile, (3,)))
+                typing.cast("urwid.Text", first.cells[0]).set_text("wide")
+                self.assertEqual(["wide x", "b    y"], render_text(pile, (6,)))
+                typing.cast("urwid.Text", first.cells[0]).set_text("a")
+                self.assertEqual(["a x   ", "b y   "], render_text(pile, (6,)))
 
-        off_screen = layout.row(["c", "z"])
-        typing.cast("urwid.Text", off_screen.cells[0]).set_text("offscreen")
-        self.assertEqual(["a         x", "b         y"], render_text(pile, (11,)))
-        self.assertIsNotNone(off_screen)
+                off_screen = layout.row(["c", "z"])
+                typing.cast("urwid.Text", off_screen.cells[0]).set_text("offscreen")
+                self.assertEqual(["a         x", "b         y"], render_text(pile, (11,)))
+                self.assertIsNotNone(off_screen)
 
     def test_shared_table_text_updates_all_columns(self) -> None:
         """A generated text cell reused in another column keeps both widths current."""
@@ -367,6 +373,19 @@ class TableLayoutTest(unittest.TestCase):
         self.assertEqual([[("cell", "a"), (None, " b")]], render_runs(row, (3,)))
         self.assertIsNone(row.index)
 
+        with self.subTest("column attr"):
+            layout = TableLayout([Column(attr="col"), Column()])
+            row = layout.row(["a", "b"])
+            self.assertEqual([[("col", "a"), (None, " b")]], render_runs(row, (3,)))
+            self.assertNotIsInstance(row.cells[0], urwid.AttrMap)
+            self.assertEqual("a", typing.cast("urwid.Text", row.cells[0]).text)
+            row.attr = "row"
+            row.focus_attr = {None: "focus", "col": "col focus"}
+            self.assertEqual([[(urwid.LayeredAttr("col", "row"), "a"), ("row", " b")]], render_runs(row, (3,)))
+            self.assertEqual(
+                [[(urwid.LayeredAttr("col focus", "focus"), "a"), ("focus", " b")]], render_runs(row, (3,), focus=True)
+            )
+
     @unittest.skipUnless(sys.implementation.name == "cpython", "relies on reference counting")
     def test_dropped_row_not_measured(self) -> None:
         """A row the caller dropped is not kept alive, and its width stops counting."""
@@ -450,9 +469,11 @@ class TableTest(unittest.TestCase):
         self.assertEqual(["r0 0", "r1 1", "r2 2"], render_text(table, (4,)))
 
     def test_header_attr_and_label_width(self) -> None:
-        """A label widens its column, and header_attr maps the header."""
-        table = urwid.Table([Column("Long label"), Column("x")], [["a", "b"]], header_attr="head")
-        self.assertEqual([("head", "Long label x")], render_runs(table, (12,))[0])
+        """A label widens its column, and header_attr alone maps the header, without the column attr."""
+        for attr in (None, "col"):
+            with self.subTest(attr=attr):
+                table = urwid.Table([Column("Long label", attr=attr), Column("x")], [["a", "b"]], header_attr="head")
+                self.assertEqual([("head", "Long label x")], render_runs(table, (12,))[0])
 
     def test_empty(self) -> None:
         """An empty table shows its header, has no focus, and ignores keys and clicks."""
@@ -544,29 +565,34 @@ class TableTest(unittest.TestCase):
         self.assertEqual(["x"], press(table, (10, 4), "x"))
 
     def test_click(self) -> None:
-        """A click focuses the row under it and reaches the cell; it sends no activate."""
+        """A click focuses the row under it and reaches the cell, with or without a column attr; no activate."""
         clicked: list[str] = []
-        button = urwid.Button("go", on_press=lambda _b: clicked.append("go"))
-        table = urwid.Table([Column("A"), Column("B")], [["a", "x"], [button, "y"]])
         activated: list[int] = []
-        urwid.connect_signal(table, "activate", lambda _w, index: activated.append(index))
-        self.assertTrue(click(table, (12, 4), 0, 2))
-        self.assertEqual(1, table.focus_position)
-        click(table, (12, 4), 0, 2, event="mouse release")
-        self.assertEqual(["go"], clicked)
-        self.assertEqual([], activated)
-        self.assertFalse(click(table, (12, 4), 0, 0))
-        self.assertEqual(1, table.focus_position)
+        for attr in (None, "col"):
+            with self.subTest(attr=attr):
+                clicked.clear()
+                button = urwid.Button("go", on_press=lambda _b: clicked.append("go"))
+                table = urwid.Table([Column("A", attr=attr), Column("B")], [["a", "x"], [button, "y"]])
+                urwid.connect_signal(table, "activate", lambda _w, index: activated.append(index))
+                self.assertTrue(click(table, (12, 4), 0, 2))
+                self.assertEqual(1, table.focus_position)
+                click(table, (12, 4), 0, 2, event="mouse release")
+                self.assertEqual(["go"], clicked)
+                self.assertEqual([], activated)
+                self.assertFalse(click(table, (12, 4), 0, 0))
+                self.assertEqual(1, table.focus_position)
 
     def test_cell_widgets_keep_their_keys(self) -> None:
-        """A check box cell takes space before the table could send activate."""
-        check = urwid.CheckBox("c")
-        table = urwid.Table([Column("A")], [[check]])
+        """A check box cell takes space before the table could send activate, with or without a column attr."""
         activated: list[int] = []
-        urwid.connect_signal(table, "activate", lambda _w, index: activated.append(index))
-        self.assertEqual([], press(table, (10, 3), " "))
-        self.assertTrue(check.state)
-        self.assertEqual([], activated)
+        for attr in (None, "col"):
+            with self.subTest(attr=attr):
+                check = urwid.CheckBox("c")
+                table = urwid.Table([Column("A", attr=attr)], [[check]])
+                urwid.connect_signal(table, "activate", lambda _w, index: activated.append(index))
+                self.assertEqual([], press(table, (10, 3), " "))
+                self.assertTrue(check.state)
+                self.assertEqual([], activated)
 
     def test_selectable_rows(self) -> None:
         """Rows of plain text are focusable; rows built not selectable are skipped."""
@@ -825,6 +851,19 @@ class TableSelectNavigationTest(unittest.TestCase):
         self.assertEqual(["tab"], press(table, (10, 3), "tab"))
         self.assertEqual(0, table.focus._w.focus_position)
 
+    def test_cell_focus_map_under_column_attr(self) -> None:
+        """A cell's own focus map highlights only the focused cell when its column has an attr."""
+        table = urwid.Table(
+            [Column("A", attr="col"), Column("B", attr="col")],
+            [[urwid.AttrMap(SelectableText("x"), "c", "cf"), urwid.AttrMap(SelectableText("y"), "c", "cf")]],
+            header=False,
+            select_navigation=True,
+        )
+        cf, c = urwid.LayeredAttr("cf", "col"), urwid.LayeredAttr("c", "col")
+        self.assertEqual([[(cf, "x"), (None, " "), (c, "y")]], render_runs(table, (3, 1), focus=True))
+        self.assertEqual([], press(table, (3, 1), "tab"))
+        self.assertEqual([[(c, "x"), (None, " "), (cf, "y")]], render_runs(table, (3, 1), focus=True))
+
     def test_hidden_cells_skipped(self) -> None:
         """Tab skips a cell of a hidden column."""
         table = urwid.Table(
@@ -875,14 +914,16 @@ class TableOptionsTest(unittest.TestCase):
         self.assertEqual(["1"], clicked)
 
     def test_span_row(self) -> None:
-        """A span row takes the whole width at any size and is not measured."""
-        table = urwid.Table([Column("A"), Column("B")], [["a", "b"]])
+        """A span row takes the whole width at any size, is not measured, and takes no column attr."""
+        table = urwid.Table([Column("A", attr="col"), Column("B")], [["a", "b"]])
         table.body.append(table.layout.row(["a row spanning both columns"], span=True))
         for maxcol in (3, 10, 40):
             with self.subTest(maxcol=maxcol):
                 lines = render_text(table, (maxcol,))
                 self.assertTrue(all(len(line) == maxcol for line in lines))
         self.assertEqual(["A B", "a b", "a r"], render_text(table, (3,)))
+        self.assertEqual([("col", "a"), (None, " b")], render_runs(table, (3,))[1])
+        self.assertEqual([(None, "a r")], render_runs(table, (3,))[2])
         self.assertEqual(3, table.pack(())[0])
         with self.assertRaises(urwid.TableError):
             table.layout.row(["a", "b"], span=True)

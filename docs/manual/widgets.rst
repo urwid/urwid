@@ -652,6 +652,13 @@ selectable unless built otherwise, so a row of plain text takes the focus.
 A change that does not fit the columns raises :exc:`TableError` and leaves the
 rows as they were.
 
+A column's ``attr`` maps every cell of that column in the rows.
+It does not map the header label, which takes ``header_attr`` only,
+and it does not map a span row.
+The row's map applies over it: a dict ``attr`` or ``focus_attr`` of the row
+also maps the column attributes, so a dict ``focus_attr`` gives each column
+its own focus colour.
+
 When the columns do not fit, the weighted columns are at their minimum
 first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
 last resort the rightmost column is hidden.  A given width never shrinks.
