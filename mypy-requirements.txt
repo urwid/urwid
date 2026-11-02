@@ -1,2 +1,2 @@
-mypy==2.4.0
+mypy==2.4.1
 types-pyserial==3.5.0.20260712
