@@ -235,6 +235,11 @@ TableLayout
 
 .. autoclass:: urwid.widget.TableLayout
 
+Tabs
+~~~~
+
+.. autoclass:: Tabs
+
 BoxAdapter
 ~~~~~~~~~~
 

@@ -64,6 +64,13 @@ subproc.py
 Monitor and display results from a subprocess
 
 
+tabs.py
+-------
+
+A tabbed window with a status line that follows the selected tab, and a key
+that closes the current tab
+
+
 external_editor.py
 ------------------
 
