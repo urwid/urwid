@@ -213,7 +213,9 @@ of all the options with the selected one in focus.  Activating an option in
 the list selects it and closes the list, and :kbd:`esc` closes the list
 without a change.  The list opens below the widget, or above it when it does
 not fit below, and it shows at most ``max_visible_items`` options at once and
-scrolls through the rest.
+scrolls through the rest.  A drop-down with a single option has nothing to
+choose, so it is read-only: it is not selectable, opens no list, and leaves
+the key or the click to the widgets above it.
 
 The :attr:`DropDown.selected` property holds the index of the selected
 option, and :attr:`DropDown.options` holds the markup of every option.

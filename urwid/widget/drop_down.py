@@ -87,6 +87,9 @@ class DropDown(PopUpLauncher[Columns]):
     when it fits on neither side it takes the side with more rows and scrolls. :kbd:`enter`, :kbd:`space` or a
     click chooses the focused option and closes the list; :kbd:`esc` closes it without a change.
 
+    With a single option there is nothing to choose, so the widget is read-only: it is not selectable, and
+    activating it opens no list.
+
     .. important::
         DropDown requires ``MainLoop(..., pop_ups=True)``, or another :class:`PopUpTarget <urwid.PopUpTarget>`
         above it. The list is a pop-up, and without a target activating the widget shows nothing.
@@ -148,6 +151,10 @@ class DropDown(PopUpLauncher[Columns]):
 
         self._selected = 0
         self.selected = selected
+
+    def selectable(self) -> bool:
+        """Return whether there is more than one option to choose from."""
+        return len(self._options) > 1
 
     @property
     def options(self) -> tuple[_TagMarkup, ...]:
@@ -222,8 +229,11 @@ class DropDown(PopUpLauncher[Columns]):
         size: tuple[()] | tuple[int] | tuple[int, int],
         key: str,
     ) -> str | None:
-        """Open the list on the ``activate`` command."""
-        if self._command_map[key] != Command.ACTIVATE:
+        """Open the list on the ``activate`` command.
+
+        When the widget is not selectable, the list does not open and the key is returned unhandled.
+        """
+        if self._command_map[key] != Command.ACTIVATE or not self.selectable():
             return key
         self.open_pop_up()
         return None
@@ -237,8 +247,11 @@ class DropDown(PopUpLauncher[Columns]):
         row: int,
         focus: bool,
     ) -> bool:
-        """Open the list on a button 1 press."""
-        if button != 1 or not is_mouse_press(event):
+        """Open the list on a button 1 press.
+
+        When the widget is not selectable, the list does not open and the press is not handled.
+        """
+        if button != 1 or not is_mouse_press(event) or not self.selectable():
             return False
         self.open_pop_up()
         return True
