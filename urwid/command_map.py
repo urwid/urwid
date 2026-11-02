@@ -52,6 +52,8 @@ class Command(enum.StrEnum):
     DELETE_WORD_RIGHT = "delete word right"
     DELETE_TO_LINE_START = "delete to start of line"
     DELETE_TO_LINE_END = "delete to end of line"
+    COMPLETE_NEXT = "complete next"
+    COMPLETE_PREVIOUS = "complete previous"
 
 
 REDRAW_SCREEN: typing.Literal[Command.REDRAW_SCREEN] = Command.REDRAW_SCREEN
@@ -96,6 +98,8 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     ``'cursor word left'``, ``'cursor word right'``, ``'delete word left'``, ``'delete word right'``,
     ``'delete to start of line'`` and ``'delete to end of line'``.
     A word is a run of letters, digits and underscores, and a line ends at a newline.
+    An :class:`Edit` with a text completer handles ``'complete next'`` and ``'complete previous'``, which no key is
+    mapped to by default either; see :attr:`Edit.text_completer`.
 
     * ``'delete word left'`` stops at punctuation, as readline's ``backward-kill-word`` (:kbd:`meta backspace`) does,
       except that an underscore is part of a word here.
@@ -107,6 +111,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     >>> cm = CommandMap()
     >>> cm.bind(Command.WORD_LEFT, "meta b")
     >>> cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
+    >>> cm.bind(Command.COMPLETE_NEXT, "ctrl f")
     """
 
     def __iter__(self) -> Iterator[str]:

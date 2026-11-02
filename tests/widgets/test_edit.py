@@ -998,6 +998,567 @@ class EditRenderTest(unittest.TestCase):
         self.rtest(w, ["  hi"], (3, 0))
 
 
+class EditPlaceholderTest(unittest.TestCase):
+    def test_drawn_while_empty_focused_or_not(self) -> None:
+        e = urwid.Edit("? ", placeholder="name")
+        for focus in (False, True):
+            with self.subTest(focus=focus):
+                self.assertEqual(e.render((10,), focus=focus).text, [b"? name    "])
+        self.assertEqual(e.render((10,), focus=True).cursor, (2, 0))
+        e.keypress((10,), "x")
+        self.assertEqual(e.render((10,)).text, [b"? x       "])
+
+    def test_not_part_of_text(self) -> None:
+        e = urwid.Edit("? ", placeholder="name", max_length=1)
+        self.assertEqual(e.get_text(), ("? ", []))
+        self.assertEqual(e.edit_text, "")
+        self.assertEqual(e.pack((10,)), urwid.Edit("? ").pack((10,)))
+        self.assertIsNone(e.keypress((10,), "x"))
+
+    def test_attributes_follow_caption(self) -> None:
+        e = urwid.Edit("? ", placeholder=("hint", "name"))
+        self.assertEqual(
+            next(iter(e.render((8,)).content())),
+            [(None, None, b"? "), ("hint", None, b"name"), (None, None, b"  ")],
+        )
+
+    def test_never_masked(self) -> None:
+        e = urwid.Edit("pw: ", mask="*", placeholder="secret")
+        self.assertEqual(e.render((12,)).text, [b"pw: secret  "])
+        e.keypress((12,), "a")
+        self.assertEqual(e.render((12,)).text, [b"pw: *       "])
+
+    def test_bytes_caption(self) -> None:
+        e = urwid.Edit(b"? ", b"", placeholder="name")
+        self.assertEqual(e.render((8,)).text, [b"? name  "])
+
+    def test_not_drawn_when_caption_does_not_fit(self) -> None:
+        """A caption that needs a horizontal shift to show the cursor is drawn without the placeholder."""
+        e = urwid.Edit("longcaption", placeholder="x", wrap="clip")
+        self.assertEqual(e.render((5,)).text, [b"longc"])
+        self.assertEqual(e.render((5,), focus=True).text, [b"tion "])
+
+    def test_rows_by_mode(self) -> None:
+        cases = [
+            ("single-line default clips", False, None, [b"? a   "]),
+            ("single-line grows when asked", False, True, [b"? a   ", b"long  ", b"hint  "]),
+            ("multiline default grows", True, None, [b"? a   ", b"long  ", b"hint  "]),
+            ("multiline clips when asked", True, False, [b"? a   "]),
+        ]
+        for label, multiline, grow, expected in cases:
+            with self.subTest(label):
+                e = urwid.Edit("? ", multiline=multiline, placeholder="a long hint", placeholder_grow=grow)
+                rows = e.rows((6,))  # uncached: no canvas has been rendered yet
+                canvas = e.render((6,))
+                self.assertEqual(canvas.text, expected)
+                self.assertEqual(rows, canvas.rows())
+                self.assertEqual(e.render((6,), focus=True).cursor, (2, 0))
+
+    def test_clip_pads_to_caption_rows(self) -> None:
+        """A caption laid out on more rows than caption and placeholder together keeps its row count."""
+        e = urwid.Edit("ab ", placeholder="c")
+        rows = e.rows((2,))
+        canvas = e.render((2,))
+        self.assertEqual(rows, urwid.Edit("ab ").rows((2,)))
+        self.assertEqual(canvas.rows(), rows)
+
+    def test_cursor_with_right_alignment(self) -> None:
+        """The cursor stays where the caption alone puts it."""
+        e = urwid.Edit("? ", align="right", placeholder="name")
+        self.assertEqual(e.get_cursor_coords((10,)), urwid.Edit("? ", align="right").get_cursor_coords((10,)))
+        canvas = e.render((10,), focus=True)
+        self.assertEqual(canvas.text, [b"    ? name"])
+        self.assertEqual(canvas.cursor, (9, 0))
+
+    def test_setters_invalidate(self) -> None:
+        e = urwid.Edit("? ", multiline=True)
+        self.assertEqual(e.render((6,)).text, [b"?     "])
+        e.placeholder = "a long hint"
+        self.assertEqual(e.placeholder, "a long hint")
+        self.assertEqual(e.render((6,)).text, [b"? a   ", b"long  ", b"hint  "])
+        e.placeholder_grow = False
+        self.assertEqual(e.render((6,)).text, [b"? a   "])
+        self.assertEqual(e.rows((6,)), 1)
+        e.placeholder = None
+        self.assertEqual(e.render((6,)).text, [b"?     "])
+
+    def test_invalid_placeholder_raises_on_assignment(self) -> None:
+        with self.assertRaises(urwid.TagMarkupException):
+            urwid.Edit("? ", placeholder=5)
+        with self.assertRaises(UnicodeError):
+            urwid.Edit(b"? ", b"", placeholder="h\xe9")
+        e = urwid.Edit("? ", placeholder="name")
+        with self.assertRaises(urwid.TagMarkupException):
+            e.placeholder = 5
+        self.assertEqual(e.render((8,)).text, [b"? name  "])
+
+    def test_repr(self) -> None:
+        self.assertEqual(
+            repr(urwid.Edit("? ", placeholder="name")),
+            "<Edit selectable flow widget '' caption='? ' edit_pos=0 placeholder='name'>",
+        )
+
+
+class EditValidatorTest(unittest.TestCase):
+    ERROR = urwid.ValidationMessage(urwid.Severity.ERROR, "bad")
+    WARNING = urwid.ValidationMessage(urwid.Severity.WARNING, "odd")
+    INFO = urwid.ValidationMessage(urwid.Severity.INFO, "note")
+
+    def test_return_shapes(self) -> None:
+        cases = [
+            ("None", None, ()),
+            ("empty iterable", [], ()),
+            ("str", "bad", (self.ERROR,)),
+            ("message", self.WARNING, (self.WARNING,)),
+            ("list", [self.INFO, self.ERROR], (self.INFO, self.ERROR)),
+            ("generator", (m for m in [self.WARNING]), (self.WARNING,)),
+        ]
+        for label, result, expected in cases:
+            with self.subTest(label):
+                e = urwid.Edit(validator=lambda _text, result=result: result)
+                self.assertEqual(e.validation, expected)
+
+    def test_wrong_return_type_raises(self) -> None:
+        for label, result in (
+            ("int", 1),
+            ("bytes", b"bad"),
+            ("str among messages", [self.ERROR, "bad"]),
+            ("severity not a Severity", urwid.ValidationMessage("bad", "m")),
+            ("int severity among messages", [urwid.ValidationMessage(3, "m")]),
+        ):
+            with self.subTest(label), self.assertRaises(TypeError):
+                urwid.Edit(validator=lambda _text, result=result: result)
+        e = urwid.Edit(validator=lambda text: 1 if text else None)
+        with self.assertRaises(TypeError):
+            e.set_edit_text("x")
+        self.assertEqual(e.edit_text, "x")
+        self.assertEqual(e.validation, ())
+
+    def test_severity_is_worst(self) -> None:
+        e = urwid.Edit(validator=lambda _text: [self.INFO, self.ERROR, self.WARNING])
+        self.assertIs(e.severity, urwid.Severity.ERROR)
+        self.assertIsNone(urwid.Edit().severity)
+
+    def test_called_once_per_change(self) -> None:
+        validator = mock.Mock(return_value=None)
+        e = urwid.Edit("", "a", validator=validator)
+        validator.assert_called_once_with("a")
+        validator.reset_mock()
+        e.keypress((10,), "b")
+        e.keypress((10,), "backspace")
+        e.insert_text("c")
+        e.set_edit_text("d")
+        self.assertEqual([c.args for c in validator.call_args_list], [("ab",), ("a",), ("ac",), ("d",)])
+        e.render((10,))
+        e.keypress((10,), "left")
+        self.assertEqual(validator.call_count, 4)
+
+    def test_signal_only_on_change(self) -> None:
+        e = urwid.Edit(validator=lambda text: None if text.isdigit() else "bad")
+        seen = []
+        urwid.connect_signal(e, "validation", lambda _w, old, new: seen.append((old, new)))
+        e.set_edit_text("x")
+        self.assertEqual(seen, [])
+        e.set_edit_text("1")
+        e.set_edit_text("12")
+        self.assertEqual(seen, [((self.ERROR,), ())])
+
+    def test_validate_reruns(self) -> None:
+        limit = [10]
+        e = urwid.Edit("", "5", validator=lambda text: None if int(text) < limit[0] else "too big")
+        self.assertEqual(e.validation, ())
+        limit[0] = 3
+        self.assertEqual(e.validation, ())
+        self.assertEqual(e.validate(), (urwid.ValidationMessage(urwid.Severity.ERROR, "too big"),))
+        self.assertEqual(e.validation, e.validate())
+
+    def test_validate_returns_value_left_by_handler(self) -> None:
+        """A "validation" handler that changes the text leaves the result of its own change."""
+        strict = [False]
+        e = urwid.Edit("", "x", validator=lambda text: "bad" if strict[0] and text == "x" else None)
+        urwid.connect_signal(e, "validation", lambda w, _old, new: new and w.set_edit_text("fixed"))
+        strict[0] = True
+        self.assertEqual(e.validate(), ())
+        self.assertEqual(e.edit_text, "fixed")
+        self.assertEqual(e.validation, ())
+
+    def test_subclass_validate_is_not_called(self) -> None:
+        """A subclass's own validate(), which may need attributes set after __init__, is never called by Edit."""
+
+        class OwnValidate(urwid.Edit):
+            def __init__(self) -> None:
+                super().__init__("> ", validator=lambda text: None if text else "empty")
+                self.required = True
+                self.own_calls = 0
+
+            def validate(self) -> bool:  # type: ignore[override]
+                self.own_calls += 1
+                return not self.required or bool(self.edit_text)
+
+        e = OwnValidate()
+        e.set_edit_text("x")
+        e.validator = lambda text: "bad"
+        self.assertEqual(e.validation, (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))
+        self.assertEqual(e.own_calls, 0)
+        self.assertTrue(e.validate())
+        self.assertEqual(urwid.Edit.validate(e), (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))
+
+    def test_failing_validator_is_not_installed(self) -> None:
+        e = urwid.Edit("", "x", validator=lambda _text: self.WARNING)
+        with self.assertRaises(TypeError):
+            e.validator = lambda _text: 1
+        self.assertEqual(e.validation, (self.WARNING,))
+        e.set_edit_text("y")
+        self.assertEqual(e.validation, (self.WARNING,))
+
+    def test_validator_assigned_later(self) -> None:
+        e = urwid.Edit("", "x")
+        self.assertIsNone(e.validator)
+        e.validator = lambda _text: self.WARNING
+        self.assertEqual(e.validation, (self.WARNING,))
+        e.validator = None
+        self.assertEqual(e.validation, ())
+
+    def test_colour_by_severity(self) -> None:
+        validation_attr = {urwid.Severity.WARNING: "warn", urwid.Severity.ERROR: "err"}
+        validation_focus_attr = {urwid.Severity.ERROR: "err focus"}
+        cases = [
+            ("no finding", None, False, None),
+            ("info has no map", self.INFO, False, None),
+            ("warning", self.WARNING, False, "warn"),
+            ("warning focused falls back", self.WARNING, True, "warn"),
+            ("error", self.ERROR, False, "err"),
+            ("error focused", self.ERROR, True, "err focus"),
+            ("worst message decides", [self.WARNING, self.ERROR], False, "err"),
+        ]
+        for label, result, focus, attr in cases:
+            with self.subTest(label):
+                e = urwid.Edit(
+                    "",
+                    "ab",
+                    validator=lambda _text, result=result: result,
+                    validation_attr=validation_attr,
+                    validation_focus_attr=validation_focus_attr,
+                )
+                self.assertEqual(next(iter(e.render((4,), focus=focus).content())), [(attr, None, b"ab  ")])
+
+    def test_map_over_caption_markup(self) -> None:
+        """A single attribute keeps the caption's own attribute, layered over it."""
+        e = urwid.Edit(("cap", "? "), "x", validator=lambda _text: "bad", validation_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(
+            next(iter(e.render((4,)).content())),
+            [(urwid.LayeredAttr("cap", "err"), None, b"? "), ("err", None, b"x ")],
+        )
+        e.validation_attr = {urwid.Severity.ERROR: {None: "err", "cap": "err cap"}}
+        self.assertEqual(
+            next(iter(e.render((4,)).content())),
+            [(urwid.LayeredAttr("err cap", "err"), None, b"? "), ("err", None, b"x ")],
+        )
+        self.assertEqual(e.validation_attr, {urwid.Severity.ERROR: {None: "err", "cap": "err cap"}})
+        e.validation_attr = None
+        self.assertEqual(next(iter(e.render((4,)).content())), [("cap", None, b"? "), (None, None, b"x ")])
+
+    def test_cursor_kept_with_map(self) -> None:
+        e = urwid.Edit("? ", "ab", validator=lambda _text: "bad", validation_focus_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(e.render((6,), focus=True).cursor, (4, 0))
+
+    def test_render_follows_validation_change(self) -> None:
+        e = urwid.Edit(validator=lambda text: None if text else "empty", validation_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(next(iter(e.render((2,)).content())), [("err", None, b"  ")])
+        e.keypress((2,), "x")
+        self.assertEqual(next(iter(e.render((2,)).content())), [(None, None, b"x ")])
+        e.validation_focus_attr = {urwid.Severity.ERROR: "err focus"}
+        e.keypress((2,), "backspace")
+        self.assertEqual(next(iter(e.render((2,), focus=True).content())), [("err focus", None, b"  ")])
+        self.assertEqual(e.validation_focus_attr, {urwid.Severity.ERROR: {None: "err focus"}})
+
+    def test_placeholder_coloured(self) -> None:
+        e = urwid.Edit(
+            placeholder="hint",
+            validator=lambda text: None if text else "empty",
+            validation_attr={urwid.Severity.ERROR: "err"},
+        )
+        self.assertEqual(next(iter(e.render((6,)).content())), [("err", None, b"hint  ")])
+
+    def test_masked_text_is_validated(self) -> None:
+        validator = mock.Mock(return_value=None)
+        urwid.Edit("", "secret", mask="*", validator=validator)
+        validator.assert_called_once_with("secret")
+
+    def test_int_edit(self) -> None:
+        e = urwid.IntEdit("", 5)
+        e.validator = lambda text: None if int(text or 0) < 10 else "too big"
+        e.keypress((10,), "0")
+        self.assertEqual(e.edit_text, "50")
+        self.assertEqual(e.validation, (urwid.ValidationMessage(urwid.Severity.ERROR, "too big"),))
+
+
+def complete_words(text: str, pos: int) -> list[tuple[str, int]]:
+    """Complete the word before the cursor from a fixed list, keeping the text after the cursor."""
+    start = max(text.rfind(" ", 0, pos) + 1, 0)
+    return [
+        (text[:start] + word + text[pos:], start + len(word))
+        for word in ("alpha", "alpine", "beta")
+        if word.startswith(text[start:pos])
+    ]
+
+
+class NoAlpineEdit(urwid.Edit):
+    """Edit that refuses the text "alpine", as a subclass with an input pattern refuses text."""
+
+    def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+        if text == "alpine":
+            raise ValueError(text)
+        super().set_edit_text(text, edit_pos=edit_pos)
+
+
+class EditCompleterTest(unittest.TestCase):
+    def test_cycle_forward_and_back_with_wrap(self) -> None:
+        e = urwid.Edit("", "x al y", edit_pos=4, text_completer=complete_words)
+        seen = []
+        for key in ("tab", "tab", "tab", "tab", "shift tab", "shift tab"):
+            self.assertIsNone(e.keypress((20,), key))
+            seen.append((e.edit_text, e.edit_pos))
+        self.assertEqual(
+            seen,
+            [
+                ("x alpha y", 7),
+                ("x alpine y", 8),
+                ("x al y", 4),
+                ("x alpha y", 7),
+                ("x al y", 4),
+                ("x alpine y", 8),
+            ],
+        )
+        self.assertEqual(e.completion_cycle, ((("x al y", 4), ("x alpha y", 7), ("x alpine y", 8)), 2))
+
+    def test_previous_first_takes_last_candidate(self) -> None:
+        e = urwid.Edit("", "al", text_completer=complete_words)
+        e.keypress((20,), "shift tab")
+        self.assertEqual(e.edit_text, "alpine")
+
+    def test_completer_called_once_per_cycle(self) -> None:
+        completer = mock.Mock(side_effect=complete_words)
+        e = urwid.Edit("", "al", text_completer=completer)
+        for _key in range(5):
+            e.keypress((20,), "tab")
+        completer.assert_called_once_with("al", 2)
+
+    def test_nothing_to_complete_returns_key(self) -> None:
+        e = urwid.Edit("", "zz", text_completer=complete_words)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+        self.assertEqual(e.keypress((20,), "shift tab"), "shift tab")
+        self.assertEqual(e.edit_text, "zz")
+        self.assertIsNone(e.completion_cycle)
+
+    def test_without_completer_tab_returned(self) -> None:
+        self.assertEqual(urwid.Edit("", "al").keypress((20,), "tab"), "tab")
+
+    def test_single_candidate_starts_no_cycle(self) -> None:
+        """The next key asks the completer again, and a candidate equal to the current text is left out."""
+        completer = mock.Mock(side_effect=complete_words)
+        e = urwid.Edit("", "be", text_completer=completer)
+        seen = []
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
+        self.assertIsNone(e.keypress((20,), "tab"))
+        self.assertEqual((e.edit_text, e.edit_pos), ("beta", 4))
+        self.assertIsNone(e.completion_cycle)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+        self.assertEqual(e.edit_text, "beta")
+        self.assertEqual(completer.call_args_list, [mock.call("be", 2), mock.call("beta", 4)])
+        self.assertEqual(seen, [])
+
+    def test_candidate_position_clipped_before_comparing(self) -> None:
+        """A candidate past the end of its text is the text with the cursor at its end, so Tab is returned next."""
+        e = urwid.Edit("", "be", text_completer=lambda text, _pos: [("beta", 10)])
+        self.assertIsNone(e.keypress((20,), "tab"))
+        self.assertEqual((e.edit_text, e.edit_pos), ("beta", 4))
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+
+    def test_prefix_then_cycle(self) -> None:
+        """A completer that returns the common prefix first inserts it, then cycles through the matches."""
+
+        def complete_prefix(text: str, pos: int) -> list[tuple[str, int]]:
+            matches = [word for word in ("alpha", "alpine", "beta") if word.startswith(text[:pos])]
+            prefix = matches[0] if matches else ""
+            for word in matches:
+                while not word.startswith(prefix):
+                    prefix = prefix[:-1]
+            if len(matches) > 1 and len(prefix) > pos:
+                return [(prefix, len(prefix))]
+            return [(word, len(word)) for word in matches]
+
+        e = urwid.Edit("", "a", text_completer=complete_prefix)
+        seen = []
+        for _key in range(4):
+            self.assertIsNone(e.keypress((20,), "tab"))
+            seen.append(e.edit_text)
+        self.assertEqual(seen, ["alp", "alpha", "alpine", "alp"])
+
+    def test_other_key_ends_cycle(self) -> None:
+        completer = mock.Mock(side_effect=complete_words)
+        e = urwid.Edit("", "al", text_completer=completer)
+        seen = []
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
+        e.keypress((20,), "tab")
+        self.assertEqual(e.keypress((20,), "f5"), "f5")
+        self.assertIsNone(e.completion_cycle)
+        self.assertEqual(seen, [((("al", 2), ("alpha", 5), ("alpine", 6)), 1), None])
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "alpha")
+        self.assertEqual(completer.call_args_list, [mock.call("al", 2), mock.call("alpha", 5)])
+
+    def test_change_from_elsewhere_ends_cycle(self) -> None:
+        """The cycle ends at once, with a signal, and the next key asks the completer again."""
+        e = urwid.Edit("", "al", text_completer=complete_words)
+        seen = []
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
+        e.keypress((20,), "tab")
+        e.set_edit_text("alp")
+        self.assertIsNone(e.completion_cycle)
+        self.assertEqual(seen[-1:], [None])
+        e.keypress((20,), "tab")
+        e.mouse_event((20,), "mouse press", 1, 1, 0, True)
+        self.assertIsNone(e.completion_cycle)
+        self.assertEqual(e.edit_pos, 1)
+        e.set_edit_text("alp")
+        e.set_edit_pos(3)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "alpha")
+        self.assertEqual(e.completion_cycle, ((("alp", 3), ("alpha", 5), ("alpine", 6)), 1))
+
+    def test_cycle_ends_after_postchange_and_validation(self) -> None:
+        """A change through set_edit_text() ends the cycle once "postchange" and validation are done."""
+        e = urwid.Edit("", "al", text_completer=complete_words, validator=lambda text: None if text != "x" else "bad")
+        e.keypress((20,), "tab")
+        seen = []
+        urwid.connect_signal(e, "postchange", lambda _w, _old: seen.append("postchange"))
+        urwid.connect_signal(e, "completion_cycle", lambda w, completions: seen.append((completions, w.validation)))
+        e.set_edit_text("x")
+        self.assertEqual(seen, ["postchange", (None, (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))])
+
+    def test_change_without_set_edit_pos_ends_cycle_at_next_key(self) -> None:
+        """A subclass that changes the text without set_edit_pos() gets the cycle ended by the next completion key."""
+        completer = mock.Mock(side_effect=complete_words)
+        e = urwid.Edit("", "al", text_completer=completer)
+        e.keypress((20,), "tab")
+        e._edit_text, e._edit_pos = "be", 2
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "beta")
+        self.assertEqual(completer.call_args_list, [mock.call("al", 2), mock.call("be", 2)])
+
+    def test_allow_tab_completes_by_command_only(self) -> None:
+        cm = urwid.CommandMap()
+        cm.bind(Command.COMPLETE_NEXT, "ctrl f")
+        cm.bind(Command.COMPLETE_PREVIOUS, "ctrl r")
+        e = urwid.Edit("", "al", allow_tab=True, text_completer=complete_words)
+        e._command_map = cm
+        self.assertIsNone(e.keypress((20,), "ctrl r"))
+        self.assertEqual(e.edit_text, "alpine")
+        self.assertIsNone(e.keypress((20,), "ctrl f"))
+        self.assertEqual(e.edit_text, "al")
+        self.assertIsNone(e.keypress((20,), "tab"))
+        self.assertEqual(e.edit_text, "al      ")
+        self.assertEqual(e.keypress((20,), "shift tab"), "shift tab")
+
+    def test_completer_exception_propagates(self) -> None:
+        e = urwid.Edit("", "al", text_completer=mock.Mock(side_effect=RuntimeError("boom")))
+        with self.assertRaises(RuntimeError):
+            e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "al")
+
+    def test_rejected_candidate_propagates_and_cycle_stays(self) -> None:
+        """A refused candidate propagates and is retried."""
+        e = NoAlpineEdit("", "al", text_completer=complete_words)
+        e.keypress((20,), "tab")
+        for _key in range(2):
+            with self.assertRaises(ValueError):
+                e.keypress((20,), "tab")
+            self.assertEqual(e.edit_text, "alpha")
+            self.assertEqual(e.completion_cycle, ((("al", 2), ("alpha", 5), ("alpine", 6)), 1))
+
+    def test_rejected_first_candidate_propagates_and_starts_no_cycle(self) -> None:
+        """A refused first candidate starts no cycle, so the next key asks the completer again."""
+        completer = mock.Mock(return_value=[("alpine", 6), ("alpha", 5)])
+        e = NoAlpineEdit("", "al", text_completer=completer)
+        for _key in range(2):
+            with self.assertRaises(ValueError):
+                e.keypress((20,), "tab")
+            self.assertEqual((e.edit_text, e.completion_cycle), ("al", None))
+        self.assertEqual(completer.call_count, 2)
+
+    def test_candidate_over_max_length(self) -> None:
+        e = urwid.Edit("", "al", max_length=5, text_completer=complete_words)
+        with self.assertRaises(ValueError):
+            e.keypress((20,), "tab")
+        self.assertEqual((e.edit_text, e.edit_pos), ("al", 2))
+        self.assertIsNone(e.completion_cycle)
+
+    def test_bytes(self) -> None:
+        """The completer gets bytes, and str candidates are converted to bytes."""
+        completer = mock.Mock(return_value=[("alpha", 5), ("alpine", 6)])
+        e = urwid.Edit(b"", b"al", text_completer=completer)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, b"alpha")
+        completer.assert_called_once_with(b"al", 2)
+        self.assertEqual(e.completion_cycle, (((b"al", 2), (b"alpha", 5), (b"alpine", 6)), 1))
+
+    def test_masked(self) -> None:
+        e = urwid.Edit("", "al", mask="*", text_completer=complete_words)
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "alpha")
+        self.assertEqual(e.render((8,)).text, [b"*****   "])
+
+    def test_validator_runs_per_step_and_placeholder_returns(self) -> None:
+        validator = mock.Mock(return_value=None)
+        e = urwid.Edit(
+            "",
+            placeholder="word",
+            validator=validator,
+            text_completer=lambda _t, _p: [("beta", 4), ("bet", 3)],
+        )
+        validator.reset_mock()
+        e.keypress((8,), "tab")
+        self.assertEqual(e.render((8,)).text, [b"beta    "])
+        e.keypress((8,), "tab")
+        e.keypress((8,), "tab")
+        self.assertEqual(e.render((8,)).text, [b"word    "])
+        self.assertEqual([c.args for c in validator.call_args_list], [("beta",), ("bet",), ("",)])
+
+    def test_subclass_completer_attributes_kept(self) -> None:
+        """A subclass may keep its own completer and completions attributes, set before Edit.__init__."""
+
+        class OwnCompletion(urwid.Edit):
+            def __init__(self, completer: object) -> None:
+                self.completer = completer
+                self.completions = None
+                super().__init__("> ", "al")
+
+        completer = object()
+        e = OwnCompletion(completer)
+        self.assertIs(e.completer, completer)
+        self.assertIsNone(e.text_completer)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+
+    def test_subclass_complete_method_not_called(self) -> None:
+        """A subclass's own _complete(), as urwid-readline and topydo define, is never called by Edit."""
+
+        class OwnComplete(urwid.Edit):
+            def _complete(self) -> None:
+                raise AssertionError("called by Edit")
+
+        e = OwnComplete("", "al", text_completer=complete_words)
+        self.assertIsNone(e.keypress((20,), "tab"))
+        self.assertEqual(e.edit_text, "alpha")
+
+    def test_setting_completer_ends_cycle(self) -> None:
+        e = urwid.Edit("", "al", text_completer=complete_words)
+        e.keypress((20,), "tab")
+        e.text_completer = None
+        self.assertIsNone(e.completion_cycle)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+
+
 class IntEditTest(unittest.TestCase):
     def test_bytes_caption_trims_zeros_and_preserves_cursor_and_signals(self) -> None:
         for caption in ("", b""):
@@ -1112,6 +1673,32 @@ class IntEditTest(unittest.TestCase):
         with mock.patch.object(sys, "get_int_max_str_digits", return_value=10):
             self.assertIsNone(e.keypress((20,), "2"))
         self.assertEqual(e.edit_text, "2" + "1" * 8)
+
+    def test_completion_with_leading_zeros_keeps_cycling(self) -> None:
+        """Candidates are held without the leading zeros keypress() removes, so the cycle goes on."""
+        completer = mock.Mock(return_value=[("007", 3), ("0042", 4)])
+        e = urwid.IntEdit("", 1)
+        e.text_completer = completer
+        seen = []
+        for _key in range(3):
+            self.assertIsNone(e.keypress((10,), "tab"))
+            seen.append((e.edit_text, e.edit_pos))
+        self.assertEqual(seen, [("7", 1), ("42", 2), ("1", 1)])
+        completer.assert_called_once_with("1", 1)
+
+    def test_completion_from_text_with_leading_zeros_keeps_cycling(self) -> None:
+        """A cycle started from text set with leading zeros returns to it without them, and goes on."""
+        completer = mock.Mock(return_value=[("10", 2), ("20", 2)])
+        e = urwid.IntEdit()
+        e.set_edit_text("007")
+        e.set_edit_pos(3)
+        e.text_completer = completer
+        seen = []
+        for _key in range(4):
+            self.assertIsNone(e.keypress((10,), "tab"))
+            seen.append((e.edit_text, e.edit_pos))
+        self.assertEqual(seen, [("10", 2), ("20", 2), ("7", 1), ("10", 2)])
+        completer.assert_called_once_with("007", 3)
 
     def test_value_empty(self) -> None:
         e = urwid.IntEdit()

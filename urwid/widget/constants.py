@@ -1,4 +1,4 @@
-"""Constants and enumerations for widget sizing, alignment and wrapping."""
+"""Constants and enumerations for widget sizing, alignment, wrapping and validation."""
 
 from __future__ import annotations
 
@@ -56,6 +56,24 @@ class WHSettings(enum.StrEnum):
     WEIGHT = "weight"
     CLIP = "clip"  # Used as "given" for widgets with fixed width (with clipping part of it)
     FLOW = "flow"  # Used as pack for flow widgets
+
+
+class Severity(enum.IntEnum):
+    """How serious a :class:`ValidationMessage` is.
+
+    The members are ordered, so :func:`max` gives the worst of several.
+    """
+
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+
+
+class ValidationMessage(typing.NamedTuple):
+    """One finding of a validator about a whole value, such as the text of an :class:`Edit`."""
+
+    severity: Severity
+    message: str
 
 
 RELATIVE_100: tuple[Literal[WHSettings.RELATIVE], int] = (WHSettings.RELATIVE, 100)

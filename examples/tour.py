@@ -28,6 +28,10 @@ from __future__ import annotations
 
 import urwid
 
+PORTS = range(1, 65536)
+PRIVILEGED_PORTS = range(1, 1024)
+COLOURS = ("black", "brown", "dark blue", "dark cyan", "dark green", "dark red", "light blue", "light gray")
+
 
 def main() -> None:
     """Build and run the tour of standard widget types and features."""
@@ -108,6 +112,8 @@ def main() -> None:
     text_edit_text3 = "add some text here -> -> -> ...."
     text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
     text_edit_text4 = "12345"
+    text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
+    text_edit_cap6 = ("editcp", "This one completes a colour with TAB: ")
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -287,6 +293,24 @@ def main() -> None:
         urwid.AttrMap(urwid.Edit(text_edit_cap3, text_edit_text3, wrap=urwid.CLIP), "editbx", "editfc"),
         blank,
         urwid.AttrMap(urwid.Edit(text_edit_cap4, text_edit_text4, max_length=8), "editbx", "editfc"),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(
+                text_edit_cap5,
+                placeholder=("edithint", "e.g. 8080"),
+                validator=check_port,
+                validation_attr={urwid.Severity.WARNING: "editwarn", urwid.Severity.ERROR: "editerr"},
+                validation_focus_attr={urwid.Severity.WARNING: "editwarnf", urwid.Severity.ERROR: "editerrf"},
+            ),
+            "editbx",
+            "editfc",
+        ),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(text_edit_cap6, text_completer=complete_colour),
+            "editbx",
+            "editfc",
+        ),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),
@@ -516,6 +540,11 @@ def main() -> None:
         ("editfc", "white", "dark blue", "bold"),
         ("editbx", "light gray", "dark blue"),
         ("editcp", "black", "light gray", "standout"),
+        ("edithint", "light cyan", "dark blue"),
+        ("editwarn", "yellow", "dark blue"),
+        ("editwarnf", "yellow", "dark blue", "bold"),
+        ("editerr", "light red", "dark blue"),
+        ("editerrf", "light red", "dark blue", "bold"),
         ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
@@ -534,6 +563,23 @@ def main() -> None:
 
     # pop_ups=True adds the PopUpTarget that shows the open DropDown lists.
     urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
+
+
+def check_port(text: str) -> urwid.ValidationMessage | str | None:
+    """Return what is wrong with *text* as a TCP port number, or ``None`` for an empty or usable one."""
+    if not text:
+        return None
+    if not text.isdecimal() or int(text) not in PORTS:
+        return "not a port number"
+    if int(text) in PRIVILEGED_PORTS:
+        return urwid.ValidationMessage(urwid.Severity.WARNING, "a privileged port")
+    return None
+
+
+def complete_colour(text: str, pos: int) -> list[tuple[str, int]]:
+    """Return the colours that start with the text before the cursor, none for an empty field."""
+    prefix = text[:pos]
+    return [(name, len(name)) for name in COLOURS if name.startswith(prefix)] if prefix else []
 
 
 def setup() -> None:
