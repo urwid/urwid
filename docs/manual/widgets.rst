@@ -240,6 +240,22 @@ The tour.py_ example program shows two drop-down widgets.
 
 .. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
 
+Edit Widgets
+------------
+
+:class:`Edit` handles the readline editing commands described in
+:class:`CommandMap`: moving and deleting by word and to the line ends.  No key
+is mapped to them by default.  :meth:`CommandMap.bind_readline` maps the usual
+readline keys, such as :kbd:`ctrl a`, :kbd:`ctrl e`, :kbd:`ctrl w` and
+:kbd:`meta b`, either on the shared ``urwid.command_map`` or on a copy that a
+subclass sets as its ``_command_map``::
+
+    class ReadlineEdit(urwid.Edit):
+        _command_map = urwid.command_map.copy()
+        _command_map.bind_readline()
+
+The tour.py_ example program shows such an edit.
+
 .. _decoration-widgets:
 
 Decoration Widgets

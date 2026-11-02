@@ -387,6 +387,10 @@ class EditTest(unittest.TestCase):
         cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
         cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
         cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cm.bind(Command.LINE_START, "ctrl a")
+        cm.bind(Command.LINE_END, "ctrl e")
+        cm.bind(Command.DELETE_SPACE_WORD_LEFT, "meta w")
+        cm.bind(Command.DELETE_RIGHT, "ctrl d")
         cases = (
             ("insert", "ab", 1, None, "X", "aXb", 2),
             ("insert over highlight", "hello", 5, (1, 4), "X", "hXo", 2),
@@ -551,6 +555,10 @@ class EditTest(unittest.TestCase):
         cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
         cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
         cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cm.bind(Command.LINE_START, "ctrl a")
+        cm.bind(Command.LINE_END, "ctrl e")
+        cm.bind(Command.DELETE_SPACE_WORD_LEFT, "meta w")
+        cm.bind(Command.DELETE_RIGHT, "ctrl d")
         cases = (
             ("one, two", 8, "meta b", "one, two", 5, None),
             ("one, two", 5, "meta b", "one, two", 0, None),
@@ -577,6 +585,27 @@ class EditTest(unittest.TestCase):
             ("ab", 2, "ctrl k", "ab", 2, "ctrl k"),
             (b"one two", 7, "ctrl w", b"one ", 4, None),
             (b"ab\ncd", 4, "ctrl u", b"ab\nd", 3, None),
+            # a wrapped line: the line commands go past the screen row, to the newline or the text edge
+            ("alpha beta gamma delta epsilon", 23, "ctrl a", "alpha beta gamma delta epsilon", 0, None),
+            ("alpha beta gamma delta epsilon", 3, "ctrl e", "alpha beta gamma delta epsilon", 30, None),
+            ("ab\ncd\nef", 4, "ctrl a", "ab\ncd\nef", 3, None),
+            ("ab\ncd\nef", 4, "ctrl e", "ab\ncd\nef", 5, None),
+            ("ab\ncd\nef", 3, "ctrl a", "ab\ncd\nef", 3, "ctrl a"),
+            ("ab\ncd\nef", 5, "ctrl e", "ab\ncd\nef", 5, "ctrl e"),
+            ("ab\ncd\nef", 2, "ctrl e", "ab\ncd\nef", 2, "ctrl e"),
+            (b"ab\ncd", 5, "ctrl a", b"ab\ncd", 3, None),
+            (b"ab\ncd", 0, "ctrl e", b"ab\ncd", 2, None),
+            # bash's ctrl w (unix-word-rubout) and ctrl d (delete-char) give the same results
+            ("ls /usr/local/", 14, "meta w", "ls ", 3, None),
+            ("ls /usr/local/  ", 16, "meta w", "ls ", 3, None),
+            ("one, two", 4, "meta w", " two", 0, None),
+            ("a\nb c", 3, "meta w", "a\n c", 2, None),
+            ("  ", 2, "meta w", "", 0, None),
+            ("ab", 0, "meta w", "ab", 0, "meta w"),
+            (b"x \xc3\xa9t\xc3\xa9", 7, "meta w", b"x ", 2, None),
+            ("abc", 1, "ctrl d", "ac", 1, None),
+            ("abc", 3, "ctrl d", "abc", 3, "ctrl d"),
+            ("a" + FAMILY + "b", 1, "ctrl d", "ab", 1, None),
         )
         for text, pos, key, expected_text, expected_pos, returned in cases:
             with self.subTest(text=text, pos=pos, key=key):
@@ -611,10 +640,35 @@ class EditTest(unittest.TestCase):
     def test_readline_commands_unbound_by_default(self) -> None:
         """No key reaches the readline commands unless the application binds it."""
         e = urwid.Edit("", "one two")
-        for key in ("ctrl a", "ctrl e", "ctrl u", "ctrl k", "ctrl w", "meta b", "meta f", "meta d", "meta backspace"):
+        keys = (
+            "ctrl a",
+            "ctrl e",
+            "ctrl u",
+            "ctrl k",
+            "ctrl w",
+            "ctrl d",
+            "meta b",
+            "meta f",
+            "meta d",
+            "meta backspace",
+        )
+        for key in keys:
             with self.subTest(key=key):
                 self.assertEqual(e.keypress((20,), key), key)
                 self.assertEqual((e.edit_text, e.edit_pos), ("one two", 7))
+
+    def test_readline_preset_on_shared_map(self) -> None:
+        """With the preset on the shared map, ctrl a moves an Edit and leaves a ListBox focus where it is."""
+        cm = urwid.CommandMap()
+        cm.bind_readline()
+        with mock.patch.object(urwid.Widget, "_command_map", cm):
+            e = urwid.Edit("", "one two")
+            self.assertIsNone(e.keypress((20,), "ctrl a"))
+            self.assertEqual(e.edit_pos, 0)
+            listbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.SelectableIcon(str(n)) for n in range(20)]))
+            listbox.focus_position = 10
+            self.assertEqual(listbox.keypress((10, 5), "ctrl a"), "ctrl a")
+            self.assertEqual(listbox.focus_position, 10)
 
     def test_keypress_up_down_raises_when_pref_col_none(self) -> None:
         e = urwid.Edit("", "hello")

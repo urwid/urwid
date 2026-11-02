@@ -33,6 +33,13 @@ PRIVILEGED_PORTS = range(1, 1024)
 COLOURS = ("black", "brown", "dark blue", "dark cyan", "dark green", "dark red", "light blue", "light gray")
 
 
+class ReadlineEdit(urwid.Edit):
+    """Edit that takes the readline editing keys, from its own copy of the shared command map."""
+
+    _command_map = urwid.command_map.copy()
+    _command_map.bind_readline()
+
+
 def main() -> None:
     """Build and run the tour of standard widget types and features."""
     text_header = (
@@ -114,6 +121,8 @@ def main() -> None:
     text_edit_text4 = "12345"
     text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
     text_edit_cap6 = ("editcp", "This one completes a colour with TAB: ")
+    text_edit_cap7 = ("editcp", "This one takes readline keys, such as ctrl a, ctrl e, ctrl w and meta b: ")
+    text_edit_text7 = "ls /usr/local/share"
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -311,6 +320,8 @@ def main() -> None:
             "editbx",
             "editfc",
         ),
+        blank,
+        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7), "editbx", "editfc"),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),

@@ -32,3 +32,37 @@ class CommandMapBindTest(unittest.TestCase):
             cm.bind("quit", "q", "ctrl l")
         self.assertIsNone(cm["q"])
         self.assertEqual(Command.REDRAW_SCREEN, cm["ctrl l"])
+
+
+class CommandMapBindReadlineTest(unittest.TestCase):
+    """Binding the readline keys through CommandMap.bind_readline."""
+
+    def test_bind_readline_on_default_map(self) -> None:
+        """Bind every readline key and keep the defaults."""
+        cm = CommandMap()
+        cm.bind_readline()
+        expected = {
+            "ctrl a": Command.LINE_START,
+            "ctrl e": Command.LINE_END,
+            "meta b": Command.WORD_LEFT,
+            "meta f": Command.WORD_RIGHT,
+            "meta backspace": Command.DELETE_WORD_LEFT,
+            "meta d": Command.DELETE_WORD_RIGHT,
+            "ctrl u": Command.DELETE_TO_LINE_START,
+            "ctrl k": Command.DELETE_TO_LINE_END,
+            "ctrl w": Command.DELETE_SPACE_WORD_LEFT,
+            "ctrl d": Command.DELETE_RIGHT,
+        }
+        self.assertEqual({key: cm[key] for key in expected}, expected)
+        self.assertEqual(dict(cm), {**CommandMap(), **expected})
+
+    def test_bind_readline_conflict_leaves_map_unchanged(self) -> None:
+        """Refuse a key taken by another command, early or late in the preset, and bind none of the keys."""
+        for taken in ("ctrl a", "ctrl d"):
+            with self.subTest(taken=taken):
+                cm = CommandMap()
+                cm[taken] = "quit"
+                before = dict(cm)
+                with self.assertRaisesRegex(ValueError, f"'{taken}' is already bound to 'quit'"):
+                    cm.bind_readline()
+                self.assertEqual(dict(cm), before)

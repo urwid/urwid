@@ -1020,8 +1020,14 @@ class Edit(WidgetWrap[Text]):
             self._emit("submit", self._edit_text)
             return key
 
-        if command in {Command.WORD_LEFT, Command.WORD_RIGHT}:
-            if (new_pos := self._word_boundary(pos, forward=command == Command.WORD_RIGHT)) == pos:
+        if command in {Command.WORD_LEFT, Command.WORD_RIGHT, Command.LINE_START, Command.LINE_END}:
+            if command == Command.LINE_START:
+                new_pos = self._line_bounds(pos)[0]
+            elif command == Command.LINE_END:
+                new_pos = self._line_bounds(pos)[1]
+            else:
+                new_pos = self._word_boundary(pos, forward=command == Command.WORD_RIGHT)
+            if new_pos == pos:
                 return key
             self.set_edit_pos(new_pos)
             return None
@@ -1029,21 +1035,21 @@ class Edit(WidgetWrap[Text]):
         if command in {
             Command.DELETE_WORD_LEFT,
             Command.DELETE_WORD_RIGHT,
+            Command.DELETE_SPACE_WORD_LEFT,
             Command.DELETE_TO_LINE_START,
             Command.DELETE_TO_LINE_END,
         }:
             text = self._edit_text
-            nl = "\n" if isinstance(text, str) else b"\n"
             if command == Command.DELETE_WORD_LEFT:
                 start, end = self._word_boundary(pos, forward=False), pos
+            elif command == Command.DELETE_SPACE_WORD_LEFT:
+                start, end = self._word_boundary(pos, forward=False, space_separated=True), pos
             elif command == Command.DELETE_WORD_RIGHT:
                 start, end = pos, self._word_boundary(pos, forward=True)
             elif command == Command.DELETE_TO_LINE_START:
-                bol = text.rfind(nl, 0, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
-                start, end = bol + 1, pos
+                start, end = self._line_bounds(pos)[0], pos
             else:
-                eol = text.find(nl, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
-                start, end = pos, len(text) if eol < 0 else eol
+                start, end = pos, self._line_bounds(pos)[1]
             if start == end:
                 return key
             self._set_edit_text_and_pos(text[:start] + text[end:], start)
@@ -1091,7 +1097,7 @@ class Edit(WidgetWrap[Text]):
                 return None
             return None
 
-        if key == "delete":
+        if key == "delete" or command == Command.DELETE_RIGHT:
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
                 if pos >= len(self.edit_text):
@@ -1117,10 +1123,19 @@ class Edit(WidgetWrap[Text]):
         # key wasn't handled
         return key
 
-    def _word_boundary(self, pos: int, *, forward: bool) -> int:
+    def _line_bounds(self, pos: int) -> tuple[int, int]:
+        """Return the start and the end of the line *pos* is on, where a line ends at a newline."""
+        text = self._edit_text
+        nl = "\n" if isinstance(text, str) else b"\n"
+        eol = text.find(nl, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+        bol = text.rfind(nl, 0, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+        return bol + 1, len(text) if eol < 0 else eol
+
+    def _word_boundary(self, pos: int, *, forward: bool, space_separated: bool = False) -> int:
         """Return the edit position after the next word, or at the start of the previous word.
 
         A word is a run of characters whose first code point is a letter, a digit or an underscore.
+        With *space_separated*, a word is a run of characters whose first code point is not whitespace.
         A multibyte character of a byte string counts as a letter.
         A masked text is one word, so that the cursor does not show where the hidden text has spaces.
         """
@@ -1130,6 +1145,8 @@ class Edit(WidgetWrap[Text]):
             return end if forward else 0
 
         def in_word(char: str | bytes) -> bool:
+            if space_separated:
+                return not char[:1].isspace()
             if isinstance(char, bytes):
                 return char[:1].isalnum() or char[:1] == b"_" or len(char) > 1
             return char[:1].isalnum() or char[:1] == "_"

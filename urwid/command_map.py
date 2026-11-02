@@ -52,6 +52,10 @@ class Command(enum.StrEnum):
     DELETE_WORD_RIGHT = "delete word right"
     DELETE_TO_LINE_START = "delete to start of line"
     DELETE_TO_LINE_END = "delete to end of line"
+    LINE_START = "cursor line start"
+    LINE_END = "cursor line end"
+    DELETE_SPACE_WORD_LEFT = "delete space word left"
+    DELETE_RIGHT = "delete char right"
     COMPLETE_NEXT = "complete next"
     COMPLETE_PREVIOUS = "complete previous"
 
@@ -95,18 +99,23 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     ``'prev selectable'``, see :ref:`select-navigation`.
 
     :class:`Edit` also handles these readline-style commands, which no key is mapped to by default:
-    ``'cursor word left'``, ``'cursor word right'``, ``'delete word left'``, ``'delete word right'``,
+    ``'cursor word left'``, ``'cursor word right'``, ``'cursor line start'``, ``'cursor line end'``,
+    ``'delete word left'``, ``'delete word right'``, ``'delete space word left'``, ``'delete char right'``,
     ``'delete to start of line'`` and ``'delete to end of line'``.
     A word is a run of letters, digits and underscores, and a line ends at a newline.
+    :meth:`bind_readline` maps the usual readline keys to them.
     An :class:`Edit` with a text completer handles ``'complete next'`` and ``'complete previous'``, which no key is
     mapped to by default either; see :attr:`Edit.text_completer`.
 
     * ``'delete word left'`` stops at punctuation, as readline's ``backward-kill-word`` (:kbd:`meta backspace`) does,
       except that an underscore is part of a word here.
-      It is not bash's :kbd:`ctrl w` (``unix-word-rubout``), which deletes back to the previous whitespace.
-    * ``'delete to start of line'`` and ``'delete to end of line'`` work on lines that end at a newline.
+    * ``'delete space word left'`` deletes back to the previous whitespace, as bash's :kbd:`ctrl w`
+      (``unix-word-rubout``) does.
+    * ``'cursor line start'``, ``'cursor line end'``, ``'delete to start of line'`` and ``'delete to end of line'``
+      work on lines that end at a newline.
       ``'cursor max left'`` and ``'cursor max right'`` move to the edge of the screen row instead,
-      so on a wrapped line they stop earlier than the deletes reach.
+      so on a wrapped line they stop earlier.
+    * ``'delete char right'`` deletes the character under the cursor, as :kbd:`delete` does.
 
     >>> cm = CommandMap()
     >>> cm.bind(Command.WORD_LEFT, "meta b")
@@ -195,6 +204,49 @@ class CommandMap(MutableMapping[str, str | Command | None]):
                 )
         for key in keys:
             self._command[key] = command
+
+    def bind_readline(self) -> None:
+        """Bind the readline editing keys to the commands :class:`Edit` handles.
+
+        ======================================  ==================================================
+        keys                                    commands
+        ======================================  ==================================================
+        :kbd:`ctrl a`, :kbd:`ctrl e`            ``'cursor line start'``, ``'cursor line end'``
+        :kbd:`meta b`, :kbd:`meta f`            ``'cursor word left'``, ``'cursor word right'``
+        :kbd:`meta backspace`, :kbd:`meta d`    ``'delete word left'``, ``'delete word right'``
+        :kbd:`ctrl u`, :kbd:`ctrl k`            ``'delete to start of line'``, ``'delete to end of line'``
+        :kbd:`ctrl w`                           ``'delete space word left'``
+        :kbd:`ctrl d`                           ``'delete char right'``
+        ======================================  ==================================================
+
+        No other widget handles these commands, so the keys reach the containers above an :class:`Edit` unchanged,
+        and the shared command map can take them.
+
+        >>> cm = CommandMap()
+        >>> cm.bind_readline()
+        >>> cm["ctrl a"]
+        <Command.LINE_START: 'cursor line start'>
+        >>> cm["ctrl k"] = "kill"
+        >>> cm.bind_readline()
+        Traceback (most recent call last):
+        ...
+        ValueError: Key 'ctrl k' is already bound to 'kill', cannot also bind it to 'delete to end of line'
+
+        :raises ValueError: one of the keys is already bound to a different command; the command map is left
+            unchanged.
+        """
+        staged = self.copy()
+        staged.bind(Command.LINE_START, "ctrl a")
+        staged.bind(Command.LINE_END, "ctrl e")
+        staged.bind(Command.WORD_LEFT, "meta b")
+        staged.bind(Command.WORD_RIGHT, "meta f")
+        staged.bind(Command.DELETE_WORD_LEFT, "meta backspace")
+        staged.bind(Command.DELETE_WORD_RIGHT, "meta d")
+        staged.bind(Command.DELETE_TO_LINE_START, "ctrl u")
+        staged.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        staged.bind(Command.DELETE_SPACE_WORD_LEFT, "ctrl w")
+        staged.bind(Command.DELETE_RIGHT, "ctrl d")
+        self._command = staged._command  # pylint: disable=protected-access
 
     def clear_command(self, command: str | Command) -> None:
         """Remove every keystroke currently mapped to ``command``."""
