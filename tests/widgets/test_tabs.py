@@ -232,7 +232,7 @@ class TabsRenderTest(unittest.TestCase):
             ("three dividers", {"dividechars": 3}, (8,), ["a   bb  ", "a body  "]),
             ("bar only", {}, (8, 1), ["a bb    "]),
             ("no rows", {}, (8, 0), []),
-            ("trimmed flow body", {}, (3, 2), ["a b", "a b"]),
+            ("trimmed flow body", {}, (3, 2), ["a >", "a b"]),
         ):
             with self.subTest(description):
                 tabs = make("a", "bb", **kwargs)
@@ -273,7 +273,7 @@ class TabsRenderTest(unittest.TestCase):
         big = urwid.BigText("ab", urwid.Thin3x3Font())
         tabs = urwid.Tabs([(big, urwid.Text("x")), ("long label", urwid.Text("y"))], selected=1)
         self.assertEqual(1, tabs.render((20,)).rows() - 1)
-        self.assertEqual(["long ", "y    "], render_text(tabs, (5,)))
+        self.assertEqual(["<long", "y    "], render_text(tabs, (5,)))
 
     def test_redraws_after_child_change(self) -> None:
         """Changes to a body or a label redraw the cached canvas."""
@@ -454,7 +454,7 @@ class TabsScrollTest(unittest.TestCase):
     def test_selected_label_is_centred(self) -> None:
         """The selected label is centred and the ends clamp."""
         tabs = make(*self.labels)
-        for selected, expected in ((0, "one two "), (2, "o three "), (4, "our five")):
+        for selected, expected in ((0, "one two>"), (2, "< three>"), (4, "<ur five")):
             with self.subTest(selected=selected):
                 tabs.focus_position = selected
                 self.assertEqual(expected, render_text(tabs, (8,))[0])
@@ -464,7 +464,7 @@ class TabsScrollTest(unittest.TestCase):
         tabs = make(*self.labels, selected=2)
         first = render_text(tabs, (8,))
         self.assertEqual(first, render_text(tabs, (8,)))
-        self.assertEqual([tabs._label_at(8, 2, False)] * 3, [tabs._label_at(8, 2, False) for _ in range(3)])
+        self.assertEqual([tabs._click_target(8, 2, False)] * 3, [tabs._click_target(8, 2, False) for _ in range(3)])
 
     def test_click_matches_a_kept_canvas(self) -> None:
         """A click at one width hits the label a kept canvas of that width shows."""
@@ -491,9 +491,9 @@ class TabsScrollTest(unittest.TestCase):
     def test_oversized_label(self) -> None:
         """A label wider than the bar shows its first column, with the bar cursor on it."""
         tabs = make("a", "a very long label", "b", selected=1, bar_selectable=True)
-        self.assertEqual("a very", render_text(tabs, (6,))[0])
+        self.assertEqual("<a ve>", render_text(tabs, (6,))[0])
         press(tabs, (6,), "up")
-        self.assertEqual((0, 0), tabs.render((6,), focus=True).cursor)
+        self.assertEqual((1, 0), tabs.render((6,), focus=True).cursor)
 
     def test_empty_label(self) -> None:
         """An empty label takes no column and shows no cursor outside the bar."""
@@ -501,15 +501,77 @@ class TabsScrollTest(unittest.TestCase):
         press(tabs, (3,), "up", "right")
         self.assertEqual(1, tabs._bar_cursor)
         self.assertIsNone(tabs.render((3,), focus=True).cursor)
-        self.assertEqual([0, 0, None], [tabs._label_at(3, col, True) for col in range(3)])
+        self.assertEqual([0, 0, None], [tabs._click_target(3, col, True) for col in range(3)])
+
+    def test_overflow_markers(self) -> None:
+        """A marker shows each edge with hidden labels, and is dropped when both would leave no room for labels."""
+        tabs = make("ab", "cd", attr_map="tab", selected=1)
+        self.assertEqual([("tab", "<cd")], render_runs(tabs, (3,))[0])
+        self.assertEqual(["cd", "c"], [render_text(tabs, (width,))[0] for width in (2, 1)])
+
+        for description, labels, selected, width, expected in (
+            ("oversized first label", ("aaa", "b"), 0, 3, "aa>"),
+            ("oversized last label", ("a", "b", "ccccccccccccc"), 2, 6, "<ccccc"),
+            ("oversized only label", ("cccccccccccc",), 0, 5, "ccccc"),
+        ):
+            with self.subTest(description):
+                self.assertEqual(expected, render_text(make(*labels, selected=selected), (width,))[0])
+        wide = make("one", "two", "three", overflow_markers=("<<", ""))
+        self.assertEqual("one tw", render_text(wide, (6,))[0])
+        wide.focus_position = 2
+        self.assertEqual("<<thre", render_text(wide, (6,))[0])
+
+    def test_overflow_marker_option(self) -> None:
+        """The markers come from ``Tabs.Symbols`` or any strings, ``None`` turns them off, and bad values fail."""
+        symbols = (urwid.Tabs.Symbols.ARROW_TRIANGLE_LEFT, urwid.Tabs.Symbols.ARROW_TRIANGLE_RIGHT)
+        tabs = make(*self.labels, selected=2, overflow_markers=symbols)
+        self.assertEqual("\u25c0wo three f\u25b6", render_text(tabs, (12,))[0])
+        self.assertIn("overflow_markers=", repr(tabs))
+        self.assertNotIn("overflow_markers=", repr(make(*self.labels)))
+        urwid.CanvasCache.clear()
+        self.addCleanup(urwid.CanvasCache.clear)
+        old = tabs.render((12,))
+        tabs.overflow_markers = None
+        self.assertIsNone(tabs.overflow_markers)
+        self.assertNotEqual(old.text, tabs.render((12,)).text)
+        self.assertEqual(["two three fo"], render_text(tabs, (12,))[:1])
+        self.assertTrue(click(tabs, (12,), 0, 0))
+        self.assertEqual(1, tabs.focus_position)
+        for value in (("<",), ("<", ">", "!"), "<>", ("<", 1), ("<\n<", ">")):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                tabs.overflow_markers = value  # type: ignore[assignment]
+        with self.assertRaises(ValueError):
+            make("a", overflow_markers=("<",))  # type: ignore[arg-type]
+
+    def test_marker_click_selects_the_nearest_hidden_tab(self) -> None:
+        """A click on a marker selects the nearest tab hidden past it, from the selected tab or the bar cursor."""
+        for description, selected, col, expected in (
+            ("right of the first", 0, 7, 2),
+            ("left of the middle", 2, 0, 1),
+            ("right of the middle", 2, 7, 3),
+            ("left of the last", 4, 0, 3),
+            ("gap", 4, 3, None),
+        ):
+            with self.subTest(description):
+                tabs = make(*self.labels, selected=selected)
+                self.assertEqual(expected is not None, click(tabs, (8,), col, 0))
+                self.assertEqual(selected if expected is None else expected, tabs.focus_position)
+        tabs = make("a", "a very long label", "b", selected=1)
+        self.assertTrue(click(tabs, (6,), 5, 0))
+        self.assertEqual(2, tabs.focus_position)
+        tabs = make(*self.labels, bar_selectable=True)
+        press(tabs, (8,), "up", "right", "right")
+        self.assertTrue(click(tabs, (8,), 7, 0))
+        self.assertEqual((3, 3), (tabs.focus_position, tabs._bar_cursor))
+        check_sizing(tabs, cols=8, rows=3)
 
     def test_bar_cursor_scrolls_without_selecting(self) -> None:
         """Moving the bar cursor scrolls the bar without selecting."""
         tabs = make(*self.labels, bar_selectable=True)
         press(tabs, (8,), "up", "right", "right", "right", "right")
         self.assertEqual(0, tabs.focus_position)
-        self.assertEqual("our five", render_text(tabs, (8,), focus=True)[0])
-        self.assertEqual("one two", render_text(tabs, (8,))[0].rstrip())
+        self.assertEqual("<ur five", render_text(tabs, (8,), focus=True)[0])
+        self.assertEqual("one two>", render_text(tabs, (8,))[0])
 
 
 class TabsKeyTest(unittest.TestCase):

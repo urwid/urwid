@@ -777,7 +777,22 @@ is nothing to switch to, so the bar never takes the focus and the tab
 commands are returned to the widgets above.  ``bar_position="bottom"`` draws
 the bar under the body, and the up and down keys swap their roles.  When the
 labels do not fit, the bar centres the selected label, or the label under the
-bar cursor while the bar has the focus.
+bar cursor while the bar has the focus.  An edge with labels hidden past it
+shows ``<`` or ``>``, and a click on it selects the nearest hidden tab on that
+side.  With five tabs in 12 columns, the first and then the third selected::
+
+    one two thr>
+    <wo three f>
+
+The ``overflow_markers`` argument sets the markers, from
+:class:`Tabs.Symbols <urwid.widget.tabs.TabsSymbols>` or any text::
+
+    tabs = urwid.Tabs(
+        pages,
+        overflow_markers=(urwid.Tabs.Symbols.ARROW_TRIANGLE_LEFT, urwid.Tabs.Symbols.ARROW_TRIANGLE_RIGHT),
+    )
+
+``None`` draws no markers, and an empty string leaves that edge without one.
 
 ``attr_map`` applies to every label, ``selected_map`` to the selected one and
 ``focus_map`` to the label under the bar cursor.

@@ -23,3 +23,5 @@ if typing.TYPE_CHECKING:
         assert_type(urwid.Tabs.options(edit), urwid.Edit)
         widget.contents.append((edit, urwid.Tabs.options(("bold", "New"))))
         assert_type(Command.NEXT_TAB, typing.Literal[Command.NEXT_TAB])
+        assert_type(widget.overflow_markers, tuple[str, str] | None)
+        widget.overflow_markers = (urwid.Tabs.Symbols.GUILLEMET_LEFT, urwid.Tabs.Symbols.GUILLEMET_RIGHT)

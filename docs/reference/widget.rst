@@ -240,6 +240,8 @@ Tabs
 
 .. autoclass:: Tabs
 
+.. autoclass:: urwid.widget.tabs.TabsSymbols
+
 BoxAdapter
 ~~~~~~~~~~
 

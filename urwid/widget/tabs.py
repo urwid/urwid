@@ -20,6 +20,7 @@
 
 from __future__ import annotations
 
+import enum
 import functools
 import typing
 
@@ -44,13 +45,42 @@ if typing.TYPE_CHECKING:
     from .attr_map import _AttrMapLike
     from .widget import AbstractFlowWidget
 
-__all__ = ("Tabs", "TabsError")
+__all__ = ("Tabs", "TabsError", "TabsSymbols")
 
 _LabelT = typing.TypeVar("_LabelT", bound=AbstractWidget)
 
 
 class TabsError(WidgetError):
     """Tabs related errors."""
+
+
+class TabsSymbols(enum.StrEnum):
+    """Common symbols for the overflow markers of :class:`Tabs`, in left and right pairs.
+
+    Only :attr:`ARROW_ASCII_LEFT` and :attr:`ARROW_ASCII_RIGHT` are also drawn on terminals without UTF-8,
+    where the others are drawn as ``?``.
+    """
+
+    ARROW_ASCII_LEFT = "<"
+    ARROW_ASCII_RIGHT = ">"
+    ARROW_TRIANGLE_LEFT = "◀"
+    ARROW_TRIANGLE_RIGHT = "▶"
+    ARROW_SMALL_TRIANGLE_LEFT = "◂"
+    ARROW_SMALL_TRIANGLE_RIGHT = "▸"
+    ARROW_WHITE_TRIANGLE_LEFT = "◁"
+    ARROW_WHITE_TRIANGLE_RIGHT = "▷"
+    ARROW_LEFT = "←"
+    ARROW_RIGHT = "→"
+    GUILLEMET_LEFT = "«"
+    GUILLEMET_RIGHT = "»"
+
+
+class _BarView(typing.NamedTuple):
+    """The part of the label strip a bar shows; the columns left and right of it hold the overflow markers."""
+
+    offset: int  # first strip column shown
+    left: int  # bar column it is shown at, after a left marker
+    width: int  # strip columns shown
 
 
 class Tabs(
@@ -79,6 +109,8 @@ class Tabs(
     so a label should have text.
     When the labels do not fit, the bar shows the selected label (the label under the bar cursor while the bar has
     the focus) centred, or its first column when it is wider than the bar.
+    Each edge with labels hidden past it shows a marker of :attr:`overflow_markers`,
+    and a click on it selects the nearest hidden tab on that side.
 
     Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
     Its handlers receive the container, the old and the new index, which is ``None`` while it is empty.
@@ -96,6 +128,8 @@ class Tabs(
 
     signals: typing.ClassVar[list[str]] = ["focus changed"]
 
+    Symbols: typing.ClassVar[type[TabsSymbols]] = TabsSymbols
+
     def __init__(
         self,
         tabs: Iterable[tuple[_TagMarkup | AbstractWidget, AbstractWidget]] = (),
@@ -108,6 +142,7 @@ class Tabs(
         focus_map: _AttrMapLike | None = None,
         unfocused_focus_attr: _AttrMapLike | None = None,
         dividechars: int = 1,
+        overflow_markers: tuple[str, str] | None = (TabsSymbols.ARROW_ASCII_LEFT, TabsSymbols.ARROW_ASCII_RIGHT),
     ) -> None:
         """Build the tabs from `(label, body)` pairs.
 
@@ -123,17 +158,22 @@ class Tabs(
         :param unfocused_focus_attr: attribute map applied over the selected label while the tabs render without
             focus; see :attr:`unfocused_focus_attr`.
         :param dividechars: blank screen columns between two labels.
+        :param overflow_markers: text drawn at the left and the right edge of the label row while labels are hidden
+            past that edge, such as ``(Tabs.Symbols.ARROW_TRIANGLE_LEFT, Tabs.Symbols.ARROW_TRIANGLE_RIGHT)``;
+            ``None`` draws none, and an empty string draws none on that side.
         :raises TypeError: a body is not a widget.
         :raises TagMarkupException: a label is neither a widget nor valid text markup.
         :raises AttrMapError: a key or value of *attr_map*, *selected_map*, *focus_map* or *unfocused_focus_attr*
             is not hashable.
         :raises ValueError: a label is not a fixed widget, a body is neither a flow nor a box widget,
-            *bar_position* is not ``'top'`` or ``'bottom'``, or *dividechars* is not an int >= 0.
+            *bar_position* is not ``'top'`` or ``'bottom'``, *dividechars* is not an int >= 0,
+            or *overflow_markers* is not ``None`` or a pair of one-line strings.
         :raises IndexError: *selected* is not an index of *tabs*.
         """
         super().__init__()
         self._bar_position = self._valid_bar_position(bar_position)
         self._dividechars = self._valid_dividechars(dividechars)
+        self._overflow_markers = self._valid_overflow_markers(overflow_markers)
         self._bar_selectable = bar_selectable
         self._attr_map = None if attr_map is None else _attr_map_dict(attr_map)
         self._selected_map = None if selected_map is None else _attr_map_dict(selected_map)
@@ -174,6 +214,20 @@ class Tabs(
             raise ValueError(f"dividechars must be an int >= 0, not {dividechars!r}")
         return dividechars
 
+    @staticmethod
+    def _valid_overflow_markers(overflow_markers: tuple[str, str] | None) -> tuple[str, str] | None:
+        """Return *overflow_markers* as a tuple, or ``None``.
+
+        :raises ValueError: it is not ``None`` or a pair of one-line strings.
+        """
+        if overflow_markers is None:
+            return None
+        markers = tuple(overflow_markers) if isinstance(overflow_markers, (tuple, list)) else ()
+        # a marker shares the one bar row with the labels
+        if len(markers) != 2 or not all(isinstance(marker, str) and "\n" not in marker for marker in markers):
+            raise ValueError(f"overflow_markers must be None or a pair of one-line strings, not {overflow_markers!r}")
+        return markers[0], markers[1]
+
     def _repr_words(self) -> list[str]:
         """Return the base repr words followed by the number of tabs."""
         count = len(self._contents)
@@ -194,6 +248,7 @@ class Tabs(
             "focus_map": self._focus_map,
             "unfocused_focus_attr": self._unfocused_focus_attr,
             "dividechars": self._dividechars,
+            "overflow_markers": self._overflow_markers,
         }
         return remove_defaults(attrs, Tabs.__init__)
 
@@ -387,6 +442,21 @@ class Tabs(
         self._dividechars = self._valid_dividechars(dividechars)
         self._invalidate()
 
+    @property
+    def overflow_markers(self) -> tuple[str, str] | None:
+        """Text drawn at the left and the right edge of the label row while labels are hidden past that edge.
+
+        ``None`` draws none, and an empty string draws none on that side.
+
+        :raises ValueError: the new value is not ``None`` or a pair of one-line strings.
+        """
+        return self._overflow_markers
+
+    @overflow_markers.setter
+    def overflow_markers(self, overflow_markers: tuple[str, str] | None) -> None:
+        self._overflow_markers = self._valid_overflow_markers(overflow_markers)
+        self._invalidate()
+
     def _bar_can_focus(self) -> bool:
         """Return whether the bar may take the keyboard focus: it is selectable and there is a tab to switch to."""
         return self._bar_selectable and len(self._contents) > 1
@@ -461,19 +531,43 @@ class Tabs(
             start += width + self._dividechars
         return starts
 
-    @staticmethod
-    def _bar_offset(starts: Sequence[int], widths: Sequence[int], maxcol: int, target: int) -> int:
-        """Return the first bar column shown in *maxcol* columns, keeping label *target* visible.
+    def _bar_view(self, starts: Sequence[int], widths: Sequence[int], maxcol: int, target: int) -> _BarView:
+        """Return the part of the label strip shown in *maxcol* columns, keeping label *target* visible.
 
-        The label is centred, or shown from its first column when it is wider than the bar.
-        The result depends only on the arguments, so a render and a later click at one width agree.
+        The label is centred, or shown from its first column when it is wider than the room left.
+        A marker of :attr:`overflow_markers` takes the edge columns on each side where labels are hidden,
+        unless the two markers would leave no column for the labels.
+        The result depends only on the arguments and :attr:`overflow_markers`, so a render and a later click at one
+        width agree.
         """
         total = starts[-1] + widths[-1]
-        if total <= maxcol or maxcol == 0:
-            return 0
+        if total <= maxcol or not maxcol:
+            return _BarView(0, 0, maxcol)
+        marker_left, marker_right = (Text(marker).pack(())[0] for marker in self._overflow_markers or ("", ""))
+        if marker_left + marker_right >= maxcol:
+            marker_left = marker_right = 0
+        view = maxcol - marker_left - marker_right
         start, width = starts[target], widths[target]
-        offset = start + width // 2 - maxcol // 2 if width <= maxcol else start
-        return max(0, min(offset, total - maxcol))
+        if width <= view:
+            offset = max(0, min(start + width // 2 - view // 2, total - view))
+            at_left, at_right = not offset, offset == total - view
+        else:
+            # A label wider than the room between the markers is shown from its first column.
+            # Only its own end is cut past the right edge when no label follows it, so that edge gets no marker.
+            if start + width >= total:
+                left = marker_left if start else 0
+                return _BarView(start, left, maxcol - left)
+            offset = start
+            at_left = not start or start + width <= maxcol - marker_right
+            at_right = start >= total - (maxcol - marker_left)
+        # an edge with nothing hidden past it gives its marker columns to the labels; total > maxcol keeps the
+        # other edge hidden, and the target stays inside the widened view
+        if at_left:
+            return _BarView(0, 0, maxcol - marker_right)
+        if at_right:
+            view = maxcol - marker_left
+            return _BarView(total - view, marker_left, view)
+        return _BarView(offset, marker_left, view)
 
     def _render_bar(self, maxcol: int, focus: bool) -> Canvas:
         """Render the one-row label bar *maxcol* columns wide.
@@ -507,21 +601,53 @@ class Tabs(
             (canvas, index, index == selected, width + (0 if index == last else self._dividechars))
             for index, (canvas, width) in enumerate(zip(canvases, widths, strict=True))
         )
-        offset = self._bar_offset(starts, widths, maxcol, self._bar_target(focus))
-        bar.pad_trim_left_right(-offset, maxcol - (bar.cols() - offset))
-        if cursor is not None and 0 <= (col := starts[cursor] - offset) < maxcol:
+        view = self._bar_view(starts, widths, maxcol, self._bar_target(focus))
+        bar.pad_trim_left_right(-view.offset, view.width - (bar.cols() - view.offset))
+        right = maxcol - view.left - view.width
+        if view.left or right:
+            markers = []
+            # a marker column exists only for a marker of some width, so the markers are set here
+            for marker in typing.cast("tuple[str, str]", self._overflow_markers):
+                marker_canvas = CompositeCanvas(Text(marker, wrap=WrapMode.CLIP).render(()))
+                if self._attr_map is not None:
+                    marker_canvas.fill_attr_apply(self._attr_map)
+                markers.append(marker_canvas)
+            parts = [
+                (markers[0], None, False, view.left),
+                (bar, None, True, view.width),
+                (markers[1], None, False, right),
+            ]
+            bar = CanvasJoin(part for part in parts if part[3])
+        if (
+            cursor is not None
+            and view.left <= (col := view.left + starts[cursor] - view.offset) < view.left + view.width
+        ):
             bar.cursor = (col, 0)
         else:
             bar.cursor = None
         return bar
 
-    def _label_at(self, maxcol: int, col: int, focus: bool) -> int | None:
-        """Return the index of the label drawn at bar column *col*, or ``None`` for a gap or outside the bar."""
+    def _click_target(self, maxcol: int, col: int, focus: bool) -> int | None:
+        """Return the index of the tab a click at bar column *col* selects, or ``None`` when it selects none.
+
+        A click on a label selects it.
+        A click on an overflow marker selects the nearest tab hidden past that edge, counted from the label
+        the bar keeps visible.
+        A gap between labels, and a column outside the bar, select none.
+        """
         if not 0 <= col < maxcol:
             return None
         widths = [label.pack(())[0] for _body, label in self._contents]
         starts = self._bar_starts(widths)
-        bar_col = col + self._bar_offset(starts, widths, maxcol, self._bar_target(focus))
+        target = self._bar_target(focus)
+        view = self._bar_view(starts, widths, maxcol, target)
+        if col < view.left:
+            return max((index for index in range(target) if starts[index] < view.offset), default=None)
+        if col >= view.left + view.width:
+            end = view.offset + view.width
+            hidden = (index for index in range(target + 1, len(starts)) if starts[index] + widths[index] > end)
+            return min(hidden, default=None)
+        bar_col = col - view.left + view.offset
         for index, (start, width) in enumerate(zip(starts, widths, strict=True)):
             if start <= bar_col < start + width:
                 return index
@@ -683,7 +809,7 @@ class Tabs(
         if row == bar_row:
             if button != 1 or not is_mouse_press(event):
                 return False
-            if (index := self._label_at(body_size[0], col, focus)) is None:
+            if (index := self._click_target(body_size[0], col, focus)) is None:
                 return False
             if self._bar_can_focus():
                 # before the selection, whose "focus changed" handler may remove tabs, as in _select()
