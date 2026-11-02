@@ -496,18 +496,12 @@ class Edit(WidgetWrap[Text]):
             self._end_completion()  # changed without set_edit_pos(), by a subclass
         if self._completions is None:
             completer = typing.cast("Callable[[str, int], Sequence[tuple[str, int]]]", self._completer)
-            current = (self._edit_text, self._edit_pos)
-            results = []
-            for text, pos in completer(self._edit_text, self._edit_pos):
-                candidate_text = self._normalize_to_caption(text)
-                # the position the cursor takes, see set_edit_pos(), so that a candidate equal to the current text
-                # and cursor is left out
-                candidate = (
-                    candidate_text,
-                    _grapheme_boundary(candidate_text, min(max(pos, 0), len(candidate_text)), forward=False),
-                )
-                if candidate != current:
-                    results.append(candidate)
+            current = self._completion_candidate(self._edit_text, self._edit_pos)  # the text a step back leaves
+            results = [
+                candidate
+                for text, pos in completer(self._edit_text, self._edit_pos)
+                if (candidate := self._completion_candidate(text, pos)) != current
+            ]
             if not results:
                 return False
             for result_text, _pos in results:
@@ -532,6 +526,16 @@ class Edit(WidgetWrap[Text]):
         self._completion_applied = (self._edit_text, self._edit_pos)
         self._emit("completions", self._completions)
         return True
+
+    def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return a completer's replacement as the edit would hold it once applied.
+
+        The text takes the type of the caption, and the position is clipped as :meth:`set_edit_pos` clips it.
+        A candidate equal to the current text and cursor is then recognised and left out,
+        and a step leaves exactly the candidate the cycle recorded.
+        """
+        text = self._normalize_to_caption(text)
+        return text, _grapheme_boundary(text, min(max(pos, 0), len(text)), forward=False)
 
     def selectable(self) -> bool:
         """Return True: this widget is always selectable.
@@ -1485,6 +1489,14 @@ class IntEdit(Edit):
             self.set_edit_pos(result_pos)
         else:
             self._set_edit_text_and_pos(result_text, result_pos)
+
+    def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return a completer's replacement as the edit would hold it.
+
+        The leading zeros :meth:`keypress` removes are removed here already.
+        The cycle then records the text a completion key leaves, so the next key continues it.
+        """
+        return self._strip_leading_zeros(*super()._completion_candidate(text, pos))
 
     @staticmethod
     def _strip_leading_zeros(text: str | bytes, pos: int) -> tuple[str | bytes, int]:

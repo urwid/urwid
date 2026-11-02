@@ -1598,6 +1598,32 @@ class IntEditTest(unittest.TestCase):
             self.assertIsNone(e.keypress((20,), "2"))
         self.assertEqual(e.edit_text, "2" + "1" * 8)
 
+    def test_completion_with_leading_zeros_keeps_cycling(self) -> None:
+        """Candidates are held without the leading zeros keypress() removes, so the cycle goes on."""
+        completer = mock.Mock(return_value=[("007", 3), ("0042", 4)])
+        e = urwid.IntEdit("", 1)
+        e.completer = completer
+        seen = []
+        for _key in range(3):
+            self.assertIsNone(e.keypress((10,), "tab"))
+            seen.append((e.edit_text, e.edit_pos))
+        self.assertEqual(seen, [("7", 1), ("42", 2), ("1", 1)])
+        completer.assert_called_once_with("1", 1)
+
+    def test_completion_from_text_with_leading_zeros_keeps_cycling(self) -> None:
+        """A cycle started from text set with leading zeros returns to it without them, and goes on."""
+        completer = mock.Mock(return_value=[("10", 2), ("20", 2)])
+        e = urwid.IntEdit()
+        e.set_edit_text("007")
+        e.set_edit_pos(3)
+        e.completer = completer
+        seen = []
+        for _key in range(4):
+            self.assertIsNone(e.keypress((10,), "tab"))
+            seen.append((e.edit_text, e.edit_pos))
+        self.assertEqual(seen, [("10", 2), ("20", 2), ("7", 1), ("10", 2)])
+        completer.assert_called_once_with("007", 3)
+
     def test_value_empty(self) -> None:
         e = urwid.IntEdit()
         self.assertEqual(e.value(), 0)
