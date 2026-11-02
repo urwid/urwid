@@ -1282,6 +1282,15 @@ def complete_words(text: str, pos: int) -> list[tuple[str, int]]:
     ]
 
 
+class NoAlpineEdit(urwid.Edit):
+    """Edit that refuses the text "alpine", as a subclass with an input pattern refuses text."""
+
+    def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+        if text == "alpine":
+            raise ValueError(text)
+        super().set_edit_text(text, edit_pos=edit_pos)
+
+
 class EditCompleterTest(unittest.TestCase):
     def test_cycle_forward_and_back_with_wrap(self) -> None:
         e = urwid.Edit("", "x al y", edit_pos=4, completer=complete_words)
@@ -1436,6 +1445,26 @@ class EditCompleterTest(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "al")
+
+    def test_rejected_candidate_propagates_and_cycle_stays(self) -> None:
+        """A refused candidate propagates and is retried."""
+        e = NoAlpineEdit("", "al", completer=complete_words)
+        e.keypress((20,), "tab")
+        for _key in range(2):
+            with self.assertRaises(ValueError):
+                e.keypress((20,), "tab")
+            self.assertEqual(e.edit_text, "alpha")
+            self.assertEqual(e.completions, ((("al", 2), ("alpha", 5), ("alpine", 6)), 1))
+
+    def test_rejected_first_candidate_propagates_and_starts_no_cycle(self) -> None:
+        """A refused first candidate starts no cycle, so the next key asks the completer again."""
+        completer = mock.Mock(return_value=[("alpine", 6), ("alpha", 5)])
+        e = NoAlpineEdit("", "al", completer=completer)
+        for _key in range(2):
+            with self.assertRaises(ValueError):
+                e.keypress((20,), "tab")
+            self.assertEqual((e.edit_text, e.completions), ("al", None))
+        self.assertEqual(completer.call_count, 2)
 
     def test_candidate_over_max_length(self) -> None:
         e = urwid.Edit("", "al", max_length=5, completer=complete_words)

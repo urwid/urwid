@@ -425,6 +425,13 @@ class Edit(WidgetWrap[Text]):
         Each step sets the text, so :attr:`validator` runs once per step.
         Setting the completer ends the cycle.
 
+        A step applies a replacement through :meth:`set_edit_text`.
+        An override may raise there for a replacement it does not accept, before it changes the text.
+        The exception then leaves :meth:`keypress`.
+        The cycle stays where it was.
+        The next completion key tries the same replacement again.
+        A completer for such a subclass returns only replacements the subclass accepts.
+
         >>> words = ["alpha", "alpine", "beta"]
         >>> def complete(text, pos):
         ...     return [(w, len(w)) for w in words if w.startswith(text[:pos])]
@@ -491,6 +498,8 @@ class Edit(WidgetWrap[Text]):
             and position.
         :raises ValueError: a candidate is longer than :attr:`max_length`; the text and the cycle are left as they
             were.
+        :raises Exception: what :meth:`set_edit_text` raises for the candidate.
+            When it raises before changing the text, the cycle is left as it was.
         """
         if self._completions is not None and (self._edit_text, self._edit_pos) != self._completion_applied:
             self._end_completion()  # changed without set_edit_pos(), by a subclass
@@ -961,6 +970,7 @@ class Edit(WidgetWrap[Text]):
 
         :raises ValueError: the preferred cursor column could not be determined.
             A completion is longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`completer`.
         """
         if not (complete_step := self._completion_step(key)):
             self._end_completion()
