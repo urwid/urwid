@@ -1099,6 +1099,179 @@ class EditPlaceholderTest(unittest.TestCase):
         )
 
 
+class EditValidatorTest(unittest.TestCase):
+    ERROR = urwid.ValidationMessage(urwid.Severity.ERROR, "bad")
+    WARNING = urwid.ValidationMessage(urwid.Severity.WARNING, "odd")
+    INFO = urwid.ValidationMessage(urwid.Severity.INFO, "note")
+
+    def test_return_shapes(self) -> None:
+        cases = [
+            ("None", None, ()),
+            ("empty iterable", [], ()),
+            ("str", "bad", (self.ERROR,)),
+            ("message", self.WARNING, (self.WARNING,)),
+            ("list", [self.INFO, self.ERROR], (self.INFO, self.ERROR)),
+            ("generator", (m for m in [self.WARNING]), (self.WARNING,)),
+        ]
+        for label, result, expected in cases:
+            with self.subTest(label):
+                e = urwid.Edit(validator=lambda _text, result=result: result)
+                self.assertEqual(e.validation, expected)
+
+    def test_wrong_return_type_raises(self) -> None:
+        for label, result in (
+            ("int", 1),
+            ("bytes", b"bad"),
+            ("str among messages", [self.ERROR, "bad"]),
+            ("severity not a Severity", urwid.ValidationMessage("bad", "m")),
+            ("int severity among messages", [urwid.ValidationMessage(3, "m")]),
+        ):
+            with self.subTest(label), self.assertRaises(TypeError):
+                urwid.Edit(validator=lambda _text, result=result: result)
+        e = urwid.Edit(validator=lambda text: 1 if text else None)
+        with self.assertRaises(TypeError):
+            e.set_edit_text("x")
+        self.assertEqual(e.edit_text, "x")
+        self.assertEqual(e.validation, ())
+
+    def test_severity_is_worst(self) -> None:
+        e = urwid.Edit(validator=lambda _text: [self.INFO, self.ERROR, self.WARNING])
+        self.assertIs(e.severity, urwid.Severity.ERROR)
+        self.assertIsNone(urwid.Edit().severity)
+
+    def test_called_once_per_change(self) -> None:
+        validator = mock.Mock(return_value=None)
+        e = urwid.Edit("", "a", validator=validator)
+        validator.assert_called_once_with("a")
+        validator.reset_mock()
+        e.keypress((10,), "b")
+        e.keypress((10,), "backspace")
+        e.insert_text("c")
+        e.set_edit_text("d")
+        self.assertEqual([c.args for c in validator.call_args_list], [("ab",), ("a",), ("ac",), ("d",)])
+        e.render((10,))
+        e.keypress((10,), "left")
+        self.assertEqual(validator.call_count, 4)
+
+    def test_signal_only_on_change(self) -> None:
+        e = urwid.Edit(validator=lambda text: None if text.isdigit() else "bad")
+        seen = []
+        urwid.connect_signal(e, "validation", lambda _w, old, new: seen.append((old, new)))
+        e.set_edit_text("x")
+        self.assertEqual(seen, [])
+        e.set_edit_text("1")
+        e.set_edit_text("12")
+        self.assertEqual(seen, [((self.ERROR,), ())])
+
+    def test_validate_reruns(self) -> None:
+        limit = [10]
+        e = urwid.Edit("", "5", validator=lambda text: None if int(text) < limit[0] else "too big")
+        self.assertEqual(e.validation, ())
+        limit[0] = 3
+        self.assertEqual(e.validation, ())
+        self.assertEqual(e.validate(), (urwid.ValidationMessage(urwid.Severity.ERROR, "too big"),))
+        self.assertEqual(e.validation, e.validate())
+
+    def test_validate_returns_value_left_by_handler(self) -> None:
+        """A "validation" handler that changes the text leaves the result of its own change."""
+        strict = [False]
+        e = urwid.Edit("", "x", validator=lambda text: "bad" if strict[0] and text == "x" else None)
+        urwid.connect_signal(e, "validation", lambda w, _old, new: new and w.set_edit_text("fixed"))
+        strict[0] = True
+        self.assertEqual(e.validate(), ())
+        self.assertEqual(e.edit_text, "fixed")
+        self.assertEqual(e.validation, ())
+
+    def test_failing_validator_is_not_installed(self) -> None:
+        e = urwid.Edit("", "x", validator=lambda _text: self.WARNING)
+        with self.assertRaises(TypeError):
+            e.validator = lambda _text: 1
+        self.assertEqual(e.validation, (self.WARNING,))
+        e.set_edit_text("y")
+        self.assertEqual(e.validation, (self.WARNING,))
+
+    def test_validator_assigned_later(self) -> None:
+        e = urwid.Edit("", "x")
+        self.assertIsNone(e.validator)
+        e.validator = lambda _text: self.WARNING
+        self.assertEqual(e.validation, (self.WARNING,))
+        e.validator = None
+        self.assertEqual(e.validation, ())
+
+    def test_colour_by_severity(self) -> None:
+        validation_attr = {urwid.Severity.WARNING: "warn", urwid.Severity.ERROR: "err"}
+        validation_focus_attr = {urwid.Severity.ERROR: "err focus"}
+        cases = [
+            ("no finding", None, False, None),
+            ("info has no map", self.INFO, False, None),
+            ("warning", self.WARNING, False, "warn"),
+            ("warning focused falls back", self.WARNING, True, "warn"),
+            ("error", self.ERROR, False, "err"),
+            ("error focused", self.ERROR, True, "err focus"),
+            ("worst message decides", [self.WARNING, self.ERROR], False, "err"),
+        ]
+        for label, result, focus, attr in cases:
+            with self.subTest(label):
+                e = urwid.Edit(
+                    "",
+                    "ab",
+                    validator=lambda _text, result=result: result,
+                    validation_attr=validation_attr,
+                    validation_focus_attr=validation_focus_attr,
+                )
+                self.assertEqual(next(iter(e.render((4,), focus=focus).content())), [(attr, None, b"ab  ")])
+
+    def test_map_over_caption_markup(self) -> None:
+        """A single attribute keeps the caption's own attribute, layered over it."""
+        e = urwid.Edit(("cap", "? "), "x", validator=lambda _text: "bad", validation_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(
+            next(iter(e.render((4,)).content())),
+            [(urwid.LayeredAttr("cap", "err"), None, b"? "), ("err", None, b"x ")],
+        )
+        e.validation_attr = {urwid.Severity.ERROR: {None: "err", "cap": "err cap"}}
+        self.assertEqual(
+            next(iter(e.render((4,)).content())),
+            [(urwid.LayeredAttr("err cap", "err"), None, b"? "), ("err", None, b"x ")],
+        )
+        self.assertEqual(e.validation_attr, {urwid.Severity.ERROR: {None: "err", "cap": "err cap"}})
+        e.validation_attr = None
+        self.assertEqual(next(iter(e.render((4,)).content())), [("cap", None, b"? "), (None, None, b"x ")])
+
+    def test_cursor_kept_with_map(self) -> None:
+        e = urwid.Edit("? ", "ab", validator=lambda _text: "bad", validation_focus_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(e.render((6,), focus=True).cursor, (4, 0))
+
+    def test_render_follows_validation_change(self) -> None:
+        e = urwid.Edit(validator=lambda text: None if text else "empty", validation_attr={urwid.Severity.ERROR: "err"})
+        self.assertEqual(next(iter(e.render((2,)).content())), [("err", None, b"  ")])
+        e.keypress((2,), "x")
+        self.assertEqual(next(iter(e.render((2,)).content())), [(None, None, b"x ")])
+        e.validation_focus_attr = {urwid.Severity.ERROR: "err focus"}
+        e.keypress((2,), "backspace")
+        self.assertEqual(next(iter(e.render((2,), focus=True).content())), [("err focus", None, b"  ")])
+        self.assertEqual(e.validation_focus_attr, {urwid.Severity.ERROR: {None: "err focus"}})
+
+    def test_placeholder_coloured(self) -> None:
+        e = urwid.Edit(
+            placeholder="hint",
+            validator=lambda text: None if text else "empty",
+            validation_attr={urwid.Severity.ERROR: "err"},
+        )
+        self.assertEqual(next(iter(e.render((6,)).content())), [("err", None, b"hint  ")])
+
+    def test_masked_text_is_validated(self) -> None:
+        validator = mock.Mock(return_value=None)
+        urwid.Edit("", "secret", mask="*", validator=validator)
+        validator.assert_called_once_with("secret")
+
+    def test_int_edit(self) -> None:
+        e = urwid.IntEdit("", 5)
+        e.validator = lambda text: None if int(text or 0) < 10 else "too big"
+        e.keypress((10,), "0")
+        self.assertEqual(e.edit_text, "50")
+        self.assertEqual(e.validation, (urwid.ValidationMessage(urwid.Severity.ERROR, "too big"),))
+
+
 class IntEditTest(unittest.TestCase):
     def test_bytes_caption_trims_zeros_and_preserves_cursor_and_signals(self) -> None:
         for caption in ("", b""):

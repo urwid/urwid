@@ -7,6 +7,7 @@ import string
 import sys
 import typing
 import unicodedata
+from collections.abc import Iterable
 
 from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
@@ -15,20 +16,50 @@ from urwid.split_repr import remove_defaults
 from urwid.str_util import _grapheme_boundary, calc_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import decompose_tagmarkup
 
-from .constants import Align, Sizing, WrapMode
+from .attr_map import _attr_map_dict
+from .constants import Align, Severity, Sizing, ValidationMessage, WrapMode
 from .text import Text, TextError
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Callable, Hashable, Mapping
     from typing import Literal
 
     from urwid.canvas import TextCanvas
     from urwid.util import _TagMarkup
 
+    from .attr_map import _AttrMapLike
+
 
 class EditError(TextError):
     """Edit related errors."""
+
+
+def _validation_messages(
+    result: ValidationMessage | str | Iterable[ValidationMessage] | None,
+) -> tuple[ValidationMessage, ...]:
+    """Return what a validator returned as a tuple of messages.
+
+    :raises TypeError: *result* is not ``None``, a :class:`str`, a :class:`ValidationMessage`,
+        or an iterable of :class:`ValidationMessage`.
+        A message's severity is not a :class:`Severity` member.
+    """
+    if result is None:
+        return ()
+    if isinstance(result, str):
+        return (ValidationMessage(Severity.ERROR, result),)
+    if isinstance(result, ValidationMessage):
+        messages: tuple[object, ...] = (result,)
+    elif isinstance(result, (bytes, bytearray)) or not isinstance(result, Iterable):
+        detail = f"a validator returned {result!r}, not a message, messages or None"
+        raise TypeError(detail)
+    else:
+        messages = tuple(result)
+    for message in messages:
+        if not isinstance(message, ValidationMessage) or not isinstance(message.severity, Severity):
+            detail = f"a validator returned {message!r}, not a ValidationMessage with a Severity"
+            raise TypeError(detail)
+    return typing.cast("tuple[ValidationMessage, ...]", messages)
 
 
 class Edit(WidgetWrap[Text]):
@@ -51,13 +82,15 @@ class Edit(WidgetWrap[Text]):
       text if it is signaled for text that it has already changed once).
     * ``"submit"`` is sent when :kbd:`enter`, mapped to ``'activate'``, reaches an Edit with ``multiline=False``.
       It receives the edit text as an argument. :meth:`keypress` still returns the key.
+    * ``"validation"`` is sent when :attr:`validation` changes.
+      It receives the old and the new value as arguments.
     """
 
     _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "validation"]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -94,6 +127,9 @@ class Edit(WidgetWrap[Text]):
         max_length: int | None = None,
         placeholder: _TagMarkup | None = None,
         placeholder_grow: bool | None = None,
+        validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None = None,
+        validation_attr: Mapping[Severity, _AttrMapLike] | None = None,
+        validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -112,9 +148,16 @@ class Edit(WidgetWrap[Text]):
         :param placeholder: markup drawn after the caption while :attr:`edit_text` is empty, see :attr:`placeholder`
         :param placeholder_grow: whether a placeholder taller than the empty edit adds rows,
             see :attr:`placeholder_grow`
+        :param validator: called with :attr:`edit_text` to check it, see :attr:`validator`
+        :param validation_attr: attribute map applied for each :class:`Severity`, see :attr:`validation_attr`
+        :param validation_focus_attr: attribute map applied for each :class:`Severity` while focused,
+            see :attr:`validation_focus_attr`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
         :raises TagMarkupException: *placeholder* is not valid text markup.
         :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
+        :raises TypeError: *validator* returned something else than its documented return types for *edit_text*.
+        :raises AttrMapError: a key or value of an attribute map of *validation_attr* or *validation_focus_attr*
+            is not hashable.
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -155,6 +198,10 @@ class Edit(WidgetWrap[Text]):
         self._pending_edit_pos: int | None = None
         # cursor position set_edit_text() left after "postchange" when a pending one was given
         self._applied_edit_pos: int | None = None
+        self._validator = validator
+        self._validation: tuple[ValidationMessage, ...] = ()
+        self._validation_attr = self._severity_attr_maps(validation_attr)
+        self._validation_focus_attr = self._severity_attr_maps(validation_focus_attr)
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -221,6 +268,121 @@ class Edit(WidgetWrap[Text]):
     @placeholder_grow.setter
     def placeholder_grow(self, placeholder_grow: bool | None) -> None:
         self._placeholder_grow = placeholder_grow
+        self._invalidate()
+
+    @property
+    def validator(self) -> Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None:
+        """Callable that checks the whole :attr:`edit_text`, or ``None`` for no check.
+
+        It is called with the edit text and returns its findings:
+
+        - ``None`` or an empty iterable when the text is valid;
+        - a :class:`str`, which is an error message;
+        - a :class:`ValidationMessage`;
+        - an iterable of :class:`ValidationMessage`.
+
+        It is called once by each :meth:`set_edit_text` call, after ``"postchange"``,
+        when it is assigned, and by :meth:`validate`, never while rendering.
+        A subclass whose :meth:`set_edit_text` does not call this class's method calls :meth:`validate` itself.
+        The result is :attr:`validation`.
+        Keys, focus and ``"submit"`` do not depend on it: an application reads :attr:`validation` to refuse a value.
+
+        >>> e = Edit("Port: ", validator=lambda text: None if text.isdecimal() else "not a number")
+        >>> e.validation
+        (ValidationMessage(severity=<Severity.ERROR: 3>, message='not a number'),)
+        >>> e.keypress((20,), "8")
+        >>> e.validation
+        ()
+        >>> e.validator = lambda text: ValidationMessage(Severity.WARNING, "privileged") if int(text) < 1024 else None
+        >>> e.severity
+        <Severity.WARNING: 2>
+
+        :raises TypeError: on assignment, the validator returned something else than the types above;
+            the previous validator is kept.
+        """
+        return self._validator
+
+    @validator.setter
+    def validator(
+        self,
+        validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None,
+    ) -> None:
+        previous, self._validator = self._validator, validator
+        try:
+            self.validate()
+        except TypeError:
+            self._validator = previous
+            raise
+
+    @property
+    def validation(self) -> tuple[ValidationMessage, ...]:
+        """Findings of :attr:`validator` for the current :attr:`edit_text`; empty when valid or without a validator."""
+        return self._validation
+
+    @property
+    def severity(self) -> Severity | None:
+        """The worst :class:`Severity` in :attr:`validation`, or ``None`` when it is empty."""
+        return max(message.severity for message in self._validation) if self._validation else None
+
+    def validate(self) -> tuple[ValidationMessage, ...]:
+        """Run :attr:`validator` on :attr:`edit_text` now and return the new :attr:`validation`.
+
+        This is for a check that depends on something else than the text, which has changed.
+        ``"validation"`` is sent when the result differs from the previous one.
+
+        :raises TypeError: the validator returned something else than the types :attr:`validator` lists;
+            :attr:`validation` is left as it was.
+        """
+        validation = () if self._validator is None else _validation_messages(self._validator(self._edit_text))
+        if validation != self._validation:
+            old_validation, self._validation = self._validation, validation
+            self._invalidate()
+            self._emit("validation", old_validation, validation)
+        return self._validation  # a "validation" handler may have changed the text, and validated it again
+
+    @staticmethod
+    def _severity_attr_maps(
+        attr_maps: Mapping[Severity, _AttrMapLike] | None,
+    ) -> dict[Severity, dict[Hashable, Hashable]]:
+        """Return *attr_maps* with each value as an attribute mapping dictionary.
+
+        :raises AttrMapError: a key or value of an attribute map is not hashable.
+        """
+        return {} if attr_maps is None else {severity: _attr_map_dict(m) for severity, m in attr_maps.items()}
+
+    @property
+    def validation_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
+        """Attribute map applied to the rendered edit for each :attr:`severity`.
+
+        It is set from a mapping of :class:`Severity` to what :class:`AttrMap` takes as its attribute map, or ``None``.
+        A single attribute is stored as ``{None: attribute}``, so the caption's own attributes are placed over it.
+        A severity with no entry is not coloured.
+        A copy is returned.
+
+        >>> e = Edit(validator=lambda text: "empty" if not text else None, validation_attr={Severity.ERROR: "error"})
+        >>> next(iter(e.render((4,)).content()))
+        [('error', None, b'    ')]
+        """
+        return {severity: attr_map.copy() for severity, attr_map in self._validation_attr.items()}
+
+    @validation_attr.setter
+    def validation_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
+        self._validation_attr = self._severity_attr_maps(attr_maps)
+        self._invalidate()
+
+    @property
+    def validation_focus_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
+        """Attribute map applied to the rendered edit for each :attr:`severity` while it is focused.
+
+        It is set as :attr:`validation_attr`.
+        A severity with no entry here uses its :attr:`validation_attr` entry when focused.
+        A copy is returned.
+        """
+        return {severity: attr_map.copy() for severity, attr_map in self._validation_focus_attr.items()}
+
+    @validation_focus_attr.setter
+    def validation_focus_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
+        self._validation_focus_attr = self._severity_attr_maps(attr_maps)
         self._invalidate()
 
     def selectable(self) -> bool:
@@ -453,6 +615,8 @@ class Edit(WidgetWrap[Text]):
             An override passes ``None`` on unchanged: an editing key gives its position to this method by another
             route, which an explicit position replaces.
         :raises ValueError: *text* is longer than :attr:`max_length`; the text is left as it was.
+        :raises TypeError: :attr:`validator` returned something else than the types it lists;
+            the text is changed already.
 
         >>> e = Edit()
         >>> e.set_edit_text("yes")
@@ -482,6 +646,7 @@ class Edit(WidgetWrap[Text]):
             self.set_edit_pos(pending_edit_pos)
 
         self._emit("postchange", old_text)
+        self.validate()
         if pending_edit_pos is not None:
             self._applied_edit_pos = self.edit_pos
         self._invalidate()
@@ -886,6 +1051,17 @@ class Edit(WidgetWrap[Text]):
         if focus:
             canv = CompositeCanvas(canv)
             canv.cursor = self.get_cursor_coords(size)
+
+        if (severity := self.severity) is not None:
+            if focus and severity in self._validation_focus_attr:
+                attr_map = self._validation_focus_attr[severity]
+            elif severity in self._validation_attr:
+                attr_map = self._validation_attr[severity]
+            else:
+                attr_map = None
+            if attr_map is not None:
+                canv = CompositeCanvas(canv)
+                canv.fill_attr_apply(attr_map)
 
         # .. will need to FIXME if I want highlight to work again
         # if self.highlight:

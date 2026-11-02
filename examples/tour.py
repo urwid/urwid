@@ -28,6 +28,9 @@ from __future__ import annotations
 
 import urwid
 
+PORTS = range(1, 65536)
+PRIVILEGED_PORTS = range(1, 1024)
+
 
 def main() -> None:
     """Build and run the tour of standard widget types and features."""
@@ -108,7 +111,7 @@ def main() -> None:
     text_edit_text3 = "add some text here -> -> -> ...."
     text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
     text_edit_text4 = "12345"
-    text_edit_cap5 = ("editcp", "This one shows a hint while empty: ")
+    text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -293,6 +296,9 @@ def main() -> None:
             urwid.Edit(
                 text_edit_cap5,
                 placeholder=("edithint", "e.g. 8080"),
+                validator=check_port,
+                validation_attr={urwid.Severity.WARNING: "editwarn", urwid.Severity.ERROR: "editerr"},
+                validation_focus_attr={urwid.Severity.WARNING: "editwarnf", urwid.Severity.ERROR: "editerrf"},
             ),
             "editbx",
             "editfc",
@@ -527,6 +533,10 @@ def main() -> None:
         ("editbx", "light gray", "dark blue"),
         ("editcp", "black", "light gray", "standout"),
         ("edithint", "light cyan", "dark blue"),
+        ("editwarn", "yellow", "dark blue"),
+        ("editwarnf", "yellow", "dark blue", "bold"),
+        ("editerr", "light red", "dark blue"),
+        ("editerrf", "light red", "dark blue", "bold"),
         ("bright", "dark gray", "light gray", "bold,standout"),
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
@@ -545,6 +555,17 @@ def main() -> None:
 
     # pop_ups=True adds the PopUpTarget that shows the open DropDown lists.
     urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
+
+
+def check_port(text: str) -> urwid.ValidationMessage | str | None:
+    """Return what is wrong with *text* as a TCP port number, or ``None`` for an empty or usable one."""
+    if not text:
+        return None
+    if not text.isdecimal() or int(text) not in PORTS:
+        return "not a port number"
+    if int(text) in PRIVILEGED_PORTS:
+        return urwid.ValidationMessage(urwid.Severity.WARNING, "a privileged port")
+    return None
 
 
 def setup() -> None:

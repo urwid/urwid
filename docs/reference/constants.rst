@@ -130,6 +130,17 @@ Text Wrapping Modes
    character at the end
 
 
+Validation
+----------
+
+Used by the validator of an :class:`Edit` to report what is wrong with its
+text.
+
+.. autoclass:: Severity
+
+.. autoclass:: ValidationMessage
+
+
 Foreground and Background Colors
 --------------------------------
 

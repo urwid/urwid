@@ -1,4 +1,4 @@
-"""Type checker fixture for the placeholder options of Edit.
+"""Type checker fixture for the placeholder and validator options of Edit.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -8,13 +8,33 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
     from typing import assert_type
 
     import urwid
 
-    def edit_options() -> None:
+    def check_port(text: str) -> urwid.ValidationMessage | str | None:
+        """Return one message, an error string or None, as a validator may."""
+        return None if text.isdigit() else "not a port number"
+
+    def check_all(text: str) -> list[urwid.ValidationMessage]:
+        """Return several messages, as a validator may."""
+        return [urwid.ValidationMessage(urwid.Severity.INFO, text)]
+
+    def edit_options(plain: dict[str, str]) -> None:
         """Accept the new options in their documented forms, and type what the properties return."""
-        edit = urwid.Edit("Port: ", placeholder=("hint", "8080"), placeholder_grow=True)
-        edit.placeholder = None
-        edit.placeholder_grow = None
-        assert_type(urwid.Edit().placeholder_grow, bool | None)
+        edit = urwid.Edit(
+            "Port: ",
+            placeholder=("hint", "8080"),
+            placeholder_grow=True,
+            validator=check_port,
+            validation_attr={urwid.Severity.ERROR: "error", urwid.Severity.WARNING: plain},
+            validation_focus_attr={urwid.Severity.ERROR: "error focus"},
+        )
+        edit.validator = check_all
+        edit.validator = None
+        edit.validation_attr = None
+        assert_type(edit.validation, tuple[urwid.ValidationMessage, ...])
+        assert_type(edit.severity, urwid.Severity | None)
+        assert_type(edit.validate(), tuple[urwid.ValidationMessage, ...])
+        assert_type(edit.validation_attr, dict[urwid.Severity, dict[Hashable, Hashable]])
