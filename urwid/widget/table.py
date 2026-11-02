@@ -16,7 +16,7 @@ from urwid import signals
 from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 
-from .attr_map import _attr_map_dict
+from .attr_map import AttrMap, AttrMapError, _attr_map_dict
 from .columns import Columns
 from .constants import Align, Sizing, WHSettings, WrapMode
 from .list_walker import SimpleFocusListWalker
@@ -71,6 +71,7 @@ class TableColumn(typing.NamedTuple):
     - ``(WHSettings.WEIGHT, weight)``: a share of the room left by the other columns.
 
     *align* and *wrap* apply to the cells given as text; a cell given as a widget keeps its own.
+    *attr* maps every cell of the column; :class:`TableRow` gives the order in which it and the row maps apply.
     A :class:`TableLayout` validates the specification when it takes it.
     """
 
@@ -81,6 +82,8 @@ class TableColumn(typing.NamedTuple):
     min_width: int = 1
     align: Literal[Align.LEFT, Align.CENTER, Align.RIGHT] = Align.LEFT
     wrap: Literal[WrapMode.SPACE, WrapMode.CLIP, WrapMode.ELLIPSIS] = WrapMode.CLIP
+    #: Attribute map of the column's cells; the header label and a span row do not use it.
+    attr: _AttrMapLike | None = None
 
 
 class _TableText(Text):
@@ -99,9 +102,13 @@ class _TableText(Text):
 class _TableColumns(Columns):
     """Columns of one table row, laid out with the widths its layout shares between all its rows."""
 
-    def __init__(self, layout: TableLayout, cells: Sequence[Widget], *, span: bool) -> None:
+    def __init__(self, layout: TableLayout, cells: Sequence[Widget], *, span: bool, column_attrs: bool) -> None:
         self._layout = layout
         self._span = span
+        if column_attrs and not span:
+            cells = [
+                cell if attr is None else AttrMap(cell, attr) for cell, attr in zip(cells, layout._attrs, strict=True)
+            ]
         super().__init__(
             [(WHSettings.WEIGHT, 1, cell) for cell in cells],
             dividechars=layout.dividechars,
@@ -140,17 +147,21 @@ class TableLayout:
             raise TableError(f"dividechars must be an int >= 0, not {dividechars!r}")
         self._columns = tuple(columns)
         self._dividechars = dividechars
-        # per column: the kind of width, the given width or the weight, and the minimum
+        # per column: the kind of width, the given width or the weight, and the attribute map of its cells
         self._kinds: tuple[WHSettings, ...] = ()
         self._amounts: tuple[int | float, ...] = ()
+        self._attrs: tuple[dict[Hashable, Hashable] | None, ...] = ()
         kinds: list[WHSettings] = []
         amounts: list[int | float] = []
+        attrs: list[dict[Hashable, Hashable] | None] = []
         for index, column in enumerate(self._columns):
-            kind, amount = self._validate_column(index, column)
+            kind, amount, attr_map = self._validate_column(index, column)
             kinds.append(kind)
             amounts.append(amount)
+            attrs.append(attr_map)
         self._kinds = tuple(kinds)
         self._amounts = tuple(amounts)
+        self._attrs = tuple(attrs)
         self._label_widths = tuple(Text(column.label).pack(())[0] for column in self._columns)
         # the widest measured cell of each PACK column (0 for the other columns) over the registered rows
         self._pack_max = [0] * len(self._columns)
@@ -167,8 +178,11 @@ class TableLayout:
         self._rendered: weakref.WeakSet[_TableColumns] = weakref.WeakSet()
 
     @staticmethod
-    def _validate_column(index: int, column: TableColumn) -> tuple[WHSettings, int | float]:
-        """Return the kind of width of *column* and its given width or weight.
+    def _validate_column(
+        index: int,
+        column: TableColumn,
+    ) -> tuple[WHSettings, int | float, dict[Hashable, Hashable] | None]:
+        """Return the kind of width of *column*, its given width or weight, and its attribute map as a dict.
 
         :raises TableError: *column* is not a valid specification.
         """
@@ -202,7 +216,11 @@ class TableLayout:
             raise TableError(f"column {index}: invalid align {column.align!r}")
         if column.wrap not in _TEXT_WRAPS:
             raise TableError(f"column {index}: invalid wrap {column.wrap!r}")
-        return kind, amount
+        try:
+            attr_map = None if column.attr is None else _attr_map_dict(column.attr)
+        except AttrMapError as exc:
+            raise TableError(f"column {index}: invalid attr {column.attr!r}") from exc
+        return kind, amount, attr_map
 
     @property
     def columns(self) -> tuple[TableColumn, ...]:
@@ -469,8 +487,14 @@ class TableRow(WidgetWrap[_TableColumns]):
     - the result of the table's ``row_attr`` callable, when it returns something other than ``None``;
     - :attr:`attr`, or the table's ``attr``.
 
-    A map given as a dict also maps the cells' own attributes.
+    The ``attr`` of a :class:`TableColumn` maps each cell of that column first,
+    except in a span row and in the header of a :class:`Table`.
+    A row map given as a dict then also maps the cells' and the columns' attributes.
+    The attribute a row map gives for ``None`` becomes the base layer under them.
     """
+
+    #: whether the ``attr`` of each :class:`TableColumn` maps the cells of the row
+    _column_attrs: typing.ClassVar[bool] = True
 
     def __init__(
         self,
@@ -530,7 +554,7 @@ class TableRow(WidgetWrap[_TableColumns]):
         self._rows: weakref.ref[_TableRows] | None = None
         self._registered = False
         self._cell_widths: tuple[int | None, ...] = ()
-        super().__init__(_TableColumns(layout, self._cells, span=span))
+        super().__init__(_TableColumns(layout, self._cells, span=span, column_attrs=self._column_attrs))
         self._measure()
         for cell in self._cells:
             if isinstance(cell, _TableText):
@@ -640,6 +664,12 @@ class TableRow(WidgetWrap[_TableColumns]):
             self._cell_widths = (*self._cell_widths[:index], new, *self._cell_widths[index + 1 :])
             if self._registered:
                 self._layout._cell_width_changed(index, old, new)
+
+
+class _TableHeader(TableRow):
+    """Row of the column labels, which only the table's ``header_attr`` maps."""
+
+    _column_attrs = False
 
 
 # set_modified_callback raises by design, as in SimpleFocusListWalker
@@ -767,7 +797,7 @@ class Table(Widget):
         super().__init__()
         self._layout = TableLayout(columns, dividechars=dividechars)
         self._header = (
-            TableRow(
+            _TableHeader(
                 self._layout, [column.label for column in self._layout.columns], attr=header_attr, selectable=False
             )
             if header

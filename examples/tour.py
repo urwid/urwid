@@ -441,13 +441,13 @@ def main() -> None:
             urwid.Table(
                 [
                     urwid.TableColumn("Name"),
-                    urwid.TableColumn("Size", align=urwid.RIGHT),
+                    urwid.TableColumn("Size", align=urwid.RIGHT, attr="bright"),
                     urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
                 ],
                 table_rows,
                 header_attr="important",
-                focus_attr="buttnf",
-                unfocused_focus_attr="buttnl",
+                focus_attr={None: "buttnf", "bright": "buttnf"},
+                unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
                 max_rows=4,
                 scrollbar=None,
             ),

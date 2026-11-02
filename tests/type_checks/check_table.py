@@ -19,6 +19,7 @@ if typing.TYPE_CHECKING:
             urwid.TableColumn("Name"),
             urwid.TableColumn("Size", width=6, align=urwid.RIGHT),
             urwid.TableColumn(("bold", "Note"), width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+            urwid.TableColumn("Kind", attr={None: "kind", "bold": "kind bold"}),
         ]
         widget = urwid.Table(columns, [["a", "1", edit], [("attr", "b")]], max_rows=4)
         widget.body.append(["c", "2"])
