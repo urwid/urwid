@@ -8,6 +8,7 @@ from unittest import mock
 import urwid
 import urwid.testing
 from urwid.command_map import Command
+from urwid.numedit import FloatEdit, NumEdit
 from urwid.util import set_temporary_encoding
 
 # regional indicators U and S: the two together form one flag cluster
@@ -387,6 +388,10 @@ class EditTest(unittest.TestCase):
         cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
         cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
         cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cm.bind(Command.LINE_START, "ctrl a")
+        cm.bind(Command.LINE_END, "ctrl e")
+        cm.bind(Command.DELETE_SPACE_WORD_LEFT, "meta w")
+        cm.bind(Command.DELETE_RIGHT, "ctrl d")
         cases = (
             ("insert", "ab", 1, None, "X", "aXb", 2),
             ("insert over highlight", "hello", 5, (1, 4), "X", "hXo", 2),
@@ -542,6 +547,21 @@ class EditTest(unittest.TestCase):
         e.set_edit_text("abc")
         self.assertEqual(e.edit_pos, 1)
 
+    def test_subclass_with_own_keypress_helper(self) -> None:
+        """A subclass helper named _keypress that calls the base keypress is not called back by it."""
+
+        class HelperEdit(urwid.Edit):
+            def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
+                return self._keypress(size, key)
+
+            def _keypress(self, size: tuple[int], key: str) -> str | None:
+                return None if key == "f2" else super().keypress(size, key)
+
+        e = HelperEdit("", "ab")
+        self.assertIsNone(e.keypress((20,), "x"))
+        self.assertIsNone(e.keypress((20,), "f2"))
+        self.assertEqual(e.edit_text, "abx")
+
     def test_keypress_readline_commands(self) -> None:
         """The readline commands move and delete by word and to the line ends, and return the key at a boundary."""
         cm = urwid.CommandMap()
@@ -551,6 +571,10 @@ class EditTest(unittest.TestCase):
         cm.bind(Command.DELETE_WORD_RIGHT, "meta d")
         cm.bind(Command.DELETE_TO_LINE_START, "ctrl u")
         cm.bind(Command.DELETE_TO_LINE_END, "ctrl k")
+        cm.bind(Command.LINE_START, "ctrl a")
+        cm.bind(Command.LINE_END, "ctrl e")
+        cm.bind(Command.DELETE_SPACE_WORD_LEFT, "meta w")
+        cm.bind(Command.DELETE_RIGHT, "ctrl d")
         cases = (
             ("one, two", 8, "meta b", "one, two", 5, None),
             ("one, two", 5, "meta b", "one, two", 0, None),
@@ -577,6 +601,27 @@ class EditTest(unittest.TestCase):
             ("ab", 2, "ctrl k", "ab", 2, "ctrl k"),
             (b"one two", 7, "ctrl w", b"one ", 4, None),
             (b"ab\ncd", 4, "ctrl u", b"ab\nd", 3, None),
+            # a wrapped line: the line commands go past the screen row, to the newline or the text edge
+            ("alpha beta gamma delta epsilon", 23, "ctrl a", "alpha beta gamma delta epsilon", 0, None),
+            ("alpha beta gamma delta epsilon", 3, "ctrl e", "alpha beta gamma delta epsilon", 30, None),
+            ("ab\ncd\nef", 4, "ctrl a", "ab\ncd\nef", 3, None),
+            ("ab\ncd\nef", 4, "ctrl e", "ab\ncd\nef", 5, None),
+            ("ab\ncd\nef", 3, "ctrl a", "ab\ncd\nef", 3, "ctrl a"),
+            ("ab\ncd\nef", 5, "ctrl e", "ab\ncd\nef", 5, "ctrl e"),
+            ("ab\ncd\nef", 2, "ctrl e", "ab\ncd\nef", 2, "ctrl e"),
+            (b"ab\ncd", 5, "ctrl a", b"ab\ncd", 3, None),
+            (b"ab\ncd", 0, "ctrl e", b"ab\ncd", 2, None),
+            # bash's ctrl w (unix-word-rubout) and ctrl d (delete-char) give the same results
+            ("ls /usr/local/", 14, "meta w", "ls ", 3, None),
+            ("ls /usr/local/  ", 16, "meta w", "ls ", 3, None),
+            ("one, two", 4, "meta w", " two", 0, None),
+            ("a\nb c", 3, "meta w", "a\n c", 2, None),
+            ("  ", 2, "meta w", "", 0, None),
+            ("ab", 0, "meta w", "ab", 0, "meta w"),
+            (b"x \xc3\xa9t\xc3\xa9", 7, "meta w", b"x ", 2, None),
+            ("abc", 1, "ctrl d", "ac", 1, None),
+            ("abc", 3, "ctrl d", "abc", 3, "ctrl d"),
+            ("a" + FAMILY + "b", 1, "ctrl d", "ab", 1, None),
         )
         for text, pos, key, expected_text, expected_pos, returned in cases:
             with self.subTest(text=text, pos=pos, key=key):
@@ -611,10 +656,35 @@ class EditTest(unittest.TestCase):
     def test_readline_commands_unbound_by_default(self) -> None:
         """No key reaches the readline commands unless the application binds it."""
         e = urwid.Edit("", "one two")
-        for key in ("ctrl a", "ctrl e", "ctrl u", "ctrl k", "ctrl w", "meta b", "meta f", "meta d", "meta backspace"):
+        keys = (
+            "ctrl a",
+            "ctrl e",
+            "ctrl u",
+            "ctrl k",
+            "ctrl w",
+            "ctrl d",
+            "meta b",
+            "meta f",
+            "meta d",
+            "meta backspace",
+        )
+        for key in keys:
             with self.subTest(key=key):
                 self.assertEqual(e.keypress((20,), key), key)
                 self.assertEqual((e.edit_text, e.edit_pos), ("one two", 7))
+
+    def test_readline_preset_on_shared_map(self) -> None:
+        """With the preset on the shared map, ctrl a moves an Edit and leaves a ListBox focus where it is."""
+        cm = urwid.CommandMap()
+        cm.bind_readline()
+        with mock.patch.object(urwid.Widget, "_command_map", cm):
+            e = urwid.Edit("", "one two")
+            self.assertIsNone(e.keypress((20,), "ctrl a"))
+            self.assertEqual(e.edit_pos, 0)
+            listbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.SelectableIcon(str(n)) for n in range(20)]))
+            listbox.focus_position = 10
+            self.assertEqual(listbox.keypress((10, 5), "ctrl a"), "ctrl a")
+            self.assertEqual(listbox.focus_position, 10)
 
     def test_keypress_up_down_raises_when_pref_col_none(self) -> None:
         e = urwid.Edit("", "hello")
@@ -1557,6 +1627,449 @@ class EditCompleterTest(unittest.TestCase):
         e.text_completer = None
         self.assertIsNone(e.completion_cycle)
         self.assertEqual(e.keypress((20,), "tab"), "tab")
+
+
+READLINE_MAP = urwid.CommandMap()
+READLINE_MAP.bind_readline()
+
+
+def readline_edit(cls: type[urwid.Edit] = urwid.Edit, *args: typing.Any, **kwargs: typing.Any) -> urwid.Edit:
+    """Return an edit of *cls* that takes the readline keys."""
+    e = cls(*args, **kwargs)
+    e._command_map = READLINE_MAP
+    return e
+
+
+def type_keys(e: urwid.Edit, *keys: str) -> None:
+    """Send each key to *e* at a width of 20 columns."""
+    for key in keys:
+        e.keypress((20,), key)
+
+
+class NoXEdit(urwid.Edit):
+    """Edit whose set_edit_text override refuses text containing an x before changing anything."""
+
+    def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
+        if "x" in text:
+            raise ValueError(text)
+        super().set_edit_text(text, edit_pos=edit_pos)
+
+
+class UpperAfterKeypressEdit(urwid.Edit):
+    """Edit that changes the text after the base keypress returns, outside the editing transaction."""
+
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
+        unhandled = super().keypress(size, key)
+        self.set_edit_text(self.edit_text.upper())
+        return unhandled
+
+
+class EditUndoTest(unittest.TestCase):
+    def history(self, e: urwid.Edit) -> tuple[list[tuple[str | bytes, int]], list[tuple[str | bytes, int]]]:
+        return list(e._undo_stack), list(e._redo_stack)
+
+    def test_off_by_default(self) -> None:
+        """Without a limit nothing is recorded, and the commands return their key."""
+        cm = urwid.CommandMap()
+        cm.bind(Command.UNDO, "ctrl _")
+        cm.bind(Command.REDO, "meta _")
+        e = urwid.Edit()
+        e._command_map = cm
+        type_keys(e, "a", "b")
+        self.assertEqual(e.undo_limit, 0)
+        self.assertFalse(e.undo())
+        self.assertEqual(e.keypress((20,), "ctrl _"), "ctrl _")
+        self.assertEqual(e.keypress((20,), "meta _"), "meta _")
+        self.assertEqual(e.edit_text, "ab")
+
+    def test_limit_raised_from_zero(self) -> None:
+        """Typing after the limit is raised from 0 is a step of its own, not the continuation of an unrecorded run."""
+        e = urwid.Edit()
+        type_keys(e, "a", "b")
+        e.undo_limit = 10
+        type_keys(e, "c")
+        self.assertTrue(e.undo())
+        self.assertEqual(e.edit_text, "ab")
+
+    def test_undo_key_restores_leading_zeros(self) -> None:
+        """Undo and redo by key in IntEdit and NumEdit restore the text as it was shown, leading zeros included."""
+        for e in (readline_edit(urwid.IntEdit, "", "007"), readline_edit(NumEdit, "0123456789", "", "007")):
+            with self.subTest(cls=type(e).__name__):
+                e.undo_limit = 10
+                type_keys(e, "1")
+                self.assertEqual(e.edit_text, "71")
+                type_keys(e, "ctrl _")
+                self.assertEqual(e.edit_text, "007")
+                self.assertEqual(len(e._redo_stack), 1)
+
+    def test_runs_merge_into_one_step(self) -> None:
+        """A run of typed characters, of backspace or of delete is one step; a change of kind starts a new one."""
+        e = urwid.Edit(undo_limit=10)
+        type_keys(e, "a", "b", "c", "d", "backspace", "backspace", "e", "home", "delete", "delete")
+        self.assertEqual((e.edit_text, e.edit_pos), ("e", 0))
+        expected = [("abe", 0), ("ab", 2), ("abcd", 4), ("", 0)]
+        for text, pos in expected:
+            self.assertTrue(e.undo())
+            self.assertEqual((e.edit_text, e.edit_pos), (text, pos))
+        self.assertFalse(e.undo())
+
+    def test_cursor_move_ends_a_run(self) -> None:
+        """Typing after a cursor move, by key, by mouse or programmatically, is a new step."""
+        for move in ("key", "mouse", "set_edit_pos"):
+            with self.subTest(move=move):
+                e = urwid.Edit(undo_limit=10)
+                type_keys(e, "a", "b")
+                if move == "key":
+                    type_keys(e, "left")
+                elif move == "mouse":
+                    e.mouse_event((20,), "mouse press", 1, 1, 0, True)
+                else:
+                    e.set_edit_pos(1)
+                type_keys(e, "c")
+                e.undo()
+                self.assertEqual(e.edit_text, "ab")
+                self.assertTrue(e.undo())
+                self.assertEqual(e.edit_text, "")
+
+    def test_other_key_ends_a_run(self) -> None:
+        """An unhandled key between two typed characters ends the run."""
+        e = urwid.Edit(undo_limit=10)
+        type_keys(e, "a", "f1", "b")
+        e.undo()
+        self.assertEqual(e.edit_text, "a")
+
+    def test_undo_redo_round_trip(self) -> None:
+        """Redo makes each undone step again, and a new change clears the redo history."""
+        e = urwid.Edit(undo_limit=10)
+        type_keys(e, "a", "b", " ", "left", "c")
+        self.assertEqual(e.edit_text, "abc ")
+        self.assertTrue(e.undo())
+        self.assertTrue(e.undo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("", 0))
+        self.assertTrue(e.redo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("ab ", 2))
+        self.assertTrue(e.redo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("abc ", 3))
+        self.assertFalse(e.redo())
+        e.undo()
+        type_keys(e, "d")
+        self.assertFalse(e.redo())
+        self.assertEqual(e.edit_text, "abd ")
+
+    def test_commands(self) -> None:
+        """The undo and redo commands call undo() and redo(), and return the key when nothing is left."""
+        cm = urwid.CommandMap()
+        cm.bind_readline()
+        cm.bind(Command.REDO, "meta _")
+        e = urwid.Edit(undo_limit=10)
+        e._command_map = cm
+        type_keys(e, "a", "b", "ctrl w")
+        self.assertIsNone(e.keypress((20,), "ctrl _"))
+        self.assertEqual(e.edit_text, "ab")
+        self.assertIsNone(e.keypress((20,), "ctrl _"))
+        self.assertEqual(e.keypress((20,), "ctrl _"), "ctrl _")
+        self.assertIsNone(e.keypress((20,), "meta _"))
+        self.assertEqual(e.edit_text, "ab")
+        self.assertEqual(self.history(e), ([("", 0)], [("", 0)]))
+
+    def test_limit(self) -> None:
+        """The limit keeps the newest steps; lowering it drops the oldest, 0 clears, a negative value raises."""
+        e = urwid.Edit(undo_limit=2)
+        type_keys(e, "a", "left", "b", "left", "c")
+        self.assertEqual([text for text, _pos in e._undo_stack], ["a", "ba"])
+        e.undo_limit = 1
+        self.assertEqual([text for text, _pos in e._undo_stack], ["ba"])
+        e.undo()
+        self.assertEqual(self.history(e), ([], [("cba", 1)]))
+        e.undo_limit = 0
+        self.assertEqual(self.history(e), ([], []))
+        with self.assertRaisesRegex(ValueError, "must not be negative"):
+            e.undo_limit = -1
+        with self.assertRaisesRegex(ValueError, "must not be negative"):
+            urwid.Edit(undo_limit=-1)
+
+    def test_change_from_elsewhere_clears_history(self) -> None:
+        """set_edit_text() and insert_text() from the application clear both histories; set_edit_pos() does not."""
+        for change in ("set_edit_text", "same text", "insert_text"):
+            with self.subTest(change=change):
+                e = urwid.Edit(undo_limit=10)
+                type_keys(e, "a", "b", "left", "c")
+                e.undo()
+                e.set_edit_pos(0)
+                self.assertNotEqual(self.history(e), ([], []))
+                if change == "set_edit_text":
+                    e.set_edit_text("other")
+                elif change == "same text":
+                    e.set_edit_text(e.edit_text)
+                else:
+                    e.insert_text("x")
+                self.assertEqual(self.history(e), ([], []))
+                self.assertFalse(e.undo())
+
+    def test_submit_handler(self) -> None:
+        """A submit handler that clears the field clears the history, masked or not; one that does not keeps it."""
+        for mask, clear in ((None, True), ("*", True), ("", True), (None, False)):
+            with self.subTest(mask=mask, clear=clear):
+                e = urwid.Edit(undo_limit=10, mask=mask)
+                if clear:
+                    urwid.connect_signal(e, "submit", lambda edit, _text: edit.set_edit_text(""))
+                type_keys(e, "s", "e", "c", "enter")
+                if clear:
+                    self.assertEqual(e.edit_text, "")
+                    self.assertEqual(self.history(e), ([], []))
+                else:
+                    self.assertEqual(self.history(e), ([("", 0)], []))
+
+    def test_change_signal_handler_belongs_to_the_step(self) -> None:
+        """A postchange handler that changes the text during a key is part of the key's step."""
+        e = urwid.Edit(undo_limit=10)
+
+        def strip_spaces(edit: urwid.Edit, _old: str) -> None:
+            if edit.edit_text != edit.edit_text.strip():
+                edit.set_edit_text(edit.edit_text.strip())
+
+        urwid.connect_signal(e, "postchange", strip_spaces)
+        type_keys(e, "a", " ")
+        self.assertEqual(e.edit_text, "a")
+        self.assertEqual(self.history(e), ([("", 0)], []))
+
+    def test_override_raising_keeps_history(self) -> None:
+        """A set_edit_text override that raises before changing the text leaves the history as it was."""
+        e = NoXEdit(undo_limit=10)
+        type_keys(e, "a")
+        e._undo_stack.append(("x", 1))  # a state recorded before the override started refusing it
+        before = self.history(e)
+        with self.assertRaises(ValueError):
+            e.undo()
+        self.assertEqual(self.history(e), before)
+        self.assertEqual(e.edit_text, "a")
+
+    def test_postchange_raising_moves_the_step(self) -> None:
+        """A postchange handler that raises after the text is restored still moves the step to the other history."""
+        e = urwid.Edit(undo_limit=10)
+        type_keys(e, "a", "b")
+        raising = True
+
+        def fail(_edit: urwid.Edit, _old: str) -> None:
+            if raising:
+                raise RuntimeError("postchange")
+
+        urwid.connect_signal(e, "postchange", fail)
+        with self.assertRaises(RuntimeError):
+            e.undo()
+        self.assertEqual(e.edit_text, "")
+        self.assertEqual(self.history(e), ([], [("ab", 2)]))
+        raising = False
+        self.assertTrue(e.redo())
+        self.assertEqual(e.edit_text, "ab")
+
+    def test_max_length_lowered(self) -> None:
+        """A step longer than max_length is not restored and stays in the history."""
+        e = urwid.Edit(undo_limit=10, edit_text="abcd")
+        type_keys(e, "backspace", "backspace")
+        e.max_length = 3
+        self.assertFalse(e.undo())
+        self.assertEqual(self.history(e), ([("abcd", 4)], []))
+
+    def test_change_after_super_keypress_clears(self) -> None:
+        """A subclass that changes the text after the base keypress returns clears the history."""
+        e = UpperAfterKeypressEdit(undo_limit=10)
+        type_keys(e, "a")
+        self.assertEqual(e.edit_text, "A")
+        self.assertEqual(self.history(e), ([], []))
+
+    def test_completion_steps(self) -> None:
+        """Each completion step is one step, and undo is not a completion key."""
+        e = urwid.Edit("", "al", undo_limit=10, text_completer=lambda text, pos: [("alpha", 5), ("alpine", 6)])
+        type_keys(e, "tab", "tab")
+        self.assertEqual(e.edit_text, "alpine")
+        e.undo()
+        self.assertEqual(e.edit_text, "alpha")
+        self.assertIsNone(e.completion_cycle)
+
+    def test_bytes(self) -> None:
+        e = urwid.Edit(b"", undo_limit=10)
+        type_keys(e, "a", "b", "backspace")
+        e.undo()
+        self.assertEqual(e.edit_text, b"ab")
+        e.undo()
+        self.assertEqual(e.edit_text, b"")
+
+    def test_int_edit_strip_belongs_to_the_digit(self) -> None:
+        """IntEdit keeps its history, and the leading-zero strip is undone with the digit that caused it."""
+        e = urwid.IntEdit("", 0)
+        e.undo_limit = 10
+        type_keys(e, "5", "1")
+        self.assertEqual(e.edit_text, "51")
+        self.assertTrue(e.undo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("0", 1))
+        self.assertTrue(e.redo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("51", 2))
+        type_keys(e, "home", "delete")
+        self.assertEqual(e.edit_text, "1")
+        self.assertTrue(e.undo())
+        self.assertEqual((e.edit_text, e.edit_pos), ("51", 0))
+
+    def test_num_edit_trim_belongs_to_the_digit(self) -> None:
+        """NumEdit keeps its history, and the trim is undone with the key that caused it."""
+        e = NumEdit("0123456789", "", "5002")
+        e.undo_limit = 10
+        type_keys(e, "home", "delete")
+        self.assertEqual(e.edit_text, "002")
+        type_keys(e, "end")
+        self.assertEqual(e.edit_text, "2")
+        self.assertEqual(self.history(e), ([("5002", 0), ("002", 0)], []))
+        type_keys(e, "3")
+        for text in ("2", "002", "5002"):
+            e.undo()
+            self.assertEqual(e.edit_text, text)
+
+
+class EditKillBufferTest(unittest.TestCase):
+    def test_chain_joins_in_the_direction_of_the_delete(self) -> None:
+        """Backward kills put their text before the entry, forward kills after it, as in readline."""
+        cases = (
+            ("one two three", 13, ("ctrl w", "ctrl w"), ["two three"]),
+            ("one two three", 0, ("meta d", "meta d"), ["one two"]),
+            ("one two three", 4, ("ctrl k", "ctrl u"), ["one two three"]),
+            ("one two three", 7, ("meta backspace", "meta d"), ["two three"]),
+        )
+        for text, pos, keys, expected in cases:
+            with self.subTest(keys=keys):
+                kills: list[str | bytes] = []
+                e = readline_edit(urwid.Edit, "", text, edit_pos=pos, kill_buffer=kills)
+                type_keys(e, *keys)
+                self.assertEqual(kills, expected)
+
+    def test_chain_breaks(self) -> None:
+        """Any other key, a mouse event or a change from elsewhere starts a new entry."""
+        for interruption in ("left", "x", "unhandled", "mouse", "set_edit_text"):
+            with self.subTest(interruption=interruption):
+                kills: list[str | bytes] = []
+                e = readline_edit(urwid.Edit, "", "aa bb cc dd", kill_buffer=kills)
+                type_keys(e, "ctrl w")
+                if interruption == "mouse":
+                    e.mouse_event((20,), "mouse press", 4, 20, 0, True)
+                elif interruption == "set_edit_text":
+                    e.set_edit_text("aa bb cc ")
+                elif interruption == "unhandled":
+                    self.assertEqual(e.keypress((20,), "f1"), "f1")
+                else:
+                    type_keys(e, interruption, "backspace" if interruption == "x" else "right")
+                type_keys(e, "ctrl w")
+                self.assertEqual(kills, ["dd", "cc "])
+
+    def test_shared_buffer(self) -> None:
+        """Kills from two edits sharing a list never join each other's entries, with or without a mouse event."""
+        for click in (True, False):
+            with self.subTest(click=click):
+                kills: list[str | bytes] = []
+                a = readline_edit(urwid.Edit, "", "a1 a2 a3", kill_buffer=kills)
+                b = readline_edit(urwid.Edit, "", "b1 b2", kill_buffer=kills)
+                type_keys(a, "ctrl w")
+                if click:
+                    b.mouse_event((20,), "mouse press", 1, 19, 0, True)
+                type_keys(b, "ctrl w")
+                if click:
+                    a.mouse_event((20,), "mouse press", 1, 19, 0, True)
+                type_keys(a, "ctrl w")
+                self.assertEqual(kills, ["a3", "b2", "a2 "])
+
+    def test_application_change_of_the_list_starts_a_new_entry(self) -> None:
+        kills: list[str | bytes] = []
+        e = readline_edit(urwid.Edit, "", "aa bb cc", kill_buffer=kills)
+        type_keys(e, "ctrl w")
+        kills.append("pasted")
+        type_keys(e, "ctrl w")
+        self.assertEqual(kills, ["cc", "pasted", "bb "])
+        kills[-1] = "replaced"
+        type_keys(e, "ctrl w")
+        self.assertEqual(kills, ["cc", "pasted", "replaced", "aa "])
+
+    def test_assigning_the_list_ends_the_chain(self) -> None:
+        kills: list[str | bytes] = ["old"]
+        e = readline_edit(urwid.Edit, "", "aa bb", kill_buffer=kills)
+        type_keys(e, "ctrl w")
+        e.kill_buffer = kills
+        type_keys(e, "ctrl w")
+        self.assertEqual(kills, ["old", "bb", "aa "])
+
+    def test_masked_edit_kills_nothing(self) -> None:
+        """A masked edit, also with an empty mask, puts nothing into a list other widgets may read."""
+        for mask in ("*", ""):
+            with self.subTest(mask=mask):
+                kills: list[str | bytes] = []
+                e = readline_edit(urwid.Edit, "", "secret", mask=mask, kill_buffer=kills)
+                type_keys(e, "ctrl u")
+                self.assertEqual((e.edit_text, kills), ("", []))
+
+    def test_backspace_and_delete_do_not_kill(self) -> None:
+        kills: list[str | bytes] = []
+        e = readline_edit(urwid.Edit, "", "abc", edit_pos=1, kill_buffer=kills)
+        type_keys(e, "backspace", "delete", "ctrl d")
+        self.assertEqual((e.edit_text, kills), ("", []))
+
+    def test_yank(self) -> None:
+        """Yank inserts the newest entry at the cursor, replacing the highlight, and returns the key with nothing."""
+        for kills in (None, []):
+            with self.subTest(kills=kills):
+                e = readline_edit(urwid.Edit, "", "ab", kill_buffer=kills)
+                self.assertEqual(e.keypress((20,), "ctrl y"), "ctrl y")
+        e = readline_edit(urwid.Edit, "", "ab", edit_pos=1, kill_buffer=["old", "new"])
+        self.assertIsNone(e.keypress((20,), "ctrl y"))
+        self.assertEqual((e.edit_text, e.edit_pos), ("anewb", 4))
+        e.highlight = (0, 1)
+        type_keys(e, "ctrl y")
+        self.assertEqual(e.edit_text, "newnewb")
+
+    def test_yank_refused(self) -> None:
+        """A yank whose result the keys could not type inserts nothing and returns the key."""
+        cases = (
+            ("max_length", readline_edit(urwid.Edit, "", "abc", max_length=4), "xy", None),
+            ("newline", readline_edit(urwid.Edit, "", "abc"), "x\ny", None),
+            ("newline, multiline", readline_edit(urwid.Edit, "", "abc", multiline=True), "x\ny", "abcx\ny"),
+            ("tab", readline_edit(urwid.Edit, "", "abc"), "x\ty", None),
+            ("tab, allow_tab", readline_edit(urwid.Edit, "", "abc", allow_tab=True), "x\ty", "abcx\ty"),
+            ("control", readline_edit(urwid.Edit, "", "abc"), "x\x07", None),
+            ("IntEdit letters", readline_edit(urwid.IntEdit, "", 12), "3a", None),
+            ("IntEdit digits", readline_edit(urwid.IntEdit, "", 12), "34", "1234"),
+            ("NumEdit sign inside", readline_edit(NumEdit, "0123456789", "", "1", allow_negative=True), "-2", None),
+            ("NumEdit hex", readline_edit(NumEdit, "0123456789ABCDEF", "", "1"), "fF", "1fF"),
+            ("FloatEdit second separator", readline_edit(FloatEdit, "", "1.5"), ".2", None),
+            ("bytes from non-ASCII str", readline_edit(urwid.Edit, b"", b"abc"), "\u00e9", None),
+            ("str from bytes", readline_edit(urwid.Edit, "", "abc"), b"de", "abcde"),
+        )
+        for name, e, entry, expected in cases:
+            with self.subTest(name=name):
+                before = e.edit_text
+                e.kill_buffer = [entry]
+                result = e.keypress((20,), "ctrl y")
+                self.assertEqual(result, None if expected is not None else "ctrl y")
+                self.assertEqual(e.edit_text, before if expected is None else expected)
+
+    def test_yank_over_highlighted_separator(self) -> None:
+        """FloatEdit judges the result after the highlight is replaced, so its separator may come back."""
+        e = readline_edit(FloatEdit, "", "2.0")
+        e.kill_buffer = ["1.5"]
+        e.highlight = (0, 3)
+        self.assertIsNone(e.keypress((20,), "ctrl y"))
+        self.assertEqual(e.edit_text, "1.5")
+
+    def test_bytes(self) -> None:
+        kills: list[str | bytes] = []
+        e = readline_edit(urwid.Edit, b"", "x \u00e9t\u00e9".encode(), kill_buffer=kills)
+        type_keys(e, "ctrl w", "ctrl y", "ctrl y")
+        self.assertEqual(kills, ["\u00e9t\u00e9".encode()])
+        self.assertEqual(e.edit_text, "x \u00e9t\u00e9\u00e9t\u00e9".encode())
+
+    def test_yank_is_one_undo_step(self) -> None:
+        kills: list[str | bytes] = []
+        e = readline_edit(urwid.Edit, "", "one two", kill_buffer=kills, undo_limit=10)
+        type_keys(e, "ctrl w", "ctrl w", "ctrl y")
+        self.assertEqual(e.edit_text, "one two")
+        for text in ("", "one ", "one two"):
+            e.undo()
+            self.assertEqual(e.edit_text, text)
 
 
 class IntEditTest(unittest.TestCase):

@@ -30,6 +30,7 @@ import sys
 import typing
 
 from urwid import Edit, _deprecation
+from urwid.command_map import Command
 
 if typing.TYPE_CHECKING:
     from collections.abc import Container
@@ -95,6 +96,12 @@ class NumEdit(Edit):
             return self._allow_negative and ch == "-" and self.edit_pos == 0 and "-" not in self.edit_text
         return False
 
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters, after one leading ``-`` with *allow_negative*."""
+        if self._allow_negative and result_text[:1] == "-":
+            result_text = result_text[1:]
+        return all(char.upper() in self._allowed for char in typing.cast("str", result_text))
+
     def keypress(
         self,
         size: tuple[int],  # type: ignore[override]
@@ -131,18 +138,21 @@ class NumEdit(Edit):
         >>> e.edit_text
         '1'
         """
-        unhandled = super().keypress(size, key)
+        with self._editing():  # the trim belongs to the undo step of the key
+            unhandled = super().keypress(size, key)
 
-        if not unhandled and self._trim_leading_zeros:
-            # trim leading zeros after the sign, but keep the zero of "0" and "0.5"
-            sign = int(self.edit_text.startswith("-"))
-            while (
-                self.edit_pos > sign
-                and self.edit_text[sign : sign + 1] == "0"
-                and self.edit_text[sign + 1 : sign + 2].isalnum()
-            ):
-                self.set_edit_pos(self.edit_pos - 1)
-                self.set_edit_text(self.edit_text[:sign] + self.edit_text[sign + 1 :])
+            # a restored state is kept as it was shown
+            restored = self._command_map[key] in {Command.UNDO, Command.REDO}
+            if not unhandled and not restored and self._trim_leading_zeros:
+                # trim leading zeros after the sign, but keep the zero of "0" and "0.5"
+                sign = int(self.edit_text.startswith("-"))
+                while (
+                    self.edit_pos > sign
+                    and self.edit_text[sign : sign + 1] == "0"
+                    and self.edit_text[sign + 1 : sign + 2].isalnum()
+                ):
+                    self.set_edit_pos(self.edit_pos - 1)
+                    self.set_edit_text(self.edit_text[:sign] + self.edit_text[sign + 1 :])
 
         return unhandled
 
@@ -433,6 +443,12 @@ class FloatEdit(NumEdit):
         if ch == self._decimal_separator and ch in self.edit_text:
             return False
         return super().valid_char(ch)
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters with at most one decimal separator."""
+        return typing.cast("str", result_text).count(self._decimal_separator) <= 1 and super()._valid_insert(
+            text, result_text
+        )
 
     def value(self) -> decimal.Decimal | None:
         """Return the numeric value of self.edit_text."""
