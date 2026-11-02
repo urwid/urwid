@@ -635,6 +635,25 @@ class RadioButton(CheckBox):
         """
         self.set_state(True)
 
+    @property
+    def selected_button(self) -> RadioButton | None:
+        """Get the button of the group that is selected.
+
+        :returns: the first button of ``group`` whose state is True,
+            or ``None`` when no button of the group is selected, for example when every button was created
+            with ``state=False``.
+
+        >>> bgroup = []  # button group
+        >>> b1 = RadioButton(bgroup, "Agree")
+        >>> b2 = RadioButton(bgroup, "Disagree")
+        >>> b2.selected_button is b1
+        True
+        >>> b2.set_state(True)
+        >>> b1.selected_button.label
+        'Disagree'
+        """
+        return next((button for button in self.group if button.state is True), None)
+
     # Re-bind so ``radio.state = True`` uses this class's exclusive setter, not CheckBox.state.
     state = property(CheckBox.get_state, set_state)
 
