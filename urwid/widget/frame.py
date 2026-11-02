@@ -510,10 +510,20 @@ class Frame(
         if foot:
             combinelist.append((foot, "footer", self.focus_part == "footer"))
 
+        # A header or footer of 0 rows is not drawn, but its rows decided the layout.
+        # It is listed in the canvas children, so the canvas cache drops this canvas when it changes.
+        undrawn = [
+            (0, 0, part.render((maxcol,)), name)
+            for part, name, rows in ((header, "header", hrows), (footer, "footer", frows))
+            if part is not None and not rows
+        ]
         if not combinelist:
             # No part has rows: an empty combination would lose the width.
-            return CompositeCanvas(SolidCanvas(" ", maxcol, maxrow))
-        return CanvasCombine(combinelist)
+            out = CompositeCanvas(SolidCanvas(" ", maxcol, maxrow))
+        else:
+            out = CanvasCombine(combinelist)
+        out.children.extend(undrawn)
+        return out
 
     def keypress(
         self,

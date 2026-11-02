@@ -7,7 +7,7 @@ import warnings
 
 import urwid
 import urwid.testing
-from tests.util import SelectableText
+from tests.util import SelectableText, assert_redraws_after_child_change
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection
@@ -1457,6 +1457,50 @@ class ColumnsTest(unittest.TestCase):
         columns = urwid.Columns([urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(0))])
         self.assertFalse(columns.move_cursor_to_coords((40,), 30, 0))
         self.assertEqual(0, columns.focus_position)
+
+    def test_redraw_after_undrawn_pack_column_changes(self) -> None:
+        """Draw the Columns again when a pack column it did not draw changes width."""
+        empty = urwid.Text("")
+        dropped = urwid.Text("x" * 10)
+        fixed_empty = urwid.Text("")
+        for name, columns, size, change, expected in (
+            (
+                "0 wide",
+                urwid.Columns([(urwid.PACK, empty), urwid.Text("rest")]),
+                (8,),
+                lambda: empty.set_text("ab"),
+                (b"abrest  ",),
+            ),
+            (
+                "dropped for room",
+                urwid.Columns([urwid.Text("left"), (urwid.PACK, dropped)]),
+                (8,),
+                lambda: dropped.set_text("y"),
+                (b"left   y",),
+            ),
+            (
+                "fixed",
+                urwid.Columns([(urwid.PACK, fixed_empty), (urwid.PACK, urwid.Text("rest"))]),
+                (),
+                lambda: fixed_empty.set_text("ab"),
+                (b"abrest",),
+            ),
+        ):
+            with self.subTest(name):
+                assert_redraws_after_child_change(self, columns, size, change, expected)
+
+    def test_undrawn_box_only_pack_column(self) -> None:
+        """Render a Columns whose undrawn pack column holds a widget that only supports BOX sizing."""
+
+        class ZeroPackFill(urwid.SolidFill):
+            """A BOX-only widget that packs to 0 columns, so a pack column holding it is not drawn."""
+
+            def pack(self, size=(), focus=False):
+                return (0, 1)
+
+        columns = urwid.Columns([(urwid.PACK, ZeroPackFill("x")), urwid.SolidFill("a")])
+        with self.assertWarns(urwid.widget.ColumnsWarning):
+            self.assertEqual((b"aaa", b"aaa"), tuple(columns.render((3, 2)).text))
 
     def test_squish(self):
         urwid.testing.check_box_sizing(urwid.Columns([urwid.SolidFill()]))

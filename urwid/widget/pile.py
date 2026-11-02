@@ -11,7 +11,7 @@ import warnings
 from typing import Literal
 
 from urwid import _deprecation
-from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
+from urwid.canvas import Canvas, CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
@@ -904,7 +904,7 @@ class Pile(
         # A row 0 high is hidden when focusing it would not show it:
         # a row of weight 0, which a box or fixed Pile gives no rows,
         # or a row sized as a flow or fixed widget, with a size argument of 1 or 0 items, that is 0 rows focused too.
-        # A weighted row 0 high for lack of room is not hidden: the focus row gets rows first.
+        # A weighted row 0 high for lack of room is not hidden: the focus row still gets a row.
         self._cache_hidden_weights = frozenset(
             i
             for i, (height, (_w, (height_type, amount))) in enumerate(zip(heights, self.contents, strict=False))
@@ -1027,20 +1027,26 @@ class Pile(
 
         sum_weight = sum(weighted.values())
 
-        for idx in sorted(weighted, key=lambda idx: (idx != focus_position, idx)):
-            # We have to sort weighted items way that focused widget will gain render priority
-            if remaining == 0:
-                rows = 0
-            else:
-                rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5)
-                if not rows and idx == focus_position:
-                    # Special case: we have to force as minimum 1 row for focused widget to prevent broken behaviour
-                    rows = 1
-                remaining -= rows
-                sum_weight -= weighted[idx]
-
+        # in index order, so the heights do not depend on which row has the focus
+        for idx in weighted:
+            rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5) if remaining else 0
             heights[idx] = rows
-            w_h_args[idx] = (maxcol, rows)
+            remaining -= rows
+            sum_weight -= weighted[idx]
+
+        # the focus row needs a row to be seen: take it from the nearest weighted row that has one,
+        # the row above when two are equally near
+        if (
+            focus_position in weighted
+            and not heights[focus_position]
+            and (donors := [idx for idx in weighted if heights[idx]])
+        ):
+            donor = min(donors, key=lambda idx: abs(idx - focus_position))
+            heights[donor] -= 1
+            heights[focus_position] = 1
+
+        for idx in weighted:
+            w_h_args[idx] = (maxcol, heights[idx])
 
         return (
             widths,
@@ -1079,7 +1085,12 @@ class Pile(
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):
+        # Rows not drawn whose own size decided the layout.
+        # They are listed in the canvas children, so the canvas cache drops this canvas when one of them changes.
+        undrawn: list[tuple[int, int, Canvas, int]] = []
+        for i, (height, w_size, (w, (height_type, amount))) in enumerate(
+            zip(heights, size_args, self.contents, strict=False)
+        ):
             item_focus = self.focus == w
             canv = None
             if height > 0:
@@ -1087,6 +1098,8 @@ class Pile(
                 canv = w.render(w_size, focus=focus and item_focus)  # type: ignore[arg-type]
                 if item_focus and not focus:
                     canv = self._mark_unfocused_focus(canv)
+            elif height_type == WHSettings.PACK or (height_type == WHSettings.WEIGHT and amount and len(size) != 2):
+                undrawn.append((0, 0, w.render(w_size), i))  # type: ignore[arg-type]
 
             if canv:
                 combinelist.append((canv, i, item_focus))
@@ -1095,13 +1108,17 @@ class Pile(
             if not size:
                 raise ValueError("size must be provided when no contents are present")
 
-            return SolidCanvas(" ", size[0], (*size[1:], 0)[0])
-
-        out = CanvasCombine(combinelist)
-        if len(size) == 2 and size[1] != out.rows():
-            # flow/fixed widgets rendered too large/small
-            out = CompositeCanvas(out)
-            out.pad_trim_top_bottom(0, size[1] - out.rows())
+            empty = SolidCanvas(" ", size[0], (*size[1:], 0)[0])
+            if not undrawn:
+                return empty
+            out = CompositeCanvas(empty)
+        else:
+            out = CanvasCombine(combinelist)
+            if len(size) == 2 and size[1] != out.rows():
+                # flow/fixed widgets rendered too large/small
+                out = CompositeCanvas(out)
+                out.pad_trim_top_bottom(0, size[1] - out.rows())
+        out.children.extend(undrawn)
         return out
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:

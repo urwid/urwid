@@ -6,7 +6,7 @@ import unittest
 
 import urwid
 import urwid.testing
-from tests.util import SelectableText
+from tests.util import SelectableText, assert_redraws_after_child_change
 from urwid.canvas import TextCanvas
 from urwid.widget import Widget
 from urwid.widget.constants import Sizing
@@ -338,6 +338,32 @@ class FrameRenderTest(unittest.TestCase):
         urwid.testing.check_box_sizing(
             urwid.Frame(urwid.SolidFill(), header=urwid.Text("hello"), footer=urwid.Text("hello"))
         )
+
+
+class FrameUndrawnPartTest(unittest.TestCase):
+    """A header or footer the Frame does not draw still decides when its canvas is drawn again."""
+
+    def test_redraw_after_empty_part_changes(self) -> None:
+        """Draw the Frame again when a header or footer of 0 rows gets rows."""
+        for name, part, focus_part, expected in (
+            ("header", "header", "body", (b"new  ", b".....", b".....")),
+            ("footer", "footer", "body", (b".....", b".....", b"new  ")),
+            ("header, focus on the footer", "header", "footer", (b"new  ", b".....", b"foot ")),
+            ("footer, focus on the header", "footer", "header", (b"head ", b".....", b"new  ")),
+        ):
+            with self.subTest(name):
+                empty = urwid.Pile([])
+                parts = {"header": urwid.Text("head"), "footer": urwid.Text("foot"), part: empty}
+                if focus_part == "body":
+                    del parts["footer" if part == "header" else "header"]
+                frame = urwid.Frame(urwid.SolidFill("."), focus_part=focus_part, **parts)
+                assert_redraws_after_child_change(
+                    self,
+                    frame,
+                    (5, 3),
+                    lambda empty=empty: empty.contents.append((urwid.Text("new"), empty.options())),
+                    expected,
+                )
 
 
 class FrameKeypressTest(unittest.TestCase):
