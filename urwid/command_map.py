@@ -98,8 +98,8 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     ``'cursor word left'``, ``'cursor word right'``, ``'delete word left'``, ``'delete word right'``,
     ``'delete to start of line'`` and ``'delete to end of line'``.
     A word is a run of letters, digits and underscores, and a line ends at a newline.
-    An :class:`Edit` with a completer handles ``'complete next'`` and ``'complete previous'``, which no key is
-    mapped to by default either; see :attr:`Edit.completer`.
+    An :class:`Edit` with a text completer handles ``'complete next'`` and ``'complete previous'``, which no key is
+    mapped to by default either; see :attr:`Edit.text_completer`.
 
     * ``'delete word left'`` stops at punctuation, as readline's ``backward-kill-word`` (:kbd:`meta backspace`) does,
       except that an underscore is part of a word here.

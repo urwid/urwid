@@ -307,7 +307,7 @@ def main() -> None:
         ),
         blank,
         urwid.AttrMap(
-            urwid.Edit(text_edit_cap6, completer=complete_colour),
+            urwid.Edit(text_edit_cap6, text_completer=complete_colour),
             "editbx",
             "editfc",
         ),

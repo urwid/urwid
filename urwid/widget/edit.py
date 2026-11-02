@@ -84,15 +84,15 @@ class Edit(WidgetWrap[Text]):
       It receives the edit text as an argument. :meth:`keypress` still returns the key.
     * ``"validation"`` is sent when :attr:`validation` changes.
       It receives the old and the new value as arguments.
-    * ``"completions"`` is sent when a completion cycle starts, moves or ends, see :attr:`completer`.
-      It receives the new value of :attr:`completions` as an argument.
+    * ``"completion_cycle"`` is sent when a completion cycle starts, moves or ends, see :attr:`text_completer`.
+      It receives the new value of :attr:`completion_cycle` as an argument.
     """
 
     _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "validation", "completions"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "validation", "completion_cycle"]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -132,7 +132,7 @@ class Edit(WidgetWrap[Text]):
         validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None = None,
         validation_attr: Mapping[Severity, _AttrMapLike] | None = None,
         validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
-        completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
+        text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
     ) -> None:
         """Create the Edit widget.
 
@@ -155,7 +155,8 @@ class Edit(WidgetWrap[Text]):
         :param validation_attr: attribute map applied for each :class:`Severity`, see :attr:`validation_attr`
         :param validation_focus_attr: attribute map applied for each :class:`Severity` while focused,
             see :attr:`validation_focus_attr`
-        :param completer: called with :attr:`edit_text` and :attr:`edit_pos` for the completions, see :attr:`completer`
+        :param text_completer: called with :attr:`edit_text` and :attr:`edit_pos` for completions,
+            see :attr:`text_completer`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
         :raises TagMarkupException: *placeholder* is not valid text markup.
         :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
@@ -206,9 +207,9 @@ class Edit(WidgetWrap[Text]):
         self._validation: tuple[ValidationMessage, ...] = ()
         self._validation_attr = self._severity_attr_maps(validation_attr)
         self._validation_focus_attr = self._severity_attr_maps(validation_focus_attr)
-        self._completer = completer
+        self._text_completer = text_completer
         # (candidates, index) of the completion cycle, where candidate 0 is the text and position it started from
-        self._completions: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
+        self._completion_cycle: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
         # text and position the last completion step left, which a change from elsewhere no longer matches
         self._completion_applied: tuple[str | bytes, int] | None = None
         # True while a text or cursor change does not end the completion cycle: during a completion step,
@@ -295,7 +296,8 @@ class Edit(WidgetWrap[Text]):
 
         It is called once by each :meth:`set_edit_text` call, after ``"postchange"``,
         when it is assigned, and by :meth:`validate`, never while rendering.
-        A subclass whose :meth:`set_edit_text` does not call this class's method calls :meth:`validate` itself.
+        A subclass whose :meth:`set_edit_text` does not call this class's method calls ``Edit.validate(self)`` itself,
+        which a :meth:`validate` of its own does not replace.
         The result is :attr:`validation`.
         Keys, focus and ``"submit"`` do not depend on it: an application reads :attr:`validation` to refuse a value.
 
@@ -321,7 +323,7 @@ class Edit(WidgetWrap[Text]):
     ) -> None:
         previous, self._validator = self._validator, validator
         try:
-            self.validate()
+            self._run_validator()
         except TypeError:
             self._validator = previous
             raise
@@ -341,9 +343,17 @@ class Edit(WidgetWrap[Text]):
 
         This is for a check that depends on something else than the text, which has changed.
         ``"validation"`` is sent when the result differs from the previous one.
+        This class never calls it, so a subclass may define its own :meth:`validate` for something else.
 
         :raises TypeError: the validator returned something else than the types :attr:`validator` lists;
             :attr:`validation` is left as it was.
+        """
+        return self._run_validator()
+
+    def _run_validator(self) -> tuple[ValidationMessage, ...]:
+        """Store and return the result of :attr:`validator` as :attr:`validation`.
+
+        This is what :meth:`validate` runs.
         """
         validation = () if self._validator is None else _validation_messages(self._validator(self._edit_text))
         if validation != self._validation:
@@ -398,7 +408,7 @@ class Edit(WidgetWrap[Text]):
         self._invalidate()
 
     @property
-    def completer(self) -> Callable[[str, int], Sequence[tuple[str, int]]] | None:
+    def text_completer(self) -> Callable[[str, int], Sequence[tuple[str, int]]] | None:
         """Callable that returns the completions of :attr:`edit_text`, or ``None`` for no completion.
 
         It is called with the edit text and the cursor position.
@@ -435,7 +445,7 @@ class Edit(WidgetWrap[Text]):
         >>> words = ["alpha", "alpine", "beta"]
         >>> def complete(text, pos):
         ...     return [(w, len(w)) for w in words if w.startswith(text[:pos])]
-        >>> e = Edit("", "al", completer=complete)
+        >>> e = Edit("", "al", text_completer=complete)
         >>> e.keypress((20,), "tab")
         >>> print(e.edit_text)
         alpha
@@ -443,46 +453,46 @@ class Edit(WidgetWrap[Text]):
         >>> e.keypress((20,), "tab")
         >>> print(e.edit_text)
         al
-        >>> Edit("", "x", completer=complete).keypress((20,), "tab")
+        >>> Edit("", "x", text_completer=complete).keypress((20,), "tab")
         'tab'
-        >>> e = Edit("", "b", completer=complete)
+        >>> e = Edit("", "b", text_completer=complete)
         >>> e.keypress((20,), "tab")
         >>> print(e.edit_text)
         beta
         >>> e.keypress((20,), "tab")
         'tab'
         """
-        return self._completer
+        return self._text_completer
 
-    @completer.setter
-    def completer(self, completer: Callable[[str, int], Sequence[tuple[str, int]]] | None) -> None:
-        self._completer = completer
+    @text_completer.setter
+    def text_completer(self, text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None) -> None:
+        self._text_completer = text_completer
         self._end_completion()
 
     @property
-    def completions(self) -> tuple[tuple[tuple[str | bytes, int], ...], int] | None:
+    def completion_cycle(self) -> tuple[tuple[tuple[str | bytes, int], ...], int] | None:
         """``(candidates, index)`` while a completion cycle runs, ``None`` otherwise.
 
         A completer result with one replacement starts no cycle.
 
         *candidates* holds ``(text, position)`` pairs.
-        The first one is the text and cursor position the cycle started from, the others are what :attr:`completer`
+        The first one is the text and cursor position the cycle started from, the others are what :attr:`text_completer`
         returned, converted to the type of the caption.
         *index* is the candidate the edit shows now.
         """
-        return self._completions
+        return self._completion_cycle
 
     def _end_completion(self) -> None:
-        """End the completion cycle, sending ``"completions"`` when one was running."""
-        if self._completions is None:
+        """End the completion cycle, sending ``"completion_cycle"`` when one was running."""
+        if self._completion_cycle is None:
             return
-        self._completions = None
+        self._completion_cycle = None
         self._completion_applied = None
-        self._emit("completions", None)
+        self._emit("completion_cycle", None)
 
-    def _completion_step(self, key: str) -> int:
+    def _completion_direction(self, key: str) -> int:
         """Return 1 when *key* completes forward, -1 when it completes backward, 0 otherwise."""
-        if self._completer is None:
+        if self._text_completer is None:
             return 0
         command = self._command_map[key]
         if command == Command.COMPLETE_NEXT or (key == "tab" and not self.allow_tab):
@@ -491,7 +501,7 @@ class Edit(WidgetWrap[Text]):
             return -1
         return 0
 
-    def _complete(self, step: int) -> bool:
+    def _step_completion(self, step: int) -> bool:
         """Apply the next completion candidate in the direction of *step*, calling the completer when no cycle runs.
 
         :returns: whether a candidate was applied; ``False`` when the completer returned nothing but the current text
@@ -501,10 +511,10 @@ class Edit(WidgetWrap[Text]):
         :raises Exception: what :meth:`set_edit_text` raises for the candidate.
             When it raises before changing the text, the cycle is left as it was.
         """
-        if self._completions is not None and (self._edit_text, self._edit_pos) != self._completion_applied:
+        if self._completion_cycle is not None and (self._edit_text, self._edit_pos) != self._completion_applied:
             self._end_completion()  # changed without set_edit_pos(), by a subclass
-        if self._completions is None:
-            completer = typing.cast("Callable[[str, int], Sequence[tuple[str, int]]]", self._completer)
+        if self._completion_cycle is None:
+            completer = typing.cast("Callable[[str, int], Sequence[tuple[str, int]]]", self._text_completer)
             current = self._completion_candidate(self._edit_text, self._edit_pos)  # the text a step back leaves
             results = [
                 candidate
@@ -523,7 +533,7 @@ class Edit(WidgetWrap[Text]):
             candidates: tuple[tuple[str | bytes, int], ...] = (current, *results)
             index = 0
         else:
-            candidates, index = self._completions
+            candidates, index = self._completion_cycle
         index = (index + step) % len(candidates)
         self._completion_hold = True
         try:
@@ -531,9 +541,9 @@ class Edit(WidgetWrap[Text]):
         finally:
             self._completion_hold = False
         # read back: an override or a "postchange" handler may have changed what was applied
-        self._completions = (candidates, index)
+        self._completion_cycle = (candidates, index)
         self._completion_applied = (self._edit_text, self._edit_pos)
-        self._emit("completions", self._completions)
+        self._emit("completion_cycle", self._completion_cycle)
         return True
 
     def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
@@ -811,7 +821,7 @@ class Edit(WidgetWrap[Text]):
                 self.set_edit_pos(pending_edit_pos)
 
             self._emit("postchange", old_text)
-            self.validate()
+            self._run_validator()
         finally:
             self._completion_hold = hold
         if pending_edit_pos is not None:
@@ -952,7 +962,7 @@ class Edit(WidgetWrap[Text]):
         A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
         once an application binds them, or the exception leaves :meth:`keypress`.
 
-        A key that completes steps the completion cycle, and any other key ends it, see :attr:`completer`.
+        A key that completes steps the completion cycle, and any other key ends it, see :attr:`text_completer`.
 
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, "x")
@@ -970,9 +980,9 @@ class Edit(WidgetWrap[Text]):
 
         :raises ValueError: the preferred cursor column could not be determined.
             A completion is longer than :attr:`max_length`.
-        :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`completer`.
+        :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`text_completer`.
         """
-        if not (complete_step := self._completion_step(key)):
+        if not (complete_step := self._completion_direction(key)):
             self._end_completion()
 
         pos = self.edit_pos
@@ -1003,7 +1013,7 @@ class Edit(WidgetWrap[Text]):
             return None if self._insert_typed_text("\n") else key
 
         if complete_step:
-            return None if self._complete(complete_step) else key
+            return None if self._step_completion(complete_step) else key
 
         command = self._command_map[key]
         if key == "enter" and command == Command.ACTIVATE:

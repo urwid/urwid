@@ -34,14 +34,14 @@ if typing.TYPE_CHECKING:
             validator=check_port,
             validation_attr={urwid.Severity.ERROR: "error", urwid.Severity.WARNING: plain},
             validation_focus_attr={urwid.Severity.ERROR: "error focus"},
-            completer=complete,
+            text_completer=complete,
         )
         edit.validator = check_all
         edit.validator = None
         edit.validation_attr = None
-        edit.completer = None
+        edit.text_completer = None
         assert_type(edit.validation, tuple[urwid.ValidationMessage, ...])
         assert_type(edit.severity, urwid.Severity | None)
         assert_type(edit.validate(), tuple[urwid.ValidationMessage, ...])
         assert_type(edit.validation_attr, dict[urwid.Severity, dict[Hashable, Hashable]])
-        assert_type(edit.completions, tuple[tuple[tuple[str | bytes, int], ...], int] | None)
+        assert_type(edit.completion_cycle, tuple[tuple[tuple[str | bytes, int], ...], int] | None)

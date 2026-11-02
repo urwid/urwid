@@ -1182,6 +1182,27 @@ class EditValidatorTest(unittest.TestCase):
         self.assertEqual(e.edit_text, "fixed")
         self.assertEqual(e.validation, ())
 
+    def test_subclass_validate_is_not_called(self) -> None:
+        """A subclass's own validate(), which may need attributes set after __init__, is never called by Edit."""
+
+        class OwnValidate(urwid.Edit):
+            def __init__(self) -> None:
+                super().__init__("> ", validator=lambda text: None if text else "empty")
+                self.required = True
+                self.own_calls = 0
+
+            def validate(self) -> bool:  # type: ignore[override]
+                self.own_calls += 1
+                return not self.required or bool(self.edit_text)
+
+        e = OwnValidate()
+        e.set_edit_text("x")
+        e.validator = lambda text: "bad"
+        self.assertEqual(e.validation, (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))
+        self.assertEqual(e.own_calls, 0)
+        self.assertTrue(e.validate())
+        self.assertEqual(urwid.Edit.validate(e), (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))
+
     def test_failing_validator_is_not_installed(self) -> None:
         e = urwid.Edit("", "x", validator=lambda _text: self.WARNING)
         with self.assertRaises(TypeError):
@@ -1293,7 +1314,7 @@ class NoAlpineEdit(urwid.Edit):
 
 class EditCompleterTest(unittest.TestCase):
     def test_cycle_forward_and_back_with_wrap(self) -> None:
-        e = urwid.Edit("", "x al y", edit_pos=4, completer=complete_words)
+        e = urwid.Edit("", "x al y", edit_pos=4, text_completer=complete_words)
         seen = []
         for key in ("tab", "tab", "tab", "tab", "shift tab", "shift tab"):
             self.assertIsNone(e.keypress((20,), key))
@@ -1309,26 +1330,26 @@ class EditCompleterTest(unittest.TestCase):
                 ("x alpine y", 8),
             ],
         )
-        self.assertEqual(e.completions, ((("x al y", 4), ("x alpha y", 7), ("x alpine y", 8)), 2))
+        self.assertEqual(e.completion_cycle, ((("x al y", 4), ("x alpha y", 7), ("x alpine y", 8)), 2))
 
     def test_previous_first_takes_last_candidate(self) -> None:
-        e = urwid.Edit("", "al", completer=complete_words)
+        e = urwid.Edit("", "al", text_completer=complete_words)
         e.keypress((20,), "shift tab")
         self.assertEqual(e.edit_text, "alpine")
 
     def test_completer_called_once_per_cycle(self) -> None:
         completer = mock.Mock(side_effect=complete_words)
-        e = urwid.Edit("", "al", completer=completer)
+        e = urwid.Edit("", "al", text_completer=completer)
         for _key in range(5):
             e.keypress((20,), "tab")
         completer.assert_called_once_with("al", 2)
 
     def test_nothing_to_complete_returns_key(self) -> None:
-        e = urwid.Edit("", "zz", completer=complete_words)
+        e = urwid.Edit("", "zz", text_completer=complete_words)
         self.assertEqual(e.keypress((20,), "tab"), "tab")
         self.assertEqual(e.keypress((20,), "shift tab"), "shift tab")
         self.assertEqual(e.edit_text, "zz")
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
 
     def test_without_completer_tab_returned(self) -> None:
         self.assertEqual(urwid.Edit("", "al").keypress((20,), "tab"), "tab")
@@ -1336,12 +1357,12 @@ class EditCompleterTest(unittest.TestCase):
     def test_single_candidate_starts_no_cycle(self) -> None:
         """The next key asks the completer again, and a candidate equal to the current text is left out."""
         completer = mock.Mock(side_effect=complete_words)
-        e = urwid.Edit("", "be", completer=completer)
+        e = urwid.Edit("", "be", text_completer=completer)
         seen = []
-        urwid.connect_signal(e, "completions", lambda _w, completions: seen.append(completions))
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
         self.assertIsNone(e.keypress((20,), "tab"))
         self.assertEqual((e.edit_text, e.edit_pos), ("beta", 4))
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
         self.assertEqual(e.keypress((20,), "tab"), "tab")
         self.assertEqual(e.edit_text, "beta")
         self.assertEqual(completer.call_args_list, [mock.call("be", 2), mock.call("beta", 4)])
@@ -1349,7 +1370,7 @@ class EditCompleterTest(unittest.TestCase):
 
     def test_candidate_position_clipped_before_comparing(self) -> None:
         """A candidate past the end of its text is the text with the cursor at its end, so Tab is returned next."""
-        e = urwid.Edit("", "be", completer=lambda text, _pos: [("beta", 10)])
+        e = urwid.Edit("", "be", text_completer=lambda text, _pos: [("beta", 10)])
         self.assertIsNone(e.keypress((20,), "tab"))
         self.assertEqual((e.edit_text, e.edit_pos), ("beta", 4))
         self.assertEqual(e.keypress((20,), "tab"), "tab")
@@ -1367,7 +1388,7 @@ class EditCompleterTest(unittest.TestCase):
                 return [(prefix, len(prefix))]
             return [(word, len(word)) for word in matches]
 
-        e = urwid.Edit("", "a", completer=complete_prefix)
+        e = urwid.Edit("", "a", text_completer=complete_prefix)
         seen = []
         for _key in range(4):
             self.assertIsNone(e.keypress((20,), "tab"))
@@ -1376,12 +1397,12 @@ class EditCompleterTest(unittest.TestCase):
 
     def test_other_key_ends_cycle(self) -> None:
         completer = mock.Mock(side_effect=complete_words)
-        e = urwid.Edit("", "al", completer=completer)
+        e = urwid.Edit("", "al", text_completer=completer)
         seen = []
-        urwid.connect_signal(e, "completions", lambda _w, completions: seen.append(completions))
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
         e.keypress((20,), "tab")
         self.assertEqual(e.keypress((20,), "f5"), "f5")
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
         self.assertEqual(seen, [((("al", 2), ("alpha", 5), ("alpine", 6)), 1), None])
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "alpha")
@@ -1389,37 +1410,37 @@ class EditCompleterTest(unittest.TestCase):
 
     def test_change_from_elsewhere_ends_cycle(self) -> None:
         """The cycle ends at once, with a signal, and the next key asks the completer again."""
-        e = urwid.Edit("", "al", completer=complete_words)
+        e = urwid.Edit("", "al", text_completer=complete_words)
         seen = []
-        urwid.connect_signal(e, "completions", lambda _w, completions: seen.append(completions))
+        urwid.connect_signal(e, "completion_cycle", lambda _w, completions: seen.append(completions))
         e.keypress((20,), "tab")
         e.set_edit_text("alp")
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
         self.assertEqual(seen[-1:], [None])
         e.keypress((20,), "tab")
         e.mouse_event((20,), "mouse press", 1, 1, 0, True)
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
         self.assertEqual(e.edit_pos, 1)
         e.set_edit_text("alp")
         e.set_edit_pos(3)
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "alpha")
-        self.assertEqual(e.completions, ((("alp", 3), ("alpha", 5), ("alpine", 6)), 1))
+        self.assertEqual(e.completion_cycle, ((("alp", 3), ("alpha", 5), ("alpine", 6)), 1))
 
     def test_cycle_ends_after_postchange_and_validation(self) -> None:
         """A change through set_edit_text() ends the cycle once "postchange" and validation are done."""
-        e = urwid.Edit("", "al", completer=complete_words, validator=lambda text: None if text != "x" else "bad")
+        e = urwid.Edit("", "al", text_completer=complete_words, validator=lambda text: None if text != "x" else "bad")
         e.keypress((20,), "tab")
         seen = []
         urwid.connect_signal(e, "postchange", lambda _w, _old: seen.append("postchange"))
-        urwid.connect_signal(e, "completions", lambda w, completions: seen.append((completions, w.validation)))
+        urwid.connect_signal(e, "completion_cycle", lambda w, completions: seen.append((completions, w.validation)))
         e.set_edit_text("x")
         self.assertEqual(seen, ["postchange", (None, (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))])
 
     def test_change_without_set_edit_pos_ends_cycle_at_next_key(self) -> None:
         """A subclass that changes the text without set_edit_pos() gets the cycle ended by the next completion key."""
         completer = mock.Mock(side_effect=complete_words)
-        e = urwid.Edit("", "al", completer=completer)
+        e = urwid.Edit("", "al", text_completer=completer)
         e.keypress((20,), "tab")
         e._edit_text, e._edit_pos = "be", 2
         e.keypress((20,), "tab")
@@ -1430,7 +1451,7 @@ class EditCompleterTest(unittest.TestCase):
         cm = urwid.CommandMap()
         cm.bind(Command.COMPLETE_NEXT, "ctrl f")
         cm.bind(Command.COMPLETE_PREVIOUS, "ctrl r")
-        e = urwid.Edit("", "al", allow_tab=True, completer=complete_words)
+        e = urwid.Edit("", "al", allow_tab=True, text_completer=complete_words)
         e._command_map = cm
         self.assertIsNone(e.keypress((20,), "ctrl r"))
         self.assertEqual(e.edit_text, "alpine")
@@ -1441,49 +1462,49 @@ class EditCompleterTest(unittest.TestCase):
         self.assertEqual(e.keypress((20,), "shift tab"), "shift tab")
 
     def test_completer_exception_propagates(self) -> None:
-        e = urwid.Edit("", "al", completer=mock.Mock(side_effect=RuntimeError("boom")))
+        e = urwid.Edit("", "al", text_completer=mock.Mock(side_effect=RuntimeError("boom")))
         with self.assertRaises(RuntimeError):
             e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "al")
 
     def test_rejected_candidate_propagates_and_cycle_stays(self) -> None:
         """A refused candidate propagates and is retried."""
-        e = NoAlpineEdit("", "al", completer=complete_words)
+        e = NoAlpineEdit("", "al", text_completer=complete_words)
         e.keypress((20,), "tab")
         for _key in range(2):
             with self.assertRaises(ValueError):
                 e.keypress((20,), "tab")
             self.assertEqual(e.edit_text, "alpha")
-            self.assertEqual(e.completions, ((("al", 2), ("alpha", 5), ("alpine", 6)), 1))
+            self.assertEqual(e.completion_cycle, ((("al", 2), ("alpha", 5), ("alpine", 6)), 1))
 
     def test_rejected_first_candidate_propagates_and_starts_no_cycle(self) -> None:
         """A refused first candidate starts no cycle, so the next key asks the completer again."""
         completer = mock.Mock(return_value=[("alpine", 6), ("alpha", 5)])
-        e = NoAlpineEdit("", "al", completer=completer)
+        e = NoAlpineEdit("", "al", text_completer=completer)
         for _key in range(2):
             with self.assertRaises(ValueError):
                 e.keypress((20,), "tab")
-            self.assertEqual((e.edit_text, e.completions), ("al", None))
+            self.assertEqual((e.edit_text, e.completion_cycle), ("al", None))
         self.assertEqual(completer.call_count, 2)
 
     def test_candidate_over_max_length(self) -> None:
-        e = urwid.Edit("", "al", max_length=5, completer=complete_words)
+        e = urwid.Edit("", "al", max_length=5, text_completer=complete_words)
         with self.assertRaises(ValueError):
             e.keypress((20,), "tab")
         self.assertEqual((e.edit_text, e.edit_pos), ("al", 2))
-        self.assertIsNone(e.completions)
+        self.assertIsNone(e.completion_cycle)
 
     def test_bytes(self) -> None:
         """The completer gets bytes, and str candidates are converted to bytes."""
         completer = mock.Mock(return_value=[("alpha", 5), ("alpine", 6)])
-        e = urwid.Edit(b"", b"al", completer=completer)
+        e = urwid.Edit(b"", b"al", text_completer=completer)
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, b"alpha")
         completer.assert_called_once_with(b"al", 2)
-        self.assertEqual(e.completions, (((b"al", 2), (b"alpha", 5), (b"alpine", 6)), 1))
+        self.assertEqual(e.completion_cycle, (((b"al", 2), (b"alpha", 5), (b"alpine", 6)), 1))
 
     def test_masked(self) -> None:
-        e = urwid.Edit("", "al", mask="*", completer=complete_words)
+        e = urwid.Edit("", "al", mask="*", text_completer=complete_words)
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "alpha")
         self.assertEqual(e.render((8,)).text, [b"*****   "])
@@ -1494,7 +1515,7 @@ class EditCompleterTest(unittest.TestCase):
             "",
             placeholder="word",
             validator=validator,
-            completer=lambda _t, _p: [("beta", 4), ("bet", 3)],
+            text_completer=lambda _t, _p: [("beta", 4), ("bet", 3)],
         )
         validator.reset_mock()
         e.keypress((8,), "tab")
@@ -1504,11 +1525,37 @@ class EditCompleterTest(unittest.TestCase):
         self.assertEqual(e.render((8,)).text, [b"word    "])
         self.assertEqual([c.args for c in validator.call_args_list], [("beta",), ("bet",), ("",)])
 
+    def test_subclass_completer_attributes_kept(self) -> None:
+        """A subclass may keep its own completer and completions attributes, set before Edit.__init__."""
+
+        class OwnCompletion(urwid.Edit):
+            def __init__(self, completer: object) -> None:
+                self.completer = completer
+                self.completions = None
+                super().__init__("> ", "al")
+
+        completer = object()
+        e = OwnCompletion(completer)
+        self.assertIs(e.completer, completer)
+        self.assertIsNone(e.text_completer)
+        self.assertEqual(e.keypress((20,), "tab"), "tab")
+
+    def test_subclass_complete_method_not_called(self) -> None:
+        """A subclass's own _complete(), as urwid-readline and topydo define, is never called by Edit."""
+
+        class OwnComplete(urwid.Edit):
+            def _complete(self) -> None:
+                raise AssertionError("called by Edit")
+
+        e = OwnComplete("", "al", text_completer=complete_words)
+        self.assertIsNone(e.keypress((20,), "tab"))
+        self.assertEqual(e.edit_text, "alpha")
+
     def test_setting_completer_ends_cycle(self) -> None:
-        e = urwid.Edit("", "al", completer=complete_words)
+        e = urwid.Edit("", "al", text_completer=complete_words)
         e.keypress((20,), "tab")
-        e.completer = None
-        self.assertIsNone(e.completions)
+        e.text_completer = None
+        self.assertIsNone(e.completion_cycle)
         self.assertEqual(e.keypress((20,), "tab"), "tab")
 
 
@@ -1631,7 +1678,7 @@ class IntEditTest(unittest.TestCase):
         """Candidates are held without the leading zeros keypress() removes, so the cycle goes on."""
         completer = mock.Mock(return_value=[("007", 3), ("0042", 4)])
         e = urwid.IntEdit("", 1)
-        e.completer = completer
+        e.text_completer = completer
         seen = []
         for _key in range(3):
             self.assertIsNone(e.keypress((10,), "tab"))
@@ -1645,7 +1692,7 @@ class IntEditTest(unittest.TestCase):
         e = urwid.IntEdit()
         e.set_edit_text("007")
         e.set_edit_pos(3)
-        e.completer = completer
+        e.text_completer = completer
         seen = []
         for _key in range(4):
             self.assertIsNone(e.keypress((10,), "tab"))
