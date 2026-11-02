@@ -1379,12 +1379,43 @@ class EditCompleterTest(unittest.TestCase):
         self.assertEqual(completer.call_args_list, [mock.call("al", 2), mock.call("alpha", 5)])
 
     def test_change_from_elsewhere_ends_cycle(self) -> None:
+        """The cycle ends at once, with a signal, and the next key asks the completer again."""
         e = urwid.Edit("", "al", completer=complete_words)
+        seen = []
+        urwid.connect_signal(e, "completions", lambda _w, completions: seen.append(completions))
         e.keypress((20,), "tab")
         e.set_edit_text("alp")
+        self.assertIsNone(e.completions)
+        self.assertEqual(seen[-1:], [None])
+        e.keypress((20,), "tab")
+        e.mouse_event((20,), "mouse press", 1, 1, 0, True)
+        self.assertIsNone(e.completions)
+        self.assertEqual(e.edit_pos, 1)
+        e.set_edit_text("alp")
+        e.set_edit_pos(3)
         e.keypress((20,), "tab")
         self.assertEqual(e.edit_text, "alpha")
         self.assertEqual(e.completions, ((("alp", 3), ("alpha", 5), ("alpine", 6)), 1))
+
+    def test_cycle_ends_after_postchange_and_validation(self) -> None:
+        """A change through set_edit_text() ends the cycle once "postchange" and validation are done."""
+        e = urwid.Edit("", "al", completer=complete_words, validator=lambda text: None if text != "x" else "bad")
+        e.keypress((20,), "tab")
+        seen = []
+        urwid.connect_signal(e, "postchange", lambda _w, _old: seen.append("postchange"))
+        urwid.connect_signal(e, "completions", lambda w, completions: seen.append((completions, w.validation)))
+        e.set_edit_text("x")
+        self.assertEqual(seen, ["postchange", (None, (urwid.ValidationMessage(urwid.Severity.ERROR, "bad"),))])
+
+    def test_change_without_set_edit_pos_ends_cycle_at_next_key(self) -> None:
+        """A subclass that changes the text without set_edit_pos() gets the cycle ended by the next completion key."""
+        completer = mock.Mock(side_effect=complete_words)
+        e = urwid.Edit("", "al", completer=completer)
+        e.keypress((20,), "tab")
+        e._edit_text, e._edit_pos = "be", 2
+        e.keypress((20,), "tab")
+        self.assertEqual(e.edit_text, "beta")
+        self.assertEqual(completer.call_args_list, [mock.call("al", 2), mock.call("be", 2)])
 
     def test_allow_tab_completes_by_command_only(self) -> None:
         cm = urwid.CommandMap()

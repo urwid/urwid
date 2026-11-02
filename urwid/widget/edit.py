@@ -211,6 +211,9 @@ class Edit(WidgetWrap[Text]):
         self._completions: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
         # text and position the last completion step left, which a change from elsewhere no longer matches
         self._completion_applied: tuple[str | bytes, int] | None = None
+        # True while a text or cursor change does not end the completion cycle: during a completion step,
+        # and inside set_edit_text(), which ends it itself once its signals are sent
+        self._completion_hold = False
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -418,9 +421,7 @@ class Edit(WidgetWrap[Text]):
         A completer that returns the common prefix of several matches as its one replacement, and the matches once
         the prefix is complete, inserts the prefix first and then cycles through the matches.
         Further completion keys step through the replacements and back to the text the cycle started from.
-        Any other key ends the cycle.
-        A change of the text or the cursor made from elsewhere ends it at the next completion key,
-        which then calls the completer again.
+        Any other key ends the cycle, and so does a change of the text or the cursor made from elsewhere.
         Each step sets the text, so :attr:`validator` runs once per step.
         Setting the completer ends the cycle.
 
@@ -492,7 +493,7 @@ class Edit(WidgetWrap[Text]):
             were.
         """
         if self._completions is not None and (self._edit_text, self._edit_pos) != self._completion_applied:
-            self._end_completion()
+            self._end_completion()  # changed without set_edit_pos(), by a subclass
         if self._completions is None:
             completer = typing.cast("Callable[[str, int], Sequence[tuple[str, int]]]", self._completer)
             current = (self._edit_text, self._edit_pos)
@@ -521,7 +522,11 @@ class Edit(WidgetWrap[Text]):
         else:
             candidates, index = self._completions
         index = (index + step) % len(candidates)
-        self._set_edit_text_and_pos(*candidates[index])
+        self._completion_hold = True
+        try:
+            self._set_edit_text_and_pos(*candidates[index])
+        finally:
+            self._completion_hold = False
         # read back: an override or a "postchange" handler may have changed what was applied
         self._completions = (candidates, index)
         self._completion_applied = (self._edit_text, self._edit_pos)
@@ -728,6 +733,8 @@ class Edit(WidgetWrap[Text]):
         self.pref_col_maxcol = None, None
         self._edit_pos = pos
         self._invalidate()
+        if not self._completion_hold and (self._edit_text, pos) != self._completion_applied:
+            self._end_completion()
 
     edit_pos = property(
         lambda self: self._edit_pos,
@@ -781,17 +788,23 @@ class Edit(WidgetWrap[Text]):
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
-        self._edit_text = text
-        self._sync_wrapped()
-        self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
-        if edit_pos is None and pending_edit_pos is not None:
-            # an editing key moves the cursor through set_edit_pos(), so that an override sees every move
-            self.set_edit_pos(pending_edit_pos)
+        hold, self._completion_hold = self._completion_hold, True
+        try:
+            self._edit_text = text
+            self._sync_wrapped()
+            self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
+            if edit_pos is None and pending_edit_pos is not None:
+                # an editing key moves the cursor through set_edit_pos(), so that an override sees every move
+                self.set_edit_pos(pending_edit_pos)
 
-        self._emit("postchange", old_text)
-        self.validate()
+            self._emit("postchange", old_text)
+            self.validate()
+        finally:
+            self._completion_hold = hold
         if pending_edit_pos is not None:
             self._applied_edit_pos = self.edit_pos
+        if not hold and (self._edit_text, self._edit_pos) != self._completion_applied:
+            self._end_completion()
         self._invalidate()
 
     def _set_edit_text_and_pos(self, text: str | bytes, pos: int) -> None:
