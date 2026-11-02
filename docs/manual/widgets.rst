@@ -134,6 +134,8 @@ container widget depend on the widgets it contains and on its options.
    * - :class:`Table`
      - ``'box'`` and ``'flow'``, and ``'fixed'`` as well when no column is
        weighted
+   * - :class:`Tabs`
+     - ``'box'``, and ``'flow'`` as well when every body is a flow widget
    * - :class:`Overlay`
      - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
        position options of the top widget allow it
@@ -568,7 +570,7 @@ but the key is returned only when no other selectable widget is left.
 Reacting to Focus Changes
 -------------------------
 
-:class:`Pile`, :class:`Columns` and :class:`GridFlow` send the
+:class:`Pile`, :class:`Columns`, :class:`GridFlow` and :class:`Tabs` send the
 ``"focus changed"`` signal after their focus position changed: by a key, a
 mouse click, the ``focus_position`` setter, or a change of ``contents`` that
 moves the focus to another position.  Replacing the widget in focus at the
@@ -594,6 +596,11 @@ which moves the focus to the body.  Its positions are ``'header'``,
 ``'body'`` and ``'footer'``, never ``None``.  Replacing the widget of the part
 in focus is not reported.
 
+The positions of :class:`Tabs` are tab indexes.  Deleting the selected tab
+when another tab follows it keeps the index, so the next tab becomes selected
+without a signal.  Moving the bar cursor is not reported either: it does not
+select a tab.
+
 A handler that moves the focus again sends a new signal before the remaining
 handlers of the first one run, so those see the second change first.  The
 arguments of each signal, not the current ``focus_position``, describe the
@@ -604,7 +611,8 @@ in focus.  To keep it marked when the focus moves to another part of the
 screen, give :class:`Pile`, :class:`Columns`, :class:`ListBox` or
 :class:`GridFlow` an ``unfocused_focus_attr``: while the container renders
 without focus, it applies that attribute map to the focus child's canvas, in
-any form :class:`AttrMap` takes::
+any form :class:`AttrMap` takes.  :class:`Tabs` applies it to the label of the
+selected tab, not to the body::
 
     listbox = urwid.ListBox(walker, unfocused_focus_attr={"item": "item selected"})
 
@@ -722,6 +730,85 @@ gives the natural width, so a table can size a dialog by itself.
 works without a table: rows built with :meth:`TableLayout.row` line up in a
 :class:`Pile` or a :class:`ListBox` of their own, such as the label and value
 columns of a form.
+
+
+Tabs Widgets
+------------
+
+:class:`Tabs` shows a row of tab labels over the body of the selected tab.
+It is built from ``(label, body)`` pairs, and the label is text markup or a
+widget::
+
+    tabs = urwid.Tabs(
+        [
+            ("Log", urwid.Text("12:00 started")),
+            ("Settings", urwid.Edit("Name: ", "demo")),
+            ("Help", urwid.Text("F1 for help")),
+        ],
+        selected=1,
+        selected_map="tab selected",
+    )
+
+which renders 24 columns wide as::
+
+    Log Settings Help
+    Name: demo
+
+The selected tab is the focus of the container: ``focus_position`` is its
+index and ``focus`` its body.  Keys go to the body, and a mouse click on a
+label selects its tab.  The ``'next tab'`` and ``'previous tab'`` commands
+select the neighbour and wrap around at the ends.  No key is mapped to them
+by default, since :kbd:`tab` already moves the focus between widgets in many
+applications; bind them to the keys the application uses::
+
+    from urwid.command_map import Command
+
+    urwid.command_map.bind(Command.NEXT_TAB, "meta right")
+    urwid.command_map.bind(Command.PREVIOUS_TAB, "meta left")
+
+With two or more tabs the widget is selectable, so a parent container passes
+it these commands even when no body takes keys.
+
+With ``bar_selectable=True`` the label row can take the keyboard focus:
+:kbd:`up`, when the body leaves it unhandled, moves the focus to the bar,
+:kbd:`left` and :kbd:`right` move a bar cursor there, :kbd:`enter` selects
+the tab under it and :kbd:`down` returns to the body.  With a single tab there
+is nothing to switch to, so the bar never takes the focus and the tab
+commands are returned to the widgets above.  ``bar_position="bottom"`` draws
+the bar under the body, and the up and down keys swap their roles.  When the
+labels do not fit, the bar centres the selected label, or the label under the
+bar cursor while the bar has the focus.  An edge with labels hidden past it
+shows ``<`` or ``>``, and a click on it selects the nearest hidden tab on that
+side.  With five tabs in 12 columns, the first and then the third selected::
+
+    one two thr>
+    <wo three f>
+
+The ``overflow_markers`` argument sets the markers, from
+:class:`Tabs.Symbols <urwid.widget.tabs.TabsSymbols>` or any text::
+
+    tabs = urwid.Tabs(
+        pages,
+        overflow_markers=(urwid.Tabs.Symbols.ARROW_TRIANGLE_LEFT, urwid.Tabs.Symbols.ARROW_TRIANGLE_RIGHT),
+    )
+
+``None`` draws no markers, and an empty string leaves that edge without one.
+
+``attr_map`` applies to every label, ``selected_map`` to the selected one and
+``focus_map`` to the label under the bar cursor.
+
+:attr:`Tabs.contents` holds ``(body, label)`` pairs, body first as in the
+other containers; :meth:`Tabs.options` turns markup into a label widget::
+
+    tabs.contents.append((urwid.Text("new body"), urwid.Tabs.options("New")))
+    del tabs.contents[0]
+
+Removing the selected tab selects the next one, or the previous one when it
+was the last.  The ``"focus changed"`` signal reports the index, see
+:ref:`focus-changed-signal`, so an application that shows the selected tab
+somewhere else also updates that display after its own changes of
+``contents``.  ``examples/tabs.py`` shows this, with a status line and a key
+that closes the current tab.
 
 
 Overlay Widgets

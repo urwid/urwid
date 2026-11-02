@@ -17,6 +17,8 @@ Exceptions
 
 .. autoexception:: TableError
 
+.. autoexception:: TabsError
+
 .. autoexception:: BoxAdapterError
 
 .. autoexception:: OverlayError

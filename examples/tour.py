@@ -27,6 +27,7 @@ Shows many of the standard widget types and features.
 from __future__ import annotations
 
 import urwid
+from urwid.command_map import Command
 
 PORTS = range(1, 65536)
 PRIVILEGED_PORTS = range(1, 1024)
@@ -231,6 +232,16 @@ def main() -> None:
         "October",
         "November",
         "December",
+    ]
+    text_tabs: list[str | tuple[str, str]] = [
+        "A ",
+        ("important", "Tabs"),
+        (
+            " widget shows one row of tab labels over the body of the selected tab.  "
+            "META RIGHT / META LEFT or a mouse click switch tabs.  UP from the body moves to the label row, "
+            "where LEFT / RIGHT and ENTER pick a tab and DOWN goes back.  "
+            "Make the window narrow to see the label row scroll."
+        ),
     ]
     text_listbox: list[str | tuple[str, str]] = [
         "All these widgets have been displayed with the help of a ",
@@ -520,6 +531,26 @@ def main() -> None:
         urwid.Padding(drop_down_selected, left=4, right=3, min_width=20),
         blank,
         blank,
+        urwid.Padding(urwid.Text(text_tabs), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Tabs(
+                [
+                    ("Overview", urwid.Text("Each tab has its own body; only the selected one is drawn.")),
+                    ("Name", urwid.AttrMap(urwid.Edit("Name: "), "editbx", "editfc")),
+                    ("Options", urwid.Pile([urwid.CheckBox("Verbose"), urwid.CheckBox("Dry run")])),
+                ],
+                bar_selectable=True,
+                attr_map="buttn",
+                selected_map="buttnf",
+                focus_map="buttnl",
+            ),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        blank,
         urwid.Padding(urwid.Text(text_listbox), left=2, right=2, min_width=20),
         blank,
         blank,
@@ -572,6 +603,8 @@ def main() -> None:
         if key == "f8":
             raise urwid.ExitMainLoop
 
+    urwid.command_map.bind(Command.NEXT_TAB, "meta right")
+    urwid.command_map.bind(Command.PREVIOUS_TAB, "meta left")
     # pop_ups=True adds the PopUpTarget that shows the open DropDown lists.
     urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
 
