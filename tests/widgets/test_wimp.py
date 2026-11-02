@@ -227,6 +227,24 @@ class RadioButtonTest(unittest.TestCase):
         third.state = True
         self.assertEqual((False, False, True), (first.state, second.state, third.state))
 
+    def test_selected_button(self) -> None:
+        group: list[urwid.RadioButton] = []
+        first = urwid.RadioButton(group, "A")
+        second = urwid.RadioButton(group, "B")
+
+        self.assertIs(first, first.selected_button)
+        self.assertIs(first, second.selected_button)
+        second.set_state(True)
+        self.assertIs(second, first.selected_button)
+        self.assertIs(second, second.selected_button)
+
+    def test_selected_button_none_selected(self) -> None:
+        group: list[urwid.RadioButton] = []
+        only = urwid.RadioButton(group, "A", state=False)
+        urwid.RadioButton(group, "B", state=False)
+
+        self.assertIsNone(only.selected_button)
+
     def test_on_state_change(self) -> None:
         seen: list[tuple[str, bool]] = []
         group: list[urwid.RadioButton] = []
