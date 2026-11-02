@@ -121,6 +121,18 @@ class DropDownListTest(unittest.TestCase):
         self.assertEqual(2, drop_down.selected)
         self.assertIsNone(drop_down._pop_up_widget)
 
+    def test_single_option_is_read_only(self) -> None:
+        """A drop-down with one option is not selectable, opens no list and leaves the event unhandled."""
+        drop_down = urwid.DropDown(["only"])
+        target = drop_down_at_row(drop_down, 0)
+
+        self.assertFalse(drop_down.selectable())
+        self.assertTrue(urwid.DropDown(["one", "two"]).selectable())
+        self.assertEqual("enter", target.keypress((6, 6), "enter"))
+        self.assertFalse(target.mouse_event((6, 6), "mouse press", 1, 0, 0, True))
+
+        self.assertIsNone(drop_down._pop_up_widget)
+
     def test_other_mouse_buttons_do_not_open(self) -> None:
         drop_down = urwid.DropDown(COLOURS)
         self.assertFalse(drop_down.mouse_event((7,), "mouse press", 3, 0, 0, True))
