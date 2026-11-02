@@ -1,4 +1,4 @@
-"""Type checker fixture for the placeholder and validator options of Edit.
+"""Type checker fixture for the placeholder, validator and completer options of Edit.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -21,6 +21,10 @@ if typing.TYPE_CHECKING:
         """Return several messages, as a validator may."""
         return [urwid.ValidationMessage(urwid.Severity.INFO, text)]
 
+    def complete(text: str, pos: int) -> list[tuple[str, int]]:
+        """Return whole replacements, as a completer does."""
+        return [(text + "x", pos + 1)]
+
     def edit_options(plain: dict[str, str]) -> None:
         """Accept the new options in their documented forms, and type what the properties return."""
         edit = urwid.Edit(
@@ -30,11 +34,14 @@ if typing.TYPE_CHECKING:
             validator=check_port,
             validation_attr={urwid.Severity.ERROR: "error", urwid.Severity.WARNING: plain},
             validation_focus_attr={urwid.Severity.ERROR: "error focus"},
+            completer=complete,
         )
         edit.validator = check_all
         edit.validator = None
         edit.validation_attr = None
+        edit.completer = None
         assert_type(edit.validation, tuple[urwid.ValidationMessage, ...])
         assert_type(edit.severity, urwid.Severity | None)
         assert_type(edit.validate(), tuple[urwid.ValidationMessage, ...])
         assert_type(edit.validation_attr, dict[urwid.Severity, dict[Hashable, Hashable]])
+        assert_type(edit.completions, tuple[tuple[tuple[str | bytes, int], ...], int] | None)

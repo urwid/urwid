@@ -30,6 +30,7 @@ import urwid
 
 PORTS = range(1, 65536)
 PRIVILEGED_PORTS = range(1, 1024)
+COLOURS = ("black", "brown", "dark blue", "dark cyan", "dark green", "dark red", "light blue", "light gray")
 
 
 def main() -> None:
@@ -112,6 +113,7 @@ def main() -> None:
     text_edit_cap4 = ("editcp", "This one takes at most 8 characters: ")
     text_edit_text4 = "12345"
     text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
+    text_edit_cap6 = ("editcp", "This one completes a colour with TAB: ")
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
     text_edit_center = "center aligned"
@@ -300,6 +302,12 @@ def main() -> None:
                 validation_attr={urwid.Severity.WARNING: "editwarn", urwid.Severity.ERROR: "editerr"},
                 validation_focus_attr={urwid.Severity.WARNING: "editwarnf", urwid.Severity.ERROR: "editerrf"},
             ),
+            "editbx",
+            "editfc",
+        ),
+        blank,
+        urwid.AttrMap(
+            urwid.Edit(text_edit_cap6, completer=complete_colour),
             "editbx",
             "editfc",
         ),
@@ -566,6 +574,12 @@ def check_port(text: str) -> urwid.ValidationMessage | str | None:
     if int(text) in PRIVILEGED_PORTS:
         return urwid.ValidationMessage(urwid.Severity.WARNING, "a privileged port")
     return None
+
+
+def complete_colour(text: str, pos: int) -> list[tuple[str, int]]:
+    """Return the colours that start with the text before the cursor, none for an empty field."""
+    prefix = text[:pos]
+    return [(name, len(name)) for name in COLOURS if name.startswith(prefix)] if prefix else []
 
 
 def setup() -> None:

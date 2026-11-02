@@ -469,7 +469,9 @@ An opted-in container handles ``'next selectable'`` this way, and
 
 #. The key goes to the child in focus first, like every other key.  A child
    that handles it keeps it: an :class:`Edit` created with ``allow_tab=True``
-   inserts a tab, and an opted-in child container moves its own focus.
+   inserts a tab, an :class:`Edit` with a ``completer`` completes its text when
+   the completer returns something, and an opted-in child container moves its
+   own focus.
 #. When the child returns the key unhandled, the container moves its focus to
    the next selectable child and enters it (see below).  The following key
    presses go to that child until it returns the key unhandled again.
