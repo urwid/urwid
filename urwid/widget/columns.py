@@ -1040,6 +1040,16 @@ class Columns(
         last_visible = max((i for i, width in enumerate(widths) if width > 0), default=-1)
 
         data: list[tuple[Canvas, int, bool, int]] = []
+        # Pack columns not drawn: their own width decided the layout, including the columns dropped for lack of room.
+        # They are listed in the canvas children, so the canvas cache drops this canvas when one of them changes.
+        # A widget that is neither FIXED nor FLOW has no size to render it at without drawing it, so it is left out.
+        undrawn: list[tuple[int, int, Canvas, int]] = [
+            (0, 0, w.render((size[0],) if size and Sizing.FLOW in w_sizing else ()), i)  # type: ignore[arg-type]
+            for i, (w, (width_type, _amount, _box)) in enumerate(self.contents)
+            if width_type == WHSettings.PACK
+            and (i >= len(widths) or widths[i] <= 0)
+            and (w_sizing := w.sizing()) & {Sizing.FIXED, Sizing.FLOW}
+        ]
         for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
             # if the widget has a width of 0, hide it
             if width <= 0:
@@ -1055,13 +1065,17 @@ class Columns(
             data.append((canvas, i, is_focus, width))
 
         if not data:
-            if size:
-                return SolidCanvas(" ", size[0], (*size[1:], 1)[0])
-            raise ColumnsError("No data to render")
-
-        canvas = CanvasJoin(data)
-        if size and canvas.cols() < size[0]:
-            canvas.pad_trim_left_right(0, size[0] - canvas.cols())
+            if not size:
+                raise ColumnsError("No data to render")
+            empty = SolidCanvas(" ", size[0], (*size[1:], 1)[0])
+            if not undrawn:
+                return empty
+            canvas = CompositeCanvas(empty)
+        else:
+            canvas = CanvasJoin(data)
+            if size and canvas.cols() < size[0]:
+                canvas.pad_trim_left_right(0, size[0] - canvas.cols())
+        canvas.children.extend(undrawn)
         return canvas
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:

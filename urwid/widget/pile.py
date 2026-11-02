@@ -11,7 +11,7 @@ import warnings
 from typing import Literal
 
 from urwid import _deprecation
-from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
+from urwid.canvas import Canvas, CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
@@ -1085,7 +1085,12 @@ class Pile(
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):
+        # Rows not drawn whose own size decided the layout.
+        # They are listed in the canvas children, so the canvas cache drops this canvas when one of them changes.
+        undrawn: list[tuple[int, int, Canvas, int]] = []
+        for i, (height, w_size, (w, (height_type, amount))) in enumerate(
+            zip(heights, size_args, self.contents, strict=False)
+        ):
             item_focus = self.focus == w
             canv = None
             if height > 0:
@@ -1093,6 +1098,8 @@ class Pile(
                 canv = w.render(w_size, focus=focus and item_focus)  # type: ignore[arg-type]
                 if item_focus and not focus:
                     canv = self._mark_unfocused_focus(canv)
+            elif height_type == WHSettings.PACK or (height_type == WHSettings.WEIGHT and amount and len(size) != 2):
+                undrawn.append((0, 0, w.render(w_size), i))  # type: ignore[arg-type]
 
             if canv:
                 combinelist.append((canv, i, item_focus))
@@ -1101,13 +1108,17 @@ class Pile(
             if not size:
                 raise ValueError("size must be provided when no contents are present")
 
-            return SolidCanvas(" ", size[0], (*size[1:], 0)[0])
-
-        out = CanvasCombine(combinelist)
-        if len(size) == 2 and size[1] != out.rows():
-            # flow/fixed widgets rendered too large/small
-            out = CompositeCanvas(out)
-            out.pad_trim_top_bottom(0, size[1] - out.rows())
+            empty = SolidCanvas(" ", size[0], (*size[1:], 0)[0])
+            if not undrawn:
+                return empty
+            out = CompositeCanvas(empty)
+        else:
+            out = CanvasCombine(combinelist)
+            if len(size) == 2 and size[1] != out.rows():
+                # flow/fixed widgets rendered too large/small
+                out = CompositeCanvas(out)
+                out.pad_trim_top_bottom(0, size[1] - out.rows())
+        out.children.extend(undrawn)
         return out
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:

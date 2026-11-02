@@ -97,3 +97,31 @@ def assert_attribute_redraws(
     test.assertEqual(value, vars(widget)[name])
     if len(size) == 1:
         test.assertEqual(expected.rows(size), widget.rows(size))
+
+
+def assert_redraws_after_child_change(
+    test: unittest.TestCase,
+    container: urwid.Widget,
+    size: tuple[()] | tuple[int] | tuple[int, int],
+    change: Callable[[], object],
+    expected: tuple[bytes, ...],
+    *,
+    focus: bool = False,
+) -> None:
+    """Assert that a rendered *container* is drawn again after *change* changes one of its children.
+
+    :param test: the test case that reports the failure; it also clears the canvas cache when it ends.
+    :param container: the widget whose canvas has to be drawn again.
+    :param size: size to render at.
+    :param change: changes a child, without touching *container* itself.
+    :param expected: the text of the canvas after the change.
+    :param focus: whether *container* is rendered in focus.
+    """
+    urwid.CanvasCache.clear()
+    test.addCleanup(urwid.CanvasCache.clear)
+    # The canvas cache holds canvases weakly: keep the old one alive, as a screen showing it does.
+    old_canvas = container.render(size, focus)
+    change()
+    test.assertIsNone(urwid.CanvasCache.fetch(container, type(container), size, focus))
+    test.assertNotEqual(expected, tuple(old_canvas.text))
+    test.assertEqual(expected, tuple(container.render(size, focus).text))

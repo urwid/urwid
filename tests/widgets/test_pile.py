@@ -7,7 +7,7 @@ import warnings
 
 import urwid
 import urwid.testing
-from tests.util import SelectableText
+from tests.util import SelectableText, assert_redraws_after_child_change
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -808,6 +808,67 @@ class PileTest(unittest.TestCase):
                     focus_item=focus_item,
                 )
                 self.assertEqual(expected, pile.get_rows_sizes((10, 2), focus=True)[1])
+
+    def test_redraw_after_undrawn_row_changes(self) -> None:
+        """Draw the Pile again when a row it did not draw, but whose own height it used, changes."""
+        flow_adapter = urwid.BoxAdapter(urwid.SolidFill("#"), 0)
+        box_adapter = urwid.BoxAdapter(urwid.SolidFill("#"), 0)
+        only_adapter = urwid.BoxAdapter(urwid.SolidFill("#"), 0)
+        nested = urwid.Pile([])
+        weighted_nested = urwid.Pile([])
+        shrinking = urwid.Text("a\nb\nc")
+        for name, pile, size, change, expected, focus in (
+            (
+                "flow",
+                urwid.Pile([urwid.Text("top"), flow_adapter]),
+                (5,),
+                lambda: setattr(flow_adapter, "height", 2),
+                (b"top  ", b"#####", b"#####"),
+                False,
+            ),
+            (
+                "box",
+                urwid.Pile([(urwid.PACK, urwid.Text("top")), (urwid.PACK, box_adapter), urwid.SolidFill(".")]),
+                (5, 4),
+                lambda: setattr(box_adapter, "height", 2),
+                (b"top  ", b"#####", b"#####", b"....."),
+                False,
+            ),
+            (
+                "fixed",
+                urwid.Pile([(urwid.PACK, urwid.Text("top")), (urwid.PACK, nested)]),
+                (),
+                lambda: nested.contents.append((urwid.Text("new"), nested.options())),
+                (b"top", b"new"),
+                False,
+            ),
+            (
+                "fixed, weighted row",
+                urwid.Pile([(urwid.PACK, urwid.Text("top")), (urwid.WEIGHT, 1, weighted_nested)]),
+                (),
+                lambda: weighted_nested.contents.append((urwid.Text("new"), weighted_nested.options())),
+                (b"top", b"new"),
+                False,
+            ),
+            (
+                "pack row hidden for the focus",
+                urwid.Pile([(urwid.PACK, shrinking), urwid.ListBox([urwid.Button("x")])], focus_item=1),
+                (5, 3),
+                lambda: shrinking.set_text("a"),
+                (b"a    ", b"< x >", b"     "),
+                True,
+            ),
+            (
+                "every row hidden",
+                urwid.Pile([(urwid.PACK, only_adapter)]),
+                (5, 2),
+                lambda: setattr(only_adapter, "height", 1),
+                (b"#####", b"     "),
+                False,
+            ),
+        ):
+            with self.subTest(name):
+                assert_redraws_after_child_change(self, pile, size, change, expected, focus=focus)
 
     def test_mouse_event_in_empty_pile(self):
         p = urwid.Pile([])
