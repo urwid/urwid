@@ -7,6 +7,7 @@ import string
 import sys
 import typing
 import unicodedata
+from collections import deque
 from collections.abc import Iterable
 
 from urwid import text_layout
@@ -22,7 +23,7 @@ from .text import Text, TextError
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterator, Mapping, Sequence
     from typing import Literal
 
     from urwid.canvas import TextCanvas
@@ -133,6 +134,7 @@ class Edit(WidgetWrap[Text]):
         validation_attr: Mapping[Severity, _AttrMapLike] | None = None,
         validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
         text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
+        undo_limit: int = 0,
     ) -> None:
         """Create the Edit widget.
 
@@ -157,7 +159,9 @@ class Edit(WidgetWrap[Text]):
             see :attr:`validation_focus_attr`
         :param text_completer: called with :attr:`edit_text` and :attr:`edit_pos` for completions,
             see :attr:`text_completer`
+        :param undo_limit: the number of changes :meth:`undo` can take back, see :attr:`undo_limit`
         :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
+            *undo_limit* is negative.
         :raises TagMarkupException: *placeholder* is not valid text markup.
         :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
         :raises TypeError: *validator* returned something else than its documented return types for *edit_text*.
@@ -215,6 +219,17 @@ class Edit(WidgetWrap[Text]):
         # True while a text or cursor change does not end the completion cycle: during a completion step,
         # and inside set_edit_text(), which ends it itself once its signals are sent
         self._completion_hold = False
+        self._undo_stack: deque[tuple[str | bytes, int]] = deque(maxlen=0)
+        self._redo_stack: deque[tuple[str | bytes, int]] = deque(maxlen=0)
+        # depth of the editing transaction: a key, or undo() and redo(); set_edit_text() outside it clears the history
+        self._edit_depth = 0
+        # text and cursor position when the transaction started, None when it records no undo step
+        self._undo_before: tuple[str | bytes, int] | None = None
+        # kind of the change the key in the transaction made, when a run of such keys is one undo step
+        self._undo_kind: Literal["insert", "backspace", "delete"] | None = None
+        # (kind, text, position) after the last undo step, which a key of the same kind from there continues
+        self._undo_run: tuple[str, str | bytes, int] | None = None
+        self.undo_limit = undo_limit
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
@@ -239,6 +254,127 @@ class Edit(WidgetWrap[Text]):
         if max_length is not None and len(self._edit_text) > max_length:
             raise ValueError(f"max_length {max_length} is shorter than the text of length {len(self._edit_text)}")
         self._max_length = max_length
+
+    @property
+    def undo_limit(self) -> int:
+        """The number of changes :meth:`undo` can take back, 0 for no undo history.
+
+        A change is what a key does to the text, through :meth:`keypress`.
+        Consecutive typed characters are one change, and so is a run of :kbd:`backspace` or of :kbd:`delete`.
+        A change from elsewhere, through :meth:`set_edit_text` or :meth:`insert_text`, clears the history,
+        so that a reused edit does not bring back an earlier value.
+        Lowering the limit drops the oldest changes, and 0 clears the history.
+        The ``'undo'`` and ``'redo'`` commands, which no key is mapped to by default, call :meth:`undo` and
+        :meth:`redo`.
+
+        >>> e = Edit(undo_limit=10)
+        >>> for key in "one two":
+        ...     e.keypress((20,), key)
+        >>> e.keypress((20,), "backspace")
+        >>> e.undo()
+        True
+        >>> print(e.edit_text)
+        one two
+        >>> e.undo()
+        True
+        >>> print(e.edit_text)
+        <BLANKLINE>
+        >>> e.redo()
+        True
+        >>> print(e.edit_text)
+        one two
+
+        :raises ValueError: on assignment, the limit is negative.
+        """
+        return typing.cast("int", self._undo_stack.maxlen)
+
+    @undo_limit.setter
+    def undo_limit(self, undo_limit: int) -> None:
+        if undo_limit < 0:
+            raise ValueError(f"undo_limit must not be negative, got {undo_limit}")
+        self._undo_stack = deque(self._undo_stack, maxlen=undo_limit)
+        self._redo_stack = deque(self._redo_stack, maxlen=undo_limit)
+        self._undo_run = None  # a run typed while the limit was 0 has no step to continue
+
+    def undo(self) -> bool:
+        """Take back the last change, restoring the text and the cursor position from before it.
+
+        See :attr:`undo_limit`.
+        The text goes through :meth:`set_edit_text`, so signals and :attr:`validator` run as for any change.
+
+        :returns: whether the text changed; ``False`` when there is nothing to undo, or the text to restore is
+            longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for the restored text.
+            When it raises before changing the text, the history is left as it was.
+        """
+        return self._undo_step(self._undo_stack, self._redo_stack)
+
+    def redo(self) -> bool:
+        """Make the last change :meth:`undo` took back again.
+
+        Any new change clears what there is to redo.
+
+        :returns: whether the text changed; ``False`` when there is nothing to redo, or the text to restore is
+            longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for the restored text.
+            When it raises before changing the text, the history is left as it was.
+        """
+        return self._undo_step(self._redo_stack, self._undo_stack)
+
+    def _undo_step(
+        self,
+        source: deque[tuple[str | bytes, int]],
+        target: deque[tuple[str | bytes, int]],
+    ) -> bool:
+        """Restore the newest state of *source*, and keep the current state on *target*.
+
+        A restored state is one the edit showed before, so it is restored as it is, with no further normalisation.
+        The step is moved once the text has changed, also when a ``"postchange"`` handler or the validator raises.
+        """
+        if not source:
+            return False
+        text, pos = source[-1]
+        if self._max_length is not None and len(text) > self._max_length:
+            return False
+        current = (self._edit_text, self._edit_pos)
+        self._edit_depth += 1
+        try:
+            self._set_edit_text_and_pos(text, pos)
+        finally:
+            self._edit_depth -= 1
+            self._undo_before = None  # a key that undoes records no step of its own
+            self._undo_run = None
+            if self._edit_text != current[0]:
+                source.pop()
+                target.append(current)
+        return self._edit_text != current[0]
+
+    @contextlib.contextmanager
+    def _editing(self) -> Iterator[None]:
+        """Run the body as one editing transaction, which records one undo step when it changed the text.
+
+        Transactions nest, and the outermost one records the step.
+        A subclass whose :meth:`keypress` changes the text after calling this class's method holds it around its
+        whole body, so that its change belongs to the step of the key.
+        """
+        if not self._edit_depth:
+            self._undo_before = (self._edit_text, self._edit_pos)
+            self._undo_kind = None
+        self._edit_depth += 1
+        try:
+            yield
+        finally:
+            self._edit_depth -= 1
+            if not self._edit_depth:
+                before, self._undo_before = self._undo_before, None
+                kind, self._undo_kind = self._undo_kind, None
+                if before is None or before[0] == self._edit_text:
+                    self._undo_run = None
+                else:
+                    if kind is None or self._undo_run != (kind, *before):
+                        self._undo_stack.append(before)
+                    self._redo_stack.clear()
+                    self._undo_run = None if kind is None else (kind, self._edit_text, self._edit_pos)
 
     @property
     def placeholder(self) -> _TagMarkup | None:
@@ -791,6 +927,9 @@ class Edit(WidgetWrap[Text]):
         :raises TypeError: :attr:`validator` returned something else than the types it lists;
             the text is changed already.
 
+        Called from elsewhere than a key, :meth:`undo` or :meth:`redo`, it clears the undo history,
+        see :attr:`undo_limit`.
+
         >>> e = Edit()
         >>> e.set_edit_text("yes")
         >>> print(e.edit_text)
@@ -808,6 +947,10 @@ class Edit(WidgetWrap[Text]):
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         if self._max_length is not None and len(text) > self._max_length:
             raise ValueError(f"text of length {len(text)} is longer than max_length {self._max_length}")
+        if not self._edit_depth:
+            self._undo_stack.clear()
+            self._redo_stack.clear()
+            self._undo_before = self._undo_run = None
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
@@ -964,6 +1107,10 @@ class Edit(WidgetWrap[Text]):
 
         A key that completes steps the completion cycle, and any other key ends it, see :attr:`text_completer`.
 
+        A key that changes the text is one step of the undo history, see :attr:`undo_limit`.
+        A subclass that changes the text after this method returns makes a change from elsewhere, which clears the
+        history; it makes the change in an override of :meth:`set_edit_text` or :meth:`insert_text` instead.
+
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, "x")
         >>> e.keypress(size, "left")
@@ -981,12 +1128,19 @@ class Edit(WidgetWrap[Text]):
         :raises ValueError: the preferred cursor column could not be determined.
             A completion is longer than :attr:`max_length`.
         :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`text_completer`.
+            What it raises for the text of ``'undo'`` or ``'redo'``, see :meth:`undo`.
         """
+        with self._editing():
+            return self.__keypress(size, key)
+
+    def __keypress(self, size: tuple[int], key: str) -> str | None:
+        """Handle a key for :meth:`keypress`, inside its editing transaction."""
         if not (complete_step := self._completion_direction(key)):
             self._end_completion()
 
         pos = self.edit_pos
         if self.valid_char(key):
+            self._undo_kind = "insert"
             typed = key.encode("utf-8") if isinstance(key, str) and not isinstance(self._caption, str) else key
             return None if self._insert_typed_text(typed) else key
 
@@ -1017,8 +1171,19 @@ class Edit(WidgetWrap[Text]):
 
         command = self._command_map[key]
         if key == "enter" and command == Command.ACTIVATE:
-            self._emit("submit", self._edit_text)
+            # a handler that sets the text makes a change from elsewhere, which clears the undo history
+            depth, self._edit_depth = self._edit_depth, 0
+            try:
+                self._emit("submit", self._edit_text)
+            finally:
+                self._edit_depth = depth
             return key
+
+        if command == Command.UNDO:
+            return None if self.undo() else key
+
+        if command == Command.REDO:
+            return None if self.redo() else key
 
         if command in {Command.WORD_LEFT, Command.WORD_RIGHT, Command.LINE_START, Command.LINE_END}:
             if command == Command.LINE_START:
@@ -1088,6 +1253,7 @@ class Edit(WidgetWrap[Text]):
             return None
 
         if key == "backspace":
+            self._undo_kind = "backspace"
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
                 if pos == 0:
@@ -1098,6 +1264,7 @@ class Edit(WidgetWrap[Text]):
             return None
 
         if key == "delete" or command == Command.DELETE_RIGHT:
+            self._undo_kind = "delete"
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
                 if pos >= len(self.edit_text):
@@ -1495,16 +1662,19 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        max_digits = sys.get_int_max_str_digits()  # 0 means no limit
-        if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
-            return key
+        with self._editing():  # the strip belongs to the undo step of the key
+            max_digits = sys.get_int_max_str_digits()  # 0 means no limit
+            if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
+                return key
 
-        if unhandled := super().keypress(size, key):
-            return unhandled
+            if unhandled := super().keypress(size, key):
+                return unhandled
+            if self._command_map[key] in {Command.UNDO, Command.REDO}:
+                return None  # a restored state is kept as it was shown
 
-        text, pos = self._strip_leading_zeros(self.edit_text, self.edit_pos)
-        if text != self.edit_text:
-            self._set_edit_text_and_pos(text, pos)
+            text, pos = self._strip_leading_zeros(self.edit_text, self.edit_pos)
+            if text != self.edit_text:
+                self._set_edit_text_and_pos(text, pos)
 
         return None
 

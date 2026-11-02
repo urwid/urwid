@@ -254,6 +254,12 @@ subclass sets as its ``_command_map``::
         _command_map = urwid.command_map.copy()
         _command_map.bind_readline()
 
+An :class:`Edit` created with ``undo_limit`` keeps that many changes made by
+keys, which the ``'undo'`` and ``'redo'`` commands take back and make again;
+:meth:`CommandMap.bind_readline` maps :kbd:`ctrl _` to ``'undo'``.  Setting
+the text from the application clears this history, so that a reused edit does
+not bring back an earlier value.
+
 The tour.py_ example program shows such an edit.
 
 .. _decoration-widgets:

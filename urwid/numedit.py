@@ -30,6 +30,7 @@ import sys
 import typing
 
 from urwid import Edit, _deprecation
+from urwid.command_map import Command
 
 if typing.TYPE_CHECKING:
     from collections.abc import Container
@@ -131,18 +132,21 @@ class NumEdit(Edit):
         >>> e.edit_text
         '1'
         """
-        unhandled = super().keypress(size, key)
+        with self._editing():  # the trim belongs to the undo step of the key
+            unhandled = super().keypress(size, key)
 
-        if not unhandled and self._trim_leading_zeros:
-            # trim leading zeros after the sign, but keep the zero of "0" and "0.5"
-            sign = int(self.edit_text.startswith("-"))
-            while (
-                self.edit_pos > sign
-                and self.edit_text[sign : sign + 1] == "0"
-                and self.edit_text[sign + 1 : sign + 2].isalnum()
-            ):
-                self.set_edit_pos(self.edit_pos - 1)
-                self.set_edit_text(self.edit_text[:sign] + self.edit_text[sign + 1 :])
+            # a restored state is kept as it was shown
+            restored = self._command_map[key] in {Command.UNDO, Command.REDO}
+            if not unhandled and not restored and self._trim_leading_zeros:
+                # trim leading zeros after the sign, but keep the zero of "0" and "0.5"
+                sign = int(self.edit_text.startswith("-"))
+                while (
+                    self.edit_pos > sign
+                    and self.edit_text[sign : sign + 1] == "0"
+                    and self.edit_text[sign + 1 : sign + 2].isalnum()
+                ):
+                    self.set_edit_pos(self.edit_pos - 1)
+                    self.set_edit_text(self.edit_text[:sign] + self.edit_text[sign + 1 :])
 
         return unhandled
 

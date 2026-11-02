@@ -52,6 +52,7 @@ class CommandMapBindReadlineTest(unittest.TestCase):
             "ctrl k": Command.DELETE_TO_LINE_END,
             "ctrl w": Command.DELETE_SPACE_WORD_LEFT,
             "ctrl d": Command.DELETE_RIGHT,
+            "ctrl _": Command.UNDO,
         }
         self.assertEqual({key: cm[key] for key in expected}, expected)
         self.assertEqual(dict(cm), {**CommandMap(), **expected})

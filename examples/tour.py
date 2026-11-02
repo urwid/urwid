@@ -121,7 +121,7 @@ def main() -> None:
     text_edit_text4 = "12345"
     text_edit_cap5 = ("editcp", "This one shows a hint while empty and checks the port: ")
     text_edit_cap6 = ("editcp", "This one completes a colour with TAB: ")
-    text_edit_cap7 = ("editcp", "This one takes readline keys, such as ctrl a, ctrl e, ctrl w and meta b: ")
+    text_edit_cap7 = ("editcp", "This one takes readline keys, such as ctrl a, ctrl w, meta b and ctrl _ to undo: ")
     text_edit_text7 = "ls /usr/local/share"
     text_edit_alignments = "Different Alignments:"
     text_edit_left = "left aligned (default)"
@@ -321,7 +321,7 @@ def main() -> None:
             "editfc",
         ),
         blank,
-        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7), "editbx", "editfc"),
+        urwid.AttrMap(ReadlineEdit(text_edit_cap7, text_edit_text7, undo_limit=50), "editbx", "editfc"),
         blank,
         urwid.Text(text_edit_alignments),
         urwid.AttrMap(urwid.Edit("", text_edit_left, align=urwid.LEFT), "editbx", "editfc"),

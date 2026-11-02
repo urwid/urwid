@@ -1,4 +1,4 @@
-"""Type checker fixture for the placeholder, validator and completer options of Edit.
+"""Type checker fixture for the placeholder, validator, completer and undo options of Edit.
 
 mypy and Pyrefly check this module; nothing in it runs.
 """
@@ -35,6 +35,7 @@ if typing.TYPE_CHECKING:
             validation_attr={urwid.Severity.ERROR: "error", urwid.Severity.WARNING: plain},
             validation_focus_attr={urwid.Severity.ERROR: "error focus"},
             text_completer=complete,
+            undo_limit=50,
         )
         edit.validator = check_all
         edit.validator = None
@@ -45,3 +46,7 @@ if typing.TYPE_CHECKING:
         assert_type(edit.validate(), tuple[urwid.ValidationMessage, ...])
         assert_type(edit.validation_attr, dict[urwid.Severity, dict[Hashable, Hashable]])
         assert_type(edit.completion_cycle, tuple[tuple[tuple[str | bytes, int], ...], int] | None)
+        assert_type(edit.undo_limit, int)
+        assert_type(edit.undo(), bool)
+        assert_type(edit.redo(), bool)
+        edit.undo_limit = 0

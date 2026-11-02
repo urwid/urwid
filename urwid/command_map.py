@@ -56,6 +56,8 @@ class Command(enum.StrEnum):
     LINE_END = "cursor line end"
     DELETE_SPACE_WORD_LEFT = "delete space word left"
     DELETE_RIGHT = "delete char right"
+    UNDO = "undo"
+    REDO = "redo"
     COMPLETE_NEXT = "complete next"
     COMPLETE_PREVIOUS = "complete previous"
 
@@ -104,6 +106,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
     ``'delete to start of line'`` and ``'delete to end of line'``.
     A word is a run of letters, digits and underscores, and a line ends at a newline.
     :meth:`bind_readline` maps the usual readline keys to them.
+    An :class:`Edit` with an undo history handles ``'undo'`` and ``'redo'``, see :attr:`Edit.undo_limit`.
     An :class:`Edit` with a text completer handles ``'complete next'`` and ``'complete previous'``, which no key is
     mapped to by default either; see :attr:`Edit.text_completer`.
 
@@ -217,6 +220,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         :kbd:`ctrl u`, :kbd:`ctrl k`            ``'delete to start of line'``, ``'delete to end of line'``
         :kbd:`ctrl w`                           ``'delete space word left'``
         :kbd:`ctrl d`                           ``'delete char right'``
+        :kbd:`ctrl _`                           ``'undo'``
         ======================================  ==================================================
 
         No other widget handles these commands, so the keys reach the containers above an :class:`Edit` unchanged,
@@ -246,6 +250,7 @@ class CommandMap(MutableMapping[str, str | Command | None]):
         staged.bind(Command.DELETE_TO_LINE_END, "ctrl k")
         staged.bind(Command.DELETE_SPACE_WORD_LEFT, "ctrl w")
         staged.bind(Command.DELETE_RIGHT, "ctrl d")
+        staged.bind(Command.UNDO, "ctrl _")
         self._command = staged._command  # pylint: disable=protected-access
 
     def clear_command(self, command: str | Command) -> None:
