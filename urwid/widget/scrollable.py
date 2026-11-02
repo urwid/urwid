@@ -664,7 +664,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             Off by default, so a wrapped widget that is not selectable can still be scrolled by keys.
         :param end_markers: characters drawn in the first and the last scrollbar row, or ``None`` for no markers,
             such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``.
-            They are drawn only when the scrollbar has at least 3 rows,
+            They are drawn only when the scrollbar has at least 4 rows, so the thumb has 2 trough rows to move in,
             and a click on one scrolls one step towards its end, as the mouse wheel does.
         :param attr: display attribute of the trough and the end markers.
         :param focus_attr: display attribute of the trough and the end markers when rendered in focus;
@@ -747,7 +747,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         sb_width = maxcol - ow_size[0]
-        markers = self._end_markers is not None and maxrow >= 3
+        markers = self._end_markers is not None and maxrow >= 4
         trough_height = maxrow - 2 * markers
         ends_visible: tuple[bool, bool] | None = None  # set where the item counts cannot tell
 

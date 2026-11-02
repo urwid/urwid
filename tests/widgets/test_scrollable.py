@@ -772,8 +772,10 @@ class TestScrollBarScrollable(unittest.TestCase):
         self.assertEqual(("f ^", "g  ", "h █", "i █", "j v"), canv.decoded_text)
         self.assertEqual([None, None, None, None, "dim"], [line[-1][0] for line in canv.content()])
 
-        # Too few rows for the markers and a thumb: no markers are drawn.
+        # Too few rows for the markers and a trough the thumb can move in: no markers are drawn.
         self.assertEqual(("f  ", "g █"), widget.render((3, 2)).decoded_text)
+        self.assertEqual(("f  ", "g █", "h  "), widget.render((3, 3)).decoded_text)
+        self.assertEqual(("f ^", "g  ", "h █", "i v"), widget.render((3, 4)).decoded_text)
 
         with self.assertRaises(ValueError):
             urwid.ScrollBar(urwid.Scrollable(content), end_markers=("^",))
