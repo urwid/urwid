@@ -904,7 +904,7 @@ class Pile(
         # A row 0 high is hidden when focusing it would not show it:
         # a row of weight 0, which a box or fixed Pile gives no rows,
         # or a row sized as a flow or fixed widget, with a size argument of 1 or 0 items, that is 0 rows focused too.
-        # A weighted row 0 high for lack of room is not hidden: the focus row gets rows first.
+        # A weighted row 0 high for lack of room is not hidden: the focus row still gets a row.
         self._cache_hidden_weights = frozenset(
             i
             for i, (height, (_w, (height_type, amount))) in enumerate(zip(heights, self.contents, strict=False))
@@ -1027,20 +1027,26 @@ class Pile(
 
         sum_weight = sum(weighted.values())
 
-        for idx in sorted(weighted, key=lambda idx: (idx != focus_position, idx)):
-            # We have to sort weighted items way that focused widget will gain render priority
-            if remaining == 0:
-                rows = 0
-            else:
-                rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5)
-                if not rows and idx == focus_position:
-                    # Special case: we have to force as minimum 1 row for focused widget to prevent broken behaviour
-                    rows = 1
-                remaining -= rows
-                sum_weight -= weighted[idx]
-
+        # in index order, so the heights do not depend on which row has the focus
+        for idx in weighted:
+            rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5) if remaining else 0
             heights[idx] = rows
-            w_h_args[idx] = (maxcol, rows)
+            remaining -= rows
+            sum_weight -= weighted[idx]
+
+        # the focus row needs a row to be seen: take it from the nearest weighted row that has one,
+        # the row above when two are equally near
+        if (
+            focus_position in weighted
+            and not heights[focus_position]
+            and (donors := [idx for idx in weighted if heights[idx]])
+        ):
+            donor = min(donors, key=lambda idx: abs(idx - focus_position))
+            heights[donor] -= 1
+            heights[focus_position] = 1
+
+        for idx in weighted:
+            w_h_args[idx] = (maxcol, heights[idx])
 
         return (
             widths,

@@ -776,6 +776,39 @@ class PileTest(unittest.TestCase):
                 self.assertEqual(expected, pile.get_rows_sizes((10, 50))[1])
                 self.assertEqual(50, pile.render((10, 50)).rows())
 
+    def test_weighted_heights_independent_of_focus(self) -> None:
+        """Divide rows between weighted rows in index order, whichever row has the focus."""
+        for weights, maxrow, expected in (
+            ((1, 1), 3, (2, 1)),
+            ((1, 1), 5, (3, 2)),
+            ((1, 1), 7, (4, 3)),
+            ((1, 1, 1), 10, (3, 4, 3)),
+            ((2, 1, 1), 7, (4, 2, 1)),
+            ((85, 15), 10, (9, 1)),
+        ):
+            for focus_item in range(len(weights)):
+                with self.subTest(weights=weights, maxrow=maxrow, focus_item=focus_item):
+                    pile = urwid.Pile(
+                        [(urwid.WEIGHT, weight, urwid.SolidFill()) for weight in weights],
+                        focus_item=focus_item,
+                    )
+                    self.assertEqual(expected, pile.get_rows_sizes((10, maxrow), focus=True)[1])
+                    self.assertEqual(expected, pile.get_rows_sizes((10, maxrow), focus=False)[1])
+
+    def test_weighted_focus_row_takes_a_row_from_nearest(self) -> None:
+        """Give a weighted focus row left with no rows one row, from the nearest weighted row that has one."""
+        for weights, focus_item, expected in (
+            ((1, 1, 1), 0, (1, 1, 0)),
+            ((1, 1, 1), 2, (1, 0, 1)),
+            ((1, 0.1, 1), 1, (0, 1, 1)),  # rows 0 and 2 are equally near: the row above gives
+        ):
+            with self.subTest(weights=weights, focus_item=focus_item):
+                pile = urwid.Pile(
+                    [(urwid.WEIGHT, weight, urwid.SolidFill()) for weight in weights],
+                    focus_item=focus_item,
+                )
+                self.assertEqual(expected, pile.get_rows_sizes((10, 2), focus=True)[1])
+
     def test_mouse_event_in_empty_pile(self):
         p = urwid.Pile([])
         p.mouse_event((5,), "button press", 1, 1, 1, False)
