@@ -766,6 +766,32 @@ class ListBoxRenderTest(unittest.TestCase):
         urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([])))
         urwid.testing.check_box_sizing(urwid.ListBox(urwid.SimpleListWalker([urwid.Text("hello")])))
 
+    def test_squish_with_pending_focus(self) -> None:
+        """A focus change waits through a render with no rows and is made at the next render that has rows."""
+        cases = (
+            ("focus_position", lambda lbox: setattr(lbox, "focus_position", 15), ["14", "15", "16", "17"]),
+            ("set_focus_valign", lambda lbox: lbox.set_focus_valign("bottom"), ["2", "3", "4", "5"]),
+            ("scroll_to_bottom", lambda lbox: lbox.scroll_to_bottom(), ["16", "17", "18", "19"]),
+        )
+        for label, change, expected in cases:
+            with self.subTest(label):
+                walker = urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(20)])
+                walker.set_focus(5)
+                lbox = urwid.ListBox(walker)
+                self.assertEqual(["5", "6", "7", "8"], urwid.testing.render_text(lbox, (4, 4), focus=True, strip=True))
+                change(lbox)
+                self.assertEqual([], urwid.testing.render_text(lbox, (4, 0), focus=True))
+                self.assertEqual(expected, urwid.testing.render_text(lbox, (4, 4), focus=True, strip=True))
+
+    def test_keypress_without_rows(self) -> None:
+        """A ListBox with no rows shows nothing, so it returns every key unhandled."""
+        edit = urwid.Edit("", "edit")
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([edit, urwid.Edit("", "next")]))
+        keys = ("x", "down", "page down", "end")
+        self.assertEqual(list(keys), urwid.testing.press(lbox, (4, 0), *keys))
+        self.assertEqual("edit", edit.edit_text)
+        self.assertEqual(0, lbox.focus_position)
+
 
 class ListBoxKeypressTest(unittest.TestCase):
     def ktest(

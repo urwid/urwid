@@ -409,8 +409,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """
         (maxcol, maxrow) = size
 
-        # 0. set the focus if a change is pending
-        if self.set_focus_pending or self.set_focus_valign_pending:
+        # 0. set the focus if a change is pending; with no rows it waits for a size that has some
+        if maxrow and (self.set_focus_pending or self.set_focus_valign_pending):
             self._set_focus_complete((maxcol, maxrow), focus)
 
         # 1. start with the focus widget
@@ -834,6 +834,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """
         vt, va = normalize_valign(valign, ListBoxError)
         self.set_focus_valign_pending = vt, va
+        self._invalidate()
 
     def set_focus(self, position: _K, coming_from: Literal["above", "below"] | None = None) -> None:
         """
@@ -1350,6 +1351,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """Move selection through the list elements scrolling when necessary.
 
         Keystrokes are first passed to widget in focus in case that widget can handle them.
+        A list box with no rows shows nothing and returns every key unhandled.
 
         Keystrokes handled by this widget are:
 
@@ -1368,6 +1370,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         from urwid.command_map import Command
 
         (maxcol, maxrow) = self._box_size(size, True)
+        if not maxrow:
+            return key
 
         if self.set_focus_pending or self.set_focus_valign_pending:
             self._set_focus_complete((maxcol, maxrow), focus=True)
