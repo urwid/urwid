@@ -567,6 +567,16 @@ class ReducesToFrame:
         return (urwid.Frame.__new__, (urwid.Frame,), self.state)
 
 
+class EqualsBody:
+    """Compares equal to ``'body'`` without being a string."""
+
+    __hash__ = None  # type: ignore[assignment]
+
+    def __eq__(self, other: object) -> bool:
+        """Return whether *other* is ``'body'``."""
+        return other == "body"
+
+
 class FrameFocusChangedSignalTest(unittest.TestCase):
     """``Frame`` sends ``"focus changed"`` after its focus part changed."""
 
@@ -637,15 +647,63 @@ class FrameFocusChangedSignalTest(unittest.TestCase):
                 self.assertNotIn("focus_part", vars(restored))
                 self.assertEqual("header", restored.focus_part)
 
+    def test_focus_part_slot(self) -> None:
+        """A subclass that keeps the focus part in a slot copies and reports focus changes."""
+
+        class SlotFrame(urwid.Frame[urwid.SolidFill, urwid.Text, None]):
+            """A frame whose focus part is a slot."""
+
+            __slots__ = ("_focus_part",)
+
+        frame = SlotFrame(urwid.SolidFill(), urwid.Text("header"), focus_part="header")
+        self.assertEqual("header", copy.copy(frame).focus_part)
+        # the state of urwid 5.0.x has the focus part in the dictionary, not in the slot
+        restored = SlotFrame.__new__(SlotFrame)
+        restored.__setstate__({**vars(frame), "focus_part": "header"})
+        self.assertEqual("header", restored.focus_part)
+        seen: list[tuple[str, str]] = []
+
+        def record(_sender: urwid.Widget, old: str, new: str) -> None:
+            seen.append((old, new))
+
+        urwid.connect_signal(frame, "focus changed", record)
+        frame.focus_position = "body"
+        self.assertEqual([("header", "body")], seen)
+
+    def test_bad_pickle_state(self) -> None:
+        """A state without a valid focus part is rejected."""
+        state = vars(urwid.Frame(urwid.SolidFill()))
+        missing = {name: value for name, value in state.items() if name != "_focus_part"}
+        bad_states: dict[str, object] = {
+            "missing": missing,
+            "invalid": {**state, "_focus_part": "middle"},
+            "invalid old": {**missing, "focus_part": None},
+            "unhashable": {**state, "_focus_part": ["body"]},
+            "both names": {**state, "focus_part": "body"},
+            "dictionary and slot": (state, {"_focus_part": "middle"}),
+            "equal only": {**state, "_focus_part": EqualsBody()},
+        }
+        for label, bad_state in bad_states.items():
+            with self.subTest(label), self.assertRaises(ValueError):
+                copy.copy(ReducesToFrame(bad_state))
+
     def test_subclass_signals(self) -> None:
-        """A subclass with its own signals list keeps ``"focus changed"``."""
+        """A subclass with its own signals list and a forwarding ``__getattr__`` keeps ``"focus changed"``."""
 
         class Labelled(urwid.Frame[urwid.SolidFill, SelectableText, None]):
             """A frame that declares a signal of its own."""
 
             signals: typing.ClassVar[list[str]] = ["labelled"]
 
-        frame = Labelled(urwid.SolidFill(), SelectableText("header"))
+            def __init__(self) -> None:
+                super().__init__(urwid.SolidFill(), SelectableText("header"))
+                self.label = "set after the base"
+
+            def __getattr__(self, name: str) -> object:
+                # forwards unknown names to an attribute set only after the base __init__
+                return getattr(self.label, name)
+
+        frame = Labelled()
         seen: list[tuple[str, str]] = []
 
         def record(_sender: urwid.Widget, old: str, new: str) -> None:

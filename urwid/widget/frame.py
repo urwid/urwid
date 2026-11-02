@@ -114,13 +114,31 @@ class Frame(
         Pickles of urwid 5.0.x and older store the focus part as ``focus_part``, which is restored as ``_focus_part``.
 
         :param state: the instance dictionary, or ``(dictionary, slots)`` for a subclass with slots.
+        :raises ValueError: the state has no focus part.
+            Its focus part is not ``'header'``, ``'footer'`` or ``'body'``.
+            It has the focus part more than once: under both names, or in both the dictionary and the slots.
         """
         attributes, slots = state if isinstance(state, tuple) else (state, None)
-        if attributes:
-            vars(self).update(
-                {("_focus_part" if name == "focus_part" else name): value for name, value in attributes.items()}
-            )
-        for name, value in (slots or {}).items():
+        attributes = dict(attributes or {})
+        slots = dict(slots or {})
+        # the places a focus part can be stored: the old name, the current one, and a slot of a subclass
+        stored = [
+            holder.pop(name)
+            for holder, name in ((attributes, "focus_part"), (attributes, "_focus_part"), (slots, "_focus_part"))
+            if name in holder
+        ]
+        if not stored:
+            raise ValueError("Frame state has no focus part")
+        if len(stored) > 1:
+            raise ValueError("Frame state has the focus part more than once")
+        (part,) = stored
+        # an exact str, so that a value which only compares equal to a part name is rejected, a str subclass included
+        if type(part) is not str or part not in {"header", "footer", "body"}:  # pylint: disable=unidiomatic-typecheck
+            raise ValueError(f"Frame state has an invalid focus part: {part!r}")
+        vars(self).update(attributes)
+        # into the slot of a subclass that has one, otherwise into the instance dictionary
+        object.__setattr__(self, "_focus_part", part)
+        for name, value in slots.items():
             setattr(self, name, value)
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
@@ -156,7 +174,11 @@ class Frame(
         # The previous part is absent while the constructor sets the first one,
         # or when a subclass sets one before it calls the constructor.
         # Setting the first part is not a change, so it is not reported.
-        old_part = vars(self).get("_focus_part")
+        # read without a subclass __getattr__, which could supply a value the frame does not have
+        try:
+            old_part = object.__getattribute__(self, "_focus_part")
+        except AttributeError:
+            old_part = None
         self._focus_part: Literal["header", "footer", "body"] = part
         if old_part is not None and part != old_part:
             self._invalidate()
