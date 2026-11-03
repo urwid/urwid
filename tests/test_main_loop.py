@@ -809,7 +809,8 @@ class TestMainLoop(unittest.TestCase):
         evl.run()
 
         self.assertEqual([b"x"], received)
-        self.assertIn(main_loop_module._SCREEN_LOOP_WATCH_POLL, screen.timeouts)
+        # Windows has no poll: the curses screen there cannot stop waiting before a key arrives.
+        self.assertEqual(not IS_WINDOWS, main_loop_module._SCREEN_LOOP_WATCH_POLL in screen.timeouts)
 
     def test_run_screen_event_loop_stops_calling_a_removed_watch(self) -> None:
         """A watch that removes itself is not called again, although its descriptor stays readable."""
