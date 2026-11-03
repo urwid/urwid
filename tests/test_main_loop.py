@@ -3,7 +3,10 @@ from __future__ import annotations
 import asyncio
 import concurrent.futures
 import contextlib
+import contextvars
 import doctest
+import gc
+import inspect
 import io
 import os
 import socket
@@ -12,10 +15,12 @@ import threading
 import time
 import typing
 import unittest.mock
+import weakref
 
 import urwid
 import urwid.testing
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, BaseScreen
+from tests.util import NonExternalLoopScreen, external_loop
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
@@ -23,6 +28,7 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 IS_GRAALPY = sys.implementation.name == "graalpy"
+IS_CPYTHON = sys.implementation.name == "cpython"
 
 
 class ClosingScreenIO(typing.ContextManager[tuple[socket.socket, typing.TextIO]]):
@@ -75,28 +81,6 @@ def dummy_raw_main_loop(
             handle_mouse=False,
             **kwargs,
         )
-
-
-class NonExternalLoopScreen(BaseScreen):
-    """Screen with no ``hook_event_loop`` support, forcing :meth:`MainLoop._run_screen_event_loop`."""
-
-    def __init__(self, cols_rows: tuple[int, int] = (10, 5)) -> None:
-        super().__init__()
-        self._cols_rows = cols_rows
-        self.input_calls = 0
-
-    def get_cols_rows(self) -> tuple[int, int]:
-        return self._cols_rows
-
-    def draw_screen(self, size: tuple[int, int], canvas: typing.Any) -> None:
-        pass
-
-    def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
-        self.input_calls += 1
-        return [], []
-
-    def set_input_timeouts(self, max_wait: float | None = None) -> None:
-        pass
 
 
 class ScriptedInputScreen(NonExternalLoopScreen):
@@ -711,6 +695,7 @@ class TestMainLoop(unittest.TestCase):
         evl.set_alarm_in(0, stop_screen_cb)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 1)
+        self.assertEqual([0.0], screen.timeouts)
         self.assertFalse(screen.started)
 
     def test_run_screen_event_loop_processes_keys_without_alarms(self):
@@ -725,6 +710,7 @@ class TestMainLoop(unittest.TestCase):
         evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 3)
+        self.assertEqual({None}, set(screen.timeouts))
 
     def test_run_screen_event_loop_processes_multiple_alarms(self):
         """_run_screen_event_loop pops and fires alarms one at a time across outer iterations."""
@@ -783,6 +769,131 @@ class TestMainLoop(unittest.TestCase):
         evl.set_alarm_in(0, cb_a)
         evl.run()
         self.assertEqual(["a"], order)
+
+    def test_run_screen_event_loop_runs_a_watched_file_and_redraws(self) -> None:
+        """A watched file that becomes readable is handled within one poll, and the screen is redrawn after it."""
+        received: list[bytes] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        class ExitOnRedraw(urwid.SolidFill):
+            """Fill that leaves the loop when it is drawn after being told to."""
+
+            exit_next = False
+
+            def render(self, size: tuple[int, int], focus: bool = False) -> urwid.SolidCanvas:
+                """Render the fill, or leave the loop once told to.
+
+                :raises ExitMainLoop: :attr:`exit_next` is set.
+                """
+                if self.exit_next:
+                    raise urwid.ExitMainLoop
+                return super().render(size, focus)
+
+        def on_ready() -> None:
+            received.append(rd.recv(1))
+            widget.exit_next = True
+            widget._invalidate()
+
+        def give_up(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            received.append(b"timeout")
+            raise urwid.ExitMainLoop
+
+        widget = ExitOnRedraw()
+        screen = NonExternalLoopScreen()
+        evl = urwid.MainLoop(widget, screen=screen, handle_mouse=False)
+        evl.watch_file(rd.fileno(), on_ready)
+        evl.set_alarm_in(0, lambda *_args: wr.send(b"x"))
+        evl.set_alarm_in(10, give_up)
+        evl.run()
+
+        self.assertEqual([b"x"], received)
+        # Windows has no poll: the curses screen there cannot stop waiting before a key arrives.
+        self.assertEqual(not IS_WINDOWS, main_loop_module._SCREEN_LOOP_WATCH_POLL in screen.timeouts)
+
+    def test_run_screen_event_loop_stops_calling_a_removed_watch(self) -> None:
+        """A watch that removes itself is not called again, although its descriptor stays readable."""
+        calls: list[str] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        def on_ready() -> None:
+            calls.append("ready")
+            evl.remove_watch_file(handle)
+
+        screen = NonExternalLoopScreen()
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False)
+        handle = evl.watch_file(rd.fileno(), on_ready)
+        wr.send(b"x")
+        evl.set_alarm_in(0.05, stop_screen_cb)
+        evl.run()
+
+        self.assertEqual(["ready"], calls)
+
+    def test_run_screen_event_loop_skips_a_watch_changed_earlier_in_the_pass(self) -> None:
+        """A ready watch removed or replaced by an earlier callback of the same pass is not called."""
+
+        class OneReadScreen(NonExternalLoopScreen):
+            """Screen that leaves the loop on its second read, so a single pass of watches runs."""
+
+            def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+                """Return no input on the first read.
+
+                :raises ExitMainLoop: this is the second read.
+                """
+                if self.input_calls:
+                    raise urwid.ExitMainLoop
+                return super().get_input(raw_keys)
+
+        for replace in (False, True):
+            with self.subTest(replace=replace):
+                called: list[str] = []
+                rd_1, wr_1 = socket.socketpair()
+                rd_2, wr_2 = socket.socketpair()
+                for sock in (rd_1, wr_1, rd_2, wr_2):
+                    self.addCleanup(sock.close)
+                evl = urwid.MainLoop(urwid.SolidFill(), screen=OneReadScreen(), handle_mouse=False)
+
+                def change(other: socket.socket, name: str, *, replace: bool = replace) -> None:
+                    called.append(name)
+                    evl.remove_watch_file(other.fileno())
+                    if replace:
+                        evl.watch_file(other.fileno(), lambda: called.append("replacement"))
+
+                evl.watch_file(rd_1.fileno(), lambda: change(rd_2, "first"))
+                evl.watch_file(rd_2.fileno(), lambda: change(rd_1, "second"))
+                wr_1.send(b"x")
+                wr_2.send(b"x")
+                evl.run()
+
+                self.assertEqual(1, len(called))
+                self.assertNotIn("replacement", called)
+
+    def test_run_screen_event_loop_on_windows_checks_watches_after_input(self) -> None:
+        """Simulated Windows: watched files do not shorten the wait for input, and are checked once it returns.
+
+        This patches the platform check only; the curses screen's blocking read on Windows is not run.
+        """
+        calls: list[str] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            calls.append(str(key))
+            raise urwid.ExitMainLoop
+
+        screen = ScriptedInputScreen([(["k"], [])])
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        evl.watch_file(rd.fileno(), lambda: calls.append(rd.recv(1).decode()))
+        wr.send(b"w")
+        with unittest.mock.patch.object(main_loop_module, "IS_WINDOWS", True):
+            evl.run()
+
+        self.assertEqual([None], screen.timeouts)
+        self.assertEqual(["w", "k"], calls)
 
     def test_run_reraises_unexpected_event_loop_error(self):
         """run() removes its event loop hooks, stops the screen and lets an unexpected event loop error propagate."""
@@ -896,3 +1007,378 @@ class TestMainLoop(unittest.TestCase):
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             main_loop_module._test()
+
+
+class LoopRecordingWidget(urwid.Widget):
+    """Box widget recording the running loop at each render and keypress, leaving the loop on ``q``."""
+
+    _sizing = frozenset((urwid.BOX,))
+    _selectable = True
+
+    def __init__(self) -> None:
+        """Start with nothing recorded."""
+        super().__init__()
+        self.seen: list[tuple[str, urwid.MainLoop | None]] = []
+
+    def render(self, size: tuple[int, int], focus: bool = False) -> urwid.SolidCanvas:
+        """Record the running loop and return a blank canvas."""
+        self.seen.append(("render", urwid.get_running_loop_or_none()))
+        return urwid.SolidCanvas(" ", *size)
+
+    def keypress(self, size: tuple[int, int], key: str) -> None:
+        """Record the running loop and handle *key*.
+
+        :raises ExitMainLoop: *key* is ``q``.
+        """
+        self.seen.append((key, urwid.get_running_loop_or_none()))
+        if key == "q":
+            raise urwid.ExitMainLoop
+
+
+def input_callback(loop: urwid.MainLoop) -> typing.Callable[[list[typing.Any], list[int]], None]:
+    """Return the input callback a started *loop* hooked into its mock screen."""
+    return typing.cast("unittest.mock.Mock", loop.screen).hook_event_loop.call_args.args[1]
+
+
+class TestRunningLoop(unittest.TestCase):
+    """get_running_loop() and get_running_loop_or_none()."""
+
+    def run(self, result: unittest.TestResult | None = None) -> unittest.TestResult | None:
+        """Run each test in an empty context, so a loop a failed test left running cannot reach the next one."""
+        return contextvars.Context().run(super().run, result)
+
+    def test_no_loop_outside_any_run(self) -> None:
+        """Without a running loop, get_running_loop() raises and get_running_loop_or_none() returns None."""
+        with self.assertRaises(RuntimeError):
+            urwid.get_running_loop()
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_screen_event_loop_renders_and_dispatches_with_the_loop(self) -> None:
+        """On the screen-driven loop, rendering and key handling see the loop, which is gone after run()."""
+        widget = LoopRecordingWidget()
+        loop = urwid.MainLoop(widget, screen=LimitedInputScreen([(["x"], []), (["q"], [])]), handle_mouse=False)
+        loop.run()
+
+        self.assertEqual({"render", "x", "q"}, {name for name, _ in widget.seen})
+        self.assertEqual([loop], list({id(seen): seen for _, seen in widget.seen}.values()))
+        with self.assertRaises(RuntimeError):
+            urwid.get_running_loop()
+
+    def test_alarm_set_before_start_sees_the_loop(self) -> None:
+        """An alarm scheduled before run() runs with the loop current."""
+        seen: list[urwid.MainLoop | None] = []
+
+        def record(loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            seen.append(urwid.get_running_loop())
+            raise urwid.ExitMainLoop
+
+        with dummy_raw_main_loop() as evl:
+            evl.set_alarm_in(0, record)
+            evl.run()
+
+        self.assertEqual([evl], seen)
+
+    def test_nested_run_of_another_loop(self) -> None:
+        """A loop run from a callback of another is current inside, and the outer loop is current again after."""
+        seen: dict[str, urwid.MainLoop | None] = {}
+
+        def inner_alarm(loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            seen["inner"] = urwid.get_running_loop_or_none()
+            raise urwid.ExitMainLoop
+
+        def outer_alarm(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            inner.set_alarm_in(0, inner_alarm)
+            inner.run()
+            seen["after"] = urwid.get_running_loop_or_none()
+            raise urwid.ExitMainLoop
+
+        inner = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        outer = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        outer.set_alarm_in(0, outer_alarm)
+        outer.run()
+
+        self.assertEqual({"inner": inner, "after": outer}, seen)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_nested_run_of_the_same_loop(self) -> None:
+        """A loop run again from its own callback keeps its outer run current once the inner run returns."""
+        seen: list[object] = []
+
+        def outer_alarm(loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            outer_activation = loop._activation
+            loop.set_alarm_in(0, stop_screen_cb)
+            loop.run()
+            seen.extend((urwid.get_running_loop_or_none(), loop._activation is outer_activation))
+            raise urwid.ExitMainLoop
+
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        loop.set_alarm_in(0, outer_alarm)
+        loop.run()
+
+        self.assertEqual([loop, True], seen)
+        self.assertIsNone(loop._activation)
+
+    def test_stop_from_another_context(self) -> None:
+        """stop() ends the loop both where start() ran and in a context copied from it, whichever runs stop()."""
+        loop = external_loop()
+        loop.start()
+        contextvars.copy_context().run(loop.stop)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+        self.assertIsNone(contextvars.copy_context().run(urwid.get_running_loop_or_none))
+
+        started_in = contextvars.copy_context()
+        started_in.run(loop.start)
+        self.assertIs(loop, started_in.run(urwid.get_running_loop_or_none))
+        loop.stop()
+        self.assertIsNone(started_in.run(urwid.get_running_loop_or_none))
+
+    def test_stopped_entries_do_not_accumulate(self) -> None:
+        """Entries ended from another context are dropped when the context holding them starts a loop again."""
+        loop = external_loop()
+        for _ in range(10):
+            loop.start()
+            contextvars.copy_context().run(loop.stop)
+        self.assertLessEqual(len(main_loop_module._running.get()), 1)
+
+    @unittest.skipUnless(IS_CPYTHON, "relies on reference counting to free the loop at once")
+    def test_copied_context_does_not_keep_the_loop_alive(self) -> None:
+        """A context copied during a run holds no reference to the loop once the run ended."""
+        copied: list[contextvars.Context] = []
+
+        def capture(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            copied.append(contextvars.copy_context())
+            raise urwid.ExitMainLoop
+
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        loop.set_alarm_in(0, capture)
+        loop.run()
+        ref = weakref.ref(loop)
+        del loop
+        gc.collect()
+
+        self.assertIsNone(ref())
+        self.assertIsNone(copied[0].run(urwid.get_running_loop_or_none))
+
+    def test_failed_start_leaves_no_loop(self) -> None:
+        """A start() that fails after starting the screen leaves no loop current."""
+        loop = external_loop()
+        typing.cast("unittest.mock.Mock", loop.screen).hook_event_loop.side_effect = OSError
+        with self.assertRaises(OSError):
+            loop.run()
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_failed_nested_start_keeps_the_outer_run(self) -> None:
+        """A run of the loop from its own callback that fails to start leaves the outer run current."""
+        seen: list[urwid.MainLoop | None] = []
+        loop = external_loop()
+        typing.cast("unittest.mock.Mock", loop.screen).hook_event_loop.side_effect = [None, OSError]
+
+        def nested(_loop: urwid.MainLoop, _data: object) -> None:
+            with self.assertRaises(OSError):
+                loop.run()
+
+        def last(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            seen.append(urwid.get_running_loop_or_none())
+            raise urwid.ExitMainLoop
+
+        loop.set_alarm_in(0, nested)
+        loop.set_alarm_in(0.01, last)
+        loop.run()
+
+        self.assertEqual([loop], seen)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_failed_stop_leaves_no_loop(self) -> None:
+        """A stop() whose screen fails to stop still ends the loop."""
+        loop = external_loop()
+        loop.start()
+        typing.cast("unittest.mock.Mock", loop.screen).stop.side_effect = OSError
+        with self.assertRaises(OSError):
+            loop.stop()
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_callbacks_after_stop_see_no_loop(self) -> None:
+        """Alarms, watches and input left behind by a stopped loop see no loop; hand-driven calls still do."""
+        seen: list[tuple[str, urwid.MainLoop | None]] = []
+        widget = LoopRecordingWidget()
+        loop = external_loop(widget)
+        event_loop = typing.cast("urwid.SelectEventLoop", loop.event_loop)
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        loop.start()
+        loop.set_alarm_in(0, lambda *_args: seen.append(("alarm", urwid.get_running_loop_or_none())))
+        loop.watch_file(rd.fileno(), lambda: seen.append(("watch", urwid.get_running_loop_or_none())))
+        update = input_callback(loop)
+        loop.stop()
+        wr.send(b"x")
+        for _ in range(5):
+            event_loop._loop()
+        update(["k"], [])
+
+        self.assertIn(("alarm", None), seen)
+        self.assertIn(("watch", None), seen)
+        self.assertEqual({None}, {seen_loop for _, seen_loop in seen + widget.seen})
+        self.assertIn(("k", None), widget.seen)
+
+        widget.seen.clear()
+        widget._invalidate()
+        loop.draw_screen()
+        loop.process_input(["k"])
+        self.assertEqual([("render", loop), ("k", loop)], widget.seen)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_stop_during_input_ends_the_loop_for_the_rest_of_it(self) -> None:
+        """Keys an input filter returns after stopping the loop are handled with no loop current."""
+        widget = LoopRecordingWidget()
+
+        def stop_and_pass(keys: list[typing.Any], _raw: list[int]) -> list[typing.Any]:
+            loop.stop()
+            return keys
+
+        loop = external_loop(widget, input_filter=stop_and_pass)
+        loop.start()
+        input_callback(loop)(["k"], [])
+
+        self.assertEqual([("k", None)], widget.seen)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_stopped_loop_callback_does_not_see_another_running_loop(self) -> None:
+        """A callback a stopped loop left on a shared event loop sees no loop, not the loop running there now."""
+        event_loop = urwid.SelectEventLoop()
+        widget_a = LoopRecordingWidget()
+        widget_b = LoopRecordingWidget()
+        loop_a = external_loop(widget_a, event_loop)
+        loop_b = external_loop(widget_b, event_loop)
+        seen: dict[str, urwid.MainLoop | None] = {}
+        copied: list[contextvars.Context] = []
+
+        def leftover(_loop: urwid.MainLoop, _data: object) -> None:
+            seen["callback"] = urwid.get_running_loop_or_none()
+            copied.append(contextvars.copy_context())
+            seen["copied during"] = copied[0].run(urwid.get_running_loop_or_none)
+            loop_b.draw_screen()
+
+        loop_a.start()
+        loop_a.set_alarm_in(0, leftover)
+        loop_a.stop()
+        with loop_b.start():
+            for _ in range(5):
+                event_loop._loop()
+            seen["copied after"] = copied[0].run(urwid.get_running_loop_or_none)
+
+        self.assertEqual({"callback": None, "copied during": None, "copied after": loop_b}, seen)
+        self.assertIn(("render", loop_b), widget_b.seen)
+        self.assertEqual([("render", None)], widget_a.seen)
+
+    def test_restarted_loop_is_not_visible_to_a_context_of_the_first_run(self) -> None:
+        """A context copied during one run does not see the loop during or after the next run."""
+        copied: list[contextvars.Context] = []
+        seen: list[urwid.MainLoop | None] = []
+
+        def capture(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            copied.append(contextvars.copy_context())
+            raise urwid.ExitMainLoop
+
+        def check(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            seen.append(copied[0].run(urwid.get_running_loop_or_none))
+            raise urwid.ExitMainLoop
+
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        loop.set_alarm_in(0, capture)
+        loop.run()
+        loop.set_alarm_in(0, check)
+        loop.run()
+
+        self.assertEqual([None, None], [*seen, copied[0].run(urwid.get_running_loop_or_none)])
+
+    def test_threads_see_the_loop_only_with_a_copied_context(self) -> None:
+        """A thread started with an empty context sees no loop; one running a copied context sees it."""
+        seen: dict[str, urwid.MainLoop | None] = {}
+
+        def record(name: str, context: contextvars.Context) -> None:
+            seen[name] = context.run(urwid.get_running_loop_or_none)
+
+        def start_threads(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            threads = [
+                threading.Thread(target=record, args=("empty", contextvars.Context())),
+                threading.Thread(target=record, args=("copied", contextvars.copy_context())),
+            ]
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join(timeout=5)
+            raise urwid.ExitMainLoop
+
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), handle_mouse=False)
+        loop.set_alarm_in(0, start_threads)
+        loop.run()
+
+        self.assertEqual({"empty": None, "copied": loop}, seen)
+
+    def test_raising_callback_restores_the_running_loops(self) -> None:
+        """An alarm callback that raises, logged or leaving the loop, leaves the running loops as they were."""
+
+        def fail(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            raise ValueError
+
+        loop = external_loop()
+        with loop.start():
+            before = main_loop_module._running.get()
+            with self.assertLogs(loop.logger, "ERROR"):
+                loop._make_alarm_callback(fail, None)()
+            self.assertIs(before, main_loop_module._running.get())
+            with self.assertRaises(urwid.ExitMainLoop):
+                loop._make_alarm_callback(stop_screen_cb, None)()
+            self.assertIs(before, main_loop_module._running.get())
+            self.assertIs(loop, urwid.get_running_loop_or_none())
+
+    def test_async_callback_closed_from_another_context_ends_its_entry(self) -> None:
+        """An async callback closed outside the context it ran in, as the garbage collector does, ends its entry."""
+        entries: list[tuple[main_loop_module._Activation, ...]] = []
+
+        class Suspend:
+            """Awaitable that suspends its coroutine once, without an event loop."""
+
+            def __await__(self) -> typing.Generator[None]:
+                yield
+
+        async def suspended(_loop: urwid.MainLoop, _data: object) -> None:
+            entries.append(main_loop_module._running.get())
+            await Suspend()
+
+        loop = external_loop()
+        with loop.start():
+            coroutine = loop._make_alarm_callback(suspended, None)()
+            contextvars.copy_context().run(coroutine.send, None)
+            coroutine.close()
+
+        self.assertEqual([None], list({entry.loop for entry in entries[0]}))
+
+    def test_watch_file_wraps_the_callback(self) -> None:
+        """watch_file() hands the event loop a wrapper that runs the callback with the loop current."""
+        seen: list[urwid.MainLoop | None] = []
+        event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
+        loop = external_loop(event_loop=event_loop)
+
+        def callback() -> str:
+            seen.append(urwid.get_running_loop_or_none())
+            return "result"
+
+        async def async_callback() -> None:
+            seen.append(urwid.get_running_loop_or_none())
+
+        with loop.start():
+            loop.watch_file(1, callback)
+            wrapper = event_loop.watch_file.call_args.args[1]
+            loop.watch_file(1, async_callback)
+            async_wrapper = event_loop.watch_file.call_args.args[1]
+
+            self.assertIsNot(callback, wrapper)
+            self.assertFalse(inspect.iscoroutinefunction(wrapper))
+            self.assertTrue(inspect.iscoroutinefunction(async_wrapper))
+            self.assertEqual("result", wrapper())
+            asyncio.run(async_wrapper())
+
+        self.assertEqual([loop, loop], seen)

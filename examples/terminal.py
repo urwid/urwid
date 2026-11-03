@@ -32,8 +32,7 @@ import urwid
 def main() -> None:
     """Run the terminal emulation widget demo."""
     urwid.set_encoding("utf8")
-    shared_event_loop = urwid.SelectEventLoop()
-    term = urwid.Terminal(None, encoding="utf-8", main_loop=shared_event_loop)
+    term = urwid.Terminal(None, encoding="utf-8")
 
     size_widget = urwid.Text("")
 
@@ -80,7 +79,6 @@ def main() -> None:
         mainframe,
         screen=bpm_screen,
         unhandled_input=handle_key,
-        event_loop=shared_event_loop,
     )
 
     loop.run()

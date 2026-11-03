@@ -40,6 +40,7 @@ from unittest import mock
 import urwid
 import urwid.ansi_parser
 import urwid.vterm
+from tests.util import NonExternalLoopScreen, external_loop, pipe_terminal
 from urwid.util import set_temporary_encoding
 
 if typing.TYPE_CHECKING:
@@ -248,16 +249,18 @@ class TermTest(unittest.TestCase):
         self.atexit = _FakeAtexit()
         self._install_patches()
 
+        # An event loop that never runs: the tests feed the pty themselves, so a render reads nothing.
+        self.event_loop = mock.Mock(spec=urwid.SelectEventLoop)
         # The command is never actually executed:
         # pty.fork is mocked to take the parent branch and os.execvpe is a no-op for safety.
-        self.term = urwid.Terminal(["/bin/false"])
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
 
     def restart(self, width: int = 80, height: int = 24, soft: bool = False) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
-        self.term = urwid.Terminal(["/bin/false"])
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(width, height, soft)
 
     def tearDown(self) -> None:
@@ -1732,6 +1735,120 @@ class TermTest(unittest.TestCase):
         loop.remove_watch_file.assert_called_once_with(handle)
         self.assertTrue(self.pty.closed)
 
+    def _default_terminal(self) -> urwid.Terminal:
+        """Return a terminal built without ``main_loop=``, terminated at the end of the test."""
+        term = urwid.Terminal(["/bin/false"])
+        self.addCleanup(term.terminate)
+        return term
+
+    def _loop_on(self, widget: urwid.Widget | None = None) -> tuple[urwid.MainLoop, mock.Mock]:
+        """Return a main loop over a mock screen and a mock event loop, with that event loop."""
+        event_loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        return external_loop(widget, event_loop), event_loop
+
+    def test_default_reads_the_pty_on_render_while_no_loop_runs(self) -> None:
+        """Without ``main_loop=`` and with no loop running, each render shows the child's output."""
+        term = self._default_terminal()
+        lines = []
+        for chunk in (b"one", b" two"):
+            self.pty.to_widget.extend(chunk)
+            lines.append(term.render(self.termsize).text[0].rstrip())
+
+        self.assertEqual([b"one", b"one two"], lines)
+        self.assertIsNone(term.main_loop)
+        self.assertIsNone(term._watch_loop)
+        typing.cast("mock.Mock", urwid.vterm.fcntl.fcntl).assert_not_called()
+
+    def test_default_watches_on_the_running_loop(self) -> None:
+        """Without ``main_loop=``, a render under a started loop watches the pty there, until terminate()."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on()
+        event_loop.watch_file.return_value = handle = object()
+        with loop.start():
+            term.render(self.termsize)
+            fd, callback = event_loop.watch_file.call_args.args
+            self.pty.to_widget.extend(b"x")
+            callback()
+            term.terminate()
+
+        self.assertEqual(_FAKE_MASTER_FD, fd)
+        self.assertEqual(b"x", term.term.text[0].rstrip())
+        event_loop.remove_watch_file.assert_called_once_with(handle)
+
+    def test_default_follows_the_loop_it_is_rendered_under(self) -> None:
+        """Without ``main_loop=``, the watch moves to each loop rendered under, and is dropped outside them."""
+        term = self._default_terminal()
+        loop_a, event_loop_a = self._loop_on()
+        loop_b, event_loop_b = self._loop_on()
+        event_loop_a.watch_file.return_value = handle_a = object()
+
+        term.render(self.termsize)
+        event_loop_a.watch_file.assert_not_called()
+        with loop_a.start():
+            term.render(self.termsize)
+        event_loop_a.watch_file.assert_called_once()
+        self.pty.to_widget.extend(b"read")
+        self.assertEqual(b"read", term.render(self.termsize).text[0].rstrip())
+        event_loop_a.remove_watch_file.assert_called_once_with(handle_a)
+        with loop_b.start():
+            term.render(self.termsize)
+        event_loop_b.watch_file.assert_called_once()
+        self.assertEqual(1, event_loop_a.watch_file.call_count)
+
+    def test_default_watches_again_on_each_start_of_one_loop(self) -> None:
+        """A loop started a second time gets a new watch, and the one of its first start is removed."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on()
+        for _ in range(2):
+            with loop.start():
+                term.render(self.termsize)
+                term.render(self.termsize)
+
+        self.assertEqual(2, event_loop.watch_file.call_count)
+        event_loop.remove_watch_file.assert_called_once()
+
+    def test_explicit_main_loop_never_moves_the_watch(self) -> None:
+        """With ``main_loop=``, the watch set at the spawn stays there, whichever loop the terminal is rendered under."""
+        explicit = mock.create_autospec(urwid.EventLoop, instance=True)
+        term = urwid.Terminal(["/bin/false"], main_loop=explicit)
+        self.addCleanup(term.terminate)
+        loop_a, event_loop_a = self._loop_on()
+
+        term.render(self.termsize)
+        with loop_a.start():
+            term.render(self.termsize)
+        term.render(self.termsize)
+
+        explicit.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        explicit.remove_watch_file.assert_not_called()
+        event_loop_a.watch_file.assert_not_called()
+
+    def test_draw_by_hand_before_start_reads_the_pty(self) -> None:
+        """Draws of a loop that is not started read the pty on each render; starting it sets the watch once."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on(term)
+        for chunk in (b"a", b"b", b"c"):
+            self.pty.to_widget.extend(chunk)
+            loop.draw_screen()
+            self.assertEqual(b"", bytes(self.pty.to_widget))
+        event_loop.watch_file.assert_not_called()
+
+        with loop.start():
+            loop.draw_screen()
+            loop.draw_screen()
+        event_loop.watch_file.assert_called_once()
+
+    def test_explicit_main_loop_watches_from_a_key_before_any_render(self) -> None:
+        """With ``main_loop=``, a key pressed before the first render spawns the child and sets the watch once."""
+        explicit = mock.create_autospec(urwid.EventLoop, instance=True)
+        term = urwid.Terminal(["/bin/false"], main_loop=explicit)
+        self.addCleanup(term.terminate)
+
+        term.keypress(self.termsize, "x")
+        explicit.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        term.render(self.termsize)
+        explicit.watch_file.assert_called_once()
+
     def test_terminate_before_spawn(self) -> None:
         """Mark a terminal that never spawned its child as terminated without touching any process."""
         term = urwid.Terminal(["/bin/false"])
@@ -1793,6 +1910,30 @@ class TermWindowSizeTest(unittest.TestCase):
                     fcntl.ioctl(child_side, termios.TIOCGWINSZ, bytes(8)),
                 )
                 self.assertEqual((cols, rows), (width, height))
+
+
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
+class TermScreenEventLoopTest(unittest.TestCase):
+    """A terminal on the loop of a screen without event loop support, reading a real pipe."""
+
+    def test_pty_is_watched_by_the_screen_driven_loop(self) -> None:
+        """Child output reaches the canvas through the watch, and render() does not read the pty meanwhile."""
+        with pipe_terminal() as (term, child_out):
+
+            def check(loop: urwid.MainLoop, attempt: int) -> None:
+                if b"hi" in term.term.text[0] or attempt > 100:
+                    raise urwid.ExitMainLoop
+                loop.set_alarm_in(0.02, check, attempt + 1)
+
+            loop = urwid.MainLoop(term, screen=NonExternalLoopScreen((20, 3)), handle_mouse=False)
+            loop.set_alarm_in(0, lambda *_args: os.write(child_out, b"hi"))
+            loop.set_alarm_in(0, check, 0)
+            with mock.patch.object(term, "wait_and_feed", wraps=term.wait_and_feed) as wait_and_feed:
+                loop.run()
+
+        self.assertEqual(b"hi", term.term.text[0].rstrip())
+        wait_and_feed.assert_not_called()
 
 
 if __name__ == "__main__":

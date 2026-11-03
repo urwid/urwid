@@ -8,6 +8,10 @@ MainLoop
 
 .. autoclass:: MainLoop
 
+.. autofunction:: get_running_loop
+
+.. autofunction:: get_running_loop_or_none
+
 SelectEventLoop
 ---------------
 
