@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import collections
 import concurrent.futures
 import contextlib
 import contextvars
@@ -9,6 +10,7 @@ import gc
 import inspect
 import io
 import os
+import select
 import socket
 import sys
 import threading
@@ -574,11 +576,13 @@ class TestMainLoop(unittest.TestCase):
         with dummy_raw_main_loop(event_loop=event_loop) as evl, evl.start():
             self.assertTrue(event_loop._watch_files)
 
+            # The one watch left is the loop's own, for call_from_thread().
+            thread_calls = {evl._thread_calls.reader.fileno()}
             evl.screen.stop()
-            self.assertEqual({}, event_loop._watch_files)
+            self.assertEqual(thread_calls, set(event_loop._watch_files))
 
             urwid.emit_signal(evl.screen, INPUT_DESCRIPTORS_CHANGED)
-            self.assertEqual({}, event_loop._watch_files)
+            self.assertEqual(thread_calls, set(event_loop._watch_files))
 
     def test_paused_stops_and_restarts_the_screen(self) -> None:
         """paused() stops the screen and its input for the block and restarts them for a full redraw."""
@@ -710,7 +714,9 @@ class TestMainLoop(unittest.TestCase):
         evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 3)
-        self.assertEqual({None}, set(screen.timeouts))
+        # The only watched file is the one call_from_thread() wakes the loop through.
+        expected = None if IS_WINDOWS else main_loop_module._SCREEN_LOOP_WATCH_POLL
+        self.assertEqual({expected}, set(screen.timeouts))
 
     def test_run_screen_event_loop_processes_multiple_alarms(self):
         """_run_screen_event_loop pops and fires alarms one at a time across outer iterations."""
@@ -1264,7 +1270,10 @@ class TestRunningLoop(unittest.TestCase):
         loop_a.set_alarm_in(0, leftover)
         loop_a.stop()
         with loop_b.start():
+            # Until both alarms ran and the loop went idle: then it waits for input, which never comes.
             for _ in range(5):
+                if not (event_loop._alarms or event_loop._did_something):
+                    break
                 event_loop._loop()
             seen["copied after"] = copied[0].run(urwid.get_running_loop_or_none)
 
@@ -1382,3 +1391,411 @@ class TestRunningLoop(unittest.TestCase):
             asyncio.run(async_wrapper())
 
         self.assertEqual([loop, loop], seen)
+
+
+class TestCallFromThread(unittest.TestCase):
+    """MainLoop.call_from_thread()."""
+
+    def _started(self, event_loop: urwid.EventLoop | None = None) -> tuple[urwid.MainLoop, urwid.SelectEventLoop]:
+        """Return a started loop over a mock screen with its select loop, past the draw that start() schedules.
+
+        The loop is stopped at the end of the test.
+        """
+        event_loop = event_loop if event_loop is not None else urwid.SelectEventLoop()
+        loop = external_loop(event_loop=event_loop)
+        loop.start()
+        self.addCleanup(loop.stop)
+        self._settle(typing.cast("urwid.SelectEventLoop", event_loop))
+        return loop, typing.cast("urwid.SelectEventLoop", event_loop)
+
+    @staticmethod
+    def _settle(event_loop: urwid.SelectEventLoop) -> None:
+        """Run *event_loop* until its due alarms ran and it went idle."""
+        for _ in range(10):
+            if not (event_loop._alarms or event_loop._did_something):
+                return
+            event_loop._loop()
+        msg = "the event loop does not settle"
+        raise AssertionError(msg)
+
+    @staticmethod
+    def _wake_up_pending(loop: urwid.MainLoop) -> bool:
+        """Return whether the socket call_from_thread() wakes *loop* through is readable."""
+        state = loop._thread_calls
+        return state is not None and bool(select.select([state.reader], [], [], 0)[0])
+
+    def _step(self, loop: urwid.MainLoop, event_loop: urwid.SelectEventLoop) -> None:
+        """Run one iteration of *event_loop*, failing instead of waiting when nothing is due or ready."""
+        self.assertTrue(
+            event_loop._alarms or event_loop._did_something or self._wake_up_pending(loop),
+            "the iteration would wait for input",
+        )
+        event_loop._loop()
+
+    def test_calls_run_in_order_on_the_loop_thread(self) -> None:
+        """Calls from a worker thread run in order, with their arguments, on the loop thread with the loop current."""
+        seen: list[tuple[object, ...]] = []
+
+        def record(*args: object, **kwargs: object) -> None:
+            seen.append((args, kwargs, threading.get_ident(), urwid.get_running_loop_or_none() is loop))
+
+        def work() -> None:
+            loop.call_from_thread(record, 1)
+            # pylint: disable-next=kwarg-superseded-by-positional-arg  # a keyword of the callback named like the parameter
+            loop.call_from_thread(record, 2, callback="keyword named callback")
+            loop.call_from_thread(record)
+            loop.call_from_thread(stop_screen_cb)
+
+        loop = external_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            loop.set_alarm_in(0, lambda *_args: executor.submit(work))
+            loop.set_alarm_in(1, stop_screen_cb)
+            loop.run()
+
+        loop_thread = threading.get_ident()
+        self.assertEqual(
+            [
+                ((1,), {}, loop_thread, True),
+                ((2,), {"callback": "keyword named callback"}, loop_thread, True),
+                ((), {}, loop_thread, True),
+            ],
+            seen,
+        )
+
+    def test_burst_of_calls_runs_in_order(self) -> None:
+        """A thousand calls from a worker all run, in the order they were made."""
+        seen: list[int] = []
+
+        def work() -> None:
+            for number in range(1000):
+                loop.call_from_thread(seen.append, number)
+            loop.call_from_thread(stop_screen_cb)
+
+        loop = external_loop()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            loop.set_alarm_in(0, lambda *_args: executor.submit(work))
+            loop.set_alarm_in(5, stop_screen_cb)
+            loop.run()
+
+        self.assertEqual(list(range(1000)), seen)
+
+    def test_call_on_the_loop_thread_is_deferred(self) -> None:
+        """A call made on the loop thread runs after the code that made it returned."""
+        seen: list[str] = []
+
+        def alarm(_loop: urwid.MainLoop, _data: object) -> None:
+            loop.call_from_thread(seen.append, "call")
+            seen.append("alarm end")
+
+        loop, event_loop = self._started()
+        loop.set_alarm_in(0, alarm)
+        self._settle(event_loop)
+
+        self.assertEqual(["alarm end", "call"], seen)
+
+    def test_rejects_an_async_callback(self) -> None:
+        """An ``async def`` callback, which nothing would await, is refused."""
+
+        async def callback() -> None:
+            pass
+
+        loop, _event_loop = self._started()
+        with self.assertRaises(TypeError):
+            loop.call_from_thread(callback)
+        self.assertEqual(0, len(typing.cast("main_loop_module._ThreadCalls", loop._thread_calls).calls))
+
+    def test_calls_after_an_exit_get_a_wake_up(self) -> None:
+        """Calls queued behind one that raised ExitMainLoop run on the next pass, for an event loop that goes on."""
+        seen: list[str] = []
+        loop, event_loop = self._started()
+        loop.call_from_thread(stop_screen_cb)
+        loop.call_from_thread(seen.append, "after the exit")
+        with self.assertRaises(urwid.ExitMainLoop):
+            self._step(loop, event_loop)
+        self.assertEqual([], seen)
+
+        self._step(loop, event_loop)
+        self.assertEqual(["after the exit"], seen)
+
+    def test_raises_when_the_loop_is_not_running(self) -> None:
+        """Before the loop starts and after it stopped, a call raises and nothing is queued."""
+        loop = external_loop()
+        with self.assertRaises(RuntimeError):
+            loop.call_from_thread(print)
+
+        loop.set_alarm_in(0, stop_screen_cb)
+        loop.run()
+        with self.assertRaises(RuntimeError):
+            loop.call_from_thread(print)
+
+    def test_descriptors_are_released_when_the_run_ends(self) -> None:
+        """Both ends of the wake-up socket pair are closed once the run ended and nothing holds its state."""
+        states: list[main_loop_module._ThreadCalls | None] = []
+        loop = external_loop()
+        loop.set_alarm_in(0, lambda *_args: states.append(loop._thread_calls))
+        loop.set_alarm_in(0, stop_screen_cb)
+        loop.run()
+
+        state = states.pop()
+        assert state is not None
+        reader, writer = state.reader, state.writer
+        del state
+        gc.collect()
+        self.assertEqual((-1, -1), (reader.fileno(), writer.fileno()))
+
+    def test_raising_callback_is_logged_and_the_next_call_runs(self) -> None:
+        """A call that raises is logged, the calls after it still run, and the running loops are as they were."""
+        seen: list[str] = []
+
+        def fail() -> typing.NoReturn:
+            raise ValueError
+
+        loop, event_loop = self._started()
+        before = main_loop_module._running.get()
+        loop.call_from_thread(fail)
+        loop.call_from_thread(seen.append, "next")
+        with self.assertLogs(loop.logger, "ERROR"):
+            self._step(loop, event_loop)
+
+        self.assertEqual(["next"], seen)
+        self.assertIs(before, main_loop_module._running.get())
+        self.assertIsNotNone(loop._thread_calls)
+
+    def test_full_wake_up_buffer_does_not_fail_the_call(self) -> None:
+        """A call made while the wake-up socket is full is queued, and runs."""
+        seen: list[str] = []
+        loop, event_loop = self._started()
+        state = loop._thread_calls
+        assert state is not None
+        with contextlib.suppress(BlockingIOError):
+            for _ in range(100_000):
+                state.writer.send(b"x" * 4096)
+
+        loop.call_from_thread(seen.append, "call")
+        self._step(loop, event_loop)
+
+        self.assertEqual(["call"], seen)
+
+    def test_pass_is_bounded_and_wakes_the_loop_for_the_rest(self) -> None:
+        """One pass runs a bounded number of calls, wakes the loop for the rest, and passes in a row draw between."""
+        per_pass = main_loop_module._THREAD_CALLS_PER_PASS
+        seen: list[int] = []
+        loop, event_loop = self._started()
+        draw_screen = typing.cast("unittest.mock.Mock", loop.screen).draw_screen
+        for number in range(3 * per_pass):
+            loop.call_from_thread(seen.append, number)
+
+        self._step(loop, event_loop)
+        self.assertEqual(list(range(per_pass)), seen)
+        self.assertTrue(self._wake_up_pending(loop))
+        self.assertEqual([], event_loop._alarms)
+
+        draws = draw_screen.call_count
+        self._step(loop, event_loop)
+        self.assertEqual(list(range(2 * per_pass)), seen)
+        self.assertGreater(draw_screen.call_count, draws)
+
+        draws = draw_screen.call_count
+        self._step(loop, event_loop)
+        self.assertEqual(list(range(3 * per_pass)), seen)
+        self.assertGreater(draw_screen.call_count, draws)
+        self.assertFalse(self._wake_up_pending(loop))
+
+    def test_alarm_and_redraw_are_served_during_a_flood(self) -> None:
+        """While calls keep the wake-up socket readable, a due alarm runs and the screen is still drawn."""
+        alarms: list[str] = []
+        floods: list[None] = []
+
+        def flood() -> None:
+            floods.append(None)
+            loop.call_from_thread(flood)
+
+        loop, event_loop = self._started()
+        draw_screen = typing.cast("unittest.mock.Mock", loop.screen).draw_screen
+        draws = draw_screen.call_count
+        loop.set_alarm_in(0, lambda *_args: alarms.append("alarm"))
+        loop.call_from_thread(flood)
+
+        for _ in range(2):
+            self._step(loop, event_loop)
+        self.assertEqual(["alarm"], alarms)
+        for _ in range(2):
+            self._step(loop, event_loop)
+        self.assertGreater(draw_screen.call_count, draws)
+        # A call queued during a pass runs in that pass while the pass has room: the deque is what a pass reads.
+        self.assertEqual(4 * main_loop_module._THREAD_CALLS_PER_PASS, len(floods))
+
+    def test_fallback_loop_reads_input_and_draws_during_a_flood(self) -> None:
+        """On a screen without event loop support, input and draws go on while calls keep arriving."""
+        processed: list[str] = []
+        floods: list[None] = []
+
+        class CountingScreen(LimitedInputScreen):
+            """Scripted screen counting its draws."""
+
+            draws = 0
+
+            def draw_screen(self, size: tuple[int, int], canvas: typing.Any) -> None:
+                CountingScreen.draws += 1
+
+        def flood() -> None:
+            floods.append(None)
+            loop.call_from_thread(flood)
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            processed.append(typing.cast("str", key))
+            raise urwid.ExitMainLoop
+
+        screen = CountingScreen([([], []), ([], []), ([], []), (["x"], [])])
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        loop.set_alarm_in(0, lambda *_args: loop.call_from_thread(flood))
+        loop.run()
+
+        self.assertEqual(["x"], processed)
+        self.assertEqual(4, screen.input_calls)
+        self.assertEqual(4, CountingScreen.draws)
+        self.assertEqual(3 * main_loop_module._THREAD_CALLS_PER_PASS, len(floods))
+
+    def test_fallback_loop_runs_a_call_from_a_worker(self) -> None:
+        """On a screen without event loop support, a call from a worker thread runs while the loop waits."""
+        seen: list[bool] = []
+
+        def done() -> typing.NoReturn:
+            seen.append(urwid.get_running_loop_or_none() is loop)
+            raise urwid.ExitMainLoop
+
+        class WaitingScreen(LimitedInputScreen):
+            """Scripted screen that waits out its input timeout, as a terminal does."""
+
+            def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+                time.sleep(self.timeouts[-1] or 0)
+                return super().get_input(raw_keys)
+
+        screen = WaitingScreen([])
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            loop.set_alarm_in(0, lambda *_args: executor.submit(loop.call_from_thread, done))
+            loop.run()
+
+        self.assertEqual([True], seen)
+        self.assertIsNone(loop._thread_calls)
+
+    def test_stop_from_a_call_drops_the_calls_after_it(self) -> None:
+        """A call that stops the loop ends the pass, and the calls queued after it never run, also after a restart."""
+        seen: list[str] = []
+        loop, event_loop = self._started()
+        loop.call_from_thread(seen.append, "first")
+        loop.call_from_thread(loop.stop)
+        loop.call_from_thread(seen.append, "third")
+        self._step(loop, event_loop)
+        self.assertEqual(["first"], seen)
+        self.assertIsNone(loop._thread_calls)
+
+        loop.start()
+        self._settle(event_loop)
+        self.assertFalse(self._wake_up_pending(loop))
+        self.assertEqual(["first"], seen)
+
+    def test_sender_racing_a_restart_reaches_no_later_run(self) -> None:
+        """A call that read the state before stop() and queues after the next start() raises and never runs."""
+        seen: list[str] = []
+        outcome: list[BaseException | None] = []
+        captured = threading.Event()
+        go = threading.Event()
+
+        class PausingDeque(collections.deque):
+            """Deque whose append() waits until the test lets it go on."""
+
+            def append(self, x: typing.Any, /) -> None:
+                captured.set()
+                go.wait(5)
+                super().append(x)
+
+        def send() -> None:
+            try:
+                loop.call_from_thread(seen.append, "late")
+            except RuntimeError as exc:
+                outcome.append(exc)
+            else:
+                outcome.append(None)
+
+        loop, event_loop = self._started()
+        state = loop._thread_calls
+        assert state is not None
+        state.calls = PausingDeque()
+        worker = threading.Thread(target=send)
+        worker.start()
+        self.assertTrue(captured.wait(5))
+        loop.stop()
+        loop.start()
+        go.set()
+        worker.join(5)
+
+        self.assertEqual(1, len(outcome))
+        self.assertIsInstance(outcome[0], RuntimeError)
+        self._settle(event_loop)
+        self.assertFalse(self._wake_up_pending(loop))
+        self.assertEqual([], seen)
+
+    def test_nested_run_from_a_call_ends_the_outer_calls(self) -> None:
+        """A call that runs the same loop again ends cleanly, and its inner stop() ends the calls of the outer run."""
+        seen: list[str] = []
+        loop, event_loop = self._started()
+
+        def nested() -> None:
+            loop.set_alarm_in(0, stop_screen_cb)
+            loop.run()
+            seen.append("nested run returned")
+
+        loop.call_from_thread(nested)
+        loop.call_from_thread(seen.append, "after nested")
+        self._step(loop, event_loop)
+
+        self.assertEqual(["nested run returned"], seen)
+        with self.assertRaises(RuntimeError):
+            loop.call_from_thread(print)
+
+    def test_failed_watch_leaves_no_socket_open(self) -> None:
+        """A start() whose event loop refuses the wake-up watch closes both ends of the socket pair."""
+        pairs: list[tuple[socket.socket, socket.socket]] = []
+        real_socketpair = socket.socketpair
+
+        def recording_socketpair() -> tuple[socket.socket, socket.socket]:
+            pairs.append(real_socketpair())
+            return pairs[-1]
+
+        event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
+        event_loop.watch_file.side_effect = OSError
+        loop = external_loop(event_loop=event_loop)
+        with (
+            unittest.mock.patch.object(main_loop_module.socket, "socketpair", recording_socketpair),
+            self.assertRaises(OSError),
+        ):
+            loop.run()
+
+        self.assertEqual([(-1, -1)], [(reader.fileno(), writer.fileno()) for reader, writer in pairs])
+        event_loop.remove_watch_file.assert_not_called()
+        typing.cast("unittest.mock.Mock", loop.screen).stop.assert_called_once_with()
+
+    def test_failed_watch_removal_still_drops_the_calls_and_stops(self) -> None:
+        """A stop() whose event loop fails to remove the wake-up watch still drops the calls and stops the screen."""
+        event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
+        event_loop.remove_watch_file.side_effect = OSError
+        loop = external_loop(event_loop=event_loop)
+        screen = typing.cast("unittest.mock.Mock", loop.screen)
+        loop.start()
+        state = loop._thread_calls
+        assert state is not None
+        state.calls.append(print)
+
+        with self.assertRaises(OSError):
+            loop.stop()
+
+        self.assertIsNone(loop._thread_calls)
+        with self.assertRaises(RuntimeError):
+            loop.call_from_thread(print)
+        self.assertEqual(0, len(state.calls))
+        event_loop.remove_enter_idle.assert_called_once()
+        screen.unhook_event_loop.assert_called()
+        screen.stop.assert_called_once_with()
+        self.assertIsNone(urwid.get_running_loop_or_none())

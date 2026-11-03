@@ -292,7 +292,7 @@ class TestSignalHandlers(unittest.TestCase):
     def test_suspend_from_a_main_loop_watch_re_hooks_the_event_loop(self):
         """A suspend carried out from the main loop's input watch leaves the loop watching the restarted screen.
 
-        While the process is suspended, the screen is stopped and the loop watches nothing.
+        While the process is suspended, the screen is stopped and the loop watches none of its descriptors.
         """
         # pylint: disable=protected-access  # the event loop's watches and the screen's pipe have no public view
         s = self._started_screen()
@@ -301,17 +301,18 @@ class TestSignalHandlers(unittest.TestCase):
         loop.start()
         self.addCleanup(loop.stop)
         watched = set(event_loop._watch_files)
+        thread_calls = {loop._thread_calls.reader.fileno()}
         state_at_kill = []
 
         def fake_kill(pid: int, signum: int) -> None:
-            state_at_kill.append((signum, s.started, dict(event_loop._watch_files)))
+            state_at_kill.append((signum, s.started, set(event_loop._watch_files) - thread_calls))
 
         signal.getsignal(signal.SIGTSTP)(signal.SIGTSTP, None)
         with mock.patch("os.kill", side_effect=fake_kill):
             # what the event loop calls when the wake-up byte makes the descriptor readable
             event_loop._watch_files[s._resize_pipe_rd.fileno()]()
 
-        self.assertEqual([(signal.SIGTSTP, False, {})], state_at_kill)
+        self.assertEqual([(signal.SIGTSTP, False, set())], state_at_kill)
         self.assertTrue(s.started)
         self.assertEqual(watched, set(event_loop._watch_files))
         self.assertIn(s._resize_pipe_rd.fileno(), watched)

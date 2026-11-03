@@ -113,8 +113,53 @@ A callback the stopped loop left on an event loop it does not own sees no runnin
 loop either.
 
 Being able to find the loop from another thread does not make it safe to use from
-there: change widgets and the screen only from the thread running the event loop.
+there: change widgets and the screen only from the thread running the event loop,
+and hand the work over with :meth:`MainLoop.call_from_thread`, described below.
 Explicit arguments remain the way to give a loop to code that runs outside it.
+
+
+Work From Another Thread
+========================
+
+Widgets and the screen belong to the thread running the event loop.
+A worker thread hands its results to that thread with
+:meth:`MainLoop.call_from_thread`, which queues a call and wakes the loop::
+
+    def work(loop: urwid.MainLoop) -> None:
+        result = slow_computation()
+        loop.call_from_thread(status.set_text, f"Result: {result}")
+
+    def start(_button: urwid.Button) -> None:
+        threading.Thread(target=work, args=(urwid.get_running_loop(),), daemon=True).start()
+
+The loop is captured on the loop's thread, in the button handler, and passed to
+the worker, because a plain thread does not see the running loop.
+The call runs on the loop's thread like an alarm callback: the screen is redrawn
+afterwards, :exc:`ExitMainLoop` raised by it stops the loop, and any other
+exception is logged.
+Calls run in the order they were made, and a call made after the loop stopped
+raises :exc:`RuntimeError`.
+It is safe to call from a signal handler as well.
+
+A worker that produces a stream of small updates, such as the lines of a log,
+does not make one call per line: each call costs a pass of the event loop.
+It collects the lines and asks for one drain while none is pending::
+
+    lines: collections.deque[str] = collections.deque(maxlen=1000)
+    drain_pending = threading.Event()
+
+    def drain() -> None:
+        drain_pending.clear()
+        while lines:
+            log.body.append(urwid.Text(lines.popleft()))
+
+    def on_line(line: str) -> None:  # on the worker thread
+        lines.append(line)
+        if not drain_pending.is_set():
+            drain_pending.set()
+            loop.call_from_thread(drain)
+
+``examples/thread_worker.py`` shows a worker reporting its progress and its result.
 
 
 .. _event-loops:
@@ -174,6 +219,7 @@ This event loop integrates with the asyncio module in Python.
     In case of multithreading or multiprocessing usage required, do not use executor directly!
     Use instead method :meth:`run_in_executor` of :class:`AsyncioEventLoop`,
     which forward API of the same method from asyncio Event Loop run_in_executor_.
+    A worker running there hands its results to the widgets with :meth:`MainLoop.call_from_thread`.
 
 .. warning::
 
@@ -247,6 +293,7 @@ This event loop integrates with Tornado.
     In case of multithreading or multiprocessing usage required, do not use executor directly!
     Use instead method :meth:`run_in_executor` of :class:`TornadoEventLoop`,
     which forward API of the same method from `tornado.ioloop.IOLoop` (and internally use asyncio run_in_executor_).
+    A worker running there hands its results to the widgets with :meth:`MainLoop.call_from_thread`.
 
 .. seealso::
 
