@@ -85,7 +85,8 @@ class DropDown(PopUpLauncher[Columns]):
 
     The list opens with the selected option focused. It moves above the widget when it does not fit below, and
     when it fits on neither side it takes the side with more rows and scrolls. :kbd:`enter`, :kbd:`space` or a
-    click chooses the focused option and closes the list; :kbd:`esc` closes it without a change.
+    click chooses the focused option and closes the list.
+    :kbd:`esc`, or a click outside the list, closes it without a change.
 
     With a single option there is nothing to choose, so the widget is read-only: it is not selectable, and
     activating it opens no list.
@@ -147,6 +148,7 @@ class DropDown(PopUpLauncher[Columns]):
         super().__init__(
             Columns([self._label, (indicator_width, self.drop_down_indicator)], dividechars=1),
             close_on_menu=True,
+            close_on_click_outside=True,
         )
 
         self._selected = 0

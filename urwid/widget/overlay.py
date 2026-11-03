@@ -11,6 +11,7 @@ from urwid import _deprecation, signals
 from urwid.canvas import CanvasOverlay, CompositeCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
+from urwid.util import is_mouse_press
 
 from .constants import (
     RELATIVE_100,
@@ -93,9 +94,14 @@ class Overlay(
     Its handlers receive the overlay.
     A handler returning ``True`` consumes the key.
     Otherwise :meth:`keypress` returns the key, as it does without a handler.
+
+    Sends ``"click outside"`` on a press of mouse button 1, 2 or 3 outside the top widget.
+    Its handlers receive the overlay.
+    A handler returning ``True`` consumes the press.
+    Otherwise :meth:`mouse_event` leaves the press unhandled, as it does without a handler.
     """
 
-    signals: typing.ClassVar[list[str]] = ["menu"]
+    signals: typing.ClassVar[list[str]] = ["menu", "click outside"]
 
     _selectable = True
 
@@ -1080,15 +1086,21 @@ class Overlay(
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Pass event to top_w, ignore if outside of top_w."""
-        if not hasattr(self.top_w, "mouse_event"):
-            return False
+        """Pass event to top_w.
 
+        A press of mouse button 1, 2 or 3 outside top_w is sent as ``"click outside"``.
+        Any other event outside top_w is ignored.
+
+        :returns: whether top_w or a ``"click outside"`` handler handled the event.
+        """
         real_size = self.pack(size, focus)
 
         left, right, top, bottom = self.calculate_padding_filler(real_size, focus)
         maxcol, maxrow = real_size
         if col < left or col >= maxcol - right or row < top or row >= maxrow - bottom:
+            return button in {1, 2, 3} and is_mouse_press(event) and signals.emit_signal(self, "click outside", self)
+
+        if not hasattr(self.top_w, "mouse_event"):
             return False
 
         return self.top_w.mouse_event(

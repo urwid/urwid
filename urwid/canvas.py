@@ -62,6 +62,8 @@ if typing.TYPE_CHECKING:
             "pop up anchor": NotRequired[tuple[int, int, int]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
             "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
+            "pop up click outside": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[], None]]]],
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
@@ -401,6 +403,18 @@ class Canvas:
             return None
         return on_key[2][1]
 
+    def get_pop_up_click_outside(self) -> Callable[[], None] | None:
+        """Return the outside click callback set with the pop-up on this canvas.
+
+        :returns: the callback, or ``None`` when none was set.
+        """
+        pop_up = self.coords.get("pop up", None)
+        on_click = self.coords.get("pop up click outside", None)
+        # As for the anchor, use only the callback set together with this pop-up.
+        if pop_up is None or on_click is None or on_click[:2] != pop_up[:2] or on_click[2][0] is not pop_up[2][0]:
+            return None
+        return on_click[2][1]
+
     def set_pop_up(
         self,
         w: AbstractWidget,
@@ -411,6 +425,7 @@ class Canvas:
         *,
         anchor_height: int | None = None,
         on_unhandled_key: Callable[[str], str | None] | None = None,
+        on_click_outside: Callable[[], None] | None = None,
     ) -> None:
         """Add pop-up information to the canvas.
 
@@ -434,6 +449,9 @@ class Canvas:
         :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
             unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
             to pass on. ``None`` passes every unhandled key on.
+        :param on_click_outside: called by :class:`PopUpTarget <urwid.PopUpTarget>` instead of passing on a press of
+            mouse button 1, 2 or 3 outside `w` while it is the topmost open pop-up.
+            ``None`` leaves such a press unhandled.
         :raises CanvasError: the canvas is already finalised, the anchor height is negative
             or the overlay size is not positive
         """
@@ -458,6 +476,10 @@ class Canvas:
             self.coords.pop("pop up unhandled key", None)
         else:
             self.coords["pop up unhandled key"] = (left, top, (w, on_unhandled_key))
+        if on_click_outside is None:
+            self.coords.pop("pop up click outside", None)
+        else:
+            self.coords["pop up click outside"] = (left, top, (w, on_click_outside))
 
     def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
         """Return coords shifted by (dx, dy)."""

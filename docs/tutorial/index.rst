@@ -340,7 +340,7 @@ Cascading Menu
 
 A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
-return to previous menus by pressing *ESC*.
+return to the previous menu by pressing *ESC* or by clicking outside the current menu.
 
 .. literalinclude:: cmenu.py
    :linenos:
@@ -373,6 +373,9 @@ case as a base class for a widget that will be replacing its own contents regula
   leaves an *ESC* key unhandled, and *close_box()* removes the current box to
   show the previous one.  Returning ``True`` tells the :class:`Overlay` that the
   key was handled.  This allows the user to return to a previous menu level.
+  It is connected to the ``'click outside'`` signal as well, which the
+  :class:`Overlay` sends for a mouse click outside the box, so such a click
+  also closes the current box and shows the previous menu.
 
 
 Horizontal Menu
