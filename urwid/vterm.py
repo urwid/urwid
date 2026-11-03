@@ -1773,7 +1773,8 @@ class Terminal(Widget):
 
         ``main_loop`` should be provided, because the canvas state machine needs
         to act on input from the PTY master device. This object must have
-        watch_file and remove_watch_file methods.
+        watch_file and remove_watch_file methods,
+        and remove_watch_file must accept the handle watch_file returned.
 
         ``escape_sequence`` is the urwid key symbol which should be used to break
         out of the terminal widget. If it's not specified, ``ctrl a`` is used.
@@ -1818,6 +1819,9 @@ class Terminal(Widget):
             self.main_loop = event_loop.SelectEventLoop()
 
         self.master: int | None = None
+        # what main_loop.watch_file() returned for the pty, None while no watch is set;
+        # not always the descriptor, as tornado and trio show
+        self._watch_handle: typing.Any = None
         self.pid: int | None = None
 
         self.width: int | None = None
@@ -2027,13 +2031,14 @@ class Terminal(Widget):
         """Register the pty with the main loop, when there is one, so :meth:`feed` runs on new child output."""
         if self.main_loop is None:
             return
-        self.main_loop.watch_file(typing.cast("int", self.master), self.feed)
+        self._watch_handle = self.main_loop.watch_file(typing.cast("int", self.master), self.feed)
 
     def remove_watch(self) -> None:
-        """Unregister the pty from the main loop, when there is one."""
-        if self.main_loop is None:
+        """Unregister the pty from the main loop, when :meth:`add_watch` registered it."""
+        if self.main_loop is None or self._watch_handle is None:
             return
-        self.main_loop.remove_watch_file(typing.cast("int", self.master))
+        self.main_loop.remove_watch_file(self._watch_handle)
+        self._watch_handle = None
 
     def wait_and_feed(self, timeout: float = 1.0) -> None:
         """Block up to *timeout* seconds for pty output, then read and process whatever has arrived."""

@@ -1696,6 +1696,21 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(self.pty.reaped, reaped)
                 self.assertTrue(self.pty.closed)
 
+    def test_terminate_removes_the_watch_by_its_handle(self) -> None:
+        """Remove the pty watch by the handle watch_file() returned, once.
+
+        On tornado and trio that handle is not the descriptor.
+        """
+        loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        loop.watch_file.return_value = handle = object()
+        term = urwid.Terminal(["/bin/false"], main_loop=loop)
+        term.render(self.termsize)
+        loop.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        term.terminate()
+        term.remove_watch()
+        loop.remove_watch_file.assert_called_once_with(handle)
+        self.assertTrue(self.pty.closed)
+
     def test_terminate_before_spawn(self) -> None:
         """Mark a terminal that never spawned its child as terminated without touching any process."""
         term = urwid.Terminal(["/bin/false"])
