@@ -31,15 +31,18 @@ from __future__ import annotations
 
 import enum
 import typing
+import weakref
 
 from urwid import _deprecation
+from urwid.canvas import CompositeCanvas
+from urwid.str_util import calc_width
 
 from .columns import Columns
-from .constants import BOX_SYMBOLS, Sizing, WHSettings
+from .constants import BOX_SYMBOLS, Sizing, WHSettings, WrapMode
 from .listbox import ListBox, ListWalker
 from .padding import Padding
 from .text import Text
-from .widget import WidgetWrap
+from .widget import Widget, WidgetWrap
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
@@ -49,7 +52,6 @@ if typing.TYPE_CHECKING:
     from urwid.util import _TagMarkup
 
     from .listbox import VisibleInfo
-    from .widget import Widget
 
 __all__ = (
     "ParentNode",
@@ -63,6 +65,10 @@ __all__ = (
 
 _T = typing.TypeVar("_T")
 _Node_co = typing.TypeVar("_Node_co", bound="TreeNode[typing.Any] | ParentNode[typing.Any]", covariant=True)
+
+# The last child key ParentNode recorded: none recorded yet, and a key list that was empty.
+_LAST_CHILD_UNKNOWN = object()
+_NO_CHILDREN = object()
 
 
 class TreeWidgetError(RuntimeError):
@@ -128,6 +134,33 @@ class _IconColumns(Columns):
         return [0, maxcol]
 
 
+class _TreeLines(Widget):
+    """The connector lines in the indentation of a :class:`TreeWidget`, as tall as the row it is in."""
+
+    _sizing = frozenset((Sizing.BOX,))
+
+    def __init__(self, tree_widget: TreeWidget[typing.Any]) -> None:
+        """Keep a weak reference to *tree_widget*, the owner whose lines this widget draws."""
+        super().__init__()
+        self._tree_widget = weakref.ref(tree_widget)
+
+    def render(self, size: tuple[int, int], focus: bool = False) -> CompositeCanvas:  # type: ignore[override]
+        """Render the first row of the lines and repeat the row below it down to the given height.
+
+        :raises TreeWidgetError: the tree widget that owns these lines no longer exists.
+        """
+        maxcol, maxrow = size
+        if (tree_widget := self._tree_widget()) is None:
+            raise TreeWidgetError("The tree widget of these connector lines no longer exists")
+        first, below = tree_widget._lines_markup()  # pylint: disable=protected-access
+        markup: list[str | tuple[Hashable, str]] = list(first)
+        for _ in range(maxrow - 1):
+            markup.extend(("\n", *below))
+        canvas = CompositeCanvas(Text(markup, wrap=WrapMode.CLIP).render((maxcol,)))
+        canvas.pad_trim_top_bottom(0, maxrow - canvas.rows())
+        return canvas
+
+
 class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     """A widget representing something in a nested tree display."""
 
@@ -138,10 +171,31 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     #: The icon of a leaf; with one set, leaves get an icon column too, so their text lines up with a parent's.
     leaf_icon: Widget | None = None
 
+    #: Draw lines in the indentation that connect each node to its parent and its siblings.
+    connector_lines: bool = False
+    #: The one-column line passing a node that has a sibling further down.
+    line_vertical: str = TreeSymbols.LIGHT_VERTICAL
+    #: The one-column connector of a node that has a sibling further down.
+    line_tee: str = TreeSymbols.LIGHT_TEE
+    #: The one-column connector of the last child.
+    line_corner: str = TreeSymbols.LIGHT_CORNER
+    #: The one-column line from the connector to the icon.
+    line_horizontal: str = TreeSymbols.LIGHT_HORIZONTAL
+    #: The one-column glyph that ends a connector next to the icon, or None to end it with :attr:`line_horizontal`.
+    #: With an ``indent_cols`` of 1 the connector has no room for it.
+    line_tip: str | None = None
+    #: The display attribute of the connector lines.
+    line_attr: Hashable = None
+    #: The display attribute of :attr:`line_tip`, or None to use :attr:`line_attr`.
+    line_tip_attr: Hashable = None
+
     # The pieces the stock get_indented_widget() built, for update_expanded_icon() and mouse_event().
     # The class-level None stands for a layout a subclass built itself.
     _indent_padding: Padding[Text | Columns] | None = None
+    _lines_columns: Columns | None = None
     _icon_columns: Columns | None = None
+    # Created by get_lines_widget() and kept, so the widget a layout holds is the one ParentNode invalidates.
+    _lines: _TreeLines | None = None
 
     def __init__(self, node: _Node_co) -> None:
         """Build the widget representing `node`, expanded as :meth:`is_initially_expanded` says.
@@ -218,13 +272,79 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
 
         The icon column is as wide as the widest icon.
         A leaf has an icon column only when :attr:`leaf_icon` is set.
+        With :attr:`connector_lines` set, the lines from :meth:`get_lines_widget` fill the indentation.
+        On a row too narrow for the indentation and one more column, the lines are left out.
         """
         widget: Text | Columns = self.get_inner_widget()
-        self._icon_columns = None
+        self._icon_columns = self._lines_columns = None
         if (icon := self._icon()) is not None:
             widget = self._icon_columns = _IconColumns([(self._icon_cols(), icon), widget], dividechars=1)
-        self._indent_padding = Padding(widget, width=(WHSettings.RELATIVE, 100), left=self.get_indent_cols())
+        if (lines := self.get_lines_widget()) is None:
+            self._indent_padding = Padding(widget, width=(WHSettings.RELATIVE, 100), left=self.get_indent_cols())
+        else:
+            self._lines_columns = Columns(
+                [(self.get_indent_cols(), lines), widget],
+                focus_column=1,
+                box_columns=(0,),
+            )
+            self._indent_padding = Padding(self._lines_columns, width=(WHSettings.RELATIVE, 100))
         return self._indent_padding
+
+    def get_lines_widget(self) -> Widget | None:
+        """Return the widget that draws this node's connector lines, as wide as the indentation.
+
+        It is created on the first call and the same widget is returned after that.
+        A layout of a subclass's own places it at the start of the row, as a box column.
+
+        :returns: the lines widget, or None when :attr:`connector_lines` is not set, for the root, and when
+            ``indent_cols`` is 0.
+        :raises TreeWidgetError: a line glyph is not one column wide.
+        """
+        if self._lines is None:
+            node = self.get_node()
+            if not self.connector_lines or self.indent_cols == 0 or node.get_depth() == 0:
+                return None
+            for name in ("line_vertical", "line_tee", "line_corner", "line_horizontal", "line_tip"):
+                if (glyph := getattr(self, name)) is not None and calc_width(glyph, 0, len(glyph)) != 1:
+                    raise TreeWidgetError(f"{type(self).__name__}.{name} is not one column wide: {glyph!r}")
+            self._lines = _TreeLines(self)
+            # Every ancestor of a node with lines is marked, so the walk stops at the first marked one.
+            parent = node.get_parent()
+            while parent is not None and not parent._lines_below:  # pylint: disable=protected-access
+                parent._lines_below = True  # pylint: disable=protected-access
+                parent = parent.get_parent()
+        return self._lines
+
+    def _lines_markup(self) -> tuple[list[tuple[Hashable, str]], list[tuple[Hashable, str]]]:
+        """Return the markup of the first row of the connector lines and of each row below it.
+
+        A level of the indentation has a vertical line where a node above has a sibling below this row.
+        The last level connects this node to its parent with a tee, or a corner for the last child.
+
+        :returns: the ``(attribute, text)`` segments of the first row, and those of every row below it, each row as
+            wide as the indentation.
+        :raises TreeWidgetError: the key of this node or of an ancestor is no longer among its parent's keys.
+        """
+        cols = self.indent_cols
+        has_next: list[bool] = []
+        node: TreeNode[typing.Any] = self.get_node()
+        while (parent := node.get_parent()) is not None:
+            has_next.append(parent.get_child_index(node.get_key()) < len(parent.get_child_keys()) - 1)
+            node = parent
+        *ancestors, own = reversed(has_next)
+        gap = " " * (cols - 1)
+        bars = "".join((self.line_vertical if bar else " ") + gap for bar in ancestors)
+        below = [(self.line_attr, bars + (self.line_vertical if own else " ") + gap)]
+        connector = bars + (self.line_tee if own else self.line_corner)
+        if cols == 1:
+            return [(self.line_attr, connector)], below
+        if self.line_tip is None:
+            return [(self.line_attr, connector + self.line_horizontal * (cols - 1))], below
+        tip_attr = self.line_attr if self.line_tip_attr is None else self.line_tip_attr
+        return [
+            (self.line_attr, connector + self.line_horizontal * (cols - 2)),
+            (tip_attr, self.line_tip),
+        ], below
 
     def _icon_cols(self) -> int:
         """Return the width of the icon column.
@@ -248,9 +368,13 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets."""
         if self._icon_columns is None:
-            # A layout of the subclass's own, with the icon first in its columns, as the stock layout has it.
+            # A layout of the subclass's own, or a stock leaf without an icon column: the icon is first in the
+            # columns of the row, or in the columns right of the lines widget when the row starts with it.
             icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
-            self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
+            columns = self._w.base_widget
+            if self._lines is not None and columns.contents[0][0] is self._lines:  # type: ignore[attr-defined]
+                columns = columns.contents[1][0].base_widget  # type: ignore[attr-defined]
+            columns.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
         else:
             # The stock layout has an icon column only for a node that has an icon.
             icon = typing.cast("Widget", self._icon())
@@ -378,7 +502,11 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
             return range(self.get_indent_cols(), self.get_indent_cols() + 1)
 
         left, right = self._indent_padding.padding_values(size, focus)
-        if not (icon_width := self._icon_columns.column_widths((size[0] - left - right,), focus)[0]):
+        maxcol = size[0] - left - right
+        if self._lines_columns is not None:
+            lines_width, maxcol = self._lines_columns.column_widths((maxcol,), focus)
+            left += lines_width
+        if not (icon_width := self._icon_columns.column_widths((maxcol,), focus)[0]):
             return None
         return range(left, left + icon_width)
 
@@ -575,6 +703,12 @@ class TreeNode(typing.Generic[_T]):
 class ParentNode(TreeNode[_T]):
     """Maintain sort order for TreeNodes."""
 
+    # A descendant has connector lines, which a change of the last child key redraws.
+    _lines_below = False
+    # The last child key when the keys were last loaded, to find the children whose lines change.
+    # A class-level default, so a subclass that skips ``__init__`` has it too.
+    _last_child_key: object = _LAST_CHILD_UNKNOWN
+
     def __init__(
         self,
         value: typing.Any,
@@ -598,12 +732,36 @@ class ParentNode(TreeNode[_T]):
         """
         if self._child_keys is None or reload:
             self._child_keys = self.load_child_keys()
+            last_child_key = self._child_keys[-1] if self._child_keys else _NO_CHILDREN
+            if self._lines_below:
+                self._invalidate_lines(last_child_key)
+            self._last_child_key = last_child_key
             if reload:
                 current = set(self._child_keys)
                 self._children = {key: node for key, node in self._children.items() if key in current}
                 self._child_index = {}
                 self._indexed_keys = None
         return self._child_keys
+
+    def _invalidate_lines(self, last_child_key: object) -> None:
+        """Redraw the connector lines of the children that stopped or started being the last child.
+
+        The lines of every loaded child are redrawn when the previous last child key is not known.
+        The keys are compared with a snapshot, since a key list changed in place no longer shows the old last key.
+        """
+        if self._last_child_key is _LAST_CHILD_UNKNOWN:
+            stack = list(self._children.values())
+        elif self._last_child_key != last_child_key:
+            stack = [self._children[key] for key in (self._last_child_key, last_child_key) if key in self._children]
+        else:
+            return
+        while stack:
+            node = stack.pop()
+            # The cached widget only: a widget not created yet is drawn with the current keys.
+            if node._widget is not None and node._widget._lines is not None:  # pylint: disable=protected-access
+                node._widget._lines._invalidate()  # pylint: disable=protected-access
+            if isinstance(node, ParentNode):
+                stack.extend(node._children.values())  # pylint: disable=protected-access
 
     def load_child_keys(self) -> Sequence[Hashable]:
         """Provide ParentNode with an ordered list of child keys (virtual function).

@@ -31,11 +31,16 @@ if typing.TYPE_CHECKING:
         return widget
 
     class TriangleWidget(urwid.TreeWidget[NameNode]):
-        """Draw the icons with symbols of the widget class."""
+        """Draw the icons and the connector lines with symbols of the widget class."""
 
         unexpanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_RIGHT, 0)
         expanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_DOWN, 0)
         leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.BULLET)
+        connector_lines = True
+        line_corner = urwid.TreeWidget.Symbols.LIGHT_CORNER_ROUNDED
+        line_tip = urwid.TreeWidget.Symbols.ARROW_TIP
+        line_attr = "tree line"
+        line_tip_attr = ("tree", "tip")
 
     def symbols() -> None:
         """Type the symbols as members of their enumeration, usable wherever text is."""

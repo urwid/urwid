@@ -3,6 +3,7 @@ from __future__ import annotations
 import sys
 import typing
 import unittest
+import unittest.mock
 
 import urwid
 from urwid import TreeNode
@@ -286,6 +287,101 @@ class SkippedInitWidget(urwid.TreeWidget[typing.Any]):
         self.is_leaf = not isinstance(node, urwid.ParentNode)
         self.expanded = True
         urwid.WidgetWrap.__init__(self, self.get_indented_widget())  # pylint: disable=non-parent-init-called
+
+
+class LinesWidget(urwid.TreeWidget[typing.Any]):
+    """Widget with connector lines."""
+
+    connector_lines = True
+
+
+class LinesTipWidget(LinesWidget):
+    """Widget with connector lines that end in a tip, with display attributes for both."""
+
+    line_tip = urwid.TreeWidget.Symbols.ARROW_TIP
+    line_attr = "line"
+    line_tip_attr = "tip"
+
+
+class LinesLeafIconWidget(LinesWidget):
+    """Widget with connector lines and a blank leaf icon."""
+
+    leaf_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.SPACE, 0)
+
+
+class LinesWideIconWidget(WideIconWidget):
+    """Widget with connector lines and three-column icons."""
+
+    connector_lines = True
+
+
+class LinesSkippedInitWidget(SkippedInitWidget):
+    """Widget with connector lines whose ``__init__`` does not call :meth:`urwid.TreeWidget.__init__`."""
+
+    connector_lines = True
+
+
+class LinesOwnLayoutWidget(LinesWidget):
+    """Widget placing the lines widget in a layout of its own, with a bracketed text."""
+
+    def get_indented_widget(self) -> urwid.Padding[urwid.Text | urwid.Columns]:
+        """Build the layout without the stock method, with the icon of a parent in columns after the lines."""
+        widget: urwid.Text | urwid.Columns = urwid.Text(f"[{self.get_display_text()}]")
+        if not self.is_leaf:
+            icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
+            widget = urwid.Columns([(1, icon), widget], dividechars=1)
+        if (lines := self.get_lines_widget()) is not None:
+            widget = urwid.Columns([(self.get_indent_cols(), lines), widget], box_columns=(0,))
+        return urwid.Padding(widget)
+
+
+class SpecParent(urwid.ParentNode):
+    """Parent whose children are described by *spec*, loaded through :meth:`urwid.ParentNode.get_child_keys`.
+
+    *spec* maps a child key to the spec of a parent child, or to None for a leaf.
+    Its key list is one list object, returned by every load, so a test can change it in place.
+    """
+
+    widget_class: type[urwid.TreeWidget[typing.Any]] = LinesWidget
+
+    def __init__(
+        self,
+        value: str,
+        spec: dict[str, typing.Any],
+        parent: SpecParent | None = None,
+        key: Hashable = None,
+    ) -> None:
+        """Store *spec* and the key list taken from it."""
+        super().__init__(value, parent=parent, key=key)
+        self.spec = spec
+        self.keys = list(spec)
+
+    def load_child_keys(self) -> list[Hashable]:
+        """Return the key list itself."""
+        return self.keys
+
+    def load_child_node(self, key: Hashable) -> urwid.TreeNode[typing.Any]:
+        """Create the child that *spec* describes, with the parent's widget class."""
+        if (child_spec := self.spec[key]) is not None:
+            child: urwid.TreeNode[typing.Any] = SpecParent(f"node_{key}", child_spec, parent=self, key=key)
+        else:
+            child = SpecChild(f"leaf_{key}", parent=self, key=key)
+        child.widget_class = self.widget_class  # type: ignore[attr-defined]
+        return child
+
+    def load_widget(self) -> urwid.TreeWidget[typing.Any]:
+        """Create the widget of the tree's class."""
+        return self.widget_class(self)
+
+
+class SpecChild(urwid.TreeNode[typing.Any]):
+    """Leaf of a :class:`SpecParent` tree."""
+
+    widget_class: type[urwid.TreeWidget[typing.Any]] = LinesWidget
+
+    def load_widget(self) -> urwid.TreeWidget[typing.Any]:
+        """Create the widget of the tree's class."""
+        return self.widget_class(self)
 
 
 def build_chain(depth: int) -> SelfRegisteringParent:
@@ -1041,6 +1137,214 @@ class TestTreeWidgetLeafIcon(unittest.TestCase):
 
         self.assertEqual(("      ( )",), widget.render((9,)).decoded_text)
         self.assertEqual(("      1:", "      ch", "      il", "      d_", "      11"), widget.render((8,)).decoded_text)
+
+
+class TestTreeWidgetLines(unittest.TestCase):
+    """Connector lines in the indentation, drawn with the glyphs and attributes of the widget class."""
+
+    def test_lines(self) -> None:
+        """A tee joins a node with a next sibling, a corner the last child, and a bar passes a sibling below."""
+        listbox = urwid.TreeListBox(urwid.TreeWalker(build_styled_tree(LinesWidget)))
+
+        self.assertEqual(
+            (
+                "- /: root           ",
+                "├──- 1/: nested_1   ",
+                "│  ├──1: child_11   ",
+                "│  └──2: child_12   ",
+                "└──- 2/: nested_2   ",
+                "   └──1: child_21   ",
+            ),
+            listbox.render((20, 6)).decoded_text,
+        )
+
+    def test_indent_cols(self) -> None:
+        """The connector fills its level of the indentation, and an indentation of 0 has no lines."""
+        cases = (
+            (1, ("- /: root   ", "├- 1/: neste", "│├1: child_1", "│└2: child_1", "└- 2/: neste", " └1: child_2")),
+            (2, ("- /: root   ", "├─- 1/: nest", "│ ├─1: child", "│ └─2: child", "└─- 2/: nest", "  └─1: child")),
+            (0, ("- /: root   ", "- 1/: nested", "1: child_11 ", "2: child_12 ", "- 2/: nested", "1: child_21 ")),
+        )
+        for indent_cols, rows in cases:
+            with self.subTest(indent_cols=indent_cols):
+                widget_class = type("IndentWidget", (LinesWidget,), {"indent_cols": indent_cols})
+                listbox = urwid.TreeListBox(urwid.TreeWalker(build_styled_tree(widget_class)))
+                self.assertEqual(
+                    rows,
+                    tuple(row[:12] for row in listbox.render((20, 6)).decoded_text),
+                )
+
+    def test_leaf_icon(self) -> None:
+        """The connector of a leaf ends at its icon."""
+        listbox = urwid.TreeListBox(urwid.TreeWalker(build_styled_tree(LinesLeafIconWidget)))
+
+        self.assertEqual(
+            ("│  ├──  1: child_11 ", "│  └──  2: child_12 "),
+            listbox.render((20, 6)).decoded_text[2:4],
+        )
+
+    def test_tip_and_attributes(self) -> None:
+        """The tip ends the connector, with its own display attribute."""
+        widget = build_styled_tree(LinesTipWidget).get_child_node("1/").get_widget()
+        canvas = widget.render((20,))
+
+        self.assertEqual(("├─➤- 1/: nested_1   ",), canvas.decoded_text)
+        self.assertEqual(
+            [("line", "├─"), ("tip", "➤")],
+            [(attr, text.decode()) for attr, _cs, text in next(iter(canvas.content()))[:2]],
+        )
+
+    def test_rows_below_the_first(self) -> None:
+        """A node drawn on several rows continues the bars of its level, and of the levels above it."""
+        root = build_styled_tree(LinesWidget)
+
+        self.assertEqual(
+            ("├──- 1/:", "│    nes", "│    ted", "│    _1 "),
+            root.get_child_node("1/").get_widget().render((8,)).decoded_text,
+        )
+        self.assertEqual(
+            ("   └──1:", "      ch"),
+            root.get_child_node("2/").get_child_node("1").get_widget().render((8,)).decoded_text[:2],
+        )
+
+    def test_wide_glyph_raises(self) -> None:
+        """A glyph wider than one column raises, naming the attribute."""
+        for name in ("line_vertical", "line_tee", "line_corner", "line_horizontal", "line_tip"):
+            with self.subTest(name=name):
+                widget_class = type("WideGlyphWidget", (LinesWidget,), {name: "\N{CJK UNIFIED IDEOGRAPH-4E00}"})
+                with self.assertRaisesRegex(urwid.widget.treetools.TreeWidgetError, name):
+                    build_styled_tree(widget_class).get_child_node("1/").get_widget()
+
+    def test_toggle_keeps_lines(self) -> None:
+        """Keys and a click on every cell of a wide icon switch the icon and leave the lines as they are."""
+        widget = build_styled_tree(LinesWideIconWidget).get_child_node("1/").get_widget()
+
+        self.assertIsNone(widget.keypress((20,), "-"))
+        self.assertEqual(("├──[+] 1/: nested_1 ",), widget.render((20,)).decoded_text)
+        self.assertIsNone(widget.keypress((20,), "+"))
+        self.assertEqual(("├──[-] 1/: nested_1 ",), widget.render((20,)).decoded_text)
+        for col, icon in ((3, "+"), (4, "-"), (5, "+")):
+            with self.subTest(col=col):
+                self.assertTrue(widget.mouse_event((20,), "mouse press", 1, col, 0, True))
+                self.assertEqual((f"├──[{icon}] 1/: nested_1 ",), widget.render((20,)).decoded_text)
+        self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 0, 0, True))
+
+    def test_narrow_row(self) -> None:
+        """A row without room for the indentation and one more column drops the lines, and the icon moves left."""
+        widget = build_styled_tree(LinesWideIconWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("├──[-]",), widget.render((6,)).decoded_text)
+        self.assertEqual(("├──1/", "│  : ", "│  ne"), widget.render((5,)).decoded_text[:3])
+        self.assertEqual(("[-]",), widget.render((3,)).decoded_text)
+        self.assertFalse(widget.mouse_event((5,), "mouse press", 1, 3, 0, True))
+        self.assertTrue(widget.mouse_event((3,), "mouse press", 1, 0, 0, True))
+        self.assertEqual(("[+]",), widget.render((3,)).decoded_text)
+
+        leaf = build_styled_tree(LinesLeafIconWidget).get_child_node("1/").get_child_node("1").get_widget()
+        self.assertEqual(("  1: c", "  hild", "  _11 "), leaf.render((6,)).decoded_text)
+
+    def test_non_utf8_terminal(self) -> None:
+        """The light glyphs are drawn with DEC special graphics, the others with the ASCII fallbacks or ``?``."""
+        heavy = type("HeavyWidget", (LinesWidget,), {"line_tee": urwid.TreeWidget.Symbols.HEAVY_TEE})
+        old_fallbacks = urwid.get_ascii_fallbacks()
+        self.addCleanup(urwid.set_ascii_fallbacks, old_fallbacks)
+        rows = {}
+        with urwid.util.set_temporary_encoding("ascii"):
+            for label, widget_class in (("light", LinesWidget), ("heavy", heavy), ("fallback", heavy)):
+                if label == "fallback":
+                    urwid.set_ascii_fallbacks({urwid.TreeWidget.Symbols.HEAVY_TEE: "+"})
+                canvas = build_styled_tree(widget_class).get_child_node("1/").get_widget().render((20,))
+                rows[label] = [(cs, text) for _attr, cs, text in next(iter(canvas.content()))[:2]]
+
+        self.assertEqual([("0", b"tqq"), (None, b"-")], rows["light"])
+        self.assertEqual([(None, b"?"), ("0", b"qq")], rows["heavy"])
+        self.assertEqual([(None, b"+"), ("0", b"qq")], rows["fallback"])
+
+    def test_reload_redraws_lines(self) -> None:
+        """A change of the last child redraws the lines of the old and the new last child, under a kept canvas."""
+
+        def append_in_place(root: SpecParent) -> None:
+            root.spec["c"] = None
+            root.keys.append("c")
+            root.get_child_keys(reload=True)
+
+        def pop_in_place(root: SpecParent) -> None:
+            root.keys.pop()
+            root.get_child_keys(reload=True)
+
+        def append_and_clear(root: SpecParent) -> None:
+            root.spec["c"] = None
+            root.keys.append("c")
+            root._child_keys = None  # pylint: disable=protected-access
+            root.get_child_keys()
+
+        cases = (
+            (append_in_place, ("├──- a: node_a  ", "│  ├──x: leaf_x ", "│  └──y: leaf_y ", "├──b: leaf_b    ")),
+            (pop_in_place, ("└──- a: node_a  ", "   ├──x: leaf_x ", "   └──y: leaf_y ", "                ")),
+            (append_and_clear, ("├──- a: node_a  ", "│  ├──x: leaf_x ", "│  └──y: leaf_y ", "├──b: leaf_b    ")),
+        )
+        for change, rows in cases:
+            with self.subTest(change=change.__name__):
+                root = SpecParent("root", {"a": {"x": None, "y": None}, "b": None}, key="/")
+                listbox = urwid.TreeListBox(urwid.TreeWalker(root))
+                kept = listbox.render((16, 5))
+                change(root)
+
+                self.assertEqual("└──b: leaf_b    ", kept.decoded_text[4])
+                self.assertEqual(rows, listbox.render((16, 5)).decoded_text[1:])
+
+    def test_default_does_no_walk(self) -> None:
+        """Without connector lines, a reload looks at no child for lines to redraw."""
+        root = SpecParent("root", {"a": {"x": None}, "b": None}, key="/")
+        root.widget_class = urwid.TreeWidget
+        urwid.TreeListBox(urwid.TreeWalker(root)).render((16, 4))
+        with unittest.mock.patch.object(urwid.ParentNode, "_invalidate_lines") as invalidate:
+            root.spec["c"] = None
+            root.keys.append("c")
+            root.get_child_keys(reload=True)
+
+        invalidate.assert_not_called()
+
+    def test_get_lines_widget(self) -> None:
+        """The lines widget is created once, and a layout of a subclass's own places it and sees it redrawn."""
+        root = SpecParent("root", {"a": None, "b": None}, key="/")
+        root.widget_class = LinesOwnLayoutWidget
+        listbox = urwid.TreeListBox(urwid.TreeWalker(root))
+        widget = root.get_child_node("a").get_widget()
+        kept = listbox.render((16, 3))
+
+        self.assertIs(widget.get_lines_widget(), widget.get_lines_widget())
+        self.assertIsNone(root.get_widget().get_lines_widget())
+        self.assertIsNone(build_styled_tree(urwid.TreeWidget).get_child_node("1/").get_widget().get_lines_widget())
+        self.assertEqual(("- [/: root]     ", "├──[a: leaf_a]  ", "└──[b: leaf_b]  "), kept.decoded_text)
+        root.keys.pop()
+        root.get_child_keys(reload=True)
+        self.assertEqual("└──[a: leaf_a]  ", listbox.render((16, 3)).decoded_text[1])
+
+        parent = build_styled_tree(LinesOwnLayoutWidget).get_child_node("1/").get_widget()
+        parent.collapse()
+        self.assertEqual(("├──+ [1/: nested_1]   ",), parent.render((22,)).decoded_text)
+
+    def test_skipped_init(self) -> None:
+        """A widget that sets its state itself and calls the stock layout method draws lines and toggles."""
+        root = build_styled_tree(LinesSkippedInitWidget)
+        widget = root.get_child_node("1/").get_widget()
+
+        self.assertEqual(("├──- 1/: nested_1   ",), widget.render((20,)).decoded_text)
+        self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
+        self.assertEqual(("├──+ 1/: nested_1   ",), widget.render((20,)).decoded_text)
+        self.assertEqual(
+            ("│  └──2: child_12   ",),
+            root.get_child_node("1/").get_child_node("2").get_widget().render((20,)).decoded_text,
+        )
+
+    def test_decorated_layout_mouse(self) -> None:
+        """A click toggles after the layout is wrapped in an :class:`urwid.AttrMap`, as ``examples/browse.py`` does."""
+        widget = build_styled_tree(LinesWidget).get_child_node("1/").get_widget()
+        widget._w = urwid.AttrMap(widget._w, None, "focus")
+
+        self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
+        self.assertEqual(("├──+ 1/: nested_1   ",), widget.render((20,)).decoded_text)
 
 
 class TestLastChild(unittest.TestCase):
