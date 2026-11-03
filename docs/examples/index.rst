@@ -71,6 +71,13 @@ A tabbed window with a status line that follows the selected tab, and a key
 that closes the current tab
 
 
+notifications.py
+----------------
+
+Messages of each severity in the footer of a window, each one dismissed after
+five seconds, and a message that stays until it is dismissed
+
+
 external_editor.py
 ------------------
 

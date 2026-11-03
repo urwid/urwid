@@ -47,6 +47,7 @@ from .list_walker import ListWalker, ListWalkerError, SimpleFocusListWalker, Sim
 from .listbox import ListBox, ListBoxError
 from .monitored_deque import MonitoredDeque, MonitoredFocusDeque
 from .monitored_list import MonitoredFocusList, MonitoredList
+from .notifications import Notification, Notifications
 from .overlay import Overlay, OverlayError, OverlayWarning
 from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
@@ -140,6 +141,8 @@ __all__ = (
     "MonitoredFocusDeque",
     "MonitoredFocusList",
     "MonitoredList",
+    "Notification",
+    "Notifications",
     "Overlay",
     "OverlayError",
     "OverlayWarning",

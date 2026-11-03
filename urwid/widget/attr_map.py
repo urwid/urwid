@@ -20,6 +20,7 @@ if typing.TYPE_CHECKING:
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
+_KeyT = typing.TypeVar("_KeyT", bound=Hashable)
 
 
 class AttrMapError(WidgetError):
@@ -38,6 +39,16 @@ def _attr_map_dict(attr_map: _AttrMapLike) -> dict[Hashable, Hashable]:
         if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
             raise AttrMapError(f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable")
     return mapping
+
+
+def _attr_map_dicts(attr_maps: Mapping[_KeyT, _AttrMapLike] | None) -> dict[_KeyT, dict[Hashable, Hashable]]:
+    """Return *attr_maps* with each value as an attribute mapping dictionary.
+
+    ``None`` gives an empty dictionary.
+
+    :raises AttrMapError: a key or value of an attribute map is not hashable.
+    """
+    return {} if attr_maps is None else {key: _attr_map_dict(attr_map) for key, attr_map in attr_maps.items()}
 
 
 if typing.TYPE_CHECKING:

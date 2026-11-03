@@ -108,7 +108,7 @@ container widget depend on the widgets it contains and on its options.
        :class:`RadioButton`, :class:`DropDown`
      - ``'flow'`` and ``'fixed'``
    * - :class:`Edit` and its subclasses, :class:`Divider`,
-       :class:`ProgressBar`
+       :class:`ProgressBar`, :class:`Notifications`
      - ``'flow'``
    * - :class:`BigText`
      - ``'fixed'``
@@ -811,6 +811,40 @@ was the last.  The ``"focus changed"`` signal reports the index, see
 somewhere else also updates that display after its own changes of
 ``contents``.  ``examples/tabs.py`` shows this, with a status line and a key
 that closes the current tab.
+
+
+Notifications Widgets
+---------------------
+
+:class:`Notifications` lists messages that disappear after a timeout, the
+oldest at the top.  It is a flow widget, usually the footer of a
+:class:`Frame`, and takes no rows while it is empty and has no ``default``
+text::
+
+    notifications = urwid.Notifications(
+        severity_attr={urwid.Severity.WARNING: "warning", urwid.Severity.ERROR: "error"},
+    )
+    frame = urwid.Frame(body, footer=notifications)
+
+    notifications.notify("saved")
+    notifications.notify("disk almost full", severity=urwid.Severity.WARNING, timeout=None)
+
+A message stays for ``timeout`` seconds, 5 unless the widget or the
+:meth:`~Notifications.notify` call says otherwise, and ``timeout=None`` keeps
+it until :meth:`~Notifications.dismiss` or :meth:`~Notifications.clear` takes
+it down.  ``max_count=1`` turns the list into a status line, where each new
+message replaces the last one, and ``default`` is the text shown while no
+message is showing::
+
+    status = urwid.Notifications(max_count=1, default="q: quit")
+
+The alarm that dismisses a message is set on the ``loop`` given to the
+widget, or else on the loop running when :meth:`~Notifications.notify` is
+called (see :func:`get_running_loop`); a message with a timeout posted before
+the loop runs needs ``loop=``.  Call the widget from the thread running the
+loop only.  Another thread hands its message over through
+:meth:`MainLoop.watch_pipe`, or the event loop's own thread-safe scheduling.
+``examples/notifications.py`` shows the widget as a footer.
 
 
 Overlay Widgets

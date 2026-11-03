@@ -134,7 +134,7 @@ Validation
 ----------
 
 Used by the validator of an :class:`Edit` to report what is wrong with its
-text.
+text, and by :class:`Notifications` to colour a message.
 
 .. autoclass:: Severity
 
