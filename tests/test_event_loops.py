@@ -5,6 +5,7 @@ import concurrent.futures
 import contextlib
 import errno
 import gc
+import os
 import selectors
 import signal
 import socket
@@ -15,7 +16,7 @@ import unittest
 from unittest import mock
 
 import urwid
-from tests.util import TtyRefusingSelector, external_loop
+from tests.util import TtyRefusingSelector, external_loop, pipe_terminal
 from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
@@ -1294,6 +1295,31 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
 class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
     def setUp(self):
         self.evl = urwid.TrioEventLoop()
+
+    @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+    def test_terminal_watches_the_pty_again_on_a_second_run(self) -> None:
+        """A terminal without ``main_loop=`` shows child output written during the second run of its loop.
+
+        Trio ends the watch tasks of a run when it returns, so the watch of the first run is gone by then.
+        """
+        shown: list[bytes] = []
+        with pipe_terminal() as (term, child_out):
+            loop = external_loop(term, self.evl)
+            typing.cast("mock.Mock", loop.screen).get_cols_rows.return_value = (20, 3)
+
+            def check(main_loop: urwid.MainLoop, expected: bytes, attempt: int = 0) -> None:
+                if (term.term is not None and expected in term.term.text[0]) or attempt > 100:
+                    shown.append(term.term.text[0].rstrip() if term.term is not None else b"")
+                    raise urwid.ExitMainLoop
+                main_loop.draw_screen()
+                main_loop.set_alarm_in(0.02, lambda *_args: check(main_loop, expected, attempt + 1))
+
+            for chunk in (b"one", b"two"):
+                loop.set_alarm_in(0, lambda *_args, chunk=chunk: os.write(child_out, chunk))
+                loop.set_alarm_in(0, lambda main_loop, _data, chunk=chunk: check(main_loop, chunk))
+                loop.run()
+
+        self.assertEqual([b"one", b"onetwo"], shown)
 
     _expected_idle_handle = None
 

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import contextlib
 import errno
 import gc
+import os
 import selectors
 import typing
 import unittest.mock
@@ -10,7 +12,7 @@ import urwid
 
 if typing.TYPE_CHECKING:
     import weakref
-    from collections.abc import Callable, Collection
+    from collections.abc import Callable, Collection, Iterator
 
 
 class SelectableText(urwid.Text):
@@ -143,3 +145,59 @@ def external_loop(
         handle_mouse=False,
         **kwargs,
     )
+
+
+class NonExternalLoopScreen(urwid.BaseScreen):
+    """Screen with no ``hook_event_loop`` support, forcing :meth:`MainLoop._run_screen_event_loop`."""
+
+    def __init__(self, cols_rows: tuple[int, int] = (10, 5)) -> None:
+        super().__init__()
+        self._cols_rows = cols_rows
+        self.input_calls = 0
+        self.timeouts: list[float | None] = []
+
+    def get_cols_rows(self) -> tuple[int, int]:
+        return self._cols_rows
+
+    def draw_screen(self, size: tuple[int, int], canvas: typing.Any) -> None:
+        pass
+
+    def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+        self.input_calls += 1
+        return [], []
+
+    def set_input_timeouts(self, max_wait: float | None = None) -> None:
+        self.timeouts.append(max_wait)
+
+
+def _forbidden_process_call(*args: object) -> typing.NoReturn:
+    """Fail a test that signals a process while the child of a terminal is mocked."""
+    msg = f"process signalled with {args} while the child process is mocked"
+    raise AssertionError(msg)
+
+
+@contextlib.contextmanager
+def pipe_terminal() -> Iterator[tuple[urwid.Terminal, int]]:
+    """Yield a terminal whose pty master is the read end of a pipe, with the pipe's write end.
+
+    No child process is started, the tty is not touched, and :meth:`urwid.Terminal.terminate` does nothing,
+    so the pipe can be watched by a real selector.
+    """
+    from unittest import mock  # noqa: PLC0415  # urwid.vterm, which the patches import, does not exist on Windows
+
+    rd, wr = os.pipe()
+    try:
+        with (
+            mock.patch("urwid.vterm.pty.fork", return_value=(1 << 30, rd)),
+            mock.patch("urwid.vterm.atexit"),
+            mock.patch("urwid.vterm.fcntl.ioctl", return_value=0),
+            mock.patch("urwid.vterm.RealTerminal"),
+            mock.patch("urwid.vterm.os.kill", side_effect=_forbidden_process_call),
+            mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden_process_call),
+            mock.patch("urwid.vterm.signal.pthread_kill", side_effect=_forbidden_process_call),
+            mock.patch.object(urwid.Terminal, "terminate"),
+        ):
+            yield urwid.Terminal(["/bin/false"]), wr
+    finally:
+        os.close(rd)
+        os.close(wr)

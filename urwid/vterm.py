@@ -75,6 +75,16 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
     from typing import Literal
 
+    class _WatchLoop(typing.Protocol):
+        """Loop the pty is watched on: an event loop or a :class:`urwid.MainLoop`."""
+
+        def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
+            """Call *callback* when *fd* is readable and return a handle for :meth:`remove_watch_file`."""
+
+        def remove_watch_file(self, handle: typing.Any) -> object:
+            """Stop the watch :meth:`watch_file` returned *handle* for."""
+
+
 EOF = b""
 ESC = chr(27)
 ESC_B = b"\x1b"
@@ -1757,7 +1767,7 @@ class Terminal(Widget):
         | Callable[[], typing.Any]
         | None,
         env: Mapping[str, str] | Iterable[tuple[str, str]] | None = None,
-        main_loop: event_loop.EventLoop | None = None,
+        main_loop: _WatchLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = "utf-8",
     ) -> None:
@@ -1771,10 +1781,11 @@ class Terminal(Widget):
         ``env`` can be used to pass custom environment variables. If omitted,
         os.environ is used.
 
-        ``main_loop`` should be provided, because the canvas state machine needs
-        to act on input from the PTY master device. This object must have
-        watch_file and remove_watch_file methods,
-        and remove_watch_file must accept the handle watch_file returned.
+        ``main_loop`` is the loop to watch the pty on: an event loop or a :class:`MainLoop`,
+        whose remove_watch_file must accept the handle its watch_file returned.
+        Left out, the terminal watches the pty on the started :class:`MainLoop` it is rendered under,
+        and while none runs it reads the pty on every render.
+        The watch moves at the first render under another loop, or under no loop, and is removed by :meth:`terminate`.
 
         ``escape_sequence`` is the urwid key symbol which should be used to break
         out of the terminal widget. If it's not specified, ``ctrl a`` is used.
@@ -1813,15 +1824,15 @@ class Terminal(Widget):
 
         self.term_modes = TermModes()
 
-        if main_loop is not None:
-            self.main_loop = main_loop
-        else:
-            self.main_loop = event_loop.SelectEventLoop()
+        self.main_loop = main_loop
 
         self.master: int | None = None
-        # what main_loop.watch_file() returned for the pty, None while no watch is set;
-        # not always the descriptor, as tornado and trio show
+        # the loop add_watch() watches the pty on, None while no watch is set
+        self._watch_loop: _WatchLoop | None = None
+        # what _watch_loop.watch_file() returned for the pty; not always the descriptor, as tornado and trio show
         self._watch_handle: typing.Any = None
+        # for a MainLoop found running, the start it was found in: the watch lasts for that one start
+        self._watch_activation: object = None
         self.pid: int | None = None
 
         self.width: int | None = None
@@ -1881,9 +1892,6 @@ class Terminal(Widget):
             finally:
                 # 127 is the shell's "command not found" status
                 os._exit(127)
-
-        if self.main_loop is None:
-            fcntl.fcntl(self.master, fcntl.F_SETFL, os.O_NONBLOCK)
 
         atexit.register(self.terminate)
 
@@ -2023,22 +2031,44 @@ class Terminal(Widget):
             self.touch_term(width, height)
 
             if self.main_loop is None:
-                self.feed()
+                running = event_loop.get_running_loop_or_none()
+                if self._watch_loop is not None and (
+                    running is None
+                    or running is not self._watch_loop
+                    or running._activation is not self._watch_activation  # pylint: disable=protected-access
+                ):
+                    self.remove_watch()
+                self.add_watch()
+                if self._watch_loop is None:
+                    self.wait_and_feed(0)
 
         return self.term  # type: ignore[return-value]
 
     def add_watch(self) -> None:
-        """Register the pty with the main loop, when there is one, so :meth:`feed` runs on new child output."""
-        if self.main_loop is None:
+        """Register the pty with a loop, so :meth:`feed` runs on new child output.
+
+        The loop is :attr:`main_loop`, or without one the started :class:`MainLoop` running in the caller's context.
+        Nothing is registered while a watch is set, or when there is no such loop.
+        """
+        if self._watch_loop is not None:
             return
-        self._watch_handle = self.main_loop.watch_file(typing.cast("int", self.master), self.feed)
+        loop = self.main_loop
+        if loop is None:
+            running = event_loop.get_running_loop_or_none()
+            # A loop that is not started, found through a render by hand, runs no event loop to call the watch.
+            if running is None or running._activation is None:  # pylint: disable=protected-access
+                return
+            self._watch_activation = running._activation  # pylint: disable=protected-access
+            loop = running
+        self._watch_handle = loop.watch_file(typing.cast("int", self.master), self.feed)
+        self._watch_loop = loop
 
     def remove_watch(self) -> None:
-        """Unregister the pty from the main loop, when :meth:`add_watch` registered it."""
-        if self.main_loop is None or self._watch_handle is None:
+        """Unregister the pty from the loop :meth:`add_watch` registered it on, when it did."""
+        if self._watch_loop is None:
             return
-        self.main_loop.remove_watch_file(self._watch_handle)
-        self._watch_handle = None
+        self._watch_loop.remove_watch_file(self._watch_handle)
+        self._watch_loop = self._watch_handle = self._watch_activation = None
 
     def wait_and_feed(self, timeout: float = 1.0) -> None:
         """Block up to *timeout* seconds for pty output, then read and process whatever has arrived."""
@@ -2078,7 +2108,7 @@ class Terminal(Widget):
         # once _SYNCHRONIZED_OUTPUT_DRAIN_LIMIT is hit
         # or the pty simply has nothing more buffered right now.
         if self.term_modes.synchronized_output:
-            # The master fd is blocking whenever there is a main loop, so read only what select() reports as ready.
+            # The master fd is blocking, so read only what select() reports as ready.
             with selectors.DefaultSelector() as selector:
                 selector.register(typing.cast("int", self.master), selectors.EVENT_READ)
                 drained = 0

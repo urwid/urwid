@@ -19,8 +19,8 @@ import weakref
 
 import urwid
 import urwid.testing
-from tests.util import external_loop
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, BaseScreen
+from tests.util import NonExternalLoopScreen, external_loop
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
@@ -81,29 +81,6 @@ def dummy_raw_main_loop(
             handle_mouse=False,
             **kwargs,
         )
-
-
-class NonExternalLoopScreen(BaseScreen):
-    """Screen with no ``hook_event_loop`` support, forcing :meth:`MainLoop._run_screen_event_loop`."""
-
-    def __init__(self, cols_rows: tuple[int, int] = (10, 5)) -> None:
-        super().__init__()
-        self._cols_rows = cols_rows
-        self.input_calls = 0
-        self.timeouts: list[float | None] = []
-
-    def get_cols_rows(self) -> tuple[int, int]:
-        return self._cols_rows
-
-    def draw_screen(self, size: tuple[int, int], canvas: typing.Any) -> None:
-        pass
-
-    def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
-        self.input_calls += 1
-        return [], []
-
-    def set_input_timeouts(self, max_wait: float | None = None) -> None:
-        self.timeouts.append(max_wait)
 
 
 class ScriptedInputScreen(NonExternalLoopScreen):
