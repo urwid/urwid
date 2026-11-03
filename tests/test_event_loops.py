@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import contextlib
 import errno
 import gc
 import selectors
@@ -14,7 +15,8 @@ import unittest
 from unittest import mock
 
 import urwid
-from tests.util import TtyRefusingSelector
+from tests.util import TtyRefusingSelector, external_loop
+from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -531,12 +533,12 @@ class AlarmFairnessTestMixin:
         self.assertEqual(["ready", "first", "ready", "second"], called)
 
 
-class MainLoopPausedTestMixin:
-    """MainLoop.paused() run on the event loop of the test case."""
+class MainLoopTestMixin:
+    """MainLoop run on the event loop of the test case."""
 
     evl: urwid.EventLoop
 
-    def _paused_event_loop(self) -> urwid.EventLoop:
+    def _main_loop_event_loop(self) -> urwid.EventLoop:
         """Return the event loop to run a :class:`urwid.MainLoop` on."""
         return self.evl
 
@@ -568,7 +570,7 @@ class MainLoopPausedTestMixin:
             loop = urwid.MainLoop(
                 urwid.SolidFill(),
                 screen=screen,
-                event_loop=self._paused_event_loop(),
+                event_loop=self._main_loop_event_loop(),
                 handle_mouse=False,
                 unhandled_input=unhandled,
             )
@@ -578,13 +580,59 @@ class MainLoopPausedTestMixin:
 
         self.assertEqual([("paused", False), ("x", True)], out)
 
+    def test_main_loop_callbacks_see_the_running_loop(self) -> None:
+        """An alarm set before run(), a watched file and a key from the screen all run with the loop current."""
+        seen: dict[str, bool] = {}
+        rd: socket.socket
+        wr: socket.socket
+        watched: socket.socket
+        writer: socket.socket
+
+        def alarm() -> None:
+            seen["alarm"] = urwid.get_running_loop_or_none() is loop
+            handles.append(loop.watch_file(watched.fileno(), on_watch))
+            writer.send(b"w")
+
+        def on_watch() -> None:
+            seen["watch"] = urwid.get_running_loop_or_none() is loop
+            loop.remove_watch_file(handles[0])
+            wr.send(b"x")
+
+        def unhandled(_key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            seen["input"] = urwid.get_running_loop_or_none() is loop
+            raise urwid.ExitMainLoop
+
+        def give_up() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        handles: list[typing.Any] = []
+        with (
+            ClosingSocketPair() as (rd, wr),
+            ClosingSocketPair() as (watched, writer),
+            ClosingSocketPair() as (_output_rd, output_wr),
+            output_wr.makefile("w", encoding="utf-8") as output,
+        ):
+            loop = urwid.MainLoop(
+                urwid.SolidFill(),
+                screen=urwid.display.raw.Screen(input=rd, output=output),
+                event_loop=self._main_loop_event_loop(),
+                handle_mouse=False,
+                unhandled_input=unhandled,
+            )
+            loop.set_alarm_in(0, lambda *_args: alarm())
+            loop.set_alarm_in(10, lambda *_args: give_up())
+            loop.run()
+
+        self.assertEqual({"alarm": True, "watch": True, "input": True}, seen)
+        self.assertIsNone(urwid.get_running_loop_or_none())
+
 
 class SelectEventLoopTest(
     unittest.TestCase,
     EventLoopTestMixin,
     StaleReadyWatchTestMixin,
     AlarmFairnessTestMixin,
-    MainLoopPausedTestMixin,
+    MainLoopTestMixin,
 ):
     def setUp(self):
         self.evl = urwid.SelectEventLoop()
@@ -641,7 +689,7 @@ class SelectEventLoopTest(
 
 
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
-class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
+class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
     def setUp(self):
         self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
         self.loop = self.evl_runner.get_loop()
@@ -651,6 +699,87 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPaused
         self.evl_runner.close()
 
     _expected_idle_handle = None
+
+    def test_main_loops_in_separate_tasks_see_their_own(self) -> None:
+        """Two loops started in two tasks of one asyncio loop each see their own; a third task sees none."""
+        seen: dict[str, urwid.MainLoop | None] = {}
+        loops = {"a": external_loop(event_loop=self.evl), "b": external_loop(event_loop=self.evl)}
+        fired = {name: asyncio.Event() for name in loops}
+        release = asyncio.Event()
+
+        def record(name: str) -> None:
+            seen[name] = urwid.get_running_loop_or_none()
+            fired[name].set()
+
+        async def run_one(name: str) -> None:
+            with loops[name].start():
+                loops[name].set_alarm_in(0, lambda *_args: record(name))
+                await release.wait()
+
+        async def outside() -> None:
+            for event in fired.values():
+                await event.wait()
+            seen["outside"] = urwid.get_running_loop_or_none()
+            release.set()
+
+        async def main() -> None:
+            await asyncio.gather(run_one("a"), run_one("b"), outside())
+
+        self.loop.run_until_complete(main())
+        self.assertEqual({"a": loops["a"], "b": loops["b"], "outside": None}, seen)
+
+    def test_cancelled_async_alarm_ends_its_running_loop_entries(self) -> None:
+        """An async alarm callback cancelled while it waits ends what it pushed, without logging an error."""
+        entries: list[tuple[main_loop_module._Activation, ...]] = []
+        tasks: list[asyncio.Task[typing.Any]] = []
+        started = asyncio.Event()
+        loop = external_loop(event_loop=self.evl)
+
+        async def wait_long(_loop: urwid.MainLoop, _data: object) -> None:
+            entries.append(main_loop_module._running.get())
+            tasks.append(typing.cast("asyncio.Task[typing.Any]", asyncio.current_task()))
+            started.set()
+            await asyncio.sleep(3600)
+
+        async def scenario() -> urwid.MainLoop | None:
+            with loop.start():
+                loop.set_alarm_in(0, wait_long)
+                await started.wait()
+                tasks[0].cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await tasks[0]
+            return urwid.get_running_loop_or_none()
+
+        with self.assertNoLogs(loop.logger, "ERROR"):
+            self.assertIsNone(self.loop.run_until_complete(scenario()))
+        self.assertTrue(tasks[0].cancelled())
+        self.assertEqual([None], list({entry.loop for entry in entries[0]}))
+
+    def test_task_created_by_an_async_alarm_sees_the_loop_until_it_stops(self) -> None:
+        """A task an async alarm callback creates sees the loop while it runs and no loop once it stopped."""
+        seen: list[urwid.MainLoop | None] = []
+        children: list[asyncio.Task[None]] = []
+        release = asyncio.Event()
+        loop = external_loop(event_loop=self.evl)
+
+        async def child() -> None:
+            seen.append(urwid.get_running_loop_or_none())
+            loop.set_alarm_in(0, lambda *_args: give_up())
+            await release.wait()
+            seen.append(urwid.get_running_loop_or_none())
+
+        async def spawn(_loop: urwid.MainLoop, _data: object) -> None:
+            children.append(asyncio.get_running_loop().create_task(child()))
+
+        def give_up() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        loop.set_alarm_in(0, spawn)
+        loop.run()
+        release.set()
+        self.loop.run_until_complete(children[0])
+
+        self.assertEqual([loop, None], seen)
 
     def test_finalizer_tolerates_an_already_closed_owned_loop(self):
         """The finalizer does not fail when the owned loop was closed first, as a cycle collection can do."""
@@ -885,7 +1014,7 @@ class GLibSignalHandlerTest(unittest.TestCase):
     IS_WINDOWS,
     "Windows is temporary not supported by TornadoEventLoop due to race conditions.",
 )
-class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
+class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
     def setUp(self):
         from tornado.ioloop import IOLoop
 
@@ -969,7 +1098,7 @@ class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPaused
     IS_WINDOWS,
     "Windows is temporary not supported by TwistedEventLoop due to race conditions.",
 )
-class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
+class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
     def setUp(self):
         self.evl = urwid.TwistedEventLoop()
 
@@ -1004,7 +1133,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPaused
     def test_remove_alarm_after_it_fired(self) -> None:
         """Skipped: the shared test stops the reactor, which cannot be started again."""
 
-    def _paused_event_loop(self) -> urwid.EventLoop:
+    def _main_loop_event_loop(self) -> urwid.EventLoop:
         """Return a loop on a reactor of its own: the shared reactor cannot be started again."""
         from twisted.internet.selectreactor import SelectReactor
 
@@ -1162,7 +1291,7 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPaused
     IS_WINDOWS,
     "Windows is temporary not supported by TrioEventLoop due to race conditions.",
 )
-class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopPausedTestMixin):
+class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
     def setUp(self):
         self.evl = urwid.TrioEventLoop()
 
@@ -1513,7 +1642,7 @@ class ZMQEventLoopTest(
     EventLoopTestMixin,
     StaleReadyWatchTestMixin,
     AlarmFairnessTestMixin,
-    MainLoopPausedTestMixin,
+    MainLoopTestMixin,
 ):
     def setUp(self):
         self.evl = urwid.ZMQEventLoop()

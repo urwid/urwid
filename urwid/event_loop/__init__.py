@@ -6,7 +6,7 @@ import sys
 
 from .abstract_loop import EventLoop, ExitMainLoop
 from .asyncio_loop import AsyncioEventLoop
-from .main_loop import MainLoop
+from .main_loop import MainLoop, get_running_loop, get_running_loop_or_none
 from .select_loop import SelectEventLoop
 
 __all__ = (
@@ -15,6 +15,8 @@ __all__ = (
     "ExitMainLoop",
     "MainLoop",
     "SelectEventLoop",
+    "get_running_loop",
+    "get_running_loop_or_none",
 )
 
 try:

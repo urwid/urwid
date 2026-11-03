@@ -69,6 +69,54 @@ The block holds the event loop until it ends, so no input, alarm or watched file
 is handled while the other program owns the terminal.
 
 
+Reaching the Running Loop
+=========================
+
+A widget or a callback finds the loop it runs under with
+:func:`get_running_loop`, instead of being handed the loop by the application::
+
+    class Clock(urwid.Text):
+        def start(self) -> None:
+            urwid.get_running_loop().set_alarm_in(1, self._tick)
+
+        def _tick(self, loop: urwid.MainLoop, _data: object) -> None:
+            self.set_text(time.strftime("%H:%M:%S"))
+            loop.set_alarm_in(1, self._tick)
+
+:func:`get_running_loop` raises :exc:`RuntimeError` when no loop is running;
+:func:`get_running_loop_or_none` returns ``None`` instead.
+
+A loop is the running loop:
+
+* in the thread and the asyncio or Trio task that called :meth:`MainLoop.run` or
+  :meth:`MainLoop.start`, until :meth:`MainLoop.stop`;
+* inside every alarm, watched file, watched pipe, input and render call the loop
+  makes, whichever task or context the event loop runs it in;
+* inside :meth:`MainLoop.draw_screen` and :meth:`MainLoop.process_input` called
+  by hand, also before the loop is started;
+* in everything that copies one of those contexts: a task made with
+  :func:`asyncio.create_task`, :func:`asyncio.to_thread`,
+  :meth:`contextvars.Context.run` on a copy from :func:`contextvars.copy_context`.
+
+A thread that does not copy the context sees the loop only if its context came
+from the loop's thread: a plain :class:`threading.Thread` and a function submitted
+to an executor run in the worker thread's own context, which is empty unless the
+interpreter gives each new thread a copy of its creator's context.
+Capture the loop on the loop's thread and pass it in, or submit
+``contextvars.copy_context().run(function)``.
+
+Once :meth:`MainLoop.stop` ran, no context sees the loop any more, including the
+ones copied while it was running, and no context keeps it alive.
+Callbacks the loop registered on an event loop it does not own, such as its watched
+files on an asyncio loop that goes on running, still refer to it until they are removed.
+A callback the stopped loop left on an event loop it does not own sees no running
+loop either.
+
+Being able to find the loop from another thread does not make it safe to use from
+there: change widgets and the screen only from the thread running the event loop.
+Explicit arguments remain the way to give a loop to code that runs outside it.
+
+
 .. _event-loops:
 
 Event Loops

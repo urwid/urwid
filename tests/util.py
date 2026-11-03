@@ -4,11 +4,11 @@ import errno
 import gc
 import selectors
 import typing
+import unittest.mock
 
 import urwid
 
 if typing.TYPE_CHECKING:
-    import unittest
     import weakref
     from collections.abc import Callable, Collection
 
@@ -125,3 +125,21 @@ def assert_redraws_after_child_change(
     test.assertIsNone(urwid.CanvasCache.fetch(container, type(container), size, focus))
     test.assertNotEqual(expected, tuple(old_canvas.text))
     test.assertEqual(expected, tuple(container.render(size, focus).text))
+
+
+def external_loop(
+    widget: urwid.Widget | None = None,
+    event_loop: urwid.EventLoop | None = None,
+    **kwargs: typing.Any,
+) -> urwid.MainLoop:
+    """Return a loop over a mock raw screen, which start() hooks into *event_loop* without a terminal."""
+    screen = unittest.mock.Mock(spec=urwid.display.raw.Screen)
+    screen.started = True
+    screen.get_cols_rows.return_value = (10, 5)
+    return urwid.MainLoop(
+        widget if widget is not None else urwid.SolidFill(),
+        screen=screen,
+        event_loop=event_loop if event_loop is not None else urwid.SelectEventLoop(),
+        handle_mouse=False,
+        **kwargs,
+    )

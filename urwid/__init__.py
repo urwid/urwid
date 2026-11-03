@@ -129,7 +129,15 @@ from .display import (
     RealTerminal,
     ScreenError,
 )
-from .event_loop import AsyncioEventLoop, EventLoop, ExitMainLoop, MainLoop, SelectEventLoop
+from .event_loop import (
+    AsyncioEventLoop,
+    EventLoop,
+    ExitMainLoop,
+    MainLoop,
+    SelectEventLoop,
+    get_running_loop,
+    get_running_loop_or_none,
+)
 from .widget import (
     ANY,
     BOTTOM,
@@ -440,6 +448,8 @@ __all__: tuple[str, ...] = (
     "get_all_fonts",
     "get_ascii_fallbacks",
     "get_encoding_mode",
+    "get_running_loop",
+    "get_running_loop_or_none",
     "int_scale",
     "is_mouse_event",
     "is_wide_char",
