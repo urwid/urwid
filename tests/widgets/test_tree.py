@@ -234,6 +234,18 @@ class WideIconWidget(urwid.TreeWidget[typing.Any]):
     expanded_icon = urwid.SelectableIcon("[-]", 1)
 
 
+class LeafIconWidget(urwid.TreeWidget[typing.Any]):
+    """Widget giving leaves a blank icon."""
+
+    leaf_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.SPACE, 0)
+
+
+class WideLeafIconWidget(urwid.TreeWidget[typing.Any]):
+    """Widget whose leaf icon is wider than the expand and collapse icons."""
+
+    leaf_icon = urwid.Text("( )")
+
+
 class FlowIconWidget(urwid.TreeWidget[typing.Any]):
     """Widget whose icons have no fixed size."""
 
@@ -701,14 +713,18 @@ class TestTreeWidget(unittest.TestCase):
         self.assertIsNone(widget.first_child())
         self.assertIsNone(widget.last_child())
         self.assertEqual(6, widget.get_indent_cols())
+        self.assertIsNone(widget.leaf_icon)
         self.assertEqual(("      1: child_11   ",), widget.render((20,)).decoded_text)
 
     def test_leaf_ignores_input(self):
-        widget = self.root.get_child_node("1/").get_child_node("1").get_widget()
+        """A leaf, with or without a leaf icon, passes keys on and ignores clicks."""
+        for widget_class in (urwid.TreeWidget, LeafIconWidget):
+            with self.subTest(widget_class=widget_class.__name__):
+                widget = build_styled_tree(widget_class).get_child_node("1/").get_child_node("1").get_widget()
 
-        self.assertEqual("+", widget.keypress((20,), "+"))
-        self.assertEqual("-", widget.keypress((20,), "-"))
-        self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 6, 0, True))
+                self.assertEqual("+", widget.keypress((20,), "+"))
+                self.assertEqual("-", widget.keypress((20,), "-"))
+                self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 6, 0, True))
 
     def test_parent_widget(self):
         widget = self.root.get_widget()
@@ -780,13 +796,17 @@ class TestTreeWidget(unittest.TestCase):
 
     def test_expand_collapse_and_toggle_ignore_leaf(self) -> None:
         """A leaf keeps its state and its text, as it does for the expand and collapse keys."""
-        widget = self.root.get_child_node("1/").get_child_node("1").get_widget()
-        for change in (widget.collapse, widget.expand, widget.toggle_expanded):
-            with self.subTest(change=change.__name__):
-                change()
+        for widget_class, text in (
+            (urwid.TreeWidget, "      1: child_11   "),
+            (LeafIconWidget, "        1: child_11 "),
+        ):
+            widget = build_styled_tree(widget_class).get_child_node("1/").get_child_node("1").get_widget()
+            for change in (widget.collapse, widget.expand, widget.toggle_expanded):
+                with self.subTest(widget_class=widget_class.__name__, change=change.__name__):
+                    change()
 
-                self.assertTrue(widget.expanded)
-                self.assertEqual(("      1: child_11   ",), widget.render((20,)).decoded_text)
+                    self.assertTrue(widget.expanded)
+                    self.assertEqual((text,), widget.render((20,)).decoded_text)
 
     def test_is_initially_expanded_override(self) -> None:
         """A subclass decides the starting state of each node."""
@@ -952,6 +972,75 @@ class TestTreeWidgetIcons(unittest.TestCase):
         self.assertEqual(("   - 1/: nested_1   ",), widget.render((20,)).decoded_text)
         self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
         self.assertEqual(("   + 1/: nested_1   ",), widget.render((20,)).decoded_text)
+
+
+class TestTreeWidgetLeafIcon(unittest.TestCase):
+    """An icon column for leaves, so their text lines up with the text of a parent."""
+
+    def test_leaf_text_lines_up_with_parent_text(self) -> None:
+        """A leaf and a parent at the same depth start their text in the same column."""
+        root = StyledParent(
+            "root",
+            key="/",
+            children=(
+                StyledParent("nested", key="1/", children=(StyledChild("child", key="1"),)),
+                StyledChild("leaf", key="2"),
+            ),
+        )
+        for node in (root, root.get_child_node("1/"), root.get_child_node("1/").get_child_node("1")):
+            node.widget_class = LeafIconWidget
+        root.get_child_node("2").widget_class = LeafIconWidget
+
+        self.assertEqual(
+            (
+                "- /: root        ",
+                "   - 1/: nested  ",
+                "        1: child ",
+                "     2: leaf     ",
+            ),
+            urwid.TreeListBox(urwid.TreeWalker(root)).render((17, 4)).decoded_text,
+        )
+
+    def test_leaf_layout_renders_as_plain_columns(self) -> None:
+        """A one-column leaf icon draws as :class:`urwid.Columns` would draw it, at every width."""
+        widget = build_styled_tree(LeafIconWidget).get_child_node("1/").get_child_node("1").get_widget()
+        plain = urwid.Padding(
+            urwid.Columns([(1, LeafIconWidget.leaf_icon), urwid.Text("1: child_11")], dividechars=1),
+            left=6,
+        )
+        for maxcol in range(1, 12):
+            with self.subTest(maxcol=maxcol):
+                self.assertEqual(
+                    plain.render((maxcol,), focus=True).decoded_text,
+                    widget.render((maxcol,), focus=True).decoded_text,
+                )
+                self.assertEqual(plain.rows((maxcol,), True), widget.rows((maxcol,), True))
+                self.assertEqual(plain.get_cursor_coords((maxcol,)), widget.get_cursor_coords((maxcol,)))
+
+    def test_leaf_icon_widens_icon_column(self) -> None:
+        """A leaf icon wider than the other icons widens the icon column of every node."""
+        root = build_styled_tree(WideLeafIconWidget)
+
+        self.assertEqual(("   -   1/: nested_1  ",), root.get_child_node("1/").get_widget().render((21,)).decoded_text)
+        self.assertEqual(
+            ("      ( ) 1: child_11",),
+            root.get_child_node("1/").get_child_node("1").get_widget().render((21,)).decoded_text,
+        )
+
+    def test_leaf_icon_is_decoration(self) -> None:
+        """A leaf with an icon is not selectable, and updating the icon keeps the leaf icon."""
+        widget = build_styled_tree(LeafIconWidget).get_child_node("1/").get_child_node("1").get_widget()
+        widget.update_expanded_icon()
+
+        self.assertFalse(widget.selectable())
+        self.assertEqual(("        1: child_11 ",), widget.render((20,)).decoded_text)
+
+    def test_wide_leaf_icon_on_narrow_row(self) -> None:
+        """A row with room for the leaf icon alone shows the icon, and a row with less room shows the text."""
+        widget = build_styled_tree(WideLeafIconWidget).get_child_node("1/").get_child_node("1").get_widget()
+
+        self.assertEqual(("      ( )",), widget.render((9,)).decoded_text)
+        self.assertEqual(("      1:", "      ch", "      il", "      d_", "      11"), widget.render((8,)).decoded_text)
 
 
 class TestLastChild(unittest.TestCase):

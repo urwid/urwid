@@ -31,10 +31,11 @@ if typing.TYPE_CHECKING:
         return widget
 
     class TriangleWidget(urwid.TreeWidget[NameNode]):
-        """Draw the expand and collapse icons with symbols of the widget class."""
+        """Draw the icons with symbols of the widget class."""
 
         unexpanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_RIGHT, 0)
         expanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_DOWN, 0)
+        leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.BULLET)
 
     def symbols() -> None:
         """Type the symbols as members of their enumeration, usable wherever text is."""

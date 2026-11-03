@@ -135,6 +135,8 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     Symbols: typing.ClassVar[type[TreeSymbols]] = TreeSymbols
     unexpanded_icon: Widget = SelectableIcon(TreeSymbols.PLUS, 0)
     expanded_icon: Widget = SelectableIcon(TreeSymbols.MINUS, 0)
+    #: The icon of a leaf; with one set, leaves get an icon column too, so their text lines up with a parent's.
+    leaf_icon: Widget | None = None
 
     # The pieces the stock get_indented_widget() built, for update_expanded_icon() and mouse_event().
     # The class-level None stands for a layout a subclass built itself.
@@ -178,7 +180,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     def expand(self) -> None:
         """Show the children of this node and update the icon.
 
-        A leaf has no children and no icon, so nothing changes for it.
+        A leaf has no children, so nothing changes for it.
         """
         if self.is_leaf:
             return
@@ -188,7 +190,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     def collapse(self) -> None:
         """Hide the children of this node and update the icon.
 
-        A leaf has no children and no icon, so nothing changes for it.
+        A leaf has no children, so nothing changes for it.
         A descendant in focus keeps the focus although it is hidden.
         Move the focus first, for example with :meth:`TreeListBox.move_focus_to_parent`.
         """
@@ -212,17 +214,15 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
         return not self.is_leaf
 
     def get_indented_widget(self) -> Padding[Text | Columns]:
-        """Return this node's widget wrapped with the expand/collapse icon and indentation.
+        """Return this node's widget wrapped with its icon and indentation.
 
         The icon column is as wide as the widest icon.
+        A leaf has an icon column only when :attr:`leaf_icon` is set.
         """
         widget: Text | Columns = self.get_inner_widget()
         self._icon_columns = None
-        if not self.is_leaf:
-            widget = self._icon_columns = _IconColumns(
-                [(self._icon_cols(), [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
-                dividechars=1,
-            )
+        if (icon := self._icon()) is not None:
+            widget = self._icon_columns = _IconColumns([(self._icon_cols(), icon), widget], dividechars=1)
         self._indent_padding = Padding(widget, width=(WHSettings.RELATIVE, 100), left=self.get_indent_cols())
         return self._indent_padding
 
@@ -231,16 +231,29 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
 
         It is the width of the widest icon that has a fixed size, and at least 1.
         """
-        icons = (self.unexpanded_icon, self.expanded_icon)
-        return max([1, *(icon.pack((), False)[0] for icon in icons if Sizing.FIXED in icon.sizing())])
+        icons = (self.unexpanded_icon, self.expanded_icon, self.leaf_icon)
+        return max(
+            [1, *(icon.pack((), False)[0] for icon in icons if icon is not None and Sizing.FIXED in icon.sizing())]
+        )
+
+    def _icon(self) -> Widget | None:
+        """Return the icon for the node's kind and state.
+
+        :returns: the icon, or None for a leaf without :attr:`leaf_icon`.
+        """
+        if self.is_leaf:
+            return self.leaf_icon
+        return [self.unexpanded_icon, self.expanded_icon][self.expanded]
 
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets."""
-        icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
         if self._icon_columns is None:
             # A layout of the subclass's own, with the icon first in its columns, as the stock layout has it.
+            icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
             self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
         else:
+            # The stock layout has an icon column only for a node that has an icon.
+            icon = typing.cast("Widget", self._icon())
             self._icon_columns.contents[0] = (icon, (WHSettings.GIVEN, self._icon_cols(), False))
 
     def get_indent_cols(self) -> int:
