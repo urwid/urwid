@@ -26,6 +26,7 @@ import typing
 
 from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
+from urwid.util import is_mouse_press
 
 from .constants import Align, Sizing, VAlign
 from .overlay import Overlay
@@ -69,17 +70,28 @@ class PopUpLauncher(
 
     # Class-level defaults, so a launcher pickled before these attributes existed still loads.
     _close_on_menu: bool = False
+    _close_on_click_outside: bool = False
     _launcher_size: tuple[int, int] | None = None
 
-    def __init__(self, original_widget: LauncherWidget, *, close_on_menu: bool = False) -> None:
+    def __init__(
+        self,
+        original_widget: LauncherWidget,
+        *,
+        close_on_menu: bool = False,
+        close_on_click_outside: bool = False,
+    ) -> None:
         """Wrap `original_widget`, with no pop-up open yet.
 
         :param original_widget: widget that opens the pop-up.
         :param close_on_menu: close the pop-up when it leaves a key for the ``menu`` command (:kbd:`esc` by
             default) unhandled while it is the topmost open pop-up.
+        :param close_on_click_outside: close the pop-up on a press of mouse button 1, 2 or 3 outside it
+            while it is the topmost open pop-up.
+            The press closes the pop-up only, and does not reach the widget under it.
         """
         super().__init__(original_widget)
         self._close_on_menu = close_on_menu
+        self._close_on_click_outside = close_on_click_outside
         self._pop_up_widget: AbstractWidget | None = None
         self._launcher_size = None
 
@@ -151,6 +163,7 @@ class PopUpLauncher(
                 self._pop_up_widget,
                 **self.get_pop_up_parameters(),
                 on_unhandled_key=self._close_on_menu_key if self._close_on_menu else None,
+                on_click_outside=self.close_pop_up if self._close_on_click_outside else None,
             )
         return canv
 
@@ -216,6 +229,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         self._current_widget: AbstractWidget = self._original_widget
         # Unhandled key callback of the topmost open pop-up.
         self._pop_up_unhandled_key: Callable[[str], str | None] | None = None
+        # Outside click callback of the topmost open pop-up and the (left, right, top, bottom) padding around it,
+        # or None when its launcher set no callback.
+        self._pop_up_click_outside: tuple[Callable[[], None], tuple[int, int, int, int]] | None = None
         self._cache_original_canvas: Canvas | None = None
 
     def enter_selectable(self, *, reverse: bool = False) -> None:
@@ -252,7 +268,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         pop_up = canv.get_pop_up()
         anchor_height = canv.get_pop_up_anchor_height()
         on_unhandled_key = canv.get_pop_up_unhandled_key()
+        on_click_outside = canv.get_pop_up_click_outside()
         top_unhandled_key = None
+        top_click_outside = None
         # Position of the widget that declared the current pop-up; the original widget fills this widget.
         offset_left = offset_top = 0
         while pop_up:
@@ -291,17 +309,21 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
             # Check w itself for a further nested pop-up; see the docstring for why. Render it where and at the
             # size the Overlay puts it, which differs from the request when it does not fit.
-            pad_left, pad_right, pad_top, pad_bottom = overlay.calculate_padding_filler(size, focus)
+            padding = overlay.calculate_padding_filler(size, focus)
+            top_click_outside = None if on_click_outside is None else (on_click_outside, padding)
+            pad_left, pad_right, pad_top, pad_bottom = padding
             offset_left, offset_top = pad_left, pad_top
             w_size = overlay.top_w_size(size, pad_left, pad_right, pad_top, pad_bottom)
             w_canv = w.render(w_size, focus=focus)
             pop_up = w_canv.get_pop_up()
             anchor_height = w_canv.get_pop_up_anchor_height()
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
+            on_click_outside = w_canv.get_pop_up_click_outside()
 
         self._pop_up_levels = new_levels
         self._current_widget = bottom_widget
         self._pop_up_unhandled_key = top_unhandled_key
+        self._pop_up_click_outside = top_click_outside
 
     def render(
         self,
@@ -379,8 +401,19 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Rebuild the pop-up overlay chain for *size* and forward the mouse event to it."""
+        """Rebuild the pop-up overlay chain for *size* and forward the mouse event to it.
+
+        A press of mouse button 1, 2 or 3 outside the topmost pop-up goes to the ``on_click_outside`` callback its
+        launcher set, if any.
+        The press is then handled and does not reach the widgets under the pop-up.
+        See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+        """
         self._update_overlay(size, focus)
+        if self._pop_up_click_outside is not None and button in {1, 2, 3} and is_mouse_press(event):
+            on_click_outside, (left, right, top, bottom) = self._pop_up_click_outside
+            if not (left <= col < size[0] - right and top <= row < size[1] - bottom):
+                on_click_outside()
+                return True
         return self._current_widget.mouse_event(size, event, button, col, row, focus)
 
     def pack(  # type: ignore[override]

@@ -100,6 +100,7 @@ class CascadingBoxes(urwid.WidgetPlaceholder):
         )
         if self.box_level > 0:
             urwid.connect_signal(overlay, "menu", self.close_box)
+            urwid.connect_signal(overlay, "click outside", self.close_box)
         self.original_widget = overlay
         self.box_level += 1
 

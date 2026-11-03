@@ -297,6 +297,8 @@ together to show it:
   :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
   opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
   closes it when the pop-up leaves :kbd:`esc` unhandled.
+  ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
+  click outside the pop-up; that click does not reach the widget under it.
   :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
   :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
   at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
@@ -825,6 +827,8 @@ All keyboard input will be passed to the top widget.
 When the top widget leaves a key for the ``menu`` command (:kbd:`esc` by default) unhandled,
 the Overlay sends its ``"menu"`` signal with itself as the argument.
 A handler that returns ``True`` consumes the key, which makes it the place to close a dialog on :kbd:`esc`.
+A press of mouse button 1, 2 or 3 outside the top widget sends the ``"click outside"`` signal the same way,
+and a handler that returns ``True`` consumes the press, for a dialog that closes on a click outside it.
 
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.

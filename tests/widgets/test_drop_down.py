@@ -121,6 +121,23 @@ class DropDownListTest(unittest.TestCase):
         self.assertEqual(2, drop_down.selected)
         self.assertIsNone(drop_down._pop_up_widget)
 
+    def test_click_outside_closes_without_a_change(self) -> None:
+        """A click outside the open list closes it without a change, and does not reach the widget under it."""
+        for description, col, row in (
+            ("below the list", 0, 5),
+            ("on the drop-down itself", 0, 0),
+        ):
+            with self.subTest(description):
+                drop_down = urwid.DropDown(COLOURS)
+                target = drop_down_at_row(drop_down, 0)
+                target.mouse_event((7, 6), "mouse press", 1, 0, 0, True)
+                self.assertIsNotNone(drop_down.pop_up_widget)
+
+                self.assertTrue(target.mouse_event((7, 6), "mouse press", 1, col, row, True))
+
+                self.assertIsNone(drop_down.pop_up_widget)
+                self.assertEqual(0, drop_down.selected)
+
     def test_single_option_is_read_only(self) -> None:
         """A drop-down with one option is not selectable, opens no list and leaves the event unhandled."""
         drop_down = urwid.DropDown(["only"])

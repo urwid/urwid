@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pickle
 import unittest
 
 import urwid
@@ -7,8 +8,12 @@ from urwid.command_map import Command
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
-    def __init__(self, *, close_on_menu: bool = False) -> None:
-        super().__init__(urwid.SolidFill("x"), close_on_menu=close_on_menu)
+    def __init__(self, *, close_on_menu: bool = False, close_on_click_outside: bool = False) -> None:
+        super().__init__(
+            urwid.SolidFill("x"),
+            close_on_menu=close_on_menu,
+            close_on_click_outside=close_on_click_outside,
+        )
         self.launcher_sizes_seen: list[tuple[int, int] | None] = []
 
     def create_pop_up(self) -> urwid.Filler[urwid.Edit]:
@@ -203,6 +208,35 @@ class PopUpTargetTest(unittest.TestCase):
         self.assertIsNone(target.keypress((10, 5), "f10"))
         self.assertIsNone(launcher.pop_up_widget)
 
+    def test_click_outside_closes_pop_up(self) -> None:
+        """With close_on_click_outside, a button 1-3 press outside the pop-up closes it and is handled."""
+        # The pop-up covers columns 1-10 and rows 1-3 of the 20x6 target.
+        for description, close_on_click_outside, event, button, col, row, expected, still_open in (
+            ("off by default: the press is not handled", False, "mouse press", 1, 0, 0, False, True),
+            ("on: button 1 above the pop-up", True, "mouse press", 1, 0, 0, True, False),
+            ("on: button 3 below the pop-up", True, "mouse press", 3, 15, 5, True, False),
+            ("on: a press inside goes to the pop-up", True, "mouse press", 1, 2, 2, True, True),
+            ("on: the wheel does not close it", True, "mouse press", 4, 0, 0, False, True),
+            ("on: a release does not close it", True, "mouse release", 0, 0, 0, False, True),
+            ("on: a drag does not close it", True, "mouse drag", 1, 0, 0, False, True),
+        ):
+            with self.subTest(description):
+                launcher = ThingWithAPopUp(close_on_click_outside=close_on_click_outside)
+                target = urwid.PopUpTarget(launcher)
+                launcher.open_pop_up()
+
+                self.assertEqual(expected, bool(target.mouse_event((20, 6), event, button, col, row, True)))
+                self.assertEqual(still_open, launcher.pop_up_widget is not None)
+
+    def test_open_pop_up_pickles(self) -> None:
+        """Pickle a target whose open pop-up closes on an outside click."""
+        launcher = ThingWithAPopUp(close_on_click_outside=True)
+        target = urwid.PopUpTarget(launcher)
+        launcher.open_pop_up()
+        target.render((20, 6))
+
+        self.assertIsInstance(pickle.dumps(target), bytes)
+
     def test_keypress(self) -> None:
         launcher = ThingWithAPopUp()
         target = urwid.PopUpTarget(launcher)
@@ -296,13 +330,28 @@ class NestedDialog(urwid.PopUpLauncher[urwid.Filler[urwid.Edit]]):
     launcher opened from inside an already-open pop-up.
     """
 
-    def __init__(self, level: int, *, close_on_menu_levels: frozenset[int] = frozenset()) -> None:
+    def __init__(
+        self,
+        level: int,
+        *,
+        close_on_menu_levels: frozenset[int] = frozenset(),
+        close_on_click_outside_levels: frozenset[int] = frozenset(),
+    ) -> None:
         self.level = level
         self.close_on_menu_levels = close_on_menu_levels
-        super().__init__(urwid.Filler(urwid.Edit("", f"level {level}")), close_on_menu=level in close_on_menu_levels)
+        self.close_on_click_outside_levels = close_on_click_outside_levels
+        super().__init__(
+            urwid.Filler(urwid.Edit("", f"level {level}")),
+            close_on_menu=level in close_on_menu_levels,
+            close_on_click_outside=level in close_on_click_outside_levels,
+        )
 
     def create_pop_up(self) -> NestedDialog:
-        return NestedDialog(self.level + 1, close_on_menu_levels=self.close_on_menu_levels)
+        return NestedDialog(
+            self.level + 1,
+            close_on_menu_levels=self.close_on_menu_levels,
+            close_on_click_outside_levels=self.close_on_click_outside_levels,
+        )
 
     def get_pop_up_parameters(self) -> dict:
         return {"left": self.level * 12, "top": 0, "overlay_width": 10, "overlay_height": 3}
@@ -322,6 +371,26 @@ class NestedPopUpTest(unittest.TestCase):
         self.assertIn("level 1", text)
         self.assertIn("level 2", text)
         self.assertEqual(len(target._pop_up_levels), 2)
+
+    def test_click_outside_closes_only_the_topmost_pop_up(self) -> None:
+        """Close only the topmost pop-up on an outside click.
+
+        The click closes it only when its own launcher asked for that.
+        """
+        outer = NestedDialog(0, close_on_click_outside_levels=frozenset({1}))
+        target = urwid.PopUpTarget(outer)
+        outer.open_pop_up()
+        inner = outer.pop_up_widget
+        inner.open_pop_up()
+
+        # Column 5 is inside the level 1 pop-up (columns 0-9) and outside the level 2 one (columns 12-21).
+        self.assertTrue(target.mouse_event((40, 10), "mouse press", 1, 5, 5, True))
+        self.assertIsNone(inner.pop_up_widget)
+        self.assertIsNotNone(outer.pop_up_widget)
+
+        # The level 0 launcher did not ask for it, so its pop-up stays open.
+        self.assertFalse(target.mouse_event((40, 10), "mouse press", 1, 5, 5, True))
+        self.assertIsNotNone(outer.pop_up_widget)
 
     def test_closing_inner_pop_up_reverts_to_outer(self) -> None:
         outer = NestedDialog(0)

@@ -212,7 +212,7 @@ def main() -> None:
         (
             " widget shows the selected option.  ENTER, SPACE or a mouse click "
             "opens a list of all the options below it, or above it when there is no room "
-            "below; ESC closes the list without a change.  A long list scrolls.  "
+            "below; ESC or a click outside closes the list without a change.  A long list scrolls.  "
             "The list is a pop-up, so the MainLoop is created with pop_ups=True."
         ),
     ]

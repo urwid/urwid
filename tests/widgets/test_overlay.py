@@ -83,6 +83,33 @@ class OverlayTest(unittest.TestCase):
                 self.assertIsNone(outer.keypress((6, 3), "esc"))
                 self.assertEqual(["inner"] + ["outer"] * outer_calls, order)
 
+    def test_click_outside_signal(self) -> None:
+        """A button 1-3 press outside the top widget is sent as ``"click outside"``; ``True`` consumes it."""
+        # The top widget covers columns 0-1 of row 0 in the 6x3 overlay.
+        cases = (
+            # label, event, button, col, row, handler result (None: no handler), returned, calls
+            ("no handler", "mouse press", 1, 4, 2, None, False, 0),
+            ("handler consumes", "mouse press", 1, 4, 2, True, True, 1),
+            ("handler declines", "mouse press", 3, 0, 1, False, False, 1),
+            ("press inside", "mouse press", 1, 1, 0, True, False, 0),
+            ("wheel", "mouse press", 4, 4, 2, True, False, 0),
+            ("release", "mouse release", 0, 4, 2, True, False, 0),
+            ("drag", "mouse drag", 1, 4, 2, True, False, 0),
+        )
+        for label, event, button, col, row, result, returned, calls in cases:
+            with self.subTest(label):
+                overlay = urwid.Overlay(urwid.SolidFill("x"), urwid.SolidFill("."), "left", 2, "top", 1)
+                senders: list[urwid.Overlay] = []
+                if result is not None:
+                    urwid.connect_signal(
+                        overlay,
+                        "click outside",
+                        lambda sender, seen=senders, outcome=result: seen.append(sender) or outcome,
+                    )
+
+                self.assertEqual(returned, bool(overlay.mouse_event((6, 3), event, button, col, row, True)))
+                self.assertEqual([overlay] * calls, senders)
+
     def test_layout_attributes_invalidate(self) -> None:
         """Setting a layout attribute of a rendered ``Overlay`` redraws it."""
 
