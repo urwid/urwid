@@ -21,12 +21,16 @@
 from __future__ import annotations
 
 import errno
+import fcntl
 import gc
 import itertools
 import os
+import pty
 import selectors
 import signal
+import struct
 import sys
+import termios
 import typing
 import unittest
 import weakref
@@ -1119,6 +1123,23 @@ class TermTest(unittest.TestCase):
         added |= {cell for line in self.term.term.term[24:] for cell in line}
         self.assertEqual(added, {(None, None, b" ")})
 
+    def test_resize_sets_the_pty_size_and_emits_resize(self) -> None:
+        """Pass each new size to the pty and emit "resize" once per change."""
+        on_resize = mock.Mock()
+        urwid.connect_signal(self.term, "resize", on_resize)
+        with mock.patch("urwid.vterm.fcntl.ioctl", return_value=0) as ioctl:
+            for size in ((100, 30), (100, 30), (60, 10)):
+                self.resize(*size)
+        sizes = [(100, 30), (60, 10)]
+        self.assertEqual(on_resize.call_args_list, [mock.call(self.term, size) for size in sizes])
+        self.assertEqual(
+            ioctl.call_args_list,
+            [
+                mock.call(_FAKE_MASTER_FD, termios.TIOCSWINSZ, struct.pack("HHHH", height, width, 0, 0))
+                for width, height in sizes
+            ],
+        )
+
     def test_alternate_screen(self) -> None:
         """Show the alternate screen while modes 47, 1047 and 1049 are set, keeping the main screen and its scrollback.
 
@@ -1696,6 +1717,21 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(self.pty.reaped, reaped)
                 self.assertTrue(self.pty.closed)
 
+    def test_terminate_removes_the_watch_by_its_handle(self) -> None:
+        """Remove the pty watch by the handle watch_file() returned, once.
+
+        On tornado and trio that handle is not the descriptor.
+        """
+        loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        loop.watch_file.return_value = handle = object()
+        term = urwid.Terminal(["/bin/false"], main_loop=loop)
+        term.render(self.termsize)
+        loop.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        term.terminate()
+        term.remove_watch()
+        loop.remove_watch_file.assert_called_once_with(handle)
+        self.assertTrue(self.pty.closed)
+
     def test_terminate_before_spawn(self) -> None:
         """Mark a terminal that never spawned its child as terminated without touching any process."""
         term = urwid.Terminal(["/bin/false"])
@@ -1728,6 +1764,35 @@ class TermTest(unittest.TestCase):
             term.spawn()
         exit_.assert_called_once_with(127)
         write.assert_called_once_with(2, b"/nonexistent: No such file\r\n")
+
+
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
+class TermWindowSizeTest(unittest.TestCase):
+    """Check the size on a real pty pair, with no child process started."""
+
+    def test_child_side_reads_the_rendered_size(self) -> None:
+        """Report each rendered size on the child's side of the pty.
+
+        A child process reads the size there after the kernel sends it SIGWINCH.
+        """
+        master, child_side = pty.openpty()
+        self.addCleanup(os.close, child_side)
+        self.addCleanup(os.close, master)
+        term = urwid.Terminal(["/bin/false"])
+        term.master = master
+        with (
+            mock.patch.object(term, "spawn"),
+            mock.patch("urwid.vterm.os.kill", side_effect=_forbidden("os.kill")),
+            mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden("os.killpg")),
+        ):
+            for width, height in ((80, 24), (132, 43)):
+                term.render((width, height))
+                rows, cols, _xpixel, _ypixel = struct.unpack(
+                    "HHHH",
+                    fcntl.ioctl(child_side, termios.TIOCGWINSZ, bytes(8)),
+                )
+                self.assertEqual((cols, rows), (width, height))
 
 
 if __name__ == "__main__":
