@@ -178,6 +178,104 @@ class CollapsedBelowRootParent(SelfRegisteringParent):
         return CollapsedBelowRootWidget(self)
 
 
+class StyledParent(SelfRegisteringParent):
+    """Parent rendered with the widget class given to :func:`build_styled_tree`."""
+
+    widget_class: type[urwid.TreeWidget[typing.Any]] = urwid.TreeWidget
+
+    def load_widget(self) -> urwid.TreeWidget[typing.Any]:
+        """Create the widget of the tree's class."""
+        return self.widget_class(self)
+
+
+class StyledChild(SelfRegisteringChild):
+    """Leaf rendered with the widget class given to :func:`build_styled_tree`."""
+
+    widget_class: type[urwid.TreeWidget[typing.Any]] = urwid.TreeWidget
+
+    def load_widget(self) -> urwid.TreeWidget[typing.Any]:
+        """Create the widget of the tree's class."""
+        return self.widget_class(self)
+
+
+def build_styled_tree(widget_class: type[urwid.TreeWidget[typing.Any]]) -> StyledParent:
+    """Build ``/`` holding ``1/`` (leaves ``1`` and ``2``) and ``2/`` (leaf ``1``), all drawn by *widget_class*."""
+    nodes: list[StyledParent | StyledChild] = []
+
+    def styled(node: StyledParent | StyledChild) -> StyledParent | StyledChild:
+        nodes.append(node)
+        return node
+
+    root = styled(
+        StyledParent(
+            "root",
+            key="/",
+            children=(
+                styled(
+                    StyledParent(
+                        "nested_1",
+                        key="1/",
+                        children=(styled(StyledChild(f"child_1{idx}", key=str(idx))) for idx in (1, 2)),
+                    )
+                ),
+                styled(StyledParent("nested_2", key="2/", children=(styled(StyledChild("child_21", key="1")),))),
+            ),
+        )
+    )
+    for node in nodes:
+        node.widget_class = widget_class
+    return typing.cast("StyledParent", root)
+
+
+class WideIconWidget(urwid.TreeWidget[typing.Any]):
+    """Widget with three-column icons."""
+
+    unexpanded_icon = urwid.SelectableIcon("[+]", 1)
+    expanded_icon = urwid.SelectableIcon("[-]", 1)
+
+
+class FlowIconWidget(urwid.TreeWidget[typing.Any]):
+    """Widget whose icons have no fixed size."""
+
+    unexpanded_icon = urwid.Divider("+")
+    expanded_icon = urwid.Divider("-")
+
+
+class TextIconEditWidget(urwid.TreeWidget[typing.Any]):
+    """Widget with icons that are not selectable beside an editable text, which then has the focus."""
+
+    unexpanded_icon = urwid.Text("+")
+    expanded_icon = urwid.Text("-")
+
+    def load_inner_widget(self) -> urwid.Edit:
+        """Return an editable text."""
+        return urwid.Edit("", "ab")
+
+
+class OwnLayoutWidget(urwid.TreeWidget[typing.Any]):
+    """Widget building its own layout, with the icon first in a plain :class:`urwid.Columns`."""
+
+    def get_indented_widget(self) -> urwid.Padding[urwid.Text | urwid.Columns]:
+        """Build the layout without the stock method."""
+        widget: urwid.Text | urwid.Columns = self.get_inner_widget()
+        if not self.is_leaf:
+            icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
+            widget = urwid.Columns([(1, icon), widget], dividechars=1)
+        return urwid.Padding(widget, left=self.get_indent_cols())
+
+
+class SkippedInitWidget(urwid.TreeWidget[typing.Any]):
+    """Widget whose ``__init__`` sets the state itself instead of calling :meth:`urwid.TreeWidget.__init__`."""
+
+    def __init__(self, node: urwid.TreeNode[typing.Any]) -> None:  # pylint: disable=super-init-not-called
+        """Set the node, the leaf flag and the expanded flag, then build the stock layout."""
+        self._node = node
+        self._innerwidget = None
+        self.is_leaf = not isinstance(node, urwid.ParentNode)
+        self.expanded = True
+        urwid.WidgetWrap.__init__(self, self.get_indented_widget())  # pylint: disable=non-parent-init-called
+
+
 def build_chain(depth: int) -> SelfRegisteringParent:
     """Build a single-branch tree ``depth`` levels deep bottom-up, so no node knows its depth yet."""
     node: SelfRegisteringParent | SelfRegisteringChild = SelfRegisteringChild("leaf", key="leaf")
@@ -750,6 +848,110 @@ class TestTreeWidget(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             broken.get_widget().next_inorder()
+
+
+class TestTreeWidgetIcons(unittest.TestCase):
+    """Icon symbols, icons wider than one column, and where a click on the icon lands."""
+
+    def test_symbols(self) -> None:
+        """The symbols are reachable from the widget class, and the default icons use them."""
+        self.assertIs(urwid.widget.treetools.TreeSymbols, urwid.TreeWidget.Symbols)
+        self.assertEqual("+", urwid.TreeWidget.unexpanded_icon.text)
+        self.assertEqual("-", urwid.TreeWidget.expanded_icon.text)
+
+    def test_default_layout_renders_as_plain_columns(self) -> None:
+        """The stock icon columns draw a one-column icon exactly as :class:`urwid.Columns` does, at every width."""
+        widget = build_styled_tree(urwid.TreeWidget).get_child_node("1/").get_widget()
+        plain = urwid.Padding(
+            urwid.Columns([(1, urwid.TreeWidget.expanded_icon), urwid.Text("1/: nested_1")], dividechars=1),
+            left=3,
+        )
+        for maxcol in range(1, 10):
+            with self.subTest(maxcol=maxcol):
+                self.assertEqual(
+                    plain.render((maxcol,), focus=True).decoded_text,
+                    widget.render((maxcol,), focus=True).decoded_text,
+                )
+                self.assertEqual(plain.rows((maxcol,), True), widget.rows((maxcol,), True))
+                self.assertEqual(plain.get_cursor_coords((maxcol,)), widget.get_cursor_coords((maxcol,)))
+
+    def test_icon_columns_width_policy(self) -> None:
+        """The text is dropped before the icon, and the icon only when it does not fit on its own."""
+        columns = urwid.widget.treetools._IconColumns(  # pylint: disable=protected-access
+            [(3, urwid.SelectableIcon("[+]", 1)), urwid.Text("text")],
+            dividechars=1,
+        )
+        cases = ((1, [0, 1]), (2, [0, 2]), (3, [3, 0]), (4, [3, 0]), (5, [3, 1]), (8, [3, 4]))
+        for maxcol, widths in cases:
+            with self.subTest(maxcol=maxcol):
+                self.assertEqual(widths, columns.column_widths((maxcol,)))
+
+    def test_wide_icon(self) -> None:
+        """A three-column icon shifts the text, and a click on any of its columns toggles."""
+        widget = build_styled_tree(WideIconWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("   [-] 1/: nested_1 ",), widget.render((20,)).decoded_text)
+        widget.collapse()
+        self.assertEqual(("   [+] 1/: nested_1 ",), widget.render((20,)).decoded_text)
+        for col in (3, 4, 5):
+            with self.subTest(col=col):
+                self.assertTrue(widget.mouse_event((20,), "mouse press", 1, col, 0, True))
+        self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 6, 0, True))
+        self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 2, 0, True))
+        self.assertTrue(widget.expanded)
+
+    def test_wide_icon_on_narrow_row(self) -> None:
+        """A row narrower than the icon shows the text, and a click there is not on the icon."""
+        widget = build_styled_tree(WideIconWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("   [-]",), widget.render((6,)).decoded_text)
+        self.assertEqual(("   [-] ",), widget.render((7,)).decoded_text)
+        self.assertEqual(tuple(f"   {char}" for char in "1/:nested_1"), widget.render((4,)).decoded_text)
+        self.assertFalse(widget.mouse_event((4,), "mouse press", 1, 3, 0, True))
+        self.assertTrue(widget.mouse_event((6,), "mouse press", 1, 5, 0, True))
+        self.assertFalse(widget.expanded)
+
+    def test_icons_without_fixed_size(self) -> None:
+        """Icons that cannot be packed to a fixed size get a one-column icon column."""
+        widget = build_styled_tree(FlowIconWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("   - 1/: nested_1   ",), widget.render((20,)).decoded_text)
+        widget.collapse()
+        self.assertEqual(("   + 1/: nested_1   ",), widget.render((20,)).decoded_text)
+
+    def test_text_in_focus_on_narrow_row(self) -> None:
+        """A focused text beside icons that are not selectable keeps the row, the cursor and the keys."""
+        widget = build_styled_tree(TextIconEditWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("   ab",), widget.render((5,), focus=True).decoded_text)
+        self.assertEqual((4, 0), widget.get_cursor_coords((5,)))
+        self.assertIsNone(widget.keypress((5,), "z"))
+
+    def test_mouse_on_decorated_layout(self) -> None:
+        """A click toggles after the layout is wrapped in an :class:`urwid.AttrMap`, as ``examples/browse.py`` does."""
+        widget = build_styled_tree(urwid.TreeWidget).get_child_node("1/").get_widget()
+        widget._w = urwid.AttrMap(widget._w, None, "focus")  # pylint: disable=protected-access
+
+        self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
+        self.assertFalse(widget.expanded)
+        self.assertEqual(("   + 1/: nested_1   ",), widget.render((20,)).decoded_text)
+
+    def test_own_layout(self) -> None:
+        """A layout built without the stock method keeps the one-column icon right after the indent."""
+        widget = build_styled_tree(OwnLayoutWidget).get_child_node("1/").get_widget()
+
+        self.assertFalse(widget.mouse_event((20,), "mouse press", 1, 4, 0, True))
+        self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
+        self.assertFalse(widget.expanded)
+        self.assertEqual(("   + 1/: nested_1   ",), widget.render((20,)).decoded_text)
+
+    def test_skipped_init(self) -> None:
+        """A widget that sets its state itself and calls the stock layout method renders and toggles."""
+        widget = build_styled_tree(SkippedInitWidget).get_child_node("1/").get_widget()
+
+        self.assertEqual(("   - 1/: nested_1   ",), widget.render((20,)).decoded_text)
+        self.assertTrue(widget.mouse_event((20,), "mouse press", 1, 3, 0, True))
+        self.assertEqual(("   + 1/: nested_1   ",), widget.render((20,)).decoded_text)
 
 
 class TestLastChild(unittest.TestCase):

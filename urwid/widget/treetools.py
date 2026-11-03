@@ -29,12 +29,13 @@ Features:
 
 from __future__ import annotations
 
+import enum
 import typing
 
 from urwid import _deprecation
 
 from .columns import Columns
-from .constants import WHSettings
+from .constants import BOX_SYMBOLS, Sizing, WHSettings
 from .listbox import ListBox, ListWalker
 from .padding import Padding
 from .text import Text
@@ -50,7 +51,15 @@ if typing.TYPE_CHECKING:
     from .listbox import VisibleInfo
     from .widget import Widget
 
-__all__ = ("ParentNode", "TreeListBox", "TreeNode", "TreeWalker", "TreeWidget", "TreeWidgetError")
+__all__ = (
+    "ParentNode",
+    "TreeListBox",
+    "TreeNode",
+    "TreeSymbols",
+    "TreeWalker",
+    "TreeWidget",
+    "TreeWidgetError",
+)
 
 _T = typing.TypeVar("_T")
 _Node_co = typing.TypeVar("_Node_co", bound="TreeNode[typing.Any] | ParentNode[typing.Any]", covariant=True)
@@ -60,12 +69,77 @@ class TreeWidgetError(RuntimeError):
     """Error raised for invalid tree widget usage."""
 
 
+class TreeSymbols(enum.StrEnum):
+    """Common symbols for the icons and the connector lines of :class:`TreeWidget`.
+
+    On a terminal without UTF-8:
+
+    - :attr:`PLUS`, :attr:`MINUS` and :attr:`SPACE` are ASCII and are drawn as they are.
+    - :attr:`LIGHT_VERTICAL`, :attr:`LIGHT_TEE`, :attr:`LIGHT_CORNER` and :attr:`LIGHT_HORIZONTAL`
+      are drawn with the DEC special graphics character set.
+    - Every other member is drawn as its :func:`~urwid.set_ascii_fallbacks` replacement, or as ``?`` without one.
+    """
+
+    PLUS = "+"
+    MINUS = "-"
+    SPACE = " "
+    TRIANGLE_RIGHT = "▶"
+    TRIANGLE_DOWN = "▼"
+    SMALL_TRIANGLE_RIGHT = "▸"
+    SMALL_TRIANGLE_DOWN = "▾"
+    BULLET = "•"
+    ARROW_TIP = "➤"
+
+    LIGHT_VERTICAL = BOX_SYMBOLS.LIGHT.VERTICAL
+    LIGHT_TEE = BOX_SYMBOLS.LIGHT.LEFT_T
+    LIGHT_CORNER = BOX_SYMBOLS.LIGHT.BOTTOM_LEFT
+    LIGHT_CORNER_ROUNDED = BOX_SYMBOLS.LIGHT.BOTTOM_LEFT_ROUNDED
+    LIGHT_HORIZONTAL = BOX_SYMBOLS.LIGHT.HORIZONTAL
+
+    HEAVY_VERTICAL = BOX_SYMBOLS.HEAVY.VERTICAL
+    HEAVY_TEE = BOX_SYMBOLS.HEAVY.LEFT_T
+    HEAVY_CORNER = BOX_SYMBOLS.HEAVY.BOTTOM_LEFT
+    HEAVY_HORIZONTAL = BOX_SYMBOLS.HEAVY.HORIZONTAL
+
+    DOUBLE_VERTICAL = BOX_SYMBOLS.DOUBLE.VERTICAL
+    DOUBLE_TEE = BOX_SYMBOLS.DOUBLE.LEFT_T
+    DOUBLE_CORNER = BOX_SYMBOLS.DOUBLE.BOTTOM_LEFT
+    DOUBLE_HORIZONTAL = BOX_SYMBOLS.DOUBLE.HORIZONTAL
+
+
+class _IconColumns(Columns):
+    """Columns of a tree icon and the node's widget, which give up the text before the icon on a narrow row."""
+
+    def column_widths(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> list[int]:
+        """Return the widths of the icon and the text.
+
+        While the icon has the focus, the text is dropped first and the icon only when it alone does not fit.
+        :class:`Columns` would keep the icon in focus and drop it, which leaves a blank row.
+        A text in focus, beside an icon that is not selectable, keeps the :class:`Columns` layout.
+        """
+        if self.focus_position != 0:
+            return super().column_widths(size, focus)
+        maxcol = size[0]
+        icon_cols = typing.cast("int", self.contents[0][1][1])  # always a GIVEN width
+        if maxcol >= icon_cols + self.dividechars + 1:
+            return [icon_cols, maxcol - icon_cols - self.dividechars]
+        if maxcol >= icon_cols:
+            return [icon_cols, 0]
+        return [0, maxcol]
+
+
 class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
     """A widget representing something in a nested tree display."""
 
     indent_cols = 3
-    unexpanded_icon: Widget = SelectableIcon("+", 0)
-    expanded_icon: Widget = SelectableIcon("-", 0)
+    Symbols: typing.ClassVar[type[TreeSymbols]] = TreeSymbols
+    unexpanded_icon: Widget = SelectableIcon(TreeSymbols.PLUS, 0)
+    expanded_icon: Widget = SelectableIcon(TreeSymbols.MINUS, 0)
+
+    # The pieces the stock get_indented_widget() built, for update_expanded_icon() and mouse_event().
+    # The class-level None stands for a layout a subclass built itself.
+    _indent_padding: Padding[Text | Columns] | None = None
+    _icon_columns: Columns | None = None
 
     def __init__(self, node: _Node_co) -> None:
         """Build the widget representing `node`, expanded as :meth:`is_initially_expanded` says.
@@ -138,21 +212,36 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
         return not self.is_leaf
 
     def get_indented_widget(self) -> Padding[Text | Columns]:
-        """Return this node's widget wrapped with the expand/collapse icon and indentation."""
+        """Return this node's widget wrapped with the expand/collapse icon and indentation.
+
+        The icon column is as wide as the widest icon.
+        """
         widget: Text | Columns = self.get_inner_widget()
+        self._icon_columns = None
         if not self.is_leaf:
-            widget = Columns(
-                [(1, [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
+            widget = self._icon_columns = _IconColumns(
+                [(self._icon_cols(), [self.unexpanded_icon, self.expanded_icon][self.expanded]), widget],
                 dividechars=1,
             )
-        indent_cols = self.get_indent_cols()
-        return Padding(widget, width=(WHSettings.RELATIVE, 100), left=indent_cols)
+        self._indent_padding = Padding(widget, width=(WHSettings.RELATIVE, 100), left=self.get_indent_cols())
+        return self._indent_padding
+
+    def _icon_cols(self) -> int:
+        """Return the width of the icon column.
+
+        It is the width of the widest icon that has a fixed size, and at least 1.
+        """
+        icons = (self.unexpanded_icon, self.expanded_icon)
+        return max([1, *(icon.pack((), False)[0] for icon in icons if Sizing.FIXED in icon.sizing())])
 
     def update_expanded_icon(self) -> None:
         """Update display widget text for parent widgets."""
-        # icon is first element in columns indented widget
         icon = [self.unexpanded_icon, self.expanded_icon][self.expanded]
-        self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
+        if self._icon_columns is None:
+            # A layout of the subclass's own, with the icon first in its columns, as the stock layout has it.
+            self._w.base_widget.contents[0] = (icon, (WHSettings.GIVEN, 1, False))  # type: ignore[attr-defined]
+        else:
+            self._icon_columns.contents[0] = (icon, (WHSettings.GIVEN, self._icon_cols(), False))
 
     def get_indent_cols(self) -> int:
         """Return the number of columns this widget is indented by, based on its node's depth."""
@@ -256,14 +345,29 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
         focus: bool,
     ) -> bool:
         """Toggle expand/collapse when the icon is left-clicked."""
-        if self.is_leaf or event != "mouse press" or button != 1:
+        if self.is_leaf or event != "mouse press" or button != 1 or row != 0:
             return False
 
-        if row == 0 and col == self.get_indent_cols():
-            self.toggle_expanded()
-            return True
+        if (cells := self._icon_cells(size, focus)) is None or col not in cells:
+            return False
 
-        return False
+        self.toggle_expanded()
+        return True
+
+    def _icon_cells(self, size: tuple[int] | tuple[()], focus: bool) -> range | None:
+        """Return the columns the icon is drawn in at *size*.
+
+        A layout of the subclass's own is assumed to start with a one-column icon right after the indent.
+
+        :returns: the range of columns, or None when the row has no room for the icon.
+        """
+        if self._icon_columns is None or self._indent_padding is None or not size:
+            return range(self.get_indent_cols(), self.get_indent_cols() + 1)
+
+        left, right = self._indent_padding.padding_values(size, focus)
+        if not (icon_width := self._icon_columns.column_widths((size[0] - left - right,), focus)[0]):
+            return None
+        return range(left, left + icon_width)
 
     def first_child(self) -> TreeWidget[TreeNode[typing.Any]] | None:
         """Return first child if expanded."""
