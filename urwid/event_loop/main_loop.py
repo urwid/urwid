@@ -34,7 +34,7 @@ import time
 import typing
 from contextlib import contextmanager, suppress
 
-from urwid import display, signals
+from urwid import _selectors, display, signals
 from urwid.command_map import Command, command_map
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import StoppingContext, is_mouse_event
@@ -84,16 +84,20 @@ if typing.TYPE_CHECKING:
             """Set the maximum time to wait for input before returning, in seconds."""
 
     class _EventLoopWithAlarmsStore(typing.Protocol):
-        """Event loop that supports alarms storage (like :class:`SelectEventLoop`).
+        """Event loop that stores its alarms and watched files (like :class:`SelectEventLoop`).
 
-        Not all event loops support alarms storage.
+        Not all event loops store them.
         """
 
         _alarms: list[tuple[float, int, Callable[[], typing.Any]]]
+        _watch_files: dict[int, Callable[[], typing.Any]]
 
 
 IS_WINDOWS = sys.platform == "win32"
 PIPE_BUFFER_READ_SIZE = 4096  # can expect this much on Linux, so try for that
+# Seconds between checks of watched files while a screen without event loop support waits for input:
+# its get_input() cannot wait on other descriptors.
+_SCREEN_LOOP_WATCH_POLL: typing.Final = 0.1
 
 __all__ = ("CantUseExternalLoop", "MainLoop", "get_running_loop", "get_running_loop_or_none")
 
@@ -489,6 +493,10 @@ class MainLoop:
         .. note::
             *callback* may be an ``async def`` function on an :attr:`event_loop`
             implementation that supports one; see the note on :class:`MainLoop`.
+
+        .. note::
+            On Windows, with a screen that has no event loop support, such as the curses screen,
+            *fd* is checked only after the screen returned input, as expired alarms are.
         """
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         if inspect.iscoroutinefunction(callback):
@@ -765,9 +773,11 @@ class MainLoop:
     def _run_screen_event_loop(self) -> None:
         """Run the screen event loop, used when the screen does not support using external event loops.
 
-        The alarms stored in the SelectEventLoop in :attr:`event_loop` are modified by this method.
+        The alarms and watched files stored in the SelectEventLoop in :attr:`event_loop` are handled by this method.
+        While a file is watched, the wait for input is cut into polls, except on Windows,
+        where the curses screen cannot stop waiting before a key arrives.
         """
-        # pylint: disable=protected-access  # special case for alarms handling
+        # pylint: disable=protected-access  # special case for alarms and watched files handling
         self.logger.debug(f"Starting screen {self.screen!r} event loop")
 
         screen = typing.cast("_ExternalLoopScreen", self.screen)
@@ -775,6 +785,7 @@ class MainLoop:
 
         # The alarms stay in the heap until they run, so a callback can add an earlier alarm or remove a pending one.
         alarms = event_loop._alarms
+        watch_files = event_loop._watch_files
 
         while True:
             self.draw_screen()
@@ -782,12 +793,23 @@ class MainLoop:
             keys: list[str | tuple[str, int, int, int]] = []
             raw: list[int] = []
             while not keys:
-                if alarms:
-                    screen.set_input_timeouts(max(0.0, alarms[0][0] - time.monotonic()))
-                else:
-                    screen.set_input_timeouts(None)
+                timeout = max(0.0, alarms[0][0] - time.monotonic()) if alarms else None
+                if watch_files and not IS_WINDOWS:
+                    timeout = _SCREEN_LOOP_WATCH_POLL if timeout is None else min(timeout, _SCREEN_LOOP_WATCH_POLL)
+                screen.set_input_timeouts(timeout)
                 keys, raw = screen.get_input(True)
-                if not keys and alarms and alarms[0][0] <= time.monotonic():
+
+                watch_ran = False
+                if watch_files:
+                    with _selectors.read_selector(watch_files.items()) as selector:
+                        ready = selector.select(0)
+                    for record, _events in ready:
+                        # An earlier callback in this pass may have removed or replaced the watch and closed its fd.
+                        callback = watch_files.get(typing.cast("int", record.fileobj))
+                        if callback is not None and callback is record.data:
+                            callback()
+                            watch_ran = True
+                if not keys and (watch_ran or (alarms and alarms[0][0] <= time.monotonic())):
                     break
 
             if keys := self.input_filter(keys, raw):

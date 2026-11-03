@@ -90,6 +90,7 @@ class NonExternalLoopScreen(BaseScreen):
         super().__init__()
         self._cols_rows = cols_rows
         self.input_calls = 0
+        self.timeouts: list[float | None] = []
 
     def get_cols_rows(self) -> tuple[int, int]:
         return self._cols_rows
@@ -102,7 +103,7 @@ class NonExternalLoopScreen(BaseScreen):
         return [], []
 
     def set_input_timeouts(self, max_wait: float | None = None) -> None:
-        pass
+        self.timeouts.append(max_wait)
 
 
 class ScriptedInputScreen(NonExternalLoopScreen):
@@ -717,6 +718,7 @@ class TestMainLoop(unittest.TestCase):
         evl.set_alarm_in(0, stop_screen_cb)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 1)
+        self.assertEqual([0.0], screen.timeouts)
         self.assertFalse(screen.started)
 
     def test_run_screen_event_loop_processes_keys_without_alarms(self):
@@ -731,6 +733,7 @@ class TestMainLoop(unittest.TestCase):
         evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 3)
+        self.assertEqual({None}, set(screen.timeouts))
 
     def test_run_screen_event_loop_processes_multiple_alarms(self):
         """_run_screen_event_loop pops and fires alarms one at a time across outer iterations."""
@@ -789,6 +792,130 @@ class TestMainLoop(unittest.TestCase):
         evl.set_alarm_in(0, cb_a)
         evl.run()
         self.assertEqual(["a"], order)
+
+    def test_run_screen_event_loop_runs_a_watched_file_and_redraws(self) -> None:
+        """A watched file that becomes readable is handled within one poll, and the screen is redrawn after it."""
+        received: list[bytes] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        class ExitOnRedraw(urwid.SolidFill):
+            """Fill that leaves the loop when it is drawn after being told to."""
+
+            exit_next = False
+
+            def render(self, size: tuple[int, int], focus: bool = False) -> urwid.SolidCanvas:
+                """Render the fill, or leave the loop once told to.
+
+                :raises ExitMainLoop: :attr:`exit_next` is set.
+                """
+                if self.exit_next:
+                    raise urwid.ExitMainLoop
+                return super().render(size, focus)
+
+        def on_ready() -> None:
+            received.append(rd.recv(1))
+            widget.exit_next = True
+            widget._invalidate()
+
+        def give_up(_loop: urwid.MainLoop, _data: object) -> typing.NoReturn:
+            received.append(b"timeout")
+            raise urwid.ExitMainLoop
+
+        widget = ExitOnRedraw()
+        screen = NonExternalLoopScreen()
+        evl = urwid.MainLoop(widget, screen=screen, handle_mouse=False)
+        evl.watch_file(rd.fileno(), on_ready)
+        evl.set_alarm_in(0, lambda *_args: wr.send(b"x"))
+        evl.set_alarm_in(10, give_up)
+        evl.run()
+
+        self.assertEqual([b"x"], received)
+        self.assertIn(main_loop_module._SCREEN_LOOP_WATCH_POLL, screen.timeouts)
+
+    def test_run_screen_event_loop_stops_calling_a_removed_watch(self) -> None:
+        """A watch that removes itself is not called again, although its descriptor stays readable."""
+        calls: list[str] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        def on_ready() -> None:
+            calls.append("ready")
+            evl.remove_watch_file(handle)
+
+        screen = NonExternalLoopScreen()
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False)
+        handle = evl.watch_file(rd.fileno(), on_ready)
+        wr.send(b"x")
+        evl.set_alarm_in(0.05, stop_screen_cb)
+        evl.run()
+
+        self.assertEqual(["ready"], calls)
+
+    def test_run_screen_event_loop_skips_a_watch_changed_earlier_in_the_pass(self) -> None:
+        """A ready watch removed or replaced by an earlier callback of the same pass is not called."""
+
+        class OneReadScreen(NonExternalLoopScreen):
+            """Screen that leaves the loop on its second read, so a single pass of watches runs."""
+
+            def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+                """Return no input on the first read.
+
+                :raises ExitMainLoop: this is the second read.
+                """
+                if self.input_calls:
+                    raise urwid.ExitMainLoop
+                return super().get_input(raw_keys)
+
+        for replace in (False, True):
+            with self.subTest(replace=replace):
+                called: list[str] = []
+                rd_1, wr_1 = socket.socketpair()
+                rd_2, wr_2 = socket.socketpair()
+                for sock in (rd_1, wr_1, rd_2, wr_2):
+                    self.addCleanup(sock.close)
+                evl = urwid.MainLoop(urwid.SolidFill(), screen=OneReadScreen(), handle_mouse=False)
+
+                def change(other: socket.socket, name: str, *, replace: bool = replace) -> None:
+                    called.append(name)
+                    evl.remove_watch_file(other.fileno())
+                    if replace:
+                        evl.watch_file(other.fileno(), lambda: called.append("replacement"))
+
+                evl.watch_file(rd_1.fileno(), lambda: change(rd_2, "first"))
+                evl.watch_file(rd_2.fileno(), lambda: change(rd_1, "second"))
+                wr_1.send(b"x")
+                wr_2.send(b"x")
+                evl.run()
+
+                self.assertEqual(1, len(called))
+                self.assertNotIn("replacement", called)
+
+    def test_run_screen_event_loop_on_windows_checks_watches_after_input(self) -> None:
+        """Simulated Windows: watched files do not shorten the wait for input, and are checked once it returns.
+
+        This patches the platform check only; the curses screen's blocking read on Windows is not run.
+        """
+        calls: list[str] = []
+        rd, wr = socket.socketpair()
+        self.addCleanup(rd.close)
+        self.addCleanup(wr.close)
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            calls.append(str(key))
+            raise urwid.ExitMainLoop
+
+        screen = ScriptedInputScreen([(["k"], [])])
+        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        evl.watch_file(rd.fileno(), lambda: calls.append(rd.recv(1).decode()))
+        wr.send(b"w")
+        with unittest.mock.patch.object(main_loop_module, "IS_WINDOWS", True):
+            evl.run()
+
+        self.assertEqual([None], screen.timeouts)
+        self.assertEqual(["w", "k"], calls)
 
     def test_run_reraises_unexpected_event_loop_error(self):
         """run() removes its event loop hooks, stops the screen and lets an unexpected event loop error propagate."""
