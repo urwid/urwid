@@ -153,7 +153,7 @@ class _TreeLines(Widget):
         if (tree_widget := self._tree_widget()) is None:
             raise TreeWidgetError("The tree widget of these connector lines no longer exists")
         first, below = tree_widget._lines_markup()  # pylint: disable=protected-access
-        markup: list[str | tuple[Hashable, str]] = list(first)
+        markup: list[str | tuple[Hashable, str]] = [*first]
         for _ in range(maxrow - 1):
             markup.extend(("\n", *below))
         canvas = CompositeCanvas(Text(markup, wrap=WrapMode.CLIP).render((maxcol,)))
@@ -302,7 +302,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
         """
         if self._lines is None:
             node = self.get_node()
-            if not self.connector_lines or self.indent_cols == 0 or node.get_depth() == 0:
+            if not self.connector_lines or 0 in {self.indent_cols, node.get_depth()}:
                 return None
             for name in ("line_vertical", "line_tee", "line_corner", "line_horizontal", "line_tip"):
                 if (glyph := getattr(self, name)) is not None and calc_width(glyph, 0, len(glyph)) != 1:
