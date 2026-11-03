@@ -53,7 +53,11 @@ _ExampleNode = typing.TypeVar("_ExampleNode", bound="ExampleNode | ExampleParent
 
 
 class ExampleTreeWidget(urwid.TreeWidget[_ExampleNode]):
-    """Display widget for tree nodes."""
+    """Display widget for tree nodes, with connector lines and leaves lined up with their parents."""
+
+    leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.SPACE)
+    connector_lines = True
+    line_attr = "line"
 
     def get_display_text(self) -> str | tuple[Hashable, str] | list[str | tuple[Hashable, str]]:
         """Return the node's name to display."""
@@ -102,14 +106,15 @@ class ExampleTreeBrowser:
     """Interactive browser for the example tree."""
 
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
-        ("body", "black", "light gray"),
-        ("focus", "light gray", "dark blue", "standout"),
+        ("body", "default", "default"),
+        ("line", "dark gray", "default"),
+        ("focus", "default,standout", "default", "standout"),
         ("head", "yellow", "black", "standout"),
         ("foot", "light gray", "black"),
         ("key", "light cyan", "black", "underline"),
         ("title", "white", "black", "bold"),
-        ("flag", "dark gray", "light gray"),
-        ("error", "dark red", "light gray"),
+        ("flag", "dark gray", "default"),
+        ("error", "dark red", "default"),
     ]
 
     footer_text: typing.ClassVar[list[tuple[str, str] | str]] = [

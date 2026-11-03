@@ -8,6 +8,8 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
+    from typing import assert_type
+
     import urwid
 
     class NameNode(urwid.TreeNode[str]):
@@ -27,3 +29,19 @@ if typing.TYPE_CHECKING:
     def widget_of_subclass_is_base_widget(widget: NameWidget) -> urwid.TreeWidget[urwid.TreeNode[str]]:
         """Accept the widget of a node subclass where a widget of the base node is expected."""
         return widget
+
+    class TriangleWidget(urwid.TreeWidget[NameNode]):
+        """Draw the icons and the connector lines with symbols of the widget class."""
+
+        unexpanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_RIGHT, 0)
+        expanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_DOWN, 0)
+        leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.BULLET)
+        connector_lines = True
+        line_corner = urwid.TreeWidget.Symbols.LIGHT_CORNER_ROUNDED
+        line_tip = urwid.TreeWidget.Symbols.ARROW_TIP
+        line_attr = "tree line"
+        line_tip_attr = ("tree", "tip")
+
+    def symbols() -> None:
+        """Type the symbols as members of their enumeration, usable wherever text is."""
+        assert_type(urwid.TreeWidget.Symbols.PLUS, typing.Literal[urwid.widget.treetools.TreeSymbols.PLUS])

@@ -64,6 +64,9 @@ TreeWidget
 
 .. autoclass:: TreeWidget
 
+.. autoclass:: urwid.widget.treetools.TreeSymbols
+   :undoc-members:
+
 
 .. currentmodule:: urwid.numedit
 

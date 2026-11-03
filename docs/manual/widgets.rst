@@ -1224,6 +1224,56 @@ When this is defined it will be used by :meth:`ListBox.__iter__` and
 
 .. currentmodule:: urwid
 
+Tree Widgets
+------------
+
+:class:`TreeListBox` shows a tree through a :class:`TreeWalker`.  Each node is
+a :class:`TreeNode` or a :class:`ParentNode`, and its
+:meth:`TreeNode.load_widget` creates the :class:`TreeWidget` that draws it.
+The application never builds a tree widget itself, so a tree widget is
+customised by overriding class attributes in a subclass, not by constructor
+arguments::
+
+    class FileWidget(urwid.TreeWidget):
+        unexpanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_RIGHT, 0)
+        expanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_DOWN, 0)
+        leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.BULLET)
+        connector_lines = True
+        line_attr = "tree line"
+
+which renders 22 columns wide, with ``2/`` collapsed, as::
+
+    ▼ /: root
+    ├──▼ 1/: nested_1
+    │  ├──• 1: child_11
+    │  └──• 2: child_12
+    └──▶ 2/: nested_2
+
+The icons may be any widgets.  The icon column is as wide as the widest icon
+of fixed size, and a click on any of its cells expands or collapses the node.
+:attr:`TreeWidget.leaf_icon` is ``None`` by default, which leaves a leaf
+without an icon column; with an icon set, the text of a leaf starts in the same
+column as the text of a parent at the same depth.
+
+With :attr:`TreeWidget.connector_lines` set, the indentation of each node
+shows lines to its parent and to its siblings.  The glyphs are
+``line_vertical``, ``line_tee``, ``line_corner`` and ``line_horizontal``, each
+one column wide; ``line_tip`` ends the connector next to the icon.
+``line_attr`` is the display attribute of the lines and ``line_tip_attr`` the
+one of the tip.  A row too narrow for the indentation and one more column
+leaves the lines out.  After the child keys of a node change, call
+``get_child_keys(reload=True)`` on it, so the lines of the child that was last
+and of the one that is now last are drawn again.  A subclass that builds its
+own layout in :meth:`TreeWidget.get_indented_widget` places the widget from
+:meth:`TreeWidget.get_lines_widget` at the start of the row, as a box column.
+
+:class:`TreeWidget.Symbols <urwid.widget.treetools.TreeSymbols>` lists the
+glyphs for icons and lines.  On a terminal without UTF-8 the ASCII ones are
+drawn as they are and the light lines with the DEC special graphics character
+set; every other glyph is drawn with its replacement from
+:func:`set_ascii_fallbacks`, or as ``?``.  The defaults, ``+``, ``-`` and the
+light lines, are drawn correctly on every terminal.
+
 Custom Widgets
 ==============
 
