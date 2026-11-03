@@ -106,15 +106,15 @@ class ExampleTreeBrowser:
     """Interactive browser for the example tree."""
 
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
-        ("body", "black", "light gray"),
-        ("line", "dark blue", "light gray"),
-        ("focus", "light gray", "dark blue", "standout"),
+        ("body", "default", "default"),
+        ("line", "dark gray", "default"),
+        ("focus", "default,standout", "default", "standout"),
         ("head", "yellow", "black", "standout"),
         ("foot", "light gray", "black"),
         ("key", "light cyan", "black", "underline"),
         ("title", "white", "black", "bold"),
-        ("flag", "dark gray", "light gray"),
-        ("error", "dark red", "light gray"),
+        ("flag", "dark gray", "default"),
+        ("error", "dark red", "default"),
     ]
 
     footer_text: typing.ClassVar[list[tuple[str, str] | str]] = [
