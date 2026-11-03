@@ -17,7 +17,7 @@ from urwid.split_repr import remove_defaults
 from urwid.str_util import _grapheme_boundary, calc_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import decompose_tagmarkup
 
-from .attr_map import _attr_map_dict
+from .attr_map import _attr_map_dicts
 from .constants import Align, Severity, Sizing, ValidationMessage, WrapMode
 from .text import Text, TextError
 from .widget import WidgetWrap
@@ -212,8 +212,8 @@ class Edit(WidgetWrap[Text]):
         self._applied_edit_pos: int | None = None
         self._validator = validator
         self._validation: tuple[ValidationMessage, ...] = ()
-        self._validation_attr = self._severity_attr_maps(validation_attr)
-        self._validation_focus_attr = self._severity_attr_maps(validation_focus_attr)
+        self._validation_attr = _attr_map_dicts(validation_attr)
+        self._validation_focus_attr = _attr_map_dicts(validation_focus_attr)
         self._text_completer = text_completer
         # (candidates, index) of the completion cycle, where candidate 0 is the text and position it started from
         self._completion_cycle: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
@@ -606,16 +606,6 @@ class Edit(WidgetWrap[Text]):
             self._emit("validation", old_validation, validation)
         return self._validation  # a "validation" handler may have changed the text, and validated it again
 
-    @staticmethod
-    def _severity_attr_maps(
-        attr_maps: Mapping[Severity, _AttrMapLike] | None,
-    ) -> dict[Severity, dict[Hashable, Hashable]]:
-        """Return *attr_maps* with each value as an attribute mapping dictionary.
-
-        :raises AttrMapError: a key or value of an attribute map is not hashable.
-        """
-        return {} if attr_maps is None else {severity: _attr_map_dict(m) for severity, m in attr_maps.items()}
-
     @property
     def validation_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
         """Attribute map applied to the rendered edit for each :attr:`severity`.
@@ -633,7 +623,7 @@ class Edit(WidgetWrap[Text]):
 
     @validation_attr.setter
     def validation_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
-        self._validation_attr = self._severity_attr_maps(attr_maps)
+        self._validation_attr = _attr_map_dicts(attr_maps)
         self._invalidate()
 
     @property
@@ -648,7 +638,7 @@ class Edit(WidgetWrap[Text]):
 
     @validation_focus_attr.setter
     def validation_focus_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
-        self._validation_focus_attr = self._severity_attr_maps(attr_maps)
+        self._validation_focus_attr = _attr_map_dicts(attr_maps)
         self._invalidate()
 
     @property

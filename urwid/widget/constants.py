@@ -59,7 +59,7 @@ class WHSettings(enum.StrEnum):
 
 
 class Severity(enum.IntEnum):
-    """How serious a :class:`ValidationMessage` is.
+    """How serious a :class:`ValidationMessage` or a message of :class:`Notifications` is.
 
     The members are ordered, so :func:`max` gives the worst of several.
     """

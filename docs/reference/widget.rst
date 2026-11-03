@@ -175,6 +175,16 @@ PopUpTarget
 Special Widget Classes
 ----------------------
 
+Notifications
+~~~~~~~~~~~~~
+
+.. autoclass:: Notifications
+
+Notification
+~~~~~~~~~~~~
+
+.. autoclass:: Notification
+
 WidgetDisable
 ~~~~~~~~~~~~~
 
