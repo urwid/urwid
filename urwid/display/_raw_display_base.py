@@ -513,6 +513,8 @@ _RAW_SEQUENCE_UTF8 = re.compile(rb"\x1b|\xc2[\x80-\x9f]")
 _RAW_SEQUENCE_BYTES = re.compile(rb"\x1b")
 # C0 and C1 control characters and DEL: in a window title, BEL, ESC or ST would end the title and start a sequence
 _TITLE_CONTROLS = re.compile("[\x00-\x1f\x7f-\x9f]")
+# bytes a terminal reading 8-bit controls takes as C1 controls, such as 0x9c (ST) and 0x9b (CSI)
+_C1_BYTES = re.compile(rb"[\x80-\x9f]")
 
 
 @typing.runtime_checkable
@@ -984,11 +986,7 @@ class Screen(BaseScreen, RealTerminal):
         """Write *title*, which has no control characters, as the terminal's window title."""
         encoding = util.get_encoding()
         if util.get_encoding_mode() == "narrow":
-            # bytes 0x80-0x9f are C1 controls to a terminal that reads 8-bit controls: 0x9c is ST, ending the title
-            title = "".join(
-                "?" if any(0x80 <= byte <= 0x9F for byte in char.encode(encoding, "replace")) else char
-                for char in title
-            )
+            title = "".join("?" if _C1_BYTES.search(char.encode(encoding, "replace")) else char for char in title)
         self.write(f"{escape.SET_TITLE}{title.encode(encoding, 'replace').decode(encoding)}{escape.BEL}")
 
     @abc.abstractmethod
