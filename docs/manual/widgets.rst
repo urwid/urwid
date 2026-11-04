@@ -1073,6 +1073,12 @@ so a container moves the focus past it; wrap it in a :class:`ScrollBar` with
 ListBox is in focus and empty, its container passes the keys on to its own
 parent instead.
 
+At the first row a :class:`ListBox` returns :kbd:`up` unhandled, and at the
+last row :kbd:`down`, so a parent :class:`Pile` moves the focus to the widget
+above or below the list.  Created with ``edge="stop"`` it consumes those keys
+and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
+changed later.  An empty ListBox returns the keys in both modes.
+
 
 Dynamic ListBox with ListWalker
 -------------------------------
