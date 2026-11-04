@@ -126,6 +126,7 @@ from .display import (
     AttrSpecError,
     BaseScreen,
     Hyperlink,
+    InputClosedError,
     RealTerminal,
     ScreenError,
 )
@@ -352,6 +353,7 @@ __all__: tuple[str, ...] = (
     "HalfBlock7x7Font",
     "HalfBlockHeavy6x5Font",
     "Hyperlink",
+    "InputClosedError",
     "IntEdit",
     "LayeredAttr",
     "LayoutSegment",

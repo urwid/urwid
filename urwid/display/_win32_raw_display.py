@@ -37,7 +37,7 @@ from ctypes.wintypes import DWORD
 from urwid import signals
 
 from . import _raw_display_base, _win32, escape
-from .common import INPUT_DESCRIPTORS_CHANGED
+from .common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
 
 # milliseconds the console reader waits for input before checking whether it has to stop
 _INPUT_POLL_MS = 100
@@ -352,7 +352,7 @@ class Screen(_raw_display_base.Screen):
             while selector.select(0):
                 chunk = self._term_input_file.recv(1024)
                 if not chunk:
-                    raise RuntimeError("stdin has been closed")
+                    raise InputClosedError("stdin has been closed")
                 chars.extend(chunk)
 
             return chars

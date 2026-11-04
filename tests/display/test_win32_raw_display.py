@@ -9,7 +9,7 @@ import unittest
 from unittest import mock
 
 from urwid import signals
-from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
+from urwid.display.common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
 
 if typing.TYPE_CHECKING:
     import ctypes
@@ -197,7 +197,7 @@ class TestScreenInput(unittest.TestCase):
         s = _win32_raw_display.Screen(input=input_socket)
         peer.close()
 
-        with mock.patch.object(s, "_started", True), self.assertRaises(RuntimeError):
+        with mock.patch.object(s, "_started", True), self.assertRaises(InputClosedError):
             s.get_available_raw_input()
 
 

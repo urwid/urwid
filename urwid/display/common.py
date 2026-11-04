@@ -1352,6 +1352,15 @@ class ScreenError(Exception):
     """Raised for errors in :class:`BaseScreen` and its subclasses."""
 
 
+class InputClosedError(RuntimeError):
+    """Raised when the screen's input reaches end of file.
+
+    A terminal that hangs up is one cause.
+    It is a :exc:`RuntimeError`, so a handler that catches :exc:`RuntimeError` around :meth:`MainLoop.run` catches it
+    too.
+    """
+
+
 class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     """Base class for Screen classes (display.raw.Screen, ..., etc.)."""
 
