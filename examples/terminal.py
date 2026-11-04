@@ -48,6 +48,8 @@ def main() -> None:
 
     def set_title(widget: urwid.Terminal, title: str) -> None:
         mainframe.set_title(title)
+        # the program in the terminal chooses the title, and set_title() removes the control characters from it
+        bpm_screen.set_title(title)
 
     def execute_quit(*args: typing.Any, **kwargs: typing.Any) -> typing.NoReturn:
         raise urwid.ExitMainLoop

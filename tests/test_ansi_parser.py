@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import os
 import typing
 import unittest
+from unittest import mock
 
 import urwid.display.raw
 from urwid.ansi_parser import (
@@ -1165,8 +1167,9 @@ class RawDisplayRoundTripTest(unittest.TestCase):
         bright_is_bold: bool = False,
         term: str = "xterm",
     ) -> urwid.display.raw.Screen:
-        screen = urwid.display.raw.Screen()
-        screen.term = term
+        # the properties detected from TERM follow term, rather than the TERM of the host running the test
+        with mock.patch.dict(os.environ, {"TERM": term}):
+            screen = urwid.display.raw.Screen()
         screen.set_terminal_properties(colors=colors, bright_is_bold=bright_is_bold, hyperlinks=True)
         return screen
 

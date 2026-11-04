@@ -200,6 +200,25 @@ class TestStartStop(unittest.TestCase):
         self.assertTrue(s._alternate_buffer)
         self.assertIsNone(s._rows_used)
 
+    def test_title_is_shown_on_start_and_given_back_on_stop(self) -> None:
+        """A title set before start is shown on each start, and the terminal's own title comes back on each stop."""
+        s = _make_screen()
+        self.addCleanup(s._term_output_file.close)
+        s.term = "xterm-256color"
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s.set_title("app")
+        self.assertEqual([], written)
+
+        for _ in range(2):
+            written.clear()
+            s.start()
+            self.assertIn(f"{escape.TITLE_PUSH}\x1b]2;app\x07", "".join(written))
+            written.clear()
+            s.stop()
+            self.assertEqual(1, "".join(written).count(escape.TITLE_POP))
+
     def test_start_installs_signal_handlers_and_stop_restores_them(self):
         s = _make_screen()
         s.write = lambda *_a: None

@@ -11,6 +11,9 @@ from unittest import mock
 from urwid import signals
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 
+if typing.TYPE_CHECKING:
+    import ctypes
+
 IS_WINDOWS = sys.platform == "win32"
 
 try:
@@ -231,3 +234,52 @@ class TestGetColsRows(unittest.TestCase):
         self.assertEqual((100, 30), (cols, rows))
         self.assertEqual(30, s.maxrow)
         self.assertEqual((100, 30), s._last_cols_rows)
+
+
+@unittest.skipUnless(IS_WINDOWS, "_win32_raw_display needs the Windows console API")
+class TestTitle(unittest.TestCase):
+    """The window title of a Windows console, which has no title stack."""
+
+    def test_console_title_is_set_and_given_back_through_the_console_api(self) -> None:
+        """A console gets the title through the console API, and its own title back; nothing is written."""
+        for label, old_title, restored in (("title read", "shell", ["shell"]), ("read failed", "", [])):
+            with self.subTest(label):
+                s = _win32_raw_display.Screen()
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                titles: list[str] = []
+
+                def get_title(buffer: ctypes.Array[ctypes.c_wchar], _size: int, title: str = old_title) -> int:
+                    buffer.value = title
+                    return len(title)
+
+                with (
+                    mock.patch.object(_win32, "GetConsoleTitleW", side_effect=get_title),
+                    mock.patch.object(_win32, "SetConsoleTitleW", side_effect=titles.append),
+                    mock.patch.object(s, "_console_mode_active", True),
+                    mock.patch.object(s, "_started", True),
+                ):
+                    s.set_title("app")
+                    s.set_title(None)
+
+                self.assertEqual(["app", *restored], titles)
+                self.assertEqual([], written)
+
+    def test_title_outside_a_console_uses_the_title_stack(self) -> None:
+        """Without a console, such as in a terminal emulator running over a pipe, the escape sequences are written."""
+        s = _win32_raw_display.Screen()
+        s.term = "xterm-256color"
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        with (
+            mock.patch.object(_win32, "SetConsoleTitleW") as set_title,
+            mock.patch.object(s, "_started", True),
+        ):
+            s.set_title("app")
+            s.set_title(None)
+
+        set_title.assert_not_called()
+        self.assertEqual("\x1b[22;0t\x1b]2;app\x07\x1b[23;0t", "".join(written))
