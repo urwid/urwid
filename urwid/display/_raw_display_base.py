@@ -248,7 +248,7 @@ def _rejects_osc(term: str) -> bool:
     A ``dumb`` terminal reads no escape sequences.
     On Windows, TERM does not describe the console, so only the Linux console names count there.
     """
-    return _is_linux_console(term) or (term in {"dumb", "fbterm"} and not IS_WINDOWS)
+    return _is_linux_console(term) or (term.lower() in {"dumb", "fbterm"} and not IS_WINDOWS)
 
 
 def _parse_force_color(value: str) -> _ColorCount:

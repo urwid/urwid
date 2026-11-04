@@ -764,7 +764,7 @@ class TestRawDisplay(unittest.TestCase):
 
     def test_set_title_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
         """The Linux virtual console and fbterm have no title, and a dumb terminal outside Windows would print it."""
-        for term in ("linux", "fbterm", "dumb"):
+        for term in ("linux", "fbterm", "dumb", "DUMB"):
             with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
                 s = urwid.display.raw.Screen()
                 s.term = term
@@ -800,7 +800,7 @@ class TestRawDisplay(unittest.TestCase):
 
     def test_copy_to_clipboard_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
         """The Linux virtual console and fbterm have no clipboard, and a dumb terminal outside Windows prints it."""
-        for term in ("linux", "fbterm", "dumb"):
+        for term in ("linux", "fbterm", "dumb", "DUMB"):
             with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
                 s = urwid.display.raw.Screen()
                 s.term = term
