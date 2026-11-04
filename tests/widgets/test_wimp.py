@@ -214,6 +214,20 @@ class RadioButtonTest(unittest.TestCase):
         self.assertEqual([b"(X) Agree"], first.render(()).text)
         self.assertEqual([b"( ) Disagree"], second.render(()).text)
 
+    def test_created_selected_takes_selection(self) -> None:
+        """A button created selected clears the earlier selection and signals the cleared button."""
+        events: list[tuple[str, str, object]] = []
+        group: list[urwid.RadioButton] = []
+        first = urwid.RadioButton(group, "A")
+        urwid.connect_signal(first, "change", lambda rb, state: events.append(("change", rb.label, state)))
+        urwid.connect_signal(first, "postchange", lambda rb, old: events.append(("post", rb.label, old)))
+        second = urwid.RadioButton(group, "B", state=True)
+        third = urwid.RadioButton(group, "C", state=False)
+
+        self.assertEqual((False, True, False), (first.state, second.state, third.state))
+        self.assertIs(second, first.selected_button)
+        self.assertEqual([("change", "A", False), ("post", "A", True)], events)
+
     def test_exclusive_selection(self) -> None:
         group: list[urwid.RadioButton] = []
         first = urwid.RadioButton(group, "A")
