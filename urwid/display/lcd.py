@@ -438,7 +438,7 @@ class CF635Screen(CFLCDScreen):
             if not timeout:
                 data_input.append(key)
                 self.key_repeat.sent_event()
-                timeout = None
+                timeout = self.key_repeat.repeat_next  # the key is still held: the next repeat is due then
 
         return timeout, data_input, raw_data_input
 

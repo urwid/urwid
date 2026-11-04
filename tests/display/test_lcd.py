@@ -123,3 +123,13 @@ class CF635ScreenTest(unittest.TestCase):
         sent = device.recv(4096)
         rows = [sent[i : i + 26] for i in range(0, len(sent), 26)]
         self.assertEqual([bytes([lcd.CFLCDScreen.CMD_LCD_DATA, 22, 0, row]) for row in range(4)], [r[:4] for r in rows])
+
+    def test_held_key_repeats(self) -> None:
+        """A key held down on the device is repeated after the repeat delay, with no further data from it."""
+        screen, device = self._screen(repeat_delay=0.05, repeat_next=0.05)
+        keys: list[str] = []
+        device.send(packet(lcd.CFLCDScreen.CMD_KEY_ACTIVITY, bytes([3])))  # left pressed, never released
+
+        self._run(screen, keys, 3)
+
+        self.assertEqual(["left", "left", "left"], keys)
