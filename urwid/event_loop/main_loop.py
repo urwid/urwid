@@ -104,6 +104,7 @@ PIPE_BUFFER_READ_SIZE = 4096  # can expect this much on Linux, so try for that
 # Calls run by one pass of MainLoop.call_from_thread() work; the event loop serves input and alarms between passes.
 _THREAD_CALLS_PER_PASS: typing.Final = 64
 _NOT_RUNNING: typing.Final = "the urwid MainLoop is not running"
+_CANNOT_WATCH: typing.Final = "the event loop of this urwid MainLoop cannot watch files, which call_from_thread() needs"
 # Shortest MainLoop.poll_interval: the curses screen waits in tenths of a second, and rounds less to no wait at all.
 _MIN_POLL_INTERVAL: typing.Final = 0.1
 
@@ -240,6 +241,7 @@ class MainLoop:
         "_poll_interval",
         "_pop_ups",
         "_thread_calls",
+        "_thread_calls_unwatchable",
         "_topmost_widget",
         "_unhandled_input",
         "_watch_pipes",
@@ -312,6 +314,8 @@ class MainLoop:
         self._activation: _Activation | None = None
         # set while the loop runs: the calls other threads hand over through call_from_thread()
         self._thread_calls: _ThreadCalls | None = None
+        # set while the loop runs on an event loop that cannot watch files, so call_from_thread() is not available
+        self._thread_calls_unwatchable = False
 
     @property
     def widget(self) -> AbstractWidget:
@@ -607,12 +611,14 @@ class MainLoop:
 
         :raises TypeError: *callback* is an ``async def`` function, which this method cannot await.
         :raises RuntimeError: the loop is not running: before :meth:`start` or :meth:`run`, or after :meth:`stop`.
+            Also while it runs on an event loop that cannot watch files,
+            such as :class:`AsyncioEventLoop` on asyncio's ``ProactorEventLoop``, the default on Windows.
         """
         if inspect.iscoroutinefunction(callback):
             msg = f"call_from_thread() cannot await {callback!r}"
             raise TypeError(msg)
         if (state := self._thread_calls) is None:
-            raise RuntimeError(_NOT_RUNNING)
+            raise RuntimeError(_CANNOT_WATCH if self._thread_calls_unwatchable else _NOT_RUNNING)
         state.calls.append(functools.partial(callback, *args, **kwargs))
         with suppress(BlockingIOError):  # a full buffer means wake-ups are already pending
             state.writer.send(b"\0")
@@ -631,6 +637,12 @@ class MainLoop:
             writer.setblocking(False)
             state = _ThreadCalls(reader, writer)
             state.handle = self.event_loop.watch_file(reader.fileno(), functools.partial(self._run_thread_calls, state))
+        except NotImplementedError:
+            # asyncio's ProactorEventLoop cannot watch a socket; a screen that watches no files still runs on it.
+            reader.close()
+            writer.close()
+            self._thread_calls_unwatchable = True
+            return
         except BaseException:
             reader.close()
             writer.close()
@@ -643,6 +655,7 @@ class MainLoop:
 
     def _close_thread_calls(self) -> None:
         """Stop accepting :meth:`call_from_thread` calls and drop the calls still queued."""
+        self._thread_calls_unwatchable = False
         if (state := self._thread_calls) is None:
             return
         try:

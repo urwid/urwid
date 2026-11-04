@@ -1810,6 +1810,29 @@ class TestCallFromThread(unittest.TestCase):
         event_loop.remove_watch_file.assert_not_called()
         typing.cast("unittest.mock.Mock", loop.screen).stop.assert_called_once_with()
 
+    def test_event_loop_that_cannot_watch_files_runs_without_calls(self) -> None:
+        """An event loop without file watches, as asyncio's ProactorEventLoop, runs; a call says why it cannot work."""
+        pairs: list[tuple[socket.socket, socket.socket]] = []
+        real_socketpair = socket.socketpair
+
+        def recording_socketpair() -> tuple[socket.socket, socket.socket]:
+            pairs.append(real_socketpair())
+            return pairs[-1]
+
+        event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
+        event_loop.watch_file.side_effect = NotImplementedError
+        loop = external_loop(event_loop=event_loop)
+        with unittest.mock.patch.object(main_loop_module.socket, "socketpair", recording_socketpair):
+            loop.start()
+
+        with self.assertRaisesRegex(RuntimeError, "cannot watch files"):
+            loop.call_from_thread(print)
+        self.assertEqual([(-1, -1)], [(reader.fileno(), writer.fileno()) for reader, writer in pairs])
+        loop.stop()
+        event_loop.remove_watch_file.assert_not_called()
+        with self.assertRaisesRegex(RuntimeError, "not running"):
+            loop.call_from_thread(print)
+
     def test_failed_watch_removal_still_drops_the_calls_and_stops(self) -> None:
         """A stop() whose event loop fails to remove the wake-up watch still drops the calls and stops the screen."""
         event_loop = unittest.mock.Mock(spec=urwid.SelectEventLoop)
