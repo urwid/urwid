@@ -9,6 +9,7 @@ import doctest
 import gc
 import inspect
 import io
+import math
 import os
 import select
 import socket
@@ -26,6 +27,7 @@ from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
 IS_WINDOWS = sys.platform == "win32"
@@ -714,9 +716,7 @@ class TestMainLoop(unittest.TestCase):
         evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
         evl.run()
         self.assertGreaterEqual(screen.input_calls, 3)
-        # The only watched file is the one call_from_thread() wakes the loop through.
-        expected = None if IS_WINDOWS else main_loop_module._SCREEN_LOOP_WATCH_POLL
-        self.assertEqual({expected}, set(screen.timeouts))
+        self.assertEqual({None}, set(screen.timeouts))
 
     def test_run_screen_event_loop_processes_multiple_alarms(self):
         """_run_screen_event_loop pops and fires alarms one at a time across outer iterations."""
@@ -777,7 +777,7 @@ class TestMainLoop(unittest.TestCase):
         self.assertEqual(["a"], order)
 
     def test_run_screen_event_loop_runs_a_watched_file_and_redraws(self) -> None:
-        """A watched file that becomes readable is handled within one poll, and the screen is redrawn after it."""
+        """With a poll interval, a readable watched file is handled within one poll, and the screen is redrawn."""
         received: list[bytes] = []
         rd, wr = socket.socketpair()
         self.addCleanup(rd.close)
@@ -808,7 +808,7 @@ class TestMainLoop(unittest.TestCase):
 
         widget = ExitOnRedraw()
         screen = NonExternalLoopScreen()
-        evl = urwid.MainLoop(widget, screen=screen, handle_mouse=False)
+        evl = urwid.MainLoop(widget, screen=screen, handle_mouse=False, poll_interval=0.25)
         evl.watch_file(rd.fileno(), on_ready)
         evl.set_alarm_in(0, lambda *_args: wr.send(b"x"))
         evl.set_alarm_in(10, give_up)
@@ -816,7 +816,21 @@ class TestMainLoop(unittest.TestCase):
 
         self.assertEqual([b"x"], received)
         # Windows has no poll: the curses screen there cannot stop waiting before a key arrives.
-        self.assertEqual(not IS_WINDOWS, main_loop_module._SCREEN_LOOP_WATCH_POLL in screen.timeouts)
+        self.assertEqual(not IS_WINDOWS, 0.25 in screen.timeouts)
+
+    def test_poll_interval_is_none_or_at_least_a_tenth_of_a_second(self) -> None:
+        """A poll interval shorter than the curses screen can wait, or not finite, is refused, also when assigned."""
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), poll_interval=0.1)
+        for poll_interval in (0, -0.1, 0.05, math.inf, math.nan):
+            with self.subTest(poll_interval=poll_interval):
+                with self.assertRaises(ValueError):
+                    urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), poll_interval=poll_interval)
+                with self.assertRaises(ValueError):
+                    loop.poll_interval = poll_interval
+                self.assertEqual(0.1, loop.poll_interval)
+
+        loop.poll_interval = None
+        self.assertIsNone(loop.poll_interval)
 
     def test_run_screen_event_loop_stops_calling_a_removed_watch(self) -> None:
         """A watch that removes itself is not called again, although its descriptor stays readable."""
@@ -877,29 +891,42 @@ class TestMainLoop(unittest.TestCase):
                 self.assertEqual(1, len(called))
                 self.assertNotIn("replacement", called)
 
-    def test_run_screen_event_loop_on_windows_checks_watches_after_input(self) -> None:
-        """Simulated Windows: watched files do not shorten the wait for input, and are checked once it returns.
+    def test_run_screen_event_loop_without_polls_checks_watches_after_input(self) -> None:
+        """Without a poll interval, or on Windows, a watched file does not shorten the wait for input.
 
-        This patches the platform check only; the curses screen's blocking read on Windows is not run.
+        It is checked once the input returned.
+        Windows is simulated by patching the platform check; the curses screen's blocking read there is not run.
         """
-        calls: list[str] = []
-        rd, wr = socket.socketpair()
-        self.addCleanup(rd.close)
-        self.addCleanup(wr.close)
+        for windows, poll_interval in ((False, None), (True, 0.1)):
+            with self.subTest(windows=windows, poll_interval=poll_interval):
+                calls: list[str] = []
+                rd, wr = socket.socketpair()
+                self.addCleanup(rd.close)
+                self.addCleanup(wr.close)
 
-        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
-            calls.append(str(key))
-            raise urwid.ExitMainLoop
+                def unhandled(
+                    key: str | tuple[str, int, int, int],
+                    *,
+                    record: Callable[[str], None] = calls.append,
+                ) -> typing.NoReturn:
+                    record(str(key))
+                    raise urwid.ExitMainLoop
 
-        screen = ScriptedInputScreen([(["k"], [])])
-        evl = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
-        evl.watch_file(rd.fileno(), lambda: calls.append(rd.recv(1).decode()))
-        wr.send(b"w")
-        with unittest.mock.patch.object(main_loop_module, "IS_WINDOWS", True):
-            evl.run()
+                screen = ScriptedInputScreen([(["k"], [])])
+                evl = urwid.MainLoop(
+                    urwid.SolidFill(),
+                    screen=screen,
+                    handle_mouse=False,
+                    unhandled_input=unhandled,
+                    poll_interval=poll_interval,
+                )
+                evl.watch_file(rd.fileno(), lambda rd=rd, calls=calls: calls.append(rd.recv(1).decode()))
+                wr.send(b"w")
+                with unittest.mock.patch.object(main_loop_module, "IS_WINDOWS", windows):
+                    evl.run()
 
-        self.assertEqual([None], screen.timeouts)
-        self.assertEqual(["w", "k"], calls)
+                self.assertEqual([None], screen.timeouts)
+                self.assertEqual(["w", "k"], calls)
 
     def test_run_reraises_unexpected_event_loop_error(self):
         """run() removes its event loop hooks, stops the screen and lets an unexpected event loop error propagate."""
@@ -1647,7 +1674,13 @@ class TestCallFromThread(unittest.TestCase):
             raise urwid.ExitMainLoop
 
         screen = CountingScreen([([], []), ([], []), ([], []), (["x"], [])])
-        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, unhandled_input=unhandled)
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=screen,
+            handle_mouse=False,
+            unhandled_input=unhandled,
+            poll_interval=0.1,
+        )
         loop.set_alarm_in(0, lambda *_args: loop.call_from_thread(flood))
         loop.run()
 
@@ -1657,7 +1690,7 @@ class TestCallFromThread(unittest.TestCase):
         self.assertEqual(3 * main_loop_module._THREAD_CALLS_PER_PASS, len(floods))
 
     def test_fallback_loop_runs_a_call_from_a_worker(self) -> None:
-        """On a screen without event loop support, a call from a worker thread runs while the loop waits."""
+        """On a screen without event loop support and a poll interval, a worker's call runs while the loop waits."""
         seen: list[bool] = []
 
         def done() -> typing.NoReturn:
@@ -1672,7 +1705,7 @@ class TestCallFromThread(unittest.TestCase):
                 return super().get_input(raw_keys)
 
         screen = WaitingScreen([])
-        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False)
+        loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, poll_interval=0.1)
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             loop.set_alarm_in(0, lambda *_args: executor.submit(loop.call_from_thread, done))
             loop.run()

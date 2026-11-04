@@ -29,6 +29,7 @@ import functools
 import heapq
 import inspect
 import logging
+import math
 import os
 import socket
 import sys
@@ -100,12 +101,11 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 PIPE_BUFFER_READ_SIZE = 4096  # can expect this much on Linux, so try for that
-# Seconds between checks of watched files while a screen without event loop support waits for input:
-# its get_input() cannot wait on other descriptors.
-_SCREEN_LOOP_WATCH_POLL: typing.Final = 0.1
 # Calls run by one pass of MainLoop.call_from_thread() work; the event loop serves input and alarms between passes.
 _THREAD_CALLS_PER_PASS: typing.Final = 64
 _NOT_RUNNING: typing.Final = "the urwid MainLoop is not running"
+# Shortest MainLoop.poll_interval: the curses screen waits in tenths of a second, and rounds less to no wait at all.
+_MIN_POLL_INTERVAL: typing.Final = 0.1
 
 __all__ = ("CantUseExternalLoop", "MainLoop", "get_running_loop", "get_running_loop_or_none")
 
@@ -210,6 +210,11 @@ class MainLoop:
                     instance to allow any widget to open a pop-up anywhere on the screen;
                     required by :class:`DropDown` and other :class:`PopUpLauncher` widgets
 
+    :param poll_interval: seconds between checks of watched files and :meth:`call_from_thread` calls
+                          while the curses screen waits for input, except on Windows; stored as :attr:`poll_interval`.
+                          ``None``, the default, checks them only after input or an alarm.
+                          See :ref:`screens-without-event-loop-support`.
+
 
     .. attribute:: screen
 
@@ -232,6 +237,7 @@ class MainLoop:
         "__weakref__",
         "_activation",
         "_input_filter",
+        "_poll_interval",
         "_pop_ups",
         "_thread_calls",
         "_topmost_widget",
@@ -258,12 +264,17 @@ class MainLoop:
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
+        *,
+        poll_interval: float | None = None,
     ) -> None:
         """
         Set up the main loop around a top-level widget, a screen and an event loop.
 
         :raises NotImplementedError: an *event_loop* is given but *screen* does not support external event loops.
+        :raises ValueError: *poll_interval* is not ``None`` or a finite number of seconds of at least 0.1.
         """
+        self._poll_interval: float | None = None
+        self.poll_interval = poll_interval
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
         self._topmost_widget = widget
@@ -318,6 +329,27 @@ class MainLoop:
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
+
+    @property
+    def poll_interval(self) -> float | None:
+        """Seconds between checks of watched files while the curses screen waits for input, or ``None``.
+
+        ``None`` checks them only after input or an alarm.
+        A change takes effect at the next wait for input, also while the loop runs.
+        See :ref:`screens-without-event-loop-support`.
+        """
+        return self._poll_interval
+
+    @poll_interval.setter
+    def poll_interval(self, poll_interval: float | None) -> None:
+        """Set the seconds between checks of watched files while the curses screen waits for input.
+
+        :raises ValueError: *poll_interval* is not ``None`` or a finite number of seconds of at least 0.1.
+        """
+        if poll_interval is not None and not (math.isfinite(poll_interval) and poll_interval >= _MIN_POLL_INTERVAL):
+            msg = f"poll_interval must be None or at least {_MIN_POLL_INTERVAL} seconds, not {poll_interval!r}"
+            raise ValueError(msg)
+        self._poll_interval = poll_interval
 
     @property
     def pop_ups(self) -> bool:
@@ -526,8 +558,9 @@ class MainLoop:
             implementation that supports one; see the note on :class:`MainLoop`.
 
         .. note::
-            On Windows, with a screen that has no event loop support, such as the curses screen,
-            *fd* is checked only after the screen returned input, as expired alarms are.
+            With a screen that has no event loop support, such as the curses screen,
+            *fd* is checked after input or an alarm, and every :attr:`poll_interval` seconds when it is set,
+            except on Windows.
         """
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         if inspect.iscoroutinefunction(callback):
@@ -568,8 +601,9 @@ class MainLoop:
         Calls run in the order they were made.
         Called on the loop thread itself, it defers the callback the same way instead of running it at once.
         Calls still queued when the loop stops are dropped.
-        With a screen that has no event loop support, such as the curses screen, a call waits up to 0.1 seconds,
-        and on Windows until the next input.
+        With a screen that has no event loop support, such as the curses screen,
+        a call waits for the next input or alarm, or up to :attr:`poll_interval` seconds when it is set,
+        except on Windows.
 
         :raises TypeError: *callback* is an ``async def`` function, which this method cannot await.
         :raises RuntimeError: the loop is not running: before :meth:`start` or :meth:`run`, or after :meth:`stop`.
@@ -920,7 +954,8 @@ class MainLoop:
         """Run the screen event loop, used when the screen does not support using external event loops.
 
         The alarms and watched files stored in the SelectEventLoop in :attr:`event_loop` are handled by this method.
-        While a file is watched, the wait for input is cut into polls, except on Windows,
+        Watched files are checked after each input and each expired alarm.
+        With :attr:`poll_interval` set, the wait for input is also cut into polls of that length, except on Windows,
         where the curses screen cannot stop waiting before a key arrives.
         """
         # pylint: disable=protected-access  # special case for alarms and watched files handling
@@ -940,8 +975,8 @@ class MainLoop:
             raw: list[int] = []
             while not keys:
                 timeout = max(0.0, alarms[0][0] - time.monotonic()) if alarms else None
-                if watch_files and not IS_WINDOWS:
-                    timeout = _SCREEN_LOOP_WATCH_POLL if timeout is None else min(timeout, _SCREEN_LOOP_WATCH_POLL)
+                if watch_files and (poll := self._poll_interval) is not None and not IS_WINDOWS:
+                    timeout = poll if timeout is None else min(timeout, poll)
                 screen.set_input_timeouts(timeout)
                 keys, raw = screen.get_input(True)
 

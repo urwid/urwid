@@ -139,6 +139,9 @@ afterwards, :exc:`ExitMainLoop` raised by it stops the loop, and any other
 exception is logged.
 Calls run in the order they were made, and a call made after the loop stopped
 raises :exc:`RuntimeError`.
+With a screen that has no event loop support, such as the curses screen, a call
+waits for the next input or alarm unless the loop polls: see
+:ref:`screens-without-event-loop-support`.
 It is safe to call from a signal handler as well.
 
 A worker that produces a stream of small updates, such as the lines of a log,
