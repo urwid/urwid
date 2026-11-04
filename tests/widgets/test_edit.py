@@ -360,6 +360,29 @@ class EditTest(unittest.TestCase):
         self.assertEqual(r.edit_pos, 0)
         self.assertEqual(submitted, [(e, "ab"), (i, "12")])
 
+    def test_cancel_signal(self) -> None:
+        """An Edit sends "cancel" on a key mapped to 'menu' and still returns the key, multiline or not."""
+        cancelled: list[tuple[urwid.Edit, str]] = []
+        e = urwid.Edit("", "ab")
+        urwid.connect_signal(e, "cancel", lambda edit, text: cancelled.append((edit, text)))
+        self.assertEqual(e.keypress((20,), "enter"), "enter")
+        self.assertEqual(e.keypress((20,), "esc"), "esc")
+        self.assertEqual(cancelled, [(e, "ab")])
+
+        m = urwid.Edit("", "a\nb", multiline=True)
+        urwid.connect_signal(m, "cancel", lambda edit, text: cancelled.append((edit, text)))
+        self.assertEqual(m.keypress((20,), "esc"), "esc")
+        self.assertEqual(cancelled, [(e, "ab"), (m, "a\nb")])
+
+        r = urwid.Edit("", "ab")
+        r._command_map = urwid.CommandMap()
+        r._command_map["esc"] = Command.MAX_LEFT
+        r._command_map["f10"] = Command.MENU
+        urwid.connect_signal(r, "cancel", lambda edit, text: cancelled.append((edit, text)))
+        self.assertIsNone(r.keypress((20,), "esc"))
+        self.assertEqual(r.keypress((20,), "f10"), "f10")
+        self.assertEqual(cancelled, [(e, "ab"), (m, "a\nb"), (r, "ab")])
+
     def test_set_edit_text_edit_pos(self) -> None:
         """edit_pos is set, clipped, before "postchange"; None keeps the current position clipped to the text."""
         positions: list[int] = []
@@ -1806,14 +1829,24 @@ class EditUndoTest(unittest.TestCase):
                 self.assertEqual(self.history(e), ([], []))
                 self.assertFalse(e.undo())
 
-    def test_submit_handler(self) -> None:
-        """A submit handler that clears the field clears the history, masked or not; one that does not keeps it."""
-        for mask, clear in ((None, True), ("*", True), ("", True), (None, False)):
-            with self.subTest(mask=mask, clear=clear):
+    def test_submit_and_cancel_handler(self) -> None:
+        """A submit or cancel handler that clears the field clears the history, masked or not.
+
+        A handler that does not clear it keeps the history.
+        """
+        for signal, key, mask, clear in (
+            ("submit", "enter", None, True),
+            ("submit", "enter", "*", True),
+            ("submit", "enter", "", True),
+            ("submit", "enter", None, False),
+            ("cancel", "esc", None, True),
+            ("cancel", "esc", None, False),
+        ):
+            with self.subTest(signal=signal, mask=mask, clear=clear):
                 e = urwid.Edit(undo_limit=10, mask=mask)
                 if clear:
-                    urwid.connect_signal(e, "submit", lambda edit, _text: edit.set_edit_text(""))
-                type_keys(e, "s", "e", "c", "enter")
+                    urwid.connect_signal(e, signal, lambda edit, _text: edit.set_edit_text(""))
+                type_keys(e, "s", "e", "c", key)
                 if clear:
                     self.assertEqual(e.edit_text, "")
                     self.assertEqual(self.history(e), ([], []))
