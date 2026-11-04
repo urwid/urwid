@@ -16,7 +16,7 @@ from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Align, Sizing, WHSettings
+from .constants import Align, MouseButton, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
@@ -1204,7 +1204,7 @@ class Columns(
                 continue
 
             focus = focus and self.focus_position == i
-            if is_mouse_press(event) and button == 1 and w.selectable():
+            if is_mouse_press(event) and button == MouseButton.LEFT and w.selectable():
                 self.focus_position = i
 
             if not hasattr(w, "mouse_event"):

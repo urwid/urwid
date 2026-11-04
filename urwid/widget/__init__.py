@@ -14,6 +14,7 @@ from .columns import Columns, ColumnsError, ColumnsWarning
 from .constants import (
     RELATIVE_100,
     Align,
+    MouseButton,
     Severity,
     Sizing,
     ValidationMessage,
@@ -141,6 +142,7 @@ __all__ = (
     "MonitoredFocusDeque",
     "MonitoredFocusList",
     "MonitoredList",
+    "MouseButton",
     "Notification",
     "Notifications",
     "Overlay",

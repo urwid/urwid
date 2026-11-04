@@ -180,8 +180,9 @@ Mouse Input
 Mouse input is sent as a (*event*, *button*, *x*, *y*) tuple. *event* is a string
 describing the event. If the *SHIFT*, *ALT* or *CTRL* keys are held when a mouse
 event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
-``'ctrl'``. *button* is a number from 1 to 5. *x* and *y* are character
-coordinates starting from ``(0, 0)`` at the top-left of the screen.
+``'ctrl'``. *button* is a number, named by :class:`MouseButton`. *x* and *y*
+are character coordinates starting from ``(0, 0)`` at the top-left of the
+screen.
 
 Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't
@@ -192,23 +193,48 @@ be relied on.
 
 A mouse button was pressed.
 
-=============== ======================
-`button` number Mouse button
-=============== ======================
-1               Left button
-2               Middle button
-3               Right button
-4               Scroll wheel up [#first]_
-5               Scroll wheel down [#first]_
-=============== ======================
+=============== =========================== ===========================================
+`button` number :class:`MouseButton` member Mouse button
+=============== =========================== ===========================================
+1               ``LEFT``                    Left button
+2               ``MIDDLE``                  Middle button
+3               ``RIGHT``                   Right button
+4               ``WHEEL_UP``                Scroll wheel up [#wheel]_
+5               ``WHEEL_DOWN``              Scroll wheel down [#wheel]_
+6               ``WHEEL_LEFT``              Scroll wheel left [#wheel]_
+7               ``WHEEL_RIGHT``             Scroll wheel right [#wheel]_
+8               ``BACK``                    Back, the first side button [#side]_
+9               ``FORWARD``                 Forward, the second side button [#side]_
+=============== =========================== ===========================================
 
-.. [#first] typically no corresponding release event is sent
+Buttons 10 and 11 have no name: ``MouseButton(10)`` returns a member named
+``BUTTON_10``.
+
+Which buttons arrive depends on the screen:
+
+* the raw screen (:mod:`urwid.display.raw`) decodes 1 to 11 from the
+  terminal's mouse reports;
+* the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
+  defines;
+* GPM, the Linux console mouse, delivers 1 to 3.
+
+A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
+and buttons 8 to 11 by adding 128, as described in the "Mouse Tracking"
+section of `XTerm Control Sequences
+<https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>`_.
+
+.. [#wheel] A terminal sends no release event for the wheel. The curses screen
+   may send a release of 4 or 5.
+.. [#side] The conventional meaning of buttons 8 and 9 under X11 and libinput,
+   which a user's device mapping can change.
 
 ``'mouse release'`` Events
 --------------------------
 
-Mouse release events will often not have information about which button was
-released. In this case *button* will be set to 0.
+A mouse button was released. *button* names the released button in an SGR
+mouse report (``ESC [ < ... m``), on the curses screen and from GPM.
+A terminal that sends X10 mouse reports (``ESC [ M ...``) does not say which
+button was released, and *button* is then 0, :attr:`MouseButton.UNKNOWN`.
 
 ``'mouse drag'`` Events
 -----------------------

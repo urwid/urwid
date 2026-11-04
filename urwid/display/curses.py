@@ -349,8 +349,10 @@ class Screen(BaseScreen, RealTerminal):
 
         * Mouse button press: ('mouse press', 1, 15, 13),
                             ('meta mouse press', 2, 17, 23)
-        * Mouse button release: ('mouse release', 0, 18, 13),
-                              ('ctrl mouse release', 0, 17, 23)
+        * Mouse button release: ('mouse release', 1, 18, 13),
+                              ('ctrl mouse release', 2, 17, 23)
+
+        The button number is a :class:`~urwid.MouseButton` value.
         """
         if not self._started:
             raise RuntimeError

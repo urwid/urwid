@@ -367,13 +367,20 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         x = 4
         y = 8
         coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
-        # code 64/65 (0b1000000/0b1000001) sets the "high button" bit, reporting wheel buttons 4/5
-        for code, expected_button in ((0b1000000, 4), (0b1000001, 5)):
-            key_code = tuple(ord(element) for element in str(code))
-            codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
-            actual, rest = escape.process_keyqueue(codes, more_available=False)
-            self.assertEqual([("mouse press", expected_button, x, y)], actual)
-            self.assertListEqual([], rest)
+        # code 64-67 (0b1000000-0b1000011) sets the "high button" bit, reporting wheel buttons 4-7
+        for code, expected_button in (
+            (0b1000000, urwid.MouseButton.WHEEL_UP),
+            (0b1000001, urwid.MouseButton.WHEEL_DOWN),
+            (0b1000010, urwid.MouseButton.WHEEL_LEFT),
+            (0b1000011, urwid.MouseButton.WHEEL_RIGHT),
+        ):
+            with self.subTest(button=expected_button.name):
+                key_code = tuple(ord(element) for element in str(code))
+                codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+                actual, rest = escape.process_keyqueue(codes, more_available=False)
+                self.assertEqual([("mouse press", expected_button, x, y)], actual)
+                self.assertIs(type(actual[0][1]), int)
+                self.assertListEqual([], rest)
 
     def test_sgrmouse_extra_buttons(self):
         prefix = (27, ord("["), ord("<"))
@@ -381,7 +388,12 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         y = 8
         coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
         # code 128-131 (0b10000000-0b10000011) sets the "extra button" bit, reporting buttons 8-11
-        for code, expected_button in ((0b10000000, 8), (0b10000001, 9), (0b10000010, 10), (0b10000011, 11)):
+        for code, expected_button in (
+            (0b10000000, urwid.MouseButton.BACK),
+            (0b10000001, urwid.MouseButton.FORWARD),
+            (0b10000010, urwid.MouseButton(10)),
+            (0b10000011, urwid.MouseButton(11)),
+        ):
             key_code = tuple(ord(element) for element in str(code))
             codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
             actual, rest = escape.process_keyqueue(codes, more_available=False)
@@ -415,13 +427,18 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         # button bits 0b11 (3) always mean "release", regardless of the MOUSE_RELEASE_FLAG bit
         keys = [32 + 3, x + 33, y + 33]
         result = escape.input_trie.read_mouse_info(keys, more_available=False)
-        self.assertEqual((("mouse release", 0, x, y), []), result)
+        self.assertEqual((("mouse release", urwid.MouseButton.UNKNOWN, x, y), []), result)
 
     def test_mouse_x10_extra_buttons(self):
         x, y = 8, 15
         # code 128-131 sets the "extra button" bit, reporting buttons 8-11; bits 0b11 (button 11)
         # does not mean "release" here, unlike the plain 0b11 case in test_mouse_x10_release
-        for code, expected_button in ((128, 8), (129, 9), (130, 10), (131, 11)):
+        for code, expected_button in (
+            (128, urwid.MouseButton.BACK),
+            (129, urwid.MouseButton.FORWARD),
+            (130, urwid.MouseButton(10)),
+            (131, urwid.MouseButton(11)),
+        ):
             keys = [32 + code, x + 33, y + 33]
             result = escape.input_trie.read_mouse_info(keys, more_available=False)
             self.assertEqual((("mouse press", expected_button, x, y), []), result)
@@ -431,7 +448,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         # bits 0b11 combined with the "high button" flag (0b1000011 = 64 + 3) is wheel button 7, not a release
         keys = [32 + 0b1000011, x + 33, y + 33]
         result = escape.input_trie.read_mouse_info(keys, more_available=False)
-        self.assertEqual((("mouse press", 7, x, y), []), result)
+        self.assertEqual((("mouse press", urwid.MouseButton.WHEEL_RIGHT, x, y), []), result)
 
     def test_mouse_x10_double_click(self):
         x, y = 8, 15
@@ -655,6 +672,48 @@ class MouseBitTest(unittest.TestCase):
                 self.assertEqual(getattr(escape, name), value)
         with self.assertRaises(AttributeError):
             getattr(escape, "_MOUSE_NO_SUCH_FLAG")
+
+
+class MouseButtonTest(unittest.TestCase):
+    def test_values_are_the_button_numbers(self) -> None:
+        """Give each named button the number the screens report for it."""
+        self.assertEqual(
+            {
+                "UNKNOWN": 0,
+                "LEFT": 1,
+                "MIDDLE": 2,
+                "RIGHT": 3,
+                "WHEEL_UP": 4,
+                "WHEEL_DOWN": 5,
+                "WHEEL_LEFT": 6,
+                "WHEEL_RIGHT": 7,
+                "BACK": 8,
+                "FORWARD": 9,
+            },
+            {member.name: member for member in urwid.MouseButton},
+        )
+        self.assertIs(urwid.MouseButton(0), urwid.MouseButton.UNKNOWN)
+
+    def test_unnamed_button(self) -> None:
+        """Convert a number above the named buttons to a member named after it."""
+        button = urwid.MouseButton(10)
+        self.assertEqual(10, button)
+        self.assertEqual("BUTTON_10", button.name)
+        self.assertIsInstance(button, urwid.MouseButton)
+        self.assertEqual("found", {10: "found"}[button])
+
+    def test_unnamed_buttons_are_not_stored(self) -> None:
+        """Leave the members unchanged after converting many unnamed numbers."""
+        for number in range(10, 1010):
+            urwid.MouseButton(number)
+        self.assertEqual(10, len(urwid.MouseButton._value2member_map_))
+        self.assertEqual(10, len(urwid.MouseButton))
+
+    def test_invalid_value_raises(self) -> None:
+        """Reject a negative number and a value that is not an int."""
+        for value in (-1, "1", 1.5):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                urwid.MouseButton(value)
 
 
 class OutputSequenceTest(unittest.TestCase):

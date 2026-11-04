@@ -28,7 +28,7 @@ from urwid.util import is_mouse_press
 
 from .attr_map import AttrMap
 from .columns import Columns
-from .constants import WrapMode
+from .constants import MouseButton, WrapMode
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
 from .popup import PopUpLauncher
@@ -73,7 +73,7 @@ class _DropDownItem(SelectableIcon):
         focus: bool,
     ) -> bool:
         """Choose this option on a button 1 press."""
-        if button != 1 or not is_mouse_press(event):
+        if button != MouseButton.LEFT or not is_mouse_press(event):
             return False
         if on_choose := self._on_choose():
             on_choose(self._index)
@@ -253,7 +253,7 @@ class DropDown(PopUpLauncher[Columns]):
 
         When the widget is not selectable, the list does not open and the press is not handled.
         """
-        if button != 1 or not is_mouse_press(event) or not self.selectable():
+        if button != MouseButton.LEFT or not is_mouse_press(event) or not self.selectable():
             return False
         self.open_pop_up()
         return True

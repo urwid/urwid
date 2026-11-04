@@ -69,7 +69,7 @@ from urwid.display.escape import (
     MouseBit,
     PrivateMode,
 )
-from urwid.widget import Sizing, Widget
+from urwid.widget import MouseButton, Sizing, Widget
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
@@ -190,7 +190,7 @@ _MOUSE_TRACKING_MODES: typing.Final = frozenset(
 #: the tracking modes a Terminal recognises and sends no reports for
 _MOUSE_UNREPORTED_TRACKING_MODES: typing.Final = frozenset((None, PrivateMode.MOUSE_HIGHLIGHT_TRACKING))
 #: the buttons X10 compatibility mode reports, those of the mice it was made for
-_MOUSE_X10_BUTTONS: typing.Final = frozenset((1, 2, 3))
+_MOUSE_X10_BUTTONS: typing.Final = frozenset((MouseButton.LEFT, MouseButton.MIDDLE, MouseButton.RIGHT))
 #: the modes that change the encoding of a mouse report from X10: UTF-8 coordinates, SGR parameters
 _MOUSE_ENCODING_MODES: typing.Final = frozenset((PrivateMode.MOUSE_UTF8_MODE, PrivateMode.MOUSE_SGR_MODE))
 #: the DEC private modes a Terminal recognises and ignores
@@ -209,12 +209,18 @@ _MOUSE_COORDINATE_LIMITS: typing.Final = {
 }
 #: the button bits of a mouse report for each urwid button number, the inverse of the decoding in urwid.display.escape
 _MOUSE_BUTTON_CODES: typing.Final = {
-    **{button: button - 1 for button in range(1, 4)},
-    **{button: MouseBit.HIGH_BUTTON + button - 4 for button in range(4, 8)},
-    **{button: MouseBit.EXTRA_BUTTON + button - 8 for button in range(8, 12)},
+    **{button: button - MouseButton.LEFT for button in range(MouseButton.LEFT, MouseButton.WHEEL_UP)},
+    **{
+        button: MouseBit.HIGH_BUTTON + button - MouseButton.WHEEL_UP
+        for button in range(MouseButton.WHEEL_UP, MouseButton.BACK)
+    },
+    **{
+        button: MouseBit.EXTRA_BUTTON + button - MouseButton.BACK
+        for button in range(MouseButton.BACK, MouseButton.BACK + 4)
+    },
 }
 #: the wheel buttons, whose release xterm does not report
-_MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(4, 8))
+_MOUSE_WHEEL_BUTTONS: typing.Final = frozenset(range(MouseButton.WHEEL_UP, MouseButton.BACK))
 #: the modifier prefixes of an urwid mouse event, in the order urwid writes them, and their bits in a mouse report
 _MOUSE_MODIFIERS: typing.Final = (("shift ", MouseBit.SHIFT), ("meta ", MouseBit.META), ("ctrl ", MouseBit.CTRL))
 #: the modes that switch to the alternate screen when set and back to the main one when reset

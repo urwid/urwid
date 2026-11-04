@@ -18,7 +18,7 @@ from urwid.str_util import _grapheme_boundary, calc_width, is_wide_char, move_ne
 from urwid.util import decompose_tagmarkup
 
 from .attr_map import _attr_map_dicts
-from .constants import Align, Severity, Sizing, ValidationMessage, WrapMode
+from .constants import Align, MouseButton, Severity, Sizing, ValidationMessage, WrapMode
 from .text import Text, TextError
 from .widget import WidgetWrap
 
@@ -1486,7 +1486,7 @@ class Edit(WidgetWrap[Text]):
         2
         """
         self._kill_last = None  # a click may have moved the focus away and back
-        if button == 1:
+        if button == MouseButton.LEFT:
             return self.move_cursor_to_coords(size, col, row)
         return False
 

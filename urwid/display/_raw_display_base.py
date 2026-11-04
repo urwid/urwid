@@ -982,6 +982,8 @@ class Screen(BaseScreen, RealTerminal):
                       ('ctrl mouse drag', 1, 18, 13)
         * Mouse button release: ('mouse release', 0, 18, 13),
                                 ('ctrl mouse release', 0, 17, 23)
+
+        The button number is a :class:`~urwid.MouseButton` value.
         """
         logger = self.logger.getChild("get_input")
         if not self._started:

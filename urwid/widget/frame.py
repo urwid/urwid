@@ -11,7 +11,7 @@ from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Sizing, VAlign
+from .constants import MouseButton, Sizing, VAlign
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationMixin,
@@ -611,7 +611,7 @@ class Frame(
 
         if header is not None and row < htrim:  # within header
             focus = focus and self.focus_part == "header"
-            if is_mouse_press(event) and button == 1 and header.selectable():
+            if is_mouse_press(event) and button == MouseButton.LEFT and header.selectable():
                 self.focus_position = "header"
 
             if not hasattr(header, "mouse_event"):
@@ -620,7 +620,7 @@ class Frame(
 
         if footer is not None and row >= maxrow - ftrim:  # within footer
             focus = focus and self.focus_part == "footer"
-            if is_mouse_press(event) and button == 1 and footer.selectable():
+            if is_mouse_press(event) and button == MouseButton.LEFT and footer.selectable():
                 self.focus_position = "footer"
 
             if not hasattr(footer, "mouse_event"):
@@ -629,7 +629,7 @@ class Frame(
 
         # within body
         focus = focus and self.focus_part == "body"
-        if is_mouse_press(event) and button == 1 and self.body.selectable():
+        if is_mouse_press(event) and button == MouseButton.LEFT and self.body.selectable():
             self.focus_position = "body"
 
         if not hasattr(self.body, "mouse_event"):
