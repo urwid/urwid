@@ -1742,9 +1742,25 @@ class TermTest(unittest.TestCase):
         return term
 
     def _loop_on(self, widget: urwid.Widget | None = None) -> tuple[urwid.MainLoop, mock.Mock]:
-        """Return a main loop over a mock screen and a mock event loop, with that event loop."""
+        """Return a main loop over a mock screen and a mock event loop, with that event loop.
+
+        The main loop's own watch, for :meth:`~urwid.MainLoop.call_from_thread`, gets a handle of its own,
+        so :meth:`_pty_watches` and :meth:`_pty_removals` can leave it out.
+        """
         event_loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        event_loop.watch_file.side_effect = lambda fd, _callback: mock.DEFAULT if fd == _FAKE_MASTER_FD else object()
         return external_loop(widget, event_loop), event_loop
+
+    @staticmethod
+    def _pty_watches(event_loop: mock.Mock) -> list[mock._Call]:
+        """Return the calls of :meth:`_loop_on`'s *event_loop* that watched the pty."""
+        return [call for call in event_loop.watch_file.call_args_list if call.args[0] == _FAKE_MASTER_FD]
+
+    @staticmethod
+    def _pty_removals(event_loop: mock.Mock) -> list[mock._Call]:
+        """Return the calls of :meth:`_loop_on`'s *event_loop* that removed a watch of the pty."""
+        handle = event_loop.watch_file.return_value
+        return [call for call in event_loop.remove_watch_file.call_args_list if call.args[0] is handle]
 
     def test_default_reads_the_pty_on_render_while_no_loop_runs(self) -> None:
         """Without ``main_loop=`` and with no loop running, each render shows the child's output."""
@@ -1773,7 +1789,7 @@ class TermTest(unittest.TestCase):
 
         self.assertEqual(_FAKE_MASTER_FD, fd)
         self.assertEqual(b"x", term.term.text[0].rstrip())
-        event_loop.remove_watch_file.assert_called_once_with(handle)
+        self.assertEqual([mock.call(handle)], self._pty_removals(event_loop))
 
     def test_default_follows_the_loop_it_is_rendered_under(self) -> None:
         """Without ``main_loop=``, the watch moves to each loop rendered under, and is dropped outside them."""
@@ -1786,14 +1802,14 @@ class TermTest(unittest.TestCase):
         event_loop_a.watch_file.assert_not_called()
         with loop_a.start():
             term.render(self.termsize)
-        event_loop_a.watch_file.assert_called_once()
+        self.assertEqual(1, len(self._pty_watches(event_loop_a)))
         self.pty.to_widget.extend(b"read")
         self.assertEqual(b"read", term.render(self.termsize).text[0].rstrip())
-        event_loop_a.remove_watch_file.assert_called_once_with(handle_a)
+        self.assertEqual([mock.call(handle_a)], self._pty_removals(event_loop_a))
         with loop_b.start():
             term.render(self.termsize)
-        event_loop_b.watch_file.assert_called_once()
-        self.assertEqual(1, event_loop_a.watch_file.call_count)
+        self.assertEqual(1, len(self._pty_watches(event_loop_b)))
+        self.assertEqual(1, len(self._pty_watches(event_loop_a)))
 
     def test_default_watches_again_on_each_start_of_one_loop(self) -> None:
         """A loop started a second time gets a new watch, and the one of its first start is removed."""
@@ -1804,8 +1820,8 @@ class TermTest(unittest.TestCase):
                 term.render(self.termsize)
                 term.render(self.termsize)
 
-        self.assertEqual(2, event_loop.watch_file.call_count)
-        event_loop.remove_watch_file.assert_called_once()
+        self.assertEqual(2, len(self._pty_watches(event_loop)))
+        self.assertEqual(1, len(self._pty_removals(event_loop)))
 
     def test_explicit_main_loop_never_moves_the_watch(self) -> None:
         """With ``main_loop=``, the watch set at the spawn stays there, whichever loop the terminal is rendered under."""
@@ -1821,7 +1837,7 @@ class TermTest(unittest.TestCase):
 
         explicit.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
         explicit.remove_watch_file.assert_not_called()
-        event_loop_a.watch_file.assert_not_called()
+        self.assertEqual([], self._pty_watches(event_loop_a))
 
     def test_draw_by_hand_before_start_reads_the_pty(self) -> None:
         """Draws of a loop that is not started read the pty on each render; starting it sets the watch once."""
@@ -1836,7 +1852,7 @@ class TermTest(unittest.TestCase):
         with loop.start():
             loop.draw_screen()
             loop.draw_screen()
-        event_loop.watch_file.assert_called_once()
+        self.assertEqual(1, len(self._pty_watches(event_loop)))
 
     def test_explicit_main_loop_watches_from_a_key_before_any_render(self) -> None:
         """With ``main_loop=``, a key pressed before the first render spawns the child and sets the watch once."""

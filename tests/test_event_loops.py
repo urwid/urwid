@@ -10,6 +10,7 @@ import selectors
 import signal
 import socket
 import sys
+import threading
 import time
 import typing
 import unittest
@@ -626,6 +627,44 @@ class MainLoopTestMixin:
 
         self.assertEqual({"alarm": True, "watch": True, "input": True}, seen)
         self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_main_loop_call_from_thread(self) -> None:
+        """A call from another thread runs on the loop thread with the loop current, and can stop the loop."""
+        seen: list[tuple[str, int, bool]] = []
+
+        def record(name: str) -> None:
+            seen.append((name, threading.get_ident(), urwid.get_running_loop_or_none() is loop))
+
+        def finish() -> typing.NoReturn:
+            record("finish")
+            raise urwid.ExitMainLoop
+
+        def work() -> None:
+            loop.call_from_thread(record, "first")
+            loop.call_from_thread(finish)
+
+        def give_up() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        worker = threading.Thread(target=work)
+        with (
+            ClosingSocketPair() as (rd, _wr),
+            ClosingSocketPair() as (_output_rd, output_wr),
+            output_wr.makefile("w", encoding="utf-8") as output,
+        ):
+            loop = urwid.MainLoop(
+                urwid.SolidFill(),
+                screen=urwid.display.raw.Screen(input=rd, output=output),
+                event_loop=self._main_loop_event_loop(),
+                handle_mouse=False,
+            )
+            loop.set_alarm_in(0, lambda *_args: worker.start())
+            loop.set_alarm_in(10, lambda *_args: give_up())
+            loop.run()
+        worker.join(10)
+
+        loop_thread = threading.get_ident()
+        self.assertEqual([("first", loop_thread, True), ("finish", loop_thread, True)], seen)
 
 
 class SelectEventLoopTest(

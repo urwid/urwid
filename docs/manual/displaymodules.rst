@@ -70,6 +70,40 @@ OSC 8 hyperlinks               YES [4]_    no
 .. [4] after ``set_terminal_properties(hyperlinks=True)``, see :ref:`hyperlinks`
 
 
+.. _screens-without-event-loop-support:
+
+Screens Without Event Loop Support
+==================================
+
+The curses and web screens read their input themselves and cannot hand their
+descriptors to an event loop, so :class:`MainLoop` drives them with a loop of its
+own that waits in the screen's ``get_input()``.
+Files watched with :meth:`MainLoop.watch_file`, and calls made with
+:meth:`MainLoop.call_from_thread`, are handled when that wait ends.
+
+The curses screen waits until a key arrives (a window resize counts as one) or the
+next alarm is due, so a worker's update can wait until the user presses a key.
+Pass ``poll_interval`` to cut the wait into polls, so they are handled within that
+many seconds::
+
+    loop = urwid.MainLoop(widget, screen=urwid.display.curses.Screen(), poll_interval=0.5)
+
+Each poll wakes the process, which costs CPU time and power while the application is
+idle, so set it only when something has to reach the screen without input, and
+choose the longest interval the application can accept. The shortest is 0.1 seconds,
+since the curses screen waits in tenths of a second.
+An application with an alarm that fires regularly, such as a clock, gets the same
+effect from that alarm.
+On Windows the curses screen cannot stop waiting before a key arrives, so
+``poll_interval`` has no effect there.
+
+The web screen ends its wait every 0.5 seconds by itself, so it needs no
+``poll_interval``, and a shorter one does not make it check sooner.
+
+The raw display, the default, needs none of this: it waits on all its descriptors and
+the watched files at once.
+
+
 Other Display Modules
 =====================
 

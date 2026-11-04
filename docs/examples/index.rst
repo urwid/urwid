@@ -84,6 +84,12 @@ external_editor.py
 Hand the terminal to an external editor and show the text written in it
 
 
+thread_worker.py
+----------------
+
+Run a slow computation on a worker thread and show its progress and result
+
+
 palette_test.py
 ---------------
 

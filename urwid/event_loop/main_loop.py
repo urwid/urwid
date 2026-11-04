@@ -25,13 +25,18 @@
 from __future__ import annotations
 
 import contextvars
+import functools
 import heapq
 import inspect
 import logging
+import math
 import os
+import socket
 import sys
 import time
 import typing
+import weakref
+from collections import deque
 from contextlib import contextmanager, suppress
 
 from urwid import _selectors, display, signals
@@ -45,7 +50,7 @@ from .select_loop import SelectEventLoop
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable, Iterator
-    from typing import Literal, Self
+    from typing import Literal, ParamSpec, Self
 
     from urwid.display import BaseScreen
     from urwid.display.common import PaletteEntry
@@ -54,6 +59,7 @@ if typing.TYPE_CHECKING:
     from .abstract_loop import EventLoop
 
     _T = typing.TypeVar("_T")
+    _Spec = ParamSpec("_Spec")
 
     class _ExternalLoopScreen(typing.Protocol):
         """Screen able to drive an external event loop (e.g. raw_display / curses screens).
@@ -95,9 +101,12 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 PIPE_BUFFER_READ_SIZE = 4096  # can expect this much on Linux, so try for that
-# Seconds between checks of watched files while a screen without event loop support waits for input:
-# its get_input() cannot wait on other descriptors.
-_SCREEN_LOOP_WATCH_POLL: typing.Final = 0.1
+# Calls run by one pass of MainLoop.call_from_thread() work; the event loop serves input and alarms between passes.
+_THREAD_CALLS_PER_PASS: typing.Final = 64
+_NOT_RUNNING: typing.Final = "the urwid MainLoop is not running"
+_CANNOT_WATCH: typing.Final = "the event loop of this urwid MainLoop cannot watch files, which call_from_thread() needs"
+# Shortest MainLoop.poll_interval: the curses screen waits in tenths of a second, and rounds less to no wait at all.
+_MIN_POLL_INTERVAL: typing.Final = 0.1
 
 __all__ = ("CantUseExternalLoop", "MainLoop", "get_running_loop", "get_running_loop_or_none")
 
@@ -114,6 +123,25 @@ class _Activation:
         self.loop: MainLoop | None = loop  # None once the entry ended: lookups skip it
         self.running: typing.Final = running  # False: a mask, which hides every entry below it
         self.previous = previous  # the start entry of the same loop that this one is nested in
+
+
+class _ThreadCalls:
+    """Calls handed to a running :class:`MainLoop` from other threads, for one run of the loop.
+
+    A sender keeps the object it found, so a call made across :meth:`MainLoop.stop` lands in the deque of the ended
+    run, which nothing reads any more, and never in the deque of a later run.
+    """
+
+    __slots__ = ("__weakref__", "active", "calls", "drawn", "handle", "reader", "writer")
+
+    def __init__(self, reader: socket.socket, writer: socket.socket) -> None:
+        # append() and popleft() of a deque are atomic, so neither a thread nor a signal handler takes a lock.
+        self.calls: deque[Callable[[], object]] = deque()
+        self.reader: typing.Final = reader  # watched by the event loop; one byte is sent per wake-up
+        self.writer: typing.Final = writer
+        self.handle: typing.Any = None  # the event loop's watch of reader
+        self.active = True  # False once the run ended: a pass in progress stops after its current call
+        self.drawn = True  # the screen was drawn since the last pass
 
 
 # Immutable tuples: a mutable default would be shared by every context of the process.
@@ -183,6 +211,11 @@ class MainLoop:
                     instance to allow any widget to open a pop-up anywhere on the screen;
                     required by :class:`DropDown` and other :class:`PopUpLauncher` widgets
 
+    :param poll_interval: seconds between checks of watched files and :meth:`call_from_thread` calls
+                          while the curses screen waits for input, except on Windows; stored as :attr:`poll_interval`.
+                          ``None``, the default, checks them only after input or an alarm.
+                          See :ref:`screens-without-event-loop-support`.
+
 
     .. attribute:: screen
 
@@ -205,7 +238,10 @@ class MainLoop:
         "__weakref__",
         "_activation",
         "_input_filter",
+        "_poll_interval",
         "_pop_ups",
+        "_thread_calls",
+        "_thread_calls_unwatchable",
         "_topmost_widget",
         "_unhandled_input",
         "_watch_pipes",
@@ -230,12 +266,17 @@ class MainLoop:
         unhandled_input: Callable[[str | tuple[str, int, int, int]], bool | None] | None = None,
         event_loop: EventLoop | None = None,
         pop_ups: bool = False,
+        *,
+        poll_interval: float | None = None,
     ) -> None:
         """
         Set up the main loop around a top-level widget, a screen and an event loop.
 
         :raises NotImplementedError: an *event_loop* is given but *screen* does not support external event loops.
+        :raises ValueError: *poll_interval* is not ``None`` or a finite number of seconds of at least 0.1.
         """
+        self._poll_interval: float | None = None
+        self.poll_interval = poll_interval
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
         self._topmost_widget = widget
@@ -271,6 +312,10 @@ class MainLoop:
         self._watch_pipes: dict[int, tuple[typing.Any, int]] = {}
         # set from start() to stop(): the entry that makes this loop the running loop
         self._activation: _Activation | None = None
+        # set while the loop runs: the calls other threads hand over through call_from_thread()
+        self._thread_calls: _ThreadCalls | None = None
+        # set while the loop runs on an event loop that cannot watch files, so call_from_thread() is not available
+        self._thread_calls_unwatchable = False
 
     @property
     def widget(self) -> AbstractWidget:
@@ -288,6 +333,27 @@ class MainLoop:
             self._topmost_widget.original_widget = self._widget
         else:
             self._topmost_widget = self._widget
+
+    @property
+    def poll_interval(self) -> float | None:
+        """Seconds between checks of watched files while the curses screen waits for input, or ``None``.
+
+        ``None`` checks them only after input or an alarm.
+        A change takes effect at the next wait for input, also while the loop runs.
+        See :ref:`screens-without-event-loop-support`.
+        """
+        return self._poll_interval
+
+    @poll_interval.setter
+    def poll_interval(self, poll_interval: float | None) -> None:
+        """Set the seconds between checks of watched files while the curses screen waits for input.
+
+        :raises ValueError: *poll_interval* is not ``None`` or a finite number of seconds of at least 0.1.
+        """
+        if poll_interval is not None and not (math.isfinite(poll_interval) and poll_interval >= _MIN_POLL_INTERVAL):
+            msg = f"poll_interval must be None or at least {_MIN_POLL_INTERVAL} seconds, not {poll_interval!r}"
+            raise ValueError(msg)
+        self._poll_interval = poll_interval
 
     @property
     def pop_ups(self) -> bool:
@@ -412,7 +478,8 @@ class MainLoop:
             When data is written to the pipe the callback function will be called
             and passed a single value containing data read from the pipe.
 
-            This method may be used any time you want to update widgets from another thread or subprocess.
+            This method may be used any time you want to update widgets from a subprocess.
+            Another thread hands work to the loop with :meth:`call_from_thread` instead.
 
             Data may be written to the returned file descriptor with ``os.write(fd, data)``.
             Ensure that data is less than 512 bytes (or 4K on Linux)
@@ -495,8 +562,9 @@ class MainLoop:
             implementation that supports one; see the note on :class:`MainLoop`.
 
         .. note::
-            On Windows, with a screen that has no event loop support, such as the curses screen,
-            *fd* is checked only after the screen returned input, as expired alarms are.
+            With a screen that has no event loop support, such as the curses screen,
+            *fd* is checked after input or an alarm, and every :attr:`poll_interval` seconds when it is set,
+            except on Windows.
         """
         self.logger.debug(f"Setting watch file descriptor {fd!r} with {callback!r}")
         if inspect.iscoroutinefunction(callback):
@@ -516,6 +584,121 @@ class MainLoop:
     def remove_watch_file(self, handle: typing.Any) -> bool:
         """Remove a watch file. Returns ``True`` if the watch file exists, ``False`` otherwise."""
         return self.event_loop.remove_watch_file(handle)
+
+    def call_from_thread(
+        self,
+        callback: Callable[_Spec, object],
+        /,
+        *args: _Spec.args,
+        **kwargs: _Spec.kwargs,
+    ) -> None:
+        """Run ``callback(*args, **kwargs)`` on the thread running the event loop, soon.
+
+        Safe to call from any thread, and from a signal handler.
+        A signal handler catches the :exc:`RuntimeError`: the signal can arrive while the loop stops.
+        The callback runs on the loop thread with this loop as the running loop, like an alarm callback:
+
+        - a widget it changes is drawn on the way back to idle;
+        - :exc:`ExitMainLoop` raised by it stops the loop;
+        - any other exception is logged, and the loop goes on.
+
+        Calls run in the order they were made.
+        Called on the loop thread itself, it defers the callback the same way instead of running it at once.
+        Calls still queued when the loop stops are dropped.
+        With a screen that has no event loop support, such as the curses screen,
+        a call waits for the next input or alarm, or up to :attr:`poll_interval` seconds when it is set,
+        except on Windows.
+
+        :raises TypeError: *callback* is an ``async def`` function, which this method cannot await.
+        :raises RuntimeError: the loop is not running: before :meth:`start` or :meth:`run`, or after :meth:`stop`.
+            Also while it runs on an event loop that cannot watch files,
+            such as :class:`AsyncioEventLoop` on asyncio's ``ProactorEventLoop``, the default on Windows.
+        """
+        if inspect.iscoroutinefunction(callback):
+            msg = f"call_from_thread() cannot await {callback!r}"
+            raise TypeError(msg)
+        if (state := self._thread_calls) is None:
+            raise RuntimeError(_CANNOT_WATCH if self._thread_calls_unwatchable else _NOT_RUNNING)
+        state.calls.append(functools.partial(callback, *args, **kwargs))
+        with suppress(BlockingIOError):  # a full buffer means wake-ups are already pending
+            state.writer.send(b"\0")
+        if not state.active:
+            # The loop stopped since the state was read, and the call sits in the deque of the ended run.
+            raise RuntimeError(_NOT_RUNNING)
+
+    def _open_thread_calls(self) -> None:
+        """Start accepting :meth:`call_from_thread` calls, unless a run of this loop already does."""
+        if self._thread_calls is not None:
+            return
+        # A socket pair rather than a pipe: select() on Windows takes sockets only.
+        reader, writer = socket.socketpair()
+        try:
+            reader.setblocking(False)
+            writer.setblocking(False)
+            state = _ThreadCalls(reader, writer)
+            state.handle = self.event_loop.watch_file(reader.fileno(), functools.partial(self._run_thread_calls, state))
+        except NotImplementedError:
+            # asyncio's ProactorEventLoop cannot watch a socket; a screen that watches no files still runs on it.
+            reader.close()
+            writer.close()
+            self._thread_calls_unwatchable = True
+            return
+        except BaseException:
+            reader.close()
+            writer.close()
+            raise
+        # Closed once nothing holds the state, so no sender is inside send(): a send() on a closed or shut down socket
+        # would write into a reused descriptor number, or raise SIGPIPE where the application restored its default.
+        weakref.finalize(state, reader.close)
+        weakref.finalize(state, writer.close)
+        self._thread_calls = state
+
+    def _close_thread_calls(self) -> None:
+        """Stop accepting :meth:`call_from_thread` calls and drop the calls still queued."""
+        self._thread_calls_unwatchable = False
+        if (state := self._thread_calls) is None:
+            return
+        try:
+            self._thread_calls = None
+            state.active = False
+            self.event_loop.remove_watch_file(state.handle)
+        finally:
+            state.calls.clear()
+
+    def _run_thread_calls(self, state: _ThreadCalls) -> None:
+        """Run up to :data:`_THREAD_CALLS_PER_PASS` calls that :meth:`call_from_thread` queued.
+
+        Calls left in the deque get a new wake-up, so the event loop serves input and alarms before running them.
+        """
+        with suppress(BlockingIOError):
+            state.reader.recv(PIPE_BUFFER_READ_SIZE)
+        if not state.active:
+            return  # dispatched after the run ended
+        try:
+            # The select loop goes idle, and draws, only when no descriptor is ready:
+            # under a stream of calls a pass that follows a pass draws first.
+            if not state.drawn:
+                self.entering_idle()
+            state.drawn = False
+            with self._as_running():
+                for _ in range(_THREAD_CALLS_PER_PASS):
+                    try:
+                        call = state.calls.popleft()
+                    except IndexError:
+                        break
+                    try:
+                        call()
+                    except ExitMainLoop:
+                        raise
+                    except Exception:
+                        self.logger.exception("Unhandled exception in callback %r called from a thread", call)
+                    if not state.active:
+                        break  # a call stopped the loop
+        finally:
+            # Also after ExitMainLoop: an event loop the application runs itself may go on.
+            if state.active and state.calls:
+                with suppress(BlockingIOError):
+                    state.writer.send(b"\0")
 
     def run(self) -> None:
         """Start the main loop handling input events and updating the screen.
@@ -548,8 +731,10 @@ class MainLoop:
         screen.set_mouse_tracking()
         screen.unhook_event_loop(...)
         screen.hook_event_loop(...)
+        event_loop.watch_file(..., functools.partial(<bound method MainLoop._run_thread_calls...>, ...))
         event_loop.enter_idle(<bound method MainLoop.entering_idle...>)
         event_loop.run()
+        event_loop.remove_watch_file(2)
         event_loop.remove_enter_idle(1)
         screen.unhook_event_loop(...)
         screen.stop()
@@ -578,7 +763,7 @@ class MainLoop:
         :exc:`ExitMainLoop` (or anything else) is raised.
 
         Once started, the loop is what :func:`get_running_loop` returns in the caller's thread and task,
-        and in everything that copies their context.
+        and in everything that copies their context, and it accepts :meth:`call_from_thread`.
 
         :raises CantUseExternalLoop: the screen does not support external event loops.
         """
@@ -597,6 +782,7 @@ class MainLoop:
 
         # watch our input descriptors
         self._reset_input_descriptors()
+        self._open_thread_calls()
         self.idle_handle = self.event_loop.enter_idle(self.entering_idle)
 
         # the screen is redrawn automatically after input and alarms,
@@ -621,12 +807,15 @@ class MainLoop:
 
     def _stop_hooks(self) -> None:
         """Remove the hooks :meth:`start` added to the event loop and stop the screen."""
-        self.event_loop.remove_enter_idle(self.idle_handle)
-        self.idle_handle = None
-        signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
-        typing.cast("_ExternalLoopScreen", self.screen).unhook_event_loop(self.event_loop)
+        try:
+            self._close_thread_calls()
+        finally:
+            self.event_loop.remove_enter_idle(self.idle_handle)
+            self.idle_handle = None
+            signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
+            typing.cast("_ExternalLoopScreen", self.screen).unhook_event_loop(self.event_loop)
 
-        self.screen.stop()
+            self.screen.stop()
 
     @contextmanager
     def paused(self) -> Iterator[None]:
@@ -729,11 +918,15 @@ class MainLoop:
         except CantUseExternalLoop:
             self._activate()
             try:
+                self._open_thread_calls()
                 self._run_screen_event_loop()
                 return
             finally:
-                self._deactivate()
-                self.screen.stop()
+                try:
+                    self._close_thread_calls()
+                finally:
+                    self._deactivate()
+                    self.screen.stop()
         except BaseException:
             # start() may have failed after starting the screen or hooking the event loop.
             # It raised before making the loop the running one, so an enclosing run stays the running one.
@@ -774,7 +967,8 @@ class MainLoop:
         """Run the screen event loop, used when the screen does not support using external event loops.
 
         The alarms and watched files stored in the SelectEventLoop in :attr:`event_loop` are handled by this method.
-        While a file is watched, the wait for input is cut into polls, except on Windows,
+        Watched files are checked after each input and each expired alarm.
+        With :attr:`poll_interval` set, the wait for input is also cut into polls of that length, except on Windows,
         where the curses screen cannot stop waiting before a key arrives.
         """
         # pylint: disable=protected-access  # special case for alarms and watched files handling
@@ -794,8 +988,8 @@ class MainLoop:
             raw: list[int] = []
             while not keys:
                 timeout = max(0.0, alarms[0][0] - time.monotonic()) if alarms else None
-                if watch_files and not IS_WINDOWS:
-                    timeout = _SCREEN_LOOP_WATCH_POLL if timeout is None else min(timeout, _SCREEN_LOOP_WATCH_POLL)
+                if watch_files and (poll := self._poll_interval) is not None and not IS_WINDOWS:
+                    timeout = poll if timeout is None else min(timeout, poll)
                 screen.set_input_timeouts(timeout)
                 keys, raw = screen.get_input(True)
 
@@ -976,12 +1170,13 @@ class MainLoop:
 
         .. important::
             Call it only from the thread running the event loop, like every other widget and screen change.
-            Another thread hands the work over instead: it writes to a :meth:`watch_pipe` descriptor,
-            or uses the event loop's own thread-safe scheduling, such as ``loop.call_soon_threadsafe()`` in asyncio.
+            Another thread hands the work over with :meth:`call_from_thread` instead.
 
         The widgets render with this loop as the running loop, also when the loop is not started.
         """
         with self._as_running(explicit=True):
+            if (thread_calls := self._thread_calls) is not None:
+                thread_calls.drawn = True
             if not self.screen_size:
                 self.screen_size = self.screen.get_cols_rows()
                 self.logger.debug(f"Screen size recalculated: {self.screen_size!r}")
