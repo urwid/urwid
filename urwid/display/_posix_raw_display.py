@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import contextlib
+import errno
 import fcntl
 import functools
 import os
@@ -306,27 +307,41 @@ class Screen(_raw_display_base.Screen):
     def _stop(self) -> None:
         """Restore the screen."""
         self.clear()
-
-        if self.modes.bracketed_paste:
-            self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
-
-        if self.modes.focus_reporting:
-            self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
-
-        # before the alternate screen is left: the kitty keyboard flags are kept per screen
-        self._disable_keyboard_protocol()
-
         self.signal_restore()
 
-        self._stop_restore_palette()
-        self._stop_mouse_restore_buffer()
+        try:
+            if self.modes.bracketed_paste:
+                self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
+
+            if self.modes.focus_reporting:
+                self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+
+            # before the alternate screen is left: the kitty keyboard flags are kept per screen
+            self._disable_keyboard_protocol()
+
+            self._stop_restore_palette()
+            self._stop_mouse_restore_buffer()
+        except OSError as exc:
+            # A hung-up terminal (EIO, or ENXIO on FreeBSD) or a closed output pipe (EPIPE) leaves no screen to restore,
+            # and raising here would hide the error that ended the run, such as the closed input.
+            if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
+                raise
+        finally:
+            # a failed write skips the step of _mouse_tracking() that stops the helper
+            self._stop_gpm_tracking()
 
         fd = self._input_fileno()
-        if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:
-            termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
+        try:
+            if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:
+                termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
 
-        if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys, fd)
+            if self._old_signal_keys:
+                self.tty_signal_keys(*self._old_signal_keys, fd)
+        except termios.error:
+            # A terminal that hung up after the isatty() check is no tty any more, and has no settings left to restore.
+            # One that still is, such as a terminal an orphaned process group may not change, reports its error.
+            if fd is None or os.isatty(fd):
+                raise
 
         # A suspend requested while the screen ran must not stop the process after a later restart.
         self._suspend_requested = False
