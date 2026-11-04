@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import abc
+import base64
 import contextlib
 import dataclasses
 import errno
@@ -237,6 +238,17 @@ def _is_linux_console(term: str) -> bool:
     A multiplexer that names its outer terminal, such as ``screen.linux``, is not the console.
     """
     return _LINUX_CONSOLE_TERM.match(term) is not None
+
+
+def _rejects_osc(term: str) -> bool:
+    """Tell whether the terminal a TERM value names cannot take a window title or clipboard sequence.
+
+    The Linux virtual console reads only its own palette sequences and prints the others as text.
+    fbterm has neither a window title nor a clipboard.
+    A ``dumb`` terminal reads no escape sequences.
+    On Windows, TERM does not describe the console, so only the Linux console names count there.
+    """
+    return _is_linux_console(term) or (term.lower() in {"dumb", "fbterm"} and not IS_WINDOWS)
 
 
 def _parse_force_color(value: str) -> _ColorCount:
@@ -945,7 +957,8 @@ class Screen(BaseScreen, RealTerminal):
         The previous title is saved on the terminal's title stack (xterm ``XTWINOPS`` 22 and 23).
         A terminal without the stack ignores it, and keeps the application's title after the screen stops.
         On a Windows console the title is set and saved through the console API instead.
-        The Linux virtual console has no window title, and nothing is sent to it.
+        Nothing is sent to the Linux virtual console or fbterm, which have no window title.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the title as text.
 
         :param title: the new window title, or None to give the terminal back the title it had before.
         """
@@ -958,7 +971,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._title is None:
             self._restore_title()
             return
-        if _is_linux_console(self.term):
+        if _rejects_osc(self.term):
             return
         if not self._title_saved:
             self._save_title()
@@ -988,6 +1001,40 @@ class Screen(BaseScreen, RealTerminal):
         if util.get_encoding_mode() == "narrow":
             title = "".join("?" if _C1_BYTES.search(char.encode(encoding, "replace")) else char for char in title)
         self.write(f"{escape.SET_TITLE}{title.encode(encoding, 'replace').decode(encoding)}{escape.BEL}")
+
+    def copy_to_clipboard(self, text: str) -> None:
+        """Copy text to the system clipboard through the terminal.
+
+        The text is sent as UTF-8 in base64 inside OSC 52,
+        so no character of it can reach the terminal as a command.
+        A lone surrogate, as in a file name that did not decode, is sent as ``?``.
+        The sequence travels with the screen output, so it also reaches the user's terminal over SSH.
+        What happens next is up to the terminal:
+
+        - many terminal emulators copy the text;
+        - some ask the user first, or copy only after the feature is turned on in their settings;
+        - tmux passes the text on with its ``set-clipboard`` option on;
+        - a terminal without OSC 52 ignores the sequence.
+
+        No reply tells the application which case it was.
+        Terminals and multiplexers also drop a sequence longer than their own limit, so a long text may not arrive.
+        The whole text is written at once, and a long one holds up the main loop until the terminal has read it.
+
+        Nothing is sent to the Linux virtual console or fbterm, which have no clipboard.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the sequence as text.
+
+        :param text: the text to copy.
+        :raises RuntimeError: the screen is not running.
+            A console that reads escape sequences only while the screen runs, such as the Windows console,
+            would print the sequence as text.
+        """
+        if not self._started:
+            raise RuntimeError("Start the screen before copying to the clipboard")
+        if _rejects_osc(self.term):
+            return
+        data = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
+        self.write(f"{escape.SET_CLIPBOARD}{data}{escape.BEL}")
+        self.flush()
 
     @abc.abstractmethod
     def _stop(self) -> None:

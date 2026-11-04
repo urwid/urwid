@@ -762,19 +762,81 @@ class TestRawDisplay(unittest.TestCase):
 
                 self.assertEqual(f"\x1b[22;0t\x1b]2;{expected}\x07", "".join(written))
 
-    def test_set_title_sends_nothing_to_the_linux_console(self) -> None:
-        """The Linux virtual console has no window title, and would print the title text."""
+    def test_set_title_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
+        """The Linux virtual console and fbterm have no title, and a dumb terminal outside Windows would print it."""
+        for term in ("linux", "fbterm", "dumb", "DUMB"):
+            with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                s.set_title("app")
+                s._restore_title()
+
+                self.assertEqual([], written)
+
+    def test_copy_to_clipboard(self) -> None:
+        """The text goes out as UTF-8 in base64, so controls in it stay data, whatever the terminal encoding."""
+        for encoding, text, expected in (
+            ("utf-8", "", ""),
+            ("utf-8", "hello", "aGVsbG8="),
+            ("utf-8", "a\x07b\x1b]0;c\x1b\\d\x9ce 中", "YQdiG10wO2MbXGTCnGUg5Lit"),
+            ("iso8859-1", "a\x07b\x1b]0;c\x1b\\d\x9ce 中", "YQdiG10wO2MbXGTCnGUg5Lit"),
+            ("utf-8", "a\udcffb", "YT9i"),
+        ):
+            with self.subTest(encoding=encoding, text=text), set_temporary_encoding(encoding):
+                s = urwid.display.raw.Screen()
+                s.term = "xterm-256color"
+                s._started = True
+                written: list[str] = []
+
+                with mock.patch.object(s, "write", side_effect=written.append), mock.patch.object(s, "flush"):
+                    s.copy_to_clipboard(text)
+
+                self.assertEqual(f"\x1b]52;c;{expected}\x07", "".join(written))
+
+    def test_copy_to_clipboard_sends_nothing_to_a_terminal_that_prints_it(self) -> None:
+        """The Linux virtual console and fbterm have no clipboard, and a dumb terminal outside Windows prints it."""
+        for term in ("linux", "fbterm", "dumb", "DUMB"):
+            with self.subTest(term=term), mock.patch.object(_raw_display_base, "IS_WINDOWS", new=False):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                s._started = True
+
+                with mock.patch.object(s, "write") as write, mock.patch.object(s, "flush"):
+                    s.copy_to_clipboard("text")
+
+                write.assert_not_called()
+
+    def test_copy_to_clipboard_without_a_useful_term(self) -> None:
+        """Send the sequence with no TERM, and on Windows, where TERM does not describe the console."""
+        for term, windows in (("", False), ("", True), ("dumb", True), ("fbterm", True)):
+            with (
+                self.subTest(term=term, windows=windows),
+                mock.patch.object(_raw_display_base, "IS_WINDOWS", new=windows),
+            ):
+                s = urwid.display.raw.Screen()
+                s.term = term
+                s._started = True
+                written: list[str] = []
+
+                with mock.patch.object(s, "write", side_effect=written.append), mock.patch.object(s, "flush"):
+                    s.copy_to_clipboard("hello")
+
+                self.assertEqual("\x1b]52;c;aGVsbG8=\x07", "".join(written))
+
+    def test_copy_to_clipboard_needs_a_running_screen(self) -> None:
+        """Raise before the screen starts, and send nothing a console could print as text."""
         s = urwid.display.raw.Screen()
-        s.term = "linux"
-        written: list[str] = []
-        s.write = written.append
-        s.flush = lambda: None
-        s._started = True
+        s.term = "xterm-256color"
 
-        s.set_title("app")
-        s._restore_title()
+        with mock.patch.object(s, "write") as write, mock.patch.object(s, "flush"), self.assertRaises(RuntimeError):
+            s.copy_to_clipboard("text")
 
-        self.assertEqual([], written)
+        write.assert_not_called()
 
     def test_draw_screen_ignores_eintr(self):
         """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""
