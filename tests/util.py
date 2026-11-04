@@ -5,14 +5,26 @@ import errno
 import gc
 import os
 import selectors
+import sys
 import typing
 import unittest.mock
+
+import pytest
 
 import urwid
 
 if typing.TYPE_CHECKING:
     import weakref
     from collections.abc import Callable, Collection, Iterator
+
+
+# GraalPy keeps an item removed from a list with del, pop() or remove() alive until the list itself is freed;
+# only clear() releases it. A test that frees an item removed from a list is expected to fail there.
+XFAIL_GRAALPY_LIST_KEEPS_REMOVED = pytest.mark.xfail(
+    sys.implementation.name == "graalpy",
+    reason="GraalPy keeps items removed from a list alive while the list lives",
+    strict=False,
+)
 
 
 class SelectableText(urwid.Text):

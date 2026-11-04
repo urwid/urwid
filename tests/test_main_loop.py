@@ -22,7 +22,7 @@ import weakref
 
 import urwid
 import urwid.testing
-from tests.util import NonExternalLoopScreen, external_loop
+from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, NonExternalLoopScreen, external_loop
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
@@ -1555,6 +1555,7 @@ class TestCallFromThread(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             loop.call_from_thread(print)
 
+    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_descriptors_are_released_when_the_run_ends(self) -> None:
         """Both ends of the wake-up socket pair are closed once the run ended and nothing holds its state."""
         states: list[main_loop_module._ThreadCalls | None] = []
@@ -1603,6 +1604,9 @@ class TestCallFromThread(unittest.TestCase):
 
         self.assertEqual(["call"], seen)
 
+    @unittest.skipIf(
+        IS_GRAALPY, "socketpair() is TCP loopback on GraalPy, which delivers the wake-ups over several reads"
+    )
     def test_pass_is_bounded_and_wakes_the_loop_for_the_rest(self) -> None:
         """One pass runs a bounded number of calls, wakes the loop for the rest, and passes in a row draw between."""
         per_pass = main_loop_module._THREAD_CALLS_PER_PASS
