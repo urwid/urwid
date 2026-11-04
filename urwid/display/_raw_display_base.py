@@ -995,21 +995,31 @@ class Screen(BaseScreen, RealTerminal):
 
         The text is sent as UTF-8 in base64 inside OSC 52,
         so no character of it can reach the terminal as a command.
+        A lone surrogate, as in a file name that did not decode, is sent as ``?``.
         The sequence travels with the screen output, so it also reaches the user's terminal over SSH.
         What happens next is up to the terminal:
 
         - many terminal emulators copy the text;
         - some ask the user first, or copy only after the feature is turned on in their settings;
         - tmux passes the text on with its ``set-clipboard`` option on;
-        - a terminal without OSC 52 ignores the sequence, and no reply tells the application which case it was.
+        - a terminal without OSC 52 ignores the sequence.
+
+        No reply tells the application which case it was.
+        Terminals and multiplexers also drop a sequence longer than their own limit, so a long text may not arrive.
+        The whole text is written at once, and a long one holds up the main loop until the terminal has read it.
 
         The Linux virtual console has no clipboard and would print the sequence as text, so nothing is sent to it.
 
         :param text: the text to copy.
+        :raises RuntimeError: the screen is not running.
+            A console that reads escape sequences only while the screen runs, such as the Windows console,
+            would print the sequence as text.
         """
+        if not self._started:
+            raise RuntimeError("Start the screen before copying to the clipboard")
         if _is_linux_console(self.term):
             return
-        data = base64.b64encode(text.encode("utf-8")).decode("ascii")
+        data = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
         self.write(f"{escape.SET_CLIPBOARD}{data}{escape.BEL}")
         self.flush()
 
