@@ -31,7 +31,7 @@ from contextlib import suppress
 from urwid import _deprecation, signals
 from urwid.canvas import CanvasCombine, SolidCanvas
 
-from .constants import Sizing, VAlign, WHSettings, normalize_valign
+from .constants import MouseButton, Sizing, VAlign, WHSettings, normalize_valign
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationMixin,
@@ -2189,7 +2189,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             return False
 
         focus = focus and w == focus_widget
-        if is_mouse_press(event) and button == 1 and w.selectable():
+        if is_mouse_press(event) and button == MouseButton.LEFT and w.selectable():
             self.change_focus((maxcol, maxrow), w_pos, wrow)
 
         if not hasattr(w, "mouse_event"):
@@ -2204,10 +2204,10 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             return True
 
         if is_mouse_press(event):
-            if button == 4:
+            if button == MouseButton.WHEEL_UP:
                 return not self._keypress_up((maxcol, maxrow))
 
-            if button == 5:
+            if button == MouseButton.WHEEL_DOWN:
                 return not self._keypress_down((maxcol, maxrow))
 
         return False

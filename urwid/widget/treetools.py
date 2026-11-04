@@ -38,7 +38,7 @@ from urwid.canvas import CompositeCanvas
 from urwid.str_util import calc_width
 
 from .columns import Columns
-from .constants import BOX_SYMBOLS, Sizing, WHSettings, WrapMode
+from .constants import BOX_SYMBOLS, MouseButton, Sizing, WHSettings, WrapMode
 from .listbox import ListBox, ListWalker
 from .padding import Padding
 from .text import Text
@@ -482,7 +482,7 @@ class TreeWidget(WidgetWrap[Padding[Text | Columns]], typing.Generic[_Node_co]):
         focus: bool,
     ) -> bool:
         """Toggle expand/collapse when the icon is left-clicked."""
-        if self.is_leaf or event != "mouse press" or button != 1 or row != 0:
+        if self.is_leaf or event != "mouse press" or button != MouseButton.LEFT or row != 0:
             return False
 
         if (cells := self._icon_cells(size, focus)) is None or col not in cells:

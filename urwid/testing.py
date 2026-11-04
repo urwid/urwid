@@ -366,15 +366,17 @@ def click(
 ) -> bool:
     """Send one mouse event to ``widget.mouse_event()`` and return whether it was handled.
 
-    >>> from urwid import Button
+    >>> from urwid import Button, MouseButton
     >>> click(Button("OK"), (10,), 1, 0)
     True
+    >>> click(Button("OK"), (10,), 1, 0, button=MouseButton.RIGHT)
+    False
 
     :param widget: widget to send the event to
     :param size: size passed to ``mouse_event()``
     :param col: column of the event, relative to the widget
     :param row: row of the event, relative to the widget
-    :param button: mouse button number
+    :param button: mouse button number, see :class:`~urwid.MouseButton`
     :param event: event name, such as ``"mouse press"`` or ``"mouse release"``
     :param focus: whether *widget* is in focus
     :returns: ``True`` when ``mouse_event()`` returned a true value.

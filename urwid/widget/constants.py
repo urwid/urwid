@@ -69,6 +69,47 @@ class Severity(enum.IntEnum):
     ERROR = 3
 
 
+class MouseButton(enum.IntEnum):
+    """The *button* of a mouse event, as :meth:`Widget.mouse_event` receives it.
+
+    The values are the numbers the screens pass as plain :class:`int`, and a member compares equal to them.
+    A number above :attr:`FORWARD` has no name.
+    ``MouseButton(n)`` returns a member named ``BUTTON_<n>`` for it instead of raising,
+    since a terminal may report buttons urwid does not name.
+    :ref:`mouse-input` lists which buttons each screen delivers and when a release does not name its button.
+
+    >>> MouseButton.LEFT == 1
+    True
+    >>> MouseButton(10).name
+    'BUTTON_10'
+    """
+
+    UNKNOWN = 0  # an X10 release, which does not say which button was released
+    LEFT = 1
+    MIDDLE = 2
+    RIGHT = 3
+    WHEEL_UP = 4
+    WHEEL_DOWN = 5
+    WHEEL_LEFT = 6
+    WHEEL_RIGHT = 7
+    BACK = 8  # the first side button
+    FORWARD = 9  # the second side button
+
+    @classmethod
+    def _missing_(cls, value: object) -> MouseButton | None:
+        """Return a pseudo-member named ``BUTTON_<n>`` for a number above the named buttons.
+
+        It is built per call and not stored, so a stream of distinct numbers cannot grow the member map.
+        """
+        if isinstance(value, int) and value > max(cls):
+            member = int.__new__(cls, value)
+            member._name_ = f"BUTTON_{value}"
+            # pyrefly: ignore[bad-assignment]  # a pseudo-member's value is none of the named ones
+            member._value_ = value
+            return member
+        return None
+
+
 class ValidationMessage(typing.NamedTuple):
     """One finding of a validator about a whole value, such as the text of an :class:`Edit`."""
 

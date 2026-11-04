@@ -31,7 +31,7 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 
 from .columns import Columns
-from .constants import Align, WrapMode
+from .constants import Align, MouseButton, WrapMode
 from .text import Text
 from .widget import WidgetError, WidgetWrap
 
@@ -476,7 +476,7 @@ class CheckBox(WidgetWrap[Columns]):
         >>> cb.state
         True
         """
-        if button != 1 or not is_mouse_press(event):
+        if button != MouseButton.LEFT or not is_mouse_press(event):
             return False
         self.toggle_state()
         return True
@@ -888,7 +888,7 @@ class Button(WidgetWrap[Columns]):
         >>> clicked_buttons
         ['Ok']
         """
-        if button != 1 or not is_mouse_press(event):
+        if button != MouseButton.LEFT or not is_mouse_press(event):
             return False
 
         self._emit("click")

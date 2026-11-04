@@ -30,7 +30,7 @@ from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
 from .attr_map import _attr_map_dict
-from .constants import Sizing, VAlign, WrapMode
+from .constants import MouseButton, Sizing, VAlign, WrapMode
 from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _UnfocusedFocusAttrMixin
 from .monitored_list import MonitoredFocusList
 from .text import Text
@@ -807,7 +807,7 @@ class Tabs(
             return False
         bar_row, body_top, body_size, body_rows = self._geometry(size, focus)
         if row == bar_row:
-            if button != 1 or not is_mouse_press(event):
+            if button != MouseButton.LEFT or not is_mouse_press(event):
                 return False
             if (index := self._click_target(body_size[0], col, focus)) is None:
                 return False
@@ -821,7 +821,7 @@ class Tabs(
         if not body_top <= row < body_top + body_rows:
             return False
         body = self._contents[self.focus_position][0]
-        if is_mouse_press(event) and button == 1 and self._bar_focused and body.selectable():
+        if is_mouse_press(event) and button == MouseButton.LEFT and self._bar_focused and body.selectable():
             self._bar_focused = False
             self._invalidate()
         return body.mouse_event(body_size, event, button, col, row - body_top, focus and not self._bar_focused)

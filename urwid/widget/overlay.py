@@ -16,6 +16,7 @@ from urwid.util import is_mouse_press
 from .constants import (
     RELATIVE_100,
     Align,
+    MouseButton,
     Sizing,
     VAlign,
     WHSettings,
@@ -1098,7 +1099,11 @@ class Overlay(
         left, right, top, bottom = self.calculate_padding_filler(real_size, focus)
         maxcol, maxrow = real_size
         if col < left or col >= maxcol - right or row < top or row >= maxrow - bottom:
-            return button in {1, 2, 3} and is_mouse_press(event) and signals.emit_signal(self, "click outside", self)
+            return (
+                button in {MouseButton.LEFT, MouseButton.MIDDLE, MouseButton.RIGHT}
+                and is_mouse_press(event)
+                and signals.emit_signal(self, "click outside", self)
+            )
 
         if not hasattr(self.top_w, "mouse_event"):
             return False

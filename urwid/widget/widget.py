@@ -750,8 +750,9 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
         :param event: Values such as ``'mouse press'``, ``'ctrl mouse press'``,
                      ``'mouse release'``, ``'meta mouse release'``,
                      ``'mouse drag'``; see :ref:`mouse-input`
-        :param button: 1 through 5 for press events, often 0 for release events
-                      (which button was released is often not known)
+        :param button: a :class:`MouseButton` value, usually as a plain :class:`int`.
+            Buttons 1 to 3 are the mouse buttons, 4 to 7 the wheel, and 8 to 11 extra buttons.
+            It is 0 when a release does not say which button was released (a terminal's X10 report).
         :param col: Column of the event, 0 is the left edge of this widget
         :param row: Row of the event, 0 it the top row of this widget
         :param focus: Set to ``True`` if this widget or one of its children is in focus

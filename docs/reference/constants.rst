@@ -141,6 +141,15 @@ text, and by :class:`Notifications` to colour a message.
 .. autoclass:: ValidationMessage
 
 
+Mouse buttons
+-------------
+
+The *button* of a mouse event, see :ref:`mouse-input`.
+
+.. autoclass:: MouseButton
+   :undoc-members:
+
+
 Foreground and Background Colors
 --------------------------------
 

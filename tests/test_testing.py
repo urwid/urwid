@@ -338,6 +338,7 @@ class ClickTest(unittest.TestCase):
             [((5,), "mouse press", 1, 2, 3, True), ((5,), "mouse release", 3, 4, 0, False)],
             widget.events,
         )
+        self.assertIs(int, type(widget.events[0][2]))
 
 
 class ScriptedScreenTest(unittest.TestCase):

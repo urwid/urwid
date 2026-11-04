@@ -28,7 +28,7 @@ from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
-from .constants import Align, Sizing, VAlign
+from .constants import Align, MouseButton, Sizing, VAlign
 from .overlay import Overlay
 from .widget import delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
@@ -409,7 +409,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
         """
         self._update_overlay(size, focus)
-        if self._pop_up_click_outside is not None and button in {1, 2, 3} and is_mouse_press(event):
+        if (
+            self._pop_up_click_outside is not None
+            and button in {MouseButton.LEFT, MouseButton.MIDDLE, MouseButton.RIGHT}
+            and is_mouse_press(event)
+        ):
             on_click_outside, (left, right, top, bottom) = self._pop_up_click_outside
             if not (left <= col < size[0] - right and top <= row < size[1] - bottom):
                 on_click_outside()
