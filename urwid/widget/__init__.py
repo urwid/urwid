@@ -56,7 +56,7 @@ from .popup import PopUpLauncher, PopUpTarget
 from .progress_bar import ProgressBar
 from .scrollable import Scrollable, ScrollableError, ScrollBar
 from .solid_fill import SolidFill
-from .spinner import Spinner, SpinnerFrames
+from .spinner import Spinner
 from .table import Table, TableColumn, TableError, TableLayout, TableRow
 from .tabs import Tabs, TabsError
 from .text import Text, TextError
@@ -174,7 +174,6 @@ __all__ = (
     "Sizing",
     "SolidFill",
     "Spinner",
-    "SpinnerFrames",
     "Table",
     "TableColumn",
     "TableError",

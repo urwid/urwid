@@ -41,7 +41,7 @@ __all__ = ("Spinner", "SpinnerFrames")
 
 
 class SpinnerFrames(enum.Enum):
-    """Common frame sets for :class:`Spinner`.
+    """Common frame sets for :class:`Spinner`, also reachable as :attr:`Spinner.Frames`.
 
     The frames of each member have one width.
     On a terminal without UTF-8:
@@ -78,7 +78,7 @@ class Spinner(Text):
         Call every method from the thread running the loop, like every other widget change.
         Another thread hands the call over with :meth:`MainLoop.call_from_thread`.
 
-    >>> spinner = Spinner(SpinnerFrames.LINE)
+    >>> spinner = Spinner(Spinner.Frames.LINE)
     >>> spinner.render((3,)).text
     [b'   ']
     >>> spinner.step()
@@ -92,6 +92,8 @@ class Spinner(Text):
     [b'   ']
     """
 
+    Frames: typing.ClassVar[type[SpinnerFrames]] = SpinnerFrames
+
     def __init__(
         self,
         frames: SpinnerFrames | Sequence[str] = SpinnerFrames.LINE,
@@ -104,7 +106,8 @@ class Spinner(Text):
     ) -> None:
         """Build a stopped spinner showing the idle text.
 
-        :param frames: frames shown in turn, a :class:`SpinnerFrames` member or a sequence of strings.
+        :param frames: frames shown in turn,
+            a :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>` member or a sequence of strings.
             Frames narrower than the widest are padded with spaces on the right.
         :param interval: seconds each frame is shown while running, see :attr:`interval`.
         :param idle: text markup shown while stopped, see :attr:`idle`.
@@ -112,8 +115,8 @@ class Spinner(Text):
             ``None`` uses the loop running at each :meth:`start`.
         :param align: alignment of the text.
         :param wrap: wrap mode of the text.
-        :raises TypeError: *frames* is not a :class:`SpinnerFrames` member or a sequence of strings,
-            or *interval* is not a number.
+        :raises TypeError: *frames* is not a :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>` member
+            or a sequence of strings, or *interval* is not a number.
         :raises ValueError: *frames* is empty, a frame is not printable or is zero columns wide,
             or *interval* is not finite and > 0.
         :raises TextError: *align* or *wrap* is not supported by the text layout.
@@ -138,7 +141,8 @@ class Spinner(Text):
     def _valid_frames(frames: SpinnerFrames | Sequence[str]) -> tuple[str, ...]:
         """Return the frames as a tuple, each padded with spaces to the width of the widest.
 
-        :raises TypeError: *frames* is not a :class:`SpinnerFrames` member or a sequence of strings.
+        :raises TypeError: *frames* is not a :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>` member
+            or a sequence of strings.
         :raises ValueError: *frames* is empty, or a frame is not printable or is zero columns wide.
         """
         if isinstance(frames, SpinnerFrames):

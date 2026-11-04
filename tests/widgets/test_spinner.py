@@ -78,7 +78,7 @@ class SpinnerConstructionTest(unittest.TestCase):
         """The repr names each argument that differs from its default."""
         loop = mock_loop()
         for kwargs, expected in (
-            ({"frames": urwid.SpinnerFrames.ARC}, "frames=<SpinnerFrames.ARC: "),
+            ({"frames": urwid.Spinner.Frames.ARC}, "frames=<SpinnerFrames.ARC: "),
             ({"frames": ["a", "bb"]}, "frames=('a ', 'bb')"),
             ({"interval": 0.25}, "interval=0.25"),
             ({"idle": "done"}, "idle='done'"),
@@ -91,7 +91,7 @@ class SpinnerConstructionTest(unittest.TestCase):
 
     def test_presets(self) -> None:
         """Every preset is accepted, and its frames are one column-width each."""
-        for member in urwid.SpinnerFrames:
+        for member in urwid.Spinner.Frames:
             with self.subTest(member.name):
                 spinner = urwid.Spinner(member)
                 self.assertEqual(member.value, spinner.frames)
@@ -157,7 +157,7 @@ class SpinnerRenderTest(unittest.TestCase):
 
     def test_idle_width(self) -> None:
         """The default idle text is as wide as a frame, and pack() is the same for each frame and for idle."""
-        spinner = urwid.Spinner(urwid.SpinnerFrames.DOTS)
+        spinner = urwid.Spinner(urwid.Spinner.Frames.DOTS)
         self.assertEqual(["   "], render_text(spinner, ()))
         packs = {spinner.pack(())}
         for _ in spinner.frames:

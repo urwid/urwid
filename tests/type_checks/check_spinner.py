@@ -14,7 +14,7 @@ if typing.TYPE_CHECKING:
 
     def spinner(loop: urwid.MainLoop) -> None:
         """Type the frame sets, the methods and the properties."""
-        widget = urwid.Spinner(urwid.SpinnerFrames.ARC, interval=0.2, idle=("dim", "done"), loop=loop)
+        widget = urwid.Spinner(urwid.Spinner.Frames.ARC, interval=0.2, idle=("dim", "done"), loop=loop)
         urwid.Spinner(["a", "b"])
         urwid.Spinner(("a", "b"), align=urwid.RIGHT)
         assert_type(widget.start(), None)

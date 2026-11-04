@@ -18,10 +18,10 @@ PALETTE = [("frame", "light cyan", ""), ("help", "black", "light gray")]
 
 def main() -> None:
     """Build a row per frame preset and the key handling, and run the main loop."""
-    spinners = [urwid.Spinner(frames) for frames in urwid.SpinnerFrames]
+    spinners = [urwid.Spinner(frames) for frames in urwid.Spinner.Frames]
     rows = [
         urwid.Columns([(urwid.PACK, urwid.AttrMap(spinner, "frame")), urwid.Text(frames.name)], dividechars=1)
-        for spinner, frames in zip(spinners, urwid.SpinnerFrames, strict=True)
+        for spinner, frames in zip(spinners, urwid.Spinner.Frames, strict=True)
     ]
     status = urwid.Text("")
 

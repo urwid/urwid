@@ -855,7 +855,7 @@ while some work runs, for work without a known total, where a
 :class:`ProgressBar` has nothing to show.  It shows only the frame, so a
 label goes into its own :class:`Text` next to it::
 
-    spinner = urwid.Spinner(urwid.SpinnerFrames.BRAILLE)
+    spinner = urwid.Spinner(urwid.Spinner.Frames.BRAILLE)
     row = urwid.Columns([(urwid.PACK, spinner), urwid.Text("loading")], dividechars=1)
 
     spinner.start()  # when the work begins
@@ -872,8 +872,8 @@ and shows the ``idle`` text, by default spaces as wide as a frame, so a
 pending alarm keeps it alive.  An application with its own tick calls
 :meth:`~Spinner.step` instead, which needs no loop.  Call the widget from the
 thread running the loop only; another thread hands the call over with
-:meth:`MainLoop.call_from_thread`.  ``examples/spinner.py`` shows every
-:class:`SpinnerFrames` preset.
+:meth:`MainLoop.call_from_thread`.  ``examples/spinner.py`` shows every preset
+of :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>`.
 
 
 Overlay Widgets
