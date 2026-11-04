@@ -511,6 +511,8 @@ def detect_terminal_properties(
 # single and double byte encodings, where bytes 0x80-0x9f are glyphs of the IBM PC character set or parts of characters
 _RAW_SEQUENCE_UTF8 = re.compile(rb"\x1b|\xc2[\x80-\x9f]")
 _RAW_SEQUENCE_BYTES = re.compile(rb"\x1b")
+# C0 and C1 control characters and DEL: in a window title, BEL, ESC or ST would end the title and start a sequence
+_TITLE_CONTROLS = re.compile("[\x00-\x1f\x7f-\x9f]")
 
 
 @typing.runtime_checkable
@@ -585,6 +587,10 @@ class Screen(BaseScreen, RealTerminal):
         self.back_color_erase = properties.back_color_erase
         # OSC 8 hyperlinks are drawn only when the application turns them on: no query exists
         self.hyperlinks = False
+        # the window title set_title() asked for, shown while the screen runs
+        self._title: str | None = None
+        # the title the terminal had before is saved, and is given back when the screen stops
+        self._title_saved = False
         self.prev_input_resize = 0
         self.set_input_timeouts()
         self.screen_buf: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] | None = None
@@ -919,6 +925,71 @@ class Screen(BaseScreen, RealTerminal):
         self.write(f"{escape.OSC}104;{indexes}{escape.ST}")
         self.flush()
         self._modified_palette_entries.clear()
+
+    def set_title(self, title: str | None) -> None:
+        """Set the window title of the terminal.
+
+        The title is shown while the screen runs.
+        One set before :meth:`start` is shown when the screen starts.
+        Each start saves the title the terminal had, and stopping the screen gives it back,
+        so the shell's title is back while :meth:`MainLoop.paused` runs another program.
+
+        Control characters are removed from *title*: a title built from data could otherwise end the title
+        and send the rest of the text as terminal commands.
+        Characters the terminal encoding cannot represent are replaced with ``?``.
+        So are characters a single-byte encoding writes with a byte from 0x80 to 0x9f,
+        which a terminal can read as C1 controls.
+
+        The previous title is saved on the terminal's title stack (xterm ``XTWINOPS`` 22 and 23).
+        A terminal without the stack ignores it, and keeps the application's title after the screen stops.
+        On a Windows console the title is set and saved through the console API instead.
+        The Linux virtual console has no window title, and nothing is sent to it.
+
+        :param title: the new window title, or None to give the terminal back the title it had before.
+        """
+        self._title = None if title is None else _TITLE_CONTROLS.sub("", title)
+        if self._started:
+            self._show_title()
+
+    def _show_title(self) -> None:
+        """Show the title :meth:`set_title` asked for, saving the terminal's own title first."""
+        if self._title is None:
+            self._restore_title()
+            return
+        if _is_linux_console(self.term):
+            return
+        if not self._title_saved:
+            self._save_title()
+            self._title_saved = True
+        self._write_title(self._title)
+        self.flush()
+
+    def _restore_title(self) -> None:
+        """Give the terminal back the title it had before :meth:`_show_title` saved it."""
+        if not self._title_saved:
+            return
+        self._title_saved = False
+        self._restore_saved_title()
+        self.flush()
+
+    def _save_title(self) -> None:
+        """Save the terminal's current window title; :meth:`_restore_saved_title` gives it back."""
+        self.write(escape.TITLE_PUSH)
+
+    def _restore_saved_title(self) -> None:
+        """Give the terminal back the window title :meth:`_save_title` saved."""
+        self.write(escape.TITLE_POP)
+
+    def _write_title(self, title: str) -> None:
+        """Write *title*, which has no control characters, as the terminal's window title."""
+        encoding = util.get_encoding()
+        if util.get_encoding_mode() == "narrow":
+            # bytes 0x80-0x9f are C1 controls to a terminal that reads 8-bit controls: 0x9c is ST, ending the title
+            title = "".join(
+                "?" if any(0x80 <= byte <= 0x9F for byte in char.encode(encoding, "replace")) else char
+                for char in title
+            )
+        self.write(f"{escape.SET_TITLE}{title.encode(encoding, 'replace').decode(encoding)}{escape.BEL}")
 
     @abc.abstractmethod
     def _stop(self) -> None:

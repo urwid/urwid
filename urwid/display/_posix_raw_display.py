@@ -291,6 +291,7 @@ class Screen(_raw_display_base.Screen):
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
         self._enable_keyboard_protocol()
+        self._show_title()
 
         self.signal_init()
         self._next_timeout = self.max_wait
@@ -320,6 +321,7 @@ class Screen(_raw_display_base.Screen):
             self._disable_keyboard_protocol()
 
             self._stop_restore_palette()
+            self._restore_title()
             self._stop_mouse_restore_buffer()
         except OSError as exc:
             # A hung-up terminal (EIO, or ENXIO on FreeBSD) or a closed output pipe (EPIPE) leaves no screen to restore,

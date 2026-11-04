@@ -1160,6 +1160,12 @@ HYPERLINK_CLOSE: typing.Final = f"{OSC}8;;{ST}"
 # sets entry n (0-15); LINUX_RESET_PALETTE resets all 16 entries to the console default.
 LINUX_SET_PALETTE: typing.Final = f"{OSC}P"
 LINUX_RESET_PALETTE: typing.Final = f"{OSC}R"
+# OSC 2 then the title then BEL sets the window title: every terminal with a title accepts BEL, not all accept ST.
+SET_TITLE: typing.Final = f"{OSC}2;"
+BEL: typing.Final = "\x07"
+# XTWINOPS 22 and 23: push the icon and window title on the terminal's title stack, and pop them back
+TITLE_PUSH: typing.Final = f"{CSI}22;0t"
+TITLE_POP: typing.Final = f"{CSI}23;0t"
 
 
 class PrivateMode(enum.StrEnum):

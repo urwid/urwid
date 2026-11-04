@@ -5,7 +5,7 @@ from __future__ import annotations
 import enum
 import typing
 from ctypes import POINTER, Structure, Union, windll
-from ctypes.wintypes import BOOL, CHAR, DWORD, HANDLE, LPDWORD, SHORT, UINT, WCHAR, WORD
+from ctypes.wintypes import BOOL, CHAR, DWORD, HANDLE, LPCWSTR, LPDWORD, LPWSTR, SHORT, UINT, WCHAR, WORD
 
 # https://docs.microsoft.com/de-de/windows/console/getstdhandle
 STD_INPUT_HANDLE = -10
@@ -193,3 +193,13 @@ WaitForSingleObject.restype = DWORD
 GetConsoleScreenBufferInfo = windll.kernel32.GetConsoleScreenBufferInfo
 GetConsoleScreenBufferInfo.argtypes = [HANDLE, POINTER(CONSOLE_SCREEN_BUFFER_INFO)]
 GetConsoleScreenBufferInfo.restype = BOOL
+
+# https://learn.microsoft.com/en-us/windows/console/getconsoletitle
+GetConsoleTitleW = windll.kernel32.GetConsoleTitleW
+GetConsoleTitleW.argtypes = [LPWSTR, DWORD]
+GetConsoleTitleW.restype = DWORD
+
+# https://learn.microsoft.com/en-us/windows/console/setconsoletitle
+SetConsoleTitleW = windll.kernel32.SetConsoleTitleW
+SetConsoleTitleW.argtypes = [LPCWSTR]
+SetConsoleTitleW.restype = BOOL

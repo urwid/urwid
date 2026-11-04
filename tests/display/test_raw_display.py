@@ -715,6 +715,67 @@ class TestRawDisplay(unittest.TestCase):
         self.assertIn(escape.LINUX_RESET_PALETTE, output)
         self.assertIn(escape.ESC, output.partition(escape.LINUX_RESET_PALETTE)[2])
 
+    def test_set_title(self) -> None:
+        """The terminal's title is saved once before the first title, and None gives it back."""
+        s = urwid.display.raw.Screen()
+        s.term = "xterm-256color"
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s._started = True
+
+        for title, expected in (
+            ("one", "\x1b[22;0t\x1b]2;one\x07"),
+            ("two", "\x1b]2;two\x07"),
+            (None, "\x1b[23;0t"),
+            (None, ""),
+            ("", "\x1b[22;0t\x1b]2;\x07"),
+        ):
+            with self.subTest(title=title):
+                written.clear()
+                s.set_title(title)
+                self.assertEqual(expected, "".join(written))
+
+    def test_set_title_removes_control_characters_and_unencodable_ones(self) -> None:
+        """BEL, ESC, ST and the other controls cannot end the title, in UTF-8 or as 8-bit bytes of another encoding."""
+        for encoding, title, expected in (
+            ("utf-8", "a\x07b\x1b]0;c\x1b\\d\x9ce\x7ff\ng\th\x00", "ab]0;c\\defgh"),
+            ("utf-8", "naïve 中", "naïve 中"),
+            # UTF-8 as set_encoding() spells it, and a double-byte encoding, where 0x80-0x9f are parts of characters
+            ("utf8", "Привет", "Привет"),
+            ("utf", "Ā", "Ā"),
+            ("gbk", "丂", "丂"),
+            ("iso8859-1", "naïve 中", "naïve ?"),
+            # bytes 0x80-0x9f: 0x9c is the 8-bit ST, 0x9b the 8-bit CSI
+            ("koi8_r", "20°C Ж", "20?C Ж"),
+            ("cp1252", "œuvre \u203a", "?uvre ?"),
+        ):
+            with self.subTest(encoding=encoding, title=title), set_temporary_encoding(encoding):
+                s = urwid.display.raw.Screen()
+                s.term = "xterm-256color"
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+                s._started = True
+
+                s.set_title(title)
+
+                self.assertEqual(f"\x1b[22;0t\x1b]2;{expected}\x07", "".join(written))
+
+    def test_set_title_sends_nothing_to_the_linux_console(self) -> None:
+        """The Linux virtual console has no window title, and would print the title text."""
+        s = urwid.display.raw.Screen()
+        s.term = "linux"
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+        s._started = True
+
+        s.set_title("app")
+        s._restore_title()
+
+        self.assertEqual([], written)
+
     def test_draw_screen_ignores_eintr(self):
         """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""
         s = urwid.display.raw.Screen()

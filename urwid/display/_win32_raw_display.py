@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import contextlib
+import ctypes
 import functools
 import logging
 import selectors
@@ -40,6 +41,8 @@ from .common import INPUT_DESCRIPTORS_CHANGED
 
 # milliseconds the console reader waits for input before checking whether it has to stop
 _INPUT_POLL_MS = 100
+# characters read of the console title: the console API limits a title to 64 KiB
+_TITLE_BUFFER_SIZE = 32768
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -91,6 +94,8 @@ class Screen(_raw_display_base.Screen):
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
         )
+        # the console title before set_title() changed it, read through the console API
+        self._saved_title: str | None = None
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
@@ -104,6 +109,38 @@ class Screen(_raw_display_base.Screen):
         reading the real console, not the console handle itself.
         """
         return self._console_mode_active
+
+    def _save_title(self) -> None:
+        """Save the console title through the console API.
+
+        The Windows console has no title stack.
+        A title read as empty is not saved, as the console API reports a failed read the same way.
+        Outside a console, the title is saved on the terminal's title stack.
+        """
+        if not self._console_mode_active:
+            super()._save_title()
+            return
+        title = ctypes.create_unicode_buffer(_TITLE_BUFFER_SIZE)
+        self._saved_title = title.value if _win32.GetConsoleTitleW(title, len(title)) else None
+
+    def _restore_saved_title(self) -> None:
+        """Give the console back the title :meth:`_save_title` read, if it read one."""
+        if not self._console_mode_active:
+            super()._restore_saved_title()
+            return
+        saved_title, self._saved_title = self._saved_title, None
+        if saved_title is not None:
+            _win32.SetConsoleTitleW(saved_title)
+
+    def _write_title(self, title: str) -> None:
+        """Set the console title through the console API.
+
+        The Windows console ignores a title sequence of 255 characters or more, and the API has no such limit.
+        """
+        if not self._console_mode_active:
+            super()._write_title(title)
+            return
+        _win32.SetConsoleTitleW(title)
 
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -174,6 +211,7 @@ class Screen(_raw_display_base.Screen):
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
         self._enable_keyboard_protocol()
+        self._show_title()
 
         self._next_timeout = self.max_wait
 
@@ -209,6 +247,8 @@ class Screen(_raw_display_base.Screen):
         self._stop_input_thread()
 
         self._stop_restore_palette()
+        # before the console mode is restored: the title is saved through the console API while it is active
+        self._restore_title()
         self._stop_mouse_restore_buffer()
 
         if self._dwOriginalOutMode is not None and self._dwOriginalInMode is not None:

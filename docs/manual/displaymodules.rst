@@ -61,6 +61,7 @@ bright foreground without bold YES [3]_    no
 mouse dragging support         YES         no
 external event loop support    YES         no
 OSC 8 hyperlinks               YES [4]_    no
+window title                   YES [5]_    no
 ============================== =========== ==============
 
 .. [1] if the termcap entry exists and TERM environment variable is set
@@ -68,6 +69,8 @@ OSC 8 hyperlinks               YES [4]_    no
 .. [2] if python is linked against the wide version of ncurses
 .. [3] when using xterm or gnome-terminal
 .. [4] after ``set_terminal_properties(hyperlinks=True)``, see :ref:`hyperlinks`
+.. [5] with :meth:`display.raw.Screen.set_title`; the previous title comes back
+       when the screen stops, on terminals with a title stack and on the Windows console
 
 
 .. _screens-without-event-loop-support:
