@@ -188,6 +188,11 @@ Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't
 be relied on.
 
+The side buttons (8 and 9) reach the application only in some terminals:
+VTE-based terminals such as GNOME Terminal report them, Konsole does not, and
+the terminal of an IDE such as PyCharm uses them for its own navigation and
+does not pass them on. Offer another way to do what they do.
+
 ``'mouse press'`` Events
 ------------------------
 
