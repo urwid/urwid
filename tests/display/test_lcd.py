@@ -62,6 +62,7 @@ class CF635ScreenTest(unittest.TestCase):
         port, device = socket.socketpair()
         self.addCleanup(port.close)
         self.addCleanup(device.close)
+        device.settimeout(1)  # a test reading what was never sent fails instead of waiting
         with mock.patch.object(serial, "Serial", return_value=SocketSerial(port)):
             return lcd.CF635Screen("/dev/ttyUSB0", **kwargs), device
 
@@ -97,15 +98,15 @@ class CF635ScreenTest(unittest.TestCase):
         """A main loop on the screen draws to the device and gets the key the device reports."""
         screen, device = self._screen()
         keys: list[str] = []
-        device.send(packet(lcd.CFLCDScreen.CMD_KEY_ACTIVITY, bytes([1])))  # up pressed
+        up_pressed = packet(lcd.CFLCDScreen.CMD_KEY_ACTIVITY, bytes([1]))
 
-        loop = self._run(screen, keys, 1)
+        loop = self._run(screen, keys, 1, alarm=lambda: device.send(up_pressed))
 
         self.assertEqual(["up"], keys)
-        # The run ends with "up" still held, so a repeat was pending: only the test's own give-up alarm is left.
+        # The run ends with "up" still held, so a repeat was pending; stopping the loop removed it with the watch.
         event_loop = typing.cast("urwid.SelectEventLoop", loop.event_loop)
         self.assertEqual({}, event_loop._watch_files)
-        self.assertEqual(1, len(event_loop._alarms))
+        self.assertNotIn("read_device", [callback.__name__ for _time, _tie, callback in event_loop._alarms])
         sent = device.recv(4096)
         self.assertEqual(lcd.CFLCDScreen.CMD_LCD_DATA, sent[0])
         self.assertIn(b"x" * 20, sent)
@@ -123,6 +124,19 @@ class CF635ScreenTest(unittest.TestCase):
         sent = device.recv(4096)
         rows = [sent[i : i + 26] for i in range(0, len(sent), 26)]
         self.assertEqual([bytes([lcd.CFLCDScreen.CMD_LCD_DATA, 22, 0, row]) for row in range(4)], [r[:4] for r in rows])
+
+    def test_one_wake_up_reads_a_whole_packet(self) -> None:
+        """A packet that arrived at once is handled by one call of the device watch, not one call per byte."""
+        screen, device = self._screen()
+        event_loop = urwid.SelectEventLoop()
+        received: list[list[str]] = []
+        screen.hook_event_loop(event_loop, lambda keys, _raw: received.append(keys))
+        self.addCleanup(screen.unhook_event_loop, event_loop)
+        device.send(packet(lcd.CFLCDScreen.CMD_KEY_ACTIVITY, bytes([5])))  # enter pressed
+
+        event_loop._loop()
+
+        self.assertEqual([["enter"]], received)
 
     def test_held_key_repeats(self) -> None:
         """A key held down on the device is repeated after the repeat delay, with no further data from it."""

@@ -34,6 +34,9 @@ if typing.TYPE_CHECKING:
 
     from urwid import Canvas, EventLoop
 
+# Bytes read from the serial device at once; the port is non-blocking, so a read returns what is waiting.
+_READ_SIZE: typing.Final = 4096
+
 
 class LCDScreen(BaseScreen, abc.ABC):
     """Base class for LCD-based screens."""
@@ -181,7 +184,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         :returns: ``(command/report code, data)`` or ``None``.
         """
         # pull in any new data available
-        self._unprocessed += self._device.read()
+        self._unprocessed += self._device.read(_READ_SIZE)
         while True:
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
