@@ -29,10 +29,10 @@ import typing
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection, Iterable, Sequence
+    from collections.abc import Callable, Collection, Iterable, Sequence
     from typing import Literal, SupportsIndex
 
-    from urwid import Canvas
+    from urwid import Canvas, EventLoop
 
 
 class LCDScreen(BaseScreen, abc.ABC):
@@ -355,9 +355,43 @@ class CF635Screen(CFLCDScreen):
         self._screen_buf: list[list[bytes]] = []
         self._previous_canvas: Canvas | None = None
         self._update_cursor = False
+        # set by hook_event_loop(): the watch of the serial device, and the alarm of the next key repeat
+        self._watch_handle: typing.Any = None
+        self._repeat_alarm: typing.Any = None
+
+    def hook_event_loop(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> None:
+        """Watch the serial device on *event_loop* and pass what :meth:`get_input_nonblocking` returns to *callback*.
+
+        The device's ACKs are answered with the next queued command as they arrive,
+        and a held key is repeated from an alarm, since the device sends no repeats.
+        """
+
+        def read_device() -> None:
+            if self._repeat_alarm is not None:
+                event_loop.remove_alarm(self._repeat_alarm)
+                self._repeat_alarm = None
+            timeout, keys, raw = self.get_input_nonblocking()
+            if timeout is not None:
+                self._repeat_alarm = event_loop.alarm(timeout, read_device)
+            callback(keys, raw)
+
+        self._watch_handle = event_loop.watch_file(self._device.fileno(), read_device)
+
+    def unhook_event_loop(self, event_loop: EventLoop) -> None:
+        """Remove the watch and the key repeat alarm that :meth:`hook_event_loop` added to *event_loop*."""
+        if self._repeat_alarm is not None:
+            event_loop.remove_alarm(self._repeat_alarm)
+            self._repeat_alarm = None
+        if self._watch_handle is not None:
+            event_loop.remove_watch_file(self._watch_handle)
+            self._watch_handle = None
 
     def get_input_descriptors(self) -> list[int]:
-        """Return the fd from our serial device so we get called on input and responses."""
+        """Return the descriptor of the serial device."""
         return [self._device.fileno()]
 
     def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
