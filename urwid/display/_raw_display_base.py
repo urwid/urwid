@@ -240,6 +240,17 @@ def _is_linux_console(term: str) -> bool:
     return _LINUX_CONSOLE_TERM.match(term) is not None
 
 
+def _rejects_osc(term: str) -> bool:
+    """Tell whether the terminal a TERM value names cannot take a window title or clipboard sequence.
+
+    The Linux virtual console reads only its own palette sequences and prints the others as text.
+    fbterm has neither a window title nor a clipboard.
+    A ``dumb`` terminal reads no escape sequences.
+    On Windows, TERM does not describe the console, so only the Linux console names count there.
+    """
+    return _is_linux_console(term) or (term in {"dumb", "fbterm"} and not IS_WINDOWS)
+
+
 def _parse_force_color(value: str) -> _ColorCount:
     """Map FORCE_COLOR / CLICOLOR_FORCE to a color count (chalk / supports-color convention)."""
     normalized = value.strip().lower()
@@ -946,7 +957,8 @@ class Screen(BaseScreen, RealTerminal):
         The previous title is saved on the terminal's title stack (xterm ``XTWINOPS`` 22 and 23).
         A terminal without the stack ignores it, and keeps the application's title after the screen stops.
         On a Windows console the title is set and saved through the console API instead.
-        The Linux virtual console has no window title, and nothing is sent to it.
+        Nothing is sent to the Linux virtual console or fbterm, which have no window title.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the title as text.
 
         :param title: the new window title, or None to give the terminal back the title it had before.
         """
@@ -959,7 +971,7 @@ class Screen(BaseScreen, RealTerminal):
         if self._title is None:
             self._restore_title()
             return
-        if _is_linux_console(self.term):
+        if _rejects_osc(self.term):
             return
         if not self._title_saved:
             self._save_title()
@@ -1008,7 +1020,8 @@ class Screen(BaseScreen, RealTerminal):
         Terminals and multiplexers also drop a sequence longer than their own limit, so a long text may not arrive.
         The whole text is written at once, and a long one holds up the main loop until the terminal has read it.
 
-        The Linux virtual console has no clipboard and would print the sequence as text, so nothing is sent to it.
+        Nothing is sent to the Linux virtual console or fbterm, which have no clipboard.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the sequence as text.
 
         :param text: the text to copy.
         :raises RuntimeError: the screen is not running.
@@ -1017,7 +1030,7 @@ class Screen(BaseScreen, RealTerminal):
         """
         if not self._started:
             raise RuntimeError("Start the screen before copying to the clipboard")
-        if _is_linux_console(self.term):
+        if _rejects_osc(self.term):
             return
         data = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
         self.write(f"{escape.SET_CLIPBOARD}{data}{escape.BEL}")
