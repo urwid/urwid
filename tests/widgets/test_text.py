@@ -150,6 +150,8 @@ class TextTest(unittest.TestCase):
                     widget = urwid.Text(text)
                     columns = urwid.Columns([(urwid.PACK, widget), urwid.Text("XYZ")])
                     screen = urwid.display.raw.Screen()
+                    # the line erase asserted below needs back color erase, whatever the host's TERM says
+                    screen.back_color_erase = True
                     written: list[str] = []
                     screen.write = written.append
                     screen.flush = lambda: None
