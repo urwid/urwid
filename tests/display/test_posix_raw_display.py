@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 import os
 import signal
 import struct
@@ -218,6 +219,100 @@ class TestStartStop(unittest.TestCase):
         self.assertEqual(previous_tstp, signal.getsignal(signal.SIGTSTP))
         # SIGCONT belongs to the application: neither start() nor stop() replaces it.
         self.assertEqual(signal.SIG_IGN, signal.getsignal(signal.SIGCONT))
+
+    @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
+    @mock.patch("os.kill")  # guard: the gpm helper must be stopped through its Popen object only
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_stop_on_a_hung_up_terminal_ends_stopped_and_restores_the_rest(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+        mock_kill: mock.Mock,
+    ) -> None:
+        """Stop without raising when the output is gone.
+
+        Everything that is not written to the output is still restored.
+        The first flush that fails is the palette reset, so the steps after it never run.
+        """
+        previous_winch = signal.getsignal(signal.SIGWINCH)
+        for error in (errno.EIO, errno.ENXIO, errno.EPIPE):
+            with self.subTest(error=errno.errorcode[error]):
+                mock_tcsetattr.reset_mock()
+                s = _make_screen()
+                self.enterContext(mock.patch.object(s, "write"))
+                flush = self.enterContext(mock.patch.object(s, "flush"))
+                s.start()
+                s._modified_palette_entries.add(1)
+                gpm_mev = s.gpm_mev = mock.MagicMock()
+                flush.side_effect = OSError(error, os.strerror(error))
+
+                s.stop()
+
+                self.assertFalse(s.started)
+                self.assertEqual(previous_winch, signal.getsignal(signal.SIGWINCH))
+                mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
+                gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
+                self.assertIsNone(s.gpm_mev)
+
+    def test_stop_raises_other_output_errors(self) -> None:
+        """Raise an output error that does not mean the terminal is gone, such as a full disk."""
+        s = _make_screen()
+        self.enterContext(mock.patch.object(s, "write"))
+        flush = self.enterContext(mock.patch.object(s, "flush"))
+        s.start()
+        flush.side_effect = OSError(errno.ENOSPC, os.strerror(errno.ENOSPC))
+
+        with self.assertRaises(OSError) as raised:
+            s.stop()
+        self.assertEqual(errno.ENOSPC, raised.exception.errno)
+        flush.side_effect = None
+        s.stop()
+
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty")
+    def test_stop_ignores_a_hang_up_during_the_termios_restore_only(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+    ) -> None:
+        """Ignore a termios error during the restore only when the terminal is no tty any more.
+
+        A terminal that is still a tty reports its error.
+        The hang-up lands between the isatty() check and the call, as a hang-up during the teardown can.
+        """
+        for failing in (mock_tcsetattr, mock_tcgetattr):
+            for hung_up in (True, False):
+                with self.subTest(failing=failing._mock_name, hung_up=hung_up):
+                    mock_isatty.return_value = True
+                    failing.side_effect = None
+                    s = _make_screen()
+                    self.enterContext(mock.patch.object(s, "write"))
+                    self.enterContext(mock.patch.object(s, "flush"))
+                    s.start()
+
+                    def hang_up(*_args: object, hung_up: bool = hung_up) -> None:
+                        mock_isatty.return_value = not hung_up
+                        raise termios.error(errno.EIO, os.strerror(errno.EIO))
+
+                    failing.side_effect = hang_up
+
+                    if hung_up:
+                        s.stop()
+                        self.assertFalse(s.started)
+                    else:
+                        with self.assertRaises(termios.error):
+                            s.stop()
+                        failing.side_effect = None
+                        s.stop()
 
 
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
