@@ -591,7 +591,7 @@ class CF635Screen(CFLCDScreen):
                 data = bytearray([0, y])
                 for elem in text:
                     data.extend(elem)
-                self.queue_command(self.CMD_LCD_DATA, data)
+                self._queue_draw(self.CMD_LCD_DATA, data)
             sb.append(text)
 
         if (
@@ -601,15 +601,28 @@ class CF635Screen(CFLCDScreen):
         ):
             pass
         elif canvas.cursor is None:
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
         else:
             x, y = canvas.cursor
-            self.queue_command(self.CMD_CURSOR_POSITION, bytearray([x, y]))
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
+            self._queue_draw(self.CMD_CURSOR_POSITION, bytearray([x, y]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
 
         self._update_cursor = False
         self._screen_buf = sb
         self._previous_canvas = canvas
+
+    def _queue_draw(self, command: int, data: bytearray) -> None:
+        """Queue a draw command, replacing a queued one for the same row or the same cursor setting.
+
+        A device that answers more slowly than frames are drawn then gets each row's latest text once,
+        instead of a queue that grows by a frame per draw and replays stale frames.
+        """
+        row = data[1] if command == self.CMD_LCD_DATA else None
+        for index, (queued, queued_data) in enumerate(self._command_queue):
+            if queued == command and (row is None or queued_data[1] == row):
+                self._command_queue[index] = (command, data)
+                return
+        self.queue_command(command, data)
 
     def program_cgram(self, index: int, data: Sequence[int]) -> None:
         """

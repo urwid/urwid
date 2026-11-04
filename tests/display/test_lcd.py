@@ -356,6 +356,30 @@ class CF635ScreenTest(unittest.TestCase):
         self.assertEqual([[b"row"]], screen._screen_buf)
         self.assertEqual([], event_loop._alarms)
 
+    def test_queued_rows_are_replaced_by_newer_frames(self) -> None:
+        """Frames drawn while the device has not answered leave one queued command per row, with the latest text."""
+        screen, device, event_loop = self._hooked()
+        for text in ("a", "b", "c"):
+            screen.draw_screen(screen.DISPLAY_SIZE, urwid.SolidFill(text).render(screen.DISPLAY_SIZE))
+        screen.set_backlight(50)
+
+        self._answer(
+            device,
+            event_loop,
+            [lcd.CFLCDScreen.CMD_LCD_DATA] * 4 + [lcd.CFLCDScreen.CMD_CURSOR_STYLE, lcd.CFLCDScreen.CMD_LCD_DATA],
+        )
+
+        # Row 0 of the first frame was already sent, so the newest row 0 waits behind the queued commands.
+        row = lcd.CFLCDScreen.CMD_LCD_DATA
+        self.assertEqual(
+            [bytes([row, 22, 0, 0, *b"a" * 20])]
+            + [bytes([row, 22, 0, y, *b"c" * 20]) for y in range(1, 4)]
+            + [bytes([lcd.CFLCDScreen.CMD_CURSOR_STYLE, 1, lcd.CFLCDScreen.CURSOR_NONE])]
+            + [bytes([row, 22, 0, 0, *b"c" * 20])]
+            + [bytes([lcd.CFLCDScreen.CMD_BACKLIGHT, 1, 50])],
+            self._received(device),
+        )
+
     def test_command_sent_before_the_hook_is_timed(self) -> None:
         """A command sent before the screen was hooked into a loop gets its ACK timed from the hook on."""
         screen, device = self._screen()
