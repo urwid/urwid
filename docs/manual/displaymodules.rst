@@ -62,6 +62,7 @@ mouse dragging support         YES         no
 external event loop support    YES         no
 OSC 8 hyperlinks               YES [4]_    no
 window title                   YES [5]_    no
+clipboard copy (OSC 52)        YES [6]_    no
 ============================== =========== ==============
 
 .. [1] if the termcap entry exists and TERM environment variable is set
@@ -71,6 +72,7 @@ window title                   YES [5]_    no
 .. [4] after ``set_terminal_properties(hyperlinks=True)``, see :ref:`hyperlinks`
 .. [5] with :meth:`display.raw.Screen.set_title`; the previous title comes back
        when the screen stops, on terminals with a title stack and on the Windows console
+.. [6] with :meth:`display.raw.Screen.copy_to_clipboard`, on terminals that support OSC 52
 
 
 .. _screens-without-event-loop-support:

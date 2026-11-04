@@ -29,6 +29,7 @@ Features:
 - custom message widgets to identify access errors and empty directories
 - custom list walker for displaying widgets in a tree fashion
 - outputs a quoted list of files and directories "selected" on exit
+- copies the path in focus to the clipboard of the terminal (OSC 52)
 """
 
 from __future__ import annotations
@@ -311,6 +312,8 @@ class DirectoryBrowser:
         "  ",
         ("key", "END"),
         "  ",
+        ("key", "C"),
+        "  ",
         ("key", "Q"),
     ]
 
@@ -322,6 +325,7 @@ class DirectoryBrowser:
         self.listbox = urwid.TreeListBox(urwid.TreeWalker(DirectoryNode(cwd)))
         self.listbox.offset_rows = 1
         self.footer = urwid.AttrMap(urwid.Text(self.footer_text), "foot")
+        self.screen = urwid.display.raw.Screen()
         self.view = urwid.Frame(
             urwid.AttrMap(
                 urwid.ScrollBar(
@@ -337,7 +341,12 @@ class DirectoryBrowser:
 
     def main(self) -> None:
         """Run the program."""
-        self.loop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
+        self.loop = urwid.MainLoop(
+            self.view,
+            self.palette,
+            screen=self.screen,
+            unhandled_input=self.unhandled_input,
+        )
         self.loop.run()
 
         # on exit, write the flagged filenames to the console
@@ -345,7 +354,9 @@ class DirectoryBrowser:
         print(" ".join(names))
 
     def unhandled_input(self, k: str | tuple[str, int, int, int]) -> None:
-        """Handle keys not consumed by the widgets: :kbd:`q` to exit.
+        """Handle keys not consumed by the widgets.
+
+        :kbd:`c` copies the path in focus to the clipboard, and :kbd:`q` exits.
 
         :param k: unhandled key or mouse event
         :raises urwid.ExitMainLoop: when the user presses :kbd:`q`
@@ -353,6 +364,8 @@ class DirectoryBrowser:
         # update display of focus directory
         if k in {"q", "Q"}:
             raise urwid.ExitMainLoop
+        if k in {"c", "C"} and isinstance(focus := self.listbox.focus, FlagFileWidget):
+            self.screen.copy_to_clipboard(focus.get_node().get_value())
 
 
 def main() -> None:

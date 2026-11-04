@@ -776,6 +776,34 @@ class TestRawDisplay(unittest.TestCase):
 
         self.assertEqual([], written)
 
+    def test_copy_to_clipboard(self) -> None:
+        """The text goes out as UTF-8 in base64, so controls in it stay data, whatever the terminal encoding."""
+        for encoding, text, expected in (
+            ("utf-8", "", ""),
+            ("utf-8", "hello", "aGVsbG8="),
+            ("utf-8", "a\x07b\x1b]0;c\x1b\\d\x9ce 中", "YQdiG10wO2MbXGTCnGUg5Lit"),
+            ("iso8859-1", "a\x07b\x1b]0;c\x1b\\d\x9ce 中", "YQdiG10wO2MbXGTCnGUg5Lit"),
+        ):
+            with self.subTest(encoding=encoding, text=text), set_temporary_encoding(encoding):
+                s = urwid.display.raw.Screen()
+                s.term = "xterm-256color"
+                written: list[str] = []
+
+                with mock.patch.object(s, "write", side_effect=written.append), mock.patch.object(s, "flush"):
+                    s.copy_to_clipboard(text)
+
+                self.assertEqual(f"\x1b]52;c;{expected}\x07", "".join(written))
+
+    def test_copy_to_clipboard_sends_nothing_to_the_linux_console(self) -> None:
+        """The Linux virtual console has no clipboard, and would print the sequence."""
+        s = urwid.display.raw.Screen()
+        s.term = "linux"
+
+        with mock.patch.object(s, "write") as write, mock.patch.object(s, "flush"):
+            s.copy_to_clipboard("text")
+
+        write.assert_not_called()
+
     def test_draw_screen_ignores_eintr(self):
         """An EINTR OSError from write() during draw_screen() is swallowed (interrupted syscall)."""
         s = urwid.display.raw.Screen()

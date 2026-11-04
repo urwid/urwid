@@ -1166,6 +1166,8 @@ BEL: typing.Final = "\x07"
 # XTWINOPS 22 and 23: push the icon and window title on the terminal's title stack, and pop them back
 TITLE_PUSH: typing.Final = f"{CSI}22;0t"
 TITLE_POP: typing.Final = f"{CSI}23;0t"
+# OSC 52 then the base64 text then BEL puts the text on the system clipboard ("c")
+SET_CLIPBOARD: typing.Final = f"{OSC}52;c;"
 
 
 class PrivateMode(enum.StrEnum):

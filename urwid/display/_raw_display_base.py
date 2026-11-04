@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import abc
+import base64
 import contextlib
 import dataclasses
 import errno
@@ -988,6 +989,29 @@ class Screen(BaseScreen, RealTerminal):
         if util.get_encoding_mode() == "narrow":
             title = "".join("?" if _C1_BYTES.search(char.encode(encoding, "replace")) else char for char in title)
         self.write(f"{escape.SET_TITLE}{title.encode(encoding, 'replace').decode(encoding)}{escape.BEL}")
+
+    def copy_to_clipboard(self, text: str) -> None:
+        """Copy text to the system clipboard through the terminal.
+
+        The text is sent as UTF-8 in base64 inside OSC 52,
+        so no character of it can reach the terminal as a command.
+        The sequence travels with the screen output, so it also reaches the user's terminal over SSH.
+        What happens next is up to the terminal:
+
+        - many terminal emulators copy the text;
+        - some ask the user first, or copy only after the feature is turned on in their settings;
+        - tmux passes the text on with its ``set-clipboard`` option on;
+        - a terminal without OSC 52 ignores the sequence, and no reply tells the application which case it was.
+
+        The Linux virtual console has no clipboard and would print the sequence as text, so nothing is sent to it.
+
+        :param text: the text to copy.
+        """
+        if _is_linux_console(self.term):
+            return
+        data = base64.b64encode(text.encode("utf-8")).decode("ascii")
+        self.write(f"{escape.SET_CLIPBOARD}{data}{escape.BEL}")
+        self.flush()
 
     @abc.abstractmethod
     def _stop(self) -> None:
