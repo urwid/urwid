@@ -289,12 +289,30 @@ class Thin3x3Font(Font):
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
 └─┘ ┴ └─ └─┘  ┴ ─┘└─┘  ┴└─┘ ─┘  .
 """,
+        """
+AAABBBCCCDDDEEEFFF
+┌─┐┬─┐┌─ ┬─┐┌─ ┌─
+├─┤├─┤│  │ │├─ ├─
+┴ ┴┴─┘└─ ┴─┘└─ ┴
+""",
+        r"""
+((())){{{|||}}}~~~
+ ╭  ╮  ┌  │  ┐
+ │  │ ─┤  │  ├─/\/
+ ╰  ╯  └  │  ┘
+""",
         r"""
 "###$$$%%%'*++,--.///:;==???[[\\\]]^__`
 " ┼┼┌┼┐O /'         /.. _┌─┐┌ \   ┐^  `
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │
     └┼┘/ O    ,  ./       . └   \ ┘ ──
 """,
+        r"""
+−−−×××
+   \ /
+─── X
+   / \
+""",  # noqa: RUF001
     )
 
 
@@ -381,6 +399,13 @@ nnnnnooooopppppqqqqqrrrrsssssttttuuuuuvvvvvwwwwwwxxxxxyyyyyzzzzz
 │  │ │  │ ├──┘ └──┤ │   └──┐  │  │  │ └┐┌┘ │ │ │  ├┤  └──┤ ┌──┘
 ┴  ┴ └──┘ ┴       ┴ ┴   └──┘  └─ └──┴  └┘  └─┴─┘ ─┘└─ └──┘ └───
 """,
+        r"""
+−−−−−×××××
+
+      \ /
+────   X
+      / \
+""",  # noqa: RUF001
     )
 
 
@@ -438,6 +463,12 @@ RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
 🬁🬓  ▌  🬦🬀🬅🬈🬅
  🬁🬀 ▌ 🬁🬀
 """,
+        """
+−−−×××
+   🬏 🬞
+🬋🬋🬋🬠🬋🬐
+   🬀 🬁
+""",  # noqa: RUF001
     )
 
 
@@ -446,11 +477,23 @@ class Sextant2x2Font(Font):
 
     name = "Sextant 2x2"
     height = 2
-    data = """
+    data = (
+        """
 ..,,%%00112233445566778899
     🬁🬖▐🬨🬇▌🬁🬗🬠🬸🬦▐▐🬒▐🬭🬁🬙▐🬸▐🬸
 🬇 🬇🬀🬁🬇🬉🬍 🬄🬉🬋🬇🬍🬁🬊🬇🬅🬉🬍 🬄🬉🬍 🬉
-"""
+""",
+        """
+--++**//==−−××
+🬞🬏🬞🬱🬇🬖 🬔🬇🬋🬞🬭🬢🬖
+   🬀🬁🬁🬉 🬁🬂  🬀🬁
+""",  # noqa: RUF001
+        """
+AABBCCDDEEFF
+▐🬸▐🬗▐🬂▐🬧▐🬒▐🬒
+🬉🬉🬉🬅🬉🬋🬉🬅🬉🬋🬉
+""",
+    )
 
 
 class HalfBlock5x4Font(Font):
@@ -522,6 +565,13 @@ uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 █  █ ▐▌▐▌ ▐▌█▐▌  ▄▀▄  ▀▄▄█ ▄▀
  ▀▀   ▀▀   ▀ ▀  ▀   ▀  ▄▄▀ ▀▀▀▀
 """,
+        """
+−−−−−−××××××
+
+▄▄▄▄▄ ▄   ▄
+       ▀▄▀
+      ▄▀ ▀▄
+""",  # noqa: RUF001
     )
 
 
@@ -587,6 +637,14 @@ nnnnnnooooooppppppqqqqqqrrrrrsssssstttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
   ▐▌   ▐▌         ▀            ▄  ▀▄        ▄▀        █ ▀▀▀ █    ▐▌   █                 █  █  █
    ▀▄ ▄▀              ▄▀      ▄▀    ▀      ▀      ▀    ▀▀▀  ▀▀▀   ▀ ▀▀▀       ▄▄▄▄▄     ▀▄ █ ▄▀
 """,
+        """
+−−−−−−××××××
+
+      ▄   ▄
+▀▀▀▀▀  ▀▄▀
+      ▄▀ ▀▄
+
+""",  # noqa: RUF001
     )
 
 
@@ -660,6 +718,14 @@ nnnnnnooooooppppppqqqqqqrrrrrsssssstttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
 
 
 """,
+        """
+−−−−−−××××××
+
+      ▄█ █▄
+█████  ▐█▌
+      ▀█ █▀
+
+""",  # noqa: RUF001
     )
 
 
@@ -759,6 +825,15 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
  └─ └───┴  └─┘  └─┴─┘ ─┘ └─ └───┤ ┴────
                             └───┘
 """,
+        r"""
+−−−−−−××××××
+
+       \  /
+─────   \/
+        /\
+       /  \
+
+""",  # noqa: RUF001
     )
 
 
@@ -868,6 +943,16 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌  ▀███▀   ▐█▌   ▀█▌▐█▀ ▐█   █▌  ▀▀▀█▌▐█████▌
                                    ▀███▀
 """,
+        """
+−−−−−−−×××××××
+
+       ▐▌   ▐▌
+▐█████▌ ▀█▄█▀
+         ▐█▌
+        ▄█▀█▄
+       ▐▌   ▐▌
+
+""",  # noqa: RUF001
     )
 
 
