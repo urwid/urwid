@@ -69,10 +69,12 @@ class TestFontRender(unittest.TestCase):
                     )
                 ],
             ),
+            ("hexadecimal", frozenset("0123456789ABCDEF"), all_fonts),
+            ("arithmetic", frozenset("+-*/=" + "\u2212\u00d7"), all_fonts),
             (
                 "punctuation",
                 frozenset(string.punctuation + " "),
-                [font for font in all_fonts if letters & frozenset(font.characters())],
+                [font for font in all_fonts if letters <= frozenset(font.characters())],
             ),
         )
         for case, expected, fonts in cases:
@@ -82,3 +84,11 @@ class TestFontRender(unittest.TestCase):
                     for character in sorted(expected):
                         with self.subTest(character=character):
                             self.assertEqual(font.height, font.render(character).rows())
+
+    def test_006_thin_3x3_hexadecimal_and_brackets(self):
+        """Thin 3x3 draws the uppercase hexadecimal digits and ``(){}|~`` in a 3x3 cell."""
+        font = urwid.Thin3x3Font()
+        for character in "0123456789ABCDEF(){}|~":
+            with self.subTest(character=character):
+                self.assertEqual(3, font.char_width(character))
+                self.assertEqual(3, font.render(character).rows())
