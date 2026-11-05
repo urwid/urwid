@@ -1138,6 +1138,13 @@ position then you need to remember to increment the focus position in the
 :class:`SimpleListWalker` object or the contents of the
 :class:`ListBox` will shift.
 
+The :class:`FilteredListWalker` shows the widgets of another list walker that
+pass a predicate, such as the rows matching a query typed into an
+:class:`Edit`. Its positions are the indices of the source walker, so a position
+from the view addresses the same widget in the source, and widgets are added or
+removed through the source. The filter_list.py_ example program narrows a list as
+a query is typed.
+
 A custom List Walker object may be passed to the
 :class:`ListBox` constructor instead of a plain list of widgets.
 List Walker objects must implement the :ref:`list-walker-interface`.
@@ -1162,6 +1169,7 @@ directories to be hidden from view when they are "collapsed".
 .. _fib.py: https://github.com/urwid/urwid/blob/master/examples/fib.py
 .. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
 .. _browse.py: https://github.com/urwid/urwid/blob/master/examples/browse.py
+.. _filter_list.py: https://github.com/urwid/urwid/blob/master/examples/filter_list.py
 
 
 Setting the Focus
