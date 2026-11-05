@@ -83,6 +83,8 @@ class Edit(WidgetWrap[Text]):
       text if it is signaled for text that it has already changed once).
     * ``"submit"`` is sent when :kbd:`enter`, mapped to ``'activate'``, reaches an Edit with ``multiline=False``.
       It receives the edit text as an argument. :meth:`keypress` still returns the key.
+    * ``"cancel"`` is sent when a key mapped to ``'menu'``, :kbd:`esc` by default, reaches an Edit.
+      It receives the edit text as an argument. :meth:`keypress` still returns the key.
     * ``"validation"`` is sent when :attr:`validation` changes.
       It receives the old and the new value as arguments.
     * ``"completion_cycle"`` is sent when a completion cycle starts, moves or ends, see :attr:`text_completer`.
@@ -93,7 +95,7 @@ class Edit(WidgetWrap[Text]):
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "validation", "completion_cycle"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "cancel", "validation", "completion_cycle"]
 
     def valid_char(self, ch: str) -> bool:
         """
@@ -543,7 +545,8 @@ class Edit(WidgetWrap[Text]):
         A subclass whose :meth:`set_edit_text` does not call this class's method calls ``Edit.validate(self)`` itself,
         which a :meth:`validate` of its own does not replace.
         The result is :attr:`validation`.
-        Keys, focus and ``"submit"`` do not depend on it: an application reads :attr:`validation` to refuse a value.
+        Keys, focus, ``"submit"`` and ``"cancel"`` do not depend on it.
+        An application reads :attr:`validation` to refuse a value.
 
         >>> e = Edit("Port: ", validator=lambda text: None if text.isdecimal() else "not a number")
         >>> e.validation
@@ -1270,11 +1273,11 @@ class Edit(WidgetWrap[Text]):
             return None if self._step_completion(complete_step) else key
 
         command = self._command_map[key]
-        if key == "enter" and command == Command.ACTIVATE:
+        if command == Command.MENU or (key == "enter" and command == Command.ACTIVATE):
             # a handler that sets the text makes a change from elsewhere, which clears the undo history
             depth, self._edit_depth = self._edit_depth, 0
             try:
-                self._emit("submit", self._edit_text)
+                self._emit("cancel" if command == Command.MENU else "submit", self._edit_text)
             finally:
                 self._edit_depth = depth
             return key
