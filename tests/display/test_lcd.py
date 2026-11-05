@@ -5,6 +5,7 @@ import socket
 import time
 import typing
 import unittest
+import warnings
 from unittest import mock
 
 import urwid
@@ -53,11 +54,44 @@ class SocketSerial:
 class CF635ScreenTest(unittest.TestCase):
     def test_input_descriptor_is_the_open_port_fileno(self) -> None:
         """Watch the descriptor the open serial port reports through fileno()."""
-        with mock.patch.object(serial, "Serial") as serial_cls:
+        with mock.patch.object(serial, "Serial") as serial_cls, self.assertWarns(DeprecationWarning):
             serial_cls.return_value.fileno.return_value = 7
             screen = lcd.CF635Screen("/dev/ttyUSB0")
 
         self.assertEqual([7], screen.get_input_descriptors())
+
+    def test_deprecated_once_per_screen(self) -> None:
+        """A screen warns once that the LCD display module is deprecated.
+
+        The key repeat helper warns only when an application builds it, not when the screen does.
+        """
+        suffix = "Deprecated since urwid 5.1.0, will be removed in version 6.0."
+        with (
+            mock.patch.object(serial, "Serial"),
+            warnings.catch_warnings(record=True) as caught,
+        ):
+            warnings.simplefilter("always")
+            screen = lcd.CF635Screen("/dev/ttyUSB0")
+            lcd.KeyRepeatSimulator(0.5, 0.125)
+
+        self.assertEqual(
+            [
+                (DeprecationWarning, f"CF635Screen is deprecated with the LCD display module. {suffix}"),
+                (DeprecationWarning, f"KeyRepeatSimulator is deprecated with the LCD display module. {suffix}"),
+            ],
+            [(warning.category, str(warning.message)) for warning in caught],
+        )
+        self.assertEqual({__file__}, {warning.filename for warning in caught})
+        self.assertIsInstance(screen.key_repeat, lcd.KeyRepeatSimulator)
+
+    def test_application_subclass_is_warned_under_the_urwid_class(self) -> None:
+        """A subclass an application defines is warned about under the name of the urwid class it builds on."""
+
+        class Panel(lcd.CF635Screen):
+            """An application's own screen class."""
+
+        with mock.patch.object(serial, "Serial"), self.assertWarnsRegex(DeprecationWarning, "^CF635Screen is"):
+            Panel("/dev/ttyUSB0")
 
     def _screen(self, **kwargs: typing.Any) -> tuple[lcd.CF635Screen, socket.socket]:
         """Return a screen on a fake serial port, and the device's end of that port."""
@@ -65,7 +99,7 @@ class CF635ScreenTest(unittest.TestCase):
         self.addCleanup(port.close)
         self.addCleanup(device.close)
         device.settimeout(1)  # a test reading what was never sent fails instead of waiting
-        with mock.patch.object(serial, "Serial", return_value=SocketSerial(port)):
+        with mock.patch.object(serial, "Serial", return_value=SocketSerial(port)), self.assertWarns(DeprecationWarning):
             return lcd.CF635Screen("/dev/ttyUSB0", **kwargs), device
 
     def _run(

@@ -18,7 +18,11 @@
 # Urwid web site: https://urwid.org/
 
 
-"""Display modules for character LCD panels, including the Crystalfontz CF635."""
+"""Display modules for character LCD panels, including the Crystalfontz CF635.
+
+.. deprecated:: 5.1.0
+    The LCD display module will be removed in version 6.0, with no replacement.
+"""
 
 from __future__ import annotations
 
@@ -26,22 +30,45 @@ import abc
 import time
 import typing
 
+from urwid import _deprecation
+
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Collection, Iterable, Sequence
     from typing import Literal, SupportsIndex
 
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+
     from urwid import Canvas, EventLoop
+else:
+    from urwid._deprecation import deprecated
 
 # Bytes read from the serial device at once; the port is non-blocking, so a read returns what is waiting.
 _READ_SIZE: typing.Final = 4096
 
 
+@deprecated(
+    "LCDScreen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class LCDScreen(BaseScreen, abc.ABC):
-    """Base class for LCD-based screens."""
+    """Base class for LCD-based screens.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
+    """
 
     DISPLAY_SIZE: tuple[int, int]
+
+    def __init__(self) -> None:
+        """Set up the screen state shared by every display module."""
+        # Named after the urwid class it builds on, also for an application's subclass.
+        name = next(cls.__name__ for cls in type(self).__mro__ if cls.__module__ == __name__)
+        _deprecation.warn(f"{name} is deprecated with the LCD display module.", since="5.1.0", removed_in="6.0")
+        super().__init__()
 
     def set_terminal_properties(
         self,
@@ -62,8 +89,17 @@ class LCDScreen(BaseScreen, abc.ABC):
         return self.DISPLAY_SIZE
 
 
+@deprecated(
+    "CFLCDScreen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class CFLCDScreen(LCDScreen, abc.ABC):
-    """Common methods for Crystal Fonts LCD displays."""
+    """Common methods for Crystal Fonts LCD displays.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
+    """
 
     KEYS: typing.ClassVar[list[str | None]] = [
         None,  # no key with code 0
@@ -230,11 +266,19 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         return command, data[2:data_end], data[data_end + 2 :]
 
 
+@deprecated(
+    "KeyRepeatSimulator is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class KeyRepeatSimulator:
     """Provide simulated repeat key events when given press and release events.
 
     If two or more keys are pressed, disable repeating until all
     keys are released.
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
     """
 
     def __init__(self, repeat_delay: float, repeat_next: float) -> None:
@@ -243,6 +287,10 @@ class KeyRepeatSimulator:
         :param repeat_delay: seconds to wait before starting to repeat keys
         :param repeat_next: time between each repeated key
         """
+        if not isinstance(self, _KeyRepeatSimulator):
+            _deprecation.warn(
+                "KeyRepeatSimulator is deprecated with the LCD display module.", since="5.1.0", removed_in="6.0"
+            )
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
         self.pressed: dict[str, float] = {}
@@ -285,6 +333,15 @@ class KeyRepeatSimulator:
             return
 
 
+class _KeyRepeatSimulator(KeyRepeatSimulator):
+    """The :class:`KeyRepeatSimulator` a :class:`CF635Screen` builds for itself, which does not warn again."""
+
+
+@deprecated(
+    "CF635Screen is deprecated with the LCD display module. "
+    "Deprecated since urwid 5.1.0, will be removed in version 6.0.",
+    category=None,
+)
 class CF635Screen(CFLCDScreen):
     """
     Crystal Fontz 635 display.
@@ -296,6 +353,9 @@ class CF635Screen(CFLCDScreen):
 
     6 button input
     up, down, left, right, enter (check mark), exit (cross)
+
+    .. deprecated:: 5.1.0
+        The LCD display module will be removed in version 6.0, with no replacement.
     """
 
     DISPLAY_SIZE = (20, 4)
@@ -358,7 +418,7 @@ class CF635Screen(CFLCDScreen):
 
         self.repeat_delay = repeat_delay
         self.repeat_next = repeat_next
-        self.key_repeat = KeyRepeatSimulator(repeat_delay, repeat_next)
+        self.key_repeat = _KeyRepeatSimulator(repeat_delay, repeat_next)
         self.key_map = tuple(key_map)
 
         self._last_command: int | None = None
