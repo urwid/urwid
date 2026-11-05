@@ -80,6 +80,66 @@ class OverlayOptions(typing.NamedTuple):
 OverlayContentsItem = tuple[TopWidget | BottomWidget, OverlayOptions]
 
 
+class _OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
+    """Two-item sequence view onto an Overlay's bottom and top entries, as :attr:`Overlay.contents` returns it."""
+
+    __slots__ = ("__weakref__", "_overlay")
+
+    def __init__(self, overlay: Overlay[TopWidget, BottomWidget]) -> None:
+        """Hold the Overlay the view reads and writes."""
+        self._overlay = overlay
+
+    def __len__(self) -> int:
+        """Return 2.
+
+        An Overlay always holds exactly two children.
+        """
+        return 2
+
+    def __getitem__(self, index: Literal[0, 1]) -> OverlayContentsItem[TopWidget, BottomWidget]:  # type: ignore[override]
+        """Return the ``(widget, options)`` pair at *index*.
+
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        """
+        return self._overlay._contents__getitem__(index)
+
+    def __setitem__(self, index: Literal[0, 1], value: typing.Any) -> None:  # type: ignore[override]
+        """Replace the ``(widget, options)`` pair at *index*.
+
+        :raises IndexError: *index* is neither ``0`` nor ``1``.
+        :raises OverlayError: *value* is not a valid ``(widget, options)`` pair for *index*.
+        """
+        self._overlay._contents__setitem__(index, value)
+
+    def __delitem__(self, index: int | slice) -> typing.NoReturn:
+        """Refuse to remove an entry.
+
+        :raises TypeError: always, since an Overlay always holds exactly two children.
+        """
+        raise TypeError("OverlayContents is fixed-sized sequence")
+
+    def insert(self, index: int | slice, value: typing.Any) -> typing.NoReturn:
+        """Refuse to add an entry.
+
+        :raises TypeError: always, since an Overlay always holds exactly two children.
+        """
+        raise TypeError("OverlayContents is fixed-sized sequence")
+
+    def __repr__(self) -> str:
+        """Return the two entries and the Overlay."""
+        return repr(f"<OverlayContents({[self[0], self[1]]})> for {self._overlay}")
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield the two entries."""
+        for val in self:
+            yield None, val
+
+    def __iter__(self) -> Iterator[OverlayContentsItem[TopWidget, BottomWidget]]:
+        """Yield the bottom entry, then the top entry."""
+        for idx in (0, 1):
+            yield self[idx]
+
+
 class Overlay(
     Widget,
     WidgetContainerMixin[Literal[0, 1]],
@@ -758,48 +818,7 @@ class Overlay(
         writing a different value for `bottom_options` raises an
         :exc:`OverlayError`.
         """
-
-        # noinspection PyMethodParameters
-        # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested class
-        class OverlayContents(MutableSequence[OverlayContentsItem[TopWidget, BottomWidget]]):
-            """Two-item sequence view onto this Overlay's bottom and top widget entries."""
-
-            # pylint: disable=no-self-argument
-            def __len__(inner_self) -> int:
-                return 2
-
-            __getitem__ = self._contents__getitem__  # type: ignore[assignment]
-            __setitem__ = self._contents__setitem__  # type: ignore[assignment]
-
-            def __delitem__(self, index: int | slice) -> typing.NoReturn:
-                """
-                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
-
-                :raises TypeError: the contents are a fixed-size sequence.
-                """
-                raise TypeError("OverlayContents is fixed-sized sequence")
-
-            def insert(self, index: int | slice, value: typing.Any) -> typing.NoReturn:
-                """
-                Raise :exc:`TypeError`: an Overlay always holds exactly two children.
-
-                :raises TypeError: the contents are a fixed-size sequence.
-                """
-                raise TypeError("OverlayContents is fixed-sized sequence")
-
-            def __repr__(inner_self) -> str:
-                return repr(f"<{inner_self.__class__.__name__}({[inner_self[0], inner_self[1]]})> for {self}")
-
-            def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-                for val in inner_self:
-                    yield None, val
-
-            # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested class
-            def __iter__(inner_self) -> Iterator[OverlayContentsItem[TopWidget, BottomWidget]]:
-                for idx in range(2):
-                    yield inner_self[idx]  # type: ignore[arg-type]
-
-        return OverlayContents()
+        return _OverlayContents(self)
 
     @contents.setter
     def contents(self, new_contents: Sequence[OverlayContentsItem[TopWidget, BottomWidget]]) -> None:

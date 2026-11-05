@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import gc
+import sys
 import typing
 import unittest
+import weakref
 
 import urwid
 from tests.util import SelectableText
@@ -55,6 +58,35 @@ def recording_subclass(cls: type) -> type:
 
     Recording.__name__ = f"Recording{cls.__name__}"
     return Recording
+
+
+class ContentsLifetimeTest(unittest.TestCase):
+    """A container's ``contents`` view does not keep the container alive."""
+
+    @unittest.skipUnless(sys.implementation.name == "cpython", "relies on reference counting freeing at once")
+    def test_container_freed_after_contents_read(self) -> None:
+        """A container whose ``contents`` was read is freed by reference counting alone, with no collector run."""
+        cases: tuple[tuple[str, Callable[[], typing.Any], object], ...] = (
+            ("Overlay", lambda: urwid.Overlay(urwid.Text("x"), urwid.SolidFill(), "center", 5, "middle", "pack"), 1),
+            ("Frame", lambda: urwid.Frame(urwid.SolidFill(), header=urwid.Text("x")), "header"),
+            ("ListBox", lambda: urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text("x")])), 0),
+        )
+        for label, make_container, key in cases:
+            with self.subTest(label):
+                container = make_container()
+                contents = container.contents
+                self.assertEqual("x", contents[key][0].text)
+                self.assertEqual(len(contents), len(container.contents))
+                repr(contents)
+                ref = weakref.ref(container)
+                was_enabled = gc.isenabled()
+                gc.disable()
+                try:
+                    del container, contents
+                    self.assertIsNone(ref())
+                finally:
+                    if was_enabled:
+                        gc.enable()
 
 
 class NoHookWidget(urwid.Widget):

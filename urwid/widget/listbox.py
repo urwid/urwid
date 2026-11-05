@@ -220,6 +220,35 @@ class _SeenPositions(Container[typing.Any]):
         self._listed.append(position)
 
 
+class _ListBoxContents(Sized, typing.Generic[_K]):
+    """Mapping-like view onto a ListBox's items, indexed by position, as :attr:`ListBox.contents` returns it."""
+
+    __slots__ = ("__weakref__", "_listbox")
+
+    def __init__(self, listbox: ListBox[_K]) -> None:
+        """Hold the ListBox the view reads."""
+        self._listbox = listbox
+
+    def __getitem__(self, key: _K) -> tuple[AbstractFlowWidget, None]:
+        """Return the ``(widget, options)`` pair at *key*.
+
+        :raises TypeError: the body does not implement ``set_focus``.
+        :raises KeyError: *key* is not a position in the body.
+        """
+        return self._listbox._contents__getitem__(key)
+
+    def __len__(self) -> int:
+        """Return the number of items in the ListBox.
+
+        :raises AttributeError: the body is not :class:`Sized`.
+        """
+        return self._listbox.__len__()  # a property returning the body's __len__
+
+    def __repr__(self) -> str:
+        """Return the ListBox and the view's address."""
+        return f"<ListBoxContents for {self._listbox!r} at 0x{id(self):X}>"
+
+
 class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
     """Vertically stacked list of widgets."""
 
@@ -931,21 +960,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         self.set_focus(position)
 
     def _contents(self) -> ListBoxContentsProto[_K]:
-        # noinspection PyMethodParameters
-        class ListBoxContents(Sized):
-            """Mapping-like view onto this ListBox's items, indexed by position."""
-
-            # pylint: disable=no-self-argument
-
-            __getitem__ = self._contents__getitem__
-
-            def __len__(inner_self) -> int:
-                return self.__len__()
-
-            def __repr__(inner_self) -> str:
-                return f"<{inner_self.__class__.__name__} for {self!r} at 0x{id(inner_self):X}>"
-
-        return ListBoxContents()
+        return _ListBoxContents(self)
 
     def _contents__getitem__(self, key: _K) -> tuple[AbstractFlowWidget, None]:
         # try list walker protocol v2 first
