@@ -829,6 +829,21 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
         # A direct call fixes the finalizer order a cycle collection is free to pick.
         evl.__del__()  # pylint: disable=unnecessary-dunder-call
 
+    def test_finalizer_closes_the_owned_loop_while_another_loop_runs(self) -> None:
+        """The finalizer closes the owned loop without running it when a cycle collection runs inside another loop."""
+        evl = urwid.AsyncioEventLoop()
+
+        async def finalize() -> None:
+            # A direct call stands in for a cycle collection that runs while this loop is running.
+            evl.__del__()  # pylint: disable=unnecessary-dunder-call
+
+        with mock.patch.object(sys, "unraisablehook") as unraisablehook:
+            self.loop.run_until_complete(finalize())
+            gc.collect()
+
+        self.assertTrue(evl._loop.is_closed())  # pylint: disable=protected-access
+        unraisablehook.assert_not_called()
+
     def test_finalizer_tolerates_a_failed_loop_creation(self):
         """The finalizer of an instance whose loop could not be created reports nothing."""
         with (
