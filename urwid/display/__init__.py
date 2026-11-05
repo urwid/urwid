@@ -32,6 +32,7 @@ from .common import (
     AttrSpecError,
     BaseScreen,
     Hyperlink,
+    InputClosedError,
     RealTerminal,
     ScreenError,
 )
@@ -64,6 +65,7 @@ __all__: tuple[str, ...] = (
     "AttrSpecError",
     "BaseScreen",
     "Hyperlink",
+    "InputClosedError",
     "RealTerminal",
     "ScreenError",
     # Lazy imported

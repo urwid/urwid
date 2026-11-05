@@ -39,7 +39,7 @@ from subprocess import PIPE, Popen
 from urwid import signals
 
 from . import _raw_display_base, escape
-from .common import INPUT_DESCRIPTORS_CHANGED
+from .common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -438,7 +438,7 @@ class Screen(_raw_display_base.Screen):
         """
         Read at most `_INPUT_READ_LIMIT` bytes of the raw input available, waiting at most *timeout* seconds.
 
-        :raises RuntimeError: the input file has been closed.
+        :raises InputClosedError: the input file has been closed.
         """
         ready = self._wait_for_input_ready(timeout)
         gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
@@ -453,7 +453,7 @@ class Screen(_raw_display_base.Screen):
         # `fd` was just reported ready, so this read does not block. Input beyond the limit is read on the next pass.
         chunk = os.read(fd, _INPUT_READ_LIMIT)
         if not chunk:
-            raise RuntimeError("stdin has been closed")
+            raise InputClosedError("stdin has been closed")
         chars.extend(chunk)
         return chars
 

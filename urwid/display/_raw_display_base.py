@@ -1067,6 +1067,7 @@ class Screen(BaseScreen, RealTerminal):
 
         :param raw_keys: return raw keycodes as well as translated versions
         :raises RuntimeError: the screen has not been started.
+        :raises InputClosedError: the input reached end of file.
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -1214,6 +1215,8 @@ class Screen(BaseScreen, RealTerminal):
 
         This method is only used by the default `hook_event_loop`
         implementation; you can safely ignore it if you implement your own.
+
+        :raises InputClosedError: the input reached end of file.
         """
         logger = self.logger.getChild("get_available_raw_input")
         codes = [*self._partial_codes, *self._get_input_codes()]
