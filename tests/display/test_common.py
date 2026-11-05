@@ -455,6 +455,7 @@ class PaletteTest(unittest.TestCase):
             ("plain entry", [("body", "white", "black")], [None, "body"], AttrSpec("light gray", "black")),
             ("alias of a removed entry", [("copy", "title")], [None, "copy"], AttrSpec("light gray", "black")),
             ("default entry", [(None, "black", "white")], [None], AttrSpec("black", "white")),
+            ("default entry as alias", [(None, "title")], [None], AttrSpec("white", "dark blue")),
             ("nothing", list[tuple[str, str, str]](), [None], AttrSpec("light gray", "black")),
         )
         for name, palette, expected, default in cases:
@@ -484,6 +485,28 @@ class PaletteTest(unittest.TestCase):
         default_specs = tuple(AttrSpec("default", "default", colors) for colors in (16, 1, 88, 256, 16777216))
         self.assertEqual(default_specs, sent["title"])
         self.assertEqual(AttrSpec("default", "default"), self.screen.resolve_attr("title", 0))
+
+    def test_raising_handler_leaves_no_stale_colors(self) -> None:
+        """Resolve every name by the palette as it is when a signal handler raises during the removals."""
+        for name in ("title", "body", "alias"):
+            self.screen.resolve_attr(name, 0)  # cached
+
+        def fail_on_alias(name: Hashable, *_specs: AttrSpec) -> None:
+            if name == "alias":
+                raise RuntimeError(name)
+
+        signals.connect_signal(self.screen, common.UPDATE_PALETTE_ENTRY, fail_on_alias)
+        with self.assertRaises(RuntimeError):
+            self.screen.register_palette([("body", "white", "black")], replace=True)
+
+        self.assertEqual([None, "body", "alias"], list(self.screen.palette))
+        for name, expected in (
+            ("title", AttrSpec("default", "default")),
+            ("body", AttrSpec("white", "black")),
+            ("alias", AttrSpec("white", "dark blue")),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, self.screen.resolve_attr(name, 0))
 
     def test_invalid_entry_removes_nothing(self) -> None:
         """Remove no entry when the new palette has an invalid entry."""

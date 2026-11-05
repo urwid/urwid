@@ -520,6 +520,11 @@ class ScreenPaletteTest(unittest.TestCase):
         self.assertIn("hi", output)
         self.assertNotIn("other", output)
 
+        self.screen.register_palette([], replace=True)
+        output = self._draw(canvas)
+        self.assertIn("color:#000000;background-color:#e5e5e5\x01hi", output)
+        self.assertNotIn("other", output)
+
     def test_register_palette_copies_an_existing_entry(self) -> None:
         self.screen.register_palette_entry("focus", "white", "black")
         self.screen.register_palette([("alias", "focus")])
