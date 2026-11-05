@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import gc
 import sys
+import sysconfig
 import typing
 import unittest
 import weakref
+
+import pytest
 
 import urwid
 from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, collect_and_count_alive
@@ -451,6 +454,14 @@ class OverlayStackLeakTest(unittest.TestCase):
     """Closed dialogs are freed."""
 
     @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
+    @pytest.mark.xfail(
+        sys.version_info[:2] == (3, 13) and bool(sysconfig.get_config_var("Py_GIL_DISABLED")),
+        reason=(
+            "Overlay.contents defines a class per access, and the free-threaded CPython 3.13 build makes every "
+            "class immortal once a thread has been started, so the class keeps the Overlay alive"
+        ),
+        strict=False,
+    )
     def test_closed_level_is_freed(self) -> None:
         """After ``close()`` neither the dialog's overlay nor its widget is kept alive by the stack."""
         stack = urwid.OverlayStack(urwid.SolidFill("."), close_on_menu=True, close_on_click_outside=True)
