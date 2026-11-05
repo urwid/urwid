@@ -280,6 +280,17 @@ class TestRawDisplay(unittest.TestCase):
 
                 self.assertEqual(expected, s._attr_to_escape("focus"))
 
+    def test_replaced_palette_drops_cached_escapes(self) -> None:
+        """Draw a name removed by a palette replacement in default colors, not with its cached escape."""
+        s = urwid.display.raw.Screen()
+        s.set_terminal_properties(colors=16, bright_is_bold=False)
+        s.register_palette([("plain", "dark red", "default")])
+        self.assertEqual(RED, s._attr_to_escape("plain"))  # cached per name from here on
+
+        s.register_palette([], replace=True)
+
+        self.assertEqual(DEFAULT, s._attr_to_escape("plain"))
+
     def test_draw_screen_two_columns_wide_characters(self):
         """Drawing double width text on a two column screen used to raise IndexError."""
         s = urwid.display.raw.Screen()

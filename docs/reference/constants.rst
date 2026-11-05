@@ -253,6 +253,10 @@ Signal Names
    :class:`MainLoop` handles this signal by redrawing the whole
    screen.
 
+   An entry that :meth:`BaseScreen.register_palette` removes with ``replace=True``
+   is sent with the specifications it is drawn with from then on: the terminal's
+   default colors.
+
 .. data:: INPUT_DESCRIPTORS_CHANGED
    :annotation: = 'input descriptors changed'
 
