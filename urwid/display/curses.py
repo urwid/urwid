@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import curses
+import os
 import sys
 import typing
 from contextlib import suppress
@@ -112,7 +113,11 @@ _curses_colours = {  # pylint: disable=consider-using-namedtuple-or-dataclass  #
 
 
 class Screen(BaseScreen, RealTerminal):
-    """Screen backend that drives the real terminal through the ``curses`` module."""
+    """Screen backend that drives the real terminal through the ``curses`` module.
+
+    Outside Windows, `start()` clears the ``IEXTEN`` and ``FLUSHO`` flags of a terminal input,
+    as :class:`urwid.display.raw.Screen` does, and `stop()` restores them.
+    """
 
     def __init__(self) -> None:
         """Initialize an unstarted curses screen with no color pairs allocated yet."""
@@ -129,6 +134,8 @@ class Screen(BaseScreen, RealTerminal):
         self._curses_attr_cache: dict[AttrSpec, int] = {}
         # Holds the last drawn canvas so the canvas cache keeps its entries alive.
         self.keep_cache_alive_link: Canvas | None = None
+        # The IEXTEN and FLUSHO bits that start() cleared on the terminal input, for stop() to set again.
+        self._cleared_lflag = 0
 
         self.register_palette_entry(None, "default", "default")
 
@@ -198,6 +205,23 @@ class Screen(BaseScreen, RealTerminal):
         curses.halfdelay(10)  # use set_input_timeouts to adjust
         self.s.keypad(False)
 
+        if not IS_WINDOWS and os.isatty(fd := sys.stdin.fileno()):
+            import termios
+            import tty
+
+            # cbreak mode leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
+            # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
+            # and ctrl y (VDSUSP).
+            # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
+            mode = termios.tcgetattr(fd)
+            self._cleared_lflag = mode[tty.LFLAG] & (termios.IEXTEN | termios.FLUSHO)
+            mode[tty.LFLAG] &= ~self._cleared_lflag
+            termios.tcsetattr(fd, termios.TCSANOW, mode)
+            # cbreak() and halfdelay() in _getch() apply the mode curses saved last.
+            # Curses has no mode to save when its output is no terminal, and then never changes stdin's.
+            with suppress(curses.error):
+                curses.def_prog_mode()
+
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys()
 
@@ -216,6 +240,16 @@ class Screen(BaseScreen, RealTerminal):
         with suppress(curses.error):
             curses.endwin()
             # don't block original error with curses error
+
+        # endwin() restores the terminal curses writes to, which need not be stdin's.
+        if self._cleared_lflag and os.isatty(fd := sys.stdin.fileno()):
+            import termios
+            import tty
+
+            mode = termios.tcgetattr(fd)
+            mode[tty.LFLAG] |= self._cleared_lflag
+            termios.tcsetattr(fd, termios.TCSANOW, mode)
+        self._cleared_lflag = 0
 
         if self._old_signal_keys:
             self.tty_signal_keys(*self._old_signal_keys)

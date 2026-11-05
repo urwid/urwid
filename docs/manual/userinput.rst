@@ -163,6 +163,10 @@ main loop starts, and put the old settings back once it ends::
         if old_keys:
             screen.tty_signal_keys(*old_keys)
 
+CTRL+V, CTRL+O and CTRL+Y need no such call: the raw and curses displays
+turn the ``IEXTEN`` line discipline extensions off themselves, as the
+:class:`~urwid.display.raw.Screen` documentation describes.
+
 The screen does not undo the change when it stops, which is what the
 ``finally`` block is for. A shell such as bash puts its own tty settings back
 when CTRL+Z suspends the program, so after a resume CTRL+S and CTRL+Q are flow

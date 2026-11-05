@@ -133,6 +133,12 @@ class Screen(_raw_display_base.Screen):
             should chain to the previous handler (as this class does) rather than replacing it outright,
             and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
             since only the main thread can receive process signals.
+            `start()` also clears the ``IEXTEN`` flag, which cbreak mode leaves on,
+            so on macOS and the BSDs Ctrl+V, Ctrl+O and Ctrl+Y reach the application
+            instead of being handled by the terminal driver.
+            It clears ``FLUSHO`` as well: a Ctrl+O typed before the start can leave that output discard on,
+            and without ``IEXTEN`` no Ctrl+O can turn it off.
+            `stop()` restores both flags.
         """
         super().__init__(
             input,
@@ -281,6 +287,14 @@ class Screen(_raw_display_base.Screen):
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
+            # setcbreak() leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
+            # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
+            # and ctrl y (VDSUSP).
+            # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
+            # ISIG stays as it is for tty_signal_keys().
+            mode = termios.tcgetattr(fd)
+            mode[tty.LFLAG] &= ~(termios.IEXTEN | termios.FLUSHO)
+            termios.tcsetattr(fd, termios.TCSANOW, mode)
 
         self._detect_terminal_modes()
 
