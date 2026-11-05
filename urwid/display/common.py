@@ -29,13 +29,14 @@ import functools
 import logging
 import os
 import sys
+import types
 import typing
 
 from urwid import signals
 from urwid.util import LayeredAttr, StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Sequence
+    from collections.abc import Hashable, Iterable, Mapping, Sequence
     from typing import Literal, Self
 
     from urwid import Canvas
@@ -1352,6 +1353,24 @@ class ScreenError(Exception):
     """Raised for errors in :class:`BaseScreen` and its subclasses."""
 
 
+class PaletteEntrySpecs(typing.NamedTuple):
+    """The specifications one palette entry is drawn with, one per number of colors.
+
+    The position of each field is the index :meth:`BaseScreen.resolve_attr` takes.
+    """
+
+    #: 16 colors
+    basic: AttrSpec
+    #: monochrome
+    mono: AttrSpec
+    #: 88 colors
+    high_88: AttrSpec
+    #: 256 colors
+    high_256: AttrSpec
+    #: true color
+    high_true: AttrSpec
+
+
 class InputClosedError(RuntimeError):
     """Raised when the screen's input reaches end of file.
 
@@ -1372,7 +1391,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
-        self._palette: dict[Hashable, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
+        self._palette: dict[Hashable, PaletteEntrySpecs] = {}
         self._resolved_attrs: dict[tuple[Hashable, int], AttrSpec] = {}
         self._started: bool = False
 
@@ -1380,6 +1399,23 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     def started(self) -> bool:
         """Return whether the screen has been started and not yet stopped."""
         return self._started
+
+    @property
+    def palette(self) -> Mapping[Hashable, PaletteEntrySpecs]:
+        """Return a read-only view of the registered palette entries.
+
+        The view follows later changes to the palette.
+        Change the palette with :meth:`register_palette` and :meth:`register_palette_entry`.
+
+        >>> from urwid.display.html_fragment import HtmlGenerator
+        >>> screen = HtmlGenerator()
+        >>> screen.register_palette_entry("title", "white", "dark blue")
+        >>> screen.palette["title"].basic
+        AttrSpec('white', 'dark blue')
+
+        :returns: per entry name, the specifications it is drawn with; ``None`` names the default attribute.
+        """
+        return types.MappingProxyType(self._palette)
 
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
         """Set up the screen.
@@ -1440,12 +1476,25 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """
         return 80, 24
 
-    def register_palette(self, palette: Iterable[PaletteEntry]) -> None:
+    def register_palette(self, palette: Iterable[PaletteEntry], *, replace: bool = False) -> None:
         """Register a set of palette entries.
+
+        With *replace*, the entries that *palette* does not name are removed once all of its entries are registered.
+        A removed name is drawn in the terminal's default colors, as a name that was never registered is.
+        The ``None`` entry is kept unless *palette* names it, so the screen keeps its default attribute.
+
+        >>> from urwid.display.html_fragment import HtmlGenerator
+        >>> screen = HtmlGenerator()
+        >>> screen.register_palette([("title", "white", "dark blue"), ("body", "black", "light gray")])
+        >>> screen.register_palette([("body", "white", "black")], replace=True)
+        >>> list(screen.palette)
+        [None, 'body']
 
         :param palette: a list of (name, like_other_name) or
             (name, foreground, background, mono, foreground_high, background_high) tuples
+        :param replace: remove the entries that *palette* does not name
         :raises ScreenError: an entry is neither a 2-, 3-, 4- nor 6-tuple, or copies a name that is not registered yet.
+            The entries before it stay registered, and with *replace* no entry is removed.
 
             The (name, like_other_name) format will copy the settings
             from the palette entry like_other_name, which must appear
@@ -1456,10 +1505,12 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             values.  See register_palette_entry() for a description
             of the tuple values.
         """
+        names: set[Hashable] = {None}
         for item in palette:
             if len(item) in {3, 4, 6}:
                 # pyrefly: ignore[bad-argument-type]  # a union of tuples of different lengths
                 self.register_palette_entry(*item)
+                names.add(item[0])
                 continue
             if len(item) != 2:
                 raise ScreenError(f"Invalid register_palette entry: {item!r}")
@@ -1468,6 +1519,20 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
                 raise ScreenError(f"palette entry '{like_name}' doesn't exist")
             signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *self._palette[like_name])
             self._palette[name] = self._palette[like_name]
+            self._resolved_attrs.clear()
+            names.add(name)
+        if not replace:
+            return
+        removed = [name for name in self._palette if name not in names]
+        if not removed:
+            return
+        # what a removed name is drawn with from now on, sent so that displays caching per name draw it again
+        default_specs = PaletteEntrySpecs(
+            *(AttrSpec(DEFAULT, DEFAULT, colors) for colors in (16, 1, 88, 256, 16777216))
+        )
+        for name in removed:
+            signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *default_specs)
+            del self._palette[name]
             self._resolved_attrs.clear()
 
     def register_palette_entry(
@@ -1578,8 +1643,9 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         else:
             high_88 = AttrSpec(foreground_high, background_high, 88)
 
-        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, basic, mono_spec, high_88, high_256, high_true)
-        self._palette[name] = (basic, mono_spec, high_88, high_256, high_true)
+        entry = PaletteEntrySpecs(basic, mono_spec, high_88, high_256, high_true)
+        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *entry)
+        self._palette[name] = entry
         self._resolved_attrs.clear()
 
     def resolve_attr(self, attr: Hashable, index: int) -> AttrSpec:

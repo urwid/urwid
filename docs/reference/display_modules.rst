@@ -5,6 +5,8 @@ Display Modules
 
 .. autoclass:: BaseScreen
 
+.. autoclass:: urwid.display.PaletteEntrySpecs
+
 RAW display
 -----------
 

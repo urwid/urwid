@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
-from urwid import LayeredAttr
+from urwid import LayeredAttr, signals
 from urwid.display import common
 from urwid.display.common import NO_HYPERLINK, AttrSpec, AttrSpecError, Hyperlink, _browser_href, attr_spec_to_css
 from urwid.testing import ScriptedScreen
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Hashable
 
 
 class HyperlinkTest(unittest.TestCase):
@@ -414,3 +418,82 @@ class ResolveAttrTest(unittest.TestCase):
         self.assertEqual(AttrSpec("dark red", "dark magenta"), self.screen.resolve_attr("red_fg", 0))
         self.screen.register_palette([("alias", "opaque")])
         self.assertEqual(AttrSpec("yellow", "default"), self.screen.resolve_attr("alias", 0))
+        self.screen.register_palette([("blue_bg", "inherit", "dark green")], replace=True)
+        self.assertEqual(AttrSpec("default", "default"), self.screen.resolve_attr("red_fg", 0))
+
+
+class PaletteTest(unittest.TestCase):
+    """Tests for reading the palette through BaseScreen.palette and replacing it with register_palette()."""
+
+    def setUp(self) -> None:
+        """Register a default entry, two plain entries and an alias."""
+        self.screen = ScriptedScreen()
+        self.screen.register_palette(
+            [
+                (None, "light gray", "black"),
+                ("title", "white", "dark blue"),
+                ("body", "black", "light gray"),
+                ("alias", "title"),
+            ]
+        )
+
+    def test_palette_view(self) -> None:
+        """Read entries through a view that follows changes and refuses assignment."""
+        view = self.screen.palette
+        self.assertEqual(AttrSpec("white", "dark blue"), view["title"].basic)
+        self.assertEqual(AttrSpec("white", "dark blue", 256), view["title"].high_256)
+        self.assertEqual(view["title"].high_256, view["title"][3])
+        self.assertEqual(view["title"], view["alias"])
+        with self.assertRaises(TypeError):
+            view["title"] = view["body"]  # type: ignore[index]
+        self.screen.register_palette_entry("footer", "yellow", "black")
+        self.assertIn("footer", view)
+
+    def test_replace(self) -> None:
+        """Remove the entries the new palette does not name, keeping the None entry unless it is named."""
+        cases = (
+            ("plain entry", [("body", "white", "black")], [None, "body"], AttrSpec("light gray", "black")),
+            ("alias of a removed entry", [("copy", "title")], [None, "copy"], AttrSpec("light gray", "black")),
+            ("default entry", [(None, "black", "white")], [None], AttrSpec("black", "white")),
+            ("nothing", list[tuple[str, str, str]](), [None], AttrSpec("light gray", "black")),
+        )
+        for name, palette, expected, default in cases:
+            with self.subTest(name):
+                self.setUp()
+                self.screen.register_palette(palette, replace=True)
+                self.assertEqual(expected, list(self.screen.palette))
+                self.assertEqual(default, self.screen.palette[None][0])
+
+    def test_without_replace_entries_are_kept(self) -> None:
+        """Keep the entries the new palette does not name."""
+        self.screen.register_palette([("body", "white", "black")])
+        self.assertEqual([None, "title", "body", "alias"], list(self.screen.palette))
+
+    def test_replace_reports_removed_entries(self) -> None:
+        """Send each removed name with the default colors it is drawn with from then on."""
+        sent: dict[Hashable, tuple[AttrSpec, ...]] = {}
+
+        def collect(name: Hashable, *specs: AttrSpec) -> None:
+            sent[name] = specs
+
+        signals.connect_signal(self.screen, common.UPDATE_PALETTE_ENTRY, collect)
+        self.screen.register_palette([("body", "white", "black")], replace=True)
+
+        self.assertEqual({"body", "title", "alias"}, set(sent))
+        self.assertEqual(self.screen.palette["body"], sent["body"])
+        default_specs = tuple(AttrSpec("default", "default", colors) for colors in (16, 1, 88, 256, 16777216))
+        self.assertEqual(default_specs, sent["title"])
+        self.assertEqual(AttrSpec("default", "default"), self.screen.resolve_attr("title", 0))
+
+    def test_invalid_entry_removes_nothing(self) -> None:
+        """Remove no entry when the new palette has an invalid entry."""
+        for name, palette in (
+            ("wrong length", [("body", "white", "black"), ("bad", "white", "black", None, None)]),
+            ("unknown alias target", [("body", "white", "black"), ("copy", "missing")]),
+        ):
+            with self.subTest(name):
+                self.setUp()
+                with self.assertRaises(common.ScreenError):
+                    self.screen.register_palette(palette, replace=True)  # type: ignore[arg-type]
+                self.assertEqual([None, "title", "body", "alias"], list(self.screen.palette))
+                self.assertEqual(AttrSpec("white", "black"), self.screen.palette["body"][0])

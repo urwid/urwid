@@ -33,6 +33,7 @@ from .common import (
     BaseScreen,
     Hyperlink,
     InputClosedError,
+    PaletteEntrySpecs,
     RealTerminal,
     ScreenError,
 )
@@ -66,6 +67,7 @@ __all__: tuple[str, ...] = (
     "BaseScreen",
     "Hyperlink",
     "InputClosedError",
+    "PaletteEntrySpecs",
     "RealTerminal",
     "ScreenError",
     # Lazy imported

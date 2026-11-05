@@ -308,6 +308,10 @@ widgets nor the screen have to be redrawn for it: the raw and web displays compa
 row by its resolved colors and write again only the rows whose colors changed, and curses
 writes every row on each draw.
 
+To switch to another theme, ``screen.register_palette(theme, replace=True)`` registers the new
+entries and removes the ones the theme does not name, keeping the screen's ``None`` entry unless
+the theme sets it. :attr:`BaseScreen.palette` is a read-only view of the registered entries.
+
 :meth:`AttrSpec.layered_over` combines two specifications. Canvases record the enclosing
 attributes as a :class:`LayeredAttr`; a custom display module turns any canvas attribute into an
 :class:`AttrSpec` with :meth:`BaseScreen.resolve_attr` instead of reading the palette itself.
