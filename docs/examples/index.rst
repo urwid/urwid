@@ -78,6 +78,12 @@ Messages of each severity in the footer of a window, each one dismissed after
 five seconds, and a message that stays until it is dismissed
 
 
+spinner.py
+----------
+
+A spinner for every frame preset, started, stopped, stepped and sped up together
+
+
 external_editor.py
 ------------------
 

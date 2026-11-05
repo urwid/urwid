@@ -283,6 +283,13 @@ ProgressBar
 
 .. autoclass:: ProgressBar
 
+Spinner
+~~~~~~~
+
+.. autoclass:: Spinner
+
+.. autoclass:: urwid.widget.spinner.SpinnerFrames
+
 BigText
 ~~~~~~~
 

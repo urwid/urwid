@@ -105,7 +105,7 @@ container widget depend on the widgets it contains and on its options.
      - sizing modes
    * - :class:`Text`, :class:`ANSIText`, :class:`TreeWidget`,
        :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
-       :class:`RadioButton`, :class:`DropDown`
+       :class:`RadioButton`, :class:`DropDown`, :class:`Spinner`
      - ``'flow'`` and ``'fixed'``
    * - :class:`Edit` and its subclasses, :class:`Divider`,
        :class:`ProgressBar`, :class:`Notifications`
@@ -845,6 +845,35 @@ the loop runs needs ``loop=``.  Call the widget from the thread running the
 loop only.  Another thread hands its message over through
 :meth:`MainLoop.watch_pipe`, or the event loop's own thread-safe scheduling.
 ``examples/notifications.py`` shows the widget as a footer.
+
+
+Spinner Widgets
+---------------
+
+:class:`Spinner` is a :class:`Text` widget that shows its frames in turn
+while some work runs, for work without a known total, where a
+:class:`ProgressBar` has nothing to show.  It shows only the frame, so a
+label goes into its own :class:`Text` next to it::
+
+    spinner = urwid.Spinner(urwid.Spinner.Frames.BRAILLE)
+    row = urwid.Columns([(urwid.PACK, spinner), urwid.Text("loading")], dividechars=1)
+
+    spinner.start()  # when the work begins
+    spinner.stop()  # when it ends, on every path
+
+:meth:`~Spinner.start` sets an alarm that shows the next frame every
+``interval`` seconds, on the ``loop`` given to the widget or else on the loop
+running when :meth:`~Spinner.start` is called (see
+:func:`get_running_loop`).  The frame is
+chosen from the time elapsed since the start, so a late alarm skips frames
+instead of slowing the spinner down.  :meth:`~Spinner.stop` removes the alarm
+and shows the ``idle`` text, by default spaces as wide as a frame, so a
+``PACK`` cell keeps its width.  Stop a spinner that leaves the screen: the
+pending alarm keeps it alive.  An application with its own tick calls
+:meth:`~Spinner.step` instead, which needs no loop.  Call the widget from the
+thread running the loop only; another thread hands the call over with
+:meth:`MainLoop.call_from_thread`.  ``examples/spinner.py`` shows every preset
+of :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>`.
 
 
 Overlay Widgets
