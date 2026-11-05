@@ -41,6 +41,7 @@ from .divider import Divider
 from .drop_down import DropDown
 from .edit import Edit, EditError, IntEdit
 from .filler import Filler, FillerError, FillerWarning, calculate_top_bottom_filler
+from .filtered_walker import FilteredListWalker
 from .frame import Frame, FrameError
 from .grid_flow import GridFlow, GridFlowError, GridFlowWarning
 from .line_box import LineBox
@@ -128,6 +129,7 @@ __all__ = (
     "Filler",
     "FillerError",
     "FillerWarning",
+    "FilteredListWalker",
     "Frame",
     "FrameError",
     "GraphVScale",
