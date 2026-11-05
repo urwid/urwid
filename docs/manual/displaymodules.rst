@@ -150,6 +150,9 @@ The `example screenshots`_ are generated with this display module.
 LCD Display Module ``display.lcd``
 ----------------------------------
 
+.. deprecated:: 5.1.0
+    The LCD display module will be removed in version 6.0, with no replacement.
+
 Almost any device that displays characters in a grid can be used as a
 screen.  The :mod:`display.lcd` module has some base classes for simple
 LCD character display devices and a complete implementation of a

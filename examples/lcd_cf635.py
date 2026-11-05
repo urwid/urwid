@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 
-"""
+"""Example: menus, slider controls and custom characters on a Crystalfontz 635 USB LCD.
+
+The LCD display module this example uses is deprecated and will be removed in urwid 6.0.
+
 The crystalfontz 635 has these characters in ROM.
 
 ....X. ...... ......

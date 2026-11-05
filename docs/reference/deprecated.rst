@@ -11,6 +11,13 @@ Deprecated Classes
    Drop it from ``metaclass=`` arguments and from base lists; while it is still listed as a base, it has to be the last one.
    The name will be removed in version 7.0.
 
+Deprecated Modules
+------------------
+
+.. deprecated:: 5.1.0
+    The LCD display module :mod:`urwid.display.lcd`, with :class:`~urwid.display.lcd.CF635Screen`,
+    will be removed in version 6.0, with no replacement.
+
 Deprecated Import Paths
 -----------------------
 
