@@ -315,6 +315,34 @@ class LineBoxTest(unittest.TestCase):
         self.assertEqual(frozenset((urwid.FLOW,)), box.sizing())
         self.assertEqual(["┌───┐", "│y  │", "└───┘"], [line.decode("utf-8") for line in box.render((5,)).text])
 
+    def test_fixed_only_widget(self) -> None:
+        """A fixed-only widget renders fixed.
+
+        A replacement gets the column width its own sizing needs.
+        """
+        font = urwid.Thin3x3Font()
+        framed = ["│ ┐ ┌─┐│", "│ │ ┌─┘│", "│ ┴ └─ │", "└──────┘"]
+        replaced: urwid.LineBox[urwid.Widget] = urwid.LineBox(urwid.Text("x"))
+        replaced.original_widget = urwid.BigText("12", font)
+        replaced_no_top: urwid.LineBox[urwid.Widget] = urwid.LineBox(urwid.Text("x"), tline="")
+        replaced_no_top.original_widget = urwid.BigText("12", font)
+
+        for label, box, top in (
+            ("constructed", urwid.LineBox[urwid.Widget](urwid.BigText("12", font)), ["┌──────┐"]),
+            ("replaced a flow widget", replaced, ["┌──────┐"]),
+            ("replaced a flow widget, no top line", replaced_no_top, []),
+        ):
+            with self.subTest(label):
+                self.assertEqual(frozenset((urwid.FIXED,)), box.sizing())
+                self.assertEqual((8, len(top) + 4), box.pack(()))
+                self.assertEqual([*top, *framed], [line.decode("utf-8") for line in box.render(()).text])
+
+                box.original_widget = urwid.Text("y")
+                self.assertEqual(
+                    [*(["┌───┐"] if top else []), "│y  │", "└───┘"],
+                    [line.decode("utf-8") for line in box.render((5,)).text],
+                )
+
     def test_render_cache_invalidated_on_replacement(self) -> None:
         box = urwid.LineBox(urwid.Text("a"))
         first = box.render((5,))

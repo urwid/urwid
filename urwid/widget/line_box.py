@@ -7,7 +7,7 @@ import typing
 from urwid.util import decompose_tagmarkup
 
 from .columns import Columns
-from .constants import BOX_SYMBOLS, Align, WHSettings, WrapMode
+from .constants import BOX_SYMBOLS, Align, Sizing, WHSettings, WrapMode
 from .divider import Divider
 from .pile import Pile
 from .solid_fill import SolidFill
@@ -164,9 +164,18 @@ class LineBox(
             top = None
 
         # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
-        # widgets have something to anchor onto
+        # widgets have something to anchor onto.
+        # A fixed-only widget cannot take a width from a weight column, so its column packs to the widget's width.
         middle = Columns(
-            ((int(bool(lline)), w_lline), original_widget, (int(bool(rline)), w_rline)),
+            (
+                (int(bool(lline)), w_lline),
+                (
+                    original_widget
+                    if original_widget.sizing() & {Sizing.BOX, Sizing.FLOW}
+                    else (WHSettings.PACK, original_widget)
+                ),
+                (int(bool(rline)), w_rline),
+            ),
             box_columns=[0, 2],
             focus_column=original_widget,
         )
@@ -203,7 +212,11 @@ class LineBox(
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
-        _old_widget, options = middle.contents[h_index]
+        options = (
+            middle.options()
+            if original_widget.sizing() & {Sizing.BOX, Sizing.FLOW}
+            else middle.options(WHSettings.PACK)
+        )
         middle.contents[h_index] = (original_widget, options)  # type: ignore[assignment]
         WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]
 
