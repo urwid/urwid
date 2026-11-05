@@ -162,6 +162,47 @@ class PredicateFocusTest(unittest.TestCase):
         del source[0]
         self.assertEqual(("plum", 1), focus_text(view))
 
+    def test_predicate_that_raises_on_a_source_change_empties_the_view(self) -> None:
+        """The view empties itself, signals it, and returns to the old focus on the next source change."""
+        for walker_class in WALKER_CLASSES:
+            with self.subTest(walker_class=walker_class.__name__):
+                source = walker_class(texts())
+
+                def broken(widget: urwid.Text) -> bool:
+                    if widget.text == "pine":
+                        raise ValueError("broken predicate")
+                    return str(widget.text).startswith("p")
+
+                view = urwid.FilteredListWalker(source, predicate=broken)
+                view.set_focus(2)
+                seen = count_modified(view)
+                with self.assertRaises(ValueError):
+                    source.insert(0, urwid.Text("pine"))
+                self.assertEqual(0, len(view))
+                self.assertEqual((None, None), view.get_focus())
+                self.assertEqual([], list(view.positions()))
+                self.assertEqual(1, len(seen))
+                source[0].set_text("kiwi")
+                source.insert(0, urwid.Text("date"))
+                self.assertEqual([3, 4, 5], list(view.positions()))
+                self.assertEqual(("plum", 4), focus_text(view))
+
+    def test_view_listener_that_raises_keeps_the_rebuilt_view(self) -> None:
+        """An exception from a listener of the view does not empty the view or signal it twice."""
+        source = urwid.SimpleFocusListWalker(texts())
+        view = urwid.FilteredListWalker(source)
+        lengths: list[int] = []
+
+        def listener() -> None:
+            lengths.append(len(view))
+            raise RuntimeError("broken listener")
+
+        urwid.connect_signal(view, "modified", listener)
+        with self.assertRaises(RuntimeError):
+            source.append(urwid.Text("pine"))
+        self.assertEqual([7], lengths)
+        self.assertEqual(7, len(view))
+
     def test_widget_listed_twice_keeps_the_nearest_occurrence(self) -> None:
         """A widget listed twice keeps the focused occurrence."""
         for focus in (0, 4):

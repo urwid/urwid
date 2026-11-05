@@ -55,6 +55,11 @@ class FilteredListWalker(ListWalker[int, _T]):
 
     An empty view has no focus. When the widget focused last becomes visible again, it takes the focus back.
 
+    A predicate that raises leaves the view as it was, except after a change to the source:
+    the old positions may no longer exist there, so the view empties itself, emits ``"modified"``,
+    and the exception reaches the code that changed the source.
+    The next change to the source or the predicate fills the view again.
+
     A rebuild walks the source once, so it is linear in the length of a list or a deque source.
     Reading one item or the focus indexes the source, which is linear for a deque,
     as :class:`SimpleDequeWalker` notes.
@@ -146,26 +151,47 @@ class FilteredListWalker(ListWalker[int, _T]):
         self._rebuild(self._predicate, after_source_change=True)
 
     def _source_modified(self) -> None:
-        """Apply the predicate to the changed source."""
-        self._rebuild(self._predicate, after_source_change=True)
+        """Apply the predicate to the changed source.
 
-    def _rebuild(self, predicate: Callable[[_T], bool] | None, *, after_source_change: bool) -> None:
+        :raises Exception: whatever the predicate raises, after the view has been emptied.
+        """
+        self._rebuild(self._predicate, after_source_change=True, empty_on_error=True)
+
+    def _rebuild(
+        self,
+        predicate: Callable[[_T], bool] | None,
+        *,
+        after_source_change: bool,
+        empty_on_error: bool = False,
+    ) -> None:
         """Apply *predicate*, recompute the visible positions and the focus, then emit ``"modified"``.
 
-        Nothing is changed until every widget has been checked, so a predicate that raises leaves the view as it was.
+        Nothing is changed until every widget has been checked, so a predicate that raises leaves the view as it was,
+        unless *empty_on_error* asks for an empty view.
 
         :param predicate: the predicate to apply and keep.
         :param after_source_change: the source or its widgets changed, rather than the predicate.
+        :param empty_on_error: empty the view and emit ``"modified"`` when *predicate* raises,
+            because the previous positions index the source as it was before a change.
+        :raises Exception: whatever *predicate* raises.
         """
         focus_widget = self._focus_widget
         visible: list[int] = []
         # Visible positions holding the focused widget; one object may be listed more than once.
         candidates: list[int] = []
-        for index, widget in enumerate(self._source):
-            if predicate is None or predicate(widget):
-                visible.append(index)
-                if widget is focus_widget:
-                    candidates.append(index)
+        try:
+            for index, widget in enumerate(self._source):
+                if predicate is None or predicate(widget):
+                    visible.append(index)
+                    if widget is focus_widget:
+                        candidates.append(index)
+        except Exception:
+            if empty_on_error:
+                # _focus_widget and _last_focus stay, so a later rebuild returns to the old focus.
+                self._visible = []
+                self._focus = None
+                self._modified()
+            raise
         self._predicate = predicate
         self._visible = visible
         old = self._last_focus
