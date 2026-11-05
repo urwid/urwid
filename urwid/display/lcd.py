@@ -29,10 +29,13 @@ import typing
 from .common import BaseScreen
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection, Iterable, Sequence
+    from collections.abc import Callable, Collection, Iterable, Sequence
     from typing import Literal, SupportsIndex
 
-    from urwid import Canvas
+    from urwid import Canvas, EventLoop
+
+# Bytes read from the serial device at once; the port is non-blocking, so a read returns what is waiting.
+_READ_SIZE: typing.Final = 4096
 
 
 class LCDScreen(BaseScreen, abc.ABC):
@@ -181,7 +184,7 @@ class CFLCDScreen(LCDScreen, abc.ABC):
         :returns: ``(command/report code, data)`` or ``None``.
         """
         # pull in any new data available
-        self._unprocessed += self._device.read()
+        self._unprocessed += self._device.read(_READ_SIZE)
         while True:
             try:
                 command, data, unprocessed = self._parse_data(self._unprocessed)
@@ -326,6 +329,15 @@ class CF635Screen(CFLCDScreen):
 
     cursor_style = CFLCDScreen.CURSOR_INVERTING_BLINKING_BLOCK
 
+    #: Seconds to wait for a command's ACK before sending the command again.
+    ACK_TIMEOUT: float = 0.25
+    #: How many times a command is sent again before it is dropped.
+    ACK_RESENDS: int = 3
+    # Commands a later draw_screen() sends again once the screen buffer is cleared.
+    _DRAW_COMMANDS: typing.Final = frozenset(
+        {CFLCDScreen.CMD_LCD_DATA, CFLCDScreen.CMD_CURSOR_POSITION, CFLCDScreen.CMD_CURSOR_STYLE},
+    )
+
     def __init__(
         self,
         device_path: str,
@@ -350,14 +362,73 @@ class CF635Screen(CFLCDScreen):
         self.key_map = tuple(key_map)
 
         self._last_command: int | None = None
-        self._last_command_time = 0.0
+        self._last_data = bytearray()  # the data of the command awaiting its ACK, sent again when it is late
+        self._resends = 0  # how often that command was sent again
+        # A command answered while copies of it may still be answered: the device answers in order,
+        # so that many further answers with this code belong to those copies and are ignored.
+        self._stray_code: int | None = None
+        self._strays = 0
+        self._took_stray = False  # an answer was ignored as a stray while the current command waited
+        self._answering = True  # False from a dropped command until the device answers again
+        self._refused: set[int] = set()  # codes of the commands the device refused, each logged once
         self._command_queue: list[tuple[int, bytearray]] = []
         self._screen_buf: list[list[bytes]] = []
         self._previous_canvas: Canvas | None = None
         self._update_cursor = False
+        # set while hooked into an event loop: the loop, the watch of the serial device,
+        # the alarm of the next key repeat, and the alarm, set for each command sent,
+        # that sends the command awaiting its ACK again
+        self._event_loop: EventLoop | None = None
+        self._watch_handle: typing.Any = None
+        self._repeat_alarm: typing.Any = None
+        self._ack_alarm: typing.Any = None
+
+    def hook_event_loop(
+        self,
+        event_loop: EventLoop,
+        callback: Callable[[list[str], list[int]], typing.Any],
+    ) -> None:
+        """Watch the serial device on *event_loop* and pass what :meth:`get_input_nonblocking` returns to *callback*.
+
+        The device's answers, an ACK or an error response, are answered with the next queued command as they arrive,
+        and a held key is repeated from an alarm, since the device sends no repeats.
+        A command whose ACK does not arrive within :attr:`ACK_TIMEOUT` seconds is sent again,
+        up to :attr:`ACK_RESENDS` times, and then dropped, so the queue never stops.
+
+        Logged:
+
+        - a warning when the device stops answering, and an info message when it answers again;
+        - an error the first time the device refuses a command with a given code.
+        """
+
+        def read_device() -> None:
+            if self._repeat_alarm is not None:
+                event_loop.remove_alarm(self._repeat_alarm)
+                self._repeat_alarm = None
+            timeout, keys, raw = self.get_input_nonblocking()
+            if timeout is not None:
+                self._repeat_alarm = event_loop.alarm(timeout, read_device)
+            callback(keys, raw)
+
+        self._remove_ack_alarm()  # left by an earlier hook that was not undone
+        self._event_loop = event_loop
+        self._watch_handle = event_loop.watch_file(self._device.fileno(), read_device)
+        if self._last_command is not None:  # sent before the hook, with nothing timing its ACK
+            self._set_ack_alarm()
+
+    def unhook_event_loop(self, event_loop: EventLoop) -> None:
+        """Remove the watch and the alarms that :meth:`hook_event_loop` and the commands sent since added."""
+        self._remove_ack_alarm()
+        self._event_loop = None
+        if self._repeat_alarm is not None:
+            event_loop.remove_alarm(self._repeat_alarm)
+            self._repeat_alarm = None
+        if self._watch_handle is not None:
+            event_loop.remove_watch_file(self._watch_handle)
+            self._watch_handle = None
 
     def get_input_descriptors(self) -> list[int]:
-        """Return the fd from our serial device so we get called on input and responses."""
+        """Return the descriptor of the serial device."""
         return [self._device.fileno()]
 
     def get_input_nonblocking(self) -> tuple[float | None, list[str], list[int]]:
@@ -394,8 +465,20 @@ class CF635Screen(CFLCDScreen):
                         self.key_repeat.press(key)
                     raw_data_input.append(d0)
 
-            elif command & 0xC0 == 0x40 and command & 0x3F == self._last_command:  # "ACK"
-                self._send_next_command()
+            elif command & 0x40:  # an ACK (0x40 | code) or an error response (0xC0 | code)
+                code = command & 0x3F
+                if code == self._stray_code and self._strays:
+                    self._strays -= 1  # the answer to a copy of a command already answered
+                    self._took_stray = True
+                elif code == self._last_command:
+                    if not self._answering:
+                        self.logger.info("The LCD answers again")
+                        self._answering = True
+                    if command & 0x80 and code not in self._refused:
+                        # Sending it again cannot help; logged once per code, so repeated refusals do not flood the log.
+                        self.logger.error(f"The LCD refused command {code}; later refusals of it are not logged")
+                        self._refused.add(code)
+                    self._finish_command(self._resends)
 
             packet = self._read_packet()
 
@@ -404,19 +487,79 @@ class CF635Screen(CFLCDScreen):
             if not timeout:
                 data_input.append(key)
                 self.key_repeat.sent_event()
-                timeout = None
+                timeout = self.key_repeat.repeat_next  # the key is still held: the next repeat is due then
 
         return timeout, data_input, raw_data_input
 
+    def _finish_command(self, unanswered: int) -> None:
+        """Send the next command, ignoring *unanswered* later answers to copies of the one sent last."""
+        self._stray_code = self._last_command
+        self._strays = unanswered
+        self._send_next_command()
+
+    def _clear_screen_buf(self) -> None:
+        """Make the next :meth:`draw_screen` send every row and the cursor again."""
+        self._screen_buf = []
+        self._previous_canvas = None
+
     def _send_next_command(self) -> None:
         """Send out the next command in the queue."""
+        self._remove_ack_alarm()
         if not self._command_queue:
             self._last_command = None
             return
-        command, data = self._command_queue.pop(0)
-        self._send_packet(command, data)
-        self._last_command = command  # record command for ACK
-        self._last_command_time = time.time()
+        self._last_command, self._last_data = self._command_queue.pop(0)  # record command for ACK
+        self._resends = 0
+        self._took_stray = False
+        self._send_packet(self._last_command, self._last_data)
+        self._set_ack_alarm()
+
+    def _set_ack_alarm(self) -> None:
+        """Time the ACK of the command just sent, when an event loop is hooked."""
+        if self._event_loop is not None:
+            self._ack_alarm = self._event_loop.alarm(self.ACK_TIMEOUT, self._ack_timed_out)
+
+    def _remove_ack_alarm(self) -> None:
+        """Stop timing the ACK of the command sent last."""
+        if self._ack_alarm is not None:
+            typing.cast("EventLoop", self._event_loop).remove_alarm(self._ack_alarm)
+            self._ack_alarm = None
+
+    def _ack_timed_out(self) -> None:
+        """Send the command awaiting its ACK again, or drop it once it was sent again :attr:`ACK_RESENDS` times.
+
+        Nothing arrived in order for :attr:`ACK_TIMEOUT` seconds,
+        so answers to copies of earlier commands count as lost.
+        The outcomes, the first that applies:
+
+        - An answer was ignored as such a stray while this command waited, so it was most likely its own.
+          The command counts as answered, and the next :meth:`draw_screen` sends everything again in case it was not.
+        - The command was sent again fewer than :attr:`ACK_RESENDS` times: it is sent again.
+        - Otherwise it is dropped, with the queued draw commands, which the next :meth:`draw_screen` sends again.
+
+        :raises RuntimeError: no command awaits an ACK, which every path that ends one prevents by removing this alarm.
+        """
+        self._ack_alarm = None
+        if (command := self._last_command) is None:
+            msg = "an ACK alarm fired with no command awaiting its ACK"
+            raise RuntimeError(msg)
+        self._strays = 0
+        if self._took_stray:
+            self._clear_screen_buf()
+            self._finish_command(0)
+            return
+        if self._resends < self.ACK_RESENDS:
+            self._resends += 1
+            self._send_packet(command, self._last_data)
+            self._set_ack_alarm()
+            return
+        if self._answering:
+            self.logger.warning("The LCD does not answer: commands are dropped until it does")
+            self._answering = False
+        self.logger.debug(f"Dropped LCD command {command}")
+        self._clear_screen_buf()
+        self._command_queue = [entry for entry in self._command_queue if entry[0] not in self._DRAW_COMMANDS]
+        self._finish_command(0)
 
     def queue_command(self, command: int, data: bytearray) -> None:
         """Queue *command* with *data* for sending, sending it immediately if no command is awaiting an ACK."""
@@ -448,7 +591,7 @@ class CF635Screen(CFLCDScreen):
                 data = bytearray([0, y])
                 for elem in text:
                     data.extend(elem)
-                self.queue_command(self.CMD_LCD_DATA, data)
+                self._queue_draw(self.CMD_LCD_DATA, data)
             sb.append(text)
 
         if (
@@ -458,15 +601,28 @@ class CF635Screen(CFLCDScreen):
         ):
             pass
         elif canvas.cursor is None:
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.CURSOR_NONE]))
         else:
             x, y = canvas.cursor
-            self.queue_command(self.CMD_CURSOR_POSITION, bytearray([x, y]))
-            self.queue_command(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
+            self._queue_draw(self.CMD_CURSOR_POSITION, bytearray([x, y]))
+            self._queue_draw(self.CMD_CURSOR_STYLE, bytearray([self.cursor_style]))
 
         self._update_cursor = False
         self._screen_buf = sb
         self._previous_canvas = canvas
+
+    def _queue_draw(self, command: int, data: bytearray) -> None:
+        """Queue a draw command, replacing a queued one for the same row or the same cursor setting.
+
+        A device that answers more slowly than frames are drawn then gets each row's latest text once,
+        instead of a queue that grows by a frame per draw and replays stale frames.
+        """
+        row = data[1] if command == self.CMD_LCD_DATA else None
+        for index, (queued, queued_data) in enumerate(self._command_queue):
+            if queued == command and (row is None or queued_data[1] == row):
+                self._command_queue[index] = (command, data)
+                return
+        self.queue_command(command, data)
 
     def program_cgram(self, index: int, data: Sequence[int]) -> None:
         """
