@@ -2620,6 +2620,57 @@ class ListBoxFocusWhenEmptyTest(unittest.TestCase):
                 self.assertIs(last, pile.focus)
 
 
+class ListBoxEdgeModeTest(unittest.TestCase):
+    """``edge`` decides whether Up at the first row and Down at the last row leave the list."""
+
+    def test_keys_at_ends(self):
+        """With "return" the Pile moves the focus out of the list; with "stop" it stays on the end row."""
+        cases = (
+            ("return", "up", 0, 0),
+            ("return", "down", 2, 2),
+            ("stop", "up", 0, 1),
+            ("stop", "down", 2, 1),
+        )
+        for edge, key, row, pile_focus in cases:
+            with self.subTest(edge=edge, key=key):
+                walker = urwid.SimpleFocusListWalker([SelectableText(c) for c in "abc"])
+                walker.set_focus(row)
+                lbox = urwid.ListBox(walker, edge=edge)
+                pile = urwid.Pile([urwid.Edit(), (3, lbox), urwid.Edit()])
+                pile.focus_position = 1
+                self.assertIsNone(pile.keypress((10,), key))
+                self.assertEqual(pile_focus, pile.focus_position)
+                self.assertEqual(row, lbox.focus_position)
+
+    def test_keys_inside_list_move_focus(self):
+        """With "stop" Up and Down still move the focus between rows."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([SelectableText(c) for c in "abc"]), edge="stop")
+        self.assertIsNone(lbox.keypress((10, 3), "down"))
+        self.assertEqual(1, lbox.focus_position)
+        self.assertIsNone(lbox.keypress((10, 3), "up"))
+        self.assertEqual(0, lbox.focus_position)
+
+    def test_empty_returns_key(self):
+        """An empty list box returns Up and Down also with "stop"."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([]), edge="stop")
+        for key in ("up", "down"):
+            with self.subTest(key=key):
+                self.assertEqual(key, lbox.keypress((10, 3), key))
+
+    def test_setter(self):
+        """The mode can be changed after creation, and an unknown value is refused."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([SelectableText("a")]))
+        self.assertEqual("return", lbox.edge)
+        self.assertEqual("up", lbox.keypress((10, 3), "up"))
+        lbox.edge = "stop"
+        self.assertIsNone(lbox.keypress((10, 3), "up"))
+        with self.assertRaises(ValueError):
+            lbox.edge = "wrap"  # type: ignore[assignment]
+        self.assertEqual("stop", lbox.edge)
+        with self.assertRaises(ValueError):
+            urwid.ListBox([], edge="wrap")  # type: ignore[arg-type]
+
+
 class ListBoxCalculateVisibleEdgeTest(unittest.TestCase):
     def test_calculate_visible_empty(self):
         lbox = urwid.ListBox(urwid.SimpleListWalker([]))

@@ -234,6 +234,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
+        edge: Literal["return", "stop"] = "return",
     ) -> None: ...
 
     @typing.overload
@@ -244,6 +245,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
+        edge: Literal["return", "stop"] = "return",
     ) -> None: ...
 
     def __init__(
@@ -253,6 +255,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
         focus_when_empty: bool = True,
+        edge: Literal["return", "stop"] = "return",
     ) -> None:
         """Create the ListBox widget.
 
@@ -264,6 +267,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         :param focus_when_empty: whether the ListBox accepts the input focus while its body is empty;
             ``False`` lets a container move the focus past an empty ListBox.
+        :param edge: what :kbd:`up` at the first row and :kbd:`down` at the last row do; see :attr:`edge`.
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
@@ -312,6 +316,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         self._set_unfocused_focus_attr(unfocused_focus_attr)
         # whether selectable() reports True while the body has no focus widget
         self.focus_when_empty = focus_when_empty
+        self.edge = edge
 
     def selectable(self) -> bool:
         """Return whether the ListBox accepts the input focus.
@@ -319,6 +324,28 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         With :attr:`focus_when_empty` ``False`` it does not while its body is empty.
         """
         return self._selectable and (self.focus_when_empty or self._body.get_focus()[0] is not None)
+
+    @property
+    def edge(self) -> Literal["return", "stop"]:
+        """What :kbd:`up` at the first row and :kbd:`down` at the last row do.
+
+        - ``"return"``: the key is returned unhandled, so a parent container such as :class:`Pile`
+          moves the focus out of the list.
+        - ``"stop"``: the key is consumed and the focus stays in the list.
+
+        An empty list box returns the key in both modes, since it has no row to keep the focus on.
+        """
+        return self._edge
+
+    @edge.setter
+    def edge(self, edge: Literal["return", "stop"]) -> None:
+        """Set what :kbd:`up` and :kbd:`down` do at the ends of the list.
+
+        :raises ValueError: *edge* is neither ``"return"`` nor ``"stop"``.
+        """
+        if edge not in {"return", "stop"}:
+            raise ValueError(f'edge must be "return" or "stop", not {edge!r}')
+        self._edge: Literal["return", "stop"] = edge
 
     def _invalidate(self) -> None:
         """Drop the cached canvases and the cached :meth:`rows_max` result."""
@@ -1364,6 +1391,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         :kbd:`page down`
             move cursor down one listbox length (or widget)
 
+        With :attr:`edge` ``"stop"``, :kbd:`up` at the first row and :kbd:`down` at the last row are consumed.
+
         With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
         move the focus to the next or previous selectable widget.
         """
@@ -1397,10 +1426,12 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
         # pass off the heavy lifting
         if self._command_map[key] == Command.UP:
-            return actual_key(self._keypress_up((maxcol, maxrow)))
+            unhandled = self._keypress_up((maxcol, maxrow))
+            return actual_key(unhandled and self._edge == "return")
 
         if self._command_map[key] == Command.DOWN:
-            return actual_key(self._keypress_down((maxcol, maxrow)))
+            unhandled = self._keypress_down((maxcol, maxrow))
+            return actual_key(unhandled and self._edge == "return")
 
         if self._command_map[key] == Command.PAGE_UP:
             return actual_key(self._keypress_page_up((maxcol, maxrow)))
