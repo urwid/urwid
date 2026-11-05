@@ -22,7 +22,7 @@ import weakref
 
 import urwid
 import urwid.testing
-from tests.util import NonExternalLoopScreen, external_loop
+from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, NonExternalLoopScreen, external_loop
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
@@ -1555,6 +1555,7 @@ class TestCallFromThread(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             loop.call_from_thread(print)
 
+    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_descriptors_are_released_when_the_run_ends(self) -> None:
         """Both ends of the wake-up socket pair are closed once the run ended and nothing holds its state."""
         states: list[main_loop_module._ThreadCalls | None] = []
@@ -1603,6 +1604,9 @@ class TestCallFromThread(unittest.TestCase):
 
         self.assertEqual(["call"], seen)
 
+    @unittest.skipIf(
+        IS_GRAALPY, "socketpair() is TCP loopback on GraalPy, which delivers the wake-ups over several reads"
+    )
     def test_pass_is_bounded_and_wakes_the_loop_for_the_rest(self) -> None:
         """One pass runs a bounded number of calls, wakes the loop for the rest, and passes in a row draw between."""
         per_pass = main_loop_module._THREAD_CALLS_PER_PASS
@@ -1690,28 +1694,44 @@ class TestCallFromThread(unittest.TestCase):
         self.assertEqual(3 * main_loop_module._THREAD_CALLS_PER_PASS, len(floods))
 
     def test_fallback_loop_runs_a_call_from_a_worker(self) -> None:
-        """On a screen without event loop support and a poll interval, a worker's call runs while the loop waits."""
+        """On a screen without event loop support and a poll interval, a worker's call runs while the loop waits.
+
+        On Windows the loop does not poll, so the screen waits for the call instead of a key.
+        """
         seen: list[bool] = []
+        posted = threading.Event()
 
         def done() -> typing.NoReturn:
             seen.append(urwid.get_running_loop_or_none() is loop)
             raise urwid.ExitMainLoop
 
+        def post() -> None:
+            loop.call_from_thread(done)
+            posted.set()
+
         class WaitingScreen(LimitedInputScreen):
             """Scripted screen that waits out its input timeout, as a terminal does."""
 
             def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
-                time.sleep(self.timeouts[-1] or 0)
+                if (timeout := self.timeouts[-1]) is None:
+                    # a key ends an endless wait; the test sends none, so the posted call stands in for one
+                    if not posted.wait(5):
+                        raise AssertionError("the worker never posted its call")
+                    # on Windows the wake-up socket pair is TCP loopback, which can deliver after send() returns
+                    time.sleep(0.05)
+                else:
+                    time.sleep(timeout)
                 return super().get_input(raw_keys)
 
         screen = WaitingScreen([])
         loop = urwid.MainLoop(urwid.SolidFill(), screen=screen, handle_mouse=False, poll_interval=0.1)
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            loop.set_alarm_in(0, lambda *_args: executor.submit(loop.call_from_thread, done))
+            loop.set_alarm_in(0, lambda *_args: executor.submit(post))
             loop.run()
 
         self.assertEqual([True], seen)
         self.assertIsNone(loop._thread_calls)
+        self.assertEqual(not main_loop_module.IS_WINDOWS, 0.1 in screen.timeouts)
 
     def test_stop_from_a_call_drops_the_calls_after_it(self) -> None:
         """A call that stops the loop ends the pass, and the calls queued after it never run, also after a restart."""

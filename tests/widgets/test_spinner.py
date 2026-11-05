@@ -11,7 +11,7 @@ import unittest.mock
 import weakref
 
 import urwid
-from tests.util import collect_and_count_alive, external_loop
+from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, collect_and_count_alive, external_loop
 from urwid.testing import check_sizing, render_text
 
 LINE = ("-", "\\", "|", "/")
@@ -451,6 +451,7 @@ class SpinnerRunningLoopTest(unittest.TestCase):
 class SpinnerLifetimeTest(unittest.TestCase):
     """References held through the loop's alarm."""
 
+    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_stopped_spinner_is_freed(self) -> None:
         """After stop() the loop holds no alarm, and the spinner is freed once the test drops it."""
         loop = external_loop()

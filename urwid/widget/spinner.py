@@ -177,7 +177,8 @@ class Spinner(Text):
         if not isinstance(interval, (int, float)) or isinstance(interval, bool):
             raise TypeError(f"interval must be a number of seconds, not {interval!r}")
         try:
-            finite = math.isfinite(interval)
+            # float() raises for an int too big for a float; GraalPy's isfinite() takes such an int without raising
+            finite = math.isfinite(float(interval))  # noqa: FURB123
         except OverflowError as exc:
             raise ValueError(f"interval must be finite and > 0, not {interval!r}") from exc
         if not finite or interval <= 0:

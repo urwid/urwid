@@ -11,7 +11,7 @@ import unittest.mock
 import weakref
 
 import urwid
-from tests.util import collect_and_count_alive, external_loop
+from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, collect_and_count_alive, external_loop
 from urwid.testing import check_sizing, render_runs, render_text
 
 if typing.TYPE_CHECKING:
@@ -503,6 +503,7 @@ class NotificationsRunningLoopTest(unittest.TestCase):
 class NotificationsLifetimeTest(unittest.TestCase):
     """References held through the loop's alarms."""
 
+    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_dismissed_message_is_freed(self) -> None:
         """A dismissed timed message, its widget and the ``Notifications`` are freed, and no alarm is left."""
         loop = external_loop()
@@ -517,6 +518,7 @@ class NotificationsLifetimeTest(unittest.TestCase):
         del widget
         self.assertEqual(0, collect_and_count_alive([widget_ref]))
 
+    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_expired_message_is_freed(self) -> None:
         """A message that expired through the loop's alarm is freed, and no alarm is left."""
         loop = external_loop()

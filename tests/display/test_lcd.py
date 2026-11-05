@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import select
 import socket
 import time
 import typing
@@ -155,11 +156,14 @@ class CF635ScreenTest(unittest.TestCase):
     @staticmethod
     def _received(device: socket.socket) -> list[bytes]:
         """Return the packets the device received since the last call, each without its CRC."""
+        # On a TCP loopback pair (Windows, GraalPy) a packet can arrive after the screen's send() returned,
+        # so reading goes on until nothing arrives for a moment.
+        quiet = 0.05 if device.family in {socket.AF_INET, socket.AF_INET6} else 0
         device.setblocking(False)
+        data = b""
         try:
-            data = device.recv(4096)
-        except BlockingIOError:
-            data = b""
+            while select.select([device], [], [], quiet)[0] and (chunk := device.recv(4096)):
+                data += chunk
         finally:
             device.settimeout(1)
         packets = []

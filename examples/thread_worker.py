@@ -8,6 +8,7 @@ The interface keeps answering keys while the worker runs.
 
 from __future__ import annotations
 
+import contextlib
 import threading
 import time
 
@@ -26,14 +27,13 @@ def compute(loop: urwid.MainLoop, progress: urwid.ProgressBar, status: urwid.Tex
     :param status: text showing the result
     """
     total = 0
-    try:
+    # RuntimeError: the loop stopped, so nothing shows the result any more
+    with contextlib.suppress(RuntimeError):
         for step in range(1, STEPS + 1):
             time.sleep(0.2)
             total += step * step
             loop.call_from_thread(progress.set_completion, step)
         loop.call_from_thread(status.set_text, f"Done: the sum of squares is {total}.")
-    except RuntimeError:
-        pass  # the loop stopped, so nothing shows the result any more
 
 
 def main() -> None:
