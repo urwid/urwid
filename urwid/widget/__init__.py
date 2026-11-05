@@ -50,6 +50,7 @@ from .monitored_deque import MonitoredDeque, MonitoredFocusDeque
 from .monitored_list import MonitoredFocusList, MonitoredList
 from .notifications import Notification, Notifications
 from .overlay import Overlay, OverlayError, OverlayWarning
+from .overlay_stack import OverlayStack
 from .padding import Padding, PaddingError, PaddingWarning, calculate_left_right_padding
 from .pile import Pile, PileError, PileWarning
 from .popup import PopUpLauncher, PopUpTarget
@@ -148,6 +149,7 @@ __all__ = (
     "Notifications",
     "Overlay",
     "OverlayError",
+    "OverlayStack",
     "OverlayWarning",
     "Padding",
     "PaddingError",

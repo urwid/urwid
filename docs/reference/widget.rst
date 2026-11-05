@@ -265,6 +265,11 @@ Overlay
 
 .. autoclass:: Overlay
 
+OverlayStack
+~~~~~~~~~~~~
+
+.. autoclass:: OverlayStack
+
 Graphic Widget Classes
 ----------------------
 

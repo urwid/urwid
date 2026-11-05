@@ -23,7 +23,7 @@ def sub_menu(
     contents = menu(caption, choices)
 
     def open_menu(button: urwid.Button) -> None:
-        return top.open_box(contents)
+        return open_box(contents)
 
     return menu_button([caption, "..."], open_menu)
 
@@ -39,7 +39,7 @@ def menu(
 def item_chosen(button: urwid.Button) -> None:
     response = urwid.Text(["You chose ", button.label, "\n"])
     done = menu_button("Ok", exit_program)
-    top.open_box(urwid.Filler(urwid.Pile([response, done])))
+    open_box(urwid.Filler(urwid.Pile([response, done])))
 
 
 def exit_program(button: urwid.Button) -> typing.NoReturn:
@@ -75,40 +75,26 @@ menu_top = menu(
 )
 
 
-class CascadingBoxes(urwid.WidgetPlaceholder):
-    max_box_levels = 4
-
-    def __init__(self, box: urwid.Widget) -> None:
-        super().__init__(urwid.SolidFill("/"))
-        self.box_level = 0
-        self.open_box(box)
-
-    def open_box(self, box: urwid.Widget) -> None:
-        overlay = urwid.Overlay(
-            urwid.LineBox(box),
-            self.original_widget,
-            align=urwid.CENTER,
-            width=(urwid.RELATIVE, 80),
-            valign=urwid.MIDDLE,
-            height=(urwid.RELATIVE, 80),
-            min_width=24,
-            min_height=8,
-            left=self.box_level * 3,
-            right=(self.max_box_levels - self.box_level - 1) * 3,
-            top=self.box_level * 2,
-            bottom=(self.max_box_levels - self.box_level - 1) * 2,
-        )
-        if self.box_level > 0:
-            urwid.connect_signal(overlay, "menu", self.close_box)
-            urwid.connect_signal(overlay, "click outside", self.close_box)
-        self.original_widget = overlay
-        self.box_level += 1
-
-    def close_box(self, overlay: urwid.Overlay[urwid.Widget, urwid.Widget]) -> bool:
-        self.original_widget = overlay.bottom_w
-        self.box_level -= 1
-        return True
+MAX_BOX_LEVELS = 4
 
 
-top = CascadingBoxes(menu_top)
+def open_box(box: urwid.Widget) -> None:
+    level = top.depth
+    top.open(
+        urwid.LineBox(box),
+        width=(urwid.RELATIVE, 80),
+        height=(urwid.RELATIVE, 80),
+        min_width=24,
+        min_height=8,
+        left=level * 3,
+        right=(MAX_BOX_LEVELS - level - 1) * 3,
+        top=level * 2,
+        bottom=(MAX_BOX_LEVELS - level - 1) * 2,
+        close_on_menu=level > 0,
+        close_on_click_outside=level > 0,
+    )
+
+
+top = urwid.OverlayStack(urwid.SolidFill("/"))
+open_box(menu_top)
 urwid.MainLoop(top, palette=[("reversed", "standout", "")]).run()

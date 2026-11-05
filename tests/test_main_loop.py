@@ -179,12 +179,14 @@ class TestMainLoop(unittest.TestCase):
         def on_data(data: bytes) -> None:
             received.append(data)
             if len(received) > 2:
-                stop()  # a watch left on the closed pipe keeps it ready and starves the alarm below
+                stop()  # caps the b"" calls a watch left on the closed pipe makes on every pass
+            if not data:
+                loop.event_loop.alarm(0.1, stop)  # time for a second b"" to arrive, counted from the first
 
         pipe_wr = loop.watch_pipe(on_data)
         os.write(pipe_wr, b"data")
         os.close(pipe_wr)
-        loop.event_loop.alarm(0.1, stop)
+        loop.event_loop.alarm(5, stop)  # guard: end of file never reported
         loop.event_loop.run()
 
         self.assertEqual([b"data", b""], received)
@@ -205,7 +207,13 @@ class TestMainLoop(unittest.TestCase):
 
         async def on_data(data: bytes) -> bool:
             received.append(data)
-            return data != b"last"
+            if data == b"first":
+                # Counted from this read, so the two writes never arrive in one read,
+                # and the task queued by the extra wake-up finds the pipe drained first.
+                loop.event_loop.alarm(0.05, lambda: os.write(pipe_wr, b"last"))
+                return True
+            loop.event_loop.alarm(0.1, stop)  # time for the wake-ups still queued, counted from the last read
+            return False
 
         def stop() -> typing.NoReturn:
             raise urwid.ExitMainLoop
@@ -213,8 +221,7 @@ class TestMainLoop(unittest.TestCase):
         pipe_wr = loop.watch_pipe(on_data)
         self.addCleanup(os.close, pipe_wr)
         os.write(pipe_wr, b"first")
-        loop.event_loop.alarm(0.1, lambda: os.write(pipe_wr, b"last"))
-        loop.event_loop.alarm(0.2, stop)
+        loop.event_loop.alarm(5, stop)  # guard: a write never read
         loop.event_loop.run()
 
         self.assertEqual([b"first", b"last"], received)
@@ -236,13 +243,14 @@ class TestMainLoop(unittest.TestCase):
         async def on_data(data: bytes) -> None:
             received.append(data)
             await asyncio.sleep(0.05)
+            loop.event_loop.alarm(0.1, stop)  # later passes over the closed pipe, counted from the callback's end
 
         def stop() -> typing.NoReturn:
             raise urwid.ExitMainLoop
 
         pipe_wr = loop.watch_pipe(on_data)
         os.close(pipe_wr)
-        loop.event_loop.alarm(0.2, stop)
+        loop.event_loop.alarm(5, stop)  # guard: end of file never reported
         loop.event_loop.run()
 
         self.assertEqual([b""], received)

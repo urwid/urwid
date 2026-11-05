@@ -92,10 +92,20 @@ class AsyncioEventLoop(EventLoop):
         self._pending_alarms: set[asyncio.TimerHandle] = set()
 
     def __del__(self) -> None:
-        """Close the runner created for a loop that was neither given nor running."""
+        """Close the runner created for a loop that was neither given nor running.
+
+        A cycle collection can run this while another asyncio loop runs in the thread.
+        ``Runner.close()`` has to run the owned loop and fails then, so only the owned loop is closed.
+        """
         # In a reference cycle the loop's own finalizer can run first and close the loop already.
-        if self._runner is not None and not self._loop.is_closed():
+        if self._runner is None or self._loop.is_closed():
+            return
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
             self._runner.close()
+        else:
+            self._loop.close()
 
     def _also_call_idle(self, callback: Callable[_Spec, _T]) -> Callable[_Spec, _T | None]:
         """Wrap the callback to also call _entering_idle."""

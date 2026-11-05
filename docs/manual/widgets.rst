@@ -140,7 +140,8 @@ container widget depend on the widgets it contains and on its options.
      - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
        position options of the top widget allow it
    * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
-       :class:`PopUpTarget`, :class:`ScrollBar`, :class:`Scrollable`
+       :class:`OverlayStack`, :class:`PopUpTarget`, :class:`ScrollBar`,
+       :class:`Scrollable`
      - ``'box'``
 
 .. _basic-grafic-widgets:
@@ -895,6 +896,23 @@ and a handler that returns ``True`` consumes the press, for a dialog that closes
 
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.
+
+The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
+It holds a base widget, usually the application's :class:`Frame`, and a stack of open dialogs,
+each one an Overlay over the one below, and it is meant to be the :attr:`MainLoop.widget`.
+:meth:`OverlayStack.open` puts a widget on top with the Overlay layout options.
+Without a ``width`` or ``height``, a flow or box widget gets 80% of the width,
+a flow widget is packed to its rows, a box widget that is not a flow widget gets 80% of the height,
+and a widget that is fixed only is packed in both directions.
+:meth:`OverlayStack.close` takes the top dialog down, or a given dialog and every dialog above it,
+and passes a result to the dialog's ``on_close`` callback and to the ``"closed"`` signal.
+
+With ``close_on_menu`` or ``close_on_click_outside``, a dialog also closes on a key for the ``menu`` command
+(:kbd:`esc` by default) it leaves unhandled, or on a press outside it, with the result ``None``.
+Both are defaults set on the stack that each :meth:`~OverlayStack.open` call can override,
+for example to keep the first dialog of an application open.
+Call the stack from the thread running the loop only;
+another thread hands the call over with :meth:`MainLoop.call_from_thread`.
 
 
 Scrollable Widgets

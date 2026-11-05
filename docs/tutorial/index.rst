@@ -357,25 +357,21 @@ return to the previous menu by pressing *ESC* or by clicking outside the current
 * *menu_top* is the top level menu with all of its child menus and
   options built using the functions above.
 
-This example introduces :class:`WidgetPlaceholder`. :class:`WidgetPlaceholder` is a
-:ref:`decoration widget <decoration-widgets>` that does nothing to the widget it
-decorates.  It is useful if you need a simple way to replace a widget that doesn't
-involve knowing its position in a :ref:`container <container-widgets>`, or in this
-case as a base class for a widget that will be replacing its own contents regularly.
+This example introduces :class:`OverlayStack`. :class:`OverlayStack` is a box widget that
+holds a base widget, here a :class:`SolidFill`, and the dialogs opened on top of it, each one
+an :class:`Overlay` over the one below.  :meth:`OverlayStack.open` shows a new dialog on top,
+and :meth:`OverlayStack.close` removes the top one to show the previous one again.  Only the top
+dialog receives keys and mouse clicks.  Without the stack, an application builds the chain of
+overlays itself, for example in a :class:`WidgetPlaceholder`
+(see :ref:`decoration widgets <decoration-widgets>`).
 
-* *CascadingBoxes* is a new widget that extends :class:`WidgetPlaceholder`.
-  It provides an *open_box()* method that displays a box widget *box* "on top of"
-  all the previous content with an :class:`Overlay` and a :class:`LineBox`.
+* *top* is the :class:`OverlayStack`, with a :class:`SolidFill` as its base.
+* *open_box()* opens a box widget *box* in a :class:`LineBox` on top of the stack.
   The position of each successive box is shifted right and down from the
-  previous one.
-* *CascadingBoxes.close_box()* is connected to the ``'menu'`` signal of every
-  :class:`Overlay` but the first.  The :class:`Overlay` sends it when the box
-  leaves an *ESC* key unhandled, and *close_box()* removes the current box to
-  show the previous one.  Returning ``True`` tells the :class:`Overlay` that the
-  key was handled.  This allows the user to return to a previous menu level.
-  It is connected to the ``'click outside'`` signal as well, which the
-  :class:`Overlay` sends for a mouse click outside the box, so such a click
-  also closes the current box and shows the previous menu.
+  previous one, by the number of boxes already open, :attr:`OverlayStack.depth`.
+* Every box after the first is opened with *close_on_menu* and *close_on_click_outside*,
+  so it closes when it leaves an *ESC* key unhandled or when the user clicks outside it.
+  This allows the user to return to a previous menu level, while the main menu stays open.
 
 
 Horizontal Menu

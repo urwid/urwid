@@ -43,6 +43,67 @@ def _check_widget_subclass(widget: AbstractWidget | None) -> None:
         _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
 
 
+class _FrameContents(
+    MutableMapping[
+        Literal["header", "footer", "body"],
+        tuple[BodyWidget | HeaderWidget | FooterWidget, None],
+    ]
+):
+    """Mapping view onto a Frame's `header`, `body`, and `footer` slots, as :attr:`Frame.contents` returns it."""
+
+    __slots__ = ("__weakref__", "_frame")
+
+    def __init__(self, frame: Frame[BodyWidget, HeaderWidget, FooterWidget]) -> None:
+        """Hold the Frame the view reads and writes."""
+        self._frame = frame
+
+    def __len__(self) -> int:
+        """Return the number of parts the Frame has."""
+        return len(self._frame._contents_keys())
+
+    def __getitem__(
+        self,
+        key: Literal["header", "footer", "body"],
+    ) -> tuple[BodyWidget | HeaderWidget | FooterWidget, None]:
+        """Return the ``(widget, options)`` pair for *key*.
+
+        :raises KeyError: *key* is not one of the three frame parts, or names a part this Frame does not have.
+        """
+        return self._frame._contents__getitem__(key)
+
+    def __setitem__(
+        self,
+        key: Literal["header", "footer", "body"],
+        value: tuple[BodyWidget | HeaderWidget | FooterWidget, None],
+    ) -> None:
+        """Replace the ``(widget, options)`` pair for *key*.
+
+        :raises KeyError: *key* is not one of the three frame parts.
+        :raises FrameError: *value* is not a valid ``(widget, options)`` pair.
+        """
+        # The overloads pair each key with its own widget type; this view takes any key with any of them.
+        self._frame._contents__setitem__(key, value)  # type: ignore[arg-type]
+
+    def __delitem__(self, key: Literal["header", "footer", "body"]) -> None:
+        """Remove the header or footer.
+
+        :raises KeyError: *key* is not a removable part, or names a part this Frame does not have.
+        """
+        self._frame._contents__delitem__(key)  # type: ignore[arg-type]
+
+    def __iter__(self) -> Iterator[Literal["header", "footer", "body"]]:
+        """Yield the keys of the parts the Frame has, the body first."""
+        yield from self._frame._contents_keys()
+
+    def __repr__(self) -> str:
+        """Return the parts and the Frame."""
+        return f"<FrameContents({dict(self)}) for {self._frame}>"
+
+    def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield the ``(key, (widget, options))`` items."""
+        yield from self.items()
+
+
 class Frame(
     Widget,
     SelectNavigationMixin[Literal["header", "footer", "body"]],
@@ -281,38 +342,7 @@ class Frame(
         to create the options value is recommended for forwards
         compatibility.
         """
-
-        # noinspection PyMethodParameters
-        class FrameContents(
-            MutableMapping[
-                Literal["header", "footer", "body"],
-                # pyrefly: ignore[invalid-type-var]  # the class TypeVars are reused in a nested signature
-                tuple[BodyWidget | HeaderWidget | FooterWidget, None],
-            ]
-        ):
-            """Mapping view onto this Frame's `header`, `body`, and `footer` slots."""
-
-            # pylint: disable=no-self-argument
-
-            __slots__ = ()
-
-            def __len__(inner_self) -> int:
-                return len(self._contents_keys())
-
-            __getitem__ = self._contents__getitem__
-            __setitem__ = self._contents__setitem__  # type: ignore[assignment]
-            __delitem__ = self._contents__delitem__  # type: ignore[assignment]
-
-            def __iter__(inner_self) -> Iterator[Literal["header", "footer", "body"]]:
-                yield from self._contents_keys()
-
-            def __repr__(inner_self) -> str:
-                return f"<{inner_self.__class__.__name__}({dict(inner_self)}) for {self}>"  # type: ignore[misc]
-
-            def __rich_repr__(inner_self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-                yield from inner_self.items()
-
-        return FrameContents()
+        return _FrameContents(self)
 
     def _contents_keys(self) -> list[Literal["header", "footer", "body"]]:
         keys: list[Literal["header", "footer", "body"]] = ["body"]
