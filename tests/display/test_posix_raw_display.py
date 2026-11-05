@@ -23,7 +23,9 @@ from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 IS_WINDOWS = sys.platform == "win32"
 
 if not IS_WINDOWS:
+    import pty
     import termios
+    import tty
 
     from urwid.display._posix_raw_display import _GPM_B_LEFT, _GPM_MOD_SHIFT, Screen
 
@@ -89,26 +91,73 @@ class TestStartStop(unittest.TestCase):
         mock_tcgetattr,
         mock_tcsetattr,
     ):
-        # A minimally realistic termios attribute list: [iflag, oflag, cflag, lflag, ispeed,
-        # ospeed, cc], with `cc` large enough to index by any of the VINTR/VQUIT/... constants
-        # that tty_signal_keys() reads out of it.
-        fake_attrs = [0, 0, 0, 0, 0, 0, [0] * 32]
-        mock_tcgetattr.return_value = fake_attrs
-        s = _make_screen()
-        written: list[str] = []
-        s.write = written.append
-        s.flush = lambda: None
+        """`start()` clears IEXTEN and FLUSHO and keeps ISIG as it was; `stop()` restores the saved attributes."""
+        for name, lflag in (
+            ("IEXTEN | ISIG", termios.IEXTEN | termios.ISIG),
+            ("IEXTEN | FLUSHO | ISIG", termios.IEXTEN | termios.FLUSHO | termios.ISIG),
+            ("ISIG", termios.ISIG),
+            ("IEXTEN", termios.IEXTEN),
+            ("none", 0),
+        ):
+            with self.subTest(lflag=name):
+                for patched in (mock_tcgetattr, mock_tcsetattr, mock_setcbreak):
+                    patched.reset_mock()
+                # A minimally realistic termios attribute list: [iflag, oflag, cflag, lflag, ispeed,
+                # ospeed, cc], with `cc` large enough to index by any of the VINTR/VQUIT/... constants
+                # that tty_signal_keys() reads out of it. A fresh list per call, as termios returns.
+                mock_tcgetattr.side_effect = lambda fd, lflag=lflag: [0, 0, 0, lflag, 0, 0, [0] * 32]
+                s = _make_screen()
+                s.write = lambda data: None
+                s.flush = lambda: None
 
-        s.start()
-        self.addCleanup(s.stop)
+                s.start()
+                self.addCleanup(s.stop)
 
-        fd = s._input_fileno()
-        mock_tcgetattr.assert_any_call(fd)
-        mock_setcbreak.assert_called_once_with(fd)
-        self.assertEqual(fake_attrs, s._old_termios_settings)
+                fd = s._input_fileno()
+                mock_tcgetattr.assert_any_call(fd)
+                mock_setcbreak.assert_called_once_with(fd)
+                mock_tcsetattr.assert_any_call(
+                    fd, termios.TCSANOW, [0, 0, 0, lflag & ~(termios.IEXTEN | termios.FLUSHO), 0, 0, [0] * 32]
+                )
+                self.assertEqual([0, 0, 0, lflag, 0, 0, [0] * 32], s._old_termios_settings)
 
-        s.stop()
-        mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, fake_attrs)
+                s.stop()
+                mock_tcsetattr.assert_any_call(fd, termios.TCSAFLUSH, [0, 0, 0, lflag, 0, 0, [0] * 32])
+
+    @mock.patch.dict(os.environ, {"TERM": "xterm"})  # keeps the gpm helper off
+    def test_start_clears_iexten_on_a_real_tty_and_stop_restores_it(self) -> None:
+        """The terminal driver accepts the mode `start()` sets, and `stop()` gives back the original in full.
+
+        FLUSHO is set before the start, as a ctrl o typed earlier leaves it.
+        """
+        for isig in (termios.ISIG, 0):
+            with self.subTest(isig=bool(isig)):
+                try:
+                    master, slave = pty.openpty()
+                except OSError as exc:
+                    raise unittest.SkipTest(f"no pseudo-terminal available: {exc}") from exc
+                self.addCleanup(os.close, master)
+                tty_in = os.fdopen(slave, "rb", buffering=0)
+                self.addCleanup(tty_in.close)
+                tty_out = open(os.devnull, "w")  # noqa: SIM115
+                self.addCleanup(tty_out.close)
+
+                mode = termios.tcgetattr(slave)
+                mode[tty.LFLAG] |= termios.IEXTEN | termios.FLUSHO | termios.ICANON | termios.ECHO
+                mode[tty.LFLAG] = (mode[tty.LFLAG] & ~termios.ISIG) | isig
+                termios.tcsetattr(slave, termios.TCSANOW, mode)
+                expected = termios.tcgetattr(slave)
+
+                s = Screen(input=tty_in, output=tty_out, bracketed_paste_mode=True, focus_reporting=True)
+                self.addCleanup(s.stop)
+                s.start()
+
+                lflag = termios.tcgetattr(slave)[tty.LFLAG]
+                self.assertFalse(lflag & (termios.IEXTEN | termios.FLUSHO | termios.ICANON | termios.ECHO))
+                self.assertEqual(isig, lflag & termios.ISIG)
+
+                s.stop()
+                self.assertEqual(expected, termios.tcgetattr(slave))
 
     @mock.patch("termios.tcsetattr")
     @mock.patch("termios.tcgetattr")
