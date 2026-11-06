@@ -1088,14 +1088,15 @@ class CompositeCanvas(Canvas):
             bottom_shards = shards_trim_top(side_shards, height)
             side_shards = shards_trim_rows(side_shards, height)
 
-        left_shards: list[list[tuple[int, list[_CView]]]] = []
-        right_shards: list[list[tuple[int, list[_CView]]]] = []
-        if left > 0:
-            left_shards = [shards_trim_sides(side_shards, 0, left)]
-        if right > 0:
-            right_shards = [shards_trim_sides(side_shards, max(0, left + width), right)]
-
-        middle_shards = shards_join((*left_shards, other.shards, *right_shards)) if left or right else other.shards
+        if left > 0 and right > 0:
+            left_shards, right_shards = _shards_cut_columns(side_shards, ((0, left), (left + width, right)))
+            middle_shards = shards_join((left_shards, other.shards, right_shards))
+        elif left > 0:
+            middle_shards = shards_join((shards_trim_sides(side_shards, 0, left), other.shards))
+        elif right > 0:
+            middle_shards = shards_join((other.shards, shards_trim_sides(side_shards, max(0, left + width), right)))
+        else:
+            middle_shards = other.shards
 
         self.shards = top_shards + middle_shards + bottom_shards
 
@@ -1336,36 +1337,51 @@ def shards_trim_sides(
         raise ValueError(left)
     if cols <= 0:
         raise ValueError(cols)
+    return _shards_cut_columns(shards, ((left, cols),))[0]
+
+
+def _shards_cut_columns(
+    shards: Iterable[tuple[int, list[_CView]]],
+    column_ranges: Sequence[tuple[int, int]],
+) -> list[list[tuple[int, list[_CView]]]]:
+    """Return the shards of each ``(left, cols)`` column range.
+
+    *shards* is walked once for all ranges.
+    Each range starts at a non-negative column and has a positive width.
+
+    :returns: one shard list per entry of *column_ranges*, in the same order.
+    :raises CanvasError: the cviews of a shard overflow the gaps the shards above it leave.
+    """
     shard_tail: list[tuple[int, int, Iterator[_ContentLine] | None, _CView]] = []
-    new_shards: list[tuple[int, list[_CView]]] = []
-    right = left + cols
+    results: list[list[tuple[int, list[_CView]]]] = [[] for _ in column_ranges]
     for num_rows, cviews in shards:
         # Cviews starting in this shard get this shard's marker and continued ones keep an earlier one:
         # done_rows cannot tell them apart, since it stays 0 for a cview continued past a shard of no rows.
         started_here: Iterator[_ContentLine] = iter(())
         sbody = shard_body(cviews, shard_tail, False, started_here, num_rows=num_rows)
         shard_tail = shard_body_tail(num_rows, sbody)
-        new_cviews = []
-        col = 0
-        for _done_rows, content_iter, cv in sbody:
-            cv_cols = cv[2]
-            next_col = col + cv_cols
-            if content_iter is not started_here or next_col <= left or col >= right:
+        for new_shards, (left, cols) in zip(results, column_ranges, strict=True):
+            right = left + cols
+            new_cviews = []
+            col = 0
+            for _done_rows, content_iter, cv in sbody:
+                next_col = col + cv[2]
+                if content_iter is not started_here or next_col <= left or col >= right:
+                    col = next_col
+                    continue
+                if col < left:
+                    cv = cview_trim_left(cv, left - col)  # noqa: PLW2901
+                    col = left
+                if next_col > right:
+                    cv = cview_trim_cols(cv, right - col)  # noqa: PLW2901
+                new_cviews.append(cv)
                 col = next_col
-                continue
-            if col < left:
-                cv = cview_trim_left(cv, left - col)  # noqa: PLW2901
-                col = left
-            if next_col > right:
-                cv = cview_trim_cols(cv, right - col)  # noqa: PLW2901
-            new_cviews.append(cv)
-            col = next_col
-        if not new_cviews:
-            prev_num_rows, prev_cviews = new_shards[-1]
-            new_shards[-1] = (prev_num_rows + num_rows, prev_cviews)
-        else:
-            new_shards.append((num_rows, new_cviews))
-    return new_shards
+            if not new_cviews:
+                prev_num_rows, prev_cviews = new_shards[-1]
+                new_shards[-1] = (prev_num_rows + num_rows, prev_cviews)
+            else:
+                new_shards.append((num_rows, new_cviews))
+    return results
 
 
 def shards_join(shard_lists: Iterable[Iterable[tuple[int, list[_CView]]]]) -> list[tuple[int, list[_CView]]]:

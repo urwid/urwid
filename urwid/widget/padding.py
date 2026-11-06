@@ -39,6 +39,13 @@ class PaddingWarning(WidgetWarning):
     """Padding related warnings."""
 
 
+class _PaddingRowsError(PaddingError, AttributeError):
+    """The wrapped widget has no rows() for the FIXED pack of a GIVEN width.
+
+    It is also an AttributeError, so a caller that catches AttributeError around pack() catches it.
+    """
+
+
 class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     """Decoration that adds blank columns to the left and/or right of a wrapped widget."""
 
@@ -191,10 +198,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
 
         Rules:
         * width == CLIP: only FLOW is supported, and wrapped widget should support FIXED
-        * width == GIVEN: FIXED is supported, and wrapped widget should support FLOW
+        * width == GIVEN: FIXED is supported when the wrapped widget supports FLOW or FIXED
         * All other cases: use sizing of target widget
 
-        :warns PaddingWarning: the width is GIVEN and the wrapped widget supports neither FLOW nor BOX sizing.
+        :warns PaddingWarning: the width is GIVEN and the wrapped widget supports none of FLOW, BOX and FIXED sizing.
         """
         if self._width_type == WHSettings.CLIP:
             return frozenset((Sizing.FLOW,))
@@ -204,9 +211,10 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
             if Sizing.FLOW in sizing:
                 sizing.add(Sizing.FIXED)
 
-            elif Sizing.BOX not in sizing:
+            elif not sizing & {Sizing.BOX, Sizing.FIXED}:
                 warnings.warn(
-                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {self.original_widget}",
+                    f"WHSettings.GIVEN expect BOX, FLOW or FIXED widget to be used, "
+                    f"but received {self.original_widget}",
                     PaddingWarning,
                     stacklevel=3,
                 )
@@ -276,10 +284,14 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         """
         Return the size the widget would render as, for FIXED sizing.
 
-        :raises PaddingError: this Padding uses ``CLIP``, which makes it FLOW-only, or its width type does not resolve
-            to a fixed size.
+        A GIVEN width over a FIXED widget that is not FLOW takes the given width and the wrapped widget's rows.
+
+        :raises PaddingError: this Padding uses ``CLIP``, which makes it FLOW-only.
+            Its width type does not resolve to a fixed size.
+            Its width is GIVEN and the wrapped widget supports neither FLOW nor FIXED and has no ``rows()``.
+            This error is an :exc:`AttributeError` as well.
         :warns PaddingWarning: the wrapped widget does not support the sizing a FIXED pack needs:
-            FLOW for a GIVEN width, FIXED otherwise.
+            FLOW or FIXED for a GIVEN width, FIXED otherwise.
         """
         if size:
             return super().pack(size, focus)
@@ -290,13 +302,23 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         w_sizing = self.original_widget.sizing()
 
         if self._width_type == WHSettings.GIVEN:
+            if Sizing.FLOW not in w_sizing and Sizing.FIXED in w_sizing:
+                _cols, rows = self.original_widget.pack((), focus)
+                return max(typing.cast("int", self._width_amount), self.min_width or 1) + expand, rows
+
             if Sizing.FLOW not in w_sizing:
                 warnings.warn(
-                    f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
+                    f"WHSettings.GIVEN expect FLOW or FIXED widget to be used for FIXED pack/render, "
                     f"but received {self.original_widget}",
                     PaddingWarning,
                     stacklevel=3,
                 )
+                if not hasattr(self.original_widget, "rows"):
+                    raise _PaddingRowsError(
+                        f"WHSettings.GIVEN cannot pack {self.original_widget} to a fixed size: it has no rows()",
+                        name="rows",
+                        obj=self.original_widget,
+                    )
 
             width_amount = typing.cast("int", self._width_amount)
 
@@ -347,7 +369,12 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                 )
             canv = self._original_widget.render((maxcol, *size[1:]), focus)
         elif self._width_type == WHSettings.GIVEN:
-            canv = self._original_widget.render((typing.cast("int", self._width_amount), *size[1:]), focus)
+            w_sizing = self._original_widget.sizing()
+            if Sizing.FLOW not in w_sizing and Sizing.FIXED in w_sizing:
+                # padding_values() clips or pads the widget's own width to the given width.
+                canv = self._original_widget.render((), focus)
+            else:
+                canv = self._original_widget.render((typing.cast("int", self._width_amount),), focus)
         else:
             canv = self._original_widget.render((), focus)
 
@@ -416,6 +443,20 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         if size:
             maxcol = size[0]
         elif self._width_type == WHSettings.GIVEN:
+            w_sizing = self._original_widget.sizing()
+            if Sizing.FLOW not in w_sizing and Sizing.FIXED in w_sizing:
+                # A FIXED widget keeps its own width, clipped or padded to the given width as for CLIP.
+                width, _rows = self._original_widget.pack((), focus=focus)
+                return calculate_left_right_padding(
+                    max(typing.cast("int", self._width_amount), self.min_width or 1) + self.left + self.right,
+                    self._align_type,
+                    self._align_amount,
+                    WHSettings.CLIP,
+                    width,
+                    None,
+                    self.left,
+                    self.right,
+                )
             maxcol = typing.cast("int", self._width_amount) + self.left + self.right
         else:
             maxcol = (

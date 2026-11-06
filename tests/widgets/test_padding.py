@@ -2,9 +2,59 @@ from __future__ import annotations
 
 import typing
 import unittest
+import warnings
 
 import urwid
 from tests.util import assert_attribute_redraws
+
+
+class NoSizing(urwid.Text):
+    """A widget that supports no sizing at all."""
+
+    _sizing = frozenset()
+
+
+class FiveColumnsStub(urwid.Text):
+    """A test double that packs to 5 columns and 1 row.
+
+    It reports the sizing it is given and records the columns it is clicked at.
+    """
+
+    def __init__(self, sizing: frozenset[urwid.Sizing], cursor: tuple[int, int] = (0, 0)) -> None:
+        """Report *sizing* and a cursor at *cursor*."""
+        super().__init__("hi")
+        self.stub_sizing = sizing
+        self.cursor = cursor
+        self.mouse_cols: list[int] = []
+
+    def pack(  # type: ignore[override]  # the signature of Text.pack
+        self,
+        size: tuple[()] | tuple[int] | None = None,
+        focus: bool = False,
+    ) -> tuple[int, int]:
+        """Return 5 columns and 1 row whatever the size."""
+        return (5, 1)
+
+    def sizing(self) -> frozenset[urwid.Sizing]:
+        """Return the sizing given to the constructor."""
+        return self.stub_sizing
+
+    def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int]:
+        """Return the cursor given to the constructor."""
+        return self.cursor
+
+    def mouse_event(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
+        """Record the column of the event and handle it."""
+        self.mouse_cols.append(col)
+        return True
 
 
 class PaddingTest(unittest.TestCase):
@@ -103,29 +153,53 @@ class PaddingTest(unittest.TestCase):
                 [line.decode("utf-8") for line in canvas.text],
             )
 
-        with self.subTest("GIVEN FIXED = error"):
-            widget = urwid.Padding(fixed_only, width=5)
-            with self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx, self.assertRaises(AttributeError):
-                widget.sizing()
-                self.assertEqual(
-                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
-                    str(ctx.warnings[0].message),
-                )
+        for description, kwargs, expected in (
+            ("GIVEN FIXED pads to the width", {"width": 5}, ("▄▀▀▄ ", "  ▄▀ ", "▄  █ ", " ▀▀  ")),
+            (
+                "GIVEN FIXED pads to the width by align",
+                {"width": 8, "align": urwid.CENTER},
+                (" ▄▀▀▄   ", "   ▄▀   ", " ▄  █   ", "  ▀▀    "),
+            ),
+            ("GIVEN FIXED clips to the width by align", {"width": 2, "align": urwid.RIGHT}, ("▄ ", "▀ ", "█ ", "  ")),
+            (
+                "GIVEN FIXED keeps left and right",
+                {"width": 5, "left": 1, "right": 2},
+                (" ▄▀▀▄   ", "   ▄▀   ", " ▄  █   ", "  ▀▀    "),
+            ),
+        ):
+            with self.subTest(description), warnings.catch_warnings():
+                warnings.simplefilter("error")
+                widget = urwid.Padding(fixed_only, **kwargs)
+                self.assertEqual(frozenset((urwid.FIXED,)), widget.sizing())
+                self.assertEqual((len(expected[0]), len(expected)), widget.pack(()))
+                self.assertEqual(expected, widget.render(()).decoded_text)
 
-                widget.pack(())
-
+        with self.subTest("GIVEN BOX without rows = error"):
+            box_only = urwid.SolidFill("x")
+            padded_box = urwid.Padding(box_only, width=5)
+            with (
+                self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx,
+                self.assertRaises(urwid.widget.padding.PaddingError) as pack_ctx,
+            ):
+                padded_box.pack(())
             self.assertEqual(
-                f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
-                f"but received {fixed_only}",
-                str(ctx.warnings[1].message),
+                f"WHSettings.GIVEN expect FLOW or FIXED widget to be used for FIXED pack/render, "
+                f"but received {box_only}",
+                str(ctx.warning),
             )
+            # pack() raises an AttributeError for the missing rows() as well.
+            self.assertIsInstance(pack_ctx.exception, AttributeError)
+            self.assertEqual("rows", pack_ctx.exception.name)
+            self.assertIs(box_only, pack_ctx.exception.obj)
 
-            with self.assertRaises(ValueError) as err_ctx:
-                widget.render(())
-
+        with self.subTest("GIVEN without a supported sizing warns"):
+            no_sizing = NoSizing("x")
+            padded_unsized = urwid.Padding(no_sizing, width=5)
+            with self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx:
+                self.assertEqual(frozenset(), padded_unsized.sizing())
             self.assertEqual(
-                "FixedWidget takes only () for size.passed: (5,)",
-                str(err_ctx.exception),
+                f"WHSettings.GIVEN expect BOX, FLOW or FIXED widget to be used, but received {no_sizing}",
+                str(ctx.warning),
             )
 
     def test_fixed(self) -> None:
@@ -372,18 +446,21 @@ class PaddingTest(unittest.TestCase):
         self.assertIsNone(widget.get_cursor_coords((10,)))
 
     def test_get_cursor_coords_no_size(self) -> None:
-        class Stub(urwid.Text):
-            def pack(self, size=(), focus=False):
-                return (5, 1)
-
-            def sizing(self):
-                return frozenset((urwid.FIXED, urwid.FLOW))
-
-            def get_cursor_coords(self, size):
-                return (1, 0)
-
-        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
-        self.assertEqual((1, 0), widget.get_cursor_coords(()))
+        """Without a size the cursor is shifted by the padding."""
+        for description, sizing, kwargs, cursor, expected in (
+            ("PACK width", frozenset((urwid.FIXED, urwid.FLOW)), {"width": urwid.PACK}, (1, 0), (1, 0)),
+            # The 5 columns wide widget is clipped to 2 on the right, so its column 4 shows at column 1.
+            (
+                "GIVEN width clips a FIXED widget",
+                frozenset((urwid.FIXED,)),
+                {"width": 2, "align": urwid.RIGHT},
+                (4, 0),
+                (1, 0),
+            ),
+        ):
+            with self.subTest(description):
+                widget = urwid.Padding(FiveColumnsStub(sizing, cursor), **kwargs)
+                self.assertEqual(expected, widget.get_cursor_coords(()))
 
     def test_get_cursor_coords_none_from_original(self) -> None:
         class Stub(urwid.Text):
@@ -428,18 +505,17 @@ class PaddingTest(unittest.TestCase):
         self.assertTrue(widget.mouse_event((10,), "mouse press", 1, 4, 0, True))
 
     def test_mouse_event_no_size(self) -> None:
-        class Stub(urwid.Text):
-            def pack(self, size=(), focus=False):
-                return (5, 1)
-
-            def sizing(self):
-                return frozenset((urwid.FIXED, urwid.FLOW))
-
-            def mouse_event(self, size, event, button, col, row, focus):
-                return True
-
-        widget = urwid.Padding(Stub("hi"), width=urwid.PACK)
-        self.assertTrue(widget.mouse_event((), "mouse press", 1, 1, 0, True))
+        """Without a size the click column is shifted by the padding."""
+        for description, sizing, kwargs, expected_col in (
+            ("PACK width", frozenset((urwid.FIXED, urwid.FLOW)), {"width": urwid.PACK}, 1),
+            # The 5 columns wide widget is clipped to 2 on the right, so column 1 is its column 4.
+            ("GIVEN width clips a FIXED widget", frozenset((urwid.FIXED,)), {"width": 2, "align": urwid.RIGHT}, 4),
+        ):
+            with self.subTest(description):
+                stub = FiveColumnsStub(sizing)
+                widget = urwid.Padding(stub, **kwargs)
+                self.assertTrue(widget.mouse_event((), "mouse press", 1, 1, 0, True))
+                self.assertEqual([expected_col], stub.mouse_cols)
 
     def test_get_pref_col_no_attribute(self) -> None:
         widget = urwid.Padding(urwid.Text("hi"))
