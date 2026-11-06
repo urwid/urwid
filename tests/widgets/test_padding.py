@@ -105,20 +105,26 @@ class PaddingTest(unittest.TestCase):
 
         with self.subTest("GIVEN FIXED = error"):
             widget = urwid.Padding(fixed_only, width=5)
-            with self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx, self.assertRaises(AttributeError):
+            with self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx:
                 widget.sizing()
-                self.assertEqual(
-                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
-                    str(ctx.warnings[0].message),
-                )
-
-                widget.pack(())
-
             self.assertEqual(
-                f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
-                f"but received {fixed_only}",
-                str(ctx.warnings[1].message),
+                f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
+                str(ctx.warning),
             )
+
+            with (
+                self.assertWarns(urwid.widget.padding.PaddingWarning) as ctx,
+                self.assertRaises(urwid.widget.padding.PaddingError) as pack_ctx,
+            ):
+                widget.pack(())
+            self.assertEqual(
+                f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, but received {fixed_only}",
+                str(ctx.warning),
+            )
+            # pack() raises an AttributeError for the missing rows() as well.
+            self.assertIsInstance(pack_ctx.exception, AttributeError)
+            self.assertEqual("rows", pack_ctx.exception.name)
+            self.assertIs(fixed_only, pack_ctx.exception.obj)
 
             with self.assertRaises(ValueError) as err_ctx:
                 widget.render(())

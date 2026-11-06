@@ -39,6 +39,13 @@ class PaddingWarning(WidgetWarning):
     """Padding related warnings."""
 
 
+class _PaddingRowsError(PaddingError, AttributeError):
+    """The wrapped widget has no rows() for the FIXED pack of a GIVEN width.
+
+    It is also an AttributeError, so a caller that catches AttributeError around pack() catches it.
+    """
+
+
 class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
     """Decoration that adds blank columns to the left and/or right of a wrapped widget."""
 
@@ -276,8 +283,9 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
         """
         Return the size the widget would render as, for FIXED sizing.
 
-        :raises PaddingError: this Padding uses ``CLIP``, which makes it FLOW-only, or its width type does not resolve
-            to a fixed size.
+        :raises PaddingError: this Padding uses ``CLIP``, which makes it FLOW-only.
+            Its width type does not resolve to a fixed size.
+            Its width is GIVEN and the wrapped widget has no ``rows()``; this one is an :exc:`AttributeError` as well.
         :warns PaddingWarning: the wrapped widget does not support the sizing a FIXED pack needs:
             FLOW for a GIVEN width, FIXED otherwise.
         """
@@ -297,6 +305,12 @@ class Padding(WidgetDecoration[WrappedWidget], typing.Generic[WrappedWidget]):
                     PaddingWarning,
                     stacklevel=3,
                 )
+                if not hasattr(self.original_widget, "rows"):
+                    raise _PaddingRowsError(
+                        f"WHSettings.GIVEN cannot pack {self.original_widget} to a fixed size: it has no rows()",
+                        name="rows",
+                        obj=self.original_widget,
+                    )
 
             width_amount = typing.cast("int", self._width_amount)
 
