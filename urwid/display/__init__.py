@@ -76,6 +76,7 @@ __all__: tuple[str, ...] = (
     "lcd",
     "raw",
     "web",
+    "websocket",
 )
 
 
@@ -106,6 +107,7 @@ def lazy_import(name: str, package: str | None = None) -> types.ModuleType:
 html_fragment = lazy_import(".html_fragment", "urwid.display")
 lcd = lazy_import(".lcd", "urwid.display")
 web = lazy_import(".web", "urwid.display")
+websocket = lazy_import(".websocket", "urwid.display")
 
 
 def __getattr__(name: str) -> types.ModuleType:

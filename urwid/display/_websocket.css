@@ -1,0 +1,3 @@
+/* Added to _web.css for the WebSocket page, which has no inline styles. */
+
+.measure { position: absolute; visibility: hidden; }

@@ -434,7 +434,7 @@ class ScreenPollingChildDrawTest(unittest.TestCase):
     """The polling child answers the browser over its update socket, which takes bytes."""
 
     def test_draw_screen_sends_utf8_update_and_closes_the_connection(self) -> None:
-        self.addCleanup(urwid.set_encoding, web.get_encoding())
+        self.addCleanup(urwid.set_encoding, urwid.util.get_encoding())
         # the canvas is in the configured encoding, the transport is always UTF-8
         for encoding in ("utf-8", "latin-1"):
             with self.subTest(encoding=encoding):
