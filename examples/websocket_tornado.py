@@ -24,14 +24,16 @@ or when no input arrived for the idle timeout.
 The example is as strict as Tornado allows:
 
 - It listens on ``127.0.0.1`` unless told otherwise,
-  and refuses another address unless it has both TLS and a token.
-  Without ``--token-file``, every user of the host can open a session through the loopback address,
-  since a client that is not a browser sends no ``Origin`` header to check.
+  and refuses another address unless it has TLS.
 - It answers only requests whose ``Host`` header names an allowed origin,
   and accepts a WebSocket only from a page whose ``Origin`` is an allowed origin.
   The default origins are the address it listens on, and ``localhost`` for a loopback address.
-- With ``--token-file``, every request needs HTTP Basic authentication with the token as the password,
-  compared in constant time. Any user name is accepted. The token never appears in a URL or a log line.
+- Every request needs HTTP Basic authentication with the token from ``--token-file`` as the password,
+  also on the loopback address, where every user of the host can connect.
+  When the file does not exist, the example creates it, readable by its owner only, with a new random token.
+  An existing token file is refused unless it is a regular file of this user that no other user can read or write.
+  The token is compared in constant time, and any user name is accepted.
+  The token never appears in a URL or a log line.
 - After repeated failed logins from one client, or from all clients together, logins are refused for a while
   without checking the token.
 - The page has no inline script or style,
@@ -44,7 +46,12 @@ Behind a reverse proxy that terminates TLS and authenticates users, listen on ``
 pass the public origin with ``--allowed-origin https://tui.example.org``,
 and have the proxy forward the ``Host`` header unchanged and pass the WebSocket upgrade through.
 
-The script reads only the files named by its options, writes nothing, and logs to standard error.
+To make a token file by hand::
+
+    (umask 077; python3 -c "import secrets; print(secrets.token_urlsafe(32))" > token)
+
+The script reads only the files named by its options, writes nothing but a new token file,
+and logs to standard error.
 It exits with status 0 after ``SIGINT`` or ``SIGTERM``, and with status 2 when an option is invalid.
 """
 
@@ -59,10 +66,13 @@ import hmac
 import ipaddress
 import logging
 import math
+import os
 import pathlib
 import re
+import secrets
 import signal
 import ssl
+import stat
 import sys
 import time
 import typing
@@ -89,6 +99,10 @@ WEBSOCKET_PATH: typing.Final = "ws"
 MAX_MESSAGE_BYTES: typing.Final = urwid_websocket.MAX_MESSAGE_LENGTH * 4
 # screen updates handed to Tornado and not yet written to the socket; a page that stops reading is closed
 MAX_UNWRITTEN_UPDATES: typing.Final = 32
+# random bytes in a token the example creates
+NEW_TOKEN_BYTES: typing.Final = 32
+# a token file larger than this is refused rather than read
+MAX_TOKEN_FILE_BYTES: typing.Final = 4096
 # a token shorter than this is refused, since it is the only secret
 MIN_TOKEN_BYTES: typing.Final = 16
 PING_INTERVAL: typing.Final = 30.0
@@ -118,7 +132,7 @@ class Config:
     allowed_origins: frozenset[str]
     # Host header values accepted on any request
     allowed_hosts: frozenset[str]
-    token: bytes | None = dataclasses.field(repr=False)
+    token: bytes = dataclasses.field(repr=False)
     tls: ssl.SSLContext | None = dataclasses.field(repr=False)
     max_sessions: int
     idle_timeout: float
@@ -145,7 +159,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--token-file",
         type=pathlib.Path,
-        help=f"file holding the token users enter as the password, at least {MIN_TOKEN_BYTES} bytes",
+        required=True,
+        help=f"file holding the token users enter as the password, at least {MIN_TOKEN_BYTES} bytes; "
+        "created with a new random token when it does not exist",
     )
     parser.add_argument("--max-sessions", type=int, default=8, help="sessions at a time (default: %(default)s)")
     parser.add_argument(
@@ -158,11 +174,51 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def load_token(path: pathlib.Path) -> bytes:
+    """Return the token in *path*.
+
+    When the file does not exist, it is created, readable by its owner only, with a new random token.
+    Creating it never writes through an existing file or symbolic link, and its path is logged, never the token.
+
+    An existing file is read only when it is a regular file reached without a symbolic link,
+    no larger than ``MAX_TOKEN_FILE_BYTES``, owned by this user, and neither readable nor writable by others.
+    So a file another user planted at the path, a FIFO or a device is refused instead of trusted or waited on.
+
+    :raises ValueError: the file is not such a file, or holds a token shorter than ``MIN_TOKEN_BYTES``.
+    :raises OSError: the file cannot be created or opened, or the path is a symbolic link.
+    """
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        pass
+    else:
+        with os.fdopen(descriptor, "w", encoding="ascii") as new_file:
+            new_file.write(secrets.token_urlsafe(NEW_TOKEN_BYTES) + "\n")
+        LOG.info("Created %s with a new token; users enter its content as the password", path)
+
+    # Windows has neither flag; there the type and size checks below still apply
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    with os.fdopen(os.open(path, flags), "rb") as token_file:
+        status = os.fstat(token_file.fileno())
+        if not stat.S_ISREG(status.st_mode) or status.st_size > MAX_TOKEN_FILE_BYTES:
+            raise ValueError(f"{path} is not a regular file of at most {MAX_TOKEN_FILE_BYTES} bytes")
+        # Windows file owners and modes do not describe who can read the file
+        if os.name == "posix":
+            if status.st_uid != os.geteuid():
+                raise ValueError(f"{path} belongs to another user")
+            if status.st_mode & 0o077:
+                raise ValueError(f"other users can read or write {path}; make it private with: chmod 600 {path}")
+        token = token_file.read(MAX_TOKEN_FILE_BYTES).rstrip(b"\r\n")
+    if len(token) < MIN_TOKEN_BYTES:
+        raise ValueError(f"the token must be at least {MIN_TOKEN_BYTES} bytes long")
+    return token
+
+
 def build_config(args: argparse.Namespace) -> Config:
     """Check the parsed arguments and turn them into a :class:`Config`.
 
     :raises ValueError: an argument is invalid, or the combination of arguments is unsafe.
-    :raises OSError: the token, certificate or key file cannot be read.
+    :raises OSError: the token file cannot be read or created, or the certificate or key cannot be read.
     :raises ssl.SSLError: the certificate or key is invalid.
     """
     if not 0 < args.port < 65536:
@@ -180,12 +236,6 @@ def build_config(args: argparse.Namespace) -> Config:
         tls.minimum_version = ssl.TLSVersion.TLSv1_2
         tls.load_cert_chain(args.certfile, args.keyfile)
 
-    token = None
-    if args.token_file is not None:
-        token = args.token_file.read_bytes().rstrip(b"\r\n")
-        if len(token) < MIN_TOKEN_BYTES:
-            raise ValueError(f"the token must be at least {MIN_TOKEN_BYTES} bytes long")
-
     try:
         address = ipaddress.ip_address(args.host)
     except ValueError:
@@ -194,8 +244,8 @@ def build_config(args: argparse.Namespace) -> Config:
     else:
         loopback = address.is_loopback
         unspecified = address.is_unspecified
-    if not loopback and (tls is None or token is None):
-        raise ValueError("listening on a non-loopback address needs --certfile, --keyfile and --token-file")
+    if not loopback and tls is None:
+        raise ValueError("listening on a non-loopback address needs --certfile and --keyfile")
 
     scheme = "https" if tls is not None else "http"
     if args.allowed_origin:
@@ -218,6 +268,8 @@ def build_config(args: argparse.Namespace) -> Config:
         origins.add(f"{parts.scheme}://{host}")
         hosts.add(host)
 
+    # read or created last, so a run refused for another argument changes nothing
+    token = load_token(args.token_file)
     return Config(
         host=args.host,
         port=args.port,
@@ -309,9 +361,6 @@ def reject_request(handler: tornado.web.RequestHandler, config: Config, limiter:
         LOG.error("Refused a request for an unknown host from %s", request.remote_ip)
         handler.send_error(400)
         return True
-    if config.token is None:
-        return False
-
     # requests without a known address share one limit
     address = request.remote_ip or ""
     if (wait := limiter.retry_after(address)) > 0:

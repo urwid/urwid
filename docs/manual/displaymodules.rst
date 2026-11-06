@@ -142,7 +142,8 @@ name, or a window size, in a message of limited length.
 The page has no inline script or style, so it works under a strict
 ``Content-Security-Policy``. The screen itself does no access control: the adapter
 checks the ``Origin`` of each WebSocket handshake, limits the message size and the
-number of sessions, and authenticates users where the server is reachable by others.
+number of sessions, and authenticates users, also on a loopback address, which every
+user of the host can reach.
 
 The websocket_tornado.py_ example is such an adapter for Tornado, with these checks
 in place, a limit on failed logins, and a :class:`GuardedEventLoop` per session.
