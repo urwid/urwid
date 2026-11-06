@@ -506,8 +506,10 @@ class KeyqueueTrie:
             return None
 
         b = keys[0] - _MOUSE_BYTE_OFFSET
-        # supports 0-255
-        x, y = (keys[1] - _MOUSE_COORD_OFFSET) % 256, (keys[2] - _MOUSE_COORD_OFFSET) % 256
+        # A terminal sends a byte, and one below the offset wraps to the end of the range, as xterm's NUL past its end.
+        # A code above 255 can come only from an encoder not limited to bytes, such as the curses display,
+        # and carries the coordinate itself.
+        x, y = (k - _MOUSE_COORD_OFFSET if k > _MOUSE_BYTE_MAX else (k - _MOUSE_COORD_OFFSET) % 256 for k in keys[1:3])
 
         prefixes = []
         if b & MouseBit.SHIFT:
@@ -948,6 +950,8 @@ if not typing.TYPE_CHECKING:
 # reported 1-based.
 _MOUSE_BYTE_OFFSET: typing.Final = 32
 _MOUSE_COORD_OFFSET: typing.Final = 33
+# the largest code a terminal sends for one byte of an X10 report
+_MOUSE_BYTE_MAX: typing.Final = 255
 # the 0-based column or row an X10 report cannot carry: xterm sends it, and any farther one, as a NUL byte,
 # which decodes back to this value
 MOUSE_X10_PAST_END: typing.Final = 255 - _MOUSE_BYTE_OFFSET

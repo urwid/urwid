@@ -451,10 +451,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         self.assertEqual((("mouse press", urwid.MouseButton.WHEEL_RIGHT, x, y), []), result)
 
     def test_mouse_x10_double_click(self):
-        x, y = 8, 15
-        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
-        result = escape.input_trie.read_mouse_info(keys, more_available=False)
-        self.assertEqual((("double mouse click", 1, x, y), []), result)
+        for x, y in ((8, 15), (300, 1000)):  # the curses display passes a coordinate past a byte unencoded
+            with self.subTest(x=x, y=y):
+                keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
+                result = escape.input_trie.read_mouse_info(keys, more_available=False)
+                self.assertEqual((("double mouse click", 1, x, y), []), result)
 
     def test_mouse_x10_triple_click(self):
         x, y = 8, 15

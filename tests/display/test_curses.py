@@ -7,6 +7,7 @@ import unittest
 from unittest import mock
 
 import urwid
+from urwid.display import escape
 
 try:
     import termios
@@ -238,3 +239,24 @@ class CursesStartTerminalModeTest(unittest.TestCase):
         screen.stop()
 
         self.assertEqual([mock.call.endwin()], self.calls.mock_calls)
+
+
+@unittest.skipIf(curses_display is None, "the curses module is not available")
+class CursesMouseTest(unittest.TestCase):
+    """Tests for the mouse events of curses, which the screen encodes as X10 reports for the input parser."""
+
+    def test_events_past_a_byte_keep_their_position(self) -> None:
+        """Report a press, a double click and a release at a column or row past what an X10 byte can carry."""
+        curses = curses_display.curses
+        screen = curses_display.Screen()
+        for bstate, expected in (
+            (curses.BUTTON1_PRESSED, ("mouse press", 1, 300, 1000)),
+            (curses.BUTTON1_DOUBLE_CLICKED, ("double mouse click", 1, 300, 1000)),
+            (curses.BUTTON1_RELEASED, ("mouse release", 1, 300, 1000)),
+        ):
+            with (
+                self.subTest(expected=expected[0]),
+                mock.patch.object(curses, "getmouse", return_value=(0, 300, 1000, 0, bstate)),
+            ):
+                keys, _rest = escape.process_keyqueue(screen._encode_mouse_event(), more_available=False)
+                self.assertEqual([expected], keys)
