@@ -250,6 +250,55 @@ class CalculateBargraphDisplayTest(unittest.TestCase):
             [(3, [(2, 1), (3, 3), (2, 2)]), (1, [(3, 4), (2, 2)])],
         )
 
+    def test_adjacent_bar_segment_replaces_previous_row_run(self) -> None:
+        # Regression test: when a segment starting on this row ends directly above a
+        # same-type run of the previous row, and a *different* segment of the same row
+        # replaces the columns of that run, the rowsets builder used to merge the
+        # replaced columns into the emitted run, producing overlapping runs whose
+        # total width exceeded the graph (BarGraphError from render) or silently
+        # wrong bar colors.
+        result = bar_graph.calculate_bargraph_display(
+            [[393, 285], [579, 478], [152, 13]],
+            1000,
+            [3, 3, 3],
+            9,
+        )
+        self.assertEqual(
+            result,
+            [
+                (4, [(0, 9)]),
+                (1, [(0, 3), (1, 3), (0, 3)]),
+                (1, [(1, 3), (2, 3), (0, 3)]),
+                (2, [(2, 6), (0, 3)]),
+                (1, [(2, 6), (1, 3)]),
+            ],
+        )
+
+    def test_overlapping_same_type_run_is_not_extended(self) -> None:
+        # Regression test: the rowsets builder used to extend a same-type run of the
+        # previous row across columns that belong to a different segment starting on
+        # the current row, painting wrong bar colors (bottom row of the graph).
+        result = bar_graph.calculate_bargraph_display(
+            [[35, 2], [75, 9], [95, 48]],
+            100,
+            [2, 2, 2],
+            3,
+        )
+        self.assertEqual(
+            result,
+            [(1, [(0, 4), (1, 2)]), (1, [(0, 2), (1, 4)]), (1, [(1, 4), (2, 2)])],
+        )
+
+    def test_render_with_interleaved_segment_rows(self) -> None:
+        # Regression test: rendering a bar graph whose segment rows interleave across
+        # adjacent bars raised BarGraphError("Invalid characters in BarGraph!")
+        # because the corrupted rowsets produced rows wider than the graph.
+        g = urwid.BarGraph(["bg", "c1", "c2"])
+        g.set_data([[393, 285], [579, 478], [152, 13]], 1000)
+        canvas = g.render((9, 9))
+        self.assertEqual(len(canvas.text), 9)
+        self.assertEqual([len(line) for line in canvas.text], [9] * 9)
+
 
 class BarGraphTest(unittest.TestCase):
     def bgtest(self, desc, data, top, widths, maxrow, exp):

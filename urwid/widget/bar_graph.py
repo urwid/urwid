@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import bisect
 import math
 import typing
 from collections import deque
@@ -549,7 +550,6 @@ def calculate_bargraph_display(
         Each inner tuple is a run of *width* characters of *bar_type*:
         0 for the background, 1 for the 1st segment, 2 for the 2nd segment and so on.
     :raises BarGraphError: *bardata* and *bar_widths* have different lengths.
-    :raises ValueError: a bar segment falls outside the rendered columns.
 
     This function should complete in approximately O(n+m) time, where
     n is the number of bars displayed and m is the number of rows.
@@ -610,7 +610,10 @@ def calculate_bargraph_display(
     # build rowsets data structure
     rowsets = []
     y_count = 0
+    # The runs of the last distinct row, and the column each one starts at.
+    # The runs tile columns 0..maxcol, and two adjacent runs never have the same type.
     last = [(0, maxcol)]
+    last_cols = [0]
 
     for r in rows:
         if r is None:
@@ -620,56 +623,40 @@ def calculate_bargraph_display(
             rowsets.append((y_count, last))
             y_count = 0
 
-        i = 0  # index into "last"
-        la, ln = last[i]  # last attribute, last run length
-        c = 0  # current column
-        o = []  # output list to be added to rowsets
+        # The segments in r are sorted by column and do not overlap.
+        # The new row is built left to right: runs between the segments are copied in bulk from the last row.
+        runs: list[tuple[int, int]] = []
+        cols: list[int] = []
+        pos = 0  # first run of the last row not copied or replaced yet
         for seg_num, start, end in r:
-            while start > c + ln:
-                o.append((la, ln))
-                i += 1
-                c += ln
-                la, ln = last[i]
-
-            if la == seg_num:
-                # same attribute, can combine
-                o.append((la, end - c))
+            # runs lo..hi-1 start at columns start..end and are replaced; run hi-1 holds the column right of it
+            lo = bisect.bisect_left(last_cols, start, pos)
+            hi = bisect.bisect_right(last_cols, end, lo)
+            runs += last[pos:lo]
+            cols += last_cols[pos:lo]
+            if cols and cols[-1] == start:
+                # the rest of a run split by the previous segment starts where this one does; it is rebuilt below
+                del runs[-1], cols[-1]
+            if runs and runs[-1][0] == seg_num:
+                runs[-1] = (seg_num, end - cols[-1])
             else:
-                if start - c > 0:
-                    o.append((la, start - c))
-                o.append((seg_num, end - start))
-
-            if end == maxcol:
-                i = len(last)
-                break
-
-            # skip past old segments covered by new one
-            while end >= c + ln:
-                i += 1
-                c += ln
-                la, ln = last[i]
-
-            if la != seg_num:
-                ln = c + ln - end
-                c = end
-                continue
-
-            # same attribute, can extend
-            oa, on = o[-1]
-            on += c + ln - end
-            o[-1] = oa, on
-
-            i += 1
-            c += ln
-            if c == maxcol:
-                break
-            if i >= len(last):
-                raise ValueError(repr((on, maxcol)))
-            la, ln = last[i]
-
-        if i < len(last):
-            o += [(la, ln), *last[i + 1 :]]
-        last = o
+                if runs:
+                    runs[-1] = (runs[-1][0], start - cols[-1])
+                runs.append((seg_num, end - start))
+                cols.append(start)
+            if end != maxcol:
+                after_num = last[hi - 1][0]
+                after_end = last_cols[hi] if hi < len(last_cols) else maxcol
+                if after_num == seg_num:
+                    runs[-1] = (seg_num, after_end - cols[-1])
+                else:
+                    runs.append((after_num, after_end - end))
+                    cols.append(end)
+            pos = hi
+        runs += last[pos:]
+        cols += last_cols[pos:]
+        last = runs
+        last_cols = cols
         y_count += 1
 
     if y_count:
