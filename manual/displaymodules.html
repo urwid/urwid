@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 5.0.0</title>
+    <title>Display Modules &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -91,14 +91,14 @@ below.</p>
 </tr>
 <tr class="row-odd"><td><p>compatible with any terminal</p></td>
 <td><p>no</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id6" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id8" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>UTF-8 support</p></td>
 <td><p>YES</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id7" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id9" id="id3" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-odd"><td><p>bright foreground without bold</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id8" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id10" id="id4" role="doc-noteref"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></a></p></td>
 <td><p>no</p></td>
 </tr>
 <tr class="row-even"><td><p>88-/256-/24-bit color support</p></td>
@@ -114,40 +114,126 @@ below.</p>
 <td><p>no</p></td>
 </tr>
 <tr class="row-odd"><td><p>OSC 8 hyperlinks</p></td>
-<td><p>YES <a class="footnote-reference brackets" href="#id9" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a></p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id11" id="id5" role="doc-noteref"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></a></p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p>window title</p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id12" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>5<span class="fn-bracket">]</span></a></p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p>clipboard copy (OSC 52)</p></td>
+<td><p>YES <a class="footnote-reference brackets" href="#id13" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>6<span class="fn-bracket">]</span></a></p></td>
 <td><p>no</p></td>
 </tr>
 </tbody>
 </table>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id6" role="doc-footnote">
+<aside class="footnote brackets" id="id8" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">1</a><span class="fn-bracket">]</span></span>
 <p>if the termcap entry exists and TERM environment variable is set
 correctly</p>
 </aside>
-<aside class="footnote brackets" id="id7" role="doc-footnote">
+<aside class="footnote brackets" id="id9" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">2</a><span class="fn-bracket">]</span></span>
 <p>if python is linked against the wide version of ncurses</p>
 </aside>
-<aside class="footnote brackets" id="id8" role="doc-footnote">
+<aside class="footnote brackets" id="id10" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">3</a><span class="fn-bracket">]</span></span>
 <p>when using xterm or gnome-terminal</p>
 </aside>
-<aside class="footnote brackets" id="id9" role="doc-footnote">
+<aside class="footnote brackets" id="id11" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">4</a><span class="fn-bracket">]</span></span>
 <p>after <code class="docutils literal notranslate"><span class="pre">set_terminal_properties(hyperlinks=True)</span></code>, see <a class="reference internal" href="displayattributes.html#hyperlinks"><span class="std std-ref">Hyperlinks</span></a></p>
 </aside>
+<aside class="footnote brackets" id="id12" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id6">5</a><span class="fn-bracket">]</span></span>
+<p>with <code class="xref py py-meth docutils literal notranslate"><span class="pre">display.raw.Screen.set_title()</span></code>; the previous title comes back
+when the screen stops, on terminals with a title stack and on the Windows console</p>
 </aside>
+<aside class="footnote brackets" id="id13" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id7">6</a><span class="fn-bracket">]</span></span>
+<p>with <code class="xref py py-meth docutils literal notranslate"><span class="pre">display.raw.Screen.copy_to_clipboard()</span></code>, on terminals that support OSC 52</p>
+</aside>
+</aside>
+</section>
+<section id="screens-without-event-loop-support">
+<span id="id14"></span><h2>Screens Without Event Loop Support<a class="headerlink" href="#screens-without-event-loop-support" title="Link to this heading">¶</a></h2>
+<p>The curses and web screens read their input themselves and cannot hand their
+descriptors to an event loop, so <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> drives them with a loop of its
+own that waits in the screen’s <code class="docutils literal notranslate"><span class="pre">get_input()</span></code>.
+Files watched with <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.watch_file" title="urwid.MainLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.watch_file()</span></code></a>, and calls made with
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.call_from_thread()</span></code></a>, are handled when that wait ends.</p>
+<p>The curses screen waits until a key arrives (a window resize counts as one) or the
+next alarm is due, so a worker’s update can wait until the user presses a key.
+Pass <code class="docutils literal notranslate"><span class="pre">poll_interval</span></code> to cut the wait into polls, so they are handled within that
+many seconds:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">screen</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">curses</span><span class="o">.</span><span class="n">Screen</span><span class="p">(),</span> <span class="n">poll_interval</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Each poll wakes the process, which costs CPU time and power while the application is
+idle, so set it only when something has to reach the screen without input, and
+choose the longest interval the application can accept. The shortest is 0.1 seconds,
+since the curses screen waits in tenths of a second.
+An application with an alarm that fires regularly, such as a clock, gets the same
+effect from that alarm.
+On Windows the curses screen cannot stop waiting before a key arrives, so
+<code class="docutils literal notranslate"><span class="pre">poll_interval</span></code> has no effect there.</p>
+<p>The web screen ends its wait every 0.5 seconds by itself, so it needs no
+<code class="docutils literal notranslate"><span class="pre">poll_interval</span></code>, and a shorter one does not make it check sooner.</p>
+<p>The raw display, the default, needs none of this: it waits on all its descriptors and
+the watched files at once.</p>
 </section>
 <section id="other-display-modules">
 <h2>Other Display Modules<a class="headerlink" href="#other-display-modules" title="Link to this heading">¶</a></h2>
+<section id="websocket-display-module-display-websocket">
+<h3>WebSocket Display Module <code class="docutils literal notranslate"><span class="pre">display.websocket</span></code><a class="headerlink" href="#websocket-display-module-display-websocket" title="Link to this heading">¶</a></h3>
+<p>The <a class="reference internal" href="../reference/display_modules.html#module-urwid.display.websocket" title="urwid.display.websocket"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.websocket</span></code></a> module draws your application into a web
+browser page over a WebSocket. It does not depend on an HTTP or WebSocket
+library: a small adapter written for the server library you use connects one
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.Screen" title="urwid.display.websocket.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.websocket.Screen</span></code></a> to each WebSocket connection.</p>
+<ul class="simple">
+<li><p>The adapter serves the page from <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.html_page" title="urwid.display.websocket.html_page"><code class="xref py py-func docutils literal notranslate"><span class="pre">display.websocket.html_page()</span></code></a> and the
+files in <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.STATIC_FILES" title="urwid.display.websocket.STATIC_FILES"><code class="xref py py-data docutils literal notranslate"><span class="pre">display.websocket.STATIC_FILES</span></code></a>.</p></li>
+<li><p>For each connection it creates a screen with a <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.Transport" title="urwid.display.websocket.Transport"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.websocket.Transport</span></code></a>
+that sends text messages over that connection, and a <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> on the
+event loop the server library runs on. It calls <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.start()</span></code></a> instead of
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.run()</span></code></a>, because the server library runs the event loop.</p></li>
+<li><p>It gives each main loop the shared event loop wrapped in a <a class="reference internal" href="../reference/main_loop.html#urwid.GuardedEventLoop" title="urwid.GuardedEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">GuardedEventLoop</span></code></a>
+whose handler closes that session’s screen. Without the wrapper, an exception in one
+session stops the event loop, and with it every session.</p></li>
+<li><p>It passes every message from the browser to <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.Screen.feed" title="urwid.display.websocket.Screen.feed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">display.websocket.Screen.feed()</span></code></a>
+and closes the connection when that raises
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.InvalidMessageError" title="urwid.display.websocket.InvalidMessageError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">display.websocket.InvalidMessageError</span></code></a>.</p></li>
+<li><p>It calls <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.stop()</span></code></a> when the connection closes.</p></li>
+</ul>
+<p>Every session is a live connection: there are no files, pipes or session tokens on
+the server. The screen accepts only the messages its page script sends: a known key
+name, or a window size, in a message of limited length.
+<a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> raised by an input handler ends only the session it was raised in.</p>
+<p>The page has no inline script or style, so it works under a strict
+<code class="docutils literal notranslate"><span class="pre">Content-Security-Policy</span></code>. The screen itself does no access control: the adapter
+checks the <code class="docutils literal notranslate"><span class="pre">Origin</span></code> of each WebSocket handshake, limits the message size and the
+number of sessions, and authenticates users, also on a loopback address, which every
+user of the host can reach.</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/websocket_tornado.py">websocket_tornado.py</a> example is such an adapter for Tornado, with these checks
+in place, a limit on failed logins, and a <a class="reference internal" href="../reference/main_loop.html#urwid.GuardedEventLoop" title="urwid.GuardedEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">GuardedEventLoop</span></code></a> per session.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The example shows how to connect the screen to a server library; it is not a
+production server. Its TLS support only loads a given certificate and key, and it
+was not tested against real clients. Whoever builds a production service is
+responsible for its TLS: the certificates and their renewal, the protocol versions
+and ciphers, and usually a reverse proxy or load balancer that terminates TLS. The
+same holds for authentication beyond the single shared token of the example.</p>
+</div>
+</section>
 <section id="cgi-web-display-module-display-web">
 <h3>CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">display.web</span></code><a class="headerlink" href="#cgi-web-display-module-display-web" title="Link to this heading">¶</a></h3>
 <p>The <a class="reference internal" href="../reference/display_modules.html#module-urwid.display.web" title="urwid.display.web"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.web</span></code></a> module lets you run your application as a CGI
 script under Apache instead of running it in a terminal.</p>
 <p>This module is a proof of concept. There are security and responsiveness issues
 that need to be resolved before this module is recommended for production use.</p>
-<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/tour.py">tour.py</a> and <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/calc.py">calc.py</a> example programs demonstrate use of this module.</p>
+<p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/tour.py">tour.py</a> example program demonstrates use of this module.</p>
 </section>
 <section id="screenshot-display-module-html-fragment">
 <h3>Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code><a class="headerlink" href="#screenshot-display-module-html-fragment" title="Link to this heading">¶</a></h3>
@@ -165,6 +251,9 @@ browser’s text size.</p>
 </section>
 <section id="lcd-display-module-display-lcd">
 <h3>LCD Display Module <code class="docutils literal notranslate"><span class="pre">display.lcd</span></code><a class="headerlink" href="#lcd-display-module-display-lcd" title="Link to this heading">¶</a></h3>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.1.0: </span>The LCD display module will be removed in version 6.0, with no replacement.</p>
+</div>
 <p>Almost any device that displays characters in a grid can be used as a
 screen.  The <code class="xref py py-mod docutils literal notranslate"><span class="pre">display.lcd</span></code> module has some base classes for simple
 LCD character display devices and a complete implementation of a
@@ -178,7 +267,7 @@ LCD character display devices and a complete implementation of a
 </section>
 </section>
 <section id="setting-a-palette">
-<span id="id10"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Link to this heading">¶</a></h2>
+<span id="id15"></span><h2>Setting a Palette<a class="headerlink" href="#setting-a-palette" title="Link to this heading">¶</a></h2>
 <p>The <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> constructor takes a <em>palette</em> parameter that it passes
 to the <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">register_palette()</span></code></a> method of your display module.</p>
 <p>A palette is a list of <a class="reference internal" href="displayattributes.html#display-attributes"><span class="std std-ref">display attribute</span></a> names and foreground
@@ -211,7 +300,9 @@ available.</p>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Display Modules</a><ul>
 <li><a class="reference internal" href="#raw-and-curses-display-modules">Raw and Curses Display Modules</a></li>
+<li><a class="reference internal" href="#screens-without-event-loop-support">Screens Without Event Loop Support</a></li>
 <li><a class="reference internal" href="#other-display-modules">Other Display Modules</a><ul>
+<li><a class="reference internal" href="#websocket-display-module-display-websocket">WebSocket Display Module <code class="docutils literal notranslate"><span class="pre">display.websocket</span></code></a></li>
 <li><a class="reference internal" href="#cgi-web-display-module-display-web">CGI Web Display Module <code class="docutils literal notranslate"><span class="pre">display.web</span></code></a></li>
 <li><a class="reference internal" href="#screenshot-display-module-html-fragment">Screenshot Display Module <code class="docutils literal notranslate"><span class="pre">html_fragment</span></code></a></li>
 <li><a class="reference internal" href="#lcd-display-module-display-lcd">LCD Display Module <code class="docutils literal notranslate"><span class="pre">display.lcd</span></code></a></li>
@@ -266,7 +357,7 @@ available.</p>
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

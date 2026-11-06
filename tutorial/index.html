@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 5.0.0</title>
+    <title>Urwid Tutorial &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -556,7 +556,7 @@ space if the user’s terminal window is large enough.</p></li>
 </a>
 <p>A nested menu effect can be created by having some buttons open new menus.  This program
 lets you choose an option from a nested menu that cascades across the screen.  You may
-return to previous menus by pressing <em>ESC</em>.</p>
+return to the previous menu by pressing <em>ESC</em> or by clicking outside the current menu.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos">  2</span>
 <span class="linenos">  3</span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
@@ -582,7 +582,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 23</span>    <span class="n">contents</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="n">caption</span><span class="p">,</span> <span class="n">choices</span><span class="p">)</span>
 <span class="linenos"> 24</span>
 <span class="linenos"> 25</span>    <span class="k">def</span><span class="w"> </span><span class="nf">open_menu</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 26</span>        <span class="k">return</span> <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
+<span class="linenos"> 26</span>        <span class="k">return</span> <span class="n">open_box</span><span class="p">(</span><span class="n">contents</span><span class="p">)</span>
 <span class="linenos"> 27</span>
 <span class="linenos"> 28</span>    <span class="k">return</span> <span class="n">menu_button</span><span class="p">([</span><span class="n">caption</span><span class="p">,</span> <span class="s2">"..."</span><span class="p">],</span> <span class="n">open_menu</span><span class="p">)</span>
 <span class="linenos"> 29</span>
@@ -598,7 +598,7 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 39</span><span class="k">def</span><span class="w"> </span><span class="nf">item_chosen</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="linenos"> 40</span>    <span class="n">response</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">([</span><span class="s2">"You chose "</span><span class="p">,</span> <span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="s2">"</span><span class="se">\n</span><span class="s2">"</span><span class="p">])</span>
 <span class="linenos"> 41</span>    <span class="n">done</span> <span class="o">=</span> <span class="n">menu_button</span><span class="p">(</span><span class="s2">"Ok"</span><span class="p">,</span> <span class="n">exit_program</span><span class="p">)</span>
-<span class="linenos"> 42</span>    <span class="n">top</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">])))</span>
+<span class="linenos"> 42</span>    <span class="n">open_box</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">response</span><span class="p">,</span> <span class="n">done</span><span class="p">])))</span>
 <span class="linenos"> 43</span>
 <span class="linenos"> 44</span>
 <span class="linenos"> 45</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_program</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
@@ -634,42 +634,29 @@ return to previous menus by pressing <em>ESC</em>.</p>
 <span class="linenos"> 75</span><span class="p">)</span>
 <span class="linenos"> 76</span>
 <span class="linenos"> 77</span>
-<span class="linenos"> 78</span><span class="k">class</span><span class="w"> </span><span class="nc">CascadingBoxes</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">WidgetPlaceholder</span><span class="p">):</span>
-<span class="linenos"> 79</span>    <span class="n">max_box_levels</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="linenos"> 78</span><span class="n">MAX_BOX_LEVELS</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="linenos"> 79</span>
 <span class="linenos"> 80</span>
-<span class="linenos"> 81</span>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 82</span>        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">"/"</span><span class="p">))</span>
-<span class="linenos"> 83</span>        <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">=</span> <span class="mi">0</span>
-<span class="linenos"> 84</span>        <span class="bp">self</span><span class="o">.</span><span class="n">open_box</span><span class="p">(</span><span class="n">box</span><span class="p">)</span>
-<span class="linenos"> 85</span>
-<span class="linenos"> 86</span>    <span class="k">def</span><span class="w"> </span><span class="nf">open_box</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos"> 87</span>        <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span>
-<span class="linenos"> 88</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">LineBox</span><span class="p">(</span><span class="n">box</span><span class="p">),</span>
-<span class="linenos"> 89</span>            <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">,</span>
-<span class="linenos"> 90</span>            <span class="n">align</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span>
-<span class="linenos"> 91</span>            <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RELATIVE</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
-<span class="linenos"> 92</span>            <span class="n">valign</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">MIDDLE</span><span class="p">,</span>
-<span class="linenos"> 93</span>            <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RELATIVE</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
-<span class="linenos"> 94</span>            <span class="n">min_width</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
-<span class="linenos"> 95</span>            <span class="n">min_height</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-<span class="linenos"> 96</span>            <span class="n">left</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
-<span class="linenos"> 97</span>            <span class="n">right</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_box_levels</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
-<span class="linenos"> 98</span>            <span class="n">top</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
-<span class="linenos"> 99</span>            <span class="n">bottom</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_box_levels</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
-<span class="linenos">100</span>        <span class="p">)</span>
-<span class="linenos">101</span>        <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">+=</span> <span class="mi">1</span>
-<span class="linenos">102</span>
-<span class="linenos">103</span>    <span class="k">def</span><span class="w"> </span><span class="nf">keypress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
-<span class="linenos">104</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"esc"</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-<span class="linenos">105</span>            <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="linenos">106</span>            <span class="bp">self</span><span class="o">.</span><span class="n">box_level</span> <span class="o">-=</span> <span class="mi">1</span>
-<span class="linenos">107</span>            <span class="k">return</span> <span class="kc">None</span>
-<span class="linenos">108</span>
-<span class="linenos">109</span>        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">keypress</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-<span class="linenos">110</span>
-<span class="linenos">111</span>
-<span class="linenos">112</span><span class="n">top</span> <span class="o">=</span> <span class="n">CascadingBoxes</span><span class="p">(</span><span class="n">menu_top</span><span class="p">)</span>
-<span class="linenos">113</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">"reversed"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos"> 81</span><span class="k">def</span><span class="w"> </span><span class="nf">open_box</span><span class="p">(</span><span class="n">box</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Widget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos"> 82</span>    <span class="n">level</span> <span class="o">=</span> <span class="n">top</span><span class="o">.</span><span class="n">depth</span>
+<span class="linenos"> 83</span>    <span class="n">top</span><span class="o">.</span><span class="n">open</span><span class="p">(</span>
+<span class="linenos"> 84</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">LineBox</span><span class="p">(</span><span class="n">box</span><span class="p">),</span>
+<span class="linenos"> 85</span>        <span class="n">width</span><span class="o">=</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RELATIVE</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
+<span class="linenos"> 86</span>        <span class="n">height</span><span class="o">=</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RELATIVE</span><span class="p">,</span> <span class="mi">80</span><span class="p">),</span>
+<span class="linenos"> 87</span>        <span class="n">min_width</span><span class="o">=</span><span class="mi">24</span><span class="p">,</span>
+<span class="linenos"> 88</span>        <span class="n">min_height</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+<span class="linenos"> 89</span>        <span class="n">left</span><span class="o">=</span><span class="n">level</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
+<span class="linenos"> 90</span>        <span class="n">right</span><span class="o">=</span><span class="p">(</span><span class="n">MAX_BOX_LEVELS</span> <span class="o">-</span> <span class="n">level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
+<span class="linenos"> 91</span>        <span class="n">top</span><span class="o">=</span><span class="n">level</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+<span class="linenos"> 92</span>        <span class="n">bottom</span><span class="o">=</span><span class="p">(</span><span class="n">MAX_BOX_LEVELS</span> <span class="o">-</span> <span class="n">level</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+<span class="linenos"> 93</span>        <span class="n">close_on_menu</span><span class="o">=</span><span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos"> 94</span>        <span class="n">close_on_click_outside</span><span class="o">=</span><span class="n">level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+<span class="linenos"> 95</span>    <span class="p">)</span>
+<span class="linenos"> 96</span>
+<span class="linenos"> 97</span>
+<span class="linenos"> 98</span><span class="n">top</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">OverlayStack</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SolidFill</span><span class="p">(</span><span class="s2">"/"</span><span class="p">))</span>
+<span class="linenos"> 99</span><span class="n">open_box</span><span class="p">(</span><span class="n">menu_top</span><span class="p">)</span>
+<span class="linenos">100</span><span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">top</span><span class="p">,</span> <span class="n">palette</span><span class="o">=</span><span class="p">[(</span><span class="s2">"reversed"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)])</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
 </pre></div>
 </div>
 <ul class="simple">
@@ -685,20 +672,21 @@ the <em>caption</em> passed to <em>menu_button()</em>.</p></li>
 <li><p><em>menu_top</em> is the top level menu with all of its child menus and
 options built using the functions above.</p></li>
 </ul>
-<p>This example introduces <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a>. <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a> is a
-<a class="reference internal" href="../manual/widgets.html#decoration-widgets"><span class="std std-ref">decoration widget</span></a> that does nothing to the widget it
-decorates.  It is useful if you need a simple way to replace a widget that doesn’t
-involve knowing its position in a <a class="reference internal" href="../manual/widgets.html#container-widgets"><span class="std std-ref">container</span></a>, or in this
-case as a base class for a widget that will be replacing its own contents regularly.</p>
+<p>This example introduces <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack" title="urwid.OverlayStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">OverlayStack</span></code></a>. <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack" title="urwid.OverlayStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">OverlayStack</span></code></a> is a box widget that
+holds a base widget, here a <a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a>, and the dialogs opened on top of it, each one
+an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> over the one below.  <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack.open" title="urwid.OverlayStack.open"><code class="xref py py-meth docutils literal notranslate"><span class="pre">OverlayStack.open()</span></code></a> shows a new dialog on top,
+and <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack.close" title="urwid.OverlayStack.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">OverlayStack.close()</span></code></a> removes the top one to show the previous one again.  Only the top
+dialog receives keys and mouse clicks.  Without the stack, an application builds the chain of
+overlays itself, for example in a <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a>
+(see <a class="reference internal" href="../manual/widgets.html#decoration-widgets"><span class="std std-ref">decoration widgets</span></a>).</p>
 <ul class="simple">
-<li><p><em>CascadingBoxes</em> is a new widget that extends <a class="reference internal" href="../reference/widget.html#urwid.WidgetPlaceholder" title="urwid.WidgetPlaceholder"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetPlaceholder</span></code></a>.
-It provides an <em>open_box()</em> method that displays a box widget <em>box</em> “on top of”
-all the previous content with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> and a <a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">LineBox</span></code></a>.
+<li><p><em>top</em> is the <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack" title="urwid.OverlayStack"><code class="xref py py-class docutils literal notranslate"><span class="pre">OverlayStack</span></code></a>, with a <a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> as its base.</p></li>
+<li><p><em>open_box()</em> opens a box widget <em>box</em> in a <a class="reference internal" href="../reference/widget.html#urwid.LineBox" title="urwid.LineBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">LineBox</span></code></a> on top of the stack.
 The position of each successive box is shifted right and down from the
-previous one.</p></li>
-<li><p><em>CascadingBoxes.keypress()</em> intercepts <em>ESC</em> keys to cause the current box
-to be removed and the previous one to be shown.  This allows the user to
-return to a previous menu level.</p></li>
+previous one, by the number of boxes already open, <a class="reference internal" href="../reference/widget.html#urwid.OverlayStack.depth" title="urwid.OverlayStack.depth"><code class="xref py py-attr docutils literal notranslate"><span class="pre">OverlayStack.depth</span></code></a>.</p></li>
+<li><p>Every box after the first is opened with <em>close_on_menu</em> and <em>close_on_click_outside</em>,
+so it closes when it leaves an <em>ESC</em> key unhandled or when the user clicks outside it.
+This allows the user to return to a previous menu level, while the main menu stays open.</p></li>
 </ul>
 </section>
 <section id="horizontal-menu">
@@ -1071,7 +1059,7 @@ follow as your application grows larger.</p>
         <li class="right" >
           <a href="../examples/index.html" title="Example Programs"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>

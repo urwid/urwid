@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Exceptions &#8212; Urwid 5.0.0</title>
+    <title>Exceptions &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="constants.html" title="Constants"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Exceptions</a></li> 
       </ul>
@@ -82,6 +82,18 @@
 </dd></dl>
 
 <dl class="py exception">
+<dt class="sig sig-object py" id="urwid.TableError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TableError</span></span><a class="headerlink" href="#urwid.TableError" title="Link to this definition">¶</a></dt>
+<dd><p>Table related errors.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="urwid.TabsError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TabsError</span></span><a class="headerlink" href="#urwid.TabsError" title="Link to this definition">¶</a></dt>
+<dd><p>Tabs related errors.</p>
+</dd></dl>
+
+<dl class="py exception">
 <dt class="sig sig-object py" id="urwid.BoxAdapterError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">BoxAdapterError</span></span><a class="headerlink" href="#urwid.BoxAdapterError" title="Link to this definition">¶</a></dt>
 <dd><p>BoxAdapter related errors.</p>
@@ -111,6 +123,15 @@
 <dd><p>Raised for errors in canvas content or canvas cache management.</p>
 </dd></dl>
 
+<dl class="py exception">
+<dt class="sig sig-object py" id="urwid.InputClosedError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">InputClosedError</span></span><a class="headerlink" href="#urwid.InputClosedError" title="Link to this definition">¶</a></dt>
+<dd><p>Raised when the screen’s input reaches end of file.</p>
+<p>A terminal that hangs up is one cause.
+It is a <code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeError</span></code>, so a handler that catches <code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeError</span></code> around <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.run()</span></code></a> catches it
+too.</p>
+</dd></dl>
+
 </section>
 
 
@@ -131,11 +152,14 @@
 <li><a class="reference internal" href="#urwid.ColumnsError"><code class="docutils literal notranslate"><span class="pre">ColumnsError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PileError"><code class="docutils literal notranslate"><span class="pre">PileError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.GridFlowError"><code class="docutils literal notranslate"><span class="pre">GridFlowError</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TableError"><code class="docutils literal notranslate"><span class="pre">TableError</span></code></a></li>
+<li><a class="reference internal" href="#urwid.TabsError"><code class="docutils literal notranslate"><span class="pre">TabsError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.BoxAdapterError"><code class="docutils literal notranslate"><span class="pre">BoxAdapterError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.OverlayError"><code class="docutils literal notranslate"><span class="pre">OverlayError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.TextError"><code class="docutils literal notranslate"><span class="pre">TextError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.EditError"><code class="docutils literal notranslate"><span class="pre">EditError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CanvasError"><code class="docutils literal notranslate"><span class="pre">CanvasError</span></code></a></li>
+<li><a class="reference internal" href="#urwid.InputClosedError"><code class="docutils literal notranslate"><span class="pre">InputClosedError</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -184,7 +208,7 @@
         <li class="right" >
           <a href="constants.html" title="Constants"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Exceptions</a></li> 
       </ul>

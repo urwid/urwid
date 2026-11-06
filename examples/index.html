@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Example Programs &#8212; Urwid 5.0.0</title>
+    <title>Example Programs &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Urwid Tutorial" href="../tutorial/index.html" />
-    <link rel="prev" title="Urwid 5.0.0 Documentation" href="../index.html" /> 
+    <link rel="prev" title="Urwid 5.1.0 Documentation" href="../index.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -30,9 +30,9 @@
           <a href="../tutorial/index.html" title="Urwid Tutorial"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="../index.html" title="Urwid 5.0.0 Documentation"
+          <a href="../index.html" title="Urwid 5.1.0 Documentation"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Example Programs</a></li> 
       </ul>
     </div>  
@@ -86,23 +86,44 @@ and list walker</p>
 </a>
 <p>Monitor and display results from a subprocess</p>
 </section>
+<section id="calc-py">
+<h2>calc.py<a class="headerlink" href="#calc-py" title="Link to this heading">¶</a></h2>
+<a class="reference internal image-reference" href="../_images/calc3.png"><img alt="../_images/calc3.png" height="416" src="../_images/calc3.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/calc4.png"><img alt="../_images/calc4.png" height="416" src="../_images/calc4.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/calc5.png"><img alt="../_images/calc5.png" height="416" src="../_images/calc5.png" width="640" />
+</a>
+<a class="reference internal image-reference" href="../_images/calc6.png"><img alt="../_images/calc6.png" height="416" src="../_images/calc6.png" width="640" />
+</a>
+<p>A calculator with a decimal and a programmer tab over one display of big
+digits, which carries the number shown to the selected tab. It takes numeric
+keypad input, and has a theme pop-up that previews the palette until OK or
+Cancel, and a help dialog. The calculator logic is plain Python, kept apart
+from the user interface in the same file</p>
+</section>
+<section id="notifications-py">
+<h2>notifications.py<a class="headerlink" href="#notifications-py" title="Link to this heading">¶</a></h2>
+<p>Messages of each severity in the footer of a window, each one dismissed after
+five seconds, and a message that stays until it is dismissed</p>
+</section>
+<section id="spinner-py">
+<h2>spinner.py<a class="headerlink" href="#spinner-py" title="Link to this heading">¶</a></h2>
+<p>A spinner for every frame preset, started, stopped, stepped and sped up together</p>
+</section>
 <section id="external-editor-py">
 <h2>external_editor.py<a class="headerlink" href="#external-editor-py" title="Link to this heading">¶</a></h2>
 <p>Hand the terminal to an external editor and show the text written in it</p>
+</section>
+<section id="thread-worker-py">
+<h2>thread_worker.py<a class="headerlink" href="#thread-worker-py" title="Link to this heading">¶</a></h2>
+<p>Run a slow computation on a worker thread and show its progress and result</p>
 </section>
 <section id="palette-test-py">
 <h2>palette_test.py<a class="headerlink" href="#palette-test-py" title="Link to this heading">¶</a></h2>
 <a class="reference internal image-reference" href="../_images/palette_test2.png"><img alt="../_images/palette_test2.png" height="544" src="../_images/palette_test2.png" width="632" />
 </a>
 <p>Show available colors in various screen modes</p>
-</section>
-<section id="pop-up-py">
-<h2>pop_up.py<a class="headerlink" href="#pop-up-py" title="Link to this heading">¶</a></h2>
-<a class="reference internal image-reference" href="../_images/pop_up1.png"><img alt="../_images/pop_up1.png" height="288" src="../_images/pop_up1.png" width="312" />
-</a>
-<a class="reference internal image-reference" href="../_images/pop_up2.png"><img alt="../_images/pop_up2.png" height="288" src="../_images/pop_up2.png" width="312" />
-</a>
-<p>Create a pop-up/drop-down/window anchored to another widget</p>
 </section>
 <section id="bigtext-py">
 <h2>bigtext.py<a class="headerlink" href="#bigtext-py" title="Link to this heading">¶</a></h2>
@@ -131,9 +152,12 @@ and list walker</p>
 <li><a class="reference internal" href="#edit-py">edit.py</a></li>
 <li><a class="reference internal" href="#browse-py">browse.py</a></li>
 <li><a class="reference internal" href="#subproc-py">subproc.py</a></li>
+<li><a class="reference internal" href="#calc-py">calc.py</a></li>
+<li><a class="reference internal" href="#notifications-py">notifications.py</a></li>
+<li><a class="reference internal" href="#spinner-py">spinner.py</a></li>
 <li><a class="reference internal" href="#external-editor-py">external_editor.py</a></li>
+<li><a class="reference internal" href="#thread-worker-py">thread_worker.py</a></li>
 <li><a class="reference internal" href="#palette-test-py">palette_test.py</a></li>
-<li><a class="reference internal" href="#pop-up-py">pop_up.py</a></li>
 <li><a class="reference internal" href="#bigtext-py">bigtext.py</a></li>
 </ul>
 </li>
@@ -143,7 +167,7 @@ and list walker</p>
   <div>
     <h4>Previous topic</h4>
     <p class="topless"><a href="../index.html"
-                          title="previous chapter">Urwid 5.0.0 Documentation</a></p>
+                          title="previous chapter">Urwid 5.1.0 Documentation</a></p>
   </div>
   <div>
     <h4>Next topic</h4>
@@ -181,9 +205,9 @@ and list walker</p>
           <a href="../tutorial/index.html" title="Urwid Tutorial"
              >next</a> |</li>
         <li class="right" >
-          <a href="../index.html" title="Urwid 5.0.0 Documentation"
+          <a href="../index.html" title="Urwid 5.1.0 Documentation"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Example Programs</a></li> 
       </ul>
     </div>

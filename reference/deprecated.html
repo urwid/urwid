@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Deprecated Classes &#8212; Urwid 5.0.0</title>
+    <title>Deprecated Classes &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
@@ -47,7 +47,7 @@
 <h1>Deprecated Classes<a class="headerlink" href="#deprecated-classes" title="Link to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.AttrWrap">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">WrappedWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Hashable</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">AttrWrap</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">WrappedWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_AttrMapLike</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_AttrMapLike</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.AttrWrap" title="Link to this definition">¶</a></dt>
 <dd><p>A special case of the <a class="reference internal" href="widget.html#urwid.AttrMap" title="urwid.AttrMap"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrMap</span></code></a> widget.</p>
 <p>Passes all function calls and variable references on to the wrapped widget.</p>
 <div class="deprecated">
@@ -147,6 +147,13 @@ The name will be removed in version 7.0.</p>
 </dd></dl>
 
 </section>
+<section id="deprecated-modules">
+<h1>Deprecated Modules<a class="headerlink" href="#deprecated-modules" title="Link to this heading">¶</a></h1>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.1.0: </span>The LCD display module <a class="reference internal" href="display_modules.html#module-urwid.display.lcd" title="urwid.display.lcd"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.lcd</span></code></a>, with <a class="reference internal" href="display_modules.html#urwid.display.lcd.CF635Screen" title="urwid.display.lcd.CF635Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">CF635Screen</span></code></a>,
+will be removed in version 6.0, with no replacement.</p>
+</div>
+</section>
 <section id="deprecated-import-paths">
 <h1>Deprecated Import Paths<a class="headerlink" href="#deprecated-import-paths" title="Link to this heading">¶</a></h1>
 <div class="deprecated">
@@ -219,6 +226,7 @@ Support will be removed in version 7.0.</p>
 <li><a class="reference internal" href="#urwid.MetaSuper"><code class="docutils literal notranslate"><span class="pre">MetaSuper</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#deprecated-modules">Deprecated Modules</a></li>
 <li><a class="reference internal" href="#deprecated-import-paths">Deprecated Import Paths</a></li>
 <li><a class="reference internal" href="#deprecated-extension-points">Deprecated Extension Points</a></li>
 </ul>
@@ -267,7 +275,7 @@ Support will be removed in version 7.0.</p>
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>

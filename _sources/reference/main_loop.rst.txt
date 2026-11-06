@@ -8,6 +8,10 @@ MainLoop
 
 .. autoclass:: MainLoop
 
+.. autofunction:: get_running_loop
+
+.. autofunction:: get_running_loop_or_none
+
 SelectEventLoop
 ---------------
 
@@ -42,3 +46,9 @@ ZMQEventLoop
 ------------
 
 .. autoclass:: ZMQEventLoop
+
+GuardedEventLoop
+----------------
+
+.. autoclass:: GuardedEventLoop
+    :members: loop

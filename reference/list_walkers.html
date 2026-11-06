@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>List Walker Classes &#8212; Urwid 5.0.0</title>
+    <title>List Walker Classes &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>
@@ -537,6 +537,155 @@ from the opposite end once full</p></li>
 </dd></dl>
 
 </section>
+<section id="filtering-list-walkers">
+<h2>Filtering List Walkers<a class="headerlink" href="#filtering-list-walkers" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">FilteredListWalker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.ListWalker" title="urwid.ListWalker"><span class="pre">ListWalker</span></a><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">predicate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">wrap_around</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.FilteredListWalker" title="Link to this definition">¶</a></dt>
+<dd><p>A read-only view of a source list walker that shows only the items passing a predicate.</p>
+<p>The positions of the view are the indices of the source, so a position taken from the view
+addresses the same item in <a class="reference internal" href="#urwid.FilteredListWalker.source" title="urwid.FilteredListWalker.source"><code class="xref py py-attr docutils literal notranslate"><span class="pre">source</span></code></a>, and no mapping between two index spaces is needed.
+Items are added, removed and moved through <a class="reference internal" href="#urwid.FilteredListWalker.source" title="urwid.FilteredListWalker.source"><code class="xref py py-attr docutils literal notranslate"><span class="pre">source</span></code></a>; the view has no methods that change the list.
+Every <code class="docutils literal notranslate"><span class="pre">&quot;modified&quot;</span></code> signal of the source re-applies the predicate, and the view emits its own <code class="docutils literal notranslate"><span class="pre">&quot;modified&quot;</span></code>
+once per such rebuild.
+That includes the signal the source’s own <code class="docutils literal notranslate"><span class="pre">set_focus()</span></code> emits; the view never changes the focus of the source.</p>
+<p>The focus of the view stays on the same widget while that widget passes the predicate. When it does not:</p>
+<ul class="simple">
+<li><p>after a change to the source, or <a class="reference internal" href="#urwid.FilteredListWalker.refilter" title="urwid.FilteredListWalker.refilter"><code class="xref py py-meth docutils literal notranslate"><span class="pre">refilter()</span></code></a>, the focus moves to the next visible item
+at or after the old focus position, else to the last visible item;</p></li>
+<li><p>after a change of the predicate, the focus moves to the first visible item.</p></li>
+</ul>
+<p>An empty view has no focus. When the widget focused last becomes visible again, it takes the focus back.</p>
+<p>A predicate that raises leaves the view as it was, except after a change to the source:
+the old positions may no longer exist there, so the view empties itself, emits <code class="docutils literal notranslate"><span class="pre">&quot;modified&quot;</span></code>,
+and the exception reaches the code that changed the source.
+The next change to the source or the predicate fills the view again.</p>
+<p>A rebuild walks the source once, so it is linear in the length of a list or a deque source.
+Reading one item or the focus indexes the source, which is linear for a deque,
+as <a class="reference internal" href="#urwid.SimpleDequeWalker" title="urwid.SimpleDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleDequeWalker</span></code></a> notes.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">words</span> <span class="o">=</span> <span class="p">(</span><span class="s2">"apple"</span><span class="p">,</span> <span class="s2">"pear"</span><span class="p">,</span> <span class="s2">"plum"</span><span class="p">,</span> <span class="s2">"peach"</span><span class="p">,</span> <span class="s2">"fig"</span><span class="p">,</span> <span class="s2">"lime"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">view</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">FilteredListWalker</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">word</span><span class="p">)</span> <span class="k">for</span> <span class="n">word</span> <span class="ow">in</span> <span class="n">words</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">view</span><span class="o">.</span><span class="n">set_focus</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">positions</span><span class="p">())</span>
+<span class="go">[0, 1, 2, 3, 4, 5]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">view</span><span class="o">.</span><span class="n">set_predicate</span><span class="p">(</span><span class="k">lambda</span> <span class="n">widget</span><span class="p">:</span> <span class="n">widget</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">"pe"</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">view</span><span class="o">.</span><span class="n">positions</span><span class="p">())</span>
+<span class="go">[1, 3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">widget</span><span class="p">,</span> <span class="n">position</span> <span class="o">=</span> <span class="n">view</span><span class="o">.</span><span class="n">get_focus</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">widget</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="n">position</span>
+<span class="go">('pear', 1)</span>
+</pre></div>
+</div>
+<p>Create a view of <em>source</em> that shows the items for which <em>predicate</em> returns true.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source</strong> – a list walker that is also a sequence, such as <a class="reference internal" href="#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>,
+<a class="reference internal" href="#urwid.SimpleFocusDequeWalker" title="urwid.SimpleFocusDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a> or their non-focus variants.
+Any other iterable of widgets is copied into a new <a class="reference internal" href="#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>.</p></li>
+<li><p><strong>predicate</strong> – called with each widget of the source; <code class="docutils literal notranslate"><span class="pre">None</span></code> shows every widget.</p></li>
+<li><p><strong>wrap_around</strong> – if true, moving past one end of the visible items continues at the other end.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>TypeError</strong> – <em>source</em> is a list walker that is not a sequence, such as a <a class="reference internal" href="#urwid.TreeWalker" title="urwid.TreeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">TreeWalker</span></code></a>.</p></li>
+<li><p><strong>ListWalkerError</strong> – <em>source</em> is not iterable.</p></li>
+<li><p><strong>Exception</strong> – whatever <em>predicate</em> raises for a widget of <em>source</em>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.get_focus">
+<span class="sig-name descname"><span class="pre">get_focus</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.get_focus" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <code class="docutils literal notranslate"><span class="pre">(widget,</span> <span class="pre">position)</span></code> in focus, or <code class="docutils literal notranslate"><span class="pre">(None,</span> <span class="pre">None)</span></code> when no widget is visible.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.next_position">
+<span class="sig-name descname"><span class="pre">next_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.next_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return the visible position after <em>position</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>IndexError</strong> – there is none and <code class="xref py py-attr docutils literal notranslate"><span class="pre">wrap_around</span></code> is false.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.positions">
+<span class="sig-name descname"><span class="pre">positions</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">reverse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Iterator</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.positions" title="Link to this definition">¶</a></dt>
+<dd><p>Return the visible positions in order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>reverse</strong> – return them from the last to the first.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.predicate">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">predicate</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.FilteredListWalker.predicate" title="Link to this definition">¶</a></dt>
+<dd><p>The function that decides which widgets are visible; <code class="docutils literal notranslate"><span class="pre">None</span></code> shows every widget.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.prev_position">
+<span class="sig-name descname"><span class="pre">prev_position</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">int</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.prev_position" title="Link to this definition">¶</a></dt>
+<dd><p>Return the visible position before <em>position</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>IndexError</strong> – there is none and <code class="xref py py-attr docutils literal notranslate"><span class="pre">wrap_around</span></code> is false.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.refilter">
+<span class="sig-name descname"><span class="pre">refilter</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.refilter" title="Link to this definition">¶</a></dt>
+<dd><p>Apply the predicate again, after widgets of the source changed in place.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>Exception</strong> – whatever the predicate raises; the view then keeps its previous items.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.set_focus">
+<span class="sig-name descname"><span class="pre">set_focus</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.set_focus" title="Link to this definition">¶</a></dt>
+<dd><p>Move the focus to the visible source index <em>position</em>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>IndexError</strong> – <em>position</em> is hidden by the predicate or out of range.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.set_predicate">
+<span class="sig-name descname"><span class="pre">set_predicate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">predicate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.set_predicate" title="Link to this definition">¶</a></dt>
+<dd><p>Replace the predicate and show the widgets that pass it.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>predicate</strong> – called with each widget of the source; <code class="docutils literal notranslate"><span class="pre">None</span></code> shows every widget.</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>Exception</strong> – whatever <em>predicate</em> raises; the view then keeps its previous predicate and items.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.FilteredListWalker.source">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">source</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span><a class="headerlink" href="#urwid.FilteredListWalker.source" title="Link to this definition">¶</a></dt>
+<dd><p>The list walker whose items the view shows, and the one to add, remove or move items through.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="treewalker-and-nodes">
 <h2>TreeWalker and Nodes<a class="headerlink" href="#treewalker-and-nodes" title="Link to this heading">¶</a></h2>
 <dl class="py class">
@@ -874,6 +1023,21 @@ The walk stops at an ancestor whose class overrides this method, and uses the de
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#filtering-list-walkers">Filtering List Walkers</a><ul>
+<li><a class="reference internal" href="#urwid.FilteredListWalker"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.get_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.next_position"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.next_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.positions"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.positions()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.predicate"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.predicate</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.prev_position"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.prev_position()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.refilter"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.refilter()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.set_focus"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.set_focus()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.set_predicate"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.set_predicate()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.FilteredListWalker.source"><code class="docutils literal notranslate"><span class="pre">FilteredListWalker.source</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a class="reference internal" href="#treewalker-and-nodes">TreeWalker and Nodes</a><ul>
 <li><a class="reference internal" href="#urwid.TreeWalker"><code class="docutils literal notranslate"><span class="pre">TreeWalker</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.TreeWalker.get_focus"><code class="docutils literal notranslate"><span class="pre">TreeWalker.get_focus()</span></code></a></li>
@@ -966,7 +1130,7 @@ The walk stops at an ancestor whose class overrides this method, and uses the de
         <li class="right" >
           <a href="display_modules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">List Walker Classes</a></li> 
       </ul>

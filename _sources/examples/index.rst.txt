@@ -64,10 +64,48 @@ subproc.py
 Monitor and display results from a subprocess
 
 
+calc.py
+-------
+
+.. image:: calc3.png
+   :scale: 50%
+.. image:: calc4.png
+   :scale: 50%
+.. image:: calc5.png
+   :scale: 50%
+.. image:: calc6.png
+   :scale: 50%
+
+A calculator with a decimal and a programmer tab over one display of big
+digits, which carries the number shown to the selected tab. It takes numeric
+keypad input, and has a theme pop-up that previews the palette until OK or
+Cancel, and a help dialog. The calculator logic is plain Python, kept apart
+from the user interface in the same file
+
+
+notifications.py
+----------------
+
+Messages of each severity in the footer of a window, each one dismissed after
+five seconds, and a message that stays until it is dismissed
+
+
+spinner.py
+----------
+
+A spinner for every frame preset, started, stopped, stepped and sped up together
+
+
 external_editor.py
 ------------------
 
 Hand the terminal to an external editor and show the text written in it
+
+
+thread_worker.py
+----------------
+
+Run a slow computation on a worker thread and show its progress and result
 
 
 palette_test.py
@@ -77,17 +115,6 @@ palette_test.py
    :scale: 50%
 
 Show available colors in various screen modes
-
-
-pop_up.py
----------
-
-.. image:: pop_up1.png
-   :scale: 50%
-.. image:: pop_up2.png
-   :scale: 50%
-
-Create a pop-up/drop-down/window anchored to another widget
 
 
 bigtext.py

@@ -15,6 +15,10 @@ Exceptions
 
 .. autoexception:: GridFlowError
 
+.. autoexception:: TableError
+
+.. autoexception:: TabsError
+
 .. autoexception:: BoxAdapterError
 
 .. autoexception:: OverlayError
@@ -24,3 +28,5 @@ Exceptions
 .. autoexception:: EditError
 
 .. autoexception:: CanvasError
+
+.. autoexception:: InputClosedError

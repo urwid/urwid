@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Command Map &#8212; Urwid 5.0.0</title>
+    <title>Command Map &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>
@@ -71,20 +71,32 @@
 <p>Only containers created with <code class="docutils literal notranslate"><span class="pre">select_navigation=True</span></code> handle <code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">selectable'</span></code> and
 <code class="docutils literal notranslate"><span class="pre">'prev</span> <span class="pre">selectable'</span></code>, see <a class="reference internal" href="../manual/widgets.html#select-navigation"><span class="std std-ref">Moving the Focus with Tab</span></a>.</p>
 <p><a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> also handles these readline-style commands, which no key is mapped to by default:
-<code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">right'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">right'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">right'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">start'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">end'</span></code>,
+<code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">right'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">space</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">char</span> <span class="pre">right'</span></code>,
 <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code> and <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code>.
-A word is a run of letters, digits and underscores, and a line ends at a newline.</p>
+A word is a run of letters, digits and underscores, and a line ends at a newline.
+<a class="reference internal" href="#urwid.CommandMap.bind_readline" title="urwid.CommandMap.bind_readline"><code class="xref py py-meth docutils literal notranslate"><span class="pre">bind_readline()</span></code></a> maps the usual readline keys to them.
+An <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> with an undo history handles <code class="docutils literal notranslate"><span class="pre">'undo'</span></code> and <code class="docutils literal notranslate"><span class="pre">'redo'</span></code>, see <a class="reference internal" href="widget.html#urwid.Edit.undo_limit" title="urwid.Edit.undo_limit"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Edit.undo_limit</span></code></a>.
+An <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> with a kill buffer handles <code class="docutils literal notranslate"><span class="pre">'yank'</span></code>, see <a class="reference internal" href="widget.html#urwid.Edit.kill_buffer" title="urwid.Edit.kill_buffer"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Edit.kill_buffer</span></code></a>.
+An <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> with a text completer handles <code class="docutils literal notranslate"><span class="pre">'complete</span> <span class="pre">next'</span></code> and <code class="docutils literal notranslate"><span class="pre">'complete</span> <span class="pre">previous'</span></code>, which no key is
+mapped to by default either; see <a class="reference internal" href="widget.html#urwid.Edit.text_completer" title="urwid.Edit.text_completer"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Edit.text_completer</span></code></a>.
+<a class="reference internal" href="widget.html#urwid.Tabs" title="urwid.Tabs"><code class="xref py py-class docutils literal notranslate"><span class="pre">Tabs</span></code></a> handles <code class="docutils literal notranslate"><span class="pre">'next</span> <span class="pre">tab'</span></code> and <code class="docutils literal notranslate"><span class="pre">'previous</span> <span class="pre">tab'</span></code>, and no key is mapped to them by default.</p>
 <ul class="simple">
 <li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code> stops at punctuation, as readline’s <code class="docutils literal notranslate"><span class="pre">backward-kill-word</span></code> (<kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">backspace</kbd>) does,
-except that an underscore is part of a word here.
-It is not bash’s <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">w</kbd> (<code class="docutils literal notranslate"><span class="pre">unix-word-rubout</span></code>), which deletes back to the previous whitespace.</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code> and <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code> work on lines that end at a newline.
+except that an underscore is part of a word here.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">space</span> <span class="pre">word</span> <span class="pre">left'</span></code> deletes back to the previous whitespace, as bash’s <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">w</kbd>
+(<code class="docutils literal notranslate"><span class="pre">unix-word-rubout</span></code>) does.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">start'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">end'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code> and <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code>
+work on lines that end at a newline.
 <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">left'</span></code> and <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">max</span> <span class="pre">right'</span></code> move to the edge of the screen row instead,
-so on a wrapped line they stop earlier than the deletes reach.</p></li>
+so on a wrapped line they stop earlier.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">char</span> <span class="pre">right'</span></code> deletes the character under the cursor, as <kbd class="kbd docutils literal notranslate">delete</kbd> does.</p></li>
 </ul>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span> <span class="o">=</span> <span class="n">CommandMap</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">WORD_LEFT</span><span class="p">,</span> <span class="s2">"meta b"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">DELETE_TO_LINE_START</span><span class="p">,</span> <span class="s2">"ctrl u"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">COMPLETE_NEXT</span><span class="p">,</span> <span class="s2">"ctrl f"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">Command</span><span class="o">.</span><span class="n">NEXT_TAB</span><span class="p">,</span> <span class="s2">"meta right"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Initialize the command map with the class’s default key-to-command bindings.</p>
@@ -112,6 +124,64 @@ Item assignment (<code class="docutils literal notranslate"><span class="pre">co
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>ValueError</strong> – a key in <code class="docutils literal notranslate"><span class="pre">keys</span></code> is already bound to a different command;
 the command map is left unchanged.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.CommandMap.bind_readline">
+<span class="sig-name descname"><span class="pre">bind_readline</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.CommandMap.bind_readline" title="Link to this definition">¶</a></dt>
+<dd><p>Bind the readline editing keys to the commands <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> handles.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>keys</p></th>
+<th class="head"><p>commands</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">a</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">e</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">start'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">line</span> <span class="pre">end'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">b</kbd>, <kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">f</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'cursor</span> <span class="pre">word</span> <span class="pre">right'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">backspace</kbd>, <kbd class="kbd docutils literal notranslate">meta</kbd> <kbd class="kbd docutils literal notranslate">d</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">left'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">word</span> <span class="pre">right'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">u</kbd>, <kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">k</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">start</span> <span class="pre">of</span> <span class="pre">line'</span></code>, <code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">to</span> <span class="pre">end</span> <span class="pre">of</span> <span class="pre">line'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">w</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">space</span> <span class="pre">word</span> <span class="pre">left'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">d</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'delete</span> <span class="pre">char</span> <span class="pre">right'</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">_</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'undo'</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><kbd class="kbd docutils literal notranslate">ctrl</kbd> <kbd class="kbd docutils literal notranslate">y</kbd></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'yank'</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>No other widget handles these commands, so the keys reach the containers above an <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> unchanged,
+and the shared command map can take them.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span> <span class="o">=</span> <span class="n">CommandMap</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind_readline</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="p">[</span><span class="s2">"ctrl a"</span><span class="p">]</span>
+<span class="go">&lt;Command.LINE_START: 'cursor line start'&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="p">[</span><span class="s2">"ctrl k"</span><span class="p">]</span> <span class="o">=</span> <span class="s2">"kill"</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cm</span><span class="o">.</span><span class="n">bind_readline</span><span class="p">()</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">ValueError</span>: <span class="n">Key 'ctrl k' is already bound to 'kill', cannot also bind it to 'delete to end of line'</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – one of the keys is already bound to a different command; the command map is left
+unchanged.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -152,6 +222,7 @@ the command map is left unchanged.</p>
 <li><a class="reference internal" href="#">Command Map</a><ul>
 <li><a class="reference internal" href="#urwid.CommandMap"><code class="docutils literal notranslate"><span class="pre">CommandMap</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.CommandMap.bind"><code class="docutils literal notranslate"><span class="pre">CommandMap.bind()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.CommandMap.bind_readline"><code class="docutils literal notranslate"><span class="pre">CommandMap.bind_readline()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.clear_command"><code class="docutils literal notranslate"><span class="pre">CommandMap.clear_command()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.copy"><code class="docutils literal notranslate"><span class="pre">CommandMap.copy()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.CommandMap.restore_defaults"><code class="docutils literal notranslate"><span class="pre">CommandMap.restore_defaults()</span></code></a></li>
@@ -205,7 +276,7 @@ the command map is left unchanged.</p>
         <li class="right" >
           <a href="text_layout.html" title="Text Layout Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Command Map</a></li> 
       </ul>

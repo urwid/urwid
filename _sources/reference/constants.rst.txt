@@ -130,6 +130,26 @@ Text Wrapping Modes
    character at the end
 
 
+Validation
+----------
+
+Used by the validator of an :class:`Edit` to report what is wrong with its
+text, and by :class:`Notifications` to colour a message.
+
+.. autoclass:: Severity
+
+.. autoclass:: ValidationMessage
+
+
+Mouse buttons
+-------------
+
+The *button* of a mouse event, see :ref:`mouse-input`.
+
+.. autoclass:: MouseButton
+   :undoc-members:
+
+
 Foreground and Background Colors
 --------------------------------
 
@@ -232,6 +252,10 @@ Signal Names
    :class:`display.raw.Screen`) when a palette entry is changed.
    :class:`MainLoop` handles this signal by redrawing the whole
    screen.
+
+   An entry that :meth:`BaseScreen.register_palette` removes with ``replace=True``
+   is sent with the specifications it is drawn with from then on: the terminal's
+   default colors.
 
 .. data:: INPUT_DESCRIPTORS_CHANGED
    :annotation: = 'input descriptors changed'

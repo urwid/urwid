@@ -64,6 +64,9 @@ TreeWidget
 
 .. autoclass:: TreeWidget
 
+.. autoclass:: urwid.widget.treetools.TreeSymbols
+   :undoc-members:
+
 
 .. currentmodule:: urwid.numedit
 
@@ -172,6 +175,16 @@ PopUpTarget
 Special Widget Classes
 ----------------------
 
+Notifications
+~~~~~~~~~~~~~
+
+.. autoclass:: Notifications
+
+Notification
+~~~~~~~~~~~~
+
+.. autoclass:: Notification
+
 WidgetDisable
 ~~~~~~~~~~~~~
 
@@ -215,6 +228,33 @@ GridFlow
 
 .. autoclass:: GridFlow
 
+Table
+~~~~~
+
+.. autoclass:: Table
+
+TableRow
+~~~~~~~~
+
+.. autoclass:: TableRow
+
+TableColumn
+~~~~~~~~~~~
+
+.. autoclass:: TableColumn
+
+TableLayout
+~~~~~~~~~~~
+
+.. autoclass:: urwid.widget.TableLayout
+
+Tabs
+~~~~
+
+.. autoclass:: Tabs
+
+.. autoclass:: urwid.widget.tabs.TabsSymbols
+
 BoxAdapter
 ~~~~~~~~~~
 
@@ -224,6 +264,11 @@ Overlay
 ~~~~~~~
 
 .. autoclass:: Overlay
+
+OverlayStack
+~~~~~~~~~~~~
+
+.. autoclass:: OverlayStack
 
 Graphic Widget Classes
 ----------------------
@@ -242,6 +287,13 @@ ProgressBar
 ~~~~~~~~~~~
 
 .. autoclass:: ProgressBar
+
+Spinner
+~~~~~~~
+
+.. autoclass:: Spinner
+
+.. autoclass:: urwid.widget.spinner.SpinnerFrames
 
 BigText
 ~~~~~~~

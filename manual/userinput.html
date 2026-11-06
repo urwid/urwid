@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Input &#8212; Urwid 5.0.0</title>
+    <title>User Input &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
@@ -103,6 +103,9 @@ are sent.</p>
 </tr>
 </tbody>
 </table>
+<p>A control sequence that Urwid does not recognise is returned as a single key
+holding the characters after <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span></code>, so that its characters are not received
+as typed text: <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">1;2X</span></code> returns <code class="docutils literal notranslate"><span class="pre">'&lt;csi</span> <span class="pre">1;2X&gt;'</span></code>.</p>
 <p>With Unicode <a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a> you will also receive
 Unicode strings for any non-ASCII characters:</p>
 <table class="docutils align-default">
@@ -248,6 +251,9 @@ main loop starts, and put the old settings back once it ends:</p>
         <span class="n">screen</span><span class="o">.</span><span class="n">tty_signal_keys</span><span class="p">(</span><span class="o">*</span><span class="n">old_keys</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>CTRL+V, CTRL+O and CTRL+Y need no such call: the raw and curses displays
+turn the <code class="docutils literal notranslate"><span class="pre">IEXTEN</span></code> line discipline extensions off themselves, as the
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">Screen</span></code></a> documentation describes.</p>
 <p>The screen does not undo the change when it stops, which is what the
 <code class="docutils literal notranslate"><span class="pre">finally</span></code> block is for. A shell such as bash puts its own tty settings back
 when CTRL+Z suspends the program, so after a resume CTRL+S and CTRL+Q are flow
@@ -262,50 +268,99 @@ and CTRL+Z from raising signals, as <code class="docutils literal notranslate"><
 <p>Mouse input is sent as a (<em>event</em>, <em>button</em>, <em>x</em>, <em>y</em>) tuple. <em>event</em> is a string
 describing the event. If the <em>SHIFT</em>, <em>ALT</em> or <em>CTRL</em> keys are held when a mouse
 event is sent then <em>event</em> may be prefixed by <code class="docutils literal notranslate"><span class="pre">'shift</span> <span class="pre">'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">'</span></code> or
-<code class="docutils literal notranslate"><span class="pre">'ctrl'</span></code>. <em>button</em> is a number from 1 to 5. <em>x</em> and <em>y</em> are character
-coordinates starting from <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> at the top-left of the screen.</p>
+<code class="docutils literal notranslate"><span class="pre">'ctrl'</span></code>. <em>button</em> is a number, named by <a class="reference internal" href="../reference/constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a>. <em>x</em> and <em>y</em>
+are character coordinates starting from <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> at the top-left of the
+screen.</p>
 <p>Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don’t have a middle mouse button, so these shouldn’t
 be relied on.</p>
+<p>The side buttons (8 and 9) reach the application only in some terminals:
+VTE-based terminals such as GNOME Terminal report them, Konsole does not, and
+the terminal of an IDE such as PyCharm uses them for its own navigation and
+does not pass them on. Offer another way to do what they do.</p>
 <section id="mouse-press-events">
 <h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events<a class="headerlink" href="#mouse-press-events" title="Link to this heading">¶</a></h3>
 <p>A mouse button was pressed.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p><cite>button</cite> number</p></th>
+<th class="head"><p><a class="reference internal" href="../reference/constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a> member</p></th>
 <th class="head"><p>Mouse button</p></th>
 </tr>
 </thead>
 <tbody>
 <tr class="row-even"><td><p>1</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">LEFT</span></code></p></td>
 <td><p>Left button</p></td>
 </tr>
 <tr class="row-odd"><td><p>2</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MIDDLE</span></code></p></td>
 <td><p>Middle button</p></td>
 </tr>
 <tr class="row-even"><td><p>3</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">RIGHT</span></code></p></td>
 <td><p>Right button</p></td>
 </tr>
 <tr class="row-odd"><td><p>4</p></td>
-<td><p>Scroll wheel up <a class="footnote-reference brackets" href="#first" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WHEEL_UP</span></code></p></td>
+<td><p>Scroll wheel up <a class="footnote-reference brackets" href="#wheel" id="id6" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
 </tr>
 <tr class="row-even"><td><p>5</p></td>
-<td><p>Scroll wheel down <a class="footnote-reference brackets" href="#first" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WHEEL_DOWN</span></code></p></td>
+<td><p>Scroll wheel down <a class="footnote-reference brackets" href="#wheel" id="id7" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WHEEL_LEFT</span></code></p></td>
+<td><p>Scroll wheel left <a class="footnote-reference brackets" href="#wheel" id="id8" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>7</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">WHEEL_RIGHT</span></code></p></td>
+<td><p>Scroll wheel right <a class="footnote-reference brackets" href="#wheel" id="id9" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>8</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">BACK</span></code></p></td>
+<td><p>Back, the first side button <a class="footnote-reference brackets" href="#side" id="id10" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>9</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">FORWARD</span></code></p></td>
+<td><p>Forward, the second side button <a class="footnote-reference brackets" href="#side" id="id11" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p></td>
 </tr>
 </tbody>
 </table>
+<p>Buttons 10 and 11 have no name: <code class="docutils literal notranslate"><span class="pre">MouseButton(10)</span></code> returns a member named
+<code class="docutils literal notranslate"><span class="pre">BUTTON_10</span></code>.</p>
+<p>Which buttons arrive depends on the screen:</p>
+<ul class="simple">
+<li><p>the raw screen (<a class="reference internal" href="../reference/display_modules.html#module-urwid.display.raw" title="urwid.display.raw"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.raw</span></code></a>) decodes 1 to 11 from the
+terminal’s mouse reports;</p></li>
+<li><p>the curses screen delivers 1 to 5, the buttons Python’s <code class="xref py py-mod docutils literal notranslate"><span class="pre">curses</span></code>
+defines;</p></li>
+<li><p>GPM, the Linux console mouse, delivers 1 to 3.</p></li>
+</ul>
+<p>A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
+and buttons 8 to 11 by adding 128, as described in the “Mouse Tracking”
+section of <a class="reference external" href="https://invisible-island.net/xterm/ctlseqs/ctlseqs.html">XTerm Control Sequences</a>.</p>
 <aside class="footnote-list brackets">
-<aside class="footnote brackets" id="first" role="doc-footnote">
+<aside class="footnote brackets" id="wheel" role="doc-footnote">
 <span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
-<span class="backrefs">(<a role="doc-backlink" href="#id6">1</a>,<a role="doc-backlink" href="#id7">2</a>)</span>
-<p>typically no corresponding release event is sent</p>
+<span class="backrefs">(<a role="doc-backlink" href="#id6">1</a>,<a role="doc-backlink" href="#id7">2</a>,<a role="doc-backlink" href="#id8">3</a>,<a role="doc-backlink" href="#id9">4</a>)</span>
+<p>A terminal sends no release event for the wheel. The curses screen
+may send a release of 4 or 5.</p>
+</aside>
+<aside class="footnote brackets" id="side" role="doc-footnote">
+<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
+<span class="backrefs">(<a role="doc-backlink" href="#id10">1</a>,<a role="doc-backlink" href="#id11">2</a>)</span>
+<p>The conventional meaning of buttons 8 and 9 under X11 and libinput,
+which a user’s device mapping can change.</p>
 </aside>
 </aside>
 </section>
 <section id="mouse-release-events">
 <h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events<a class="headerlink" href="#mouse-release-events" title="Link to this heading">¶</a></h3>
-<p>Mouse release events will often not have information about which button was
-released. In this case <em>button</em> will be set to 0.</p>
+<p>A mouse button was released. <em>button</em> names the released button in an SGR
+mouse report (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">&lt;</span> <span class="pre">...</span> <span class="pre">m</span></code>), on the curses screen and from GPM.
+A terminal that sends X10 mouse reports (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">M</span> <span class="pre">...</span></code>) does not say which
+button was released, and <em>button</em> is then 0, <a class="reference internal" href="../reference/constants.html#urwid.MouseButton.UNKNOWN" title="urwid.MouseButton.UNKNOWN"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MouseButton.UNKNOWN</span></code></a>.</p>
 </section>
 <section id="mouse-drag-events">
 <h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">drag'</span></code> Events<a class="headerlink" href="#mouse-drag-events" title="Link to this heading">¶</a></h3>
@@ -388,7 +443,7 @@ one position off the screen if the user drags their mouse to the edge.</p>
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 5.0.0</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -49,7 +49,7 @@
 <h2>MainLoop<a class="headerlink" href="#mainloop" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.MainLoop">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MainLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">PaletteEntry</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><span class="pre">BaseScreen</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle_mouse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unhandled_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop_ups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MainLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">palette</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">PaletteEntry</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screen</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><span class="pre">BaseScreen</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handle_mouse</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_filter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unhandled_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pop_ups</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">poll_interval</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MainLoop" title="Link to this definition">¶</a></dt>
 <dd><p>This is the standard main loop implementation for a single interactive session.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -70,6 +70,10 @@ stored as <a class="reference internal" href="#urwid.MainLoop.event_loop" title=
 <li><p><strong>pop_ups</strong> – <cite>True</cite> to wrap <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a> with a <a class="reference internal" href="widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>
 instance to allow any widget to open a pop-up anywhere on the screen;
 required by <a class="reference internal" href="widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> and other <a class="reference internal" href="widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> widgets</p></li>
+<li><p><strong>poll_interval</strong> – seconds between checks of watched files and <a class="reference internal" href="#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> calls
+while the curses screen waits for input, except on Windows; stored as <a class="reference internal" href="#urwid.MainLoop.poll_interval" title="urwid.MainLoop.poll_interval"><code class="xref py py-attr docutils literal notranslate"><span class="pre">poll_interval</span></code></a>.
+<code class="docutils literal notranslate"><span class="pre">None</span></code>, the default, checks them only after input or an alarm.
+See <a class="reference internal" href="../manual/displaymodules.html#screens-without-event-loop-support"><span class="std std-ref">Screens Without Event Loop Support</span></a>.</p></li>
 </ul>
 </dd>
 </dl>
@@ -96,9 +100,42 @@ and how it runs one. <a class="reference internal" href="#urwid.MainLoop.set_ala
 <p>Set up the main loop around a top-level widget, a screen and an event loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>NotImplementedError</strong> – an <em>event_loop</em> is given but <em>screen</em> does not support external event loops.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>NotImplementedError</strong> – an <em>event_loop</em> is given but <em>screen</em> does not support external event loops.</p></li>
+<li><p><strong>ValueError</strong> – <em>poll_interval</em> is not <code class="docutils literal notranslate"><span class="pre">None</span></code> or a finite number of seconds of at least 0.1.</p></li>
+</ul>
 </dd>
 </dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.MainLoop.call_from_thread">
+<span class="sig-name descname"><span class="pre">call_from_thread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.call_from_thread" title="Link to this definition">¶</a></dt>
+<dd><p>Run <code class="docutils literal notranslate"><span class="pre">callback(*args,</span> <span class="pre">**kwargs)</span></code> on the thread running the event loop, soon.</p>
+<p>Safe to call from any thread, and from a signal handler.
+A signal handler catches the <code class="xref py py-exc docutils literal notranslate"><span class="pre">RuntimeError</span></code>: the signal can arrive while the loop stops.
+The callback runs on the loop thread with this loop as the running loop, like an alarm callback:</p>
+<ul class="simple">
+<li><p>a widget it changes is drawn on the way back to idle;</p></li>
+<li><p><a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> raised by it stops the loop;</p></li>
+<li><p>any other exception is logged, and the loop goes on.</p></li>
+</ul>
+<p>Calls run in the order they were made.
+Called on the loop thread itself, it defers the callback the same way instead of running it at once.
+Calls still queued when the loop stops are dropped.
+With a screen that has no event loop support, such as the curses screen,
+a call waits for the next input or alarm, or up to <a class="reference internal" href="#urwid.MainLoop.poll_interval" title="urwid.MainLoop.poll_interval"><code class="xref py py-attr docutils literal notranslate"><span class="pre">poll_interval</span></code></a> seconds when it is set,
+except on Windows.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TypeError</strong> – <em>callback</em> is an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> function, which this method cannot await.</p></li>
+<li><p><strong>RuntimeError</strong> – the loop is not running: before <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> or <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, or after <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a>.
+Also while it runs on an event loop that cannot watch files,
+such as <a class="reference internal" href="#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a> on asyncio’s <code class="docutils literal notranslate"><span class="pre">ProactorEventLoop</span></code>, the default on Windows.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.draw_screen">
 <span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.draw_screen" title="Link to this definition">¶</a></dt>
@@ -112,9 +149,9 @@ you will need to call this method yourself to repaint the screen.</p>
 <div class="admonition important">
 <p class="admonition-title">Important</p>
 <p>Call it only from the thread running the event loop, like every other widget and screen change.
-Another thread hands the work over instead: it writes to a <a class="reference internal" href="#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a> descriptor,
-or uses the event loop’s own thread-safe scheduling, such as <code class="docutils literal notranslate"><span class="pre">loop.call_soon_threadsafe()</span></code> in asyncio.</p>
+Another thread hands the work over with <a class="reference internal" href="#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> instead.</p>
 </div>
+<p>The widgets render with this loop as the running loop, also when the loop is not started.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -165,6 +202,15 @@ stopping it ends the browser session, and starting it again reads a new client r
 </dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="urwid.MainLoop.poll_interval">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">poll_interval</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><a class="headerlink" href="#urwid.MainLoop.poll_interval" title="Link to this definition">¶</a></dt>
+<dd><p>Seconds between checks of watched files while the curses screen waits for input, or <code class="docutils literal notranslate"><span class="pre">None</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">None</span></code> checks them only after input or an alarm.
+A change takes effect at the next wait for input, also while the loop runs.
+See <a class="reference internal" href="../manual/displaymodules.html#screens-without-event-loop-support"><span class="std std-ref">Screens Without Event Loop Support</span></a>.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="urwid.MainLoop.pop_ups">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">pop_ups</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">bool</span></span><a class="headerlink" href="#urwid.MainLoop.pop_ups" title="Link to this definition">¶</a></dt>
 <dd><p>Return whether pop-up widgets opened via <a class="reference internal" href="widget.html#urwid.PopUpLauncher" title="urwid.PopUpLauncher"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpLauncher</span></code></a> are shown automatically.</p>
@@ -176,7 +222,8 @@ stopping it ends the browser session, and starting it again reads a new client r
 <dd><p>Pass keyboard input and mouse events to <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a>.</p>
 <p>This method is called automatically from the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method when
 there is input, but may also be called to simulate input from the user.</p>
-<p><em>keys</em> is a list of input returned from <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a>’s get_input() method or its event loop hook.</p>
+<p><em>keys</em> is a list of input returned from <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a>’s get_input() method or its event loop hook.
+The widgets handle it with this loop as the running loop, also when the loop is not started.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if any key was handled by a widget or the <a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">unhandled_input()</span></code></a> method.</p>
@@ -305,6 +352,8 @@ which will stop the loop automatically at the end of the block:</p>
 specially if you manage the event loop yourself.  In particular, the
 Twisted and asyncio loops won’t stop automatically when
 <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> (or anything else) is raised.</p>
+<p>Once started, the loop is what <a class="reference internal" href="#urwid.get_running_loop" title="urwid.get_running_loop"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_running_loop()</span></code></a> returns in the caller’s thread and task,
+and in everything that copies their context, and it accepts <a class="reference internal" href="#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>CantUseExternalLoop</strong> – the screen does not support external event loops.</p>
@@ -317,6 +366,7 @@ Twisted and asyncio loops won’t stop automatically when
 <span class="sig-name descname"><span class="pre">stop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.MainLoop.stop" title="Link to this definition">¶</a></dt>
 <dd><p>Clean up any hooks added to the event loop.</p>
 <p>Only call this if you’re managing the event loop yourself, after the loop stops.</p>
+<p>The loop stops being the running loop everywhere <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> made it one, also when a cleanup step raises.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -340,9 +390,14 @@ the input.</p>
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><em>callback</em> is passed to <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> unwrapped, so it may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code>
-function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> implementation that supports one; see the note on
-<a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+<p><em>callback</em> may be an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a>
+implementation that supports one; see the note on <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>With a screen that has no event loop support, such as the curses screen,
+<em>fd</em> is checked after input or an alarm, and every <a class="reference internal" href="#urwid.MainLoop.poll_interval" title="urwid.MainLoop.poll_interval"><code class="xref py py-attr docutils literal notranslate"><span class="pre">poll_interval</span></code></a> seconds when it is set,
+except on Windows.</p>
 </div>
 </dd></dl>
 
@@ -359,7 +414,8 @@ function on an <a class="reference internal" href="#urwid.MainLoop.event_loop" t
 The read end of the pipe is added to the list of files <a class="reference internal" href="#urwid.MainLoop.event_loop" title="urwid.MainLoop.event_loop"><code class="xref py py-attr docutils literal notranslate"><span class="pre">event_loop</span></code></a> is watching.
 When data is written to the pipe the callback function will be called
 and passed a single value containing data read from the pipe.</p>
-<p>This method may be used any time you want to update widgets from another thread or subprocess.</p>
+<p>This method may be used any time you want to update widgets from a subprocess.
+Another thread hands work to the loop with <a class="reference internal" href="#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> instead.</p>
 <p>Data may be written to the returned file descriptor with <code class="docutils literal notranslate"><span class="pre">os.write(fd,</span> <span class="pre">data)</span></code>.
 Ensure that data is less than 512 bytes (or 4K on Linux)
 so that the callback will be triggered just once with the complete value of data passed in.</p>
@@ -381,6 +437,32 @@ implementation that supports one; see the note on <a class="reference internal" 
 <p>This must be a box widget.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.get_running_loop">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">get_running_loop</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.MainLoop" title="urwid.event_loop.main_loop.MainLoop"><span class="pre">MainLoop</span></a></span></span><a class="headerlink" href="#urwid.get_running_loop" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> running in the current thread or task.</p>
+<p>It is the loop <a class="reference internal" href="#urwid.get_running_loop_or_none" title="urwid.get_running_loop_or_none"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_running_loop_or_none()</span></code></a> finds.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>RuntimeError</strong> – no loop is running in the current thread or task.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.get_running_loop_or_none">
+<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">get_running_loop_or_none</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#urwid.MainLoop" title="urwid.event_loop.main_loop.MainLoop"><span class="pre">MainLoop</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.get_running_loop_or_none" title="Link to this definition">¶</a></dt>
+<dd><p>Return the <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> running in the current thread or task, or <code class="docutils literal notranslate"><span class="pre">None</span></code> when there is none.</p>
+<p>A loop is running between its <a class="reference internal" href="#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> (or <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>) and its <a class="reference internal" href="#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">stop()</span></code></a>.
+It is also the running loop inside every alarm, watch, input and render call it makes,
+and inside <a class="reference internal" href="#urwid.MainLoop.draw_screen" title="urwid.MainLoop.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a> and <a class="reference internal" href="#urwid.MainLoop.process_input" title="urwid.MainLoop.process_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">process_input()</span></code></a> called by hand.
+A context copied from one where the loop runs sees it too, until the loop stops.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">get_running_loop_or_none</span><span class="p">())</span>
+<span class="go">None</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
@@ -1185,6 +1267,148 @@ availability to write. No parameters are passed to the callback. Returns a handl
 </dd></dl>
 
 </section>
+<section id="guardedeventloop">
+<h2>GuardedEventLoop<a class="headerlink" href="#guardedeventloop" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">GuardedEventLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">on_error</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">Exception</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">object</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.GuardedEventLoop" title="Link to this definition">¶</a></dt>
+<dd><p>Event loop that passes the exceptions of its callbacks to a handler.</p>
+<p>It registers every callback on another event loop.
+Without it, an exception raised by a callback stops the event loop,
+which ends every application that runs on it.
+Give each <a class="reference internal" href="#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> that shares one event loop its own wrapper:
+an exception in one application’s input handler, alarm or redraw then reaches that application’s handler,
+and the event loop and the other applications go on.</p>
+<p>The handler receives every <code class="xref py py-exc docutils literal notranslate"><span class="pre">Exception</span></code>, <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> included,
+and decides what ends: usually the application whose callback raised.
+A <code class="xref py py-exc docutils literal notranslate"><span class="pre">BaseException</span></code> that is not an <code class="xref py py-exc docutils literal notranslate"><span class="pre">Exception</span></code>, such as <code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyboardInterrupt</span></code>, is not caught.
+An exception the handler raises goes to the wrapped event loop.</p>
+<p>The wrapper suits a screen that hands its input to the event loop,
+such as <a class="reference internal" href="display_modules.html#urwid.display.websocket.Screen" title="urwid.display.websocket.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.display.websocket.Screen</span></code></a>.</p>
+<p>A handler that records the errors, and stops the loop on <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">errors</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">on_error</span><span class="p">(</span><span class="n">exc</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">errors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">exc</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">exc</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">raise</span> <span class="n">exc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">stop</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">GuardedEventLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SelectEventLoop</span><span class="p">(),</span> <span class="n">on_error</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="mi">1</span> <span class="o">/</span> <span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mf">0.01</span><span class="p">,</span> <span class="n">stop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">errors</span>
+<span class="go">['ZeroDivisionError', 'ExitMainLoop']</span>
+</pre></div>
+</div>
+<p>Wrap <em>loop</em> with <em>on_error</em> as the handler.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>loop</strong> – the event loop that runs the callbacks; it may be shared with other wrappers.</p></li>
+<li><p><strong>on_error</strong> – called with each exception a callback raised.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.alarm">
+<span class="sig-name descname"><span class="pre">alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.alarm" title="Link to this definition">¶</a></dt>
+<dd><p>Call <em>callback</em> on the wrapped loop <em>seconds</em> from now.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the wrapped loop’s handle, for <a class="reference internal" href="#urwid.GuardedEventLoop.remove_alarm" title="urwid.GuardedEventLoop.remove_alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_alarm()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.enter_idle">
+<span class="sig-name descname"><span class="pre">enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.enter_idle" title="Link to this definition">¶</a></dt>
+<dd><p>Call <em>callback</em> whenever the wrapped loop enters idle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the wrapped loop’s handle, for <a class="reference internal" href="#urwid.GuardedEventLoop.remove_enter_idle" title="urwid.GuardedEventLoop.remove_enter_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_enter_idle()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.loop">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">loop</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">EventLoop</span></span><a class="headerlink" href="#urwid.GuardedEventLoop.loop" title="Link to this definition">¶</a></dt>
+<dd><p>Return the wrapped event loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.remove_alarm">
+<span class="sig-name descname"><span class="pre">remove_alarm</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.remove_alarm" title="Link to this definition">¶</a></dt>
+<dd><p>Remove an alarm from the wrapped loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether the alarm was pending.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.remove_enter_idle">
+<span class="sig-name descname"><span class="pre">remove_enter_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.remove_enter_idle" title="Link to this definition">¶</a></dt>
+<dd><p>Remove an idle callback from the wrapped loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether the callback was registered.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.remove_watch_file">
+<span class="sig-name descname"><span class="pre">remove_watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">handle</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.remove_watch_file" title="Link to this definition">¶</a></dt>
+<dd><p>Stop watching a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>whether the file was watched.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.run" title="Link to this definition">¶</a></dt>
+<dd><p>Run the wrapped event loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.run_in_executor">
+<span class="sig-name descname"><span class="pre">run_in_executor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">executor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Executor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">func</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Spec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Spec.kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">asyncio.Future</span><span class="p"><span class="pre">[</span></span><span class="pre">_T</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.run_in_executor" title="Link to this definition">¶</a></dt>
+<dd><p>Run <em>func</em> in <em>executor</em> through the wrapped loop.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>NotImplementedError</strong> – the wrapped loop cannot run callables in an executor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.set_signal_handler">
+<span class="sig-name descname"><span class="pre">set_signal_handler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">signum</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">handler</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FrameType</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">signal.Handlers</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FrameType</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">signal.Handlers</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.set_signal_handler" title="Link to this definition">¶</a></dt>
+<dd><p>Set the handler of signal <em>signum</em> through the wrapped loop.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.GuardedEventLoop.watch_file">
+<span class="sig-name descname"><span class="pre">watch_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Any</span></span></span><a class="headerlink" href="#urwid.GuardedEventLoop.watch_file" title="Link to this definition">¶</a></dt>
+<dd><p>Call <em>callback</em> whenever <em>fd</em> is readable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>the wrapped loop’s handle, for <a class="reference internal" href="#urwid.GuardedEventLoop.remove_watch_file" title="urwid.GuardedEventLoop.remove_watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">remove_watch_file()</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -1203,10 +1427,12 @@ availability to write. No parameters are passed to the callback. Returns a handl
 <li><a class="reference internal" href="#urwid.MainLoop"><code class="docutils literal notranslate"><span class="pre">MainLoop</span></code></a><ul>
 <li><a class="reference internal" href="#urwid.MainLoop.screen"><code class="docutils literal notranslate"><span class="pre">MainLoop.screen</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.event_loop"><code class="docutils literal notranslate"><span class="pre">MainLoop.event_loop</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MainLoop.call_from_thread"><code class="docutils literal notranslate"><span class="pre">MainLoop.call_from_thread()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.draw_screen"><code class="docutils literal notranslate"><span class="pre">MainLoop.draw_screen()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.entering_idle"><code class="docutils literal notranslate"><span class="pre">MainLoop.entering_idle()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.input_filter"><code class="docutils literal notranslate"><span class="pre">MainLoop.input_filter()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.paused"><code class="docutils literal notranslate"><span class="pre">MainLoop.paused()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MainLoop.poll_interval"><code class="docutils literal notranslate"><span class="pre">MainLoop.poll_interval</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.pop_ups"><code class="docutils literal notranslate"><span class="pre">MainLoop.pop_ups</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.process_input"><code class="docutils literal notranslate"><span class="pre">MainLoop.process_input()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.MainLoop.remove_alarm"><code class="docutils literal notranslate"><span class="pre">MainLoop.remove_alarm()</span></code></a></li>
@@ -1223,6 +1449,8 @@ availability to write. No parameters are passed to the callback. Returns a handl
 <li><a class="reference internal" href="#urwid.MainLoop.widget"><code class="docutils literal notranslate"><span class="pre">MainLoop.widget</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#urwid.get_running_loop"><code class="docutils literal notranslate"><span class="pre">get_running_loop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.get_running_loop_or_none"><code class="docutils literal notranslate"><span class="pre">get_running_loop_or_none()</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#selecteventloop">SelectEventLoop</a><ul>
@@ -1315,6 +1543,22 @@ availability to write. No parameters are passed to the callback. Returns a handl
 </li>
 </ul>
 </li>
+<li><a class="reference internal" href="#guardedeventloop">GuardedEventLoop</a><ul>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.alarm"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.alarm()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.enter_idle"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.enter_idle()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.loop"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.loop</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.remove_alarm"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.remove_alarm()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.remove_enter_idle"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.remove_enter_idle()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.remove_watch_file"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.remove_watch_file()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.run"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.run_in_executor"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.run_in_executor()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.set_signal_handler"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.set_signal_handler()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.GuardedEventLoop.watch_file"><code class="docutils literal notranslate"><span class="pre">GuardedEventLoop.watch_file()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -1363,7 +1607,7 @@ availability to write. No parameters are passed to the callback. Returns a handl
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>

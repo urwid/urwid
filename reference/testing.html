@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Testing Helpers &#8212; Urwid 5.0.0</title>
+    <title>Testing Helpers &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
       </ul>
@@ -300,9 +300,11 @@ application.</p>
 <dt class="sig sig-object py" id="urwid.testing.click">
 <span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">click</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">row</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">button</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">event</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'mouse</span> <span class="pre">press'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.testing.click" title="Link to this definition">¶</a></dt>
 <dd><p>Send one mouse event to <code class="docutils literal notranslate"><span class="pre">widget.mouse_event()</span></code> and return whether it was handled.</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Button</span><span class="p">,</span> <span class="n">MouseButton</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">click</span><span class="p">(</span><span class="n">Button</span><span class="p">(</span><span class="s2">"OK"</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 <span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">click</span><span class="p">(</span><span class="n">Button</span><span class="p">(</span><span class="s2">"OK"</span><span class="p">),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">button</span><span class="o">=</span><span class="n">MouseButton</span><span class="o">.</span><span class="n">RIGHT</span><span class="p">)</span>
+<span class="go">False</span>
 </pre></div>
 </div>
 <dl class="field-list simple">
@@ -312,7 +314,7 @@ application.</p>
 <li><p><strong>size</strong> – size passed to <code class="docutils literal notranslate"><span class="pre">mouse_event()</span></code></p></li>
 <li><p><strong>col</strong> – column of the event, relative to the widget</p></li>
 <li><p><strong>row</strong> – row of the event, relative to the widget</p></li>
-<li><p><strong>button</strong> – mouse button number</p></li>
+<li><p><strong>button</strong> – mouse button number, see <a class="reference internal" href="constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a></p></li>
 <li><p><strong>event</strong> – event name, such as <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">press&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">release&quot;</span></code></p></li>
 <li><p><strong>focus</strong> – whether <em>widget</em> is in focus</p></li>
 </ul>
@@ -552,7 +554,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
       </ul>

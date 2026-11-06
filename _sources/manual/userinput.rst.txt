@@ -49,6 +49,10 @@ CTRL+SHIFT+F5 ``'shift ctrl f5'``
 ALT+J         ``'meta j'``
 ============= =================
 
+A control sequence that Urwid does not recognise is returned as a single key
+holding the characters after ``ESC [``, so that its characters are not received
+as typed text: ``ESC [ 1;2X`` returns ``'<csi 1;2X>'``.
+
 With Unicode :ref:`text encoding <text-encodings>` you will also receive
 Unicode strings for any non-ASCII characters:
 
@@ -159,6 +163,10 @@ main loop starts, and put the old settings back once it ends::
         if old_keys:
             screen.tty_signal_keys(*old_keys)
 
+CTRL+V, CTRL+O and CTRL+Y need no such call: the raw and curses displays
+turn the ``IEXTEN`` line discipline extensions off themselves, as the
+:class:`~urwid.display.raw.Screen` documentation describes.
+
 The screen does not undo the change when it stops, which is what the
 ``finally`` block is for. A shell such as bash puts its own tty settings back
 when CTRL+Z suspends the program, so after a resume CTRL+S and CTRL+Q are flow
@@ -176,35 +184,66 @@ Mouse Input
 Mouse input is sent as a (*event*, *button*, *x*, *y*) tuple. *event* is a string
 describing the event. If the *SHIFT*, *ALT* or *CTRL* keys are held when a mouse
 event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
-``'ctrl'``. *button* is a number from 1 to 5. *x* and *y* are character
-coordinates starting from ``(0, 0)`` at the top-left of the screen.
+``'ctrl'``. *button* is a number, named by :class:`MouseButton`. *x* and *y*
+are character coordinates starting from ``(0, 0)`` at the top-left of the
+screen.
 
 Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't
 be relied on.
+
+The side buttons (8 and 9) reach the application only in some terminals:
+VTE-based terminals such as GNOME Terminal report them, Konsole does not, and
+the terminal of an IDE such as PyCharm uses them for its own navigation and
+does not pass them on. Offer another way to do what they do.
 
 ``'mouse press'`` Events
 ------------------------
 
 A mouse button was pressed.
 
-=============== ======================
-`button` number Mouse button
-=============== ======================
-1               Left button
-2               Middle button
-3               Right button
-4               Scroll wheel up [#first]_
-5               Scroll wheel down [#first]_
-=============== ======================
+=============== =========================== ===========================================
+`button` number :class:`MouseButton` member Mouse button
+=============== =========================== ===========================================
+1               ``LEFT``                    Left button
+2               ``MIDDLE``                  Middle button
+3               ``RIGHT``                   Right button
+4               ``WHEEL_UP``                Scroll wheel up [#wheel]_
+5               ``WHEEL_DOWN``              Scroll wheel down [#wheel]_
+6               ``WHEEL_LEFT``              Scroll wheel left [#wheel]_
+7               ``WHEEL_RIGHT``             Scroll wheel right [#wheel]_
+8               ``BACK``                    Back, the first side button [#side]_
+9               ``FORWARD``                 Forward, the second side button [#side]_
+=============== =========================== ===========================================
 
-.. [#first] typically no corresponding release event is sent
+Buttons 10 and 11 have no name: ``MouseButton(10)`` returns a member named
+``BUTTON_10``.
+
+Which buttons arrive depends on the screen:
+
+* the raw screen (:mod:`urwid.display.raw`) decodes 1 to 11 from the
+  terminal's mouse reports;
+* the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
+  defines;
+* GPM, the Linux console mouse, delivers 1 to 3.
+
+A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
+and buttons 8 to 11 by adding 128, as described in the "Mouse Tracking"
+section of `XTerm Control Sequences
+<https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>`_.
+
+.. [#wheel] A terminal sends no release event for the wheel. The curses screen
+   may send a release of 4 or 5.
+.. [#side] The conventional meaning of buttons 8 and 9 under X11 and libinput,
+   which a user's device mapping can change.
 
 ``'mouse release'`` Events
 --------------------------
 
-Mouse release events will often not have information about which button was
-released. In this case *button* will be set to 0.
+A mouse button was released. *button* names the released button in an SGR
+mouse report (``ESC [ < ... m``), on the curses screen and from GPM.
+A terminal that sends X10 mouse reports (``ESC [ M ...``) does not say which
+button was released, and *button* is then 0, :attr:`MouseButton.UNKNOWN`.
 
 ``'mouse drag'`` Events
 -----------------------

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Attributes &#8212; Urwid 5.0.0</title>
+    <title>Display Attributes &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>
@@ -319,6 +319,9 @@ in light red where the terminal shows bold text in bright colors.</p>
 widgets nor the screen have to be redrawn for it: the raw and web displays compare each drawn
 row by its resolved colors and write again only the rows whose colors changed, and curses
 writes every row on each draw.</p>
+<p>To switch to another theme, <code class="docutils literal notranslate"><span class="pre">screen.register_palette(theme,</span> <span class="pre">replace=True)</span></code> registers the new
+entries and removes the ones the theme does not name, keeping the screen’s <code class="docutils literal notranslate"><span class="pre">None</span></code> entry unless
+the theme sets it. <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.palette" title="urwid.BaseScreen.palette"><code class="xref py py-attr docutils literal notranslate"><span class="pre">BaseScreen.palette</span></code></a> is a read-only view of the registered entries.</p>
 <p><a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec.layered_over" title="urwid.AttrSpec.layered_over"><code class="xref py py-meth docutils literal notranslate"><span class="pre">AttrSpec.layered_over()</span></code></a> combines two specifications. Canvases record the enclosing
 attributes as a <a class="reference internal" href="../reference/attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a>; a custom display module turns any canvas attribute into an
 <a class="reference internal" href="../reference/attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> with <a class="reference internal" href="../reference/display_modules.html#urwid.BaseScreen.resolve_attr" title="urwid.BaseScreen.resolve_attr"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.resolve_attr()</span></code></a> instead of reading the palette itself.
@@ -591,7 +594,7 @@ edit boxes).</p>
         <li class="right" >
           <a href="encodings.html" title="Encodings Supported"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Attributes</a></li> 
       </ul>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Constants &#8212; Urwid 5.0.0</title>
+    <title>Constants &#8212; Urwid 5.1.0</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=ce74c6a2"></script>
+    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>
@@ -190,6 +190,108 @@ character at the end</p>
 </dd></dl>
 
 </section>
+<section id="validation">
+<h2>Validation<a class="headerlink" href="#validation" title="Link to this heading">¶</a></h2>
+<p>Used by the validator of an <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> to report what is wrong with its
+text, and by <a class="reference internal" href="widget.html#urwid.Notifications" title="urwid.Notifications"><code class="xref py py-class docutils literal notranslate"><span class="pre">Notifications</span></code></a> to colour a message.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.Severity">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">Severity</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.Severity" title="Link to this definition">¶</a></dt>
+<dd><p>How serious a <a class="reference internal" href="#urwid.ValidationMessage" title="urwid.ValidationMessage"><code class="xref py py-class docutils literal notranslate"><span class="pre">ValidationMessage</span></code></a> or a message of <a class="reference internal" href="widget.html#urwid.Notifications" title="urwid.Notifications"><code class="xref py py-class docutils literal notranslate"><span class="pre">Notifications</span></code></a> is.</p>
+<p>The members are ordered, so <code class="xref py py-func docutils literal notranslate"><span class="pre">max()</span></code> gives the worst of several.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.ValidationMessage">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">ValidationMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">severity</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.Severity" title="urwid.Severity"><span class="pre">Severity</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.ValidationMessage" title="Link to this definition">¶</a></dt>
+<dd><p>One finding of a validator about a whole value, such as the text of an <a class="reference internal" href="widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a>.</p>
+<p>Create new instance of ValidationMessage(severity, message)</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.ValidationMessage.message">
+<span class="sig-name descname"><span class="pre">message</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">str</span></span><a class="headerlink" href="#urwid.ValidationMessage.message" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.ValidationMessage.severity">
+<span class="sig-name descname"><span class="pre">severity</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#urwid.Severity" title="urwid.widget.constants.Severity"><span class="pre">Severity</span></a></span><a class="headerlink" href="#urwid.ValidationMessage.severity" title="Link to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="mouse-buttons">
+<h2>Mouse buttons<a class="headerlink" href="#mouse-buttons" title="Link to this heading">¶</a></h2>
+<p>The <em>button</em> of a mouse event, see <a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a>.</p>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.MouseButton">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">MouseButton</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.MouseButton" title="Link to this definition">¶</a></dt>
+<dd><p>The <em>button</em> of a mouse event, as <a class="reference internal" href="widget.html#urwid.Widget.mouse_event" title="urwid.Widget.mouse_event"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Widget.mouse_event()</span></code></a> receives it.</p>
+<p>The values are the numbers the screens pass as plain <code class="xref py py-class docutils literal notranslate"><span class="pre">int</span></code>, and a member compares equal to them.
+A number above <a class="reference internal" href="#urwid.MouseButton.FORWARD" title="urwid.MouseButton.FORWARD"><code class="xref py py-attr docutils literal notranslate"><span class="pre">FORWARD</span></code></a> has no name.
+<code class="docutils literal notranslate"><span class="pre">MouseButton(n)</span></code> returns a member named <code class="docutils literal notranslate"><span class="pre">BUTTON_&lt;n&gt;</span></code> for it instead of raising,
+since a terminal may report buttons urwid does not name.
+<a class="reference internal" href="../manual/userinput.html#mouse-input"><span class="std std-ref">Mouse Input</span></a> lists which buttons each screen delivers and when a release does not name its button.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">MouseButton</span><span class="o">.</span><span class="n">LEFT</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MouseButton</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">name</span>
+<span class="go">'BUTTON_10'</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.BACK">
+<span class="sig-name descname"><span class="pre">BACK</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">8</span></span><a class="headerlink" href="#urwid.MouseButton.BACK" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.FORWARD">
+<span class="sig-name descname"><span class="pre">FORWARD</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">9</span></span><a class="headerlink" href="#urwid.MouseButton.FORWARD" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.LEFT">
+<span class="sig-name descname"><span class="pre">LEFT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">1</span></span><a class="headerlink" href="#urwid.MouseButton.LEFT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.MIDDLE">
+<span class="sig-name descname"><span class="pre">MIDDLE</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">2</span></span><a class="headerlink" href="#urwid.MouseButton.MIDDLE" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.RIGHT">
+<span class="sig-name descname"><span class="pre">RIGHT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></span><a class="headerlink" href="#urwid.MouseButton.RIGHT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.UNKNOWN">
+<span class="sig-name descname"><span class="pre">UNKNOWN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">0</span></span><a class="headerlink" href="#urwid.MouseButton.UNKNOWN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.WHEEL_DOWN">
+<span class="sig-name descname"><span class="pre">WHEEL_DOWN</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">5</span></span><a class="headerlink" href="#urwid.MouseButton.WHEEL_DOWN" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.WHEEL_LEFT">
+<span class="sig-name descname"><span class="pre">WHEEL_LEFT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">6</span></span><a class="headerlink" href="#urwid.MouseButton.WHEEL_LEFT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.WHEEL_RIGHT">
+<span class="sig-name descname"><span class="pre">WHEEL_RIGHT</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">7</span></span><a class="headerlink" href="#urwid.MouseButton.WHEEL_RIGHT" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.MouseButton.WHEEL_UP">
+<span class="sig-name descname"><span class="pre">WHEEL_UP</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></span><a class="headerlink" href="#urwid.MouseButton.WHEEL_UP" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="foreground-and-background-colors">
 <h2>Foreground and Background Colors<a class="headerlink" href="#foreground-and-background-colors" title="Link to this heading">¶</a></h2>
 <section id="standard-background-and-foreground-colors">
@@ -321,6 +423,9 @@ attribute, see <a class="reference internal" href="../manual/displayattributes.h
 <a class="reference internal" href="display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a>) when a palette entry is changed.
 <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> handles this signal by redrawing the whole
 screen.</p>
+<p>An entry that <a class="reference internal" href="display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a> removes with <code class="docutils literal notranslate"><span class="pre">replace=True</span></code>
+is sent with the specifications it is drawn with from then on: the terminal’s
+default colors.</p>
 </dd></dl>
 
 <dl class="py data">
@@ -462,6 +567,31 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
 <li><a class="reference internal" href="#urwid.ELLIPSIS"><code class="docutils literal notranslate"><span class="pre">ELLIPSIS</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#validation">Validation</a><ul>
+<li><a class="reference internal" href="#urwid.Severity"><code class="docutils literal notranslate"><span class="pre">Severity</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ValidationMessage"><code class="docutils literal notranslate"><span class="pre">ValidationMessage</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.ValidationMessage.message"><code class="docutils literal notranslate"><span class="pre">ValidationMessage.message</span></code></a></li>
+<li><a class="reference internal" href="#urwid.ValidationMessage.severity"><code class="docutils literal notranslate"><span class="pre">ValidationMessage.severity</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#mouse-buttons">Mouse buttons</a><ul>
+<li><a class="reference internal" href="#urwid.MouseButton"><code class="docutils literal notranslate"><span class="pre">MouseButton</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.MouseButton.BACK"><code class="docutils literal notranslate"><span class="pre">MouseButton.BACK</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.FORWARD"><code class="docutils literal notranslate"><span class="pre">MouseButton.FORWARD</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.LEFT"><code class="docutils literal notranslate"><span class="pre">MouseButton.LEFT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.MIDDLE"><code class="docutils literal notranslate"><span class="pre">MouseButton.MIDDLE</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.RIGHT"><code class="docutils literal notranslate"><span class="pre">MouseButton.RIGHT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.UNKNOWN"><code class="docutils literal notranslate"><span class="pre">MouseButton.UNKNOWN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.WHEEL_DOWN"><code class="docutils literal notranslate"><span class="pre">MouseButton.WHEEL_DOWN</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.WHEEL_LEFT"><code class="docutils literal notranslate"><span class="pre">MouseButton.WHEEL_LEFT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.WHEEL_RIGHT"><code class="docutils literal notranslate"><span class="pre">MouseButton.WHEEL_RIGHT</span></code></a></li>
+<li><a class="reference internal" href="#urwid.MouseButton.WHEEL_UP"><code class="docutils literal notranslate"><span class="pre">MouseButton.WHEEL_UP</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><a class="reference internal" href="#foreground-and-background-colors">Foreground and Background Colors</a><ul>
 <li><a class="reference internal" href="#standard-background-and-foreground-colors">Standard background and foreground colors</a><ul>
 <li><a class="reference internal" href="#urwid.BLACK"><code class="docutils literal notranslate"><span class="pre">BLACK</span></code></a></li>
@@ -562,7 +692,7 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.0.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>
