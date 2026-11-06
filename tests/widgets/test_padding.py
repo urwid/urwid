@@ -113,10 +113,12 @@ class PaddingTest(unittest.TestCase):
                 )
 
                 widget.pack(())
-                self.assertEqual(
-                    f"WHSettings.GIVEN expect BOX or FLOW widget to be used, but received {fixed_only}",
-                    str(ctx.warnings[1].message),
-                )
+
+            self.assertEqual(
+                f"WHSettings.GIVEN expect FLOW widget to be used for FIXED pack/render, "
+                f"but received {fixed_only}",
+                str(ctx.warnings[1].message),
+            )
 
             with self.assertRaises(ValueError) as err_ctx:
                 widget.render(())
