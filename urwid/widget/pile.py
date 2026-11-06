@@ -738,11 +738,12 @@ class Pile(
         weighted: dict[int | float, list[int]] = {}
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
+        focus_widget = self.focus
 
         for idx, (widget, options) in enumerate(self.contents):
             size_kind = options[0]
             w_sizing = widget.sizing()
-            focused = focus and self.focus == widget
+            focused = focus and focus_widget == widget
             if options[0] == WHSettings.PACK:
                 if Sizing.FIXED in w_sizing:
                     widths[idx], heights[idx] = typing.cast("AbstractFixedWidget", widget).pack((), focused)
@@ -847,7 +848,8 @@ class Pile(
 
         for i, (w, options) in enumerate(self.contents):
             f = options[0]
-            if isinstance(w, AbstractWidget):
+            # the MRO lookup answers for every Widget subclass without the much slower Protocol check
+            if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -946,7 +948,7 @@ class Pile(
 
         for i, (w, options) in enumerate(self.contents):
             f = options[0]
-            if isinstance(w, AbstractWidget):
+            if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -1088,10 +1090,11 @@ class Pile(
         # Rows not drawn whose own size decided the layout.
         # They are listed in the canvas children, so the canvas cache drops this canvas when one of them changes.
         undrawn: list[tuple[int, int, Canvas, int]] = []
+        focus_widget = self.focus
         for i, (height, w_size, (w, (height_type, amount))) in enumerate(
             zip(heights, size_args, self.contents, strict=False)
         ):
-            item_focus = self.focus == w
+            item_focus = focus_widget == w
             canv = None
             if height > 0:
                 # widget kind and size arguments matched separately
