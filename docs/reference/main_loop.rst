@@ -46,3 +46,9 @@ ZMQEventLoop
 ------------
 
 .. autoclass:: ZMQEventLoop
+
+GuardedEventLoop
+----------------
+
+.. autoclass:: GuardedEventLoop
+    :members: loop
