@@ -21,6 +21,7 @@ def main() -> None:
             ("About", urwid.Filler(urwid.Text("Tabs example: one row of labels over the selected body."))),
         ],
         bar_selectable=True,
+        underline=(urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY),
         attr_map="tab",
         selected_map="tab selected",
         focus_map="tab cursor",
@@ -55,8 +56,8 @@ def main() -> None:
         footer=urwid.AttrMap(status, "status"),
     )
     palette: list[tuple[str, str, str] | tuple[str, str, str, str]] = [
-        ("tab", "black", "light gray"),
-        ("tab selected", "white", "dark blue", "bold"),
+        ("tab", "dark gray", ""),
+        ("tab selected", "light blue", "", "bold"),
         ("tab cursor", "yellow", "dark blue", "bold"),
         ("status", "white", "dark red"),
     ]

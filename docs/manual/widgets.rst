@@ -800,6 +800,31 @@ The ``overflow_markers`` argument sets the markers, from
 ``attr_map`` applies to every label, ``selected_map`` to the selected one and
 ``focus_map`` to the label under the bar cursor.
 
+Labels on a colored background read as a row of buttons.  The ``underline``
+argument instead draws a line row between the labels and the body: its first
+glyph across the width and its second one along the selected label, which
+joins that label to its body.  The line takes ``attr_map``, and its part along
+the selected label ``selected_map``, so a palette can leave the labels without
+a background::
+
+    tabs = urwid.Tabs(
+        pages,
+        underline=(urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY),
+        attr_map="tab",
+        selected_map="tab selected",
+    )
+
+which renders the second of three tabs 17 columns wide as::
+
+    Log Settings Help
+    ────━━━━━━━━─────
+    Name: demo
+
+``LINE_ASCII`` and ``LINE_ASCII_DOUBLE`` are also drawn on terminals without
+UTF-8.  ``bar_position="bottom"`` puts the line above the labels.  A click on
+the line acts as a click on the label row next to it, including on an overflow
+marker.
+
 :attr:`Tabs.contents` holds ``(body, label)`` pairs, body first as in the
 other containers; :meth:`Tabs.options` turns markup into a label widget::
 

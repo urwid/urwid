@@ -68,6 +68,10 @@ class TabsConstructionTest(unittest.TestCase):
             ("bar position", ([],), {"bar_position": "middle"}, ValueError),
             ("dividechars", ([],), {"dividechars": -1}, ValueError),
             ("dividechars bool", ([],), {"dividechars": True}, ValueError),
+            ("underline single glyph", ([],), {"underline": ("-",)}, ValueError),
+            ("underline wide glyph", ([],), {"underline": ("-", "\u4e2d")}, ValueError),
+            ("underline two columns", ([],), {"underline": ("--", "=")}, ValueError),
+            ("underline not text", ([],), {"underline": ("-", 1)}, ValueError),
             (
                 "selected past the end",
                 ([("a", text), ("b", urwid.Text("y")), ("c", urwid.Text("z"))],),
@@ -238,6 +242,22 @@ class TabsRenderTest(unittest.TestCase):
             ("bar only", {}, (8, 1), ["a bb    "]),
             ("no rows", {}, (8, 0), []),
             ("trimmed flow body", {}, (3, 2), ["a >", "a b"]),
+            ("top line flow", {"underline": ("-", "=")}, (8,), ["a bb    ", "=-------", "a body  "]),
+            (
+                "bottom line flow",
+                {"underline": ("-", "="), "bar_position": "bottom"},
+                (8,),
+                ["a body  ", "=-------", "a bb    "],
+            ),
+            ("top line box", {"underline": ("-", "=")}, (8, 4), ["a bb    ", "=-------", "a body  ", "        "]),
+            (
+                "bottom line box",
+                {"underline": ("-", "="), "bar_position": "bottom"},
+                (8, 3),
+                ["a body  ", "=-------", "a bb    "],
+            ),
+            ("line without body", {"underline": ("-", "=")}, (8, 2), ["a bb    ", "=-------"]),
+            ("labels without line", {"underline": ("-", "="), "bar_position": "bottom"}, (8, 1), ["a bb    "]),
         ):
             with self.subTest(description):
                 tabs = make("a", "bb", **kwargs)
@@ -294,7 +314,7 @@ class TabsRenderTest(unittest.TestCase):
         def make_tabs(**kwargs: typing.Any) -> urwid.Tabs:
             return make("a", "b", **kwargs)
 
-        for name, value in (("bar_position", urwid.VAlign.BOTTOM), ("dividechars", 3)):
+        for name, value in (("bar_position", urwid.VAlign.BOTTOM), ("dividechars", 3), ("underline", ("-", "="))):
             with self.subTest(name):
                 urwid.CanvasCache.clear()
                 self.addCleanup(urwid.CanvasCache.clear)
@@ -323,6 +343,8 @@ class TabsRenderTest(unittest.TestCase):
             tabs.bar_position = "middle"  # type: ignore[assignment]
         with self.assertRaises(ValueError):
             tabs.dividechars = -1
+        with self.assertRaises(ValueError):
+            tabs.underline = "-="  # type: ignore[assignment]
 
     def test_map_getters_return_copies(self) -> None:
         """Changing a returned map does not change the widget."""
@@ -407,6 +429,25 @@ class TabsAttributeTest(unittest.TestCase):
             )[1],
         )
 
+    def test_underline(self) -> None:
+        """The line takes ``attr_map``, its part under the selected label ``selected_map`` and the unfocused mark."""
+        line = (urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY)
+        tabs = make("a", "bb", "c", selected=1, underline=line, attr_map="tab", selected_map="sel")
+        self.assertEqual(
+            [("tab", "\u2500\u2500"), ("sel", "\u2501\u2501"), ("tab", "\u2500\u2500\u2500")],
+            render_runs(tabs, (7,), focus=True)[1],
+        )
+        tabs.unfocused_focus_attr = {"sel": "sel marked"}
+        self.assertEqual(("sel marked", "\u2501\u2501"), render_runs(tabs, (7,))[1][1])
+        tabs.selected_map = None
+        self.assertEqual(
+            [("tab", "\u2500\u2500\u2501\u2501\u2500\u2500\u2500")], render_runs(tabs, (7,), focus=True)[1]
+        )
+        self.assertEqual(line, tabs.underline)
+        self.assertIn("underline=", repr(tabs))
+        tabs.underline = None
+        self.assertEqual(["a bb c ", "bb body"], render_text(tabs, (7,)))
+
     def test_layering(self) -> None:
         """A single-attribute map layers under the label's own attribute, a named one replaces it."""
         label = urwid.AttrMap(urwid.Text("L"), "a")
@@ -424,12 +465,18 @@ class TabsCursorTest(unittest.TestCase):
 
     def test_label_cursor_never_replaces_the_body_cursor(self) -> None:
         """A selectable label's cursor never replaces the body's cursor."""
-        for bar_position, bar_row, body_row in (("top", 0, 1), ("bottom", 1, 0)):
-            with self.subTest(bar_position):
+        for bar_position, underline, bar_row, body_row in (
+            ("top", None, 0, 1),
+            ("bottom", None, 1, 0),
+            ("top", ("-", "="), 0, 2),
+            ("bottom", ("-", "="), 2, 0),
+        ):
+            with self.subTest(bar_position, underline=underline):
                 tabs = urwid.Tabs(
                     [(urwid.Button("b"), urwid.Edit("> ", "x")), ("c", urwid.Text("y"))],
                     bar_position=bar_position,
                     bar_selectable=True,
+                    underline=underline,
                 )
                 canvas = tabs.render((12,), focus=True)
                 self.assertEqual((3, body_row), canvas.cursor)
@@ -578,6 +625,17 @@ class TabsScrollTest(unittest.TestCase):
         self.assertEqual("<ur five", render_text(tabs, (8,), focus=True)[0])
         self.assertEqual("one two>", render_text(tabs, (8,))[0])
 
+    def test_underline_follows_the_shown_part_of_the_selected_label(self) -> None:
+        """The mark covers the columns of the selected label that are shown, and none when it is scrolled away."""
+        tabs = make(*self.labels, underline=("-", "="), bar_selectable=True)
+        self.assertEqual(["one two>", "===-----"], render_text(tabs, (8,))[:2])
+        tabs.focus_position = 2
+        self.assertEqual(["< three>", "--=====-"], render_text(tabs, (8,))[:2])
+        press(tabs, (8,), "up", "right", "right")
+        self.assertEqual(["<ur five", "--------"], render_text(tabs, (8,), focus=True)[:2])
+        wide = make("a", "a very long label", "b", selected=1, underline=("-", "="))
+        self.assertEqual(["<a very>", "-======-"], render_text(wide, (8,))[:2])
+
 
 class TabsKeyTest(unittest.TestCase):
     """Keys for the body, the bar and the tab commands."""
@@ -714,16 +772,32 @@ class TabsMouseTest(unittest.TestCase):
                 self.assertEqual([(0, 1)], seen)
                 self.assertEqual(bar_selectable, tabs.get_cursor_coords((5,)) == (2, 0))
 
-    def test_body_rows(self) -> None:
-        """Body events are shifted by the bar row, and rows cut away are not handled."""
-        for bar_position, body_row in (("top", 1), ("bottom", 0)):
+    def test_line_press(self) -> None:
+        """A press on the line selects the tab next to it, a press next to a gap selects none."""
+        for bar_position in ("top", "bottom"):
             with self.subTest(bar_position):
+                tabs = make("a", "b", underline=("-", "="), bar_position=bar_position)
+                self.assertFalse(click(tabs, (5, 3), 1, 1))
+                self.assertTrue(click(tabs, (5, 3), 2, 1))
+                self.assertEqual(1, tabs.focus_position)
+                self.assertEqual("--=--", render_text(tabs, (5, 3))[1])
+
+    def test_body_rows(self) -> None:
+        """Body events are shifted by the bar rows, and rows cut away are not handled."""
+        for bar_position, underline, body_row in (
+            ("top", None, 1),
+            ("bottom", None, 0),
+            ("top", ("-", "="), 2),
+            ("bottom", ("-", "="), 0),
+        ):
+            with self.subTest(bar_position, underline=underline):
+                bar_rows = 1 if underline is None else 2
                 pile = urwid.Pile([urwid.Button("x"), urwid.Button("y")])
-                tabs = make("a", "b", bodies=[pile, urwid.Text("t")], bar_position=bar_position)
-                self.assertTrue(click(tabs, (8, 3), 0, body_row + 1))
+                tabs = make("a", "b", bodies=[pile, urwid.Text("t")], bar_position=bar_position, underline=underline)
+                self.assertTrue(click(tabs, (8, bar_rows + 2), 0, body_row + 1))
                 self.assertEqual(1, pile.focus_position)
-                # the second button is cropped away at two rows
-                self.assertFalse(click(tabs, (8, 2), 0, 2))
+                # the second button is cropped away when one body row is shown
+                self.assertFalse(click(tabs, (8, bar_rows + 1), 0, bar_rows + 1))
 
     def test_press_on_body_returns_the_focus(self) -> None:
         """A press on the body while the bar has the focus returns it to the body."""
