@@ -49,6 +49,12 @@ def _make_screen(input_fd: int | None = None) -> Screen:
     return Screen(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
 
 
+def _send_mode_queries(screen: Screen) -> None:
+    """Send the DECRQM queries as on a terminal, so the replies a test feeds answer them."""
+    with mock.patch.object(screen, "_is_real_terminal", return_value=True):
+        screen._detect_terminal_modes()
+
+
 @unittest.skipIf(IS_WINDOWS, "_posix_raw_display is not importable on Windows (no fcntl/termios/tty)")
 class TestStartStop(unittest.TestCase):
     def test_start_stop_not_a_tty(self):
@@ -223,6 +229,7 @@ class TestStartStop(unittest.TestCase):
                 s.write = written.append
                 s.flush = lambda: None
                 s.start()
+                _send_mode_queries(s)
                 s.parse_input(None, None, list(reply))
                 s.maxrow = 5
                 written.clear()
@@ -239,6 +246,7 @@ class TestStartStop(unittest.TestCase):
         s.write = written.append
         s.flush = lambda: None
         s.start()
+        _send_mode_queries(s)
         s.parse_input(None, None, list(b"\x1b[?1049;0$y"))
         s.stop()
 
@@ -327,17 +335,33 @@ class TestStartStop(unittest.TestCase):
                 gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
                 self.assertIsNone(s.gpm_mev)
 
-    def test_stop_raises_other_output_errors(self) -> None:
-        """Raise an output error that does not mean the terminal is gone, such as a full disk."""
+    @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_stop_raises_other_output_errors(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+    ) -> None:
+        """Raise an output error that does not mean the terminal is gone, such as a full disk.
+
+        The terminal settings are restored all the same.
+        """
         s = _make_screen()
         self.enterContext(mock.patch.object(s, "write"))
         flush = self.enterContext(mock.patch.object(s, "flush"))
         s.start()
+        s._modified_palette_entries.add(1)
         flush.side_effect = OSError(errno.ENOSPC, os.strerror(errno.ENOSPC))
 
         with self.assertRaises(OSError) as raised:
             s.stop()
         self.assertEqual(errno.ENOSPC, raised.exception.errno)
+        mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
         flush.side_effect = None
         s.stop()
 
@@ -908,6 +932,7 @@ class TestApplyPrivateModeReports(unittest.TestCase):
     def _screen(*, bracketed_paste: bool | None = None):
         s = _make_screen()
         s.modes.bracketed_paste = bracketed_paste
+        _send_mode_queries(s)
         written: list[str] = []
         s.write = written.append
         s.flush = lambda: None
@@ -956,6 +981,26 @@ class TestApplyPrivateModeReports(unittest.TestCase):
         self.assertTrue(s.modes.bracketed_paste)
         self.assertEqual([], written)
 
+    def test_reply_to_no_pending_query_is_dropped(self):
+        """Apply a reply only as the answer to a pending query.
+
+        Input that only looks like a reply then cannot change the modes.
+        """
+        s = _make_screen()
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        keys, _raw = s.parse_input(None, None, list(b"\x1b[?2004;1$y"))
+        self.assertEqual([], keys)
+        self.assertIsNone(s.modes.bracketed_paste)
+
+        _send_mode_queries(s)
+        written.clear()
+        s.parse_input(None, None, list(b"\x1b[?2004;0$y\x1b[?2004;1$y"))
+        self.assertFalse(s.modes.bracketed_paste)
+        self.assertEqual([], written)
+
     def test_reply_for_a_mode_urwid_does_not_track_is_dropped_without_error(self):
         s, _written = self._screen()
 
@@ -987,10 +1032,9 @@ class TestApplyPrivateModeReports(unittest.TestCase):
                 self.assertEqual(expected, keys)
 
     def test_sgr_reply_applies_to_the_mouse_events_after_it(self):
-        s, _written = self._screen()
-
         for value in (0, 4):
             with self.subTest(value=value):
+                s, _written = self._screen()
                 reply = f"\x1b[?1006;{value}$y\x1b[M".encode()
                 keys, _raw = s.parse_input(None, None, [*reply, 32, 0, 33, ord("a")])
                 self.assertEqual(["a"], keys)

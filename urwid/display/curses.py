@@ -50,6 +50,12 @@ if typing.TYPE_CHECKING:
 
 IS_WINDOWS = sys.platform == "win32"
 
+# PyPy's curses has no constants for button 5 (wheel down): there its events are neither asked for nor reported
+_BUTTON5_PRESSED: typing.Final[int] = getattr(curses, "BUTTON5_PRESSED", 0)
+_BUTTON5_RELEASED: typing.Final[int] = getattr(curses, "BUTTON5_RELEASED", 0)
+_BUTTON5_DOUBLE_CLICKED: typing.Final[int] = getattr(curses, "BUTTON5_DOUBLE_CLICKED", 0)
+_BUTTON5_TRIPLE_CLICKED: typing.Final[int] = getattr(curses, "BUTTON5_TRIPLE_CLICKED", 0)
+
 # curses.KEY_RESIZE (sometimes not defined)
 if IS_WINDOWS:
     KEY_MOUSE = 539  # under Windows key mouse is different
@@ -162,8 +168,8 @@ class Screen(BaseScreen, RealTerminal):
                 | curses.BUTTON3_RELEASED
                 | curses.BUTTON4_PRESSED
                 | curses.BUTTON4_RELEASED
-                | curses.BUTTON5_PRESSED
-                | curses.BUTTON5_RELEASED
+                | _BUTTON5_PRESSED
+                | _BUTTON5_RELEASED
                 | curses.BUTTON1_DOUBLE_CLICKED
                 | curses.BUTTON1_TRIPLE_CLICKED
                 | curses.BUTTON2_DOUBLE_CLICKED
@@ -172,8 +178,8 @@ class Screen(BaseScreen, RealTerminal):
                 | curses.BUTTON3_TRIPLE_CLICKED
                 | curses.BUTTON4_DOUBLE_CLICKED
                 | curses.BUTTON4_TRIPLE_CLICKED
-                | curses.BUTTON5_DOUBLE_CLICKED
-                | curses.BUTTON5_TRIPLE_CLICKED
+                | _BUTTON5_DOUBLE_CLICKED
+                | _BUTTON5_TRIPLE_CLICKED
                 | curses.BUTTON_SHIFT
                 | curses.BUTTON_ALT
                 | curses.BUTTON_CTRL
@@ -186,52 +192,57 @@ class Screen(BaseScreen, RealTerminal):
     def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         """Initialize the screen and input mode."""
         self.s = curses.initscr()
-        self.has_color = curses.has_colors()
-        if self.has_color:
-            curses.start_color()
-            if curses.COLORS < 8:
-                # not colourful enough
-                self.has_color = False
-        if self.has_color:
-            try:
-                curses.use_default_colors()
-                self.has_default_colors = True
-            except curses.error:
-                self.has_default_colors = False
-        self._setup_colour_pairs()
-        self._curses_attr_cache.clear()
-        curses.noecho()
-        curses.meta(True)
-        curses.halfdelay(10)  # use set_input_timeouts to adjust
-        self.s.keypad(False)
+        try:
+            self.has_color = curses.has_colors()
+            if self.has_color:
+                curses.start_color()
+                if curses.COLORS < 8:
+                    # not colourful enough
+                    self.has_color = False
+            if self.has_color:
+                try:
+                    curses.use_default_colors()
+                    self.has_default_colors = True
+                except curses.error:
+                    self.has_default_colors = False
+            self._setup_colour_pairs()
+            self._curses_attr_cache.clear()
+            curses.noecho()
+            curses.meta(True)
+            curses.halfdelay(10)  # use set_input_timeouts to adjust
+            self.s.keypad(False)
 
-        if not IS_WINDOWS and os.isatty(fd := sys.stdin.fileno()):
-            import termios
-            import tty
+            if not IS_WINDOWS and os.isatty(fd := sys.stdin.fileno()):
+                import termios
+                import tty
 
-            # cbreak mode leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
-            # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
-            # and ctrl y (VDSUSP).
-            # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
-            mode = termios.tcgetattr(fd)
-            self._cleared_lflag = mode[tty.LFLAG] & (termios.IEXTEN | termios.FLUSHO)
-            mode[tty.LFLAG] &= ~self._cleared_lflag
-            termios.tcsetattr(fd, termios.TCSANOW, mode)
-            # cbreak() and halfdelay() in _getch() apply the mode curses saved last.
-            # Curses has no mode to save when its output is no terminal, and then never changes stdin's.
-            with suppress(curses.error):
-                curses.def_prog_mode()
+                # cbreak mode leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
+                # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
+                # and ctrl y (VDSUSP).
+                # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
+                mode = termios.tcgetattr(fd)
+                self._cleared_lflag = mode[tty.LFLAG] & (termios.IEXTEN | termios.FLUSHO)
+                mode[tty.LFLAG] &= ~self._cleared_lflag
+                termios.tcsetattr(fd, termios.TCSANOW, mode)
+                # cbreak() and halfdelay() in _getch() apply the mode curses saved last.
+                # Curses has no mode to save when its output is no terminal, and then never changes stdin's.
+                with suppress(curses.error):
+                    curses.def_prog_mode()
 
-        if not self._signal_keys_set:
-            self._old_signal_keys = self.tty_signal_keys()
+            if not self._signal_keys_set:
+                self._old_signal_keys = self.tty_signal_keys()
 
-        super()._start()
+            super()._start()
 
-        if IS_WINDOWS:
-            # halfdelay() seems unnecessary and causes everything to slow down a lot.
-            curses.nocbreak()  # exits halfdelay mode
-            # keypad(1) is needed, or we get no special keys (cursor keys, etc.)
-            self.s.keypad(True)
+            if IS_WINDOWS:
+                # halfdelay() seems unnecessary and causes everything to slow down a lot.
+                curses.nocbreak()  # exits halfdelay mode
+                # keypad(1) is needed, or we get no special keys (cursor keys, etc.)
+                self.s.keypad(True)
+        except BaseException:
+            # leave the terminal as it was found; a stop() after the failed start has nothing left to undo
+            self._stop()
+            raise
 
     def _stop(self) -> None:
         """Restore the screen."""
@@ -241,20 +252,20 @@ class Screen(BaseScreen, RealTerminal):
             curses.endwin()
             # don't block original error with curses error
 
-        # endwin() restores the terminal curses writes to, which need not be stdin's.
-        if self._cleared_lflag and os.isatty(fd := sys.stdin.fileno()):
-            import termios
-            import tty
+        try:
+            # endwin() restores the terminal curses writes to, which need not be stdin's.
+            if self._cleared_lflag and os.isatty(fd := sys.stdin.fileno()):
+                import termios
+                import tty
 
-            mode = termios.tcgetattr(fd)
-            mode[tty.LFLAG] |= self._cleared_lflag
-            termios.tcsetattr(fd, termios.TCSANOW, mode)
-        self._cleared_lflag = 0
-
-        if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys)
-
-        super()._stop()
+                mode = termios.tcgetattr(fd)
+                mode[tty.LFLAG] |= self._cleared_lflag
+                termios.tcsetattr(fd, termios.TCSANOW, mode)
+        finally:
+            self._cleared_lflag = 0
+            if self._old_signal_keys:
+                self.tty_signal_keys(*self._old_signal_keys)
+            super()._stop()
 
     def _setup_colour_pairs(self) -> None:
         """Initialize all 63 color pairs based on the term: bg * 8 + 7 - fg.
@@ -309,11 +320,11 @@ class Screen(BaseScreen, RealTerminal):
         self.s.nodelay(True)
 
         if not IS_WINDOWS:
-            while True:
-                # this call fails sometimes, but seems to work when I try again
-                with suppress(curses.error):
-                    curses.cbreak()
-                    break
+            try:
+                curses.cbreak()
+            except curses.error:
+                # it can fail once and work when called again, but once the terminal is gone it fails every time
+                curses.cbreak()
 
         return self.s.getch()
 
@@ -496,7 +507,7 @@ class Screen(BaseScreen, RealTerminal):
         if bstate & curses.BUTTON4_PRESSED and last_state & 8 == 0:
             append_button(64)
             next_state |= 8
-        if bstate & curses.BUTTON5_PRESSED and last_state & 16 == 0:
+        if bstate & _BUTTON5_PRESSED and last_state & 16 == 0:
             append_button(65)
             next_state |= 16
         if bstate & curses.BUTTON1_RELEASED and last_state & 1:
@@ -511,7 +522,7 @@ class Screen(BaseScreen, RealTerminal):
         if bstate & curses.BUTTON4_RELEASED and last_state & 8:
             append_button(64 + escape.MOUSE_RELEASE_FLAG)
             next_state &= ~8
-        if bstate & curses.BUTTON5_RELEASED and last_state & 16:
+        if bstate & _BUTTON5_RELEASED and last_state & 16:
             append_button(65 + escape.MOUSE_RELEASE_FLAG)
             next_state &= ~16
 
@@ -523,7 +534,7 @@ class Screen(BaseScreen, RealTerminal):
             append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
         if bstate & curses.BUTTON4_DOUBLE_CLICKED:
             append_button(64 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-        if bstate & curses.BUTTON5_DOUBLE_CLICKED:
+        if bstate & _BUTTON5_DOUBLE_CLICKED:
             append_button(65 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
 
         if bstate & curses.BUTTON1_TRIPLE_CLICKED:
@@ -534,7 +545,7 @@ class Screen(BaseScreen, RealTerminal):
             append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
         if bstate & curses.BUTTON4_TRIPLE_CLICKED:
             append_button(64 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-        if bstate & curses.BUTTON5_TRIPLE_CLICKED:
+        if bstate & _BUTTON5_TRIPLE_CLICKED:
             append_button(65 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
 
         self.last_bstate = next_state

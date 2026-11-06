@@ -451,10 +451,11 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         self.assertEqual((("mouse press", urwid.MouseButton.WHEEL_RIGHT, x, y), []), result)
 
     def test_mouse_x10_double_click(self):
-        x, y = 8, 15
-        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
-        result = escape.input_trie.read_mouse_info(keys, more_available=False)
-        self.assertEqual((("double mouse click", 1, x, y), []), result)
+        for x, y in ((8, 15), (300, 1000)):  # the curses display passes a coordinate past a byte unencoded
+            with self.subTest(x=x, y=y):
+                keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
+                result = escape.input_trie.read_mouse_info(keys, more_available=False)
+                self.assertEqual((("double mouse click", 1, x, y), []), result)
 
     def test_mouse_x10_triple_click(self):
         x, y = 8, 15
@@ -778,6 +779,18 @@ class ReadPrivateModeReportTest(unittest.TestCase):
         for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
             with self.subTest(prefix=prefix):
                 self.assertIsNone(escape.input_trie.read_private_mode_report(list(prefix), False))
+
+    def test_parameters_longer_than_the_limit_are_not_a_report(self):
+        """Stop waiting for more input once the parameters exceed the limit.
+
+        A sequence with no terminator is then not buffered forever.
+        """
+        too_long = b"1" * (escape._CSI_PARAMETERS_MAX_LEN + 3)
+        for codes in (b"[?" + too_long, b"[?1;" + too_long, b"[?1;" + too_long + b"$y"):
+            with self.subTest(codes=codes):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(codes), True))
+        longest = b"[?1;" + b"1" * (escape._CSI_PARAMETERS_MAX_LEN - 2) + b"$y"
+        self.assertEqual("private mode report", escape.input_trie.read_private_mode_report(list(longest), False)[0][0])
 
     def test_recognized_through_process_keyqueue(self):
         codes = [27, *b"[?2004;1$y"]

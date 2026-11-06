@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import errno
 import unittest
 from unittest import mock
 
 import urwid
+from urwid.display import escape
 
 try:
     import termios
@@ -112,6 +114,23 @@ class CursesInputTimeoutTest(unittest.TestCase):
         self.screen.s.nodelay.assert_called_once_with(True)
         self.halfdelay.assert_not_called()
 
+    def test_zero_wait_retries_cbreak_once(self) -> None:
+        """Retry a failed ``cbreak`` once and raise its second failure.
+
+        Once the terminal is gone, ``cbreak`` fails on every call.
+        """
+        self.screen.s.getch.return_value = -1
+        self.cbreak.side_effect = [curses_display.curses.error, None]
+        self.assertEqual(-1, self.screen._getch(0))
+        self.assertEqual(2, self.cbreak.call_count)
+
+        self.cbreak.reset_mock()
+        # an iterator, not a list, so a regression to an unbounded retry ends with StopIteration instead of hanging
+        self.cbreak.side_effect = iter([curses_display.curses.error] * 3)
+        with self.assertRaises(curses_display.curses.error):
+            self.screen._getch(0)
+        self.assertEqual(2, self.cbreak.call_count)
+
     def test_none_wait_is_blocking(self) -> None:
         self.screen.s.getch.return_value = ord("q")
         self.assertEqual(ord("q"), self.screen._getch(None))
@@ -182,6 +201,35 @@ class CursesStartTerminalModeTest(unittest.TestCase):
 
         self.assertIn(mock.call.tcsetattr(7, termios.TCSANOW, self.mode(lflag)), self.calls.mock_calls)
 
+    def test_failed_start_restores_the_terminal(self) -> None:
+        """Leave curses mode and set the cleared flags back when start() fails after changing them."""
+        lflag = termios.IEXTEN | termios.ISIG
+        self.tcgetattr.side_effect = [self.mode(lflag), self.mode(termios.ISIG)]
+        error = termios.error(errno.EINVAL, "signal keys")
+        self.enterContext(mock.patch.object(curses_display.Screen, "tty_signal_keys", side_effect=error))
+        screen = curses_display.Screen()
+
+        with self.assertRaises(termios.error):
+            screen.start()
+
+        self.assertEqual(
+            [mock.call.endwin(), mock.call.tcsetattr(7, termios.TCSANOW, self.mode(lflag))],
+            self.calls.mock_calls[-2:],
+        )
+
+    def test_stop_gives_the_signal_keys_back_when_the_mode_restore_fails(self) -> None:
+        """Restore the signal keys even when setting the cleared flags back raises."""
+        self.tcgetattr.side_effect = [self.mode(termios.IEXTEN), self.mode(0)]
+        keys = self.enterContext(mock.patch.object(curses_display.Screen, "tty_signal_keys", return_value=(1, 2)))
+        screen = curses_display.Screen()
+        screen.start()
+        self.calls.tcsetattr.side_effect = termios.error(errno.EIO, "restore")
+
+        with self.assertRaises(termios.error):
+            screen.stop()
+
+        self.assertEqual(mock.call(1, 2), keys.call_args)
+
     def test_start_leaves_a_non_terminal_input_alone(self) -> None:
         """Change no termios setting and save no program mode when the input is not a terminal."""
         self.isatty.return_value = False
@@ -191,3 +239,24 @@ class CursesStartTerminalModeTest(unittest.TestCase):
         screen.stop()
 
         self.assertEqual([mock.call.endwin()], self.calls.mock_calls)
+
+
+@unittest.skipIf(curses_display is None, "the curses module is not available")
+class CursesMouseTest(unittest.TestCase):
+    """Tests for the mouse events of curses, which the screen encodes as X10 reports for the input parser."""
+
+    def test_events_past_a_byte_keep_their_position(self) -> None:
+        """Report a press, a double click and a release at a column or row past what an X10 byte can carry."""
+        curses = curses_display.curses
+        screen = curses_display.Screen()
+        for bstate, expected in (
+            (curses.BUTTON1_PRESSED, ("mouse press", 1, 300, 1000)),
+            (curses.BUTTON1_DOUBLE_CLICKED, ("double mouse click", 1, 300, 1000)),
+            (curses.BUTTON1_RELEASED, ("mouse release", 1, 300, 1000)),
+        ):
+            with (
+                self.subTest(expected=expected[0]),
+                mock.patch.object(curses, "getmouse", return_value=(0, 300, 1000, 0, bstate)),
+            ):
+                keys, _rest = escape.process_keyqueue(screen._encode_mouse_event(), more_available=False)
+                self.assertEqual([expected], keys)
