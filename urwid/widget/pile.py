@@ -846,7 +846,6 @@ class Pile(
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
         focus_position = self.focus_position
         flow_arg = (maxcol,)
-        given = WHSettings.GIVEN
         flow = Sizing.FLOW
 
         for i, (w, options) in enumerate(contents):
@@ -859,7 +858,7 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == given:
+            if options[0] == WHSettings.GIVEN:
                 height = options[1]
                 heights.append(height)
                 w_h_args.append((maxcol, height))
@@ -932,7 +931,7 @@ class Pile(
             size_arg = size_args[i]
             # sized with the call its layout path used: rows() in a flow or fixed Pile, pack() otherwise
             if size_len != 2 and size_arg:
-                rows = w.rows(size_arg, True)  # type: ignore[arg-type]
+                rows = w.rows(size_arg, True)  # type: ignore[arg-type,union-attr]
             else:
                 rows = w.pack(size_arg, True)[1]  # type: ignore[arg-type]
             if rows == 0:
@@ -953,14 +952,13 @@ class Pile(
 
         remaining: int = maxrow
 
-        # one slot per row, filled in index order; weighted rows stay None until their share is known
+        # Weighted rows stay 0 until their share is known.
         count = len(contents)
         widths: tuple[int, ...] = (maxcol,) * count
-        heights: list[int | None] = [None] * count
+        heights: list[int] = [0] * count
         weighted: dict[int, int | float] = {}
-        w_h_args: list[tuple[int, int] | tuple[int] | tuple[()] | None] = [None] * count
+        w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = [()] * count
         focus_position = self.focus_position
-        given = WHSettings.GIVEN
         pack = WHSettings.PACK
 
         for i, (w, options) in enumerate(contents):
@@ -973,7 +971,7 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == given:
+            if options[0] == WHSettings.GIVEN:
                 height = options[1]
                 heights[i] = height
                 w_h_args[i] = (maxcol, height)
@@ -1067,7 +1065,7 @@ class Pile(
         for idx in weighted:
             w_h_args[idx] = (maxcol, heights[idx])
 
-        return widths, tuple(heights), tuple(w_h_args)  # type: ignore[arg-type]
+        return widths, tuple(heights), tuple(w_h_args)
 
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         """Get packed size for widget.
