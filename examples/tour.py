@@ -541,9 +541,10 @@ def main() -> None:
                     ("Options", urwid.Pile([urwid.CheckBox("Verbose"), urwid.CheckBox("Dry run")])),
                 ],
                 bar_selectable=True,
-                attr_map="buttn",
-                selected_map="buttnf",
-                focus_map="buttnl",
+                underline=(urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY),
+                attr_map="tab",
+                selected_map="tab selected",
+                focus_map="buttnf",
             ),
             left=4,
             right=3,
@@ -591,6 +592,8 @@ def main() -> None:
         ("buttn", "black", "dark cyan"),
         ("buttnf", "white", "dark blue", "bold"),
         ("buttnl", "white", "dark cyan", "bold"),
+        ("tab", "dark gray", "light gray"),
+        ("tab selected", "dark blue", "light gray", "bold"),
     ]
 
     # use appropriate Screen class

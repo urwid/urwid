@@ -27,6 +27,7 @@ import typing
 from urwid.canvas import CanvasCombine, CanvasJoin, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
+from urwid.str_util import calc_width
 from urwid.util import is_mouse_press
 
 from .attr_map import _attr_map_dict
@@ -55,10 +56,10 @@ class TabsError(WidgetError):
 
 
 class TabsSymbols(enum.StrEnum):
-    """Common symbols for the overflow markers of :class:`Tabs`, in left and right pairs.
+    """Common symbols for :class:`Tabs`: overflow markers in left and right pairs, and underline glyphs.
 
-    Only :attr:`ARROW_ASCII_LEFT` and :attr:`ARROW_ASCII_RIGHT` are also drawn on terminals without UTF-8,
-    where the others are drawn as ``?``.
+    The ``ARROW_`` and ``GUILLEMET_`` members are overflow markers, the ``LINE_`` members underline glyphs.
+    Only the ``ASCII`` members are also drawn on terminals without UTF-8, where the others are drawn as ``?``.
     """
 
     ARROW_ASCII_LEFT = "<"
@@ -73,6 +74,11 @@ class TabsSymbols(enum.StrEnum):
     ARROW_RIGHT = "→"
     GUILLEMET_LEFT = "«"
     GUILLEMET_RIGHT = "»"
+    LINE_ASCII = "-"
+    LINE_ASCII_DOUBLE = "="
+    LINE_LIGHT = "─"
+    LINE_HEAVY = "━"
+    LINE_DOUBLE = "═"
 
 
 class _BarView(typing.NamedTuple):
@@ -112,6 +118,11 @@ class Tabs(
     Each edge with labels hidden past it shows a marker of :attr:`overflow_markers`,
     and a click on it selects the nearest hidden tab on that side.
 
+    With :attr:`underline` set, a line row between the labels and the body draws its first glyph across the width
+    and its second one along the selected label, which joins that label to its body.
+    The line takes :attr:`attr_map`, and its part along the selected label :attr:`selected_map`.
+    A click on the line acts as a click on the label row next to it, an overflow marker included.
+
     Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
     Its handlers receive the container, the old and the new index, which is ``None`` while it is empty.
     It reports the index, not the body: deleting the selected tab when another one follows it keeps the index,
@@ -143,6 +154,7 @@ class Tabs(
         unfocused_focus_attr: _AttrMapLike | None = None,
         dividechars: int = 1,
         overflow_markers: tuple[str, str] | None = (TabsSymbols.ARROW_ASCII_LEFT, TabsSymbols.ARROW_ASCII_RIGHT),
+        underline: tuple[str, str] | None = None,
     ) -> None:
         """Build the tabs from `(label, body)` pairs.
 
@@ -161,19 +173,24 @@ class Tabs(
         :param overflow_markers: text drawn at the left and the right edge of the label row while labels are hidden
             past that edge, such as ``(Tabs.Symbols.ARROW_TRIANGLE_LEFT, Tabs.Symbols.ARROW_TRIANGLE_RIGHT)``;
             ``None`` draws none, and an empty string draws none on that side.
+        :param underline: the glyphs of a line row between the labels and the body: the one drawn across the width
+            and the one drawn along the selected label,
+            such as ``(Tabs.Symbols.LINE_LIGHT, Tabs.Symbols.LINE_HEAVY)``; ``None`` draws no line.
         :raises TypeError: a body is not a widget.
         :raises TagMarkupException: a label is neither a widget nor valid text markup.
         :raises AttrMapError: a key or value of *attr_map*, *selected_map*, *focus_map* or *unfocused_focus_attr*
             is not hashable.
         :raises ValueError: a label is not a fixed widget, a body is neither a flow nor a box widget,
             *bar_position* is not ``'top'`` or ``'bottom'``, *dividechars* is not an int >= 0,
-            or *overflow_markers* is not ``None`` or a pair of one-line strings.
+            *overflow_markers* is not ``None`` or a pair of one-line strings,
+            or *underline* is not ``None`` or a pair of one-column strings.
         :raises IndexError: *selected* is not an index of *tabs*.
         """
         super().__init__()
         self._bar_position = self._valid_bar_position(bar_position)
         self._dividechars = self._valid_dividechars(dividechars)
         self._overflow_markers = self._valid_overflow_markers(overflow_markers)
+        self._underline = self._valid_underline(underline)
         self._bar_selectable = bar_selectable
         self._attr_map = None if attr_map is None else _attr_map_dict(attr_map)
         self._selected_map = None if selected_map is None else _attr_map_dict(selected_map)
@@ -228,6 +245,23 @@ class Tabs(
             raise ValueError(f"overflow_markers must be None or a pair of one-line strings, not {overflow_markers!r}")
         return markers[0], markers[1]
 
+    @staticmethod
+    def _valid_underline(underline: tuple[str, str] | None) -> tuple[str, str] | None:
+        """Return *underline* as a tuple, or ``None``.
+
+        :raises ValueError: it is not ``None`` or a pair of one-column strings.
+        """
+        match underline:
+            case None:
+                return None
+            # each glyph fills one screen column, repeated to the width of the line or the label
+            case (str() as rule, str() as mark) if (
+                calc_width(rule, 0, len(rule)) == calc_width(mark, 0, len(mark)) == 1
+            ):
+                return rule, mark
+            case _:
+                raise ValueError(f"underline must be None or a pair of one-column strings, not {underline!r}")
+
     def _repr_words(self) -> list[str]:
         """Return the base repr words followed by the number of tabs."""
         count = len(self._contents)
@@ -249,6 +283,7 @@ class Tabs(
             "unfocused_focus_attr": self._unfocused_focus_attr,
             "dividechars": self._dividechars,
             "overflow_markers": self._overflow_markers,
+            "underline": self._underline,
         }
         return remove_defaults(attrs, Tabs.__init__)
 
@@ -457,6 +492,21 @@ class Tabs(
         self._overflow_markers = self._valid_overflow_markers(overflow_markers)
         self._invalidate()
 
+    @property
+    def underline(self) -> tuple[str, str] | None:
+        """Glyphs of the line row between the labels and the body: across the width, and along the selected label.
+
+        ``None`` draws no line row.
+
+        :raises ValueError: the new value is not ``None`` or a pair of one-column strings.
+        """
+        return self._underline
+
+    @underline.setter
+    def underline(self, underline: tuple[str, str] | None) -> None:
+        self._underline = self._valid_underline(underline)
+        self._invalidate()
+
     def _bar_can_focus(self) -> bool:
         """Return whether the bar may take the keyboard focus: it is selectable and there is a tab to switch to."""
         return self._bar_selectable and len(self._contents) > 1
@@ -484,12 +534,14 @@ class Tabs(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool,
-    ) -> tuple[int | None, int, tuple[int] | tuple[int, int], int]:
-        """Return where the bar and the selected body are drawn for *size*.
+    ) -> tuple[int | None, int | None, int, tuple[int] | tuple[int, int], int]:
+        """Return where the bar, its line and the selected body are drawn for *size*.
 
         The tabs must not be empty.
+        With a single row the label row is drawn without the line.
 
-        :returns: the row of the bar, ``None`` when no row is drawn;
+        :returns: the row of the labels, ``None`` when no row is drawn;
+            the row of the :attr:`underline` line, ``None`` when it is not drawn;
             the first row of the body; the size the body is rendered with; and the number of body rows shown.
         :raises TabsError: *size* is ``()``, or a flow size and the selected body is not a flow widget.
         """
@@ -499,6 +551,7 @@ class Tabs(
         maxcol = size[0]
         body_focus = focus and not self._bar_focused
         body_size: tuple[int] | tuple[int, int]
+        bar_height = 1 if self._underline is None else 2
         if len(size) == 1:
             if Sizing.FLOW not in body.sizing():
                 raise TabsError(
@@ -506,17 +559,19 @@ class Tabs(
                 )
             body_size = (maxcol,)
             body_rows = typing.cast("AbstractFlowWidget", body).rows(body_size, body_focus)
-            rows = body_rows + 1
+            rows = body_rows + bar_height
         else:
             rows = size[1]
-            body_rows = max(rows - 1, 0)
+            body_rows = max(rows - bar_height, 0)
             # a body that supports box sizing keeps its own box layout, a flow-only body is padded or trimmed
             body_size = (maxcol, body_rows) if Sizing.BOX in body.sizing() else (maxcol,)
         if not rows:
-            return None, 0, body_size, 0
+            return None, None, 0, body_size, 0
+        # the line sits between the labels and the body
+        has_line = rows - body_rows > 1
         if self._bar_position == VAlign.TOP:
-            return 0, 1, body_size, body_rows
-        return body_rows, 0, body_size, body_rows
+            return 0, 1 if has_line else None, rows - body_rows, body_size, body_rows
+        return rows - 1, body_rows if has_line else None, 0, body_size, body_rows
 
     def _bar_target(self, focus: bool) -> int:
         """Return the index of the label the bar keeps visible."""
@@ -569,13 +624,15 @@ class Tabs(
             return _BarView(total - view, marker_left, view)
         return _BarView(offset, marker_left, view)
 
-    def _render_bar(self, maxcol: int, focus: bool) -> Canvas:
-        """Render the one-row label bar *maxcol* columns wide.
+    def _render_bar(self, maxcol: int, focus: bool, *, line: bool) -> tuple[Canvas, Canvas | None]:
+        """Render the one-row label bar *maxcol* columns wide, and its :attr:`underline` line when *line* is set.
 
-        The only cursor it carries is the bar cursor, while the bar has the focus.
+        The only cursor the label row carries is the bar cursor, while the bar has the focus.
+
+        :returns: the label row, and the line row or ``None`` when *line* is not set.
         """
         if not maxcol:
-            return SolidCanvas(" ", 0, 1)
+            return SolidCanvas(" ", 0, 1), SolidCanvas(" ", 0, 1) if line else None
         selected = self.focus_position
         cursor = self._bar_cursor if focus and self._bar_focused else None
         canvases: list[Canvas] = []
@@ -625,7 +682,35 @@ class Tabs(
             bar.cursor = (col, 0)
         else:
             bar.cursor = None
-        return bar
+        if not line:
+            return bar, None
+        start = view.left + starts[selected] - view.offset
+        return bar, self._render_line(maxcol, view, start, start + widths[selected], focus=focus)
+
+    def _render_line(self, maxcol: int, view: _BarView, start: int, end: int, *, focus: bool) -> Canvas:
+        """Render the :attr:`underline` line *maxcol* columns wide, marked under bar columns *start* to *end*.
+
+        Only the part of the mark inside *view* is drawn, so a label scrolled out of view gets none.
+        """
+        rule, mark = typing.cast("tuple[str, str]", self._underline)
+        mark_start = max(view.left, start)
+        mark_end = min(view.left + view.width, end)
+        if mark_end <= mark_start:
+            mark_start = mark_end = 0
+        mark_map = self._attr_map if self._selected_map is None else self._selected_map
+        pieces: list[tuple[Canvas, None, bool, int]] = []
+        for glyph, cols, attr_map, is_mark in (
+            (rule, mark_start, self._attr_map, False),
+            (mark, mark_end - mark_start, mark_map, True),
+            (rule, maxcol - mark_end, self._attr_map, False),
+        ):
+            if not cols:
+                continue
+            piece = CompositeCanvas(SolidCanvas(glyph, cols, 1))
+            if attr_map is not None:
+                piece.fill_attr_apply(attr_map)
+            pieces.append((self._mark_unfocused_focus(piece) if is_mark and not focus else piece, None, False, cols))
+        return CanvasJoin(pieces)
 
     def _click_target(self, maxcol: int, col: int, focus: bool) -> int | None:
         """Return the index of the tab a click at bar column *col* selects, or ``None`` when it selects none.
@@ -654,7 +739,7 @@ class Tabs(
         return None
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """Return the bar row plus the rows of the selected body.
+        """Return the bar rows plus the rows of the selected body.
 
         It is 0 when there are no tabs.
 
@@ -662,8 +747,8 @@ class Tabs(
         """
         if not self._contents:
             return 0
-        _bar_row, _body_top, _body_size, body_rows = self._geometry(size, focus)
-        return body_rows + 1
+        _bar_row, line_row, _body_top, _body_size, body_rows = self._geometry(size, focus)
+        return body_rows + (1 if line_row is None else 2)
 
     def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> Canvas:
         """Render the bar and the selected body.
@@ -673,12 +758,15 @@ class Tabs(
         if not self._contents:
             # nothing to draw, so an empty widget renders at any size, () included
             return SolidCanvas(" ", (*size, 0)[0], (*size[1:], 0)[0])
-        bar_row, _body_top, body_size, body_rows = self._geometry(size, focus)
+        bar_row, line_row, _body_top, body_size, body_rows = self._geometry(size, focus)
         maxcol = body_size[0]
         if bar_row is None:
             return SolidCanvas(" ", maxcol, 0)
         bar_focused = focus and self._bar_focused
-        parts: list[tuple[Canvas, int | None, bool]] = [(self._render_bar(maxcol, focus), None, bar_focused)]
+        bar, line = self._render_bar(maxcol, focus, line=line_row is not None)
+        parts: list[tuple[Canvas, int | None, bool]] = [(bar, None, bar_focused)]
+        if line is not None:
+            parts.append((line, None, False))
         if body_rows:
             body = self._contents[self.focus_position][0]
             body_canvas = CompositeCanvas(body.render(body_size, focus=focus and not self._bar_focused))
@@ -697,11 +785,11 @@ class Tabs(
         """
         if not self.selectable():
             return None
-        bar_row, body_top, body_size, body_rows = self._geometry(size, True)
+        bar_row, _line_row, body_top, body_size, body_rows = self._geometry(size, True)
         if self._bar_focused:
             if bar_row is None:
                 return None
-            canvas = self._render_bar(body_size[0], True)
+            canvas, _line = self._render_bar(body_size[0], True, line=False)
             return None if (cursor := canvas.cursor) is None else (cursor[0], bar_row)
         body = self._contents[self.focus_position][0]
         if not body_rows or (get_cursor_coords := getattr(body, "get_cursor_coords", None)) is None:
@@ -745,7 +833,7 @@ class Tabs(
         """
         if not self._contents:
             return key
-        _bar_row, _body_top, body_size, body_rows = self._geometry(size, True)
+        _bar_row, _line_row, _body_top, body_size, body_rows = self._geometry(size, True)
         command = self._command_map[key]
         top = self._bar_position == VAlign.TOP
         toward_body, toward_bar = (Command.DOWN, Command.UP) if top else (Command.UP, Command.DOWN)
@@ -796,7 +884,8 @@ class Tabs(
     ) -> bool | None:
         """Handle a mouse event on the bar or on the body.
 
-        A button 1 press on a label selects its tab, and events on the body rows go to the body.
+        A button 1 press on a label, or on the line next to it, selects its tab, and events on the body rows go to the
+        body.
 
         With a selectable bar the press also moves the keyboard focus to the bar.
         A press on the body while the bar has the focus returns the focus to the body.
@@ -805,8 +894,8 @@ class Tabs(
         """
         if not self._contents:
             return False
-        bar_row, body_top, body_size, body_rows = self._geometry(size, focus)
-        if row == bar_row:
+        bar_row, line_row, body_top, body_size, body_rows = self._geometry(size, focus)
+        if row in {bar_row, line_row}:
             if button != MouseButton.LEFT or not is_mouse_press(event):
                 return False
             if (index := self._click_target(body_size[0], col, focus)) is None:
