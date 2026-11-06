@@ -319,11 +319,11 @@ more rows, with its height clipped to that side.  A pop-up widget may itself be
 a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
 relative to the pop-up that opened it.
 
-The pop_up.py_ example program shows a button that opens a pop-up, and
+The calc.py_ example program has a :guilabel:`Theme` button that opens a pop-up, and
 :class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
 pop-up is its list of options.
 
-.. _pop_up.py: https://github.com/urwid/urwid/blob/master/examples/pop_up.py
+.. _calc.py: https://github.com/urwid/urwid/blob/master/examples/calc.py
 
 .. _special-widgets:
 
@@ -835,8 +835,8 @@ Removing the selected tab selects the next one, or the previous one when it
 was the last.  The ``"focus changed"`` signal reports the index, see
 :ref:`focus-changed-signal`, so an application that shows the selected tab
 somewhere else also updates that display after its own changes of
-``contents``.  ``examples/tabs.py`` shows this, with a status line and a key
-that closes the current tab.
+``contents``.  ``examples/calc.py`` uses the signal to move the number shown
+to the calculator of the selected tab.
 
 
 Notifications Widgets
@@ -938,6 +938,7 @@ Both are defaults set on the stack that each :meth:`~OverlayStack.open` call can
 for example to keep the first dialog of an application open.
 Call the stack from the thread running the loop only;
 another thread hands the call over with :meth:`MainLoop.call_from_thread`.
+``examples/calc.py`` opens its help dialog in an :class:`OverlayStack`.
 
 
 Scrollable Widgets

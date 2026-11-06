@@ -168,10 +168,9 @@ script under Apache instead of running it in a terminal.
 This module is a proof of concept. There are security and responsiveness issues
 that need to be resolved before this module is recommended for production use.
 
-The tour.py_ and calc.py_ example programs demonstrate use of this module.
+The tour.py_ example program demonstrates use of this module.
 
 .. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
-.. _calc.py: https://github.com/urwid/urwid/blob/master/examples/calc.py
 
 
 Screenshot Display Module ``html_fragment``
