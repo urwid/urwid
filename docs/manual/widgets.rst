@@ -729,6 +729,14 @@ are the attributes the row's map produces.
 In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
 gives the natural width, so a table can size a dialog by itself.
 
+``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
+``scrollbar=None`` draws it only when the rows do not fit.
+The :class:`ScrollBar` parameters for its look, its side and its mouse
+handling are passed with a ``scrollbar_`` prefix, such as
+``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and
+``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
+of an application.
+
 :class:`urwid.widget.TableLayout`, the part that shares the widths, also
 works without a table: rows built with :meth:`TableLayout.row` line up in a
 :class:`Pile` or a :class:`ListBox` of their own, such as the label and value

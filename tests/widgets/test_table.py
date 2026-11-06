@@ -896,22 +896,81 @@ class TableOptionsTest(unittest.TestCase):
         self.assertIn("\u2588", "".join(line[-1] for line in lines[1:]))
         self.assertEqual("A B ", lines[0])
 
-    def test_scrollbar_mouse_offsets(self) -> None:
-        """A click left of the scrollbar reaches the row under it."""
-        clicked: list[str] = []
+    def test_scrollbar_options(self) -> None:
+        """The scrollbar options reach the scrollbar: its characters, width, end markers and attributes."""
         table = urwid.Table(
             [Column("A")],
-            [[urwid.Button(str(i), on_press=lambda b: clicked.append(b.label))] for i in range(10)],
+            [["a"]] * 10,
             scrollbar=True,
+            scrollbar_thumb_char="#",
+            scrollbar_trough_char=".",
+            scrollbar_width=2,
+            scrollbar_end_markers=("^", "v"),
+            scrollbar_attr="trough",
+            scrollbar_thumb_attr="thumb",
         )
-        size = (8, 4)
-        table.focus_position = 0
-        # the scrollbar finds where its columns are from the last render, as on a screen
-        table.render(size, focus=True)
-        click(table, size, 1, 2)
-        click(table, size, 1, 2, event="mouse release")
-        self.assertEqual(1, table.focus_position)
-        self.assertEqual(["1"], clicked)
+        self.assertEqual(3, table.pack(())[0])
+        runs = render_runs(table, (4, 6))
+        self.assertEqual([(None, "A   ")], runs[0])
+        self.assertEqual([(None, "a "), ("trough", "^^")], runs[1])
+        self.assertEqual([(None, "a "), ("thumb", "##")], runs[2])
+        self.assertEqual([(None, "a "), ("trough", "vv")], runs[5])
+
+    def test_scrollbar_options_left(self) -> None:
+        """With the scrollbar on the left the header is padded on the left, over the scrollbar."""
+        table = urwid.Table(
+            [Column("A"), Column("B")],
+            [["a", "b"]] * 5,
+            scrollbar=True,
+            scrollbar_side="left",
+            scrollbar_thumb_char="#",
+            scrollbar_trough_char=".",
+        )
+        self.assertEqual([" A B", "#a b", "#a b", ".a b"], render_text(table, (4, 4)))
+
+    def test_scrollbar_options_ignored_without_scrollbar(self) -> None:
+        """With scrollbar=False the options are not used and no column is kept for a scrollbar."""
+        table = urwid.Table([Column("A")], [["a"]] * 5, scrollbar_width=3)
+        self.assertEqual(1, table.pack(())[0])
+
+    def test_scrollbar_options_invalid(self) -> None:
+        """A keyword that is no option, an option the scrollbar rejects, or ``visible`` raises at construction."""
+        options: dict[str, typing.Any]
+        for scrollbar, options, error in (
+            (True, {"thumb_char": "#"}, TypeError),
+            (True, {"scrollbar_visible": None}, TypeError),
+            (True, {"scrollbar_delegate_selectable": True}, TypeError),
+            (False, {"scrollbar_unknown": 1}, TypeError),
+            (True, {"scrollbar_end_markers": ("^",)}, ValueError),
+        ):
+            with self.subTest(scrollbar=scrollbar, options=options), self.assertRaises(error):
+                urwid.Table([Column("A")], scrollbar=scrollbar, **options)
+
+    def test_scrollbar_mouse_offsets(self) -> None:
+        """A click on the last column beside the scrollbar reaches the row under it, on either side of it."""
+        sides: tuple[tuple[typing.Literal["left", "right"], int], ...] = (("right", 6), ("left", 7))
+        clicked: list[str] = []
+
+        def on_press(button: urwid.Button) -> None:
+            clicked.append(button.label)
+
+        for side, col in sides:
+            with self.subTest(side=side):
+                clicked.clear()
+                table = urwid.Table(
+                    [Column("A", width=(urwid.WEIGHT, 1))],
+                    [[urwid.Button(str(i), on_press=on_press)] for i in range(10)],
+                    scrollbar=True,
+                    scrollbar_side=side,
+                )
+                size = (8, 4)
+                table.focus_position = 0
+                # the scrollbar finds where its columns are from the last render, as on a screen
+                table.render(size, focus=True)
+                click(table, size, col, 2)
+                click(table, size, col, 2, event="mouse release")
+                self.assertEqual(1, table.focus_position)
+                self.assertEqual(["1"], clicked)
 
     def test_span_row(self) -> None:
         """A span row takes the whole width at any size, is not measured, and takes no column attr."""
