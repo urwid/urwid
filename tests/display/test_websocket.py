@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import threading
 import typing
 import unittest
 from unittest import mock
@@ -369,6 +370,58 @@ class SessionsTest(unittest.TestCase):
         loop.start()
         self.event_loop.run_pending()
         self.assertEqual("z", edit.edit_text)
+
+
+class SharedSelectLoopTest(unittest.TestCase):
+    """Two guarded sessions on one real event loop, where call_from_thread wakes the loop through a socket."""
+
+    def test_exit_main_loop_from_call_from_thread_closes_only_its_own_session(self) -> None:
+        """ExitMainLoop raised by a call from another thread reaches the session's handler, and the loop goes on."""
+        event_loop = urwid.SelectEventLoop()
+        errors: list[tuple[int, str]] = []
+        screens: list[websocket.Screen] = []
+        loops: list[urwid.MainLoop] = []
+        for number in range(2):
+            screen = websocket.Screen(FakeTransport(), cols=20, rows=1)
+
+            def on_error(exc: Exception, number: int = number, screen: websocket.Screen = screen) -> None:
+                errors.append((number, type(exc).__name__))
+                screen.close()
+
+            loop = urwid.MainLoop(
+                urwid.Filler(urwid.Text("")),
+                screen=screen,
+                event_loop=urwid.GuardedEventLoop(event_loop, on_error),
+            )
+            loop.start()
+            self.addCleanup(loop.stop)
+            screens.append(screen)
+            loops.append(loop)
+
+        ran: list[int] = []
+
+        def stop_session() -> None:
+            ran.append(0)
+            raise urwid.ExitMainLoop
+
+        def from_thread() -> None:
+            loops[0].call_from_thread(stop_session)
+            loops[1].call_from_thread(ran.append, 1)
+
+        def end_run() -> None:
+            raise urwid.ExitMainLoop
+
+        thread = threading.Thread(target=from_thread)
+        thread.start()
+        thread.join(timeout=5)
+        # registered on the unguarded loop, so it ends the run; it also ends the test if a call never arrives
+        event_loop.alarm(0.2, end_run)
+        event_loop.run()
+
+        self.assertEqual([0, 1], sorted(ran))
+        self.assertEqual([(0, "ExitMainLoop")], errors)
+        self.assertTrue(screens[0].closed)
+        self.assertFalse(screens[1].closed)
 
 
 class PageTest(unittest.TestCase):
