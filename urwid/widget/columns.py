@@ -157,6 +157,7 @@ class Columns(
 
         block_fixed = False
         has_fixed = False
+        all_box = True
         supported: set[Sizing] = set()
 
         # This is a set of _ContainerElementSizingFlag ORed together.
@@ -202,8 +203,11 @@ class Columns(
 
             flags.add(flag)
 
-            if flag & _ContainerElementSizingFlag.BOX and not (is_box or flag & _FLOW_FIXED):
-                strict_box = True
+            if flag & _ContainerElementSizingFlag.BOX:
+                if not (is_box or flag & _FLOW_FIXED):
+                    strict_box = True
+            else:
+                all_box = False
 
             if flag & _ContainerElementSizingFlag.FLOW:
                 has_flow = True
@@ -212,7 +216,7 @@ class Columns(
             elif flag & _GIVEN_BOX != _GIVEN_BOX:
                 block_fixed = True
 
-        if all(flag & _ContainerElementSizingFlag.BOX for flag in flags):
+        if all_box:
             # Only if ALL widgets can be rendered as BOX, widget can be rendered as BOX.
             # Hacky "BOX" render for FLOW-only is still present,
             # due to incorrected implementation can be used by downstream
@@ -720,7 +724,8 @@ class Columns(
             :warns ColumnsWarning: the column holds an object that is not a widget,
                 or its widget supports neither FIXED nor FLOW sizing.
             """
-            if isinstance(widget, AbstractWidget):
+            # the MRO lookup answers for every Widget subclass without the much slower Protocol check
+            if Widget in type(widget).__mro__ or isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
                 warnings.warn(f"{widget!r} is not a Widget", ColumnsWarning, stacklevel=4)
@@ -754,9 +759,13 @@ class Columns(
 
         # 'pack' widgets can change their packed width without invalidating the cache,
         # so recompute their widths and reuse the cached result only when nothing changed.
+        contents = self.contents
+        focus_position = self.focus_position if contents else -1
+        dividechars = self.dividechars
+        min_width = self.min_width
         pack_widths = {
-            i: pack_width(w, t, b, focus and i == self.focus_position)
-            for i, (w, (t, width, b)) in enumerate(self.contents)
+            i: pack_width(w, t, b, focus and i == focus_position)
+            for i, (w, (t, width, b)) in enumerate(contents)
             if t == WHSettings.PACK
         }
         if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
@@ -769,20 +778,20 @@ class Columns(
         dividers: list[int] = []
 
         weighted: list[tuple[int | float, int]] = []
-        shared = maxcol + self.dividechars
+        shared = maxcol + dividechars
 
         static_w: int
 
-        for i, (_w, options) in enumerate(self.contents):
+        for i, (_w, options) in enumerate(contents):
             if options[0] == WHSettings.GIVEN:
                 static_w = options[1]
             elif options[0] == WHSettings.PACK:
                 static_w = pack_widths[i]
             else:
-                static_w = self.min_width
+                static_w = min_width
 
-            divider = self.dividechars if static_w > 0 or options[0] not in {WHSettings.GIVEN, WHSettings.PACK} else 0
-            if shared < static_w + divider and i > self.focus_position:
+            divider = dividechars if static_w > 0 or options[0] not in {WHSettings.GIVEN, WHSettings.PACK} else 0
+            if shared < static_w + divider and i > focus_position:
                 break
 
             widths.append(static_w)
@@ -800,7 +809,7 @@ class Columns(
             if weighted and weighted[0][1] == i:
                 del weighted[0]
 
-        grow = shared + len(weighted) * self.min_width
+        grow = shared + len(weighted) * min_width
         if weighted and (max_weight := max(weight for weight, _i in weighted)) > sys.float_info.max / (
             len(weighted) * max(grow, 1)
         ):
@@ -811,7 +820,7 @@ class Columns(
         if shared and wtotal:
             # divide up the remaining space between weighted cols
             for weight, i in sorted(weighted):
-                width = max(int(grow * weight / wtotal + 0.5), self.min_width)
+                width = max(int(grow * weight / wtotal + 0.5), min_width)
 
                 widths[i] = width
                 grow -= width
@@ -839,11 +848,13 @@ class Columns(
         weighted: dict[int | float, list[tuple[AbstractWidget, int, bool, bool]]] = {}
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
+        focus_position = self.focus_position if focus and self.contents else -1
+        min_width = self.min_width
 
         for i, (widget, options) in enumerate(self.contents):
             size_kind, is_box = options[0], options[2]
             w_sizing = widget.sizing()
-            focused = focus and i == self.focus_position
+            focused = i == focus_position
 
             if options[0] == WHSettings.GIVEN:
                 given_width = options[1]
@@ -876,7 +887,7 @@ class Columns(
                 if Sizing.FIXED in w_sizing:
                     width, height = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                 else:
-                    width = self.min_width
+                    width = min_width
 
                 size_weight = options[1]
 
@@ -892,7 +903,7 @@ class Columns(
 
             for weight in weight_max_sizes:
                 try:
-                    width = max(int(max_weighted_coefficient * weight + 0.5), self.min_width)
+                    width = max(int(max_weighted_coefficient * weight + 0.5), min_width)
                 except OverflowError as exc:
                     raise ColumnsError(
                         f"Weights of {self!r} are too far apart to keep their ratio at a fixed size"
@@ -952,7 +963,7 @@ class Columns(
         for i, (width, (widget, (size_kind, _size_weight, is_box))) in enumerate(
             zip(widths, self.contents, strict=False)
         ):
-            if isinstance(widget, AbstractWidget):
+            if Widget in type(widget).__mro__ or isinstance(widget, AbstractWidget):
                 w_sizing = widget.sizing()
             else:
                 warnings.warn(f"{widget!r} is not a Widget.", ColumnsWarning, stacklevel=3)
@@ -1050,14 +1061,16 @@ class Columns(
             and (i >= len(widths) or widths[i] <= 0)
             and (w_sizing := w.sizing()) & {Sizing.FIXED, Sizing.FLOW}
         ]
+        focus_position = self.focus_position if self.contents else -1
+        dividechars = self.dividechars
         for i, (width, w_size, (w, _)) in enumerate(zip(widths, size_args, self.contents, strict=False)):
             # if the widget has a width of 0, hide it
             if width <= 0:
                 continue
 
             if i < last_visible:
-                width += self.dividechars  # noqa: PLW2901
-            is_focus = self.focus_position == i
+                width += dividechars  # noqa: PLW2901
+            is_focus = focus_position == i
             # widget kind and size arguments matched separately
             canvas = w.render(w_size, focus=focus and is_focus)  # type: ignore[arg-type]
             if is_focus and not focus:
