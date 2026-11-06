@@ -711,10 +711,24 @@ class OverlayTest(unittest.TestCase):
                 ovl = urwid.Overlay(top_w, bottom_w, urwid.CENTER, kwargs["width"], urwid.MIDDLE, kwargs["height"])
                 self.assertRaises(overlay_mod.OverlayError, ovl.pack, ())
 
-    def test_rows_given_width_pack_height(self) -> None:
-        top_w = urwid.Text("hi")
-        ovl = urwid.Overlay(top_w, urwid.SolidFill("#"), urwid.CENTER, 10, urwid.MIDDLE, None)
-        self.assertEqual(top_w.rows((10,)), ovl.rows((999,)))
+    def test_rows_pack_height_measured_at_top_widget_width(self) -> None:
+        """A flow-sized Overlay counts the rows top_w takes at the width it is rendered at.
+
+        Measured at any other width, the last rows of top_w would be cut off.
+        """
+        text = "word " * 30
+        for description, maxcol, width, kwargs, top_cols in (
+            ("given width narrower than the overlay", 999, 10, {}, 10),
+            ("given width wider than the overlay", 60, 100, {}, 60),
+            ("relative width with left padding", 60, (urwid.RELATIVE, 100), {"left": 20}, 40),
+            ("relative width with right padding", 60, (urwid.RELATIVE, 100), {"right": 20}, 40),
+        ):
+            with self.subTest(description):
+                top_w = urwid.Text(text)
+                ovl = urwid.Overlay(top_w, urwid.SolidFill("."), urwid.CENTER, width, urwid.TOP, urwid.PACK, **kwargs)
+                self.assertEqual(top_w.rows((top_cols,)), ovl.rows((maxcol,)))
+                rendered = "".join(ovl.render((maxcol,)).decoded_text)
+                self.assertEqual(30, rendered.count("word"))
 
     def test_rows_error_pack_width_and_height(self) -> None:
         ovl = urwid.Overlay(urwid.Text("hi"), urwid.SolidFill("#"), urwid.CENTER, None, urwid.MIDDLE, None)
