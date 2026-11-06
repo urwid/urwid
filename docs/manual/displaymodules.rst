@@ -112,6 +112,53 @@ the watched files at once.
 Other Display Modules
 =====================
 
+WebSocket Display Module ``display.websocket``
+----------------------------------------------
+
+The :mod:`urwid.display.websocket` module draws your application into a web
+browser page over a WebSocket. It does not depend on an HTTP or WebSocket
+library: a small adapter written for the server library you use connects one
+:class:`display.websocket.Screen` to each WebSocket connection.
+
+* The adapter serves the page from :func:`display.websocket.html_page` and the
+  files in :data:`display.websocket.STATIC_FILES`.
+* For each connection it creates a screen with a :class:`display.websocket.Transport`
+  that sends text messages over that connection, and a :class:`MainLoop` on the
+  event loop the server library runs on. It calls :meth:`MainLoop.start` instead of
+  :meth:`MainLoop.run`, because the server library runs the event loop.
+* It gives each main loop the shared event loop wrapped in a :class:`GuardedEventLoop`
+  whose handler closes that session's screen. Without the wrapper, an exception in one
+  session stops the event loop, and with it every session.
+* It passes every message from the browser to :meth:`display.websocket.Screen.feed`
+  and closes the connection when that raises
+  :exc:`display.websocket.InvalidMessageError`.
+* It calls :meth:`MainLoop.stop` when the connection closes.
+
+Every session is a live connection: there are no files, pipes or session tokens on
+the server. The screen accepts only the messages its page script sends: a known key
+name, or a window size, in a message of limited length.
+:exc:`ExitMainLoop` raised by an input handler ends only the session it was raised in.
+
+The page has no inline script or style, so it works under a strict
+``Content-Security-Policy``. The screen itself does no access control: the adapter
+checks the ``Origin`` of each WebSocket handshake, limits the message size and the
+number of sessions, and authenticates users, also on a loopback address, which every
+user of the host can reach.
+
+The websocket_tornado.py_ example is such an adapter for Tornado, with these checks
+in place, a limit on failed logins, and a :class:`GuardedEventLoop` per session.
+
+.. warning::
+    The example shows how to connect the screen to a server library; it is not a
+    production server. Its TLS support only loads a given certificate and key, and it
+    was not tested against real clients. Whoever builds a production service is
+    responsible for its TLS: the certificates and their renewal, the protocol versions
+    and ciphers, and usually a reverse proxy or load balancer that terminates TLS. The
+    same holds for authentication beyond the single shared token of the example.
+
+.. _websocket_tornado.py: https://github.com/urwid/urwid/blob/master/examples/websocket_tornado.py
+
+
 CGI Web Display Module ``display.web``
 --------------------------------------
 

@@ -28,6 +28,31 @@ WEB display
 
 .. autoclass:: Screen
 
+WebSocket display
+-----------------
+
+.. module:: urwid.display.websocket
+
+.. autoclass:: Screen
+    :members: feed, close, closed
+
+.. autoclass:: Transport
+    :members:
+
+.. autoexception:: InvalidMessageError
+
+.. autofunction:: html_page
+
+.. autodata:: STATIC_FILES
+    :no-value:
+
+.. autoclass:: StaticFile
+    :members:
+
+.. autodata:: MAX_MESSAGE_LENGTH
+
+.. autodata:: MAX_PENDING_INPUT
+
 HTML fragment
 -------------
 

@@ -17,20 +17,7 @@
 //
 // Urwid web site: https://urwid.org/
 
-"use strict";
-
-// Separates the fields of a span within a wire-format line (see urwid.display.web._STYLE_SEP).
-const style_separator = "";
-
-// KeyboardEvent.key values that urwid knows under a different name.
-const key_names = {
-    "Backspace": "backspace", "Tab": "tab", "Enter": "enter", "Escape": "esc",
-    "PageUp": "page up", "PageDown": "page down", "End": "end", "Home": "home",
-    "ArrowLeft": "left", "ArrowUp": "up", "ArrowRight": "right", "ArrowDown": "down",
-    "Insert": "insert", "Delete": "delete"
-};
-
-const function_key = /^F([1-9]|1[0-2])$/;
+// The CGI transport of the page script. web.py sends it after _web_common.js, which it uses.
 
 // Boundary used by the multipart/x-mixed-replace stream sent by web.py.
 const boundary = "ZZ";
@@ -232,69 +219,6 @@ function handle_update(payload) {
     return true;
 }
 
-function render_update(text) {
-    const container = document.getElementById('text');
-    const last_screen = Array.from(container.childNodes);
-
-    let line = document.createElement('span');
-    let row = 0;
-
-    for (const frag of text.split("\n")) {
-        if (frag === "") {
-            line.appendChild(document.createElement('br'));
-            place_line(container, line, row);
-            row += 1;
-            line = document.createElement('span');
-        } else if (frag.startsWith("<")) {
-            // the row is unchanged from the last screen
-            const source = Number.parseInt(frag.slice(1), 10);
-            if (source !== row) {
-                const previous = last_screen[source];
-                place_line(container, previous ? previous.cloneNode(true) : document.createElement('span'), row);
-            }
-            row += 1;
-        } else {
-            const sep = frag.indexOf(style_separator);
-            line.appendChild(make_span(frag.slice(sep + 1), frag.slice(0, sep)));
-        }
-    }
-
-    while (container.childNodes.length > row) {
-        container.removeChild(container.lastChild);
-    }
-}
-
-function place_line(container, line, row) {
-    if (container.childNodes.length > row) {
-        container.replaceChild(line, container.childNodes[row]);
-    } else {
-        container.appendChild(line);
-    }
-}
-
-// rest is "text", or "url<separator>text" for a hyperlink
-function make_span(rest, style) {
-    const sep = rest.indexOf(style_separator);
-    const d = document.createElement('span');
-    d.style.cssText = style;
-    d.appendChild(document.createTextNode(sep < 0 ? rest : rest.slice(sep + 1)));
-    if (sep < 0) {
-        return d;
-    }
-
-    // a new tab, so following the link does not end the session drawn in this one
-    const a = document.createElement('a');
-    a.href = rest.slice(0, sep);
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.appendChild(d);
-    return a;
-}
-
-function set_status(status) {
-    document.getElementById('status').textContent = status;
-}
-
 function connection_failed(reason) {
     if (!update_method) {
         return; // the connection was closed on purpose
@@ -336,38 +260,15 @@ function body_keydown(e) {
         return;
     }
 
-    const name = key_name(e);
+    const name = key_event_name(e);
     if (name === null) {
         return;
     }
 
-    let mod = "";
-    if (e.ctrlKey) { mod = "ctrl " + mod; }
-    if (e.altKey || e.metaKey) { mod = "meta " + mod; }
-    // printable keys already carry the effect of the shift key
-    if (e.shiftKey && name !== e.key) { mod = "shift " + mod; }
-
     e.stopPropagation();
     e.preventDefault();
 
-    send_key(mod + name);
-}
-
-// Map a KeyboardEvent to an urwid key name, or null if urwid ignores it.
-function key_name(e) {
-    if (e.isComposing || !e.key || e.key === "Unidentified") {
-        return null;
-    }
-    if (Object.prototype.hasOwnProperty.call(key_names, e.key)) {
-        return key_names[e.key];
-    }
-    if (function_key.test(e.key)) {
-        return e.key.toLowerCase();
-    }
-    if (Array.from(e.key).length === 1) {
-        return e.key; // a printable character
-    }
-    return null; // modifier or a key urwid has no name for
+    send_key(name);
 }
 
 function send_key(key) {
@@ -409,21 +310,7 @@ async function flush_send_queue() {
 }
 
 function body_resize() {
-    const t = document.getElementById('testchar');
-    const t2 = document.getElementById('testchar2');
-    const text = document.getElementById('text');
-
-    const char_width = t.offsetLeft / 44;
-    const avail_width = window.innerWidth - 18;
-    const x_size = (avail_width - (avail_width % char_width)) / char_width;
-
-    const char_height = t2.offsetTop - t.offsetTop;
-    const avail_height = window.innerHeight - text.offsetTop - 10;
-    const y_size = (avail_height - (avail_height % char_height)) / char_height;
-
-    text.style.width = x_size * char_width + "px";
-    text.style.height = y_size * char_height + "px";
-
+    const [x_size, y_size] = measure_screen();
     if (screen_x !== x_size || screen_y !== y_size) {
         send_key("window resize " + x_size + " " + y_size);
     }
