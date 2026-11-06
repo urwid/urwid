@@ -232,40 +232,55 @@ class Screen(_raw_display_base.Screen):
         Restore the screen.
 
         :raises RuntimeError: the original console mode could not be restored.
+        :raises OSError: writing to the output failed; the reader is stopped and the console modes are set back first.
         """
-        self.clear()
+        try:
+            self.clear()
 
-        if self.modes.bracketed_paste:
-            self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
+            if self.modes.bracketed_paste:
+                self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
 
-        if self.modes.focus_reporting:
-            self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+            if self.modes.focus_reporting:
+                self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
-        # before the alternate screen is left: the kitty keyboard flags are kept per screen
-        self._disable_keyboard_protocol()
+            # before the alternate screen is left: the kitty keyboard flags are kept per screen
+            self._disable_keyboard_protocol()
 
-        self._stop_input_thread()
+            # before the last writes, so keys typed meanwhile stay in the console for whatever reads it next
+            self._stop_input_thread()
 
-        self._stop_restore_palette()
-        # before the console mode is restored: the title is saved through the console API while it is active
-        self._restore_title()
-        self._stop_mouse_restore_buffer()
-
-        if self._dwOriginalOutMode is not None and self._dwOriginalInMode is not None:
-            handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
-            handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
-
-            if not (ok := _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)):
-                raise RuntimeError(f"ConsoleMode set failed for output. Err: {ok!r}")
-
-            if not (ok := _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)):
-                raise RuntimeError(f"ConsoleMode set failed for input. Err: {ok!r}")
-
-            self._dwOriginalOutMode = None
-            self._dwOriginalInMode = None
-            self._console_mode_active = False
+            self._stop_restore_palette()
+            # before the console mode is restored: the title is saved through the console API while it is active
+            self._restore_title()
+            self._stop_mouse_restore_buffer()
+        finally:
+            # the reader is stopped and the console modes are set back also when a step above failed
+            self._stop_input_thread()
+            self._restore_console_modes()
 
         super()._stop()  # type: ignore[safe-super]
+
+    def _restore_console_modes(self) -> None:
+        """Set back the console modes saved by the start.
+
+        :raises RuntimeError: a console mode could not be set back.
+        """
+        if self._dwOriginalOutMode is None or self._dwOriginalInMode is None:
+            return
+        handle_out = _win32.GetStdHandle(_win32.STD_OUTPUT_HANDLE)
+        handle_in = _win32.GetStdHandle(_win32.STD_INPUT_HANDLE)
+
+        # both modes are set before either failure is raised, so a failed output mode leaves no input mode behind
+        out_ok = _win32.SetConsoleMode(handle_out, self._dwOriginalOutMode)
+        in_ok = _win32.SetConsoleMode(handle_in, self._dwOriginalInMode)
+        if not out_ok:
+            raise RuntimeError(f"ConsoleMode set failed for output. Err: {out_ok!r}")
+        if not in_ok:
+            raise RuntimeError(f"ConsoleMode set failed for input. Err: {in_ok!r}")
+
+        self._dwOriginalOutMode = None
+        self._dwOriginalInMode = None
+        self._console_mode_active = False
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
         """Remove any hooks added by hook_event_loop."""

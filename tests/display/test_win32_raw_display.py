@@ -140,6 +140,35 @@ class TestScreenInput(unittest.TestCase):
         self.assertTrue(reader.should_exit)
         reader.join.assert_called_once()
 
+    def test_stop_restores_both_console_modes_when_a_step_fails(self):
+        """Set both console modes back and stop the reader when a write or the output mode fails.
+
+        The failure is still raised.
+        """
+        for failure, write_error, mode_results in (
+            ("write", OSError(9, "bad file descriptor"), [1, 1]),
+            ("output mode", None, [0, 1]),
+        ):
+            with self.subTest(failure=failure):
+                s = _win32_raw_display.Screen()
+                s.write = mock.Mock(side_effect=write_error)
+                s.flush = lambda: None
+                s.modes.bracketed_paste = True
+                s._dwOriginalOutMode, s._dwOriginalInMode = 1, 2
+                reader = mock.Mock()
+
+                with (
+                    mock.patch.object(s, "_input_thread", reader),
+                    mock.patch.object(s, "_started", True),
+                    mock.patch.object(_win32, "GetStdHandle", side_effect=["out", "in"]),
+                    mock.patch.object(_win32, "SetConsoleMode", side_effect=mode_results) as set_mode,
+                    self.assertRaises(OSError if write_error else RuntimeError),
+                ):
+                    s.stop()
+
+                self.assertEqual([mock.call("out", 1), mock.call("in", 2)], set_mode.call_args_list)
+                self.assertTrue(reader.should_exit)
+
     def test_no_reader_outlives_a_stop_that_re_hooks_the_screen(self):
         """A main loop re-hooking the screen while it stops does not leave a reader running."""
         readers: list[mock.Mock] = []

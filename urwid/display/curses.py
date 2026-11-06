@@ -186,52 +186,57 @@ class Screen(BaseScreen, RealTerminal):
     def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         """Initialize the screen and input mode."""
         self.s = curses.initscr()
-        self.has_color = curses.has_colors()
-        if self.has_color:
-            curses.start_color()
-            if curses.COLORS < 8:
-                # not colourful enough
-                self.has_color = False
-        if self.has_color:
-            try:
-                curses.use_default_colors()
-                self.has_default_colors = True
-            except curses.error:
-                self.has_default_colors = False
-        self._setup_colour_pairs()
-        self._curses_attr_cache.clear()
-        curses.noecho()
-        curses.meta(True)
-        curses.halfdelay(10)  # use set_input_timeouts to adjust
-        self.s.keypad(False)
+        try:
+            self.has_color = curses.has_colors()
+            if self.has_color:
+                curses.start_color()
+                if curses.COLORS < 8:
+                    # not colourful enough
+                    self.has_color = False
+            if self.has_color:
+                try:
+                    curses.use_default_colors()
+                    self.has_default_colors = True
+                except curses.error:
+                    self.has_default_colors = False
+            self._setup_colour_pairs()
+            self._curses_attr_cache.clear()
+            curses.noecho()
+            curses.meta(True)
+            curses.halfdelay(10)  # use set_input_timeouts to adjust
+            self.s.keypad(False)
 
-        if not IS_WINDOWS and os.isatty(fd := sys.stdin.fileno()):
-            import termios
-            import tty
+            if not IS_WINDOWS and os.isatty(fd := sys.stdin.fileno()):
+                import termios
+                import tty
 
-            # cbreak mode leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
-            # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
-            # and ctrl y (VDSUSP).
-            # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
-            mode = termios.tcgetattr(fd)
-            self._cleared_lflag = mode[tty.LFLAG] & (termios.IEXTEN | termios.FLUSHO)
-            mode[tty.LFLAG] &= ~self._cleared_lflag
-            termios.tcsetattr(fd, termios.TCSANOW, mode)
-            # cbreak() and halfdelay() in _getch() apply the mode curses saved last.
-            # Curses has no mode to save when its output is no terminal, and then never changes stdin's.
-            with suppress(curses.error):
-                curses.def_prog_mode()
+                # cbreak mode leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
+                # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
+                # and ctrl y (VDSUSP).
+                # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
+                mode = termios.tcgetattr(fd)
+                self._cleared_lflag = mode[tty.LFLAG] & (termios.IEXTEN | termios.FLUSHO)
+                mode[tty.LFLAG] &= ~self._cleared_lflag
+                termios.tcsetattr(fd, termios.TCSANOW, mode)
+                # cbreak() and halfdelay() in _getch() apply the mode curses saved last.
+                # Curses has no mode to save when its output is no terminal, and then never changes stdin's.
+                with suppress(curses.error):
+                    curses.def_prog_mode()
 
-        if not self._signal_keys_set:
-            self._old_signal_keys = self.tty_signal_keys()
+            if not self._signal_keys_set:
+                self._old_signal_keys = self.tty_signal_keys()
 
-        super()._start()
+            super()._start()
 
-        if IS_WINDOWS:
-            # halfdelay() seems unnecessary and causes everything to slow down a lot.
-            curses.nocbreak()  # exits halfdelay mode
-            # keypad(1) is needed, or we get no special keys (cursor keys, etc.)
-            self.s.keypad(True)
+            if IS_WINDOWS:
+                # halfdelay() seems unnecessary and causes everything to slow down a lot.
+                curses.nocbreak()  # exits halfdelay mode
+                # keypad(1) is needed, or we get no special keys (cursor keys, etc.)
+                self.s.keypad(True)
+        except BaseException:
+            # leave the terminal as it was found; a stop() after the failed start has nothing left to undo
+            self._stop()
+            raise
 
     def _stop(self) -> None:
         """Restore the screen."""
@@ -241,20 +246,20 @@ class Screen(BaseScreen, RealTerminal):
             curses.endwin()
             # don't block original error with curses error
 
-        # endwin() restores the terminal curses writes to, which need not be stdin's.
-        if self._cleared_lflag and os.isatty(fd := sys.stdin.fileno()):
-            import termios
-            import tty
+        try:
+            # endwin() restores the terminal curses writes to, which need not be stdin's.
+            if self._cleared_lflag and os.isatty(fd := sys.stdin.fileno()):
+                import termios
+                import tty
 
-            mode = termios.tcgetattr(fd)
-            mode[tty.LFLAG] |= self._cleared_lflag
-            termios.tcsetattr(fd, termios.TCSANOW, mode)
-        self._cleared_lflag = 0
-
-        if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys)
-
-        super()._stop()
+                mode = termios.tcgetattr(fd)
+                mode[tty.LFLAG] |= self._cleared_lflag
+                termios.tcsetattr(fd, termios.TCSANOW, mode)
+        finally:
+            self._cleared_lflag = 0
+            if self._old_signal_keys:
+                self.tty_signal_keys(*self._old_signal_keys)
+            super()._stop()
 
     def _setup_colour_pairs(self) -> None:
         """Initialize all 63 color pairs based on the term: bg * 8 + 7 - fg.

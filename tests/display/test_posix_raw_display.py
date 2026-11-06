@@ -335,17 +335,33 @@ class TestStartStop(unittest.TestCase):
                 gpm_mev.send_signal.assert_called_once_with(signal.SIGINT)
                 self.assertIsNone(s.gpm_mev)
 
-    def test_stop_raises_other_output_errors(self) -> None:
-        """Raise an output error that does not mean the terminal is gone, such as a full disk."""
+    @mock.patch.dict(os.environ, {"TERM": "xterm"})  # fbterm has no palette reset to flush
+    @mock.patch("termios.tcsetattr")
+    @mock.patch("termios.tcgetattr", return_value=[0, 0, 0, 0, 0, 0, [b"\0"] * 32])
+    @mock.patch("tty.setcbreak")
+    @mock.patch("os.isatty", return_value=True)
+    def test_stop_raises_other_output_errors(
+        self,
+        mock_isatty: mock.Mock,
+        mock_setcbreak: mock.Mock,
+        mock_tcgetattr: mock.Mock,
+        mock_tcsetattr: mock.Mock,
+    ) -> None:
+        """Raise an output error that does not mean the terminal is gone, such as a full disk.
+
+        The terminal settings are restored all the same.
+        """
         s = _make_screen()
         self.enterContext(mock.patch.object(s, "write"))
         flush = self.enterContext(mock.patch.object(s, "flush"))
         s.start()
+        s._modified_palette_entries.add(1)
         flush.side_effect = OSError(errno.ENOSPC, os.strerror(errno.ENOSPC))
 
         with self.assertRaises(OSError) as raised:
             s.stop()
         self.assertEqual(errno.ENOSPC, raised.exception.errno)
+        mock_tcsetattr.assert_any_call(s._input_fileno(), termios.TCSAFLUSH, mock_tcgetattr.return_value)
         flush.side_effect = None
         s.stop()
 
