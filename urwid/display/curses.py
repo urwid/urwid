@@ -309,11 +309,11 @@ class Screen(BaseScreen, RealTerminal):
         self.s.nodelay(True)
 
         if not IS_WINDOWS:
-            while True:
-                # this call fails sometimes, but seems to work when I try again
-                with suppress(curses.error):
-                    curses.cbreak()
-                    break
+            try:
+                curses.cbreak()
+            except curses.error:
+                # it can fail once and work when called again, but once the terminal is gone it fails every time
+                curses.cbreak()
 
         return self.s.getch()
 

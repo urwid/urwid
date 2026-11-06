@@ -112,6 +112,23 @@ class CursesInputTimeoutTest(unittest.TestCase):
         self.screen.s.nodelay.assert_called_once_with(True)
         self.halfdelay.assert_not_called()
 
+    def test_zero_wait_retries_cbreak_once(self) -> None:
+        """Retry a failed ``cbreak`` once and raise its second failure.
+
+        Once the terminal is gone, ``cbreak`` fails on every call.
+        """
+        self.screen.s.getch.return_value = -1
+        self.cbreak.side_effect = [curses_display.curses.error, None]
+        self.assertEqual(-1, self.screen._getch(0))
+        self.assertEqual(2, self.cbreak.call_count)
+
+        self.cbreak.reset_mock()
+        # an iterator, not a list, so a regression to an unbounded retry ends with StopIteration instead of hanging
+        self.cbreak.side_effect = iter([curses_display.curses.error] * 3)
+        with self.assertRaises(curses_display.curses.error):
+            self.screen._getch(0)
+        self.assertEqual(2, self.cbreak.call_count)
+
     def test_none_wait_is_blocking(self) -> None:
         self.screen.s.getch.return_value = ord("q")
         self.assertEqual(ord("q"), self.screen._getch(None))
