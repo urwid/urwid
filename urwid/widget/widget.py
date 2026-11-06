@@ -830,7 +830,8 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
     __slots__ = ("__weakref__", "_name")
 
     def __init__(self) -> None:
-        self._name: str | None = None
+        # Empty until __set_name__ runs: no attribute is stored under "", so a lookup by it misses.
+        self._name = ""
 
     def __set_name__(self, owner: type[AbstractWidget], name: str) -> None:
         self._name = name
@@ -840,7 +841,7 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
 
         :raises TypeError: the attribute was not created in a class body, so it has no name.
         """
-        if self._name is None:
+        if not self._name:
             msg = f"{type(self).__name__} is used outside a class body and has no attribute name"
             raise TypeError(msg)
         return self._name
@@ -854,12 +855,14 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
     def __get__(self, instance: AbstractWidget | None, owner: type[AbstractWidget]) -> Self | _AttributeValue:
         if instance is None:
             return self
-        name = self._attribute_name()
+        # Layout code reads these attributes on every call, so the lookup uses the stored name directly.
         try:
-            return typing.cast("_AttributeValue", vars(instance)[name])
+            value: _AttributeValue = vars(instance)[self._name]
         except KeyError:
+            name = self._attribute_name()
             msg = f"{type(instance).__name__!r} object has no attribute {name!r}"
             raise AttributeError(msg, name=name, obj=instance) from None
+        return value
 
     def __set__(self, instance: AbstractWidget, value: _AttributeValue) -> None:
         vars(instance)[self._attribute_name()] = value

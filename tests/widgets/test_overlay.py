@@ -881,11 +881,74 @@ class OverlayTest(unittest.TestCase):
         self.assertEqual((0, 0, 0, 3 - height), ovl.calculate_padding_filler((5, 3), False))
 
     def test_render_returns_bottom_only_when_bottom_canvas_is_empty(self) -> None:
-        ovl = urwid.Overlay(urwid.SolidFill("X"), urwid.SolidFill("."), urwid.CENTER, 4, urwid.MIDDLE, 2)
-        canvas = ovl.render((0, 5))
-        self.assertIsInstance(canvas, urwid.CompositeCanvas)
-        self.assertEqual(0, canvas.cols())
-        self.assertEqual(5, canvas.rows())
+        for description, top_w, height in (
+            ("given height", urwid.SolidFill("X"), 2),
+            ("pack height", urwid.Text("X"), urwid.PACK),
+        ):
+            with self.subTest(description):
+                ovl = urwid.Overlay(top_w, urwid.SolidFill("."), urwid.CENTER, 4, urwid.MIDDLE, height)
+                canvas = ovl.render((0, 5))
+                self.assertIsInstance(canvas, urwid.CompositeCanvas)
+                self.assertEqual(0, canvas.cols())
+                self.assertEqual(5, canvas.rows())
+
+    def test_render_calls_overridden_layout_methods(self) -> None:
+        """A subclass overriding calculate_padding_filler or top_w_size gets it called by render for a PACK height."""
+        calls: list[str] = []
+
+        class PaddingFillerOverlay(urwid.Overlay[urwid.Text, urwid.SolidFill]):
+            """An Overlay recording each call of calculate_padding_filler."""
+
+            def calculate_padding_filler(self, size: tuple[int, int], focus: bool) -> tuple[int, int, int, int]:
+                calls.append("calculate_padding_filler")
+                return super().calculate_padding_filler(size, focus)
+
+        class TopSizeOverlay(urwid.Overlay[urwid.Text, urwid.SolidFill]):
+            """An Overlay recording each call of top_w_size."""
+
+            def top_w_size(
+                self,
+                size: tuple[int, int],
+                left: int,
+                right: int,
+                top: int,
+                bottom: int,
+            ) -> tuple[()] | tuple[int] | tuple[int, int]:
+                calls.append("top_w_size")
+                return super().top_w_size(size, left, right, top, bottom)
+
+        for overlay_class, method in (
+            (PaddingFillerOverlay, "calculate_padding_filler"),
+            (TopSizeOverlay, "top_w_size"),
+        ):
+            with self.subTest(method):
+                calls.clear()
+                ovl = overlay_class(
+                    urwid.Text("one two"), urwid.SolidFill("."), urwid.CENTER, 5, urwid.MIDDLE, urwid.PACK
+                )
+                self.assertEqual((".......", ".one  .", ".two  .", "......."), ovl.render((7, 4)).decoded_text)
+                self.assertEqual([method], calls)
+
+    def test_render_pack_height_box_only_top_widget(self) -> None:
+        """A PACK height over a BOX-only top_w fails with AttributeError, also when bottom_w renders empty.
+
+        A wrapper whose own rows() fails on the wrapped BOX widget fails the same way.
+        """
+        for description, make_top, warns_about_sizing in (
+            ("box widget", lambda: urwid.SolidFill("x"), False),
+            ("padded box widget", lambda: urwid.Padding(urwid.SolidFill("x")), False),
+            ("box widget in a pile", lambda: urwid.Pile([urwid.SolidFill("x")]), True),
+        ):
+            for size in ((8, 6), (0, 6), (8, 0)):
+                with self.subTest(description, size=size):
+                    ovl = urwid.Overlay(make_top(), urwid.SolidFill("."), urwid.CENTER, 5, urwid.MIDDLE, urwid.PACK)
+                    with warnings.catch_warnings(record=True) as caught, self.assertRaises(AttributeError):
+                        warnings.simplefilter("always")
+                        ovl.render(size)
+                    self.assertEqual(
+                        [urwid.widget.pile.PileWarning] if warns_about_sizing else [],
+                        [warning.category for warning in caught],
+                    )
 
     def test_mouse_event_without_support(self) -> None:
         with self.assertWarns(DeprecationWarning):

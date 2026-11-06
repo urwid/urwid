@@ -271,12 +271,6 @@ class Overlay(
 
         self.top_w = top_w
         self.bottom_w = bottom_w
-        self.min_width = None
-        self.min_height = None
-        self.left = 0
-        self.right = 0
-        self.top = 0
-        self.bottom = 0
 
         self.set_overlay_parameters(align, width, valign, height, min_width, min_height, left, right, top, bottom)
 
@@ -1022,18 +1016,7 @@ class Overlay(
             # top_w is a flow widget: it will be rendered at the width left over by the horizontal padding,
             # so the row count has to be measured at that width and not at the full width of the overlay.
             height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol - left - right,), focus=focus)
-            top, bottom = calculate_top_bottom_filler(
-                maxrow,
-                self.valign_type,
-                self.valign_amount,
-                WHSettings.GIVEN,
-                height,
-                None,
-                self.top,
-                self.bottom,
-            )
-            if height > maxrow:  # flow widget rendered too large
-                bottom = maxrow - height
+            top, bottom = self._flow_top_bottom_filler(maxrow, height)
         else:
             top, bottom = calculate_top_bottom_filler(
                 maxrow,
@@ -1060,6 +1043,25 @@ class Overlay(
             self.right,
         )
 
+    def _flow_top_bottom_filler(self, maxrow: int, height: int) -> tuple[int, int]:
+        """Return (filler top, bottom) for a flow top widget of *height* rows.
+
+        A top widget taller than *maxrow* gets a negative bottom filler, so its last rows are clipped.
+        """
+        top, bottom = calculate_top_bottom_filler(
+            maxrow,
+            self.valign_type,
+            self.valign_amount,
+            WHSettings.GIVEN,
+            height,
+            None,
+            self.top,
+            self.bottom,
+        )
+        if height > maxrow:
+            bottom = maxrow - height
+        return top, bottom
+
     def top_w_size(
         self,
         size: tuple[int, int],
@@ -1079,15 +1081,37 @@ class Overlay(
         return (maxcol - left - right, maxrow - top - bottom)
 
     def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> CompositeCanvas:
-        """Render top_w overlayed on bottom_w."""
+        """Render top_w overlayed on bottom_w.
+
+        The layout comes from :meth:`calculate_padding_filler` and :meth:`top_w_size`, overrides included.
+        """
         real_size = self.pack(size, focus)
+        cls = type(self)
 
-        left, right, top, bottom = self.calculate_padding_filler(real_size, focus)
-        bottom_c = self.bottom_w.render(real_size)
-        if not bottom_c.cols() or not bottom_c.rows():
-            return CompositeCanvas(bottom_c)
+        if (
+            self.height_type == WHSettings.PACK
+            and self.width_type != WHSettings.PACK
+            and cls.calculate_padding_filler is Overlay.calculate_padding_filler
+            and cls.top_w_size is Overlay.top_w_size
+            and Sizing.FLOW in self.top_w.sizing()
+        ):
+            # The height is read from the rendered canvas, since top_w.rows() would lay top_w out a second time
+            # whenever its canvas is not cached.
+            # A top_w that is not FLOW takes the other path, where its rows() call fails as it always has.
+            maxcol, maxrow = real_size
+            left, right = self._left_right_padding(maxcol)
+            bottom_c = self.bottom_w.render(real_size)
+            if not bottom_c.cols() or not bottom_c.rows():
+                return CompositeCanvas(bottom_c)
+            top_c = self.top_w.render((maxcol - left - right,), focus)
+            top, bottom = self._flow_top_bottom_filler(maxrow, top_c.rows())
+        else:
+            left, right, top, bottom = self.calculate_padding_filler(real_size, focus)
+            bottom_c = self.bottom_w.render(real_size)
+            if not bottom_c.cols() or not bottom_c.rows():
+                return CompositeCanvas(bottom_c)
+            top_c = self.top_w.render(self.top_w_size(real_size, left, right, top, bottom), focus)
 
-        top_c = self.top_w.render(self.top_w_size(real_size, left, right, top, bottom), focus)
         top_c = CompositeCanvas(top_c)
         if left < 0 or right < 0:
             top_c.pad_trim_left_right(min(0, left), min(0, right))
