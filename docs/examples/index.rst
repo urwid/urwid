@@ -64,6 +64,24 @@ subproc.py
 Monitor and display results from a subprocess
 
 
+calc.py
+-------
+
+.. image:: calc3.png
+   :scale: 50%
+.. image:: calc4.png
+   :scale: 50%
+.. image:: calc5.png
+   :scale: 50%
+.. image:: calc6.png
+   :scale: 50%
+
+A calculator with a decimal and a programmer tab, big digits in the display,
+numeric keypad input, a theme pop-up that previews the palette until OK or
+Cancel, and a help dialog. The calculator logic is plain Python, kept apart
+from the user interface in the same file
+
+
 tabs.py
 -------
 
@@ -103,17 +121,6 @@ palette_test.py
    :scale: 50%
 
 Show available colors in various screen modes
-
-
-pop_up.py
----------
-
-.. image:: pop_up1.png
-   :scale: 50%
-.. image:: pop_up2.png
-   :scale: 50%
-
-Create a pop-up/drop-down/window anchored to another widget
 
 
 bigtext.py

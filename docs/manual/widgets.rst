@@ -319,11 +319,11 @@ more rows, with its height clipped to that side.  A pop-up widget may itself be
 a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
 relative to the pop-up that opened it.
 
-The pop_up.py_ example program shows a button that opens a pop-up, and
+The calc.py_ example program has a :guilabel:`Theme` button that opens a pop-up, and
 :class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
 pop-up is its list of options.
 
-.. _pop_up.py: https://github.com/urwid/urwid/blob/master/examples/pop_up.py
+.. _calc.py: https://github.com/urwid/urwid/blob/master/examples/calc.py
 
 .. _special-widgets:
 
@@ -938,6 +938,7 @@ Both are defaults set on the stack that each :meth:`~OverlayStack.open` call can
 for example to keep the first dialog of an application open.
 Call the stack from the thread running the loop only;
 another thread hands the call over with :meth:`MainLoop.call_from_thread`.
+``examples/calc.py`` opens its help dialog in an :class:`OverlayStack`.
 
 
 Scrollable Widgets
