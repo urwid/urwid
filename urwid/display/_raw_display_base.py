@@ -583,6 +583,8 @@ class Screen(BaseScreen, RealTerminal):
         self.extended_keys = extended_keys
         # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
         self._keyboard_query_pending = False
+        # the private modes queried by the last start and not answered yet
+        self._mode_queries_pending: set[str] = set()
         # the modifyOtherKeys value the terminal reported, written back when the screen stops
         self._modify_other_keys_reported: int | None = None
         self._keyboard_protocol_enabled: Literal["kitty", "modify other keys"] | None = None
@@ -764,6 +766,8 @@ class Screen(BaseScreen, RealTerminal):
         if self.modes.focus_reporting is None:
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
 
+        # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
+        self._mode_queries_pending = set(modes)
         queries = "".join(mode.query for mode in modes)
         if self.extended_keys and self.modes.kitty_keyboard is None and not self._keyboard_query_pending:
             # A terminal ignores a query it does not know, and answers Primary DA in the order it reads the queries,
@@ -779,16 +783,23 @@ class Screen(BaseScreen, RealTerminal):
     ) -> _DecodedInput:
         """Apply the query replies among *decoded_codes* to `self.modes` and strip them out.
 
-        A keyboard protocol reply counts only between the keyboard protocol queries and the Primary DA reply sent
-        after them: outside that window it is not an answer to urwid's query, and is dropped without effect.
+        A reply counts only as the answer to a query urwid sent and has no answer for yet.
+        Any other reply is dropped without effect, so input that only looks like a reply cannot change the modes.
+
+        - A private mode report counts once for each mode queried.
+        - A keyboard protocol reply counts between the keyboard protocol queries and the Primary DA reply sent
+          after them.
         """
         logger = self.logger.getChild("terminal_reports")
         filtered: _DecodedInput = []
         reports: list[tuple[str, int]] = []
         for item in decoded_codes:
             match item:
-                case ("private mode report", str() as mode, int() as value):
+                case ("private mode report", str() as mode, int() as value) if mode in self._mode_queries_pending:
+                    self._mode_queries_pending.discard(mode)
                     reports.append((mode, value))
+                case ("private mode report", *_):
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
                 case ("keyboard protocol report" | "modify keys report" | "device attributes", *_) if (
                     not self._keyboard_query_pending
                 ):
