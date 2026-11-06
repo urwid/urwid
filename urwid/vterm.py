@@ -100,6 +100,9 @@ _IGNORED_CONTROLS = (
     frozenset(bytes((code,)) for code in range(0x20)) - {ESC_B, b"\a", b"\x18", b"\x1a"} - _EXECUTED_CONTROLS
 )
 
+#: the C0 and C1 control characters and DEL in UTF-8, which a UTF-8 terminal executes instead of showing a glyph
+_UTF8_CONTROLS = frozenset(chr(code).encode("utf-8") for code in (*range(0x20), 0x7F, *range(0x80, 0xA0)))
+
 KEY_TRANSLATIONS = {
     "enter": "\r",
     "backspace": chr(127),
@@ -443,13 +446,20 @@ class TermCharset:
         self.activate(g=self.active)
 
     def apply_mapping(self, char: bytes) -> bytes:
-        """Map *char* through the active IBM PC/DEC special character set, tracking which slot the result came from."""
+        """Map *char* through the active IBM PC/DEC special character set, tracking which slot the result came from.
+
+        A display writes a charset "U" cell to the host terminal unchanged.
+        With the UTF-8 encoding a control character there would be executed by the host terminal,
+        so it is stored as ``?``.
+        """
         if self._sgr_mapping or self._g[self.active] == "ibmpc":
             if (dec_pos := DEC_SPECIAL_CHARS.find(char.decode("cp437"))) >= 0:
                 self.current = "0"
                 return ALT_DEC_SPECIAL_CHARS[dec_pos].encode("cp437")
 
             self.current = "U"
+            if char in _UTF8_CONTROLS and util.get_encoding_mode() == "utf8":
+                return b"?"
             return char
 
         return char

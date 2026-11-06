@@ -644,6 +644,11 @@ class TermTest(unittest.TestCase):
                 raw=True,
             )
 
+        with set_temporary_encoding("utf-8"):
+            # a display writes "U" cells unchanged, so the C0 CAN and the C1 OSC must not reach a UTF-8 host terminal
+            self.write("\\ec\\e%G\\e[11m\x18\xc2\x9d\xc3\xa9\\e[10m")
+            self.expect([[(None, "U", b"?"), (None, "U", b"?"), (None, "U", b"\xc3\xa9")]], raw=True)
+
     def test_set_title(self):
         self._the_title = None
 
