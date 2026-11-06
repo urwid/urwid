@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import bisect
 import math
 import typing
 from collections import deque
@@ -609,7 +610,10 @@ def calculate_bargraph_display(
     # build rowsets data structure
     rowsets = []
     y_count = 0
+    # The runs of the last distinct row, and the column each one starts at.
+    # The runs tile columns 0..maxcol, and two adjacent runs never have the same type.
     last = [(0, maxcol)]
+    last_cols = [0]
 
     for r in rows:
         if r is None:
@@ -619,86 +623,40 @@ def calculate_bargraph_display(
             rowsets.append((y_count, last))
             y_count = 0
 
-        # Patch the runs of the previous distinct row ("last") with the segments
-        # starting on this row.  The segments in r are sorted by column and do not
-        # overlap, so this is a straight interval patch of a tiled run list.
-        # The emitted pieces are merged into the previous output run when the
-        # types match; the merge is done inline (no per-run function call) so
-        # the hot loop stays as cheap as the original implementation.
-        o: list[tuple[int, int]] = []
-        o_a = -1  # type of the output run being accumulated (-1 = none yet)
-        o_n = 0
-
-        i = 0  # index into "last"
-        c = 0  # column the pending run starts at
-        pend_a, pend_n = last[i]  # pending run: not yet emitted, possibly truncated
+        # The segments in r are sorted by column and do not overlap.
+        # The new row is built left to right: runs between the segments are copied in bulk from the last row.
+        runs: list[tuple[int, int]] = []
+        cols: list[int] = []
+        pos = 0  # first run of the last row not copied or replaced yet
         for seg_num, start, end in r:
-            # flush pending runs that end at or before the segment
-            while c + pend_n <= start:
-                if pend_n:
-                    if pend_a == o_a:
-                        o_n += pend_n
-                    else:
-                        if o_n:
-                            o.append((o_a, o_n))
-                        o_a, o_n = pend_a, pend_n
-                i += 1
-                c += pend_n
-                pend_a, pend_n = last[i]
-
-            # the pending run overlaps the segment: keep its part left of the
-            # segment (merged into the emitted segment when the types match)
-            if pend_a == seg_num:
-                if seg_num == o_a:
-                    o_n += end - c
-                else:
-                    if o_n:
-                        o.append((o_a, o_n))
-                    o_a, o_n = seg_num, end - c
+            # runs lo..hi-1 start at columns start..end and are replaced; run hi-1 holds the column right of it
+            lo = bisect.bisect_left(last_cols, start, pos)
+            hi = bisect.bisect_right(last_cols, end, lo)
+            runs += last[pos:lo]
+            cols += last_cols[pos:lo]
+            if cols and cols[-1] == start:
+                # the rest of a run split by the previous segment starts where this one does; it is rebuilt below
+                del runs[-1], cols[-1]
+            if runs and runs[-1][0] == seg_num:
+                runs[-1] = (seg_num, end - cols[-1])
             else:
-                if start > c:
-                    if pend_a == o_a:
-                        o_n += start - c
-                    else:
-                        if o_n:
-                            o.append((o_a, o_n))
-                        o_a, o_n = pend_a, start - c
-                if seg_num == o_a:
-                    o_n += end - start
+                if runs:
+                    runs[-1] = (runs[-1][0], start - cols[-1])
+                runs.append((seg_num, end - start))
+                cols.append(start)
+            if end != maxcol:
+                after_num = last[hi - 1][0]
+                after_end = last_cols[hi] if hi < len(last_cols) else maxcol
+                if after_num == seg_num:
+                    runs[-1] = (seg_num, after_end - cols[-1])
                 else:
-                    if o_n:
-                        o.append((o_a, o_n))
-                    o_a, o_n = seg_num, end - start
-
-            # consume the part of the pending runs covered by the segment
-            while c + pend_n <= end:
-                i += 1
-                c += pend_n
-                if i < len(last):
-                    pend_a, pend_n = last[i]
-                else:
-                    pend_a, pend_n = 0, 0
-                    break
-            if end > c:
-                pend_n -= end - c
-                c = end
-
-        # flush the runs that continue from the previous row.  The pending run
-        # still has positive width here; the rest continue unchanged in bulk
-        # (they alternate types with it, so no merge is needed at the boundary).
-        if i < len(last):
-            if pend_a == o_a:
-                o_n += pend_n
-            else:
-                if o_n:
-                    o.append((o_a, o_n))
-                o_n = pend_n
-            o.append((pend_a, o_n))
-            if i + 1 < len(last):
-                o.extend(last[i + 1 :])
-        elif o_n:
-            o.append((o_a, o_n))
-        last = o
+                    runs.append((after_num, after_end - end))
+                    cols.append(end)
+            pos = hi
+        runs += last[pos:]
+        cols += last_cols[pos:]
+        last = runs
+        last_cols = cols
         y_count += 1
 
     if y_count:
