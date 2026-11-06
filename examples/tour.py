@@ -496,6 +496,8 @@ def main() -> None:
                 unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
                 max_rows=4,
                 scrollbar=None,
+                scrollbar_thumb_char=urwid.ScrollBar.Symbols.DARK_SHADE,
+                scrollbar_trough_char=urwid.ScrollBar.Symbols.LITE_SHADE,
             ),
             left=4,
             right=3,

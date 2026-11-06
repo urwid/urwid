@@ -21,7 +21,7 @@ from .columns import Columns
 from .constants import Align, Sizing, WHSettings, WrapMode
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
-from .scrollable import ScrollBar
+from .scrollable import SCROLLBAR_LEFT, ScrollBar
 from .text import Text
 from .widget import Widget, WidgetError, WidgetWrap
 
@@ -37,6 +37,29 @@ if typing.TYPE_CHECKING:
     _Cell: typing.TypeAlias = Widget | _TagMarkup
 
 __all__ = ("Table", "TableColumn", "TableError", "TableLayout", "TableRow")
+
+
+class _ScrollBarOptions(typing.TypedDict, total=False):
+    """The :class:`ScrollBar` parameters, prefixed with ``scrollbar_`` as :class:`Table` takes them.
+
+    ``visible`` and ``delegate_selectable`` are left out:
+    the table decides when the scrollbar is drawn, and :meth:`Table.selectable` asks the rows.
+    """
+
+    scrollbar_thumb_char: str
+    scrollbar_trough_char: str
+    scrollbar_side: Literal["left", "right"]
+    scrollbar_width: int
+    scrollbar_scroll_by_focus: bool
+    scrollbar_end_markers: tuple[str, str] | None
+    scrollbar_attr: Hashable
+    scrollbar_focus_attr: Hashable
+    scrollbar_thumb_attr: Hashable
+    scrollbar_thumb_focus_attr: Hashable
+    scrollbar_marker_dim_attr: Hashable
+
+
+_SCROLLBAR_OPTIONS: typing.Final = frozenset(_ScrollBarOptions.__optional_keys__)
 
 # The number of maxcol values whose allocated widths a layout keeps:
 # a table renders at one width, and a dialog asks for the natural width beside it.
@@ -772,6 +795,7 @@ class Table(Widget):
         row_attr: Callable[[int, typing.Any], _AttrMapLike | None] | None = None,
         select_navigation: bool = False,
         scrollbar: bool | None = False,
+        **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
         """Create the table.
 
@@ -788,10 +812,21 @@ class Table(Widget):
         :param row_attr: ``row_attr(index, data)`` called each time a row renders, see :attr:`row_attr`
         :param select_navigation: let the ``'next selectable'`` and ``'prev selectable'`` commands
             (:kbd:`tab` and :kbd:`shift tab`) move across the cells and then to the next or previous row
-        :param scrollbar: ``True`` draws a scrollbar right of the rows, ``None`` only when the rows do not fit,
+        :param scrollbar: ``True`` draws a scrollbar beside the rows, ``None`` only when the rows do not fit,
             ``False`` never; while it is on, its column counts in the natural width
+        :param scrollbar_options: the :class:`ScrollBar` parameters with a ``scrollbar_`` prefix,
+            such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and ``scrollbar_attr``;
+            ignored while *scrollbar* is ``False``
         :raises TableError: a column specification, *dividechars*, *max_rows* or a row is invalid.
+        :raises TypeError: a keyword argument is neither a parameter of the table nor one of *scrollbar_options*,
+            also while *scrollbar* is ``False``.
+        :raises ValueError: :class:`ScrollBar` rejects the value of a ``scrollbar_`` parameter.
         """
+        bar_options: dict[str, typing.Any] = {}
+        for name, value in scrollbar_options.items():
+            if name not in _SCROLLBAR_OPTIONS:
+                raise TypeError(f"Table() got an unexpected keyword argument {name!r}")
+            bar_options[name.removeprefix("scrollbar_")] = value
         if max_rows is not None and (not isinstance(max_rows, int) or isinstance(max_rows, bool) or max_rows < 0):
             raise TableError(f"max_rows must be None or an int >= 0, not {max_rows!r}")
         super().__init__()
@@ -827,7 +862,7 @@ class Table(Widget):
             unfocused_focus_attr=unfocused_focus_attr,
             focus_when_empty=False,
         )
-        self._bar = ScrollBar(self._listbox, visible=True) if scrollbar is not False else None
+        self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
         # connected last, so that filling the rows during construction sends no signal
         self._rows.set_focus_moved_callback(self._focus_moved)
@@ -1036,9 +1071,12 @@ class Table(Widget):
         combine: list[tuple[Canvas, Hashable, bool]] = []
         if self._header is not None and hrows:
             head = self._header.render((content,))
-            if bar:
+            if bar and self._bar is not None:
                 head = CompositeCanvas(head)
-                head.pad_trim_left_right(0, maxcol - content)
+                if self._bar.scrollbar_side == SCROLLBAR_LEFT:
+                    head.pad_trim_left_right(maxcol - content, 0)
+                else:
+                    head.pad_trim_left_right(0, maxcol - content)
             if len(size) == 2 and hrows > size[1]:
                 head = CompositeCanvas(head)
                 head.trim_end(hrows - size[1])
