@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import io
 import os
+import stat
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
@@ -14,8 +16,83 @@ IS_WINDOWS = sys.platform == "win32"
 IS_GRAALPY = sys.implementation.name == "graalpy"
 
 
+def _use_temporary_pipe_dir(test: unittest.TestCase) -> str:
+    """Point the web display at a fresh temporary pipe_dir until `test` ends, and return its path."""
+    tmp = tempfile.TemporaryDirectory()
+    test.addCleanup(tmp.cleanup)
+    patcher = mock.patch.object(web._prefs, "pipe_dir", tmp.name)
+    patcher.start()
+    test.addCleanup(patcher.stop)
+    return tmp.name
+
+
+@unittest.skipIf(IS_WINDOWS, "The session directory check needs POSIX file ownership (os.geteuid)")
+class SessionDirTest(unittest.TestCase):
+    """Tests for the private per-user directory that holds the session files."""
+
+    def setUp(self) -> None:
+        """Use a temporary pipe_dir and compute the session directory expected in it."""
+        self.pipe_dir = _use_temporary_pipe_dir(self)
+        self.expected = os.path.join(self.pipe_dir, f"urwid-web-{os.geteuid()}")
+
+    def test_creates_private_directory(self) -> None:
+        """A missing session directory is created without group or other access."""
+        self.assertEqual(self.expected, web._session_dir())
+        st = os.lstat(self.expected)
+        self.assertTrue(stat.S_ISDIR(st.st_mode))
+        self.assertEqual(0, stat.S_IMODE(st.st_mode) & 0o077)
+
+    def test_reuses_existing_private_directory(self) -> None:
+        """An existing private session directory is accepted."""
+        os.mkdir(self.expected, 0o700)
+        self.assertEqual(self.expected, web._session_dir())
+
+    def test_refuses_directory_open_to_other_users(self) -> None:
+        """A session directory that the group can read is refused."""
+        os.mkdir(self.expected, 0o700)
+        os.chmod(self.expected, 0o740)
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_symlink(self) -> None:
+        """A symbolic link planted at the session directory path is refused, not followed."""
+        target = os.path.join(self.pipe_dir, "elsewhere")
+        os.mkdir(target, 0o700)
+        os.symlink(target, self.expected)
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_regular_file(self) -> None:
+        """A regular file planted at the session directory path is refused."""
+        with open(self.expected, "w", encoding="ascii"):
+            pass
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_directory_of_another_user(self) -> None:
+        """A session directory owned by another user is refused."""
+        other_uid = os.geteuid() + 1
+        other = os.path.join(self.pipe_dir, f"urwid-web-{other_uid}")
+        # a directory created by this process stands in for one another user planted at that user's path
+        os.mkdir(other, 0o700)
+        with mock.patch.object(web.os, "geteuid", return_value=other_uid), self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_session_path_does_not_contain_the_session_id(self) -> None:
+        """Session file names are a stable hash of the id, inside the session directory."""
+        urwid_id = "8Hq3_secret-token-value"
+        path = web._session_path(urwid_id)
+        self.assertEqual(self.expected, os.path.dirname(path))
+        self.assertNotIn(urwid_id, path)
+        self.assertEqual(path, web._session_path(urwid_id))
+
+
 class HandleShortRequestTest(unittest.TestCase):
     def setUp(self) -> None:
+        # the session directory checks have their own tests and need POSIX ownership, which Windows does not have
+        patcher = mock.patch.object(web, "_session_dir", return_value=_use_temporary_pipe_dir(self))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.environ = {
             "REQUEST_METHOD": "POST",
             "HTTP_X_URWID_ID": "valid-id",
@@ -31,11 +108,12 @@ class HandleShortRequestTest(unittest.TestCase):
             mock.patch.dict(os.environ, environ, clear=True),
             mock.patch.object(web.sys, "stdin", stdin),
             mock.patch.object(web.sys, "stdout", stdout),
-            mock.patch.object(web.os, "open", return_value=42),
+            mock.patch.object(web.os, "open", return_value=42) as pipe_open,
             mock.patch.object(web.os, "write") as write,
             mock.patch.object(web.os, "close") as close,
         ):
             self.assertTrue(web.handle_short_request())
+            pipe_open.assert_called_once_with(f"{web._session_path('valid-id')}.in", os.O_WRONLY)
 
         write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
@@ -75,6 +153,7 @@ class HandleShortRequestTest(unittest.TestCase):
         ):
             self.assertTrue(web.handle_short_request())
 
+        sock.connect.assert_called_once_with(f"{web._session_path('valid-id')}.update")
         sock.__exit__.assert_called_once()
         self.assertEqual("Content-type: text/plain; charset=utf-8\r\n\r\né", stdout.getvalue())
 
@@ -320,6 +399,7 @@ class ScreenStartTest(unittest.TestCase):
     """Tests for the request validation in Screen.start."""
 
     def setUp(self) -> None:
+        self.pipe_dir = _use_temporary_pipe_dir(self)
         self.screen = web.Screen()
 
     def test_start_rejects_invalid_resize_request(self) -> None:
@@ -386,8 +466,7 @@ class ScreenStartTest(unittest.TestCase):
         with (
             mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),
             mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
-            mock.patch.object(web.glob, "glob", return_value=[]),
-            mock.patch.object(web.os, "mkfifo"),
+            mock.patch.object(web.os, "mkfifo") as mkfifo,
             mock.patch.object(web.os, "open", return_value=42),
             mock.patch.object(web.signal, "signal"),
             mock.patch.object(web.signal, "alarm"),
@@ -395,6 +474,11 @@ class ScreenStartTest(unittest.TestCase):
             self.screen.start()
 
         self.assertTrue(self.screen.started)
+        # the pipe lives in the private session directory and its name does not reveal the session id
+        urwid_id = self.screen.content_head.split("X-Urwid-ID: ", 1)[1].split("\r\n", 1)[0]
+        self.assertNotIn(urwid_id, self.screen.pipe_name)
+        self.assertEqual(web._session_path(urwid_id), self.screen.pipe_name)
+        mkfifo.assert_called_once_with(f"{self.screen.pipe_name}.in", 0o600)
         self.assertEqual(self.screen.screen_size, (80, 24))
         self.assertEqual(self.screen.last_screen, {})
         self.assertEqual(self.screen.last_screen_width, 0)

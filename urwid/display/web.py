@@ -25,6 +25,7 @@ from __future__ import annotations
 import codecs
 import dataclasses
 import glob
+import hashlib
 import html
 import os
 import pathlib
@@ -32,6 +33,7 @@ import secrets
 import selectors
 import signal
 import socket
+import stat
 import string
 import sys
 import tempfile
@@ -70,8 +72,7 @@ _PIPE_ENCODING: typing.Final = "utf-8"
 BUF_SZ = 16384
 
 # Characters that may appear in an id produced by secrets.token_urlsafe():
-# the URL-safe base64 alphabet. Used to validate client-supplied ids before
-# they are interpolated into pipe file names.
+# the URL-safe base64 alphabet. Used to reject malformed client-supplied ids before any session file lookup.
 _URWID_ID_CHARS = frozenset(string.ascii_letters + string.digits + "-_")
 _URWID_ID_MAX_LEN = 43  # len(secrets.token_urlsafe(32)); generous upper bound
 
@@ -170,6 +171,7 @@ class Screen(BrowserScreen):
         web_display.set_preferences(..) must be called before calling this function for the preferences to take effect
 
         :raises RuntimeError: the ``HTTP_X_URWID_METHOD`` environment variable is not set.
+        :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
         """
         if self._started:
             return StoppingContext(self)
@@ -196,13 +198,14 @@ class Screen(BrowserScreen):
         self.last_screen = {}
         self.last_screen_width = 0
 
-        clients = glob.glob(os.path.join(_prefs.pipe_dir, "urwid*.in"))
+        urwid_id = secrets.token_urlsafe(16)
+        pipe_name = _session_path(urwid_id)
+        clients = glob.glob("*.in", root_dir=os.path.dirname(pipe_name))
         if len(clients) >= _prefs.max_clients:
             sys.stdout.write("Status: 503 Sever Busy\r\n\r\n")
             sys.exit(0)
 
-        urwid_id = secrets.token_urlsafe(16)
-        self.pipe_name = os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}")
+        self.pipe_name = pipe_name
         os.mkfifo(f"{self.pipe_name}.in", 0o600)
         signal.signal(signal.SIGTERM, self._cleanup_pipe)
 
@@ -398,6 +401,38 @@ def _request_charset() -> str:
     return content_type.get_content_charset() or "utf-8"
 
 
+def _session_dir() -> str:
+    """Return the private directory for the session files of the effective user.
+
+    The directory is ``urwid-web-<uid>`` under the configured ``pipe_dir``, created when missing.
+    It keeps the session files of one user out of reach of every other local user.
+
+    :raises PermissionError: the path is not a directory owned by the effective user,
+        or the group or other users have any access to it.
+    """
+    uid = os.geteuid()
+    path = os.path.join(_prefs.pipe_dir, f"urwid-web-{uid}")
+    with suppress(FileExistsError):
+        os.mkdir(path, 0o700)
+    # lstat: a symbolic link planted at the path is refused rather than followed
+    st = os.lstat(path)
+    if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid or stat.S_IMODE(st.st_mode) & 0o077:
+        raise PermissionError(f"{path!r} must be a directory owned by uid {uid} with no group or other access")
+    return path
+
+
+def _session_path(urwid_id: str) -> str:
+    """Return the path prefix of the input pipe, update socket and error log of a session.
+
+    The file name is a hash of the session id, so a directory listing does not reveal the id.
+
+    :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
+    """
+    # 128 bits of SHA-256: hashlib.blake2b with a custom digest size is not available on GraalPy
+    digest = hashlib.sha256(urwid_id.encode("ascii")).hexdigest()[:32]
+    return os.path.join(_session_dir(), digest)
+
+
 def handle_short_request() -> bool:
     """Handle short requests such as passing keystrokes to the application or sending the initial HTML page.
 
@@ -406,6 +441,8 @@ def handle_short_request() -> bool:
 
     web_display.set_preferences(..) should be called before calling this
     function for the preferences to take effect.
+
+    :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
     """
     if not is_web_request():
         return False
@@ -435,11 +472,13 @@ def handle_short_request() -> bool:
         sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
         return True
 
+    pipe_name = _session_path(urwid_id)
+
     if os.environ.get("HTTP_X_URWID_METHOD", None) == "polling":
         # this is a screen update request
         try:
             with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
-                s.connect(os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.update"))
+                s.connect(f"{pipe_name}.update")
                 chunks = []
                 while data := s.recv(BUF_SZ):
                     chunks.append(data)
@@ -458,7 +497,7 @@ def handle_short_request() -> bool:
 
     # this is a keyboard input request
     try:
-        fd = os.open((os.path.join(_prefs.pipe_dir, f"urwid_{urwid_id}.in")), os.O_WRONLY)
+        fd = os.open(f"{pipe_name}.in", os.O_WRONLY)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
@@ -500,10 +539,12 @@ def set_preferences(
     Set web_display preferences.
 
     :param app_name: application name to appear in html interface
-    :param pipe_dir: directory for input pipes, daemon update sockets and daemon error logs
+    :param pipe_dir: parent of the private per-user directory ``urwid-web-<uid>``
+        that holds the input pipes, daemon update sockets and daemon error logs.
+        Other users must not be able to rename its entries: use a private directory or a sticky one such as ``/tmp``.
     :param allow_polling: allow creation of daemon processes for browsers without multipart support
-    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications using the
-        same pipe_dir
+    :param max_clients: maximum concurrent client connections. This pool is shared by all urwid applications that
+        run as the same user with the same pipe_dir
     """
     _prefs.app_name = app_name
     _prefs.pipe_dir = pipe_dir
@@ -531,7 +572,8 @@ def daemonize(errfile: str) -> None:
 
     os.setsid()
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
-    os.umask(0)
+    # the daemon creates the polling update socket and the error log: keep them private to the owner
+    os.umask(0o077)
 
     if os.fork():
         os._exit(0)
