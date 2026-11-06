@@ -835,8 +835,8 @@ Removing the selected tab selects the next one, or the previous one when it
 was the last.  The ``"focus changed"`` signal reports the index, see
 :ref:`focus-changed-signal`, so an application that shows the selected tab
 somewhere else also updates that display after its own changes of
-``contents``.  ``examples/tabs.py`` shows this, with a status line and a key
-that closes the current tab.
+``contents``.  ``examples/calc.py`` uses the signal to move the number shown
+to the calculator of the selected tab.
 
 
 Notifications Widgets

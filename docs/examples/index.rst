@@ -76,17 +76,11 @@ calc.py
 .. image:: calc6.png
    :scale: 50%
 
-A calculator with a decimal and a programmer tab, big digits in the display,
-numeric keypad input, a theme pop-up that previews the palette until OK or
+A calculator with a decimal and a programmer tab over one display of big
+digits, which carries the number shown to the selected tab. It takes numeric
+keypad input, and has a theme pop-up that previews the palette until OK or
 Cancel, and a help dialog. The calculator logic is plain Python, kept apart
 from the user interface in the same file
-
-
-tabs.py
--------
-
-A tabbed window with a status line that follows the selected tab, and a key
-that closes the current tab
 
 
 notifications.py

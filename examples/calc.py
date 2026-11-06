@@ -100,6 +100,13 @@ class Calculator(abc.ABC, typing.Generic[_N]):
         """Return *value* as the display shows it."""
 
     @abc.abstractmethod
+    def convert(self, number: decimal.Decimal | int) -> _N:
+        """Return *number*, which another calculator showed, as a number of this calculator.
+
+        :raises ArithmeticError: *number* does not fit; the message says why.
+        """
+
+    @abc.abstractmethod
     def calculate(self, left: _N, operator_key: str, right: _N) -> _N:
         """Return *left* combined with *right* by the operator named by *operator_key*.
 
@@ -110,6 +117,15 @@ class Calculator(abc.ABC, typing.Generic[_N]):
     def error(self) -> str | None:
         """Why the last operation failed, or ``None`` after a successful one."""
         return self._error
+
+    @property
+    def number(self) -> _N | None:
+        """The number shown, or ``None`` while an error is shown."""
+        if self._error is not None:
+            return None
+        if self._entry:
+            return self.parse(self._entry)
+        return self._value if self._value is not None else self.parse("0")
 
     @property
     def display(self) -> str:
@@ -135,6 +151,19 @@ class Calculator(abc.ABC, typing.Generic[_N]):
         self._value = None
         self._operator = None
         self._error = None
+
+    def load(self, number: decimal.Decimal | int | None) -> None:
+        """Forget everything and show *number* as the result, converted by :meth:`convert`.
+
+        ``None``, which :attr:`number` gives while an error is shown, leaves the calculator cleared.
+        """
+        self.clear()
+        if number is None:
+            return
+        try:
+            self._value = self.convert(number)
+        except ArithmeticError as exc:
+            self._error = str(exc)
 
     def enter_digit(self, digit: str) -> None:
         """Append *digit* to the number being typed.
@@ -269,6 +298,10 @@ class DecimalCalculator(Calculator[decimal.Decimal]):
             return text
         return f"{value.normalize(self._scientific_context):E}"
 
+    def convert(self, number: decimal.Decimal | int) -> decimal.Decimal:
+        """Return *number* as a decimal number."""
+        return decimal.Decimal(number)
+
     def calculate(self, left: decimal.Decimal, operator_key: str, right: decimal.Decimal) -> decimal.Decimal:
         """Return *left* combined with *right*, rounded to :data:`MAX_DIGITS` significant digits.
 
@@ -342,6 +375,16 @@ class IntegerCalculator(Calculator[int]):
         """Return *value* in :attr:`base`, with a leading ``-`` when negative."""
         return format(value, BASE_FORMATS[self._base])
 
+    def convert(self, number: decimal.Decimal | int) -> int:
+        """Return *number* without its fraction, rounding towards zero.
+
+        :raises OverflowError: *number* does not fit in :data:`WORD_BITS` bits.
+        """
+        # compared before int(), which would build every digit of a decimal with a large exponent
+        if abs(number) >= 2**WORD_BITS:
+            raise OverflowError(f"The number does not fit in {WORD_BITS} bits")
+        return int(number)
+
     def calculate(self, left: int, operator_key: str, right: int) -> int:
         """Return *left* combined with *right*.
 
@@ -365,6 +408,8 @@ class IntegerCalculator(Calculator[int]):
 FONT: typing.Final = urwid.Thin3x3Font()
 #: big digits in one row of the display: 24 digits of 3 columns fit an 80-column terminal
 DIGITS_PER_ROW: typing.Final = 24
+#: rows of big digits in the display: two hold the 32 digits of a number in base 2
+DISPLAY_ROWS: typing.Final = 2
 #: columns of a button pad: 4 buttons of 9 columns and the gaps between them
 PAD_WIDTH: typing.Final = 39
 #: keys of the operators, the same on the main keyboard and on the numeric keypad
@@ -469,10 +514,10 @@ def palette(theme: str) -> list[tuple[Hashable, str, str, str | None, str, str]]
 class Display(urwid.WidgetWrap[urwid.LineBox[urwid.AttrMap[urwid.Pile]]]):
     """The expression line over the calculator's number in big digits, the last digits in the last row."""
 
-    def __init__(self, rows: int) -> None:
-        """Build an empty display with *rows* rows of big digits."""
+    def __init__(self) -> None:
+        """Build an empty display with :data:`DISPLAY_ROWS` rows of big digits."""
         self._expression = urwid.Text("", align=urwid.RIGHT)
-        self._rows = [urwid.BigText("", FONT) for _ in range(rows)]
+        self._rows = [urwid.BigText("", FONT) for _ in range(DISPLAY_ROWS)]
         pile = urwid.Pile(
             [
                 urwid.AttrMap(self._expression, "expression"),
@@ -496,22 +541,21 @@ class Display(urwid.WidgetWrap[urwid.LineBox[urwid.AttrMap[urwid.Pile]]]):
 
 
 class CalculatorPane(urwid.WidgetWrap[urwid.Filler[urwid.Pile]]):
-    """A display over the buttons of one calculator.
+    """The buttons of one calculator, which show its state on a display shared with the other panes.
 
     A key is offered to the calculator before the focused widget, so :kbd:`Enter` gives the result
     wherever the focus is in the pane, and :kbd:`Space` presses the focused button.
     A button press goes through :meth:`press` as the key it stands for.
     """
 
-    def __init__(self, calculator: Calculator[typing.Any], *, display_rows: int) -> None:
-        """Show *calculator* in a display of *display_rows* rows of big digits.
+    def __init__(self, calculator: Calculator[typing.Any], display: Display) -> None:
+        """Send the presses to *calculator* and show its state on *display*.
 
         Subclasses add the buttons with :meth:`add_pad`.
         """
         self.calculator = calculator
-        self.display = Display(display_rows)
-        self.display.show(calculator)
-        self.pile = urwid.Pile([self.display])
+        self.display = display
+        self.pile = urwid.Pile([])
         super().__init__(urwid.Filler(self.pile, valign=urwid.TOP))
 
     def button(self, label: str, key: str, attr: str = "button") -> urwid.AttrMap[urwid.Widget]:
@@ -524,7 +568,7 @@ class CalculatorPane(urwid.WidgetWrap[urwid.Filler[urwid.Pile]]):
         self,
         rows: Sequence[Sequence[urwid.Widget | tuple[typing.Literal[urwid.WHSettings.WEIGHT], int, urwid.Widget]]],
     ) -> None:
-        """Add *rows* of buttons under the display as a grid of :data:`PAD_WIDTH` columns, and focus it.
+        """Add *rows* of buttons as a grid of :data:`PAD_WIDTH` columns, and focus it.
 
         A button with a weight of 2 takes the place of two.
         """
@@ -571,9 +615,9 @@ class CalculatorPane(urwid.WidgetWrap[urwid.Filler[urwid.Pile]]):
 class NormalPane(CalculatorPane):
     """A decimal calculator with the buttons laid out as on a numeric keypad."""
 
-    def __init__(self) -> None:
-        """Build the calculator, its display and its button pad."""
-        super().__init__(DecimalCalculator(), display_rows=1)
+    def __init__(self, display: Display) -> None:
+        """Build the calculator and its button pad, showing it on *display*."""
+        super().__init__(DecimalCalculator(), display)
         self.add_pad(
             [
                 [
@@ -598,10 +642,10 @@ class ProgrammerPane(CalculatorPane):
     and the focus skips them.
     """
 
-    def __init__(self) -> None:
-        """Build the calculator, its display, the base selection and the keypad."""
+    def __init__(self, display: Display) -> None:
+        """Build the calculator, the base selection and the keypad, showing it on *display*."""
         self._integer = IntegerCalculator()
-        super().__init__(self._integer, display_rows=2)
+        super().__init__(self._integer, display)
         group: list[urwid.RadioButton] = []
         bases = urwid.GridFlow(
             [
@@ -746,13 +790,26 @@ def main() -> int:
     """Build the window, run the main loop until F8 or the Exit button, and return the exit status."""
     screen = urwid.display.raw.Screen()
     theme_button = ThemeButton(screen)
+    display = Display()
+    panes = (NormalPane(display), ProgrammerPane(display))
     tabs = urwid.Tabs(
-        [("Normal", NormalPane()), ("Programmer", ProgrammerPane())],
+        [("Normal", panes[0]), ("Programmer", panes[1])],
         bar_selectable=True,
         attr_map="tab",
         selected_map="tab selected",
         focus_map="tab cursor",
     )
+    display.show(panes[0].calculator)
+
+    def on_tab_changed(_tabs: urwid.Tabs, old: int | None, new: int | None) -> None:
+        """Move the number shown to the calculator of the selected tab, converted to its kind of number."""
+        if old is None or new is None:
+            raise ValueError("the calculator tabs are never removed")
+        calculator = panes[new].calculator
+        calculator.load(panes[old].calculator.number)
+        display.show(calculator)
+
+    urwid.connect_signal(tabs, "focus changed", on_tab_changed)
 
     def show_help(_button: urwid.Button | None = None) -> None:
         if stack.depth == 0 and theme_button.pop_up_widget is None:
@@ -775,8 +832,8 @@ def main() -> int:
         ],
         dividechars=1,
     )
-    body = urwid.Pile([(urwid.PACK, urwid.AttrMap(header, "header")), tabs])
-    body.focus_position = 1
+    body = urwid.Pile([(urwid.PACK, urwid.AttrMap(header, "header")), (urwid.PACK, display), tabs])
+    body.focus_position = 2
     keys = (("F1", "help"), ("F2", "theme"), ("F8", "exit"), ("Esc", "clear"), ("Alt+←/→", "tabs"))
     footer = urwid.Text([part for key, action in keys for part in (("key", f" {key}"), f" {action} ")])
     frame: urwid.Frame[urwid.AttrMap[urwid.Pile], None, urwid.AttrMap[urwid.Text]] = urwid.Frame(
