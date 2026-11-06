@@ -838,15 +838,18 @@ class Pile(
         :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
         maxcol = size[0]
-        if not self.contents:
+        contents = self.contents
+        if not contents:
             return (maxcol,), (0,), ()
 
-        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
+        widths: tuple[int, ...] = (maxcol,) * len(contents)
         heights: list[int] = []
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
         focus_position = self.focus_position
+        flow_arg = (maxcol,)
+        flow = Sizing.FLOW
 
-        for i, (w, options) in enumerate(self.contents):
+        for i, (w, options) in enumerate(contents):
             f = options[0]
             # the MRO lookup answers for every Widget subclass without the much slower Protocol check
             if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
@@ -861,9 +864,9 @@ class Pile(
                 height = options[1]
                 heights.append(height)
                 w_h_args.append((maxcol, height))
-            elif Sizing.FLOW in w_sizing:
-                heights.append(typing.cast("AbstractFlowWidget", w).rows((maxcol,), focus=focused))
-                w_h_args.append((maxcol,))
+            elif flow in w_sizing:
+                heights.append(typing.cast("AbstractFlowWidget", w).rows(flow_arg, focus=focused))
+                w_h_args.append(flow_arg)
             elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
                 heights.append(typing.cast("AbstractFixedWidget", w).pack((), focused)[1])
                 w_h_args.append(())
@@ -891,12 +894,18 @@ class Pile(
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
+        contents = self.contents
         if not size:
-            sizes = self._get_fixed_rows_sizes(focus=focus)
+            sizes = self._get_fixed_rows_sizes(focus=focus) if contents else ((), (), ())
         elif len(size) == 1:
-            sizes = self._get_flow_rows_sizes(size, focus=focus)
+            sizes = self._get_flow_rows_sizes(size, focus=focus) if contents else ((size[0],), (0,), ())
         else:
             sizes = self._get_box_rows_sizes(size, focus=focus)
+
+        if not contents:
+            # an empty Pile hides no rows
+            self._cache_hidden_packs = self._cache_hidden_weights = frozenset()
+            return sizes
 
         _widths, heights, size_args = sizes
         if 0 not in heights:
@@ -907,25 +916,29 @@ class Pile(
         # a row of weight 0, which a box or fixed Pile gives no rows,
         # or a row sized as a flow or fixed widget, with a size argument of 1 or 0 items, that is 0 rows focused too.
         # A weighted row 0 high for lack of room is not hidden: the focus row still gets a row.
-        self._cache_hidden_weights = frozenset(
-            i
-            for i, (height, (_w, (height_type, amount))) in enumerate(zip(heights, self.contents, strict=False))
-            if not height and len(size) != 1 and height_type == WHSettings.WEIGHT and not amount
-        )
-        self._cache_hidden_packs = frozenset(
-            i
-            for i, (height, (w, _options)) in enumerate(zip(heights, self.contents, strict=False))
-            if not height
-            and i not in self._cache_hidden_weights
-            and len(size_args[i]) < 2
-            and (
-                # sized with the call its layout path used: rows() in a flow or fixed Pile, pack() otherwise
-                w.rows(size_args[i], True)  # type: ignore[arg-type,union-attr]
-                if len(size) != 2 and size_args[i]
-                else w.pack(size_args[i], True)[1]  # type: ignore[arg-type]
-            )
-            == 0
-        )
+        size_len = len(size)
+        hidden_weights: list[int] = []
+        pack_candidates: list[tuple[int, AbstractWidget]] = []
+        for i, (height, (w, (height_type, amount))) in enumerate(zip(heights, contents, strict=False)):
+            if height:
+                continue
+            if size_len != 1 and height_type == WHSettings.WEIGHT and not amount:
+                hidden_weights.append(i)
+            elif len(size_args[i]) < 2:
+                pack_candidates.append((i, w))
+        self._cache_hidden_weights = frozenset(hidden_weights)
+
+        hidden_packs: list[int] = []
+        for i, w in pack_candidates:
+            size_arg = size_args[i]
+            # sized with the call its layout path used: rows() in a flow or fixed Pile, pack() otherwise
+            if size_len != 2 and size_arg:
+                rows = w.rows(size_arg, True)  # type: ignore[arg-type,union-attr]
+            else:
+                rows = w.pack(size_arg, True)[1]  # type: ignore[arg-type]
+            if rows == 0:
+                hidden_packs.append(i)
+        self._cache_hidden_packs = frozenset(hidden_packs)
         return sizes
 
     def _get_box_rows_sizes(
@@ -935,18 +948,22 @@ class Pile(
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
         """Get rows widths, heights and render size parameters for a box Pile."""
         maxcol, maxrow = size
-        if not self.contents:
+        contents = self.contents
+        if not contents:
             return (maxcol,), (maxrow,), ()
 
         remaining: int = maxrow
 
-        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
-        heights: dict[int, int] = {}
+        # Weighted rows stay 0 until their share is known.
+        count = len(contents)
+        widths: tuple[int, ...] = (maxcol,) * count
+        heights: list[int] = [0] * count
         weighted: dict[int, int | float] = {}
-        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = [()] * count
         focus_position = self.focus_position
+        pack = WHSettings.PACK
 
-        for i, (w, options) in enumerate(self.contents):
+        for i, (w, options) in enumerate(contents):
             f = options[0]
             if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
@@ -961,7 +978,7 @@ class Pile(
                 heights[i] = height
                 w_h_args[i] = (maxcol, height)
                 remaining -= height
-            elif options[0] == WHSettings.PACK or len(size) == 1:
+            elif f == pack:
                 if Sizing.FLOW in w_sizing:
                     w_h_arg: tuple[int] | tuple[()] = (maxcol,)
                 elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
@@ -991,7 +1008,7 @@ class Pile(
             # At this place we have to operate also negative "remaining" to be sure that widget really fit
             before = []
             after = []
-            for idx, height in heights.items():
+            for idx, height in enumerate(heights):
                 if height:
                     if idx < focus_position:
                         before.append(idx)
@@ -1050,11 +1067,7 @@ class Pile(
         for idx in weighted:
             w_h_args[idx] = (maxcol, heights[idx])
 
-        return (
-            widths,
-            tuple(heights[idx] for idx in range(len(heights))),
-            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
-        )
+        return widths, tuple(heights), tuple(w_h_args)
 
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
         """Get packed size for widget.
