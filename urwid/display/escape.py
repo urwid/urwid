@@ -639,10 +639,14 @@ class KeyqueueTrie:
             return None
         if keys[1] != ord("?"):
             return None
+        # "[?", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "$y": a longer run is not a report
+        limit = _CSI_PARAMETERS_MAX_LEN + 4
+        codes = keys[:limit]
+        more_available = more_available and len(keys) < limit
         # read the mode number
         mode = ""
         i = 2
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord(";"):
                 if not mode:
@@ -655,14 +659,14 @@ class KeyqueueTrie:
             if more_available:
                 raise MoreInputRequired
             return None
-        if not keys[i:]:
+        if not codes[i:]:
             if more_available:
                 raise MoreInputRequired
             return None
         # Ps: "0" is a valid value here (mode not recognized), unlike the mode number above.
         value = 0
         got_digit = False
-        for k in keys[i:]:
+        for k in codes[i:]:
             i += 1
             if k == ord("$"):
                 break
@@ -676,11 +680,11 @@ class KeyqueueTrie:
             return None
         if not got_digit:
             return None
-        if not keys[i:]:
+        if not codes[i:]:
             if more_available:
                 raise MoreInputRequired
             return None
-        if keys[i] != ord("y"):
+        if codes[i] != ord("y"):
             return None
         return (("private mode report", mode, value), keys[i + 1 :])
 

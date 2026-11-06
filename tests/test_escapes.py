@@ -779,6 +779,18 @@ class ReadPrivateModeReportTest(unittest.TestCase):
             with self.subTest(prefix=prefix):
                 self.assertIsNone(escape.input_trie.read_private_mode_report(list(prefix), False))
 
+    def test_parameters_longer_than_the_limit_are_not_a_report(self):
+        """Stop waiting for more input once the parameters exceed the limit.
+
+        A sequence with no terminator is then not buffered forever.
+        """
+        too_long = b"1" * (escape._CSI_PARAMETERS_MAX_LEN + 3)
+        for codes in (b"[?" + too_long, b"[?1;" + too_long, b"[?1;" + too_long + b"$y"):
+            with self.subTest(codes=codes):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(codes), True))
+        longest = b"[?1;" + b"1" * (escape._CSI_PARAMETERS_MAX_LEN - 2) + b"$y"
+        self.assertEqual("private mode report", escape.input_trie.read_private_mode_report(list(longest), False)[0][0])
+
     def test_recognized_through_process_keyqueue(self):
         codes = [27, *b"[?2004;1$y"]
         actual, rest = escape.process_keyqueue(codes, more_available=False)
