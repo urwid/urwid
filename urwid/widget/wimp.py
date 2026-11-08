@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import enum
 import typing
 
 from urwid.canvas import CompositeCanvas
@@ -153,6 +154,34 @@ class CheckBox(WidgetWrap[Columns]):
     }
     reserve_columns = 4
 
+    class Symbols(enum.StrEnum):
+        """Common symbols suitable for the state marks of :class:`CheckBox` and :class:`RadioButton`.
+
+        Only the ASCII members are drawn on terminals without UTF-8.
+        """
+
+        X = "X"
+        ASTERISK = "*"
+        HASH = "#"
+        PLUS = "+"
+        MINUS = "-"
+        SPACE = " "
+        CHECK_MARK = "✓"
+        BALLOT_X = "✗"
+        BULLET = "•"
+        BLACK_CIRCLE = "●"
+        WHITE_CIRCLE = "○"
+        FULL_BLOCK = "█"
+        MEDIUM_SHADE = "▒"
+        # Marks that pair with the checked/unchecked ones above for the "mixed" state
+        MINUS_SIGN = "−"  # noqa: RUF001
+        EN_DASH = "–"  # noqa: RUF001
+        LIGHT_SHADE = "░"
+        HALF_CIRCLE = "◐"
+        BLACK_SQUARE = "■"
+        WHITE_SQUARE = "□"
+        BLACK_SQUARE_SMALL = "▪"
+
     # allow users of this class to listen for change events
     # sent when the state of this widget is modified
     # (this variable is picked up by the MetaSignals metaclass)
@@ -166,7 +195,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -177,7 +209,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -188,7 +223,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -199,7 +237,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
         user_data: None = None,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -215,7 +256,10 @@ class CheckBox(WidgetWrap[Columns]):
             | None
         ) = None,
         user_data: _T | None = None,
+        *,
         checked_symbol: str | None = None,
+        unchecked_symbol: str | None = None,
+        mixed_symbol: str | None = None,
     ) -> None:
         """Create the CheckBox widget.
 
@@ -226,7 +270,9 @@ class CheckBox(WidgetWrap[Columns]):
                                 function call for a single callback
         :param user_data: user_data for on_state_change
         :param checked_symbol: the symbol drawn inside the brackets for the checked state,
-            ``None`` for the default one
+            ``None`` for the default one (keyword only, see :class:`CheckBox.Symbols`)
+        :param unchecked_symbol: the same for the unchecked state
+        :param mixed_symbol: the same for the "mixed" state
         :raises ValueError: *state* is not one of the states of this check box.
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
@@ -263,12 +309,23 @@ class CheckBox(WidgetWrap[Columns]):
         self.has_mixed = has_mixed
 
         self._state: bool | Literal["mixed"] = state
-        if checked_symbol:
+        overrides: dict[bool | Literal["mixed"], str | None] = {
+            True: checked_symbol,
+            False: unchecked_symbol,
+            "mixed": mixed_symbol,
+        }
+        custom: dict[bool | Literal["mixed"], SelectableIcon] = {}
+        for key, symbol in overrides.items():
+            if not symbol:
+                continue
+            icon_text = self.states[key].text
+            if isinstance(icon_text, bytes):
+                icon_text = icon_text.decode("utf-8")
+            custom[key] = SelectableIcon(f"{icon_text[:1]}{symbol}{icon_text[-1:]}", 1)
+        if custom:
+            # Brackets are taken from the (possibly downstream-overridden) ``states`` class variable.
             # Copy the class-level table so a custom mark does not leak into other CheckBox instances.
-            self.states = {  # type: ignore[misc]
-                **self.states,
-                True: SelectableIcon(f"[{checked_symbol}]", 1),
-            }
+            self.states = {**self.states, **custom}  # type: ignore[misc]
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -500,6 +557,10 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
+        checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -510,6 +571,10 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
+        *,
+        checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -519,6 +584,10 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = "first True",
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
+        *,
+        checked_symbol: str | None = None,
+        unchecked_symbol: str | None = None,
+        mixed_symbol: str | None = None,
     ) -> None:
         """Create the RadioButton widget.
 
@@ -528,6 +597,9 @@ class RadioButton(CheckBox):
         :param on_state_change: shorthand for connect_signal()
                                 function call for a single 'change' callback
         :param user_data: user_data for on_state_change
+        :param checked_symbol: symbol inside the parentheses for the True state (keyword only)
+        :param unchecked_symbol: the same for the False state
+        :param mixed_symbol: the same for the "mixed" state
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 
@@ -568,6 +640,9 @@ class RadioButton(CheckBox):
             has_mixed=False,
             on_state_change=on_state_change,
             user_data=user_data,
+            checked_symbol=checked_symbol,
+            unchecked_symbol=unchecked_symbol,
+            mixed_symbol=mixed_symbol,
         )
         group.append(self)
         if state is True:
