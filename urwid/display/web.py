@@ -413,7 +413,7 @@ def _session_dir() -> str:
     uid = os.geteuid()
     path = os.path.join(_prefs.pipe_dir, f"urwid-web-{uid}")
     with suppress(FileExistsError):
-        os.mkdir(path, 0o700)
+        pathlib.Path(path).mkdir(mode=0o700)
     # lstat: a symbolic link planted at the path is refused rather than followed
     st = os.lstat(path)
     if not stat.S_ISDIR(st.st_mode) or st.st_uid != uid or stat.S_IMODE(st.st_mode) & 0o077:

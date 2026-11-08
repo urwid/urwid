@@ -118,6 +118,12 @@ class ScrollbarSymbols(enum.StrEnum):
 
     BLACK_VERTICAL_RECTANGLE = "▮"
     MIDDLE_DOT = "·"
+    WHITE_VERTICAL_RECTANGLE = "▯"
+    BLACK_SQUARE = "■"
+    WHITE_SQUARE = "□"
+    BULLET = "•"
+    BLACK_CIRCLE = "●"
+    WHITE_CIRCLE = "○"
 
     ARROW_TRIANGLE_UP = "▲"
     ARROW_TRIANGLE_DOWN = "▼"
@@ -127,6 +133,10 @@ class ScrollbarSymbols(enum.StrEnum):
     ARROW_WHITE_TRIANGLE_DOWN = "▽"
     ARROW_UP = "↑"
     ARROW_DOWN = "↓"
+    ARROW_HEAVY_UP = "⬆"
+    ARROW_HEAVY_DOWN = "⬇"
+    ARROW_MODIFIER_UP = "˄"  # noqa: RUF001
+    ARROW_MODIFIER_DOWN = "˅"
     ARROW_ASCII_UP = "^"
     ARROW_ASCII_DOWN = "v"
 
