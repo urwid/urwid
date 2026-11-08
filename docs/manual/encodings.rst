@@ -24,7 +24,7 @@ recommended way; byte strings are discouraged.
 ::
 
     txt_a = urwid.Text("El Niño")
-    txt_b = urwid.Text("El Niño".encode("utf-8"))
+    txt_b = urwid.Text(b"\xf5\xa1")  # EUC-JP char in user-defined area
 
 ``txt_a`` is a Unicode string and will be automatically encoded when it is
 displayed (Unicode mode).
