@@ -59,9 +59,9 @@ Unicode strings for any non-ASCII characters:
 =========== ==============
 Key pressed Input returned
 =========== ==============
-é           ``u'é'``
-Ж           ``u'Ж'``
-カ          ``u'カ'``
+é           ``'é'``
+Ж           ``'Ж'``
+カ          ``'カ'``
 =========== ==============
 
 With non-Unicode :ref:`text encoding <text-encodings>` characters will be sent
@@ -70,9 +70,9 @@ as-is in the original encoding.
 =========== =========================================
 Key pressed Input returned (each in its own encoding)
 =========== =========================================
-é           ``'é'``
-Ж           ``'Ж'``
-カ          ``'カ'`` (two bytes)
+é           ``b'é'``
+Ж           ``b'Ж'``
+カ          ``b'カ'`` (two bytes)
 =========== =========================================
 
 Urwid does not try to convert this text to Unicode to avoid losing any

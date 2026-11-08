@@ -76,22 +76,6 @@ section.
    :class:`Text widget reference <Text>`
 
 
-Custom Text Layouts
-===================
-
-The :class:`StandardTextLayout` is set as the class variable
-:attr:`Text.layout`. Individual :class:`Text`
-widgets may use a different layout class, or you can change the default by
-setting the :attr:`Text.layout` class variable itself.
-
-A custom text layout class should extend the
-:class:`TextLayout` base class and return text layout
-structures from its ``layout()`` method.
-
-.. seealso::
-   :class:`TextLayout reference <TextLayout>`
-
-
 Tab Characters
 ==============
 
@@ -106,6 +90,26 @@ as two columns. The explicit ``tab_stops`` come first, then stops repeat every `
 A tab stays one character of the text, so the cursor of an :class:`Edit` widget steps over it in one move.
 A tab that would reach past the line end is cut there, and in the ``space`` wrap mode a tab is a break
 opportunity, like a space.
+
+With the layout above, the text is rendered like this::
+
+    name        value   comment
+    0----5---10---15---20---25
+
+Custom Text Layouts
+===================
+
+The :class:`StandardTextLayout` is set as the class variable
+:attr:`Text.layout`. Individual :class:`Text`
+widgets may use a different layout class, or you can change the default by
+setting the :attr:`Text.layout` class variable itself.
+
+A custom text layout class should extend the
+:class:`TextLayout` base class and return text layout
+structures from its ``layout()`` method.
+
+.. seealso::
+   :class:`TextLayout reference <TextLayout>`
 
 
 Text Layout Structures

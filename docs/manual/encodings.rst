@@ -17,19 +17,22 @@ based on the configured locale. You may change that setting with the
     urwid.set_encoding("UTF-8")
 
 There are two distinct modes of handling encodings with Urwid: Unicode or
-Pass-through. The mode corresponds to using Unicode strings or normal strings
-in your widgets.
+Pass-through. The mode corresponds to using Unicode strings (:class:`str`) or
+byte strings (:class:`bytes`) in your widgets. Unicode strings are the
+recommended way; byte strings are discouraged.
 
 ::
 
-    txt_a = urwid.Text(u"El Niño")
-    txt_b = urwid.Text("El Niño")
+    txt_a = urwid.Text("El Niño")
+    txt_b = urwid.Text("El Niño".encode("utf-8"))
 
-``txt_a`` will be automatically encoded when it is displayed (Unicode mode).
+``txt_a`` is a Unicode string and will be automatically encoded when it is
+displayed (Unicode mode).
 
-``txt_b`` is **assumed** to be in the encoding the user is expecting and passed
-through as-is (Pass-through mode). If the encodings are different then the
-user will see "mojibake" (garbage) on their screen.
+``txt_b`` is made from bytes. They are **assumed** to be in the encoding the
+user is expecting and passed through as-is (Pass-through mode). If the
+encodings are different then the user will see "mojibake" (garbage) on their
+screen.
 
 The only time it makes sense to use pass-through mode is if you're handling an
 encoding that does not round-trip to Unicode properly, or if you're absolutely
