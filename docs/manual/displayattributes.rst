@@ -351,7 +351,8 @@ Many terminals will turn foreground colors into their bright versions when you
 use bold, eg: ``'dark blue,bold'`` might look the same as ``'light blue'``.
 Some terminals also will display bright colors in a bold font even if you don't
 specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
-:meth:`BaseScreen.set_terminal_properties`, but it is not always supported.
+:meth:`display.raw.Screen.set_terminal_properties`, but it is not always
+supported.
 
 ``'standout'`` is usually displayed as the foreground and background colors reversed.
 

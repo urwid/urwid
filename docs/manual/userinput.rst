@@ -53,8 +53,12 @@ A control sequence that Urwid does not recognise is returned as a single key
 holding the characters after ``ESC [``, so that its characters are not received
 as typed text: ``ESC [ 1;2X`` returns ``'<csi 1;2X>'``.
 
-With Unicode :ref:`text encoding <text-encodings>` you will also receive
-Unicode strings for any non-ASCII characters:
+Non-ASCII characters are returned as strings, whatever the
+:ref:`text encoding <text-encodings>`: input in a non-UTF-8 encoding is
+decoded with that encoding. A byte that is not a character of a non-UTF-8
+encoding is returned as the Latin-1 character with the same value. A byte that
+is not valid UTF-8 is returned as its value in angle brackets, such as
+``'<255>'``.
 
 =========== ==============
 Key pressed Input returned
@@ -63,21 +67,6 @@ Key pressed Input returned
 Ж           ``'Ж'``
 カ          ``'カ'``
 =========== ==============
-
-With non-Unicode :ref:`text encoding <text-encodings>` characters will be sent
-as-is in the original encoding.
-
-=========== =========================================
-Key pressed Input returned (each in its own encoding)
-=========== =========================================
-é           ``b'é'``
-Ж           ``b'Ж'``
-カ          ``b'カ'`` (two bytes)
-=========== =========================================
-
-Urwid does not try to convert this text to Unicode to avoid losing any
-information. If you want the input converted to Unicode in all cases you may
-create an input filter to do so.
 
 
 .. _extended-keys:
@@ -184,7 +173,7 @@ Mouse Input
 Mouse input is sent as a (*event*, *button*, *x*, *y*) tuple. *event* is a string
 describing the event. If the *SHIFT*, *ALT* or *CTRL* keys are held when a mouse
 event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
-``'ctrl'``. *button* is a number, named by :class:`MouseButton`. *x* and *y*
+``'ctrl '``. *button* is a number, named by :class:`MouseButton`. *x* and *y*
 are character coordinates starting from ``(0, 0)`` at the top-left of the
 screen.
 

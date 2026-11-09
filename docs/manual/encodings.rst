@@ -19,7 +19,8 @@ based on the configured locale. You may change that setting with the
 There are two distinct modes of handling encodings with Urwid: Unicode or
 Pass-through. The mode corresponds to using Unicode strings (:class:`str`) or
 byte strings (:class:`bytes`) in your widgets. Unicode strings are the
-recommended way; byte strings are discouraged.
+recommended way; byte strings are only useful when the output screen encoding
+does not map to Unicode code points.
 
 ::
 
@@ -33,10 +34,6 @@ displayed (Unicode mode).
 user is expecting and passed through as-is (Pass-through mode). If the
 encodings are different then the user will see "mojibake" (garbage) on their
 screen.
-
-The only time it makes sense to use pass-through mode is if you're handling an
-encoding that does not round-trip to Unicode properly, or if you're absolutely
-sure you know what you're doing.
 
 .. _unicode-support:
 
@@ -106,7 +103,7 @@ bytes are assumed to be 1 column wide characters. For the remaining supported
 encodings any byte with the high-bit set is considered to be half of a 2-column
 wide character.
 
-The additional plains in EUC are not currently supported.
+The additional planes in EUC are not currently supported.
 
 Future Work
 ===========
@@ -116,8 +113,3 @@ setting. It should be possible to simultaneously support different encodings on
 different screens with Urwid. Making this work involves possibly changing the
 function signature of many widget methods, because encoding needs to be
 specified along with size and focus.
-
-Device-specific encodings should also be possible for Unicode mode. The LCD
-display module in development drives a device with a non-standard mapping of
-Unicode code points to 8-bit values, but it should still be possible to use a
-Unicode text to display the characters it supports.

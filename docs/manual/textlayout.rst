@@ -99,10 +99,12 @@ With the layout above, the text is rendered like this::
 Custom Text Layouts
 ===================
 
-The :class:`StandardTextLayout` is set as the class variable
-:attr:`Text.layout`. Individual :class:`Text`
-widgets may use a different layout class, or you can change the default by
-setting the :attr:`Text.layout` class variable itself.
+A :class:`Text` widget created without a ``layout`` argument uses the shared
+:class:`StandardTextLayout` instance ``urwid.text_layout.default_layout``.
+Individual :class:`Text` widgets may use a different layout by passing it as
+``layout``, or you can change the default by replacing
+``urwid.text_layout.default_layout`` before the widgets are created.
+:attr:`Text.layout` is read-only and returns the layout of one widget.
 
 A custom text layout class should extend the
 :class:`TextLayout` base class and return text layout

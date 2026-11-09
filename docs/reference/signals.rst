@@ -7,7 +7,7 @@ The :func:`urwid.\*_signal` functions use a shared Signals object instance
 for tracking registered and connected signals.  There is no reason to
 instantiate your own Signals object.
 
-.. function:: connect_signal(obj, name, callback, user_arg=None, weak_args=None, user_args=None)
+.. function:: connect_signal(obj, name, callback, user_arg=None, *, weak_args=(), user_args=())
 
 .. automethod:: Signals.connect
 
@@ -15,7 +15,7 @@ instantiate your own Signals object.
 
 .. automethod:: Signals.disconnect_by_key
 
-.. function:: disconnect_signal(obj, name, callback, user_arg=None, weak_args=None, user_args=None)
+.. function:: disconnect_signal(obj, name, callback, user_arg=None, *, weak_args=(), user_args=())
 
 .. automethod:: Signals.disconnect
 
