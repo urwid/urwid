@@ -107,8 +107,7 @@ class Notifications(WidgetWrap[Pile]):
 
     .. important::
         Call every method from the thread running the loop, like every other widget change.
-        Another thread hands the message over instead: it writes to a :meth:`MainLoop.watch_pipe` descriptor,
-        or uses the event loop's own thread-safe scheduling, such as ``loop.call_soon_threadsafe()`` in asyncio.
+        Another thread hands the message over with :meth:`MainLoop.call_from_thread` instead.
 
     >>> status = Notifications(max_count=1, default="ready")
     >>> status.render((8,)).text

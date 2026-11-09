@@ -308,7 +308,7 @@ class TrioEventLoop(EventLoop):
         This allows one to embed an urwid app in a Trio app even if the Trio event loop is already running.
         Example::
 
-            with trio.open_nursery() as nursery:
+            async with trio.open_nursery() as nursery:
                 event_loop = urwid.TrioEventLoop()
 
                 # [...launch other async tasks in the nursery...]
