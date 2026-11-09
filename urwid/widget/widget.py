@@ -360,10 +360,19 @@ class WidgetSizingError(WidgetError):
 
     def __reduce__(self) -> tuple[typing.Any, ...]:
         """Pickle the error without the widget, which may not be picklable."""
-        state = {key: value for key, value in vars(self).items() if key != "widget"}
+        # The id of the outermost widget means nothing in the process that unpickles the error.
+        state = {key: value for key, value in vars(self).items() if key not in {"widget", "_outermost_id"}}
         if isinstance(self, AttributeError):
             state["name"] = self.name
         return type(self), self.args, state
+
+    def __setstate__(self, state: dict[str, typing.Any] | None) -> None:
+        """Restore the pickled state with ``setattr()``.
+
+        PyPy's default puts ``name`` into the instance dict instead of setting ``AttributeError.name``.
+        """
+        for key, value in (state or {}).items():
+            setattr(self, key, value)
 
     def add_parent(self, widget: AbstractWidget, size: object) -> None:
         """Note that *widget* passed the size down, with its own *size*, to the widget with the error.
