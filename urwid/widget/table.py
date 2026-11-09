@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+import functools
 import itertools
 import math
 import sys
@@ -771,6 +772,15 @@ class _TableRows(SimpleFocusListWalker[TableRow]):  # pylint: disable=abstract-m
             super().__setitem__(i, self._convert(y))
 
 
+def _forward_focus_moved(table_ref: weakref.ref[Table], old: int | None, new: int | None) -> None:
+    """Call :meth:`Table._focus_moved` of the table, if it is still alive.
+
+    It holds the table only through a weak reference.
+    """
+    if (table := table_ref()) is not None:
+        table._focus_moved(old, new)
+
+
 class Table(Widget):
     """Rows of cells in columns of shared widths, between a fixed header and footer, and with a focused row.
 
@@ -898,7 +908,7 @@ class Table(Widget):
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
         # connected last, so that filling the rows during construction sends no signal
-        self._rows.set_focus_moved_callback(self._focus_moved)
+        self._rows.set_focus_moved_callback(functools.partial(_forward_focus_moved, weakref.ref(self)))
 
     def _focus_moved(self, old: int | None, new: int | None) -> None:
         self._emit("focus changed", old, new)

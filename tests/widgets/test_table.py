@@ -642,6 +642,33 @@ class TableTest(unittest.TestCase):
         table.body.extend([["a"], ["b"]])
         self.assertEqual([(None, 1)], events)
 
+    def test_focus_moved_override(self) -> None:
+        """A subclass overriding ``_focus_moved`` sees every focus move."""
+        moves: list[tuple[int | None, int | None]] = []
+
+        class RecordingTable(urwid.Table):
+            def _focus_moved(self, old: int | None, new: int | None) -> None:
+                moves.append((old, new))
+                super()._focus_moved(old, new)
+
+        table = RecordingTable(self.columns, [["a", "1"], ["b", "2"]])
+        table.focus_position = 1
+        self.assertEqual([(0, 1)], moves)
+
+    @unittest.skipUnless(sys.implementation.name == "cpython", "relies on reference counting freeing at once")
+    def test_freed_without_collector(self) -> None:
+        """A dropped table with rows is freed by reference counting alone, with no collector run."""
+        table = self.make()
+        ref = weakref.ref(table)
+        was_enabled = gc.isenabled()
+        gc.disable()
+        try:
+            del table
+            self.assertIsNone(ref())
+        finally:
+            if was_enabled:
+                gc.enable()
+
     def test_focus_after_removal(self) -> None:
         """Removing the focused row focuses the next one; replacing every row focuses the last new one."""
         table = self.make(5)
