@@ -789,7 +789,10 @@ class Table(Widget):
     with the old and the new position, which is ``None`` while the table is empty.
     A row replaced in place at the focus sends nothing.
     Sends ``"activate"`` with the focus position when the focused row leaves the ``activate`` command
-    (:kbd:`enter` and :kbd:`space` by default) unhandled. A mouse click moves the focus and reaches the cell only.
+    (:kbd:`enter` and :kbd:`space` by default) unhandled.
+    A handler whose result is true consumes the key; otherwise the key is returned, as :class:`Overlay` does for
+    ``"menu"``. Every handler runs, whatever the earlier ones returned.
+    A mouse click moves the focus and reaches the cell only.
     """
 
     signals: typing.ClassVar[list[str]] = ["focus changed", "activate"]
@@ -1204,15 +1207,19 @@ class Table(Widget):
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the key to the rows; send ``"activate"`` for an ``activate`` command they leave unhandled.
 
-        :returns: ``None`` if the key was handled, otherwise the key.
+        :returns: ``None`` if the rows or an ``"activate"`` handler handled the key, otherwise the key.
+            A handler handles the key by returning a true value.
         """
         if (body := self._body_call_size(size)) is None:
             return key
         widget, body_size, _arrangement = body
         if (unhandled := widget.keypress(body_size, key)) is None:
             return None
-        if self._command_map[unhandled] == Command.ACTIVATE and self._rows.focus is not None:
-            self._emit("activate", self._rows.focus)
+        if (
+            self._command_map[unhandled] == Command.ACTIVATE
+            and self._rows.focus is not None
+            and signals.emit_signal(self, "activate", self, self._rows.focus)
+        ):
             return None
         return unhandled
 
