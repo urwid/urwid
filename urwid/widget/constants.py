@@ -604,6 +604,24 @@ class _BoxSymbolsCollection(typing.NamedTuple):
     .. note::
         Transitions are not included: depends on line types, different kinds of transitions are available.
         Please check Unicode table for transitions symbols if required.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ===================================  ======  ======  ======  ====  =======
+        Symbols                              Sample  Ubuntu  Fedora  Arch  Windows
+        ===================================  ======  ======  ======  ====  =======
+        :attr:`LIGHT` lines and joints       ─│┌┼    yes     yes     yes   yes
+        :attr:`LIGHT` dashes                 ┈╎      yes     no      no    no
+        :attr:`LIGHT` rounded corners        ╭╯      yes     no      no    no
+        :attr:`HEAVY` lines and joints       ━┃┏╋    yes     yes     no    no
+        :attr:`HEAVY` dashes                 ┉╏      yes     no      no    no
+        :attr:`DOUBLE`                       ═║╔╬    yes     yes     yes   yes
+        ===================================  ======  ======  ======  ====  =======
+
+        A symbol marked ``no`` needs a console font with wider coverage.
     """
 
     # fmt: off
@@ -629,6 +647,12 @@ class BAR_SYMBOLS(enum.StrEnum):
     Typically used only 8 from this symbol collection depends on use-case:
     * empty - 7/8 and styles for BG different on both sides (like standard `ProgressBar` and `BarGraph`)
     * 1/8 - full block and single style for BG on the right side
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show only the full block,
+        so the partial blocks need a console font with wider coverage there.
     """
 
     # fmt: off
@@ -638,7 +662,24 @@ class BAR_SYMBOLS(enum.StrEnum):
 
 
 class _SHADE_SYMBOLS(typing.NamedTuple):
-    """Standard shade symbols excluding empty space."""
+    """Standard shade symbols excluding empty space.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ================  ======  ======  ======  ====  =======
+        Member            Symbol  Ubuntu  Fedora  Arch  Windows
+        ================  ======  ======  ======  ====  =======
+        ``FULL_BLOCK``    █       yes     yes     yes   yes
+        ``DARK_SHADE``    ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``  ▒       yes     yes     yes   yes
+        ``LITE_SHADE``    ░       yes     yes     yes   yes
+        ================  ======  ======  ======  ====  =======
+
+        A symbol marked ``no`` needs a console font with wider coverage.
+    """
 
     # fmt: off
 

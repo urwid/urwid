@@ -97,6 +97,52 @@ class ScrollbarSymbols(enum.StrEnum):
     - ASCII: :attr:`ARROW_ASCII_UP` and :attr:`ARROW_ASCII_DOWN`.
     - DEC special graphics: :attr:`MEDIUM_SHADE`, :attr:`DRAWING_LIGHT`, :attr:`BLACK_VERTICAL_RECTANGLE`
       and :attr:`MIDDLE_DOT`.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console
+        show these non-ASCII members:
+
+        =============================  ======  ======  ======  ====  =======
+        Member                         Symbol  Ubuntu  Fedora  Arch  Windows
+        =============================  ======  ======  ======  ====  =======
+        ``FULL_BLOCK``                 █       yes     yes     yes   yes
+        ``DARK_SHADE``                 ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``               ▒       yes     yes     yes   yes
+        ``LITE_SHADE``                 ░       yes     yes     yes   yes
+        ``DRAWING_LIGHT``              │       yes     yes     yes   yes
+        ``DRAWING_LIGHT_2_DASH``       ╎       yes     no      no    no
+        ``DRAWING_LIGHT_3_DASH``       ┆       yes     no      no    no
+        ``DRAWING_LIGHT_4_DASH``       ┊       yes     no      no    no
+        ``DRAWING_HEAVY``              ┃       yes     yes     no    no
+        ``DRAWING_HEAVY_2_DASH``       ╏       yes     no      no    no
+        ``DRAWING_HEAVY_3_DASH``       ┇       yes     no      no    no
+        ``DRAWING_HEAVY_4_DASH``       ┋       yes     no      no    no
+        ``DRAWING_DOUBLE``             ║       yes     yes     yes   yes
+        ``BLACK_VERTICAL_RECTANGLE``   ▮       yes     no      no    no
+        ``MIDDLE_DOT``                 ·       yes     yes     yes   yes
+        ``WHITE_VERTICAL_RECTANGLE``   ▯       no      no      no    no
+        ``BLACK_SQUARE``               ■       yes     yes     yes   yes
+        ``WHITE_SQUARE``               □       no      no      no    yes
+        ``BULLET``                     •       yes     yes     yes   yes
+        ``BLACK_CIRCLE``               ●       yes     yes     no    yes
+        ``WHITE_CIRCLE``               ○       no      no      yes   yes
+        ``ARROW_TRIANGLE_UP``          ▲       yes     no      yes   yes
+        ``ARROW_TRIANGLE_DOWN``        ▼       yes     no      yes   yes
+        ``ARROW_SMALL_TRIANGLE_UP``    ▴       yes     no      no    no
+        ``ARROW_SMALL_TRIANGLE_DOWN``  ▾       yes     no      no    no
+        ``ARROW_WHITE_TRIANGLE_UP``    △       no      no      no    no
+        ``ARROW_WHITE_TRIANGLE_DOWN``  ▽       no      no      no    no
+        ``ARROW_UP``                   ↑       yes     yes     yes   yes
+        ``ARROW_DOWN``                 ↓       yes     yes     yes   yes
+        ``ARROW_HEAVY_UP``             ⬆       no      no      no    no
+        ``ARROW_HEAVY_DOWN``           ⬇       no      no      no    no
+        ``ARROW_MODIFIER_UP``          U+02C4  no      no      no    no
+        ``ARROW_MODIFIER_DOWN``        U+02C5  no      no      no    no
+        =============================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
     """
 
     FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
