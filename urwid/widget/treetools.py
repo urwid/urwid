@@ -84,6 +84,38 @@ class TreeSymbols(enum.StrEnum):
     - :attr:`LIGHT_VERTICAL`, :attr:`LIGHT_TEE`, :attr:`LIGHT_CORNER` and :attr:`LIGHT_HORIZONTAL`
       are drawn with the DEC special graphics character set.
     - Every other member is drawn as its :func:`~urwid.set_ascii_fallbacks` replacement, or as ``?`` without one.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console
+        show these non-ASCII members:
+
+        ========================  ======  ======  ======  ====  =======
+        Member                    Symbol  Ubuntu  Fedora  Arch  Windows
+        ========================  ======  ======  ======  ====  =======
+        ``TRIANGLE_RIGHT``        ▶       yes     no      yes   no
+        ``TRIANGLE_DOWN``         ▼       yes     no      yes   yes
+        ``SMALL_TRIANGLE_RIGHT``  ▸       yes     no      no    no
+        ``SMALL_TRIANGLE_DOWN``   ▾       yes     no      no    no
+        ``BULLET``                •       yes     yes     yes   yes
+        ``ARROW_TIP``             ➤       no      no      no    no
+        ``LIGHT_VERTICAL``        │       yes     yes     yes   yes
+        ``LIGHT_TEE``             ├       yes     yes     yes   yes
+        ``LIGHT_CORNER``          └       yes     yes     yes   yes
+        ``LIGHT_CORNER_ROUNDED``  ╰       yes     no      no    no
+        ``LIGHT_HORIZONTAL``      ─       yes     yes     yes   yes
+        ``HEAVY_VERTICAL``        ┃       yes     yes     no    no
+        ``HEAVY_TEE``             ┣       yes     yes     no    no
+        ``HEAVY_CORNER``          ┗       yes     yes     no    no
+        ``HEAVY_HORIZONTAL``      ━       yes     yes     no    no
+        ``DOUBLE_VERTICAL``       ║       yes     yes     yes   yes
+        ``DOUBLE_TEE``            ╠       yes     yes     yes   yes
+        ``DOUBLE_CORNER``         ╚       yes     yes     yes   yes
+        ``DOUBLE_HORIZONTAL``     ═       yes     yes     yes   yes
+        ========================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
     """
 
     PLUS = "+"

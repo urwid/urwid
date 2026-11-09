@@ -12,7 +12,33 @@ from .widget import Widget, _InvalidatingAttribute
 
 
 class DividerSymbols(enum.StrEnum):
-    """Common symbols for divider widgets."""
+    """Common symbols for divider widgets.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ==================  ======  ======  ======  ====  =======
+        Member              Symbol  Ubuntu  Fedora  Arch  Windows
+        ==================  ======  ======  ======  ====  =======
+        ``LIGHT_HL``        ─       yes     yes     yes   yes
+        ``LIGHT_4_DASHES``  ┈       yes     no      no    no
+        ``LIGHT_3_DASHES``  ┄       yes     no      no    no
+        ``LIGHT_2_DASHES``  ╌       yes     no      no    no
+        ``HEAVY_HL``        ━       yes     yes     no    no
+        ``HEAVY_4_DASHES``  ┉       yes     no      no    no
+        ``HEAVY_3_DASHES``  ┅       yes     no      no    no
+        ``HEAVY_2_DASHES``  ╍       yes     no      no    no
+        ``DOUBLE_HL``       ═       yes     yes     yes   yes
+        ``FULL_BLOCK``      █       yes     yes     yes   yes
+        ``DARK_SHADE``      ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``    ▒       yes     yes     yes   yes
+        ``LITE_SHADE``      ░       yes     yes     yes   yes
+        ==================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
+    """
 
     # Lines
     LIGHT_HL = BOX_SYMBOLS.LIGHT.HORIZONTAL

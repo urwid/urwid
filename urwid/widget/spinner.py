@@ -48,6 +48,13 @@ class SpinnerFrames(enum.Enum):
 
     - :attr:`LINE` and :attr:`DOTS` are ASCII and are drawn as they are.
     - Every other member is drawn as its :func:`~urwid.set_ascii_fallbacks` replacement, or as ``?`` without one.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console
+        show none of the non-ASCII members,
+        so use :attr:`LINE` or :attr:`DOTS` there unless the console font has wider coverage.
     """
 
     LINE = ("-", "\\", "|", "/")

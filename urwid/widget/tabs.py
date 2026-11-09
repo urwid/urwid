@@ -60,6 +60,32 @@ class TabsSymbols(enum.StrEnum):
 
     The ``ARROW_`` and ``GUILLEMET_`` members are overflow markers, the ``LINE_`` members underline glyphs.
     Only the ``ASCII`` members are also drawn on terminals without UTF-8, where the others are drawn as ``?``.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console
+        show these non-ASCII members:
+
+        ==============================  ======  ======  ======  ====  =======
+        Member                          Symbol  Ubuntu  Fedora  Arch  Windows
+        ==============================  ======  ======  ======  ====  =======
+        ``ARROW_TRIANGLE_LEFT``         ◀       yes     no      yes   no
+        ``ARROW_TRIANGLE_RIGHT``        ▶       yes     no      yes   no
+        ``ARROW_SMALL_TRIANGLE_LEFT``   ◂       yes     no      no    no
+        ``ARROW_SMALL_TRIANGLE_RIGHT``  ▸       yes     no      no    no
+        ``ARROW_WHITE_TRIANGLE_LEFT``   ◁       no      no      no    no
+        ``ARROW_WHITE_TRIANGLE_RIGHT``  ▷       no      no      no    no
+        ``ARROW_LEFT``                  ←       yes     yes     yes   yes
+        ``ARROW_RIGHT``                 →       yes     yes     yes   yes
+        ``GUILLEMET_LEFT``              «       yes     yes     yes   yes
+        ``GUILLEMET_RIGHT``             »       yes     yes     yes   yes
+        ``LINE_LIGHT``                  ─       yes     yes     yes   yes
+        ``LINE_HEAVY``                  ━       yes     yes     no    no
+        ``LINE_DOUBLE``                 ═       yes     yes     yes   yes
+        ==============================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
     """
 
     ARROW_ASCII_LEFT = "<"

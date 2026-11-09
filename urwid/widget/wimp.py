@@ -158,6 +158,33 @@ class CheckBox(WidgetWrap[Columns]):
         """Common symbols suitable for the state marks of :class:`CheckBox` and :class:`RadioButton`.
 
         Only the ASCII members are drawn on terminals without UTF-8.
+
+        .. note::
+            The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+            and of Windows Terminal, show every member.
+            The default fonts of the Linux virtual console and of the classic Windows console
+            show these non-ASCII members:
+
+            ======================  ======  ======  ======  ====  =======
+            Member                  Symbol  Ubuntu  Fedora  Arch  Windows
+            ======================  ======  ======  ======  ====  =======
+            ``CHECK_MARK``          ✓       no      yes     no    no
+            ``BALLOT_X``            ✗       yes     yes     no    no
+            ``BULLET``              •       yes     yes     yes   yes
+            ``BLACK_CIRCLE``        ●       yes     yes     no    yes
+            ``WHITE_CIRCLE``        ○       no      no      yes   yes
+            ``FULL_BLOCK``          █       yes     yes     yes   yes
+            ``MEDIUM_SHADE``        ▒       yes     yes     yes   yes
+            ``MINUS_SIGN``          U+2212  yes     yes     no    yes
+            ``EN_DASH``             U+2013  yes     yes     no    yes
+            ``LIGHT_SHADE``         ░       yes     yes     yes   yes
+            ``HALF_CIRCLE``         ◐       no      no      no    no
+            ``BLACK_SQUARE``        ■       yes     yes     yes   yes
+            ``WHITE_SQUARE``        □       no      no      no    yes
+            ``BLACK_SQUARE_SMALL``  ▪       no      no      no    yes
+            ======================  ======  ======  ======  ====  =======
+
+            A member marked ``no`` needs a console font with wider coverage.
         """
 
         X = "X"
