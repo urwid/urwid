@@ -27,6 +27,10 @@ if typing.TYPE_CHECKING:
         assert_type(widget.focus, urwid.TableRow | None)
         assert_type(widget.body[0].data, typing.Any)
         assert_type(widget.layout.widths(20), tuple[int, ...])
+        footed = urwid.Table(columns, footer=["total", "3"], footer_attr="foot", header_drop=2, footer_drop=1)
+        assert_type(footed.footer, urwid.TableRow | None)
+        footed.footer = footed.layout.row(["3 rows"], span=True)
+        footed.footer = None
 
     def layout() -> None:
         """Build rows without a table."""

@@ -1,4 +1,4 @@
-"""Table: rows of cells whose columns share widths, under a fixed header."""
+"""Table: rows of cells whose columns share widths, between a fixed header and footer."""
 
 # The layout, its rows and their table keep one set of bookkeeping between them through their protected members.
 # pylint: disable=protected-access
@@ -73,12 +73,15 @@ class TableError(WidgetError):
 
 
 class _Arrangement(typing.NamedTuple):
-    """How a table divides one size between its header, its rows and its scrollbar."""
+    """How a table divides one size between its header, its rows, its footer and its scrollbar."""
 
     maxcol: int
-    #: the width of the header and the rows: *maxcol* less the scrollbar while it is drawn
+    #: the width of the header, the footer and the rows: *maxcol* less the scrollbar while it is drawn
     content: int
+    #: the rows of the header shown, 0 when it is dropped
     header_rows: int
+    #: the rows of the footer shown, 0 when it is dropped
+    footer_rows: int
     #: the rows of the body, or ``None`` for a flow size that shows every row
     body_rows: int | None
     bar: bool
@@ -105,7 +108,7 @@ class TableColumn(typing.NamedTuple):
     min_width: int = 1
     align: Literal[Align.LEFT, Align.CENTER, Align.RIGHT] = Align.LEFT
     wrap: Literal[WrapMode.SPACE, WrapMode.CLIP, WrapMode.ELLIPSIS] = WrapMode.CLIP
-    #: Attribute map of the column's cells; the header label and a span row do not use it.
+    #: Attribute map of the column's cells; the header label, a footer built from cells and a span row do not use it.
     attr: _AttrMapLike | None = None
 
 
@@ -511,7 +514,7 @@ class TableRow(WidgetWrap[_TableColumns]):
     - :attr:`attr`, or the table's ``attr``.
 
     The ``attr`` of a :class:`TableColumn` maps each cell of that column first,
-    except in a span row and in the header of a :class:`Table`.
+    except in a span row, in the header of a :class:`Table` and in a footer the table built from cells.
     A row map given as a dict then also maps the cells' and the columns' attributes.
     The attribute a row map gives for ``None`` becomes the base layer under them.
     """
@@ -689,8 +692,8 @@ class TableRow(WidgetWrap[_TableColumns]):
                 self._layout._cell_width_changed(index, old, new)
 
 
-class _TableHeader(TableRow):
-    """Row of the column labels, which only the table's ``header_attr`` maps."""
+class _TableEdgeRow(TableRow):
+    """Header or footer row built by a table, which only the table's ``header_attr`` or ``footer_attr`` maps."""
 
     _column_attrs = False
 
@@ -719,15 +722,18 @@ class _TableRows(SimpleFocusListWalker[TableRow]):  # pylint: disable=abstract-m
         return self._layout.row(row)
 
     def _validate(self, indices: tuple[int, int, int], new_items: Collection[TableRow]) -> None:
-        """Reject rows of another layout and rows that would be in the table twice.
+        """Reject rows of another layout, the footer, and rows that would be in the table twice.
 
-        :raises TableError: a row is of another layout or would be in the table twice.
+        :raises TableError: a row is of another layout, is the footer of the table, or would be in the table twice.
         """
         replaced = {id(self[index]) for index in range(*indices)}
         seen: set[int] = set()
+        table = self._table()
         for row in new_items:
             if not isinstance(row, TableRow) or row.layout is not self._layout:
                 raise TableError(f"{row!r} is not a row of this table's layout")
+            if table is not None and row is table._footer:
+                raise TableError(f"{row!r} is the footer of the table")
             if id(row) in seen or (row._rows is not None and row._rows() is self and id(row) not in replaced):
                 raise TableError(f"{row!r} would be in the table twice")
             seen.add(id(row))
@@ -766,10 +772,17 @@ class _TableRows(SimpleFocusListWalker[TableRow]):  # pylint: disable=abstract-m
 
 
 class Table(Widget):
-    """Rows of cells in columns of shared widths, under a fixed header and with a focused row.
+    """Rows of cells in columns of shared widths, between a fixed header and footer, and with a focused row.
 
-    The rows scroll in a :class:`ListBox`; the header stays on top and never takes the focus.
+    The rows scroll in a :class:`ListBox`.
+    The header stays on top, the footer stays at the bottom, and neither takes the focus.
     It is a box and flow widget, and a fixed widget as well when no column is weighted.
+
+    A box size that does not fit the whole table drops the header or the footer by *header_drop* and *footer_drop*.
+    A part with a threshold is dropped while keeping it leaves the body fewer rows than the threshold.
+    The part with the larger threshold is dropped first; on equal thresholds the footer goes first.
+    A part that is kept but does not fit is cut at the bottom.
+    The header keeps its rows first, so the footer is cut first.
 
     Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`body`,
     with the old and the new position, which is ``None`` while the table is empty.
@@ -787,6 +800,10 @@ class Table(Widget):
         *,
         header: bool = True,
         header_attr: _AttrMapLike | None = None,
+        footer: Sequence[_Cell] | None = None,
+        footer_attr: _AttrMapLike | None = None,
+        header_drop: int | None = None,
+        footer_drop: int | None = None,
         dividechars: int = 1,
         attr: _AttrMapLike | None = None,
         focus_attr: _AttrMapLike | None = None,
@@ -803,6 +820,11 @@ class Table(Widget):
         :param rows: the initial rows, as :class:`TableRow` objects of :attr:`layout` or sequences of cells
         :param header: draw the column labels above the rows
         :param header_attr: attribute map of the header
+        :param footer: the cells of a row drawn below the rows, see :attr:`footer`; ``None`` draws no footer
+        :param footer_attr: attribute map of a footer built from cells
+        :param header_drop: in a box size whose rows do not all fit, drop the header while keeping it
+            leaves the body fewer rows than this; ``None`` never drops it
+        :param footer_drop: the same threshold for the footer
         :param dividechars: blank screen columns between two visible columns
         :param attr: attribute map of a row without its own :attr:`TableRow.attr`
         :param focus_attr: attribute map of the focused row without its own :attr:`TableRow.focus_attr`
@@ -817,7 +839,8 @@ class Table(Widget):
         :param scrollbar_options: the :class:`ScrollBar` parameters with a ``scrollbar_`` prefix,
             such as ``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and ``scrollbar_attr``;
             ignored while *scrollbar* is ``False``
-        :raises TableError: a column specification, *dividechars*, *max_rows* or a row is invalid.
+        :raises TableError: a column specification, *dividechars*, *max_rows*, a drop threshold, a row or the footer
+            is invalid.
         :raises TypeError: a keyword argument is neither a parameter of the table nor one of *scrollbar_options*,
             also while *scrollbar* is ``False``.
         :raises ValueError: :class:`ScrollBar` rejects the value of a ``scrollbar_`` parameter.
@@ -829,15 +852,25 @@ class Table(Widget):
             bar_options[name.removeprefix("scrollbar_")] = value
         if max_rows is not None and (not isinstance(max_rows, int) or isinstance(max_rows, bool) or max_rows < 0):
             raise TableError(f"max_rows must be None or an int >= 0, not {max_rows!r}")
+        for name, threshold in (("header_drop", header_drop), ("footer_drop", footer_drop)):
+            if threshold is not None and (
+                not isinstance(threshold, int) or isinstance(threshold, bool) or threshold < 1
+            ):
+                raise TableError(f"{name} must be None or an int >= 1, not {threshold!r}")
         super().__init__()
         self._layout = TableLayout(columns, dividechars=dividechars)
         self._header = (
-            _TableHeader(
+            _TableEdgeRow(
                 self._layout, [column.label for column in self._layout.columns], attr=header_attr, selectable=False
             )
             if header
             else None
         )
+        self._footer: TableRow | None = None
+        self._footer_attr = footer_attr
+        self.footer = footer
+        self._header_drop = header_drop
+        self._footer_drop = footer_drop
         self._attr = None if attr is None else _attr_map_dict(attr)
         self._focus_attr = None if focus_attr is None else _attr_map_dict(focus_attr)
         self._row_attr = row_attr
@@ -884,6 +917,36 @@ class Table(Widget):
         Replace every row with ``table.body[:] = rows``.
         """
         return self._rows
+
+    @property
+    def footer(self) -> TableRow | None:
+        """The row below the rows, such as totals or a summary, or ``None``.
+
+        It shares the column widths, and its cells count in the PACK widths.
+        Set it to a sequence of cells, which becomes a row mapped by ``footer_attr`` alone,
+        to a :class:`TableRow` of :attr:`layout`, which keeps its own maps and may be a span row, or to ``None``.
+        A text cell of the footer re-measures its column when its text changes, as in any row.
+
+        :raises TableError: a row is of another layout or is in :attr:`body`, or the cells do not fit the columns.
+        """
+        return self._footer
+
+    @footer.setter
+    def footer(self, footer: Sequence[_Cell] | TableRow | None) -> None:
+        if isinstance(footer, TableRow):
+            if footer.layout is not self._layout:
+                raise TableError(f"{footer!r} is not a row of this table's layout")
+            if footer._rows is not None:
+                raise TableError(f"{footer!r} is in the body of a table")
+            if not footer._registered:
+                # a row removed from the body is released, and its cells count in the widths again only once registered
+                self._layout._register(footer)
+            self._footer = footer
+        elif footer is None:
+            self._footer = None
+        else:
+            self._footer = _TableEdgeRow(self._layout, footer, attr=self._footer_attr, selectable=False)
+        self._invalidate()
 
     @property
     def row_attr(self) -> Callable[[int, typing.Any], _AttrMapLike | None] | None:
@@ -981,8 +1044,9 @@ class Table(Widget):
     def _widths_changed(self) -> None:
         """Drop what was laid out with the old column widths."""
         self._listbox._invalidate()
-        if self._header is not None:
-            self._header._invalidate()
+        for edge in (self._header, self._footer):
+            if edge is not None:
+                edge._invalidate()
         self._invalidate()
 
     def _body_rows(self, maxcol: int, limit: int) -> int:
@@ -995,16 +1059,44 @@ class Table(Widget):
                 break
         return total
 
+    def _edge_rows(self, content: int, maxrow: int | None) -> tuple[int, int]:
+        """Return the rows shown of the header and of the footer at *content* columns.
+
+        A flow size, with *maxrow* ``None``, shows both whole.
+        A box size drops them by their thresholds, then cuts what is left to *maxrow*.
+        The header keeps its rows first, so the footer is cut first.
+        """
+        hrows = 0 if self._header is None else self._header.rows((content,))
+        frows = 0 if self._footer is None else self._footer.rows((content,))
+        if maxrow is None:
+            return hrows, frows
+        thresholds = [
+            (threshold, part)
+            for part, threshold in (("footer", self._footer_drop), ("header", self._header_drop))
+            if threshold is not None
+        ]
+        # a stable sort keeps the footer ahead of the header on equal thresholds
+        thresholds.sort(key=lambda item: item[0], reverse=True)
+        for threshold, part in thresholds:
+            body = maxrow - hrows - frows
+            # every later threshold is smaller, so the body satisfies those as well
+            if body >= threshold or self._body_rows(content, max(body, 0)) <= body:
+                break
+            if part == "header":
+                hrows = 0
+            else:
+                frows = 0
+        hrows = min(hrows, maxrow)
+        return hrows, min(frows, maxrow - hrows)
+
     def _arrange(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> _Arrangement:
-        """Divide *size* between the header, the rows and the scrollbar."""
+        """Divide *size* between the header, the rows, the footer and the scrollbar."""
         maxcol = size[0] if size else self._natural_width()
         bar_width = 0 if self._bar is None else self._bar.scrollbar_width
+        maxrow = size[1] if len(size) == 2 else None
 
-        def header_rows(content: int) -> int:
-            return 0 if self._header is None else self._header.rows((content,))
-
-        if len(size) == 2:
-            limit: int | None = max(size[1] - header_rows(maxcol), 0)
+        if maxrow is not None:
+            limit: int | None = maxrow - sum(self._edge_rows(maxcol, maxrow))
         else:
             limit = self._max_rows
 
@@ -1017,14 +1109,14 @@ class Table(Widget):
             bar = limit is not None and self._body_rows(content, limit) > limit
 
         content = max(maxcol - bar_width, 0) if bar else maxcol
-        hrows = header_rows(content)
-        if len(size) == 2:
-            body_rows: int | None = max(size[1] - hrows, 0)
+        hrows, frows = self._edge_rows(content, maxrow)
+        if maxrow is not None:
+            body_rows: int | None = maxrow - hrows - frows
         elif self._max_rows is not None:
             body_rows = min(self._body_rows(content, self._max_rows), self._max_rows)
         else:
             body_rows = None
-        return _Arrangement(maxcol, content, hrows, body_rows, bar)
+        return _Arrangement(maxcol, content, hrows, frows, body_rows, bar)
 
     def _body_widget_size(
         self,
@@ -1041,14 +1133,14 @@ class Table(Widget):
         return widget, (maxcol, body_rows)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
-        """Return the header rows and the body rows, at most :attr:`max_rows` of body.
+        """Return the header, body and footer rows, at most :attr:`max_rows` of body.
 
         Without :attr:`max_rows` every row is measured.
         """
         arrangement = self._arrange(size)
         if (body_rows := arrangement.body_rows) is None:
             body_rows = self._body_rows(arrangement.content, sys.maxsize)
-        return arrangement.header_rows + body_rows
+        return arrangement.header_rows + body_rows + arrangement.footer_rows
 
     def pack(
         self,
@@ -1066,26 +1158,31 @@ class Table(Widget):
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        """Render the header over the rows."""
-        maxcol, content, hrows, body_rows, bar = self._arrange(size)
+        """Render the header, the rows and the footer, top to bottom."""
+        maxcol, content, hrows, frows, body_rows, bar = self._arrange(size)
+
+        def edge(row: TableRow, rows: int) -> Canvas:
+            """Render *row* out of focus over the scrollbar column, cut to *rows* rows."""
+            canvas = CompositeCanvas(row.render((content,)))
+            if bar and self._bar is not None:
+                if self._bar.scrollbar_side == SCROLLBAR_LEFT:
+                    canvas.pad_trim_left_right(maxcol - content, 0)
+                else:
+                    canvas.pad_trim_left_right(0, maxcol - content)
+            if canvas.rows() > rows:
+                canvas.trim_end(canvas.rows() - rows)
+            return canvas
+
         combine: list[tuple[Canvas, Hashable, bool]] = []
         if self._header is not None and hrows:
-            head = self._header.render((content,))
-            if bar and self._bar is not None:
-                head = CompositeCanvas(head)
-                if self._bar.scrollbar_side == SCROLLBAR_LEFT:
-                    head.pad_trim_left_right(maxcol - content, 0)
-                else:
-                    head.pad_trim_left_right(0, maxcol - content)
-            if len(size) == 2 and hrows > size[1]:
-                head = CompositeCanvas(head)
-                head.trim_end(hrows - size[1])
-            combine.append((head, "header", False))
+            combine.append((edge(self._header, hrows), "header", False))
         if self._rows and body_rows != 0:
             widget, body_size = self._body_widget_size(maxcol, body_rows, bar)
             combine.append((widget.render(body_size, focus), "body", True))
-        elif len(size) == 2 and body_rows:
+        elif body_rows:
             combine.append((SolidCanvas(" ", maxcol, body_rows), "body", False))
+        if self._footer is not None and frows:
+            combine.append((edge(self._footer, frows), "footer", False))
         if not combine:
             return SolidCanvas(" ", maxcol, 0)
         return CanvasCombine(combine)
@@ -1093,15 +1190,15 @@ class Table(Widget):
     def _body_call_size(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-    ) -> tuple[ListBox[int] | ScrollBar[ListBox[int]], tuple[int] | tuple[int, int], int] | None:
-        """Return the body widget, its size and the header rows, or ``None`` when no row is shown."""
+    ) -> tuple[ListBox[int] | ScrollBar[ListBox[int]], tuple[int] | tuple[int, int], _Arrangement] | None:
+        """Return the body widget, its size and the arrangement of *size*, or ``None`` when no row is shown."""
         if not self._rows:
             return None
-        maxcol, _content, hrows, body_rows, bar = self._arrange(size)
-        if body_rows == 0:
+        arrangement = self._arrange(size)
+        if arrangement.body_rows == 0:
             return None
-        widget, body_size = self._body_widget_size(maxcol, body_rows, bar)
-        return widget, body_size, hrows
+        widget, body_size = self._body_widget_size(arrangement.maxcol, arrangement.body_rows, arrangement.bar)
+        return widget, body_size, arrangement
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the key to the rows; send ``"activate"`` for an ``activate`` command they leave unhandled.
@@ -1110,7 +1207,7 @@ class Table(Widget):
         """
         if (body := self._body_call_size(size)) is None:
             return key
-        widget, body_size, _hrows = body
+        widget, body_size, _arrangement = body
         if (unhandled := widget.keypress(body_size, key)) is None:
             return None
         if self._command_map[unhandled] == Command.ACTIVATE and self._rows.focus is not None:
@@ -1127,19 +1224,25 @@ class Table(Widget):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Pass the event to the rows; the header takes no mouse events."""
+        """Pass the event to the rows; the header and the footer take no mouse events."""
         if (body := self._body_call_size(size)) is None:
             return False
-        widget, body_size, hrows = body
-        if row < hrows:
+        widget, body_size, arrangement = body
+        row -= arrangement.header_rows
+        if row < 0:
             return False
-        return widget.mouse_event(body_size, event, button, col, row - hrows, focus)
+        if arrangement.footer_rows:
+            if (body_rows := arrangement.body_rows) is None:
+                body_rows = self._body_rows(arrangement.content, sys.maxsize)
+            if row >= body_rows:
+                return False
+        return widget.mouse_event(body_size, event, button, col, row, focus)
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focused row, below the header."""
         if (body := self._body_call_size(size)) is None:
             return None
-        widget, body_size, hrows = body
+        widget, body_size, arrangement = body
         if (coords := widget.get_cursor_coords(body_size)) is None:
             return None
-        return coords[0], coords[1] + hrows
+        return coords[0], coords[1] + arrangement.header_rows
