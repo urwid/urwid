@@ -1,2 +1,2 @@
 pyrefly==1.4.0
-types-pyserial==3.5.0.20260712
+types-pyserial==3.5.0.20261104
