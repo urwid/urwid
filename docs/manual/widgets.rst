@@ -672,8 +672,8 @@ new space.
 Table Widgets
 -------------
 
-:class:`Table` lines up rows of cells under a header that stays in place
-while the rows scroll.  Each :class:`TableColumn` gives its column a width:
+:class:`Table` lines up rows of cells between a header and an optional
+footer that stay in place while the rows scroll.  Each :class:`TableColumn` gives its column a width:
 ``PACK`` for the widest cell, a number of screen columns, or
 ``(WEIGHT, weight)`` for a share of the room the other columns leave::
 
@@ -704,6 +704,7 @@ rows as they were.
 
 A column's ``attr`` maps every cell of that column in the rows.
 It does not map the header label, which takes ``header_attr`` only,
+nor a footer built from cells, which takes ``footer_attr`` only,
 and it does not map a span row.
 The row's map applies over it: a dict ``attr`` or ``focus_attr`` of the row
 also maps the column attributes, so a dict ``focus_attr`` gives each column
@@ -726,6 +727,19 @@ moves the focus and reaches the cell, as in a :class:`ListBox`.  A
 data, for example in stripes; it runs each time a row is drawn.  The
 ``unfocused_focus_attr`` map is applied over the row's own map, so its keys
 are the attributes the row's map produces.
+
+``footer=`` takes the cells of a row drawn below the rows, such as totals.
+:attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
+:attr:`Table.layout` with its own maps (a span row for a one-line summary),
+or to ``None``.  Like the header, the footer shares the column widths and
+never takes the focus or a mouse click.
+
+A box size that does not fit the whole table can drop the header or the
+footer: ``header_drop=N`` drops the header while keeping it would leave the
+body fewer than ``N`` rows, and ``footer_drop`` does the same for the footer.
+The part with the larger threshold is dropped first, so the two numbers also
+set which part matters more; on equal thresholds the footer goes first.
+Nothing is dropped while all the rows fit, and a flow size shows both parts.
 
 In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
 gives the natural width, so a table can size a dialog by itself.

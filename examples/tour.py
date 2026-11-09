@@ -193,9 +193,10 @@ def main() -> None:
         "A ",
         ("important", "Table"),
         (
-            " widget lines up rows of cells under a fixed header: every column is as wide as its widest cell, "
-            "a number, or a share of the rest.  This one shows at most four rows at a time, with a scrollbar "
-            "while they do not all fit, and keeps the focused row marked while the focus is elsewhere."
+            " widget lines up rows of cells between a fixed header and footer: every column is as wide as its "
+            "widest cell, a number, or a share of the rest.  This one shows at most four rows at a time, with a "
+            "scrollbar while they do not all fit, a footer row of totals, and keeps the focused row marked while the "
+            "focus is elsewhere."
         ),
     ]
     table_rows = [
@@ -492,6 +493,8 @@ def main() -> None:
                 ],
                 table_rows,
                 header_attr="important",
+                footer=["6 entries", "1.3M"],
+                footer_attr="important",
                 focus_attr={None: "buttnf", "bright": "buttnf"},
                 unfocused_focus_attr={None: "buttnl", "bright": "buttnl"},
                 max_rows=4,

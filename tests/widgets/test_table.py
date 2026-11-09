@@ -441,7 +441,14 @@ class TableTest(unittest.TestCase):
 
     def test_sizing(self) -> None:
         """A table renders the size it reports in each sizing mode it offers, empty as well."""
-        for kwargs in ({}, {"header": False}, {"max_rows": 2}, {"scrollbar": True}, {"scrollbar": None}):
+        for kwargs in (
+            {},
+            {"header": False},
+            {"max_rows": 2},
+            {"scrollbar": True},
+            {"scrollbar": None},
+            {"footer": ["t"], "header_drop": 2, "footer_drop": 1},
+        ):
             with self.subTest(**kwargs):
                 table = self.make(**kwargs)
                 self.assertEqual(frozenset((urwid.BOX, urwid.FLOW, urwid.FIXED)), table.sizing())
@@ -474,6 +481,96 @@ class TableTest(unittest.TestCase):
             with self.subTest(attr=attr):
                 table = urwid.Table([Column("Long label", attr=attr), Column("x")], [["a", "b"]], header_attr="head")
                 self.assertEqual([("head", "Long label x")], render_runs(table, (12,))[0])
+
+    def test_footer(self) -> None:
+        """The footer shares the column widths, widens its column, and stays below the rows in every sizing mode."""
+        table = self.make(footer=["Total", "3"])
+        self.assertEqual(
+            ["Name  N   ", "r0    0   ", "r1    1   ", "r2    2   ", "Total 3   "], render_text(table, (10,))
+        )
+        self.assertEqual(["Name  N   ", "r0    0   ", "Total 3   "], render_text(table, (10, 3)))
+        self.assertEqual((7, 5), table.pack(()))
+        self.assertEqual(["Name  N", "r0    0", "r1    1", "r2    2", "Total 3"], render_text(table, ()))
+        self.assertEqual(
+            ["Name N", "      ", "Sum  0"], render_text(urwid.Table(self.columns, footer=["Sum", "0"]), (6, 3))
+        )
+
+    def test_footer_attr_and_text_change(self) -> None:
+        """footer_attr alone maps a footer built from cells, and a changed footer text re-measures its column."""
+        table = urwid.Table([Column("A", attr="col"), Column("B")], [["a", "b"]], footer=["t", "1"], footer_attr="foot")
+        self.assertEqual([("foot", "t 1")], render_runs(table, (3,))[2])
+        table.footer.cells[0].set_text("total")
+        self.assertEqual(["A     B", "a     b", "total 1"], render_text(table, (7,)))
+
+    def test_footer_row(self) -> None:
+        """A row of the layout becomes the footer with its own maps; None removes the footer."""
+        table = self.make(header=False)
+        footer = table.layout.row(["3 rows"], span=True, attr="note")
+        table.footer = footer
+        self.assertIs(footer, table.footer)
+        self.assertEqual([("note", "3 rows")], render_runs(table, (6,))[3])
+        table.footer = None
+        self.assertIsNone(table.footer)
+        self.assertEqual(["r0 0", "r1 1", "r2 2"], render_text(table, (4,)))
+
+    def test_footer_released_row(self) -> None:
+        """A row removed from the body counts in the PACK widths again once it becomes the footer."""
+        table = urwid.Table([Column()], [["x"], ["a very long cell"]], header=False)
+        row = table.body[1]
+        del table.body[1]
+        self.assertEqual(1, table.layout.natural_width())
+        table.footer = row
+        self.assertEqual(16, table.layout.natural_width())
+        row.cells[0].set_text("an even longer cell")
+        self.assertEqual(["x", "an even longer cell"], [line.rstrip() for line in render_text(table, ())])
+
+    def test_footer_rejected(self) -> None:
+        """A footer of another layout, a row of the body, and too many cells are rejected; the body takes no footer."""
+        table = self.make(footer=["t"])
+        footer = table.footer
+        for value in (TableLayout(self.columns).row(["x"]), table.body[0], ["a", "b", "c"], "text"):
+            with self.subTest(value=value), self.assertRaises(urwid.TableError):
+                table.footer = value
+        self.assertIs(footer, table.footer)
+        with self.assertRaises(urwid.TableError):
+            table.body.append(footer)
+        with self.assertRaises(urwid.TableError):
+            urwid.Table(self.columns, footer=["a", "b", "c"])
+
+    def test_drop_thresholds(self) -> None:
+        """A box size that does not fit drops the part with the larger threshold first, then cuts what is left."""
+        header = ["Name  N   "]
+        footer = ["Tot  45   "]
+        rows = [f"r{i}    {i}   " for i in range(10)]
+        for kwargs, size, expected in (
+            ({}, (10, 4), [*header, *rows[:2], *footer]),
+            ({}, (10, 2), [*header, *footer]),
+            ({}, (10, 1), header),
+            ({"header_drop": 3, "footer_drop": 1}, (10, 4), [*rows[:3], *footer]),
+            ({"header_drop": 3, "footer_drop": 1}, (10, 2), [*rows[:1], *footer]),
+            ({"header_drop": 3, "footer_drop": 1}, (10, 1), rows[:1]),
+            ({"header_drop": 1, "footer_drop": 3}, (10, 4), [*header, *rows[:3]]),
+            ({"header_drop": 2, "footer_drop": 2}, (10, 3), [*header, *rows[:2]]),
+            ({"header_drop": 2, "footer_drop": 2}, (10, 2), rows[:2]),
+            ({"header_drop": 3}, (10, 2), [*rows[:1], *footer]),
+            ({"header_drop": 5, "footer_drop": 5}, (10, 12), [*header, *rows, *footer]),
+            ({"header_drop": 5, "footer_drop": 5, "max_rows": 2}, (10,), [*header, *rows[:2], *footer]),
+        ):
+            with self.subTest(size=size, **kwargs):
+                table = self.make(10, footer=["Tot", "45"], **kwargs)
+                self.assertEqual(expected, render_text(table, size))
+
+    def test_drop_thresholds_keep_short_body(self) -> None:
+        """A body whose rows all fit keeps both parts, whatever the thresholds."""
+        table = self.make(2, footer=["Tot", "1"], header_drop=5, footer_drop=5)
+        self.assertEqual(["Name N", "r0   0", "r1   1", "Tot  1"], render_text(table, (6, 4)))
+
+    def test_drop_threshold_validation(self) -> None:
+        """A threshold is None or an int >= 1."""
+        for name in ("header_drop", "footer_drop"):
+            for value in (0, -1, True, 1.0, "1"):
+                with self.subTest(name=name, value=value), self.assertRaises(urwid.TableError):
+                    self.make(**{name: value})
 
     def test_empty(self) -> None:
         """An empty table shows its header, has no focus, and ignores keys and clicks."""
@@ -639,6 +736,18 @@ class TableTest(unittest.TestCase):
         self.assertEqual(["up"], press(table, (10, 4), "up"))
         self.assertFalse(click(table, (10, 4), 0, 0))
         self.assertEqual(0, table.focus_position)
+
+    def test_footer_never_focused(self) -> None:
+        """Down from the last row leaves the key unhandled, and a click on the footer changes nothing."""
+        for size in ((10, 5), (10,)):
+            with self.subTest(size=size):
+                table = self.make(footer=["t"])
+                table.focus_position = 2
+                self.assertEqual(["down"], press(table, size, "down"))
+                self.assertFalse(click(table, size, 0, 4))
+                self.assertEqual(2, table.focus_position)
+                click(table, size, 0, 2)
+                self.assertEqual(1, table.focus_position)
 
     def test_overlay_pack(self) -> None:
         """An Overlay sizes itself to the table's natural width and rows."""
@@ -917,7 +1026,7 @@ class TableOptionsTest(unittest.TestCase):
         self.assertEqual([(None, "a "), ("trough", "vv")], runs[5])
 
     def test_scrollbar_options_left(self) -> None:
-        """With the scrollbar on the left the header is padded on the left, over the scrollbar."""
+        """With the scrollbar on the left the header and the footer are padded on the left, over the scrollbar."""
         table = urwid.Table(
             [Column("A"), Column("B")],
             [["a", "b"]] * 5,
@@ -927,6 +1036,8 @@ class TableOptionsTest(unittest.TestCase):
             scrollbar_trough_char=".",
         )
         self.assertEqual([" A B", "#a b", "#a b", ".a b"], render_text(table, (4, 4)))
+        table.footer = ["t", "5"]
+        self.assertEqual([" A B", "#a b", ".a b", " t 5"], render_text(table, (4, 4)))
 
     def test_scrollbar_options_ignored_without_scrollbar(self) -> None:
         """With scrollbar=False the options are not used and no column is kept for a scrollbar."""
