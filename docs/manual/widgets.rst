@@ -772,6 +772,8 @@ gives the natural width, so a table can size a dialog by itself.
 
 :meth:`Table.set_focus` takes ``coming_from=`` as :meth:`ListBox.set_focus`
 does, so a jump scrolls as if the focus arrived from that edge.
+``wheel="view"`` makes the mouse wheel scroll the rows instead of moving the
+focus, as for a :class:`ListBox`; see `ListBox Focus and Scrolling`_.
 
 ``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
 ``scrollbar=None`` draws it only when the rows do not fit.
@@ -1076,6 +1078,8 @@ and implement positioning API:
     **Optional** method for setting scrolling position.
 
     Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.
+    :class:`ScrollBar` does not call :meth:`ListBox.set_scrollpos`, so a :class:`ListBox` keeps scrolling by its focus
+    there; a subclass that defines its own method is called.
 
     If `position` is positive it is interpreted as lines from the top.
     If `position` is negative it is interpreted as lines from the bottom.
@@ -1174,6 +1178,22 @@ last row :kbd:`down`, so a parent :class:`Pile` moves the focus to the widget
 above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
+
+:meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
+is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
+contains the focus widget, so the focus stays only while one of its rows is in
+the new view.  Otherwise the first widget in the view takes the focus when the
+view moved down past it, and the last widget when the view moved up.
+
+By default each notch of the mouse wheel moves the focus one row, as *UP* and
+*DOWN* do.
+Created with ``wheel="view"``, the :class:`ListBox` scrolls its view one row
+per notch instead, and moves the focus as :meth:`ListBox.set_scrollpos` does,
+so the focus stays where it is until it would leave the view.
+The attribute :attr:`ListBox.wheel` can be changed later.
+When the cursor of the focus widget keeps the view from moving,
+the notch moves the focus as in the default mode.
+In both modes a notch at the end of the list is returned unhandled.
 
 
 Dynamic ListBox with ListWalker

@@ -1137,6 +1137,22 @@ class TableSelectNavigationTest(unittest.TestCase):
 class TableOptionsTest(unittest.TestCase):
     """Tests of the scrollbar and the rows spanning every column."""
 
+    def test_wheel(self) -> None:
+        """A notch moves the focus by default; in "view" mode it scrolls the rows under the header."""
+        cases: tuple[tuple[typing.Literal["focus", "view"], list[str]], ...] = (
+            ("focus", ["A  ", "0  ", "1  ", "2  "]),
+            ("view", ["A  ", "1  ", "2  ", "3  "]),
+        )
+        for wheel, expected in cases:
+            with self.subTest(wheel=wheel):
+                table = urwid.Table([Column("A")], [[str(i)] for i in range(10)], wheel=wheel)
+                self.assertEqual(wheel, table.wheel)
+                render_text(table, (3, 4))
+                self.assertTrue(table.mouse_event((3, 4), "mouse press", 5, 0, 1, focus=True))
+                self.assertEqual(expected, render_text(table, (3, 4)))
+        with self.assertRaises(ValueError):
+            table.wheel = "page"  # type: ignore[assignment]
+
     def test_scrollbar_natural_width(self) -> None:
         """The scrollbar column counts in the natural width, and the header is padded over it."""
         table = urwid.Table([Column("A"), Column("B")], [["a", "b"]] * 5, scrollbar=True)

@@ -1058,7 +1058,7 @@ class TestScrollBarListBox(unittest.TestCase):
                 self.assertEqual("b", listbox.body[1].edit_text)
 
     def test_mouse_event_scrollbar_columns(self):
-        """ListBox has no set_scrollpos, but the scrollbar columns are still kept away from its rows."""
+        """The scrollbar does not scroll a ListBox through set_scrollpos, but still keeps its columns from the rows."""
         reduced_size = (10, 4)
         for side, items, visible in (
             ("left", 10, None),
@@ -1093,6 +1093,22 @@ class TestScrollBarListBox(unittest.TestCase):
                 # The wheel over the scrollbar still scrolls the ListBox.
                 self.assertTrue(widget.mouse_event(reduced_size, "mouse press", 5, scrollbar_col, 0, True))
                 self.assertEqual(1, listbox.focus_position)
+
+    def test_mouse_drag_listbox_subclass_set_scrollpos(self) -> None:
+        """A ListBox subclass that defines its own set_scrollpos is scrolled through it on a click or drag."""
+        positions: list[int] = []
+
+        class PositionListBox(urwid.ListBox):
+            """ListBox that records the positions it is scrolled to."""
+
+            def set_scrollpos(self, position: typing.SupportsInt) -> None:
+                positions.append(int(position))
+
+        size = (10, 5)
+        widget = urwid.ScrollBar(PositionListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(10)])))
+        widget.render(size)
+        self.assertTrue(widget.mouse_event(size, "mouse press", 1, 9, 4, focus=False))
+        self.assertEqual([5], positions)
 
     def test_mouse_drag_scrollbar(self):
         """A drag on the scrollbar moves the thumb top to the pointer row."""
@@ -1330,7 +1346,7 @@ class TestScrollBarListBox(unittest.TestCase):
                 self.assertTrue(widget._scrollbar_layout(size).relative)
 
     def test_end_markers_scroll_listbox(self) -> None:
-        """A click on an end marker scrolls a ListBox, which has no set_scrollpos, as the mouse wheel does."""
+        """A click on an end marker scrolls a ListBox as the mouse wheel does."""
         widget = urwid.ScrollBar(
             urwid.ListBox(urwid.SimpleListWalker([urwid.Text(f"item {idx}") for idx in range(10)])),
             end_markers=("^", "v"),

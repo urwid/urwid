@@ -393,6 +393,19 @@ def build_chain(depth: int) -> SelfRegisteringParent:
 
 
 class TestTree(unittest.TestCase):
+    def test_wheel_view(self) -> None:
+        """A TreeListBox takes the wheel option of ListBox, and a notch in "view" mode scrolls one row."""
+        root = SelfRegisteringParent(
+            "root",
+            key="/",
+            children=(SelfRegisteringChild(f"child_{idx}", key=str(idx)) for idx in range(1, 6)),
+        )
+        widget = urwid.TreeListBox(urwid.TreeWalker(root), wheel="view")
+        size = (15, 3)
+        widget.render(size, focus=True)
+        self.assertTrue(widget.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        self.assertEqual("   1: child_1  ", widget.render(size, focus=True).decoded_text[0])
+
     def test_basic(self):
         root = SelfRegisteringParent(
             "root",

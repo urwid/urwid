@@ -710,6 +710,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             - `get_scrollpos` takes the arguments `size` and `focus` and returns the index of the first visible row.
             - `set_scrollpos` (optional, on the same widget as `get_scrollpos`; needed for mouse click and drag
               support on the scrollbar) takes the index of the first visible row.
+              The scrollbar does not use :meth:`ListBox.set_scrollpos`; see *scroll_by_focus* instead.
             - `rows_max` takes `size` and `focus` and returns the total number of rows `widget` can render.
         :param thumb_char: character used for the scrollbar handle.
         :param trough_char: character used for the space above and below the handle.
@@ -718,8 +719,8 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         :param visible: when the scrollbar is drawn: ``None`` draws it only when `widget` needs scrolling,
             ``True`` always, so the wrapped widget always gets the same width,
             and ``False`` never, so the wrapped widget gets the full width and is still scrolled by keys and wheel.
-        :param scroll_by_focus: let a click or drag on the scrollbar scroll a :class:`ListBox`,
-            which has no `set_scrollpos`, by moving its focus to the widget at the top of the new view.
+        :param scroll_by_focus: let a click or drag on the scrollbar scroll a :class:`ListBox`
+            by moving its focus to the widget at the top of the new view.
             The focus then changes without passing through the ListBox ``keypress`` or ``mouse_event``,
             so this is off by default for code that tracks the focus there.
         :param delegate_selectable: take the input focus only when `widget` is selectable;
@@ -1066,9 +1067,10 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         So does its release on displays that report the button of a release, such as curses, which send no drags.
         A press of button 1 on an end marker scrolls one step towards that end, as the mouse wheel does,
         and the drag and release that follow it do nothing.
-        Events in the wrapped widget's columns go to it. On the scrollbar, the vertical mouse wheel of a widget
-        without `set_scrollpos` (such as :class:`ListBox`) is passed on, together with the drags and releases
-        described below; other events there are not.
+        Events in the wrapped widget's columns go to it.
+        On the scrollbar, the vertical mouse wheel of a widget the scrollbar does not scroll through `set_scrollpos`
+        (such as :class:`ListBox`) is passed on, together with the drags and releases described below;
+        other events there are not.
 
         A drag or release goes where its press went: a drag started on the scrollbar keeps moving the thumb
         over the wrapped widget's columns, and a drag started on the wrapped widget stays with it over the scrollbar.
@@ -1082,7 +1084,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         ow = self._original_widget
         ow_base = self._find_scrolling_base()
         ow_size = self._original_widget_size
-        supports_scroll = hasattr(ow_base, "set_scrollpos")
+        supports_scroll = _scrolls_by_scrollpos(ow_base)
         on_scrollbar = False
         ow_col = col
 
@@ -1124,7 +1126,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
                 button = (MouseButton.WHEEL_UP if step < 0 else MouseButton.WHEEL_DOWN).value
 
             if on_scrollbar and not supports_scroll and button in {MouseButton.WHEEL_UP, MouseButton.WHEEL_DOWN}:
-                # A widget without set_scrollpos (such as ListBox) scrolls itself on the wheel.
+                # A widget not scrolled through set_scrollpos (such as ListBox) scrolls itself on the wheel.
                 # A column past its right edge reaches no child, so the list scrolls even when the
                 # child on that row would handle the wheel itself.
                 on_scrollbar = False
@@ -1157,8 +1159,8 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         newpos = _pos_at_thumb_top(row - layout.trough_top, layout.posmax, layout.trough_height - layout.thumb_height)
 
         ow_base = self.scrolling_base_widget
-        if hasattr(ow_base, "set_scrollpos"):
-            ow_base.set_scrollpos(newpos)
+        if _scrolls_by_scrollpos(ow_base):
+            ow_base.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
             return True
 
         if self._scroll_by_focus and isinstance(ow_base, ListBox):
@@ -1166,6 +1168,19 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             return True
 
         return False
+
+
+def _scrolls_by_scrollpos(widget: SupportsScroll | None) -> bool:
+    """Return whether the scrollbar scrolls *widget* through its `set_scrollpos`.
+
+    :meth:`ListBox.set_scrollpos` is left out, so the scrollbar keeps scrolling a :class:`ListBox` by its focus.
+    A subclass that defines its own `set_scrollpos` is scrolled through it.
+    """
+    from .listbox import ListBox
+
+    return (
+        hasattr(widget, "set_scrollpos") and getattr(type(widget), "set_scrollpos", None) is not ListBox.set_scrollpos
+    )
 
 
 def _listbox_ends_visible(listbox: ListBox[typing.Any], size: tuple[int, int], focus: bool) -> tuple[bool, bool]:

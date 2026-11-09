@@ -4,10 +4,16 @@ import dataclasses
 import typing
 import unittest
 import weakref
+from unittest import mock
 
 import urwid
 import urwid.testing
 from tests.util import SelectableText, collect_and_count_alive
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from urwid.widget import AbstractFlowWidget
 
 
 class ListBoxCalculateVisibleTest(unittest.TestCase):
@@ -2363,6 +2369,7 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         for name, call in (
             ("rows_max", lambda lbox: lbox.rows_max(size)),
             ("get_scrollpos", lambda lbox: lbox.get_scrollpos(size)),
+            ("set_scrollpos", lambda lbox: (lbox.render(size), lbox.set_scrollpos(0))),
             ("get_first_visible_pos", lambda lbox: lbox.get_first_visible_pos(size)),
             ("ScrollBar.render", lambda lbox: urwid.ScrollBar(lbox).render((5, 5))),
         ):
@@ -2376,6 +2383,65 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         self.assertEqual(0, lbox.get_scrollpos((4, 5)))
         self.assertEqual(0, lbox.get_first_visible_pos((4, 5)))
         self.assertEqual(1, lbox.get_visible_amount((4, 5)))
+
+    def test_set_scrollpos(self) -> None:
+        """The view starts at the requested row, and the focus stays while any of its rows is in view."""
+        size = (5, 3)
+        # Rows: items 0-4 one row each (rows 0-4), item 5 three rows (rows 5-7), items 6-9 one row each (rows 8-11).
+        texts = [*map(str, range(5)), "5a\n5b\n5c", *map(str, range(6, 10))]
+        for start_focus, position, expected_top, expected_focus in (
+            (0, 0, 0, 0),  # nothing moves
+            (0, 1, 1, 1),  # the focus left above: the first widget in view takes it
+            (0, 4, 4, 4),
+            (0, 6, 6, 5),  # the first widget in view is cut by one row
+            (0, 100, 9, 7),  # limited to the last full view
+            (5, 7, 7, 5),  # the last row of the focus is still in view
+            (9, 7, 7, 7),  # the focus left below: the last widget in view takes it
+            (9, 2, 2, 4),
+            (9, -5, 0, 2),
+        ):
+            with self.subTest(start_focus=start_focus, position=position):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(text) for text in texts]))
+                lbox.set_focus(start_focus)
+                lbox.render(size)
+                lbox.set_scrollpos(position)
+                self.assertEqual(expected_focus, lbox.focus_position)
+                canvas = lbox.render(size)
+                self.assertEqual(expected_top, lbox.get_scrollpos(size))
+                self.assertEqual(
+                    tuple(row.ljust(size[0]) for row in "\n".join(texts).splitlines()[expected_top : expected_top + 3]),
+                    canvas.decoded_text,
+                )
+
+    def test_set_scrollpos_after_pending_focus(self) -> None:
+        """A focus placement still pending from before does not move the view away from the requested row."""
+        size = (5, 3)
+        for name, pending, position in (
+            ("set_focus", lambda lbox: lbox.set_focus(6, coming_from="above"), 5),
+            ("valign middle", lambda lbox: lbox.set_focus_valign("middle"), 10),
+            ("valign bottom", lambda lbox: lbox.set_focus_valign("bottom"), 5),
+        ):
+            with self.subTest(name):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(20)]))
+                lbox.render(size)
+                pending(lbox)
+                lbox.set_scrollpos(position)
+                lbox.render(size)
+                self.assertEqual(position, lbox.get_scrollpos(size))
+
+    def test_set_scrollpos_without_scrolling(self) -> None:
+        """A body that fits, an empty body, or a ListBox not rendered yet keeps its view and its focus."""
+        for texts, render in ((["0", "1"], True), ([], True), ([str(i) for i in range(10)], False)):
+            with self.subTest(texts=texts, render=render):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(text) for text in texts]))
+                if texts:
+                    lbox.set_focus(1)
+                if render:
+                    lbox.render((5, 3))
+                lbox.set_scrollpos(5)
+                if texts:
+                    self.assertEqual(1, lbox.focus_position)
+                self.assertEqual(0, lbox.get_scrollpos((5, 3)))
 
     def test_scroll_protocol_focus_at_top(self):
         # focus at position 0 means nothing is above it, so top.fill is empty
@@ -2669,6 +2735,130 @@ class ListBoxEdgeModeTest(unittest.TestCase):
         self.assertEqual("stop", lbox.edge)
         with self.assertRaises(ValueError):
             urwid.ListBox([], edge="wrap")  # type: ignore[arg-type]
+
+
+class ListBoxWheelModeTest(unittest.TestCase):
+    """``wheel`` decides whether a wheel notch moves the focus or scrolls the view."""
+
+    def test_wheel_notches(self) -> None:
+        """Each notch scrolls one row in "view" mode and moves the focus one row in "focus" mode."""
+        size = (5, 3)
+        # Each notch: button, then the expected result, first visible row and focus position after it.
+        cases: tuple[tuple[typing.Literal["focus", "view"], tuple[tuple[int, bool, int, int], ...]], ...] = (
+            ("focus", ((5, True, 0, 2), (5, True, 1, 3))),
+            # The focus stays while visible, then the first or last widget in view takes it.
+            ("view", ((5, True, 1, 1), (5, True, 2, 2), (4, True, 1, 2), (4, True, 0, 2), (4, False, 0, 2))),
+        )
+        for wheel, notches in cases:
+            with self.subTest(wheel=wheel):
+                walker = urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(10)])
+                lbox = urwid.ListBox(walker, wheel=wheel)
+                lbox.focus_position = 1
+                lbox.render(size, focus=True)
+                for button, handled, top, focus_position in notches:
+                    self.assertIs(handled, lbox.mouse_event(size, "mouse press", button, 0, 0, focus=True))
+                    lbox.render(size, focus=True)
+                    self.assertEqual((top, focus_position), (lbox.get_scrollpos(size), lbox.focus_position))
+
+    def test_view_returns_wheel_at_the_end(self) -> None:
+        """At the last row a further notch down is returned unhandled, so a parent can use it."""
+        size = (5, 3)
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(5)]), wheel="view")
+        lbox.render(size, focus=True)
+        self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        self.assertFalse(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        self.assertEqual(2, lbox.get_scrollpos(size))
+
+    def test_view_with_cursor(self) -> None:
+        """A cursor that holds the view moves the focus instead; out of focus the cursor does not hold the view."""
+        size = (10, 3)
+        # Each Edit takes rows 0-3 of its own, with the cursor on its first row.
+        for focus, expected in (
+            (True, [(4, 1), (8, 2)]),
+            (False, [(1, 0), (2, 0), (3, 0)]),
+        ):
+            with self.subTest(focus=focus):
+                walker = urwid.SimpleFocusListWalker([urwid.Edit("", "a\nb\nc\nd", edit_pos=0) for _ in range(3)])
+                lbox = urwid.ListBox(walker, wheel="view")
+                lbox.render(size, focus=focus)
+                for top, focus_position in expected:
+                    self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=focus))
+                    lbox.render(size, focus=focus)
+                    self.assertEqual((top, focus_position), (lbox.get_scrollpos(size, focus), lbox.focus_position))
+
+    def test_view_falls_back_like_focus(self) -> None:
+        """When the view cannot land one row on, the notch does exactly what it does in "focus" mode."""
+
+        def cursor_rows() -> list[AbstractFlowWidget]:
+            return [urwid.Edit("", "a"), urwid.Edit("", "0\n1\n2\n3", multiline=True, edit_pos=0), urwid.Edit("", "c")]
+
+        cases: tuple[tuple[str, Callable[[], list[AbstractFlowWidget]], tuple[int, int], int, int, int], ...] = (
+            # name, body, size, focus position, its row in the view, button
+            ("cursor on the next widget", cursor_rows, (5, 3), 2, 2, 4),
+            ("no rows below the end", lambda: [*map(urwid.Text, "abc"), urwid.Pile([])], (5, 2), 1, 0, 5),
+            ("no rows above the end", lambda: [urwid.Pile([]), *map(urwid.Text, "abc")], (5, 2), 2, 1, 4),
+        )
+        for name, body, size, position, row, button in cases:
+            results = []
+            wheels: tuple[typing.Literal["focus", "view"], ...] = ("focus", "view")
+            for wheel in wheels:
+                lbox = urwid.ListBox(urwid.SimpleFocusListWalker(body()), wheel=wheel)
+                lbox.render(size, focus=True)
+                lbox.change_focus(size, position, row)
+                lbox.render(size, focus=True)
+                handled = lbox.mouse_event(size, "mouse press", button, 0, 0, focus=True)
+                lbox.render(size, focus=True)
+                results.append((handled, lbox.get_scrollpos(size, focus=True), lbox.focus_position))
+            with self.subTest(name):
+                self.assertEqual(results[0], results[1])
+
+    def test_view_measures_only_rows_near_the_view(self) -> None:
+        """A notch in the middle of a long body visits only positions near the view, however long the body is."""
+        size = (5, 3)
+        walker = urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(10_000)])
+        walker.set_focus(5_000)
+        lbox = urwid.ListBox(walker, wheel="view")
+        lbox.render(size, focus=True)
+        with (
+            mock.patch.object(walker, "get_next", wraps=walker.get_next) as get_next,
+            mock.patch.object(walker, "get_prev", wraps=walker.get_prev) as get_prev,
+        ):
+            for button in (5, 5, 4):
+                get_next.reset_mock()
+                get_prev.reset_mock()
+                self.assertTrue(lbox.mouse_event(size, "mouse press", button, 0, 0, focus=True))
+                self.assertLess(get_next.call_count + get_prev.call_count, 50)
+
+    def test_view_wrap_around(self) -> None:
+        """A body without ends, which the scrolling protocol refuses, still scrolls one row per notch."""
+        size = (5, 3)
+        walker = urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(5)], wrap_around=True)
+        lbox = urwid.ListBox(walker, wheel="view")
+        lbox.render(size, focus=True)
+        for first_row in ("1", "2", "3", "4", "0"):
+            self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+            self.assertEqual(first_row, lbox.render(size, focus=True).decoded_text[0].strip())
+
+    def test_view_through_scrollbar(self) -> None:
+        """A notch over the scrollbar reaches the list box, which scrolls its view."""
+        size = (6, 3)
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(10)]), wheel="view")
+        widget = urwid.ScrollBar(lbox)
+        widget.render(size, focus=True)
+        self.assertTrue(widget.mouse_event(size, "mouse press", 5, 5, 0, focus=True))
+        widget.render(size, focus=True)
+        self.assertEqual((1, 1), (lbox.get_scrollpos(), lbox.focus_position))
+
+    def test_setter(self) -> None:
+        """The mode can be changed after creation, and an unknown value is refused."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([SelectableText("a")]))
+        self.assertEqual("focus", lbox.wheel)
+        lbox.wheel = "view"
+        self.assertEqual("view", lbox.wheel)
+        with self.assertRaises(ValueError):
+            lbox.wheel = "page"  # type: ignore[assignment]
+        self.assertEqual("view", lbox.wheel)
 
 
 class ListBoxCalculateVisibleEdgeTest(unittest.TestCase):
