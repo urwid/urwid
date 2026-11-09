@@ -7,6 +7,7 @@ import enum
 import inspect
 import typing
 import warnings
+import weakref
 
 from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
@@ -16,7 +17,7 @@ from .constants import Sizing, WHSettings
 from .widget import AbstractWidget, Widget, WidgetWarning, _select_enter_child
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Iterable, Iterator, MutableSequence, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Iterator, MutableSequence, Sequence
 
     from urwid.canvas import Canvas
     from urwid.command_map import CommandMap
@@ -221,6 +222,42 @@ class WidgetContainerListContentsMixin(typing.Generic[_ContentsItem]):
     @focus_position.setter
     def focus_position(self, position: int) -> None:
         """Index of child widget in focus."""
+
+
+class _WeakCallback:
+    """Callback that calls ``function(owner, *bound_args, *args)`` while *owner* is alive.
+
+    It holds *owner* through a weak reference, so a contents list that holds it does not keep its container alive.
+    Once *owner* is gone, it calls nothing and returns ``None``.
+    A deep copy calls the copy of *owner* made in the same copy.
+    """
+
+    __slots__ = ("__weakref__", "_bound_args", "_function", "_owner_ref")
+
+    def __init__(self, owner: object, function: Callable[..., typing.Any], *bound_args: typing.Any) -> None:
+        """Hold *owner* weakly, and *function* and *bound_args* strongly.
+
+        ``None`` as *owner* stands for an owner that is already gone, as in the copy of such a callback.
+        """
+        self._owner_ref = None if owner is None else weakref.ref(owner)
+        self._function = function
+        self._bound_args = bound_args
+
+    def __call__(self, *args: typing.Any) -> typing.Any:
+        """Return ``function(owner, *bound_args, *args)``, or ``None`` once *owner* is gone."""
+        if self._owner_ref is None or (owner := self._owner_ref()) is None:
+            return None
+        return self._function(owner, *self._bound_args, *args)
+
+    def __reduce__(self) -> tuple[type[_WeakCallback], tuple[typing.Any, ...]]:
+        """Reduce to the owner itself, so that a deep copy refers to the copy of the owner."""
+        owner = None if self._owner_ref is None else self._owner_ref()
+        return type(self), (owner, self._function, *self._bound_args)
+
+
+def _invalidate_on_focus_change(container: Widget, _focus: int) -> None:
+    """Invalidate *container*, whatever the new focus position *_focus* is."""
+    container._invalidate()
 
 
 class _UnfocusedFocusAttrMixin:

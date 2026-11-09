@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import functools
 import typing
 import warnings
 import weakref
@@ -15,7 +14,9 @@ from .constants import Align, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
+    _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
+    _WeakCallback,
 )
 from .divider import Divider
 from .monitored_list import MonitoredFocusList
@@ -140,10 +141,10 @@ class GridFlow(
         )
         # Bumped on every contents change, so input handlers can tell that the display widget went stale.
         self._contents_generation = 0
-        self._contents.set_modified_callback(self._contents_changed)
-        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
-        self._contents.set_validate_contents_modified(self._contents_modified)
+        self._contents.set_modified_callback(_WeakCallback(self, type(self)._contents_changed))
+        self._contents.set_focus_changed_callback(_WeakCallback(self, _invalidate_on_focus_change))
+        self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
+        self._contents.set_validate_contents_modified(_WeakCallback(self, type(self)._contents_modified))
         self._cell_width = cell_width
         self.h_sep = h_sep
         self.v_sep = v_sep

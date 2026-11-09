@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import enum
-import functools
 import typing
 
 from urwid.canvas import CanvasCombine, CanvasJoin, CompositeCanvas, SolidCanvas
@@ -32,7 +31,13 @@ from urwid.util import is_mouse_press
 
 from .attr_map import _attr_map_dict
 from .constants import MouseButton, Sizing, VAlign, WrapMode
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _UnfocusedFocusAttrMixin
+from .container import (
+    WidgetContainerListContentsMixin,
+    WidgetContainerMixin,
+    _invalidate_on_focus_change,
+    _UnfocusedFocusAttrMixin,
+    _WeakCallback,
+)
 from .monitored_list import MonitoredFocusList
 from .text import Text
 from .widget import AbstractWidget, Widget, WidgetError, _select_enter_child
@@ -228,14 +233,14 @@ class Tabs(
         self._bar_cursor = 0
 
         self._contents: MonitoredFocusList[tuple[AbstractWidget, AbstractWidget]] = MonitoredFocusList()
-        self._contents.set_modified_callback(self._contents_modified)
-        self._contents.set_focus_changed_callback(lambda _focus: self._invalidate())
+        self._contents.set_modified_callback(_WeakCallback(self, type(self)._contents_modified))
+        self._contents.set_focus_changed_callback(_WeakCallback(self, _invalidate_on_focus_change))
         self._contents.set_validate_contents_modified(self._validate_contents_modified)
         self._contents.extend((body, self.options(label)) for label, body in tabs)
         if self._contents:
             self.focus_position = selected
         # connected last, so that filling the contents during construction sends no signal
-        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
+        self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
 
     @staticmethod
     def _valid_bar_position(bar_position: typing.Literal["top", "bottom"] | VAlign) -> VAlign:

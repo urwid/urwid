@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import gc
 import sys
 import typing
@@ -70,6 +71,10 @@ class ContentsLifetimeTest(unittest.TestCase):
             ("Overlay", lambda: urwid.Overlay(urwid.Text("x"), urwid.SolidFill(), "center", 5, "middle", "pack"), 1),
             ("Frame", lambda: urwid.Frame(urwid.SolidFill(), header=urwid.Text("x")), "header"),
             ("ListBox", lambda: urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text("x")])), 0),
+            ("Pile", lambda: urwid.Pile([urwid.Text("x")]), 0),
+            ("Columns", lambda: urwid.Columns([urwid.Text("x")]), 0),
+            ("GridFlow", lambda: urwid.GridFlow([urwid.Text("x")], 1, 0, 0, "left"), 0),
+            ("Tabs", lambda: urwid.Tabs([("a", urwid.Text("x"))]), 0),
         )
         for label, make_container, key in cases:
             with self.subTest(label):
@@ -87,6 +92,55 @@ class ContentsLifetimeTest(unittest.TestCase):
                 finally:
                     if was_enabled:
                         gc.enable()
+
+
+# name: (build the container over the selectable cells "a" and "b", the size to render it at, the error a rejected
+# contents item raises)
+_CONTENTS_CONTAINERS: dict[str, tuple[Callable[[list[urwid.Widget]], typing.Any], tuple[int, ...], type[Exception]]] = {
+    "Pile": (urwid.Pile, (3,), urwid.PileError),
+    "Columns": (urwid.Columns, (4,), urwid.ColumnsError),
+    "GridFlow": (lambda cells: urwid.GridFlow(cells, 1, 1, 0, "left"), (3,), urwid.GridFlowError),
+    "Tabs": (lambda cells: urwid.Tabs(zip("ab", cells, strict=True)), (3,), TypeError),
+}
+
+
+class ContentsCallbacksTest(unittest.TestCase):
+    """The callbacks a container registers on its contents refer to it weakly, and to its deep copy in a copy."""
+
+    @unittest.skipUnless(sys.implementation.name == "cpython", "relies on reference counting freeing at once")
+    def test_freed_after_render_and_focus_move(self) -> None:
+        """A container that rendered and moved its focus is freed by reference counting alone."""
+        for name, (make, size, _error) in _CONTENTS_CONTAINERS.items():
+            with self.subTest(name):
+                container = make([SelectableText("a"), SelectableText("b")])
+                urwid.connect_signal(container, "focus changed", lambda *_args: None)
+                container.render(size)
+                container.focus_position = 1
+                container.render(size, focus=True)
+                ref = weakref.ref(container)
+                was_enabled = gc.isenabled()
+                gc.disable()
+                try:
+                    del container
+                    self.assertIsNone(ref())
+                finally:
+                    if was_enabled:
+                        gc.enable()
+
+    def test_deep_copy_calls_the_copy(self) -> None:
+        """A deep copy's contents report to the copy, and validate after the original is gone."""
+        for name, (make, _size, error) in _CONTENTS_CONTAINERS.items():
+            with self.subTest(name):
+                original = make([SelectableText("a"), SelectableText("b")])
+                duplicate = copy.deepcopy(original)
+                moved: list[object] = []
+                for widget in (original, duplicate):
+                    urwid.connect_signal(widget, "focus changed", lambda sender, *_args: moved.append(sender))
+                duplicate.focus_position = 1
+                self.assertEqual([duplicate], moved)
+                del original
+                with self.assertRaises(error):
+                    duplicate.contents.append("not a widget")
 
 
 class NoHookWidget(urwid.Widget):

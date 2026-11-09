@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import functools
 import itertools
 import math
 import sys
@@ -21,7 +20,9 @@ from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
     _ContainerElementSizingFlag,
+    _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
+    _WeakCallback,
 )
 from .monitored_list import MonitoredFocusList
 from .widget import (
@@ -271,9 +272,9 @@ class Pile(
                 tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ] = MonitoredFocusList()
-        self._contents.set_modified_callback(self._contents_modified)
-        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        self._contents.set_validate_contents_modified(self._validate_contents_modified)
+        self._contents.set_modified_callback(_WeakCallback(self, type(self)._contents_modified))
+        self._contents.set_focus_changed_callback(_WeakCallback(self, _invalidate_on_focus_change))
+        self._contents.set_validate_contents_modified(_WeakCallback(self, type(self)._validate_contents_modified))
 
         hidden_focus: int | None = None
         for i, original in enumerate(widget_list):
@@ -348,7 +349,7 @@ class Pile(
         self.select_navigation = select_navigation
         self._set_unfocused_focus_attr(unfocused_focus_attr)
         # connected last, so that filling the contents during construction sends no signal
-        self._contents.set_focus_moved_callback(functools.partial(self._emit, "focus changed"))
+        self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
 
     def _repr_words(self) -> list[str]:
         """Return the base repr words followed by the number of items in the contents."""
