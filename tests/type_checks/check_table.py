@@ -8,6 +8,7 @@ from __future__ import annotations
 import typing
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Hashable, Mapping
     from typing import assert_type
 
     import urwid
@@ -23,6 +24,20 @@ if typing.TYPE_CHECKING:
         ]
         widget = urwid.Table(columns, [["a", "1", edit], [("attr", "b")]], max_rows=4)
         widget.body.append(["c", "2"])
+        widget.set_focus(1)
+        widget.set_focus(1, coming_from="above")
+
+        def by_row(row: urwid.TableRow) -> dict[str, str] | None:
+            return None if row.attr is None else {"a": "b"}
+
+        marked = urwid.Table(columns, unfocused_focus_attr_func=by_row)
+        marked.unfocused_focus_attr_func = by_row
+        marked.unfocused_focus_attr_func = None
+        assert_type(
+            urwid.Table(columns).unfocused_focus_attr_func,
+            Callable[[urwid.TableRow], Hashable | dict[typing.Any, typing.Any] | Mapping[typing.Any, Hashable] | None]
+            | None,
+        )
         assert_type(widget.body[0], urwid.TableRow)
         assert_type(widget.focus, urwid.TableRow | None)
         assert_type(widget.body[0].data, typing.Any)

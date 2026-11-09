@@ -439,6 +439,17 @@ class TabsAttributeTest(unittest.TestCase):
         )
         tabs.unfocused_focus_attr = {"sel": "sel marked"}
         self.assertEqual(("sel marked", "\u2501\u2501"), render_runs(tabs, (7,))[1][1])
+        calls: list[urwid.Widget] = []
+        tabs.unfocused_focus_attr_func = lambda label: (calls.append(label), {"sel": "sel func"})[1]
+        runs = render_runs(tabs, (7,))
+        self.assertEqual(("sel func", "bb"), runs[0][2])
+        self.assertEqual(("sel func", "\u2501\u2501"), runs[1][1])
+        self.assertEqual([tabs.contents[1][1]], calls)
+        calls.clear()
+        self.assertEqual(("sel", "\u2501\u2501"), render_runs(tabs, (7,), focus=True)[1][1])
+        self.assertEqual([], calls)
+        self.assertIn("unfocused_focus_attr_func=", repr(tabs))
+        tabs.unfocused_focus_attr_func = None
         tabs.selected_map = None
         self.assertEqual(
             [("tab", "\u2500\u2500\u2501\u2501\u2500\u2500\u2500")], render_runs(tabs, (7,), focus=True)[1]

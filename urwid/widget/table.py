@@ -33,6 +33,7 @@ if typing.TYPE_CHECKING:
     from urwid.util import _TagMarkup
 
     from .attr_map import _AttrMapLike
+    from .container import _UnfocusedFocusAttrFunc
 
     # A cell as a caller gives it: a widget, or text markup that becomes a text cell.
     _Cell: typing.TypeAlias = Widget | _TagMarkup
@@ -812,6 +813,7 @@ class Table(Widget):
         attr: _AttrMapLike | None = None,
         focus_attr: _AttrMapLike | None = None,
         unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: Callable[[TableRow], _AttrMapLike | None] | None = None,
         max_rows: int | None = None,
         row_attr: Callable[[int, typing.Any], _AttrMapLike | None] | None = None,
         select_navigation: bool = False,
@@ -834,6 +836,8 @@ class Table(Widget):
         :param focus_attr: attribute map of the focused row without its own :attr:`TableRow.focus_attr`
         :param unfocused_focus_attr: attribute map applied to the focused row while the table renders without
             focus, over the row's own map, as :attr:`ListBox.unfocused_focus_attr` does
+        :param unfocused_focus_attr_func: function that gives that map for the focused row,
+            instead of *unfocused_focus_attr*; see :attr:`unfocused_focus_attr_func`
         :param max_rows: the most rows of body a flow size shows; ``None`` shows every row
         :param row_attr: ``row_attr(index, data)`` called each time a row renders, see :attr:`row_attr`
         :param select_navigation: let the ``'next selectable'`` and ``'prev selectable'`` commands
@@ -897,6 +901,8 @@ class Table(Widget):
             self._rows,
             select_navigation=select_navigation,
             unfocused_focus_attr=unfocused_focus_attr,
+            # see the unfocused_focus_attr_func setter
+            unfocused_focus_attr_func=typing.cast("_UnfocusedFocusAttrFunc | None", unfocused_focus_attr_func),
             focus_when_empty=False,
         )
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
@@ -985,6 +991,20 @@ class Table(Widget):
         self._listbox.unfocused_focus_attr = attr_map
 
     @property
+    def unfocused_focus_attr_func(self) -> Callable[[TableRow], _AttrMapLike | None] | None:
+        """Function that gives :attr:`unfocused_focus_attr` for the focused row.
+
+        It is called with the :class:`TableRow`, and its map is applied over the row's own map.
+        See :attr:`ListBox.unfocused_focus_attr_func`.
+        """
+        return typing.cast("Callable[[TableRow], _AttrMapLike | None] | None", self._listbox.unfocused_focus_attr_func)
+
+    @unfocused_focus_attr_func.setter
+    def unfocused_focus_attr_func(self, func: Callable[[TableRow], _AttrMapLike | None] | None) -> None:
+        # the list box holds TableRows only, so a function of a TableRow is called with one
+        self._listbox.unfocused_focus_attr_func = typing.cast("_UnfocusedFocusAttrFunc | None", func)
+
+    @property
     def focus(self) -> TableRow | None:
         """The row in focus, or ``None`` when the table is empty."""
         position = self._rows.focus
@@ -1002,9 +1022,31 @@ class Table(Widget):
 
     @focus_position.setter
     def focus_position(self, position: int) -> None:
+        self.set_focus(position)
+
+    def set_focus(self, position: int, coming_from: Literal["above", "below"] | None = None) -> None:
+        """Focus the row at *position*, as :meth:`ListBox.set_focus` does.
+
+        A row on screen from the old focus is brought just into view.
+        Without *coming_from*:
+
+        - a row on screen keeps its cursor and nested focus;
+        - a row off screen is centred and keeps its nested focus.
+
+        With *coming_from*:
+
+        - a row on screen takes the cursor from that edge, at the preferred column;
+        - a row off screen is placed at that edge and keeps its nested focus.
+
+
+        :param position: the index of the row
+        :param coming_from: ``"above"`` or ``"below"`` when the old focus is on that side of the new one
+        :raises IndexError: *position* is not an index of a row.
+        :raises ListBoxError: *coming_from* is not ``"above"``, ``"below"`` or ``None``.
+        """
         if not isinstance(position, int) or not 0 <= position < len(self._rows):
             raise IndexError(f"No Table row at position {position!r}")
-        self._listbox.focus_position = position
+        self._listbox.set_focus(position, coming_from)
 
     def selectable(self) -> bool:
         """Return whether the table has a row to focus."""
