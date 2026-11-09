@@ -266,6 +266,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
+        wheel: Literal["focus", "view"] = "focus",
     ) -> None: ...
 
     @typing.overload
@@ -278,6 +279,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
+        wheel: Literal["focus", "view"] = "focus",
     ) -> None: ...
 
     def __init__(
@@ -289,6 +291,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
+        wheel: Literal["focus", "view"] = "focus",
     ) -> None:
         """Create the ListBox widget.
 
@@ -303,6 +306,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         :param focus_when_empty: whether the ListBox accepts the input focus while its body is empty;
             ``False`` lets a container move the focus past an empty ListBox.
         :param edge: what :kbd:`up` at the first row and :kbd:`down` at the last row do; see :attr:`edge`.
+        :param wheel: what a notch of the vertical mouse wheel moves; see :attr:`wheel`.
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
@@ -353,6 +357,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         # whether selectable() reports True while the body has no focus widget
         self.focus_when_empty = focus_when_empty
         self.edge = edge
+        self.wheel = wheel
 
     def selectable(self) -> bool:
         """Return whether the ListBox accepts the input focus.
@@ -382,6 +387,32 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         if edge not in {"return", "stop"}:
             raise ValueError(f'edge must be "return" or "stop", not {edge!r}')
         self._edge: Literal["return", "stop"] = edge
+
+    @property
+    def wheel(self) -> Literal["focus", "view"]:
+        """What a notch of the vertical mouse wheel moves.
+
+        It applies when the widget under the pointer does not handle the notch.
+
+        - ``"focus"``: the focus moves one row up or down, as :kbd:`up` and :kbd:`down` do.
+        - ``"view"``: the view scrolls one row, and the focus moves as :meth:`set_scrollpos` moves it.
+          The focus stays while one of its rows is in view, so it can move onto a widget that is not selectable.
+          When the cursor of the focus widget keeps the view from moving, the notch moves the focus as in ``"focus"``.
+
+        At the ends of the list the event is returned unhandled in both modes.
+        """
+        return self._wheel
+
+    @wheel.setter
+    def wheel(self, wheel: Literal["focus", "view"]) -> None:
+        """Set what a notch of the mouse wheel moves.
+
+        :raises ValueError: *wheel* is neither ``"focus"`` nor ``"view"``.
+        """
+        if wheel not in {"focus", "view"}:
+            msg = f'wheel must be "focus" or "view", not {wheel!r}'
+            raise ValueError(msg)
+        self._wheel: Literal["focus", "view"] = wheel
 
     def _invalidate(self) -> None:
         """Drop the cached canvases and the cached :meth:`rows_max` result."""
@@ -2273,6 +2304,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """Pass the event to the contained widgets.
 
         May change focus on button 1 press.
+        A vertical wheel notch the widget under the pointer does not handle moves what :attr:`wheel` selects.
 
         .. deprecated:: 2.4.0
             Support for a contained widget that does not implement ``mouse_event`` is deprecated.
@@ -2300,7 +2332,6 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         else:
             return False
 
-        focus = focus and w == focus_widget
         if is_mouse_press(event) and button == MouseButton.LEFT and w.selectable():
             self.change_focus((maxcol, maxrow), w_pos, wrow)
 
@@ -2312,17 +2343,72 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             )
             return False
 
-        if w.mouse_event((maxcol,), event, button, col, row - wrow, focus):
+        if w.mouse_event((maxcol,), event, button, col, row - wrow, focus and w == focus_widget):
             return True
 
-        if is_mouse_press(event):
-            if button == MouseButton.WHEEL_UP:
-                return not self._keypress_up((maxcol, maxrow))
+        if not is_mouse_press(event) or button not in {MouseButton.WHEEL_UP, MouseButton.WHEEL_DOWN}:
+            return False
 
-            if button == MouseButton.WHEEL_DOWN:
-                return not self._keypress_down((maxcol, maxrow))
+        step: Literal[-1, 1] = -1 if button == MouseButton.WHEEL_UP else 1
+        if (
+            self._wheel == "view"
+            and (scrolled := self._wheel_scroll_view((maxcol, maxrow), step, focus=focus)) is not None
+        ):
+            return scrolled
+        # In "view" mode this is reached when the cursor of the focus widget held the view.
 
-        return False
+        if button == MouseButton.WHEEL_UP:
+            return not self._keypress_up((maxcol, maxrow))
+        return not self._keypress_down((maxcol, maxrow))
+
+    def _wheel_scroll_view(self, size: tuple[int, int], step: Literal[-1, 1], *, focus: bool) -> bool | None:
+        """Scroll the view one row for a wheel notch in ``"view"`` mode.
+
+        Only the rows around the view are measured, so a notch costs the same however long the body is.
+        The focus keeps its widget while one of its rows stays in view.
+        Otherwise the widget that then holds the edge row the focus left by takes it.
+
+        :param step: ``1`` scrolls down, ``-1`` scrolls up.
+        :returns: whether the view moved, ``False`` at that end of the list,
+            or ``None`` when the view did not land one row on, with the list left as the notch found it.
+        """
+        maxcol, maxrow = size
+        if ("bottom" if step > 0 else "top") in self.ends_visible(size, focus):
+            return False
+        # ends_visible() reported an end for an empty body, so there is a focus widget
+        middle = typing.cast("VisibleInfo", self.calculate_visible(size, focus)).middle
+        target, focus_rows = middle.focus_pos, middle.focus_rows
+        new_offset = middle.offset - step
+        if step > 0 and new_offset <= -focus_rows:
+            start = middle.offset + focus_rows  # the first row below the focus widget
+            for widget, position in self._walk_body(target, forward=True):
+                rows = widget.rows((maxcol,))
+                if start + rows > 1:
+                    target, new_offset = position, start - 1
+                    break
+                start += rows
+            else:
+                return False  # only widgets without rows follow
+        elif step < 0 and new_offset >= maxrow:
+            start = middle.offset  # the row where the focus widget starts
+            for widget, position in self._walk_body(target, forward=False):
+                start -= widget.rows((maxcol,))
+                if start < maxrow - 1:
+                    target, new_offset = position, start + 1
+                    break
+            else:
+                return False  # only widgets without rows precede
+
+        saved = (self.offset_rows, self.inset_fraction, self.pref_col)
+        self.change_focus(size, target, new_offset)
+        # The view can land elsewhere: a render in focus keeps the cursor of the focus widget visible,
+        # and widgets without rows past an end are not reported by ends_visible().
+        if typing.cast("VisibleInfo", self.calculate_visible(size, focus)).middle.offset == new_offset:
+            return True
+        # Restore the state the notch found, so the "focus" step that follows starts from it.
+        self.change_focus(size, middle.focus_pos, middle.offset)
+        self.offset_rows, self.inset_fraction, self.pref_col = saved
+        return None
 
     def ends_visible(self, size: tuple[int, int], focus: bool = False) -> list[Literal["top", "bottom"]]:
         """

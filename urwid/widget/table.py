@@ -817,6 +817,7 @@ class Table(Widget):
         max_rows: int | None = None,
         row_attr: Callable[[int, typing.Any], _AttrMapLike | None] | None = None,
         select_navigation: bool = False,
+        wheel: Literal["focus", "view"] = "focus",
         scrollbar: bool | None = False,
         **scrollbar_options: typing.Unpack[_ScrollBarOptions],
     ) -> None:
@@ -842,6 +843,7 @@ class Table(Widget):
         :param row_attr: ``row_attr(index, data)`` called each time a row renders, see :attr:`row_attr`
         :param select_navigation: let the ``'next selectable'`` and ``'prev selectable'`` commands
             (:kbd:`tab` and :kbd:`shift tab`) move across the cells and then to the next or previous row
+        :param wheel: what a notch of the mouse wheel moves; see :attr:`wheel`
         :param scrollbar: ``True`` draws a scrollbar beside the rows, ``None`` only when the rows do not fit,
             ``False`` never; while it is on, its column counts in the natural width
         :param scrollbar_options: the :class:`ScrollBar` parameters with a ``scrollbar_`` prefix,
@@ -904,6 +906,7 @@ class Table(Widget):
             # see the unfocused_focus_attr_func setter
             unfocused_focus_attr_func=typing.cast("_UnfocusedFocusAttrFunc | None", unfocused_focus_attr_func),
             focus_when_empty=False,
+            wheel=wheel,
         )
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
@@ -1003,6 +1006,19 @@ class Table(Widget):
     def unfocused_focus_attr_func(self, func: Callable[[TableRow], _AttrMapLike | None] | None) -> None:
         # the list box holds TableRows only, so a function of a TableRow is called with one
         self._listbox.unfocused_focus_attr_func = typing.cast("_UnfocusedFocusAttrFunc | None", func)
+
+    @property
+    def wheel(self) -> Literal["focus", "view"]:
+        """What a notch of the mouse wheel over the rows moves, see :attr:`ListBox.wheel`."""
+        return self._listbox.wheel
+
+    @wheel.setter
+    def wheel(self, wheel: Literal["focus", "view"]) -> None:
+        """Set what a notch of the mouse wheel moves.
+
+        :raises ValueError: *wheel* is neither ``"focus"`` nor ``"view"``.
+        """
+        self._listbox.wheel = wheel
 
     @property
     def focus(self) -> TableRow | None:

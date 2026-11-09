@@ -772,6 +772,8 @@ gives the natural width, so a table can size a dialog by itself.
 
 :meth:`Table.set_focus` takes ``coming_from=`` as :meth:`ListBox.set_focus`
 does, so a jump scrolls as if the focus arrived from that edge.
+``wheel="view"`` makes the mouse wheel scroll the rows instead of moving the
+focus, as for a :class:`ListBox`; see `ListBox Focus and Scrolling`_.
 
 ``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
 ``scrollbar=None`` draws it only when the rows do not fit.
@@ -1182,6 +1184,16 @@ is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
 contains the focus widget, so the focus stays only while one of its rows is in
 the new view.  Otherwise the first widget in the view takes the focus when the
 view moved down past it, and the last widget when the view moved up.
+
+By default each notch of the mouse wheel moves the focus one row, as *UP* and
+*DOWN* do.
+Created with ``wheel="view"``, the :class:`ListBox` scrolls its view one row
+per notch instead, and moves the focus as :meth:`ListBox.set_scrollpos` does,
+so the focus stays where it is until it would leave the view.
+The attribute :attr:`ListBox.wheel` can be changed later.
+When the cursor of the focus widget keeps the view from moving,
+the notch moves the focus as in the default mode.
+In both modes a notch at the end of the list is returned unhandled.
 
 
 Dynamic ListBox with ListWalker
