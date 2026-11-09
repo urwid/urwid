@@ -49,6 +49,10 @@ WebSocket display
 .. autoclass:: StaticFile
     :members:
 
+.. autodata:: MAX_COLS
+
+.. autodata:: MAX_ROWS
+
 .. autodata:: MAX_MESSAGE_LENGTH
 
 .. autodata:: MAX_PENDING_INPUT

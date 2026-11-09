@@ -129,19 +129,24 @@ function key_name(e) {
     return null; // modifier or a key urwid has no name for
 }
 
-// Fit the text area to the window in whole characters and return its size in [columns, rows].
-function measure_screen() {
+// Return the size of one character cell in pixels, as [width, height].
+function char_size() {
     const t = document.getElementById('testchar');
     const t2 = document.getElementById('testchar2');
+    return [t.offsetLeft / 44, t2.offsetTop - t.offsetTop];
+}
+
+// Fit the text area to the window in whole characters, at most max_cols by max_rows,
+// and return its size in [columns, rows].
+function measure_screen(max_cols = Infinity, max_rows = Infinity) {
     const text = document.getElementById('text');
+    const [char_width, char_height] = char_size();
 
-    const char_width = t.offsetLeft / 44;
     const avail_width = window.innerWidth - 18;
-    const x_size = (avail_width - (avail_width % char_width)) / char_width;
+    const x_size = Math.min((avail_width - (avail_width % char_width)) / char_width, max_cols);
 
-    const char_height = t2.offsetTop - t.offsetTop;
     const avail_height = window.innerHeight - text.offsetTop - 10;
-    const y_size = (avail_height - (avail_height % char_height)) / char_height;
+    const y_size = Math.min((avail_height - (avail_height % char_height)) / char_height, max_rows);
 
     text.style.width = x_size * char_width + "px";
     text.style.height = y_size * char_height + "px";

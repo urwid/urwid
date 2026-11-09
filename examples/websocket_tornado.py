@@ -136,6 +136,9 @@ class Config:
     tls: ssl.SSLContext | None = dataclasses.field(repr=False)
     max_sessions: int
     idle_timeout: float
+    # the largest screen a page may report, in columns and rows
+    max_cols: int
+    max_rows: int
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -164,6 +167,18 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "created with a new random token when it does not exist",
     )
     parser.add_argument("--max-sessions", type=int, default=8, help="sessions at a time (default: %(default)s)")
+    parser.add_argument(
+        "--max-cols",
+        type=int,
+        default=urwid_websocket.MAX_COLS,
+        help="widest screen a page may use, in columns (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=urwid_websocket.MAX_ROWS,
+        help="tallest screen a page may use, in rows (default: %(default)s)",
+    )
     parser.add_argument(
         "--idle-timeout",
         type=float,
@@ -225,6 +240,8 @@ def build_config(args: argparse.Namespace) -> Config:
         raise ValueError(f"--port must be between 1 and 65535: {args.port}")
     if args.max_sessions < 1:
         raise ValueError("--max-sessions must be at least 1")
+    if args.max_cols < 1 or args.max_rows < 1:
+        raise ValueError("--max-cols and --max-rows must be at least 1")
     if not args.idle_timeout > 0:
         raise ValueError("--idle-timeout must be positive")
     if (args.certfile is None) != (args.keyfile is None):
@@ -279,6 +296,8 @@ def build_config(args: argparse.Namespace) -> Config:
         tls=tls,
         max_sessions=args.max_sessions,
         idle_timeout=args.idle_timeout,
+        max_cols=args.max_cols,
+        max_rows=args.max_rows,
     )
 
 
@@ -510,7 +529,11 @@ class SessionHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=abs
             return
         self.set_nodelay(True)
         self.sessions.add(self)
-        self.screen = urwid_websocket.Screen(Connection(self))
+        self.screen = urwid_websocket.Screen(
+            Connection(self),
+            max_cols=self.config.max_cols,
+            max_rows=self.config.max_rows,
+        )
         self.main_loop = urwid.MainLoop(
             build_widget(),
             PALETTE,
@@ -590,7 +613,8 @@ def make_app(config: Config, sessions: set[SessionHandler]) -> tornado.web.Appli
     """Return the application that serves the page, its files and the WebSocket."""
     limiter = LoginLimiter()
     files = {name: (static.content_type, static.read()) for name, static in urwid_websocket.STATIC_FILES.items()}
-    files[""] = ("text/html; charset=utf-8", urwid_websocket.html_page(TITLE, WEBSOCKET_PATH).encode("utf-8"))
+    page = urwid_websocket.html_page(TITLE, WEBSOCKET_PATH, max_cols=config.max_cols, max_rows=config.max_rows)
+    files[""] = ("text/html; charset=utf-8", page.encode("utf-8"))
     file_pattern = "|".join(re.escape(name) for name in files)
     return tornado.web.Application(
         [
