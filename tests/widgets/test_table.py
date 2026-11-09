@@ -655,11 +655,44 @@ class TableTest(unittest.TestCase):
         """Enter on a row that leaves it unhandled sends activate with the focus position."""
         table = self.make()
         activated: list[int] = []
-        urwid.connect_signal(table, "activate", lambda _w, index: activated.append(index))
+
+        def consume(_w: urwid.Table, index: int) -> bool:
+            activated.append(index)
+            return True
+
+        urwid.connect_signal(table, "activate", consume)
         table.focus_position = 1
         self.assertEqual([], press(table, (10, 4), "enter"))
         self.assertEqual([1], activated)
         self.assertEqual(["x"], press(table, (10, 4), "x"))
+
+    def test_activate_result(self) -> None:
+        """Consume the activate key only when a handler returns a true value.
+
+        Every handler runs, whatever the earlier ones returned.
+        """
+        calls: list[str] = []
+        cases: tuple[tuple[str, tuple[object, ...], bool, list[str]], ...] = (
+            ("no handler", (), False, []),
+            ("None", (None,), False, ["h0"]),
+            ("truthy non-bool", (1,), True, ["h0"]),
+            ("only the second true", (None, True), True, ["h0", "h1"]),
+            ("only the first true", (True, None), True, ["h0", "h1"]),
+        )
+        for label, results, consumed, expected_calls in cases:
+            with self.subTest(label):
+                table = self.make()
+                for number, result in enumerate(results):
+                    urwid.connect_signal(
+                        table,
+                        "activate",
+                        lambda _w, _index, name=f"h{number}", result=result: (calls.append(name), result)[1],
+                    )
+                for key in ("enter", " "):
+                    with self.subTest(key=key):
+                        calls.clear()
+                        self.assertEqual([] if consumed else [key], press(table, (10, 4), key))
+                        self.assertEqual(expected_calls, calls)
 
     def test_click(self) -> None:
         """A click focuses the row under it and reaches the cell, with or without a column attr; no activate."""
