@@ -31,7 +31,7 @@ import unicodedata
 
 from urwid.event_loop.abstract_loop import ExitMainLoop
 
-from ._web_common import MAX_COLS, MAX_ROWS, BrowserScreen
+from ._web_common import BrowserScreen
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping
@@ -40,8 +40,10 @@ if typing.TYPE_CHECKING:
     from urwid.event_loop import EventLoop
 
 __all__ = (
+    "MAX_COLS",
     "MAX_MESSAGE_LENGTH",
     "MAX_PENDING_INPUT",
+    "MAX_ROWS",
     "STATIC_FILES",
     "InvalidMessageError",
     "Screen",
@@ -50,9 +52,13 @@ __all__ = (
     "html_page",
 )
 
+#: the default largest width, in columns: the largest an X10 mouse report can address in a terminal
+MAX_COLS: typing.Final = 223
+#: the default largest height, in rows, for the same reason
+MAX_ROWS: typing.Final = 223
 #: the longest message from the browser, in characters; a valid message is far shorter
 MAX_MESSAGE_LENGTH: typing.Final = 256
-#: the most keys received and not yet handed to the main loop
+#: the most keys and mouse events received and not yet handed to the main loop
 MAX_PENDING_INPUT: typing.Final = 64
 
 _ASSET_DIR: typing.Final = pathlib.Path(__file__).parent
@@ -77,8 +83,14 @@ _KEY_NAMES: typing.Final = frozenset(
         *(f"f{number}" for number in range(1, 13)),
     }
 )
-# the modifier prefixes of a key name, in the order the page script writes them
+# the modifier prefixes of a key name or a mouse event, in the order the page script writes them
 _MODIFIERS: typing.Final = ("shift ", "meta ", "ctrl ")
+# the mouse events the page script sends, without modifiers
+_MOUSE_EVENTS: typing.Final = frozenset({"mouse press", "mouse release", "mouse drag"})
+# the button numbers the page script sends: left, middle, right, the four wheel directions and the two side buttons
+_MOUSE_BUTTONS: typing.Final = range(1, 10)
+# the wheel directions, which a browser reports many times a second while the wheel turns
+_WHEEL_BUTTONS: typing.Final = range(4, 8)
 
 
 class InvalidMessageError(ValueError):
@@ -124,12 +136,20 @@ STATIC_FILES: typing.Final[Mapping[str, StaticFile]] = types.MappingProxyType(
 )
 
 
-def html_page(title: str, websocket_path: str) -> str:
+def html_page(
+    title: str,
+    websocket_path: str,
+    *,
+    max_cols: int = MAX_COLS,
+    max_rows: int = MAX_ROWS,
+) -> str:
     """Return the HTML page that connects to a :class:`Screen`.
 
     The page has no inline script or style,
     so it works under a ``Content-Security-Policy`` that allows scripts and styles from ``'self'`` only.
     It loads the :data:`STATIC_FILES` by names relative to its own URL.
+    It carries the largest screen size, so the page fits its screen area to the size the screen uses
+    and does not report the mouse beyond it.
 
     >>> page = html_page("Demo & test", "ws")
     >>> "<title>Demo &amp; test</title>" in page
@@ -139,10 +159,17 @@ def html_page(title: str, websocket_path: str) -> str:
 
     :param title: the application name shown in the title and above the screen; it is escaped.
     :param websocket_path: the URL of the WebSocket, relative to the page's URL; it is escaped.
+    :param max_cols: the largest width; the same value as the screen's *max_cols*.
+    :param max_rows: the largest height; the same value as the screen's *max_rows*.
+    :raises ValueError: *max_cols* or *max_rows* is less than 1.
     """
+    if max_cols < 1 or max_rows < 1:
+        raise ValueError(f"largest screen size must be positive: {max_cols}x{max_rows}")
     return string.Template((_ASSET_DIR / "_websocket.html").read_text("utf-8")).substitute(
         title=html.escape(title),
         websocket_path=html.escape(websocket_path),
+        max_cols=max_cols,
+        max_rows=max_rows,
     )
 
 
@@ -172,23 +199,42 @@ class Screen(BrowserScreen):
         Do not use :meth:`~urwid.MainLoop.paused` with this screen: there is no terminal to hand over.
     """
 
-    def __init__(self, transport: Transport, *, cols: int = 80, rows: int = 24) -> None:
+    def __init__(
+        self,
+        transport: Transport,
+        *,
+        cols: int = 80,
+        rows: int = 24,
+        max_cols: int = MAX_COLS,
+        max_rows: int = MAX_ROWS,
+    ) -> None:
         """Initialize an unstarted screen that sends through *transport*.
 
         :param transport: the connection to the page.
-        :param cols: the width until the page reports its own; at most ``MAX_COLS`` is used.
-        :param rows: the height until the page reports its own; at most ``MAX_ROWS`` is used.
-        :raises ValueError: *cols* or *rows* is less than 1.
+        :param cols: the width until the page reports its own; at most *max_cols* is used.
+        :param rows: the height until the page reports its own; at most *max_rows* is used.
+        :param max_cols: the largest width the page may report; pass the same value to :func:`html_page`.
+        :param max_rows: the largest height the page may report; pass the same value to :func:`html_page`.
+        :raises ValueError: *cols*, *rows*, *max_cols* or *max_rows* is less than 1.
         """
         super().__init__()
-        if cols < 1 or rows < 1:
-            raise ValueError(f"screen size must be positive: {cols}x{rows}")
+        if cols < 1 or rows < 1 or max_cols < 1 or max_rows < 1:
+            raise ValueError(f"screen sizes must be positive: {cols}x{rows}, at most {max_cols}x{max_rows}")
         self._transport = transport
-        self._size = (min(cols, MAX_COLS), min(rows, MAX_ROWS))
+        self._max_size = (max_cols, max_rows)
+        self._size = (min(cols, max_cols), min(rows, max_rows))
         self._event_loop: EventLoop | None = None
-        self._callback: Callable[[list[str], list[int]], typing.Any] | None = None
-        # input checked by feed() and not yet handed to the main loop
-        self._pending: list[str] = []
+        self._callback: Callable[[list[str | tuple[str, int, int, int]], list[int]], typing.Any] | None = None
+        # input checked by feed() and not yet handed to the main loop: key names and mouse events
+        self._pending: list[str | tuple[str, int, int, int]] = []
+        # the size each queued "window resize" brings, in order
+        self._resize_sizes: list[tuple[int, int]] = []
+        # the size after the last "window resize" handed to the main loop
+        self._delivered_size = self._size
+        # while a batch is handed to the main loop: the size its input arrived at
+        self._batch_size: tuple[int, int] | None = None
+        # set by the main loop through set_mouse_tracking(); mouse messages are dropped while it is not
+        self._mouse_tracking = False
         # the alarm that hands the pending input to the main loop, while one is scheduled
         self._delivery: typing.Any = None
         self._closed = False
@@ -199,12 +245,25 @@ class Screen(BrowserScreen):
         return self._closed
 
     def get_cols_rows(self) -> tuple[int, int]:
-        """Return the size the page reported last, or the size given to the constructor."""
+        """Return the size the page reported last, or the size given to the constructor.
+
+        While queued input is handed to the main loop, it is the size that input arrived at instead,
+        so the main loop lays out input that arrived before a later resize at the size the page had then.
+        """
+        if self._batch_size is not None:
+            return self._batch_size
         return self._size
 
     def _start(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         """Send every row on the next draw, since the page may show rows the screen no longer knows."""
         self.clear()
+
+    def set_mouse_tracking(self, enable: bool = True) -> None:
+        """Pass the mouse events the page sends to the main loop, or drop them.
+
+        The page sends them in either case, so it takes the mouse buttons for the application all the time.
+        """
+        self._mouse_tracking = enable
 
     def clear(self) -> None:
         """Force the screen to be completely repainted on the next call to draw_screen()."""
@@ -225,12 +284,12 @@ class Screen(BrowserScreen):
     def hook_event_loop(
         self,
         event_loop: EventLoop,
-        callback: Callable[[list[str], list[int]], typing.Any],
+        callback: Callable[[list[str | tuple[str, int, int, int]], list[int]], typing.Any],
     ) -> None:
         """Hand the input from :meth:`feed` to *callback* through alarms of *event_loop*.
 
         :param event_loop: the event loop the main loop runs on.
-        :param callback: called with the key names and an empty list of raw key codes.
+        :param callback: called with the key names and mouse events, and an empty list of raw key codes.
         """
         if self._event_loop is not None and self._delivery is not None:
             self._event_loop.remove_alarm(self._delivery)
@@ -260,13 +319,24 @@ class Screen(BrowserScreen):
           a named key such as ``"page up"`` or ``"f5"``, or one character that is not a control character,
           after the modifiers ``"shift "``, ``"meta "`` and ``"ctrl "`` in that order.
         - ``{"type": "resize", "cols": <int>, "rows": <int>}`` with both sizes at least 1.
-          A size above ``MAX_COLS`` or ``MAX_ROWS`` is reduced to that limit.
+          A size above the screen's *max_cols* or *max_rows* is reduced to that limit.
+        - ``{"type": "mouse", "event": <name>, "button": <int>, "col": <int>, "row": <int>}``,
+          where the name is ``"mouse press"``, ``"mouse release"`` or ``"mouse drag"``
+          after the same modifiers as a key name,
+          the button is 1 to 9 as :class:`~urwid.MouseButton` numbers them,
+          and the column and row are at least 0.
+          A position outside the screen is moved to its nearest edge.
+          It reaches the main loop as an ``(event, button, col, row)`` tuple,
+          and is dropped while mouse tracking is off.
+          A drag replaces a drag of the same button that still waits for the main loop,
+          and a wheel press is dropped while ``MAX_PENDING_INPUT`` inputs wait,
+          so a fast drag or wheel does not end the session.
 
         Messages that arrive after :meth:`close` are ignored.
 
         :param message: the content of one WebSocket message.
         :raises InvalidMessageError: the message is binary, longer than ``MAX_MESSAGE_LENGTH``,
-            not of one of the forms above, or more than ``MAX_PENDING_INPUT`` keys wait for the main loop.
+            not of one of the forms above, or more than ``MAX_PENDING_INPUT`` inputs wait for the main loop.
         """
         if self._closed:
             return
@@ -292,8 +362,36 @@ class Screen(BrowserScreen):
                 # bool is a subclass of int, and JSON true is no size
                 if isinstance(cols, bool) or isinstance(rows, bool) or cols < 1 or rows < 1:
                     raise InvalidMessageError("screen size must be positive integers")
-                self._size = (min(cols, MAX_COLS), min(rows, MAX_ROWS))
                 self._queue("window resize")
+                max_cols, max_rows = self._max_size
+                self._size = (min(cols, max_cols), min(rows, max_rows))
+                self._resize_sizes.append(self._size)
+            case {
+                "type": "mouse",
+                "event": str() as event,
+                "button": int() as button,
+                "col": int() as col,
+                "row": int() as row,
+            } if len(data) == 5:
+                name = event
+                for modifier in _MODIFIERS:
+                    name = name.removeprefix(modifier)
+                if name not in _MOUSE_EVENTS:
+                    raise InvalidMessageError("unknown mouse event")
+                # bool is a subclass of int, and JSON true is no number
+                if any(isinstance(value, bool) for value in (button, col, row)) or button not in _MOUSE_BUTTONS:
+                    raise InvalidMessageError("mouse button must be an integer from 1 to 9")
+                if col < 0 or row < 0:
+                    raise InvalidMessageError("mouse position must be non-negative integers")
+                if not self._mouse_tracking:
+                    return
+                cols, rows = self._size
+                mouse = (event, button, min(col, cols - 1), min(row, rows - 1))
+                # a queued key name never starts with the (event, button) pair
+                if name == "mouse drag" and self._pending and self._pending[-1][:2] == (event, button):
+                    self._pending[-1] = mouse
+                elif not (button in _WHEEL_BUTTONS and len(self._pending) >= MAX_PENDING_INPUT):
+                    self._queue(mouse)
             case _:
                 raise InvalidMessageError("unknown message")
 
@@ -303,28 +401,62 @@ class Screen(BrowserScreen):
             return
         self._closed = True
         self._pending = []
+        self._resize_sizes = []
         self._transport.close()
 
-    def _queue(self, key: str) -> None:
-        """Queue *key* for the main loop.
+    def _queue(self, key: str | tuple[str, int, int, int]) -> None:
+        """Queue *key*, a key name or a mouse event, for the main loop.
 
-        :raises InvalidMessageError: ``MAX_PENDING_INPUT`` keys already wait for the main loop.
+        :raises InvalidMessageError: ``MAX_PENDING_INPUT`` inputs already wait for the main loop.
         """
         if len(self._pending) >= MAX_PENDING_INPUT:
-            raise InvalidMessageError(f"more than {MAX_PENDING_INPUT} keys wait for the main loop")
+            raise InvalidMessageError(f"more than {MAX_PENDING_INPUT} inputs wait for the main loop")
         self._pending.append(key)
         if self._event_loop is not None and self._delivery is None:
             self._delivery = self._event_loop.alarm(0, self._deliver)
 
     def _deliver(self) -> None:
-        """Hand the queued input to the main loop, and close the session when a handler raises ExitMainLoop."""
+        """Hand the queued input to the main loop, and close the session when a handler raises ExitMainLoop.
+
+        The input is handed over in batches that end at each ``"window resize"``,
+        since the main loop lays out a whole batch at one screen size,
+        and :meth:`get_cols_rows` returns the size each batch arrived at while it is handed over.
+        When a handler unhooks or hooks the screen again, the batches not handed over yet wait for the next hook.
+        """
         self._delivery = None
-        keys = self._pending
-        self._pending = []
-        if self._callback is None or not keys:
+        callback = self._callback
+        if callback is None or not self._pending:
             return
+        keys = self._pending
+        sizes = self._resize_sizes
+        self._pending = []
+        self._resize_sizes = []
+        batches: list[list[str | tuple[str, int, int, int]]] = [[]]
+        for key in keys:
+            batches[-1].append(key)
+            if key == "window resize":
+                batches.append([])
         try:
-            self._callback(keys, [])
+            for index, batch in enumerate(batches):
+                # a handler of an earlier batch may have closed the session
+                if self._closed or not batch:
+                    break
+                if self._callback is not callback:
+                    self._pending[:0] = [key for later in batches[index:] for key in later]
+                    self._resize_sizes[:0] = sizes
+                    if self._event_loop is not None and self._delivery is None:
+                        self._delivery = self._event_loop.alarm(0, self._deliver)
+                    break
+                self._batch_size = self._delivered_size
+                callback(batch, [])
+                if batch[-1] == "window resize":
+                    self._delivered_size = sizes.pop(0)
         except ExitMainLoop:
             self.logger.debug("ExitMainLoop raised by an input handler: closing the session")
             self.close()
+        except BaseException:
+            # the batches after the one that raised are lost, so the size moves on to the newest
+            self._delivered_size = self._size
+            raise
+        finally:
+            self._batch_size = None

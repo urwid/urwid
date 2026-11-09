@@ -214,7 +214,10 @@ Which buttons arrive depends on the screen:
   terminal's mouse reports;
 * the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
   defines;
-* GPM, the Linux console mouse, delivers 1 to 3.
+* GPM, the Linux console mouse, delivers 1 to 3;
+* the WebSocket screen (:mod:`urwid.display.websocket`) delivers 1 to 9: the
+  three main buttons, the four wheel directions and the two side buttons the
+  browser reports.
 
 A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
 and buttons 8 to 11 by adding 128, as described in the "Mouse Tracking"
@@ -230,7 +233,8 @@ section of `XTerm Control Sequences
 --------------------------
 
 A mouse button was released. *button* names the released button in an SGR
-mouse report (``ESC [ < ... m``), on the curses screen and from GPM.
+mouse report (``ESC [ < ... m``), on the curses screen, from GPM and on the
+WebSocket screen.
 A terminal that sends X10 mouse reports (``ESC [ M ...``) does not say which
 button was released, and *button* is then 0, :attr:`MouseButton.UNKNOWN`.
 

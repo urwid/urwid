@@ -28,11 +28,13 @@ The example is as strict as Tornado allows:
 - It answers only requests whose ``Host`` header names an allowed origin,
   and accepts a WebSocket only from a page whose ``Origin`` is an allowed origin.
   The default origins are the address it listens on, and ``localhost`` for a loopback address.
-- Every request needs HTTP Basic authentication with the token from ``--token-file`` as the password,
+- Every request needs HTTP Basic authentication with the user name from ``--user``
+  and the token from ``--token-file`` as the password,
   also on the loopback address, where every user of the host can connect.
   When the file does not exist, the example creates it, readable by its owner only, with a new random token.
+  Without ``--token-file``, it creates the token in a private temporary directory that is removed on exit.
   An existing token file is refused unless it is a regular file of this user that no other user can read or write.
-  The token is compared in constant time, and any user name is accepted.
+  The user name and the token are compared in constant time.
   The token never appears in a URL or a log line.
 - After repeated failed logins from one client, or from all clients together, logins are refused for a while
   without checking the token.
@@ -51,8 +53,10 @@ To make a token file by hand::
     (umask 077; python3 -c "import secrets; print(secrets.token_urlsafe(32))" > token)
 
 The script reads only the files named by its options, writes nothing but a new token file,
-and logs to standard error.
-It exits with status 0 after ``SIGINT`` or ``SIGTERM``, and with status 2 when an option is invalid.
+prints the addresses to open and the login to standard output, and logs to standard error.
+It prints the password only for the token in its temporary directory, not for a token file.
+It exits with status 0 after Ctrl+C (``SIGINT``), ``SIGTERM`` or ``SIGHUP``,
+with status 1 when it cannot listen on the address, and with status 2 when an option is invalid.
 """
 
 from __future__ import annotations
@@ -61,6 +65,7 @@ import argparse
 import asyncio
 import base64
 import collections
+import contextlib
 import dataclasses
 import hmac
 import ipaddress
@@ -74,6 +79,7 @@ import signal
 import ssl
 import stat
 import sys
+import tempfile
 import time
 import typing
 import urllib.parse
@@ -132,10 +138,16 @@ class Config:
     allowed_origins: frozenset[str]
     # Host header values accepted on any request
     allowed_hosts: frozenset[str]
+    user: bytes
     token: bytes = dataclasses.field(repr=False)
+    # --token-file, or None for the token in the example's temporary directory, which is printed
+    token_file: pathlib.Path | None
     tls: ssl.SSLContext | None = dataclasses.field(repr=False)
     max_sessions: int
     idle_timeout: float
+    # the largest screen a page may report, in columns and rows
+    max_cols: int
+    max_rows: int
 
 
 def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
@@ -156,14 +168,27 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         help="TLS certificate chain in PEM format; production TLS is the deployer's responsibility",
     )
     parser.add_argument("--keyfile", type=pathlib.Path, help="TLS private key in PEM format")
+    parser.add_argument("--user", default="urwid", help="user name users log in with (default: %(default)s)")
     parser.add_argument(
         "--token-file",
         type=pathlib.Path,
-        required=True,
         help=f"file holding the token users enter as the password, at least {MIN_TOKEN_BYTES} bytes; "
-        "created with a new random token when it does not exist",
+        "created with a new random token when it does not exist; "
+        "without it, a new token is created in a temporary directory removed on exit",
     )
     parser.add_argument("--max-sessions", type=int, default=8, help="sessions at a time (default: %(default)s)")
+    parser.add_argument(
+        "--max-cols",
+        type=int,
+        default=urwid_websocket.MAX_COLS,
+        help="widest screen a page may use, in columns (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--max-rows",
+        type=int,
+        default=urwid_websocket.MAX_ROWS,
+        help="tallest screen a page may use, in rows (default: %(default)s)",
+    )
     parser.add_argument(
         "--idle-timeout",
         type=float,
@@ -194,7 +219,7 @@ def load_token(path: pathlib.Path) -> bytes:
     else:
         with os.fdopen(descriptor, "w", encoding="ascii") as new_file:
             new_file.write(secrets.token_urlsafe(NEW_TOKEN_BYTES) + "\n")
-        LOG.info("Created %s with a new token; users enter its content as the password", path)
+        LOG.debug("Created %s with a new token", path)
 
     # Windows has neither flag; there the type and size checks below still apply
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
@@ -214,8 +239,11 @@ def load_token(path: pathlib.Path) -> bytes:
     return token
 
 
-def build_config(args: argparse.Namespace) -> Config:
+def build_config(args: argparse.Namespace, token_file: pathlib.Path) -> Config:
     """Check the parsed arguments and turn them into a :class:`Config`.
+
+    :param args: the result of :func:`parse_args`.
+    :param token_file: ``--token-file``, or the file to create a new token in when it was not given.
 
     :raises ValueError: an argument is invalid, or the combination of arguments is unsafe.
     :raises OSError: the token file cannot be read or created, or the certificate or key cannot be read.
@@ -225,10 +253,15 @@ def build_config(args: argparse.Namespace) -> Config:
         raise ValueError(f"--port must be between 1 and 65535: {args.port}")
     if args.max_sessions < 1:
         raise ValueError("--max-sessions must be at least 1")
+    if args.max_cols < 1 or args.max_rows < 1:
+        raise ValueError("--max-cols and --max-rows must be at least 1")
     if not args.idle_timeout > 0:
         raise ValueError("--idle-timeout must be positive")
     if (args.certfile is None) != (args.keyfile is None):
         raise ValueError("--certfile and --keyfile go together")
+    # HTTP Basic authentication ends the user name at the first colon
+    if not args.user or ":" in args.user or not args.user.isprintable():
+        raise ValueError(f"--user must be printable, non-empty and without a colon: {args.user!r}")
 
     tls = None
     if args.certfile is not None:
@@ -269,16 +302,20 @@ def build_config(args: argparse.Namespace) -> Config:
         hosts.add(host)
 
     # read or created last, so a run refused for another argument changes nothing
-    token = load_token(args.token_file)
+    token = load_token(token_file)
     return Config(
         host=args.host,
         port=args.port,
         allowed_origins=frozenset(origins),
         allowed_hosts=frozenset(hosts),
+        user=args.user.encode("utf-8"),
         token=token,
+        token_file=args.token_file,
         tls=tls,
         max_sessions=args.max_sessions,
         idle_timeout=args.idle_timeout,
+        max_cols=args.max_cols,
+        max_rows=args.max_rows,
     )
 
 
@@ -372,19 +409,21 @@ def reject_request(handler: tornado.web.RequestHandler, config: Config, limiter:
 
     authorization = request.headers.get("Authorization")
     scheme, _, encoded = (authorization or "").partition(" ")
-    password = b""
+    user = password = b""
     if scheme.lower() == "basic":
         # binascii.Error, and ValueError for a header that is not ASCII
         with suppress(ValueError):
-            _user, _, password = base64.b64decode(encoded, validate=True).partition(b":")
-    if password and hmac.compare_digest(password, config.token):
+            user, _, password = base64.b64decode(encoded, validate=True).partition(b":")
+    # both compared, so the time taken does not tell which one was wrong
+    user_matches = hmac.compare_digest(user, config.user)
+    if hmac.compare_digest(password, config.token) and user_matches:
         return False
 
     # a request without credentials, such as the first one a browser sends, is not a guess
     if authorization is None:
         LOG.debug("Asked %s for credentials", request.remote_ip)
     else:
-        LOG.error("Refused a login with a wrong token from %s", request.remote_ip)
+        LOG.error("Refused a login with a wrong user name or token from %s", request.remote_ip)
         limiter.record_failure(address)
         if limiter.retry_after(address) > 0:
             LOG.warning("Refusing logins from %s for %.0f seconds", request.remote_ip, FAILURE_WINDOW)
@@ -510,7 +549,11 @@ class SessionHandler(tornado.websocket.WebSocketHandler):  # pylint: disable=abs
             return
         self.set_nodelay(True)
         self.sessions.add(self)
-        self.screen = urwid_websocket.Screen(Connection(self))
+        self.screen = urwid_websocket.Screen(
+            Connection(self),
+            max_cols=self.config.max_cols,
+            max_rows=self.config.max_rows,
+        )
         self.main_loop = urwid.MainLoop(
             build_widget(),
             PALETTE,
@@ -590,7 +633,8 @@ def make_app(config: Config, sessions: set[SessionHandler]) -> tornado.web.Appli
     """Return the application that serves the page, its files and the WebSocket."""
     limiter = LoginLimiter()
     files = {name: (static.content_type, static.read()) for name, static in urwid_websocket.STATIC_FILES.items()}
-    files[""] = ("text/html; charset=utf-8", urwid_websocket.html_page(TITLE, WEBSOCKET_PATH).encode("utf-8"))
+    page = urwid_websocket.html_page(TITLE, WEBSOCKET_PATH, max_cols=config.max_cols, max_rows=config.max_rows)
+    files[""] = ("text/html; charset=utf-8", page.encode("utf-8"))
     file_pattern = "|".join(re.escape(name) for name in files)
     return tornado.web.Application(
         [
@@ -607,37 +651,64 @@ def make_app(config: Config, sessions: set[SessionHandler]) -> tornado.web.Appli
     )
 
 
-async def serve(config: Config) -> None:
-    """Serve until ``SIGINT`` or ``SIGTERM``, then close every session."""
+async def serve(config: Config) -> int:
+    """Serve until ``SIGINT``, ``SIGTERM`` or ``SIGHUP``, or until cancelled, then close every session.
+
+    :returns: the process exit status: 0, or 1 when the server cannot listen on the address,
+        for example because the port is in use.
+    """
     sessions: set[SessionHandler] = set()
-    server = make_app(config, sessions).listen(config.port, config.host, ssl_options=config.tls)
-    stop = asyncio.Event()
-    for signal_number in (signal.SIGINT, signal.SIGTERM):
-        # Windows has no signal handlers in asyncio; Ctrl+C ends the run there instead
-        with suppress(NotImplementedError):
-            asyncio.get_running_loop().add_signal_handler(signal_number, stop.set)
+    try:
+        server = make_app(config, sessions).listen(config.port, config.host, ssl_options=config.tls)
+    except OSError as exc:
+        LOG.error("Cannot serve on %s port %d: %s", config.host, config.port, exc)  # noqa: TRY400  # no traceback needed
+        return 1
+    try:
+        stop = asyncio.Event()
+        # Windows has no SIGHUP
+        for signal_number in (signal.SIGINT, signal.SIGTERM, *([signal.SIGHUP] if hasattr(signal, "SIGHUP") else [])):
+            # Windows has no signal handlers in asyncio: Ctrl+C cancels this coroutine there instead
+            with suppress(NotImplementedError):
+                asyncio.get_running_loop().add_signal_handler(signal_number, stop.set)
 
-    LOG.info("Serving %s", ", ".join(sorted(config.allowed_origins)))
-    await stop.wait()
-
-    LOG.info("Stopping: closing %d sessions", len(sessions))
-    server.stop()
-    for session in list(sessions):
-        session.close(1001, "server stopping")
-    await server.close_all_connections()
+        password = config.token.decode("ascii") if config.token_file is None else f"the content of {config.token_file}"
+        print(
+            *(f"Open {origin}/" for origin in sorted(config.allowed_origins)),
+            f"User name: {config.user.decode('utf-8')}",
+            f"Password: {password}",
+            sep="\n",
+            flush=True,
+        )
+        await stop.wait()
+    finally:
+        LOG.info("Stopping: closing %d sessions", len(sessions))
+        server.stop()
+        for session in list(sessions):
+            session.close(1001, "server stopping")
+        await server.close_all_connections()
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     """Run the server and return the process exit status."""
     args = parse_args(argv)
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.INFO)
-    try:
-        config = build_config(args)
-    except (ValueError, OSError, ssl.SSLError) as exc:
-        LOG.error("%s", exc)  # noqa: TRY400  # the message is the whole report; a traceback adds nothing
-        return 2
-    asyncio.run(serve(config))
-    return 0
+    with contextlib.ExitStack() as stack:
+        token_file = args.token_file
+        if token_file is None:
+            # created readable by its owner only, and removed with the token on exit
+            directory = stack.enter_context(tempfile.TemporaryDirectory(prefix="urwid-websocket-"))
+            token_file = pathlib.Path(directory, "token")
+        try:
+            config = build_config(args, token_file)
+        except (ValueError, OSError, ssl.SSLError) as exc:
+            LOG.error("%s", exc)  # noqa: TRY400  # the message is the whole report; a traceback adds nothing
+            return 2
+        try:
+            return asyncio.run(serve(config))
+        except KeyboardInterrupt:
+            # Ctrl+C where asyncio has no signal handlers, such as Windows: serve() has closed every session
+            return 0
 
 
 if __name__ == "__main__":

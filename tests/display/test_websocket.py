@@ -96,6 +96,11 @@ def resize(cols: object, rows: object) -> str:
     return json.dumps({"type": "resize", "cols": cols, "rows": rows})
 
 
+def mouse(event: object, button: object = 1, col: object = 0, row: object = 0) -> str:
+    """Return the message the page sends for the mouse *event* of *button* at *col*, *row*."""
+    return json.dumps({"type": "mouse", "event": event, "button": button, "col": col, "row": row})
+
+
 class FeedTest(unittest.TestCase):
     """Checking and queueing the messages from the page."""
 
@@ -161,12 +166,135 @@ class FeedTest(unittest.TestCase):
             "negative size": resize(5, -1),
             "fractional size": resize(80.5, 24),
             "string size": resize("80", 24),
+            "unknown mouse event": mouse("mouse move"),
+            "mouse modifiers out of order": mouse("ctrl shift mouse press"),
+            "mouse event without mouse": mouse("press"),
+            "mouse button zero": mouse("mouse press", button=0),
+            "mouse button too high": mouse("mouse press", button=10),
+            "boolean mouse button": mouse("mouse press", button=True),
+            "negative mouse column": mouse("mouse press", col=-1),
+            "fractional mouse row": mouse("mouse press", row=0.5),
+            "mouse extra key": json.dumps(
+                {"type": "mouse", "event": "mouse press", "button": 1, "col": 0, "row": 0, "x": 1}
+            ),
+            "mouse missing row": json.dumps({"type": "mouse", "event": "mouse press", "button": 1, "col": 0}),
         }
         for label, message in invalid.items():
             with self.subTest(label), self.assertRaises(websocket.InvalidMessageError):
                 self.screen.feed(message)
         self.assertEqual([], self.screen._pending)
         self.assertEqual((80, 24), self.screen.get_cols_rows())
+
+    def test_mouse_events_are_queued_while_tracking(self) -> None:
+        """Every mouse event the page script can send reaches the main loop as urwid's mouse tuple."""
+        self.screen.set_mouse_tracking()
+        messages = [
+            ("mouse press", 1, 0, 0),
+            ("mouse drag", 1, 5, 2),
+            ("mouse release", 1, 79, 23),
+            ("shift meta ctrl mouse press", 3, 10, 1),
+            ("meta mouse press", 4, 2, 2),
+            ("mouse press", 9, 3, 3),
+        ]
+        for message in messages:
+            self.screen.feed(mouse(*message))
+        self.assertEqual(messages, self.screen._pending)
+
+    def test_mouse_position_outside_the_screen_is_moved_to_its_edge(self) -> None:
+        """A drag or release past the right or bottom edge is reported at that edge."""
+        self.screen.set_mouse_tracking()
+        self.screen.feed(mouse("mouse drag", col=10**30, row=24))
+        self.assertEqual([("mouse drag", 1, 79, 23)], self.screen._pending)
+
+    def test_mouse_events_are_dropped_without_tracking(self) -> None:
+        """Valid mouse messages are dropped until the main loop asks for mouse input, and after it stops asking."""
+        self.screen.feed(mouse("mouse press"))
+        self.assertEqual([], self.screen._pending)
+
+        self.screen.set_mouse_tracking()
+        self.screen.set_mouse_tracking(False)
+        self.screen.feed(mouse("mouse release"))
+        self.assertEqual([], self.screen._pending)
+
+    def test_drag_replaces_a_waiting_drag_of_the_same_button(self) -> None:
+        """Only the newest position of a drag waits for the main loop; other input keeps its place."""
+        self.screen.set_mouse_tracking()
+        self.screen.feed(mouse("mouse press", col=1))
+        self.screen.feed(mouse("mouse drag", col=2))
+        self.screen.feed(mouse("mouse drag", col=3))
+        self.screen.feed(mouse("mouse drag", button=3, col=4))
+        self.screen.feed(mouse("shift mouse drag", button=3, col=5))
+        self.assertEqual(
+            [
+                ("mouse press", 1, 1, 0),
+                ("mouse drag", 1, 3, 0),
+                ("mouse drag", 3, 4, 0),
+                ("shift mouse drag", 3, 5, 0),
+            ],
+            self.screen._pending,
+        )
+
+    def test_wheel_is_dropped_when_the_pending_limit_is_reached(self) -> None:
+        """A fast wheel does not end the session, but a flood of other input still does."""
+        self.screen.set_mouse_tracking()
+        for _ in range(websocket.MAX_PENDING_INPUT):
+            self.screen.feed(mouse("mouse press", button=5))
+        self.screen.feed(mouse("mouse press", button=4))
+        self.assertEqual([("mouse press", 5, 0, 0)] * websocket.MAX_PENDING_INPUT, self.screen._pending)
+        with self.assertRaises(websocket.InvalidMessageError):
+            self.screen.feed(mouse("mouse press", button=1))
+
+    def test_input_is_delivered_in_batches_ending_at_each_resize(self) -> None:
+        """The main loop lays out input after a resize at the new size, since a batch ends at the resize."""
+        event_loop = FakeEventLoop()
+        batches: list[list[str | tuple[str, int, int, int]]] = []
+        self.screen.hook_event_loop(event_loop, lambda keys, _raw: batches.append(keys))
+        self.screen.feed(key("a"))
+        self.screen.feed(resize(100, 30))
+        self.screen.feed(key("b"))
+        self.screen.feed(resize(90, 30))
+        event_loop.run_pending()
+        self.assertEqual([["a", "window resize"], ["b", "window resize"]], batches)
+
+    def test_each_batch_is_laid_out_at_the_size_it_arrived_at(self) -> None:
+        """Input that arrived between two resizes is handed over while the screen reports the size between them."""
+        event_loop = FakeEventLoop()
+        batches: list[tuple[list[str | tuple[str, int, int, int]], tuple[int, int]]] = []
+        self.screen.hook_event_loop(event_loop, lambda keys, _raw: batches.append((keys, self.screen.get_cols_rows())))
+        self.screen.set_mouse_tracking()
+        self.screen.feed(resize(100, 40))
+        self.screen.feed(mouse("mouse press", col=90, row=30))
+        self.screen.feed(resize(50, 20))
+        self.assertEqual((50, 20), self.screen.get_cols_rows())
+        event_loop.run_pending()
+        self.assertEqual(
+            [
+                (["window resize"], (80, 24)),
+                ([("mouse press", 1, 90, 30), "window resize"], (100, 40)),
+            ],
+            batches,
+        )
+        self.assertEqual((50, 20), self.screen.get_cols_rows())
+
+    def test_input_after_an_unhook_waits_for_the_next_hook(self) -> None:
+        """A handler that unhooks the screen keeps the batches not handed over yet for the next hook."""
+        event_loop = FakeEventLoop()
+        first: list[list[str | tuple[str, int, int, int]]] = []
+        second: list[list[str | tuple[str, int, int, int]]] = []
+
+        def unhook_on_input(keys: list[str | tuple[str, int, int, int]], _raw: list[int]) -> None:
+            first.append(keys)
+            self.screen.unhook_event_loop(event_loop)
+
+        self.screen.hook_event_loop(event_loop, unhook_on_input)
+        self.screen.feed(key("a"))
+        self.screen.feed(resize(100, 30))
+        self.screen.feed(key("b"))
+        event_loop.run_pending()
+        self.screen.hook_event_loop(event_loop, lambda keys, _raw: second.append(keys))
+        event_loop.run_pending()
+        self.assertEqual([["a", "window resize"]], first)
+        self.assertEqual([["b"]], second)
 
     def test_rejects_input_beyond_the_pending_limit(self) -> None:
         """A page that floods the screen with input is refused."""
@@ -185,9 +313,20 @@ class FeedTest(unittest.TestCase):
         self.assertTrue(self.screen.closed)
 
     def test_size_given_to_the_constructor_must_be_positive(self) -> None:
-        """The initial size is checked."""
-        with self.assertRaises(ValueError):
-            websocket.Screen(self.transport, cols=0)
+        """The initial size and the largest size are checked."""
+        for label, options in {"cols": {"cols": 0}, "max_cols": {"max_cols": 0}, "max_rows": {"max_rows": -1}}.items():
+            with self.subTest(label), self.assertRaises(ValueError):
+                websocket.Screen(self.transport, **options)
+
+    def test_largest_size_can_be_set_for_a_tall_or_wide_screen(self) -> None:
+        """A screen built with its own largest size limits the initial size, resizes and mouse positions to it."""
+        screen = websocket.Screen(FakeTransport(), cols=80, rows=24, max_cols=40, max_rows=400)
+        self.assertEqual((40, 24), screen.get_cols_rows())
+        screen.feed(resize(500, 300))
+        self.assertEqual((40, 300), screen.get_cols_rows())
+        screen.set_mouse_tracking()
+        screen.feed(mouse("mouse drag", col=60, row=350))
+        self.assertEqual(["window resize", ("mouse drag", 1, 39, 299)], screen._pending)
 
 
 class DrawTest(unittest.TestCase):
@@ -289,6 +428,16 @@ class SessionsTest(unittest.TestCase):
         self.assertIn("hi", first_transport.sent[0])
         # the second session's rows are unchanged, so its redraw only refers to them
         self.assertEqual(["<0\n"], second_transport.sent)
+
+    def test_mouse_press_reaches_the_widget_under_it(self) -> None:
+        """The main loop turns mouse tracking on, and a click places the cursor of the Edit under it."""
+        _, screen, edit, _ = self.sessions[0]
+        screen.feed(key("h"))
+        screen.feed(key("i"))
+        self.event_loop.run_pending()
+        screen.feed(mouse("mouse press", col=0, row=0))
+        self.event_loop.run_pending()
+        self.assertEqual(0, edit.edit_pos)
 
     def test_resize_redraws_at_the_new_size(self) -> None:
         """A resize message makes the main loop redraw at the new size."""
@@ -434,6 +583,16 @@ class PageTest(unittest.TestCase):
         self.assertNotIn("style=", page)
         self.assertIsNone(re.search(r"\son\w+\s*=", page, re.IGNORECASE))
         self.assertIn("&lt;script&gt;&quot;", page)
+
+    def test_page_carries_the_size_limits(self) -> None:
+        """The page fits its screen area to the largest size the screen uses."""
+        page = websocket.html_page("t", "ws")
+        self.assertIn(f'data-max-cols="{websocket.MAX_COLS}"', page)
+        self.assertIn(f'data-max-rows="{websocket.MAX_ROWS}"', page)
+        page = websocket.html_page("t", "ws", max_cols=40, max_rows=400)
+        self.assertIn('data-max-cols="40" data-max-rows="400"', page)
+        with self.assertRaises(ValueError):
+            websocket.html_page("t", "ws", max_cols=0)
 
     def test_page_loads_exactly_the_static_files(self) -> None:
         """The page names every static file, and every static file exists."""
