@@ -714,6 +714,73 @@ class TableTest(unittest.TestCase):
         short = self.make(2, max_rows=3)
         self.assertEqual(3, short.rows((10,)))
 
+    def test_set_focus_scrolls_as_listbox(self) -> None:
+        """``set_focus`` scrolls as :meth:`ListBox.set_focus` does, with and without *coming_from*."""
+        size = (3, 5)
+
+        def make_table() -> urwid.Table:
+            return urwid.Table([Column("A")], [[f"r{i:02}"] for i in range(22)], header=False)
+
+        listbox = urwid.ListBox([urwid.SelectableIcon(f"r{i:02}", 0) for i in range(22)])
+        listbox.render(size, focus=True)
+
+        table = make_table()
+        self.assertEqual(["r00", "r01", "r02", "r03", "r04"], render_text(table, size))
+        table.set_focus(10, coming_from="above")
+        self.assertEqual(["r06", "r07", "r08", "r09", "r10"], render_text(table, size))
+        table.set_focus(2, coming_from="below")
+        self.assertEqual(["r02", "r03", "r04", "r05", "r06"], render_text(table, size))
+
+        undirected = make_table()
+        render_text(undirected, size)
+        for position in (10, 2):
+            with self.subTest(position=position):
+                undirected.focus_position = position
+                listbox.set_focus(position)
+                self.assertEqual(render_text(listbox, size), render_text(undirected, size))
+                self.assertEqual(position, undirected.focus_position)
+
+    def test_set_focus_visible_row_keeps_the_view(self) -> None:
+        """A row on screen is focused without scrolling, with and without *coming_from*."""
+        for coming_from in (None, "below"):
+            with self.subTest(coming_from=coming_from):
+                table = urwid.Table([Column("A")], [[f"r{i:02}"] for i in range(22)], header=False)
+                table.set_focus(10, coming_from="above")
+                render_text(table, (3, 5))
+                table.set_focus(7, coming_from)
+                self.assertEqual(["r06", "r07", "r08", "r09", "r10"], render_text(table, (3, 5)))
+                self.assertEqual(7, table.focus_position)
+
+    def test_set_focus_nested_focus(self) -> None:
+        """*coming_from* moves the cursor into a row on screen; every other move keeps the row's focused cell."""
+        cases = (
+            ("on screen, undirected", 3, None, 1),
+            ("on screen, from above", 3, "above", 0),
+            ("off screen, undirected", 20, None, 1),
+            ("off screen, from above", 20, "above", 1),
+        )
+        for label, target, coming_from, expected_cell in cases:
+            with self.subTest(label):
+                table = urwid.Table(
+                    [Column("A"), Column("B")],
+                    [[urwid.SelectableIcon(f"a{i}", 0), urwid.SelectableIcon(f"b{i}", 0)] for i in range(22)],
+                    header=False,
+                )
+                table.body[target]._w.focus_position = 1
+                table.render((10, 5), focus=True)
+                table.set_focus(target, coming_from)
+                table.render((10, 5), focus=True)
+                self.assertEqual(target, table.focus_position)
+                self.assertEqual(expected_cell, table.body[target]._w.focus_position)
+
+    def test_set_focus_errors(self) -> None:
+        """``set_focus`` rejects a position outside the rows and an unknown *coming_from*."""
+        table = self.make()
+        with self.assertRaises(IndexError):
+            table.set_focus(3)
+        with self.assertRaises(urwid.ListBoxError):
+            table.set_focus(1, coming_from="left")  # type: ignore[arg-type]
+
     def test_unfocused_focus_attr_composition(self) -> None:
         """The E12 map is applied over the row's own map, so its keys are the row's mapped attributes."""
         table = urwid.Table(

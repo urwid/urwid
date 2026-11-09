@@ -3170,6 +3170,22 @@ class ListBoxSetFocusCompleteTest(unittest.TestCase):
         lbox.render((4, 5), focus=True)
         self.assertEqual(40, lbox.focus_position)
 
+    def test_coming_from_moves_nested_focus(self):
+        """Without coming_from a visible target keeps its nested focus; with it the cursor comes in from the edge."""
+        for coming_from, expected_column in ((None, 1), ("above", 0)):
+            with self.subTest(coming_from=coming_from):
+                rows = [
+                    urwid.Columns([urwid.SelectableIcon(f"a{i}", 0), urwid.SelectableIcon(f"b{i}", 0)])
+                    for i in range(10)
+                ]
+                lbox = urwid.ListBox(urwid.SimpleFocusListWalker(rows))
+                rows[3].focus_position = 1
+                lbox.render((10, 5), focus=True)
+                lbox.set_focus(3, coming_from)
+                lbox.render((10, 5), focus=True)
+                self.assertEqual(3, lbox.focus_position)
+                self.assertEqual(expected_column, rows[3].focus_position)
+
     def test_far_jump_coming_from_below(self):
         items = [urwid.Text(str(i)) for i in range(50)]
         lbox = urwid.ListBox(urwid.SimpleListWalker(items))

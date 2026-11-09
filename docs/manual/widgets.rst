@@ -744,6 +744,9 @@ Nothing is dropped while all the rows fit, and a flow size shows both parts.
 In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
 gives the natural width, so a table can size a dialog by itself.
 
+:meth:`Table.set_focus` takes ``coming_from=`` as :meth:`ListBox.set_focus`
+does, so a jump scrolls as if the focus arrived from that edge.
+
 ``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
 ``scrollbar=None`` draws it only when the rows do not fit.
 The :class:`ScrollBar` parameters for its look, its side and its mouse

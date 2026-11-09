@@ -23,6 +23,8 @@ if typing.TYPE_CHECKING:
         ]
         widget = urwid.Table(columns, [["a", "1", edit], [("attr", "b")]], max_rows=4)
         widget.body.append(["c", "2"])
+        widget.set_focus(1)
+        widget.set_focus(1, coming_from="above")
         assert_type(widget.body[0], urwid.TableRow)
         assert_type(widget.focus, urwid.TableRow | None)
         assert_type(widget.body[0].data, typing.Any)

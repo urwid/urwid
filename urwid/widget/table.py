@@ -998,9 +998,31 @@ class Table(Widget):
 
     @focus_position.setter
     def focus_position(self, position: int) -> None:
+        self.set_focus(position)
+
+    def set_focus(self, position: int, coming_from: Literal["above", "below"] | None = None) -> None:
+        """Focus the row at *position*, as :meth:`ListBox.set_focus` does.
+
+        A row on screen from the old focus is brought just into view.
+        Without *coming_from*:
+
+        - a row on screen keeps its cursor and nested focus;
+        - a row off screen is centred and keeps its nested focus.
+
+        With *coming_from*:
+
+        - a row on screen takes the cursor from that edge, at the preferred column;
+        - a row off screen is placed at that edge and keeps its nested focus.
+
+
+        :param position: the index of the row
+        :param coming_from: ``"above"`` or ``"below"`` when the old focus is on that side of the new one
+        :raises IndexError: *position* is not an index of a row.
+        :raises ListBoxError: *coming_from* is not ``"above"``, ``"below"`` or ``None``.
+        """
         if not isinstance(position, int) or not 0 <= position < len(self._rows):
             raise IndexError(f"No Table row at position {position!r}")
-        self._listbox.focus_position = position
+        self._listbox.set_focus(position, coming_from)
 
     def selectable(self) -> bool:
         """Return whether the table has a row to focus."""
