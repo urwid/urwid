@@ -19,6 +19,7 @@ from urwid.command_map import Command
 from .attr_map import AttrMap, AttrMapError, _attr_map_dict
 from .columns import Columns
 from .constants import Align, Sizing, WHSettings, WrapMode
+from .container import _WeakCallback
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
 from .scrollable import SCROLLBAR_LEFT, ScrollBar
@@ -898,7 +899,7 @@ class Table(Widget):
         self._bar = ScrollBar(self._listbox, visible=True, **bar_options) if scrollbar is not False else None
         signals.connect_signal(self._rows, "modified", type(self)._rows_modified, weak_args=[self])
         # connected last, so that filling the rows during construction sends no signal
-        self._rows.set_focus_moved_callback(self._focus_moved)
+        self._rows.set_focus_moved_callback(_WeakCallback(self, type(self)._focus_moved))
 
     def _focus_moved(self, old: int | None, new: int | None) -> None:
         self._emit("focus changed", old, new)
