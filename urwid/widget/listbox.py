@@ -56,6 +56,7 @@ if typing.TYPE_CHECKING:
     from urwid.canvas import Canvas, CompositeCanvas
 
     from .attr_map import _AttrMapLike
+    from .container import _UnfocusedFocusAttrFunc
     from .list_walker import ListBoxContentsProto
     from .widget import AbstractFlowWidget, AbstractWidget
 
@@ -262,6 +263,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         *,
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
     ) -> None: ...
@@ -273,6 +275,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         *,
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
     ) -> None: ...
@@ -283,6 +286,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         *,
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
     ) -> None:
@@ -294,6 +298,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             see :ref:`select-navigation`.
         :param unfocused_focus_attr: attribute map applied to the focus child while the list box renders without
             focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
+        :param unfocused_focus_attr_func: function that gives the map applied to the focus child while the list box
+            renders without focus, instead of *unfocused_focus_attr*; see :attr:`unfocused_focus_attr_func`.
         :param focus_when_empty: whether the ListBox accepts the input focus while its body is empty;
             ``False`` lets a container move the focus past an empty ListBox.
         :param edge: what :kbd:`up` at the first row and :kbd:`down` at the last row do; see :attr:`edge`.
@@ -343,6 +349,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
         self.select_navigation = select_navigation
         self._set_unfocused_focus_attr(unfocused_focus_attr)
+        self._unfocused_focus_attr_func = unfocused_focus_attr_func
         # whether selectable() reports True while the body has no focus widget
         self.focus_when_empty = focus_when_empty
         self.edge = edge
@@ -783,7 +790,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
         focus_canvas = focus_widget.render((maxcol,), focus=focus)
         if not focus:
-            focus_canvas = self._mark_unfocused_focus(focus_canvas)
+            focus_canvas = self._mark_unfocused_focus(focus_canvas, self._unfocused_focus_map_for(focus_widget))
 
         if focus_canvas.rows() != focus_rows:
             raise ListBoxError(

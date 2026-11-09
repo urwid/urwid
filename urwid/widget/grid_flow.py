@@ -29,6 +29,7 @@ if typing.TYPE_CHECKING:
     from urwid.canvas import Canvas
 
     from .attr_map import _AttrMapLike
+    from .container import _UnfocusedFocusAttrFunc
 
 
 class GridFlowError(WidgetError):
@@ -108,6 +109,7 @@ class GridFlow(
         *,
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
     ) -> None:
         """Create the GridFlow widget.
 
@@ -123,6 +125,8 @@ class GridFlow(
             over the cells in their contents order, see :ref:`select-navigation`.
         :param unfocused_focus_attr: attribute map applied to the focus child while the grid renders without
             focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
+        :param unfocused_focus_attr_func: function that gives the map applied to the focus child while the grid
+            renders without focus, instead of *unfocused_focus_attr*; see :attr:`unfocused_focus_attr_func`.
         """
         prepared_contents: list[GridFlowContentsItem] = []
         focus_position: int = -1
@@ -150,6 +154,7 @@ class GridFlow(
         self.align = align
         self.select_navigation = select_navigation
         self._set_unfocused_focus_attr(unfocused_focus_attr)
+        self._unfocused_focus_attr_func = unfocused_focus_attr_func
         self.first_position: weakref.WeakKeyDictionary[Padding[Columns], int] = weakref.WeakKeyDictionary()
         maxcol = self._get_maxcol(())
         self._cache_maxcol: int | None = maxcol
@@ -179,6 +184,7 @@ class GridFlow(
             "focus": self.focus_position if len(self._contents) > 1 else None,
             "select_navigation": self.select_navigation,
             "unfocused_focus_attr": self._unfocused_focus_attr,
+            "unfocused_focus_attr_func": self._unfocused_focus_attr_func,
         }
         return remove_defaults(attrs, GridFlow.__init__)
 
@@ -192,6 +198,7 @@ class GridFlow(
         yield "focus", self.focus_position
         yield "select_navigation", self.select_navigation, False
         yield "unfocused_focus_attr", self._unfocused_focus_attr, None
+        yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
 
     def __len__(self) -> int:
         """Return the number of cells."""
@@ -408,6 +415,7 @@ class GridFlow(
                 p.focus_position = len(p.contents) - 1
                 # only the row holding the focus cell marks it, so the other rows' own focus cells stay plain
                 c.unfocused_focus_attr = self._unfocused_focus_attr
+                c.unfocused_focus_attr_func = self._unfocused_focus_attr_func
             used_space = sum(typing.cast("int", x[1][1]) for x in c.contents) + self.h_sep * len(c.contents)
             pad.width = used_space - self.h_sep
 

@@ -620,6 +620,30 @@ selected tab, not to the body::
 
     listbox = urwid.ListBox(walker, unfocused_focus_attr={"item": "item selected"})
 
+When the children carry their own :class:`AttrMap` focus maps, a fixed map
+cannot follow each child's own look.  ``unfocused_focus_attr_func`` takes a
+function instead: it is called with the focus child (the selected label of a
+:class:`Tabs`, the :class:`TableRow` of a :class:`Table`) and returns a map in
+any form :class:`AttrMap` takes, or ``None`` to fall back to
+``unfocused_focus_attr``.  It runs when the container's canvas is drawn
+afresh, so a result that depends on state outside the widgets needs the
+container invalidated before it shows::
+
+    def own_focus_map(child):
+        if not isinstance(child, urwid.AttrMap) or child.focus_map is None:
+            return None
+        return {child.attr_map.get(key, key): value for key, value in child.focus_map.items()}
+
+    pile = urwid.Pile(cells, unfocused_focus_attr_func=own_focus_map)
+
+``focus_map`` is ``None`` for an :class:`AttrMap` without one, and an
+attribute the normal map does not name passes through unchanged.  The mark is
+applied to the attributes the normal map has already produced, so it
+reproduces the focused look only while the normal map keeps apart the
+attributes the focus map tells apart: with ``attr_map={"a": "plain", "b":
+"plain"}`` and ``focus_map={"a": "one", "b": "two"}`` both parts are marked
+``"two"``.
+
 
 Pile Widgets
 ------------

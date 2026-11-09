@@ -797,6 +797,28 @@ class TableTest(unittest.TestCase):
         table.unfocused_focus_attr = "marked"
         self.assertEqual({None: "marked"}, table.unfocused_focus_attr)
 
+        seen: list[urwid.TableRow] = []
+
+        def by_row(row: urwid.TableRow) -> dict[Hashable, Hashable] | None:
+            seen.append(row)
+            return None if row.attr is None else {"row": "row by row", "row cell": "cell by row"}
+
+        table.unfocused_focus_attr_func = by_row
+        self.assertIs(by_row, table.unfocused_focus_attr_func)
+        # a row without its own attr gets None, so the fixed map applies
+        self.assertEqual(
+            [[(urwid.LayeredAttr("row cell", "row", "marked"), "a"), (urwid.LayeredAttr("row", "marked"), " b")]],
+            render_runs(table, (3, 2))[:1],
+        )
+        self.assertEqual([table.body[0]], seen)
+        seen.clear()
+        table.body[0] = table.layout.row([("cell", "a"), "b"], attr={None: "row", "cell": "row cell"})
+        self.assertEqual(
+            [[(urwid.LayeredAttr("cell by row", "row by row"), "a"), ("row by row", " b")], [("row", "c d")]],
+            render_runs(table, (3, 2)),
+        )
+        self.assertEqual([table.body[0]], seen)
+
     def test_header_never_focused(self) -> None:
         """Up from the first row leaves the key unhandled, and a click on the header changes nothing."""
         table = self.make()

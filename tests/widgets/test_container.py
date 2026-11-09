@@ -10,7 +10,9 @@ import urwid
 from tests.util import SelectableText
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Hashable
+
+    from urwid.widget.attr_map import _AttrMapLike
 
 
 class CommonContainerTest(unittest.TestCase):
@@ -610,6 +612,81 @@ class UnfocusedFocusAttrTest(unittest.TestCase):
                 container.unfocused_focus_attr = None
                 self.assertEqual("plain", _attributes(container.render(size))["c"])
                 self.assertEqual("plain", _attributes(old_canvas)["c"])
+
+                def func(_child: urwid.AbstractWidget) -> str:
+                    return "mark"
+
+                container.unfocused_focus_attr_func = func
+                self.assertEqual(marked, _attributes(container.render(size))["c"])
+                self.assertIs(func, container.unfocused_focus_attr_func)
+                if name != "ListBox":
+                    self.assertIn("unfocused_focus_attr_func=", repr(container))
+                    self.assertIn(("unfocused_focus_attr_func", func, None), list(container.__rich_repr__()))
+                container.unfocused_focus_attr_func = None
+                self.assertEqual("plain", _attributes(container.render(size))["c"])
+
+    def test_func_marks_the_focus_child(self) -> None:
+        """``unfocused_focus_attr_func`` gives the map for the focus child; on ``None`` the fixed map applies."""
+        cases: tuple[tuple[str, _AttrMapLike | None, _AttrMapLike | None, _AttrMapLike | None], ...] = (
+            # label, the function's result, unfocused_focus_attr, the map "c" is marked with
+            ("single attribute", "mark", None, "mark"),
+            ("attribute map", {"plain": "mark"}, None, {"plain": "mark"}),
+            ("None without a fixed map", None, None, None),
+            ("None with a fixed map", None, "mark", "mark"),
+            ("result over the fixed map", "mark", "other", "mark"),
+        )
+        for name, make in _MARKING_CONTAINERS.items():
+            for label, result, fixed, marked_with in cases:
+                with self.subTest(name, case=label):
+                    seen: list[object] = []
+
+                    def func(child: urwid.AbstractWidget, result: _AttrMapLike | None = result) -> _AttrMapLike | None:
+                        seen.append(child)
+                        return result
+
+                    container, size = make(unfocused_focus_attr=fixed, unfocused_focus_attr_func=func)
+                    expected = dict.fromkeys("abcd", "plain")
+                    if marked_with is not None:
+                        expected["c"] = _attributes(urwid.AttrMap(_cells("c")[0], marked_with).render((1,)))["c"]
+                    self.assertEqual(expected, _attributes(container.render(size)))
+                    self.assertTrue(seen)
+                    self.assertTrue(all(child is container.focus for child in seen))
+
+                    seen.clear()
+                    self.assertEqual(dict.fromkeys("abcd", "plain"), _attributes(container.render(size, focus=True)))
+                    self.assertEqual([], seen)
+
+    def test_func_called_when_drawn_afresh(self) -> None:
+        """The function runs when the canvas is drawn afresh, and not for a canvas the cache returns."""
+        for name, make in _MARKING_CONTAINERS.items():
+            with self.subTest(name):
+                calls: list[object] = []
+                container, size = make(unfocused_focus_attr_func=lambda child: (calls.append(child), "mark")[1])
+                # the canvas cache holds canvases weakly: keep the first one alive, as a screen showing it does
+                first = container.render(size)
+                self.assertEqual(1, len(calls))
+                self.assertIs(first, container.render(size))
+                self.assertEqual(1, len(calls))
+                typing.cast("urwid.Widget", container.focus)._invalidate()
+                container.render(size)
+                self.assertEqual(2, len(calls))
+
+    def test_func_limit_of_the_focus_map_example(self) -> None:
+        """The manual's example cannot tell apart attributes the normal map has already merged."""
+
+        def own_focus_map(child: urwid.AbstractWidget) -> dict[Hashable, Hashable] | None:
+            if not isinstance(child, urwid.AttrMap) or child.focus_map is None:
+                return None
+            return {child.attr_map.get(key, key): value for key, value in child.focus_map.items()}
+
+        markup = [("a", "x"), ("b", "y")]
+        distinct = urwid.AttrMap(SelectableText(markup), {"a": "pa", "b": "pb"}, {"a": "one", "b": "two"})
+        merged = urwid.AttrMap(SelectableText(markup), {"a": "plain", "b": "plain"}, {"a": "one", "b": "two"})
+        for child, expected in ((distinct, {"x": "one", "y": "two"}), (merged, {"x": "two", "y": "two"})):
+            with self.subTest(attr_map=child.attr_map):
+                pile = urwid.Pile([child], unfocused_focus_attr_func=own_focus_map)
+                self.assertEqual({"x": "one", "y": "two"}, _attributes(child.render((2,), focus=True)))
+                self.assertEqual(expected, _attributes(pile.render((2,))))
 
     def test_mark_follows_the_focus(self) -> None:
         """After the focus moves, the new focus child is marked and the old one is plain again."""
