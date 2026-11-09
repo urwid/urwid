@@ -25,6 +25,7 @@ from __future__ import annotations
 import abc
 import functools
 import logging
+import types
 import typing
 import warnings
 from operator import attrgetter, index
@@ -37,7 +38,7 @@ from urwid.split_repr import split_repr
 from .constants import Sizing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable
+    from collections.abc import Callable, Hashable, Mapping
     from typing import Self
 
 
@@ -49,6 +50,7 @@ __all__ = (
     "Widget",
     "WidgetError",
     "WidgetMeta",
+    "WidgetSizingError",
     "WidgetWarning",
     "WidgetWrap",
     "WidgetWrapError",
@@ -74,6 +76,9 @@ class WidgetMeta(
 
     Automatic caching of render and rows methods.
 
+    The ``render``, ``rows``, ``pack``, ``keypress`` and ``mouse_event`` methods a class defines
+    raise :exc:`WidgetSizingError` when they get a size of a sizing mode the widget does not support.
+
     Class variable *no_cache* is a list of names of methods to not cache automatically.
     Valid method names for *no_cache* are ``'render'`` and ``'rows'``.
 
@@ -87,7 +92,10 @@ class WidgetMeta(
         bases: tuple[type, ...],
         d: dict[str, typing.Any],
     ) -> None:
-        """Wrap the new class's `render`/`rows` methods with caching, unless listed in `no_cache`."""
+        """Wrap the new class's widget methods with the sizing check, and `render`/`rows` with caching.
+
+        `render` and `rows` are not cached when listed in `no_cache`.
+        """
         no_cache = d.get("no_cache", [])
 
         super().__init__(name, bases, d)
@@ -103,6 +111,13 @@ class WidgetMeta(
 
         if "rows" in d and "rows" not in no_cache:
             setattr(cls, "rows", cache_widget_rows(cls))  # noqa: B010  # see the comment above
+        elif isinstance(d.get("rows"), types.FunctionType):
+            setattr(cls, "rows", _check_sizing(d["rows"]))  # noqa: B010  # see the comment above
+
+        for method_name in ("pack", "keypress", "mouse_event"):
+            # A property, such as one that returns a delegate's bound method, is left as it is.
+            if isinstance(d.get(method_name), types.FunctionType):
+                setattr(cls, method_name, _check_sizing(d[method_name]))
         if "no_cache" in d:
             del cls.no_cache
         if "ignore_focus" in d:
@@ -315,6 +330,173 @@ class WidgetWarning(Warning):
     """Widget specific warnings."""
 
 
+class WidgetSizingError(WidgetError):
+    """A widget got a size of a sizing mode it does not support.
+
+    The message names the widget, the size it got and the sizing modes it supports.
+    The exception notes list the widgets that passed the size down to it, innermost first.
+    The error that the wrong size caused is the ``__cause__``.
+    A pickled error keeps the message, the size, the notes and an attribute name, and drops the widget.
+
+    The instances raised are also a :exc:`ValueError`, an :exc:`IndexError` or an :exc:`AttributeError`,
+    the type of that cause, so code that catches the cause's type still catches them.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        widget: AbstractWidget | None = None,
+        size: tuple[int, ...] | None = None,
+    ) -> None:
+        """Create the error for *widget*, which got *size*; *size* is ``None`` when it is not known."""
+        super().__init__(message)
+        #: The widget that got the size it does not support.
+        self.widget = widget
+        #: The size that widget got.
+        self.size = size
+        # An id rather than a reference, so the error does not keep the widget tree alive.
+        self._outermost_id = id(widget)
+
+    def __reduce__(self) -> tuple[typing.Any, ...]:
+        """Pickle the error without the widget, which may not be picklable."""
+        # The id of the outermost widget means nothing in the process that unpickles the error.
+        state = {key: value for key, value in vars(self).items() if key not in {"widget", "_outermost_id"}}
+        if isinstance(self, AttributeError):
+            state["name"] = self.name
+        return type(self), self.args, state
+
+    def __setstate__(self, state: dict[str, typing.Any] | None) -> None:
+        """Restore the pickled state with ``setattr()``.
+
+        PyPy's default puts ``name`` into the instance dict instead of setting ``AttributeError.name``.
+        """
+        for key, value in (state or {}).items():
+            setattr(self, key, value)
+
+    def add_parent(self, widget: AbstractWidget, size: object) -> None:
+        """Note that *widget* passed the size down, with its own *size*, to the widget with the error.
+
+        A widget whose method calls the same method of its base class reaches here twice and is noted once.
+        """
+        if id(widget) != self._outermost_id:
+            self._outermost_id = id(widget)
+            self.add_note(f"  inside {type(widget).__name__} with size {size!r}")
+
+
+class _WidgetSizingValueError(WidgetSizingError, ValueError):
+    """A sizing error that unpacking a size of the wrong length caused."""
+
+
+class _WidgetSizingIndexError(WidgetSizingError, IndexError):
+    """A sizing error that indexing a size of the wrong length caused."""
+
+
+class _WidgetSizingAttributeError(WidgetSizingError, AttributeError):
+    """A sizing error that calling ``rows()`` of a widget without a FLOW sizing caused."""
+
+
+#: The sizing mode of a size, by the length of the size tuple.
+_SIZE_SIZING: typing.Final[Mapping[int, Sizing]] = {0: Sizing.FIXED, 1: Sizing.FLOW, 2: Sizing.BOX}
+#: How to give a widget a size of the mode it is keyed by.
+_SIZING_HINTS: typing.Final[Mapping[Sizing, str]] = {
+    Sizing.BOX: "To give it a BOX size, wrap a FLOW widget in Filler, or a FIXED widget in Filler(Padding(...)).",
+    Sizing.FLOW: "To give it a FLOW size, wrap a BOX widget in BoxAdapter with a height, or a FIXED widget in Padding.",
+    Sizing.FIXED: "Only a FIXED widget takes the () size; give the widget a width, for example with Padding.",
+}
+
+
+def _raise_sizing_error(
+    widget: AbstractWidget,
+    size: object,
+    exc: ValueError | IndexError | AttributeError,
+) -> None:
+    """Raise a :exc:`WidgetSizingError` when *exc* comes from a size of a sizing mode a widget does not support.
+
+    Return without raising when *exc* is a :exc:`WidgetError`, has another cause, or a ``sizing()`` call fails.
+    The caller then re-raises it unchanged.
+    A :exc:`WidgetSizingError` from a widget inside *widget* gets *widget* noted and is re-raised by the caller.
+
+    The widget with the wrong size is found in this order:
+
+    - a widget whose ``rows()`` *widget* called, when that widget has no ``rows()``;
+    - *widget* itself, when the sizing mode of *size* is not in its :meth:`Widget.sizing`.
+
+    :raises WidgetSizingError: *exc* comes from a size of a sizing mode a widget does not support.
+    """
+    if isinstance(exc, WidgetSizingError):
+        exc.add_parent(widget, size)
+        return
+
+    if isinstance(exc, WidgetError):  # A widget's own error already says what is wrong.
+        return
+
+    try:
+        if isinstance(exc, AttributeError) and exc.name == "rows" and isinstance(exc.obj, Widget):
+            failed: AbstractWidget = exc.obj
+            mode = Sizing.FLOW
+            supported = failed.sizing()
+            failed_size: tuple[int, ...] | None = None
+            if Sizing.FLOW in supported:
+                message = f"{failed!r} has FLOW sizing but no rows() method"
+                hint = "A FLOW widget defines rows(); define it, or leave FLOW out of sizing()."
+            else:
+                message = f"{failed!r} has no rows() method, so it cannot take a FLOW size"
+                hint = _SIZING_HINTS[mode]
+        elif isinstance(exc, (ValueError, IndexError)) and isinstance(size, tuple) and len(size) in _SIZE_SIZING:
+            failed = widget
+            mode = _SIZE_SIZING[len(size)]
+            supported = widget.sizing()
+            if mode in supported:
+                return
+            failed_size = size
+            message = f"{widget!r} got the {mode.upper()} size {size!r}"
+            hint = _SIZING_HINTS[mode]
+        else:
+            return
+        supported_text = ", ".join(sorted(sizing.upper() for sizing in supported)) or "no"
+    except Exception:  # noqa: BLE001  # the caller re-raises *exc*, which a broken sizing() must not replace
+        return
+
+    if isinstance(exc, AttributeError):
+        attribute_error = _WidgetSizingAttributeError(
+            f"{message}; it supports {supported_text} sizing. {hint}",
+            widget=failed,
+            size=failed_size,
+        )
+        attribute_error.name, attribute_error.obj = exc.name, exc.obj
+        error: WidgetSizingError = attribute_error
+        del attribute_error  # A second name for the error would survive the del below.
+    else:
+        error_type = _WidgetSizingValueError if isinstance(exc, ValueError) else _WidgetSizingIndexError
+        error = error_type(f"{message}; it supports {supported_text} sizing. {hint}", widget=failed, size=failed_size)
+    if failed is not widget:
+        error.add_parent(widget, size)
+    try:
+        raise error from exc
+    finally:
+        # The traceback holds this frame, so the local would make a reference cycle that keeps the widget alive.
+        del error
+
+
+_Method = typing.TypeVar("_Method", bound="Callable[..., typing.Any]")
+
+
+def _check_sizing(fn: _Method) -> _Method:
+    """Wrap a widget method whose first argument is a size to raise :exc:`WidgetSizingError` for a wrong size."""
+
+    @functools.wraps(fn)
+    def checked(self: AbstractWidget, *args: typing.Any, **kwargs: typing.Any) -> typing.Any:
+        try:
+            return fn(self, *args, **kwargs)
+        except (ValueError, IndexError, AttributeError) as exc:
+            # A pack() with a default size can be called without one; there is then no size to check.
+            _raise_sizing_error(self, args[0] if args else kwargs.get("size"), exc)
+            raise
+
+    return typing.cast("_Method", checked)
+
+
 def validate_size(
     widget: AbstractWidget,
     size: tuple[()] | tuple[int] | tuple[int, int],
@@ -349,7 +531,11 @@ def cache_widget_render(
         if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv
 
-        canv = fn(self, size, focus=focus)
+        try:
+            canv = fn(self, size, focus=focus)
+        except (ValueError, IndexError, AttributeError) as exc:
+            _raise_sizing_error(self, size, exc)
+            raise
         validate_size(self, size, canv)
         if canv.widget_info:
             canv = CompositeCanvas(canv)
@@ -375,7 +561,11 @@ def nocache_widget_render(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        canv = fn(self, size, focus=focus)
+        try:
+            canv = fn(self, size, focus=focus)
+        except (ValueError, IndexError, AttributeError) as exc:
+            _raise_sizing_error(self, size, exc)
+            raise
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         validate_size(self, size, canv)
@@ -397,7 +587,11 @@ def nocache_widget_render_instance(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> Canvas:
-        canv = typing.cast("Canvas", fn(self, size, focus=focus))
+        try:
+            canv = typing.cast("Canvas", fn(self, size, focus=focus))
+        except (ValueError, IndexError, AttributeError) as exc:
+            _raise_sizing_error(self, size, exc)
+            raise
         if canv.widget_info:
             canv = CompositeCanvas(canv)
         canv.finalize(self, size, focus)
@@ -423,7 +617,11 @@ def cache_widget_rows(cls: WidgetMeta) -> Callable[[AbstractWidget, tuple[int], 
         if canv := CanvasCache.fetch(self, cls, size, focus):
             return canv.rows()
 
-        return fn(self, size, focus)
+        try:
+            return fn(self, size, focus)
+        except (ValueError, IndexError, AttributeError) as exc:
+            _raise_sizing_error(self, size, exc)
+            raise
 
     return cached_rows
 
