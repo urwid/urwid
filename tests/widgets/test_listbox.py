@@ -2363,6 +2363,7 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         for name, call in (
             ("rows_max", lambda lbox: lbox.rows_max(size)),
             ("get_scrollpos", lambda lbox: lbox.get_scrollpos(size)),
+            ("set_scrollpos", lambda lbox: (lbox.render(size), lbox.set_scrollpos(0))),
             ("get_first_visible_pos", lambda lbox: lbox.get_first_visible_pos(size)),
             ("ScrollBar.render", lambda lbox: urwid.ScrollBar(lbox).render((5, 5))),
         ):
@@ -2376,6 +2377,65 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
         self.assertEqual(0, lbox.get_scrollpos((4, 5)))
         self.assertEqual(0, lbox.get_first_visible_pos((4, 5)))
         self.assertEqual(1, lbox.get_visible_amount((4, 5)))
+
+    def test_set_scrollpos(self) -> None:
+        """The view starts at the requested row, and the focus stays while any of its rows is in view."""
+        size = (5, 3)
+        # Rows: items 0-4 one row each (rows 0-4), item 5 three rows (rows 5-7), items 6-9 one row each (rows 8-11).
+        texts = [*map(str, range(5)), "5a\n5b\n5c", *map(str, range(6, 10))]
+        for start_focus, position, expected_top, expected_focus in (
+            (0, 0, 0, 0),  # nothing moves
+            (0, 1, 1, 1),  # the focus left above: the first widget in view takes it
+            (0, 4, 4, 4),
+            (0, 6, 6, 5),  # the first widget in view is cut by one row
+            (0, 100, 9, 7),  # limited to the last full view
+            (5, 7, 7, 5),  # the last row of the focus is still in view
+            (9, 7, 7, 7),  # the focus left below: the last widget in view takes it
+            (9, 2, 2, 4),
+            (9, -5, 0, 2),
+        ):
+            with self.subTest(start_focus=start_focus, position=position):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(text) for text in texts]))
+                lbox.set_focus(start_focus)
+                lbox.render(size)
+                lbox.set_scrollpos(position)
+                self.assertEqual(expected_focus, lbox.focus_position)
+                canvas = lbox.render(size)
+                self.assertEqual(expected_top, lbox.get_scrollpos(size))
+                self.assertEqual(
+                    tuple(row.ljust(size[0]) for row in "\n".join(texts).splitlines()[expected_top : expected_top + 3]),
+                    canvas.decoded_text,
+                )
+
+    def test_set_scrollpos_after_pending_focus(self) -> None:
+        """A focus placement still pending from before does not move the view away from the requested row."""
+        size = (5, 3)
+        for name, pending, position in (
+            ("set_focus", lambda lbox: lbox.set_focus(6, coming_from="above"), 5),
+            ("valign middle", lambda lbox: lbox.set_focus_valign("middle"), 10),
+            ("valign bottom", lambda lbox: lbox.set_focus_valign("bottom"), 5),
+        ):
+            with self.subTest(name):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(str(i)) for i in range(20)]))
+                lbox.render(size)
+                pending(lbox)
+                lbox.set_scrollpos(position)
+                lbox.render(size)
+                self.assertEqual(position, lbox.get_scrollpos(size))
+
+    def test_set_scrollpos_without_scrolling(self) -> None:
+        """A body that fits, an empty body, or a ListBox not rendered yet keeps its view and its focus."""
+        for texts, render in ((["0", "1"], True), ([], True), ([str(i) for i in range(10)], False)):
+            with self.subTest(texts=texts, render=render):
+                lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(text) for text in texts]))
+                if texts:
+                    lbox.set_focus(1)
+                if render:
+                    lbox.render((5, 3))
+                lbox.set_scrollpos(5)
+                if texts:
+                    self.assertEqual(1, lbox.focus_position)
+                self.assertEqual(0, lbox.get_scrollpos((5, 3)))
 
     def test_scroll_protocol_focus_at_top(self):
         # focus at position 0 means nothing is above it, so top.fill is empty

@@ -1076,6 +1076,8 @@ and implement positioning API:
     **Optional** method for setting scrolling position.
 
     Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.
+    :class:`ScrollBar` does not call :meth:`ListBox.set_scrollpos`, so a :class:`ListBox` keeps scrolling by its focus
+    there; a subclass that defines its own method is called.
 
     If `position` is positive it is interpreted as lines from the top.
     If `position` is negative it is interpreted as lines from the bottom.
@@ -1174,6 +1176,12 @@ last row :kbd:`down`, so a parent :class:`Pile` moves the focus to the widget
 above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
+
+:meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
+is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
+contains the focus widget, so the focus stays only while one of its rows is in
+the new view.  Otherwise the first widget in the view takes the focus when the
+view moved down past it, and the last widget when the view moved up.
 
 
 Dynamic ListBox with ListWalker

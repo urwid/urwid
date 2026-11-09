@@ -672,6 +672,65 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
         return start_row
 
+    def set_scrollpos(self, position: typing.SupportsInt) -> None:
+        """Scroll the view so that row *position* of the body is its first row.
+
+        The view keeps the size of the last render, and *position* is limited to the rows that keep it filled.
+        The focus stays where it is while at least one of its rows is in the new view.
+        Otherwise it moves to the widget at the edge the old focus left by:
+
+        - the first widget in the view, when the view moved down past the old focus;
+        - the last widget in the view, when the view moved up past it.
+
+        When the focus widget shows a cursor, a render in focus still moves the view to keep the cursor visible.
+
+        >>> from urwid import Text
+        >>> listbox = ListBox([Text(str(number)) for number in range(10)])
+        >>> canvas = listbox.render((5, 3))
+        >>> listbox.set_scrollpos(4)
+        >>> listbox.get_scrollpos(), listbox.focus_position
+        (4, 4)
+        >>> listbox.set_scrollpos(3)
+        >>> listbox.get_scrollpos(), listbox.focus_position
+        (3, 4)
+
+        :raises ListBoxError: the body does not support the scrolling protocol, or it wraps around.
+        """
+        self._check_support_scrolling()
+        maxcol, maxrow = self._rendered_size
+        if maxrow <= 0:
+            return  # no render yet
+        # A pending focus placement would otherwise replace this one at the next render.
+        if self.set_focus_pending or self.set_focus_valign_pending:
+            self._set_focus_complete((maxcol, maxrow), focus=True)
+        focus_widget, focus_pos = self._body.get_focus()
+        if focus_widget is None:
+            return  # an empty body
+
+        top = max(0, min(int(position), self._body_rows(maxcol) - maxrow))
+        bottom = top + maxrow  # the first row below the view
+        focus_start = sum(widget.rows((maxcol,)) for widget, _pos in self._walk_body(focus_pos, forward=False))
+        focus_end = focus_start + focus_widget.rows((maxcol,), focus=True)
+
+        # a focus widget was returned, so its position is a body position
+        target, start = typing.cast("_K", focus_pos), focus_start
+        if focus_end <= top:
+            start = focus_end
+            for widget, walk_pos in self._walk_body(focus_pos, forward=True):
+                rows = widget.rows((maxcol,))
+                if start + rows > top:
+                    target = walk_pos
+                    break
+                start += rows
+        elif focus_start >= bottom:
+            for widget, walk_pos in self._walk_body(focus_pos, forward=False):
+                start -= widget.rows((maxcol,))
+                if start < bottom:
+                    target = walk_pos
+                    break
+
+        self.change_focus((maxcol, maxrow), target, start - top)
+
     def rows(self, size: tuple[int], focus: bool = False) -> int:
         """Return the rows of all widgets in the body at the width in *size*.
 
