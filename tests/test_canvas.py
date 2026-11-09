@@ -459,6 +459,17 @@ class CanvasTest(unittest.TestCase):
         self.ct(["Hello world"], None, [[(None, None, b"Hello world")]])
         self.ct(["Hello world"], [[("a", 5)]], [[("a", None, b"Hello"), (None, None, b" world")]])
         self.ct(["Hi", "There"], None, [[(None, None, b"Hi   ")], [(None, None, b"There")]])
+        # a line with no list of runs gets the default attribute, rather than being left out of the content
+        self.ct(["Hi", "There"], [], [[(None, None, b"Hi   ")], [(None, None, b"There")]])
+        self.ct(["Hi", "There"], [[("a", 1)]], [[("a", None, b"H"), (None, None, b"i   ")], [(None, None, b"There")]])
+
+    def test_missing_character_set_lines_get_the_default_set(self):
+        """A line with no list of character set runs gets the default set, rather than being left out."""
+        canv = urwid.TextCanvas([b"Hi", b"There"], cs=[[("0", 1)]])
+        self.assertEqual(
+            [[(None, "0", b"H"), (None, None, b"i   ")], [(None, None, b"There")]],
+            list(canv.content()),
+        )
 
     def test2(self):
         self.ct2(

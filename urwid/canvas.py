@@ -525,14 +525,35 @@ class TextCanvas(Canvas):
     ) -> None:
         """Build a text canvas from the given lines and attributes.
 
-        :param text: list of strings, one for each line
-        :param attr: list of run length encoded attributes for text
-        :param cs: list of run length encoded character set for text
+        Each line of *text* is padded with spaces to *maxcol* columns.
+        *attr* and *cs* hold one list of runs per line.
+        A run is a ``(value, length)`` tuple that applies *value* to the next *length* bytes of the line.
+        The runs of a line cover it from its first byte, and their lengths add up to at most the padded line's length.
+        The bytes after the last run, and every line with no list of runs, get ``None``:
+        the default attribute, or the default character set.
+
+        For example, ``attr=[[("bold", 3), ("red", 2)], [("blue", 4)]]`` with ``text=[b"foobar", b"test string"]``
+        shows ``foo`` as ``bold``, ``ba`` as ``red``, ``r`` with the default attribute, ``test`` as ``blue``,
+        and the rest of the second line with the default attribute:
+
+        >>> canvas = TextCanvas([b"foobar", b"test string"], [[("bold", 3), ("red", 2)], [("blue", 4)]])
+        >>> [[(a, text) for a, _cs, text in row] for row in canvas.content()]
+        [[('bold', b'foo'), ('red', b'ba'), (None, b'r     ')], [('blue', b'test'), (None, b' string')]]
+
+        :param text: lines of text, encoded in the screen's encoding (see :func:`urwid.set_encoding`)
+        :param attr: runs of display attributes for each line:
+            palette entry names, :class:`AttrSpec` or :class:`LayeredAttr` values, or ``None`` for the default attribute
+        :param cs: runs of character sets for each line:
+
+            - ``"0"``: the DEC special graphics set, in a non-UTF-8 encoding.
+            - ``"U"``: bytes written unchanged, without filtering control characters;
+              in a non-UTF-8 encoding, also the IBM PC character set.
+            - ``None``: the default set.
         :param cursor: (x,y) of cursor or None
         :param maxcol: screen columns taken by this canvas
         :param check_width: check and fix width of all lines in text
         :raises CanvasError: a line of *text* is not a plain string in the screen encoding, is wider than *maxcol*, or
-            has an attribute or character set run extending beyond its text.
+            has an attribute or character set run extending beyond its padded text.
         :raises TypeError: *maxcol* is not an integer.
         """
         super().__init__()
@@ -560,10 +581,13 @@ class TextCanvas(Canvas):
             else:
                 maxcol = 0
 
-        if attr is None:
-            attr = [[] for _ in range(len(text))]
-        if cs is None:
-            cs = [[] for _ in range(len(text))]
+        # content() pairs each line with its runs, so a line with no list of runs would be left out of it
+        attr = attr or []
+        if len(attr) < len(text):
+            attr = [*attr, *([] for _ in range(len(text) - len(attr)))]
+        cs = cs or []
+        if len(cs) < len(text):
+            cs = [*cs, *([] for _ in range(len(text) - len(cs)))]
 
         # pad text and attr to maxcol
         for i, (w, a_row, cs_row) in enumerate(zip(widths, attr, cs, strict=False)):
