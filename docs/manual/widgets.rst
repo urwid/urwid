@@ -405,8 +405,9 @@ flagged to be redrawn.
 iterable to ``container.contents`` to overwrite the values in
 with the ones provided.
 
-:class:`Columns`, :class:`Pile`, :class:`GridFlow`, :class:`Overlay` and
-:class:`Frame` support ``container.contents`` item assignment and deletion.
+:class:`Columns`, :class:`Pile`, :class:`GridFlow` and :class:`Frame` support
+``container.contents`` item assignment and deletion. :class:`Overlay` supports
+item assignment only, because its two items are fixed.
 
 ::
 
@@ -876,8 +877,8 @@ The alarm that dismisses a message is set on the ``loop`` given to the
 widget, or else on the loop running when :meth:`~Notifications.notify` is
 called (see :func:`get_running_loop`); a message with a timeout posted before
 the loop runs needs ``loop=``.  Call the widget from the thread running the
-loop only.  Another thread hands its message over through
-:meth:`MainLoop.watch_pipe`, or the event loop's own thread-safe scheduling.
+loop only.  Another thread hands its message over with
+:meth:`MainLoop.call_from_thread`.
 ``examples/notifications.py`` shows the widget as a footer.
 
 
@@ -1579,7 +1580,7 @@ Widget Metaclass
 The :class:`Widget` base class has a metaclass defined that uses :class:`MetaSignals`
 to allow signals to be defined as a list of signal names
 in a ``signals`` class attribute.  This is equivalent to calling
-:func:`register_signal` with the class name and list of signals and all those
+:func:`register_signal` with the class and list of signals and all those
 defined in superclasses after the class definition.
 
 .. seealso::

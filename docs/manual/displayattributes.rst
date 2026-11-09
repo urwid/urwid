@@ -51,14 +51,14 @@ Some examples:
 
 ::
 
-    Text(u"a simple string with default attribute")
+    Text("a simple string with default attribute")
 
 The string and space around will use the ``None`` default display attribute
 which usually appears in the terminal's default foreground and background.
 
 ::
 
-    Text(('attr1', u"a string in display attribute attr1"))
+    Text(('attr1', "a string in display attribute attr1"))
 
 The string will appear with foreground and backgrounds specified in the display
 module's palette for ``'attr1'``, but the space around (before/after) the text
@@ -66,21 +66,21 @@ will appear with the default display attribute.
 
 ::
 
-    Text([u"a simple string ", ('attr1', u"ending with attr1")])
+    Text(["a simple string ", ('attr1', "ending with attr1")])
 
 The first three words have the default display attribute and the last three words have
 display attribute ``'attr1'``.
 
 ::
 
-    Text([('attr1', u"start in attr1 "), ('attr2', u"end in attr2")])
+    Text([('attr1', "start in attr1 "), ('attr2', "end in attr2")])
 
 The first three words have display attribute ``'attr1'`` and the last three words have
 display attribute ``'attr2'``.
 
 ::
 
-    Text(('attr1', [u"nesting example ", ('attr2', u"inside"), u" outside"]))
+    Text(('attr1', ["nesting example ", ('attr2', "inside"), " outside"]))
 
 When markup is nested the inner attribute is placed over the outer one. Here ``"inside"``
 has attribute ``'attr2'`` and all the rest of the text has attribute
@@ -100,21 +100,21 @@ so :class:`AttrMap` may be used. Some examples:
 
 ::
 
-    AttrMap(Text(u"hello"), 'attr1')
+    AttrMap(Text("hello"), 'attr1')
 
 The whole :class:`Text` widget will have display attribute ``'attr1'`` including
 whitespace around the ``"hello"`` text.
 
 ::
 
-    AttrMap(Text(('attr1', u"hello")), 'attr2')
+    AttrMap(Text(('attr1', "hello")), 'attr2')
 
-The ``u"hello"`` text will appear with display attribute ``'attr1'`` and all surrounding
+The ``"hello"`` text will appear with display attribute ``'attr1'`` and all surrounding
 whitespace will appear with display attribute ``'attr2'``.
 
 ::
 
-    AttrMap(Text([('attr1', u"hello"), u" world"]), {'attr1': 'attr2'})
+    AttrMap(Text([('attr1', "hello"), " world"]), {'attr1': 'attr2'})
 
 The :class:`AttrMap` widget will apply display attribute ``'attr2'`` to all parts of
 the :class:`Text` widget that are using ``'attr1'``.  The result is the ``"hello"``
@@ -126,7 +126,7 @@ The attributes of the wrapped widget are placed over the attribute :class:`AttrM
 
 ::
 
-    AttrMap(Pile([Text(('red_fg', u"error")), Text(u"plain")]), 'panel_bg')
+    AttrMap(Pile([Text(('red_fg', "error")), Text("plain")]), 'panel_bg')
 
 With ``('red_fg', 'dark red', 'inherit')`` and ``('panel_bg', 'inherit', 'dark blue')`` in the
 palette, ``"error"`` is dark red and all other text and whitespace is in the default foreground,
@@ -291,7 +291,7 @@ colors, give those entries an ``'inherit'`` background and wrap each row:
         ('size', 'brown', 'inherit'),
         ('focus_bg', 'inherit', 'dark blue'),
     ]
-    row = AttrMap(Columns([Text(('method', u"GET")), Text(('size', u"1k"))]), None, focus_map='focus_bg')
+    row = AttrMap(Columns([Text(('method', "GET")), Text(('size', "1k"))]), None, focus_map='focus_bg')
 
 When an attribute inherits a color, a setting (``'bold'``, ``'underline'``, ...) it does not
 mention is taken from the enclosing attribute, and ``'no-'`` turns one off: with
@@ -351,7 +351,8 @@ Many terminals will turn foreground colors into their bright versions when you
 use bold, eg: ``'dark blue,bold'`` might look the same as ``'light blue'``.
 Some terminals also will display bright colors in a bold font even if you don't
 specify bold. To inhibit this you can try setting ``bright_is_bold=False`` with
-:meth:`BaseScreen.set_terminal_properties`, but it is not always supported.
+:meth:`display.raw.Screen.set_terminal_properties`, but it is not always
+supported.
 
 ``'standout'`` is usually displayed as the foreground and background colors reversed.
 

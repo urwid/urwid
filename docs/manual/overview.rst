@@ -40,6 +40,13 @@ supported by all terminals, so Urwid helps you write applications that support
 different color modes depending on what the user's terminal supports and what
 they choose to enable.
 
+Besides the basic building blocks, Urwid includes more advanced widgets:
+:class:`Table` for tabular data, :class:`DropDown` and :class:`PopUpLauncher`
+for menus and pop-ups, :class:`Scrollable` with :class:`ScrollBar` for content
+larger than the screen, and :class:`Spinner` for activity indication.
+:class:`CheckBox`, :class:`RadioButton` and :class:`Button` symbols can be
+customized, and text may contain tab characters aligned to configurable tab stops.
+
 :class:`ListBox` is one of Urwid's most powerful widgets,
 and you may control of the :ref:`listbox contents <listbox-contents>` by using
 a built-in list walker class or by writing one yourself. This is very useful

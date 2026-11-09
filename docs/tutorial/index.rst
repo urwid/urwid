@@ -86,7 +86,7 @@ Display Attributes
 
 This program displays the string ``Hello World`` in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
-and the space above and below the text. It waits for a keypress before exiting.
+and the space above and below the text. It exits when the user presses *Q*.
 
 The screenshots above show how these widgets react to being resized.
 
@@ -243,7 +243,7 @@ This program asks for your name and responds ``Nice to meet you, (your name)``
 * Finally we attach our *on_exit_clicked()* function to our
   exit :class:`Button`'s ``'click'`` signal.
 * *on_ask_change()* updates the reply text as the user enters their
-  name and *on_exit_click()* exits.
+  name and *on_exit_clicked()* exits.
 
 
 Multiple Questions
@@ -319,7 +319,7 @@ This program lets you choose an option then repeats what you chose.
   a display attribute when a button is in focus.
 * *item_chosen()* replaces the menu displayed with text indicating the users'
   choice.
-* *exit_program()* causes the program to exit on any keystroke.
+* *exit_program()* exits the program when the Ok button is pressed.
 * The menu is created and decorated with an :class:`Overlay` using a
   :class:`SolidFill` as the background.  The :class:`Overlay` is given a
   miniumum width and height but is allowed to expand to 60% of the available
