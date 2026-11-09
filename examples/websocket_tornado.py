@@ -55,7 +55,8 @@ To make a token file by hand::
 The script reads only the files named by its options, writes nothing but a new token file,
 prints the addresses to open and the login to standard output, and logs to standard error.
 It prints the password only for the token in its temporary directory, not for a token file.
-It exits with status 0 after ``SIGINT``, ``SIGTERM`` or ``SIGHUP``, and with status 2 when an option is invalid.
+It exits with status 0 after Ctrl+C (``SIGINT``), ``SIGTERM`` or ``SIGHUP``,
+with status 1 when it cannot listen on the address, and with status 2 when an option is invalid.
 """
 
 from __future__ import annotations
@@ -650,32 +651,42 @@ def make_app(config: Config, sessions: set[SessionHandler]) -> tornado.web.Appli
     )
 
 
-async def serve(config: Config) -> None:
-    """Serve until ``SIGINT``, ``SIGTERM`` or ``SIGHUP``, then close every session."""
+async def serve(config: Config) -> int:
+    """Serve until ``SIGINT``, ``SIGTERM`` or ``SIGHUP``, or until cancelled, then close every session.
+
+    :returns: the process exit status: 0, or 1 when the server cannot listen on the address,
+        for example because the port is in use.
+    """
     sessions: set[SessionHandler] = set()
-    server = make_app(config, sessions).listen(config.port, config.host, ssl_options=config.tls)
-    stop = asyncio.Event()
-    # Windows has no SIGHUP
-    for signal_number in (signal.SIGINT, signal.SIGTERM, *([signal.SIGHUP] if hasattr(signal, "SIGHUP") else [])):
-        # Windows has no signal handlers in asyncio; Ctrl+C ends the run there instead
-        with suppress(NotImplementedError):
-            asyncio.get_running_loop().add_signal_handler(signal_number, stop.set)
+    try:
+        server = make_app(config, sessions).listen(config.port, config.host, ssl_options=config.tls)
+    except OSError as exc:
+        LOG.error("Cannot serve on %s port %d: %s", config.host, config.port, exc)  # noqa: TRY400  # no traceback needed
+        return 1
+    try:
+        stop = asyncio.Event()
+        # Windows has no SIGHUP
+        for signal_number in (signal.SIGINT, signal.SIGTERM, *([signal.SIGHUP] if hasattr(signal, "SIGHUP") else [])):
+            # Windows has no signal handlers in asyncio: Ctrl+C cancels this coroutine there instead
+            with suppress(NotImplementedError):
+                asyncio.get_running_loop().add_signal_handler(signal_number, stop.set)
 
-    password = config.token.decode("ascii") if config.token_file is None else f"the content of {config.token_file}"
-    print(
-        *(f"Open {origin}/" for origin in sorted(config.allowed_origins)),
-        f"User name: {config.user.decode('utf-8')}",
-        f"Password: {password}",
-        sep="\n",
-        flush=True,
-    )
-    await stop.wait()
-
-    LOG.info("Stopping: closing %d sessions", len(sessions))
-    server.stop()
-    for session in list(sessions):
-        session.close(1001, "server stopping")
-    await server.close_all_connections()
+        password = config.token.decode("ascii") if config.token_file is None else f"the content of {config.token_file}"
+        print(
+            *(f"Open {origin}/" for origin in sorted(config.allowed_origins)),
+            f"User name: {config.user.decode('utf-8')}",
+            f"Password: {password}",
+            sep="\n",
+            flush=True,
+        )
+        await stop.wait()
+    finally:
+        LOG.info("Stopping: closing %d sessions", len(sessions))
+        server.stop()
+        for session in list(sessions):
+            session.close(1001, "server stopping")
+        await server.close_all_connections()
+    return 0
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -693,8 +704,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         except (ValueError, OSError, ssl.SSLError) as exc:
             LOG.error("%s", exc)  # noqa: TRY400  # the message is the whole report; a traceback adds nothing
             return 2
-        asyncio.run(serve(config))
-    return 0
+        try:
+            return asyncio.run(serve(config))
+        except KeyboardInterrupt:
+            # Ctrl+C where asyncio has no signal handlers, such as Windows: serve() has closed every session
+            return 0
 
 
 if __name__ == "__main__":
