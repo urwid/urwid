@@ -99,6 +99,25 @@ last one.
 Its ``pause`` argument watches the files for that many seconds of real time before each jump of the clock,
 so a worker thread polled by an alarm can hand back its result through :meth:`~urwid.MainLoop.call_from_thread`.
 
+:meth:`~urwid.MainLoop.call_from_thread` needs a started loop, and a scripted screen ends a started loop once its
+input is used up. ``ScriptedScreen(inputs=None)`` is unscripted: it feeds no input and never ends the loop, so a
+loop started with :meth:`~urwid.MainLoop.start` keeps serving alarms, watched files and calls from other threads
+under :meth:`~VirtualClockEventLoop.run_until_idle`, while the screen records the frames drawn::
+
+    >>> import threading
+    >>> event_loop = VirtualClockEventLoop()
+    >>> text = Text("")
+    >>> screen = ScriptedScreen(size=(5, 1), inputs=None)
+    >>> loop = MainLoop(Filler(text), screen=screen, event_loop=event_loop)
+    >>> with loop.start():
+    ...     worker = threading.Thread(target=loop.call_from_thread, args=(text.set_text, "done"))
+    ...     worker.start()
+    ...     worker.join()
+    ...     _ = loop.set_alarm_in(1, lambda *_: text.set_text("later"))
+    ...     event_loop.run_until_idle(pause=0.01)
+    >>> [frame.decoded_text for frame in screen.canvases]
+    [('done ',), ('later',)]
+
 The clock is the loop's own: a widget that reads :func:`time.monotonic` itself, such as :class:`~urwid.Spinner`
 choosing its frame, does not see it move.
 

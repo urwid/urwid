@@ -486,6 +486,44 @@ class ScriptedScreenTest(unittest.TestCase):
         with self.assertRaises(urwid.ExitMainLoop):
             screen.get_input(True)
 
+    def test_unscripted_screen_keeps_a_started_loop_running(self) -> None:
+        """A loop started on ``inputs=None`` serves a thread's call and later alarms; the default screen ends it."""
+        for inputs in (None, ()):
+            with self.subTest(inputs=inputs):
+                event_loop = urwid.testing.VirtualClockEventLoop()
+                text = urwid.Text("")
+                screen = urwid.testing.ScriptedScreen(size=(6, 1), inputs=inputs)
+                loop = urwid.MainLoop(urwid.Filler(text), screen=screen, event_loop=event_loop)
+                fired: list[tuple[str, float]] = []
+
+                def show(label: str) -> None:
+                    fired.append((label, event_loop.now))
+                    text.set_text(label)
+
+                with loop.start():
+                    loop.set_alarm_in(1, lambda *_: show("first"))
+                    loop.set_alarm_in(2, lambda *_: show("second"))
+                    if inputs is None:
+                        # Most likely sent after run_until_idle() starts, so the pause lets it in before the alarms.
+                        worker = threading.Timer(0.01, loop.call_from_thread, args=(show, "thread"))
+                        self.addCleanup(worker.join, 5)
+                        self.addCleanup(worker.cancel)
+                        worker.start()
+                        event_loop.run_until_idle(pause=1.0)
+                        self.assertIsNone(screen._feed_handle)
+                    else:
+                        with self.assertRaises(urwid.ExitMainLoop):
+                            event_loop.run_until_idle()
+                if inputs is None:
+                    self.assertEqual([("thread", 0), ("first", 1), ("second", 2)], fired)
+                    self.assertEqual(
+                        [("",), ("thread",), ("first",), ("second",)],
+                        [tuple(t.rstrip() for t in c.decoded_text) for c in screen.canvases],
+                    )
+                    self.assertEqual(([], []), screen.get_input(True))
+                else:
+                    self.assertEqual([], fired)
+
     def test_unhook_cancels_the_pending_feed(self) -> None:
         event_loop = urwid.SelectEventLoop()
         fed: list[list[typing.Any]] = []
