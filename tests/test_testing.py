@@ -488,6 +488,13 @@ class ScriptedScreenTest(unittest.TestCase):
 
     def test_unscripted_screen_keeps_a_started_loop_running(self) -> None:
         """A loop started on ``inputs=None`` serves a thread's call and later alarms; the default screen ends it."""
+
+        def start_worker(_loop: urwid.MainLoop, worker: threading.Thread | None) -> None:
+            if worker is None:
+                raise AssertionError("the alarm was set without its worker")
+            worker.start()
+            self.addCleanup(worker.join, 5)
+
         for inputs in (None, ()):
             with self.subTest(inputs=inputs):
                 event_loop = urwid.testing.VirtualClockEventLoop()
@@ -504,11 +511,11 @@ class ScriptedScreenTest(unittest.TestCase):
                     loop.set_alarm_in(1, lambda *_: show("first"))
                     loop.set_alarm_in(2, lambda *_: show("second"))
                     if inputs is None:
-                        # Most likely sent after run_until_idle() starts, so the pause lets it in before the alarms.
-                        worker = threading.Timer(0.01, loop.call_from_thread, args=(show, "thread"))
-                        self.addCleanup(worker.join, 5)
-                        self.addCleanup(worker.cancel)
-                        worker.start()
+                        worker = threading.Thread(target=loop.call_from_thread, args=(show, "thread"))
+                        # Alarms due at the same time fire in the order they were set, and this one is set after the
+                        # first-draw alarm of start(), so the worker starts after that draw.
+                        # The pause lets its call in before the clock jumps to the first alarm.
+                        loop.set_alarm_in(0, start_worker, worker)
                         event_loop.run_until_idle(pause=1.0)
                         self.assertIsNone(screen._feed_handle)
                     else:
