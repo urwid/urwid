@@ -204,6 +204,8 @@ class Overlay(
     min_width = _InvalidatingAttribute[int | None]()
     #: Minimum height of the top widget for a relative height, or ``None`` for no minimum.
     min_height = _InvalidatingAttribute[int | None]()
+    #: Render a ``'pack'`` top widget taller than the rows available as a box at those rows.
+    shrink_to_fit = _InvalidatingAttribute[bool](default=False)
 
     def __init__(
         self,
@@ -227,6 +229,8 @@ class Overlay(
         right: int = 0,
         top: int = 0,
         bottom: int = 0,
+        *,
+        shrink_to_fit: bool = False,
     ) -> None:
         """Build the widget overlaying *top_w* on *bottom_w*.
 
@@ -258,6 +262,11 @@ class Overlay(
         :param right: a fixed number of columns to add on the right.
         :param top: a fixed number of rows to add on the top.
         :param bottom: a fixed number of rows to add on the bottom.
+        :param shrink_to_fit: with a ``'pack'`` height, render a *top_w* taller than the rows available as a box at
+            those rows, instead of cutting it off at the bottom.
+            It applies only to a *top_w* that also supports ``'box'``, such as a :class:`LineBox` around a
+            :class:`Table`.
+            It has no effect for other heights or for a ``'pack'`` width.
 
         Overlay widgets behave similarly to :class:`Padding` and :class:`Filler`
         widgets when determining the size and position of *top_w*. *bottom_w* is
@@ -271,6 +280,7 @@ class Overlay(
 
         self.top_w = top_w
         self.bottom_w = bottom_w
+        self.shrink_to_fit = shrink_to_fit
 
         self.set_overlay_parameters(align, width, valign, height, min_width, min_height, left, right, top, bottom)
 
@@ -489,11 +499,15 @@ class Overlay(
             "right": self.right,
             "top": self.top,
             "bottom": self.bottom,
+            "shrink_to_fit": self.shrink_to_fit,
         }
         return remove_defaults(attrs, Overlay.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
-        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
+        """Yield this widget's constructor arguments for `rich`'s repr protocol.
+
+        Each is a `(name, value)` pair, or `(name, value, default)` for one shown only when it is not the default.
+        """
         yield "top", self.top_w
         yield "bottom", self.bottom_w
         yield "align", self.align
@@ -506,6 +520,7 @@ class Overlay(
         yield "right", self.right
         yield "top", self.top
         yield "bottom", self.bottom
+        yield "shrink_to_fit", self.shrink_to_fit, False
 
     @property
     def align(self) -> Align | tuple[Literal[WHSettings.RELATIVE], int]:
@@ -977,6 +992,8 @@ class Overlay(
     ) -> tuple[int, int, int, int]:
         """Return (padding left, right, filler top, bottom).
 
+        With :attr:`shrink_to_fit`, a ``'pack'`` height taller than the rows available is cut down to those rows.
+
         :raises OverlayError: the top widget is FIXED but reports no height.
         """
         (maxcol, maxrow) = size
@@ -1016,6 +1033,9 @@ class Overlay(
             # top_w is a flow widget: it will be rendered at the width left over by the horizontal padding,
             # so the row count has to be measured at that width and not at the full width of the overlay.
             height = typing.cast("AbstractFlowWidget", self.top_w).rows((maxcol - left - right,), focus=focus)
+            if self.shrink_to_fit and Sizing.BOX in self.top_w.sizing():
+                # A negative margin gives no extra rows: the fillers are never below zero for a capped height.
+                height = min(height, max(0, maxrow - max(self.top, 0) - max(self.bottom, 0)))
             top, bottom = self._flow_top_bottom_filler(maxrow, height)
         else:
             top, bottom = calculate_top_bottom_filler(
@@ -1070,15 +1090,29 @@ class Overlay(
         top: int,
         bottom: int,
     ) -> tuple[()] | tuple[int] | tuple[int, int]:
-        """Return the size to pass to top_w."""
+        """Return the size to pass to top_w.
+
+        A ``'pack'`` height gives a flow size.
+        With :attr:`shrink_to_fit` it gives a box size of the rows between the fillers instead,
+        when the top widget is taller than those rows in or out of focus.
+        """
         if self.width_type == WHSettings.PACK:
             # top_w is a fixed widget
             return ()
         maxcol, maxrow = size
+        cols = maxcol - left - right
         if self.height_type == WHSettings.PACK:
-            # top_w is a flow widget
-            return (maxcol - left - right,)
-        return (maxcol - left - right, maxrow - top - bottom)
+            available = max(0, maxrow - top - bottom)
+            top_w = typing.cast("AbstractFlowWidget", self.top_w)
+            # Both focus states: a box canvas has the rows it is given, so it matches the fillers of either one.
+            if (
+                self.shrink_to_fit
+                and Sizing.BOX in top_w.sizing()
+                and any(top_w.rows((cols,), focus) > available for focus in (False, True))
+            ):
+                return (cols, available)
+            return (cols,)
+        return (cols, maxrow - top - bottom)
 
     def render(self, size: tuple[()] | tuple[int] | tuple[int, int], focus: bool = False) -> CompositeCanvas:
         """Render top_w overlayed on bottom_w.
@@ -1087,12 +1121,15 @@ class Overlay(
         """
         real_size = self.pack(size, focus)
         cls = type(self)
+        default_layout = (
+            cls.calculate_padding_filler is Overlay.calculate_padding_filler and cls.top_w_size is Overlay.top_w_size
+        )
 
         if (
             self.height_type == WHSettings.PACK
             and self.width_type != WHSettings.PACK
-            and cls.calculate_padding_filler is Overlay.calculate_padding_filler
-            and cls.top_w_size is Overlay.top_w_size
+            and default_layout
+            and not self.shrink_to_fit
             and Sizing.FLOW in self.top_w.sizing()
         ):
             # The height is read from the rendered canvas, since top_w.rows() would lay top_w out a second time

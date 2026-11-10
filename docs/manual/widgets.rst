@@ -124,7 +124,8 @@ container widget depend on the widgets it contains and on its options.
        ``'clip'``
    * - :class:`Filler`
      - ``'box'``, and ``'flow'`` as well when its height is ``'pack'`` or a
-       given number of rows
+       given number of rows; see :ref:`shrink_to_fit <shrink-to-fit>` for a
+       ``'pack'`` height taller than the rows available
    * - :class:`BoxAdapter`
      - ``'flow'``; the wrapped widget is a box widget
    * - :class:`Pile`, :class:`Columns`
@@ -138,7 +139,9 @@ container widget depend on the widgets it contains and on its options.
      - ``'box'``, and ``'flow'`` as well when every body is a flow widget
    * - :class:`Overlay`
      - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
-       position options of the top widget allow it
+       position options of the top widget allow it; see
+       :ref:`shrink_to_fit <shrink-to-fit>` for a ``'pack'`` height taller
+       than the rows available
    * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
        :class:`OverlayStack`, :class:`PopUpTarget`, :class:`ScrollBar`,
        :class:`Scrollable`
@@ -976,10 +979,20 @@ and a handler that returns ``True`` consumes the press, for a dialog that closes
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.
 
+.. _shrink-to-fit:
+
+With a ``'pack'`` height, a top widget taller than the rows available is clipped at the bottom.
+With ``shrink_to_fit=True``, a top widget that also supports ``'box'`` is rendered as a box at those rows instead,
+and :class:`Filler` takes the same argument for its body.
+A dialog around a :class:`Table` then takes the rows of its content,
+and scrolls the table only when the screen is too short.
+The top widget is measured in and out of focus on each layout.
+
 The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
 It holds a base widget, usually the application's :class:`Frame`, and a stack of open dialogs,
 each one an Overlay over the one below, and it is meant to be the :attr:`MainLoop.widget`.
 :meth:`OverlayStack.open` puts a widget on top with the Overlay layout options.
+It takes ``shrink_to_fit`` as well, for a dialog taller than the screen.
 Without a ``width`` or ``height``, a flow or box widget gets 80% of the width,
 a flow widget is packed to its rows, a box widget that is not a flow widget gets 80% of the height,
 and a widget that is fixed only is packed in both directions.

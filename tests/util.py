@@ -35,6 +35,55 @@ class SelectableText(urwid.Text):
         return key
 
 
+class FocusHeightWidget(urwid.Widget):
+    """Selectable BOX and FLOW widget that is 2 rows tall out of focus and 5 rows in focus.
+
+    It records the size each input and cursor method is called with.
+    """
+
+    _sizing = frozenset((urwid.BOX, urwid.FLOW))
+    _selectable = True
+
+    def __init__(self) -> None:
+        """Build the widget with no size recorded."""
+        super().__init__()
+        #: The size each input and cursor method was called with, as ``(method name, size)``.
+        self.sizes: list[tuple[str, tuple[int] | tuple[int, int]]] = []
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return 5 rows in focus and 2 rows out of focus."""
+        return 5 if focus else 2
+
+    def render(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> urwid.TextCanvas:
+        """Render rows of ``x``, as many as :meth:`rows` reports for a flow size."""
+        maxcol = size[0]
+        maxrow = self.rows((maxcol,), focus) if len(size) == 1 else size[1]
+        return urwid.TextCanvas([b"x" * maxcol for _ in range(maxrow)], maxcol=maxcol)
+
+    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
+        """Record the size and return every key unhandled."""
+        self.sizes.append(("keypress", size))
+        return key
+
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int]:
+        """Record the size and report the cursor in the top left corner."""
+        self.sizes.append(("get_cursor_coords", size))
+        return 0, 0
+
+    def mouse_event(
+        self,
+        size: tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
+        """Record the size and handle the event."""
+        self.sizes.append(("mouse_event", size))
+        return True
+
+
 def collect_and_count_alive(refs: Collection[weakref.ReferenceType[typing.Any]]) -> int:
     """Collect garbage until a pass frees none of the objects behind *refs*, and return how many are alive.
 
