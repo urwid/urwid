@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Deprecated Classes &#8212; Urwid 5.1.0</title>
+    <title>Deprecated Classes &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>
@@ -146,6 +146,10 @@ Drop it from <code class="docutils literal notranslate"><span class="pre">metacl
 The name will be removed in version 7.0.</p>
 </dd></dl>
 
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.7: </span><code class="xref py py-class docutils literal notranslate"><span class="pre">GLibEventLoop</span></code>, with no replacement.
+It will be removed in version 6.0.</p>
+</div>
 </section>
 <section id="deprecated-modules">
 <h1>Deprecated Modules<a class="headerlink" href="#deprecated-modules" title="Link to this heading">¶</a></h1>
@@ -185,6 +189,65 @@ The old names will be removed in version 7.0.</p>
 <p><span class="versionmodified deprecated">Deprecated since version 2.6.0: </span>Names defined in <code class="docutils literal notranslate"><span class="pre">urwid.str_util</span></code> and reachable as attributes of <code class="docutils literal notranslate"><span class="pre">urwid.util</span></code> (<code class="docutils literal notranslate"><span class="pre">from</span> <span class="pre">urwid.util</span> <span class="pre">import</span> <span class="pre">...</span></code>)
 have to be imported from <code class="docutils literal notranslate"><span class="pre">urwid</span></code> instead.
 The old import path will be removed in version 6.0.</p>
+</div>
+</section>
+<section id="deprecated-functions-methods-and-names">
+<h1>Deprecated Functions, Methods and Names<a class="headerlink" href="#deprecated-functions-methods-and-names" title="Link to this heading">¶</a></h1>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 3.0.4: </span><code class="docutils literal notranslate"><span class="pre">urwid.str_util.get_char_width()</span></code> and <code class="docutils literal notranslate"><span class="pre">urwid.str_util.get_width()</span></code>.
+Use <code class="docutils literal notranslate"><span class="pre">wcwidth.width()</span></code> instead.
+They will be removed in version 6.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.4: </span><code class="docutils literal notranslate"><span class="pre">urwid.str_util.decode_one_uni()</span></code> and <code class="docutils literal notranslate"><span class="pre">urwid.str_util.decode_one_right()</span></code>, with no replacement.
+They will be removed in version 6.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.4: </span><a class="reference internal" href="widget.html#urwid.Pile.get_item_size" title="urwid.Pile.get_item_size"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Pile.get_item_size()</span></code></a>.
+Use <a class="reference internal" href="widget.html#urwid.Pile.get_rows_sizes" title="urwid.Pile.get_rows_sizes"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Pile.get_rows_sizes()</span></code></a> instead.
+It will be removed in version 7.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.1.8: </span><a class="reference internal" href="display_modules.html#urwid.display.html_fragment.screenshot_init" title="urwid.display.html_fragment.screenshot_init"><code class="xref py py-func docutils literal notranslate"><span class="pre">display.html_fragment.screenshot_init()</span></code></a>, which replaces the curses and raw screens in place.
+Assign a <a class="reference internal" href="display_modules.html#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.html_fragment.HtmlGenerator</span></code></a> to the application’s screen instead.
+It will be removed in version 6.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>The <code class="docutils literal notranslate"><span class="pre">_MOUSE_*_FLAG</span></code> and <code class="docutils literal notranslate"><span class="pre">_MOUSE_BUTTON_MASK</span></code> names of <code class="docutils literal notranslate"><span class="pre">urwid.display.escape</span></code>.
+Use the members of <code class="docutils literal notranslate"><span class="pre">urwid.display.escape.MouseBit</span></code> instead.
+The old names will be removed in version 6.0.</p>
+</div>
+</section>
+<section id="deprecated-arguments">
+<h1>Deprecated Arguments<a class="headerlink" href="#deprecated-arguments" title="Link to this heading">¶</a></h1>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 2.2.3: </span>The camelCase keyword arguments of the numeric edit widgets:
+<code class="docutils literal notranslate"><span class="pre">trimLeadingZeros</span></code> of <code class="docutils literal notranslate"><span class="pre">urwid.numedit.NumEdit</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">preserveSignificance</span></code> and <code class="docutils literal notranslate"><span class="pre">decimalSeparator</span></code> of <a class="reference internal" href="widget.html#urwid.numedit.FloatEdit" title="urwid.numedit.FloatEdit"><code class="xref py py-class docutils literal notranslate"><span class="pre">numedit.FloatEdit</span></code></a>.
+Use <code class="docutils literal notranslate"><span class="pre">trim_leading_zeros</span></code>, <code class="docutils literal notranslate"><span class="pre">preserve_significance</span></code> and <code class="docutils literal notranslate"><span class="pre">decimal_separator</span></code> instead.
+Support will be removed in version 7.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 2.4.0: </span>Passing an object that does not implement the Widget API as a child widget,
+to <a class="reference internal" href="widget.html#urwid.WidgetWrap" title="urwid.WidgetWrap"><code class="xref py py-class docutils literal notranslate"><span class="pre">WidgetWrap</span></code></a>, a decoration widget, or the contents of a container widget.
+Pass a <a class="reference internal" href="widget.html#urwid.Widget" title="urwid.Widget"><code class="xref py py-class docutils literal notranslate"><span class="pre">Widget</span></code></a> instead.
+Support will be removed in version 7.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.0.2: </span>Passing a <a class="reference internal" href="widget.html#urwid.ListBox" title="urwid.ListBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListBox</span></code></a> <em>body</em> that is not a <a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a> but has a <code class="docutils literal notranslate"><span class="pre">get_focus</span></code> method.
+Pass a <a class="reference internal" href="list_walkers.html#urwid.ListWalker" title="urwid.ListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">ListWalker</span></code></a>, or a sequence of widgets, instead.
+Support will be removed in version 7.0.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 4.0.4: </span>Passing a <a class="reference internal" href="widget.html#urwid.TreeWidget" title="urwid.TreeWidget"><code class="xref py py-class docutils literal notranslate"><span class="pre">TreeWidget</span></code></a> a <em>node</em> that is not a <a class="reference internal" href="list_walkers.html#urwid.ParentNode" title="urwid.ParentNode"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParentNode</span></code></a> but defines <code class="docutils literal notranslate"><span class="pre">get_first_child</span></code>.
+Make the node a <a class="reference internal" href="list_walkers.html#urwid.ParentNode" title="urwid.ParentNode"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParentNode</span></code></a> instead.
+No removal release is decided.</p>
+</div>
+<div class="deprecated">
+<p><span class="versionmodified deprecated">Deprecated since version 5.0.0: </span>Passing <em>reverse</em> to <code class="docutils literal notranslate"><span class="pre">positions()</span></code> of <a class="reference internal" href="list_walkers.html#urwid.SimpleListWalker" title="urwid.SimpleListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleListWalker</span></code></a>, <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusListWalker" title="urwid.SimpleFocusListWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusListWalker</span></code></a>,
+<a class="reference internal" href="list_walkers.html#urwid.SimpleDequeWalker" title="urwid.SimpleDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleDequeWalker</span></code></a> and <a class="reference internal" href="list_walkers.html#urwid.SimpleFocusDequeWalker" title="urwid.SimpleFocusDequeWalker"><code class="xref py py-class docutils literal notranslate"><span class="pre">SimpleFocusDequeWalker</span></code></a> positionally.
+Pass it by keyword instead.
+Support will be removed in version 8.0.</p>
 </div>
 </section>
 <section id="deprecated-extension-points">
@@ -228,6 +291,8 @@ Support will be removed in version 7.0.</p>
 </li>
 <li><a class="reference internal" href="#deprecated-modules">Deprecated Modules</a></li>
 <li><a class="reference internal" href="#deprecated-import-paths">Deprecated Import Paths</a></li>
+<li><a class="reference internal" href="#deprecated-functions-methods-and-names">Deprecated Functions, Methods and Names</a></li>
+<li><a class="reference internal" href="#deprecated-arguments">Deprecated Arguments</a></li>
 <li><a class="reference internal" href="#deprecated-extension-points">Deprecated Extension Points</a></li>
 </ul>
 
@@ -275,7 +340,7 @@ Support will be removed in version 7.0.</p>
         <li class="right" >
           <a href="meta.html" title="Metaclasses"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Deprecated Classes</a></li> 
       </ul>

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>spinner.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/spinner.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="external_editor.py" href="external_editor.html" />
+    <link rel="prev" title="notifications.py" href="notifications.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="external_editor.html" title="external_editor.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="notifications.html" title="notifications.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">spinner.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="spinner-py">
+<h1>spinner.py<a class="headerlink" href="#spinner-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">"""Example: a spinner for every frame preset, started and stopped together.</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="sd">Space starts or stops the spinners, + and - make them faster or slower,</span>
+<span class="linenos"> 6</span><span class="sd">s shows the next frame of the stopped spinners, and q exits.</span>
+<span class="linenos"> 7</span><span class="sd">"""</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="c1"># Bounds for + and -: a shorter interval redraws the screen almost continuously.</span>
+<span class="linenos">14</span><span class="n">MIN_INTERVAL</span> <span class="o">=</span> <span class="mf">0.0125</span>
+<span class="linenos">15</span><span class="n">MAX_INTERVAL</span> <span class="o">=</span> <span class="mf">1.6</span>
+<span class="linenos">16</span><span class="n">PALETTE</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">"frame"</span><span class="p">,</span> <span class="s2">"light cyan"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span> <span class="p">(</span><span class="s2">"help"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">)]</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span>
+<span class="linenos">19</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">20</span><span class="w">    </span><span class="sd">"""Build a row per frame preset and the key handling, and run the main loop."""</span>
+<span class="linenos">21</span>    <span class="n">spinners</span> <span class="o">=</span> <span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Spinner</span><span class="p">(</span><span class="n">frames</span><span class="p">)</span> <span class="k">for</span> <span class="n">frames</span> <span class="ow">in</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Spinner</span><span class="o">.</span><span class="n">Frames</span><span class="p">]</span>
+<span class="linenos">22</span>    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span>
+<span class="linenos">23</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">Columns</span><span class="p">([(</span><span class="n">urwid</span><span class="o">.</span><span class="n">PACK</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">spinner</span><span class="p">,</span> <span class="s2">"frame"</span><span class="p">)),</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">frames</span><span class="o">.</span><span class="n">name</span><span class="p">)],</span> <span class="n">dividechars</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="linenos">24</span>        <span class="k">for</span> <span class="n">spinner</span><span class="p">,</span> <span class="n">frames</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">spinners</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Spinner</span><span class="o">.</span><span class="n">Frames</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">25</span>    <span class="p">]</span>
+<span class="linenos">26</span>    <span class="n">status</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<span class="linenos">27</span>
+<span class="linenos">28</span>    <span class="k">def</span><span class="w"> </span><span class="nf">show_status</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">29</span>        <span class="n">state</span> <span class="o">=</span> <span class="s2">"running"</span> <span class="k">if</span> <span class="n">spinners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">running</span> <span class="k">else</span> <span class="s2">"stopped"</span>
+<span class="linenos">30</span>        <span class="n">status</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span>
+<span class="linenos">31</span>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">state</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">spinners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">interval</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2"> s per frame  space: start/stop  +/-: faster/slower  s: step  q: quit"</span>
+<span class="linenos">32</span>        <span class="p">)</span>
+<span class="linenos">33</span>
+<span class="linenos">34</span>    <span class="k">def</span><span class="w"> </span><span class="nf">start_all</span><span class="p">(</span><span class="n">_loop</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">_data</span><span class="p">:</span> <span class="nb">object</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">35</span>        <span class="k">for</span> <span class="n">spinner</span> <span class="ow">in</span> <span class="n">spinners</span><span class="p">:</span>
+<span class="linenos">36</span>            <span class="n">spinner</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="linenos">37</span>        <span class="n">show_status</span><span class="p">()</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span>    <span class="k">def</span><span class="w"> </span><span class="nf">unhandled</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">40</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"q"</span><span class="p">:</span>
+<span class="linenos">41</span>            <span class="k">for</span> <span class="n">spinner</span> <span class="ow">in</span> <span class="n">spinners</span><span class="p">:</span>
+<span class="linenos">42</span>                <span class="n">spinner</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<span class="linenos">43</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">44</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">" "</span><span class="p">:</span>
+<span class="linenos">45</span>            <span class="k">if</span> <span class="n">spinners</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+<span class="linenos">46</span>                <span class="k">for</span> <span class="n">spinner</span> <span class="ow">in</span> <span class="n">spinners</span><span class="p">:</span>
+<span class="linenos">47</span>                    <span class="n">spinner</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
+<span class="linenos">48</span>                <span class="n">show_status</span><span class="p">()</span>
+<span class="linenos">49</span>            <span class="k">else</span><span class="p">:</span>
+<span class="linenos">50</span>                <span class="n">start_all</span><span class="p">()</span>
+<span class="linenos">51</span>        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"+"</span><span class="p">,</span> <span class="s2">"-"</span><span class="p">}:</span>
+<span class="linenos">52</span>            <span class="k">for</span> <span class="n">spinner</span> <span class="ow">in</span> <span class="n">spinners</span><span class="p">:</span>
+<span class="linenos">53</span>                <span class="n">spinner</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">MAX_INTERVAL</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">MIN_INTERVAL</span><span class="p">,</span> <span class="n">spinner</span><span class="o">.</span><span class="n">interval</span> <span class="o">*</span> <span class="p">(</span><span class="mf">0.5</span> <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"+"</span> <span class="k">else</span> <span class="mi">2</span><span class="p">)))</span>
+<span class="linenos">54</span>            <span class="n">show_status</span><span class="p">()</span>
+<span class="linenos">55</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"s"</span><span class="p">:</span>
+<span class="linenos">56</span>            <span class="k">for</span> <span class="n">spinner</span> <span class="ow">in</span> <span class="n">spinners</span><span class="p">:</span>
+<span class="linenos">57</span>                <span class="k">if</span> <span class="ow">not</span> <span class="n">spinner</span><span class="o">.</span><span class="n">running</span><span class="p">:</span>
+<span class="linenos">58</span>                    <span class="n">spinner</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
+<span class="linenos">59</span>
+<span class="linenos">60</span>    <span class="n">body</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span> <span class="n">valign</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">TOP</span><span class="p">)</span>
+<span class="linenos">61</span>    <span class="n">frame</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">]]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span>
+<span class="linenos">62</span>        <span class="n">body</span><span class="p">,</span>
+<span class="linenos">63</span>        <span class="n">footer</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">status</span><span class="p">,</span> <span class="s2">"help"</span><span class="p">),</span>
+<span class="linenos">64</span>    <span class="p">)</span>
+<span class="linenos">65</span>    <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">PALETTE</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">unhandled</span><span class="p">)</span>
+<span class="linenos">66</span>    <span class="c1"># Started from an alarm, where the loop is running, so the spinners find it without loop=.</span>
+<span class="linenos">67</span>    <span class="n">loop</span><span class="o">.</span><span class="n">set_alarm_in</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">start_all</span><span class="p">)</span>
+<span class="linenos">68</span>    <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">69</span>
+<span class="linenos">70</span>
+<span class="linenos">71</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">72</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="notifications.html"
+                          title="previous chapter">notifications.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="external_editor.html"
+                          title="next chapter">external_editor.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/spinner.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="external_editor.html" title="external_editor.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="notifications.html" title="notifications.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">spinner.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

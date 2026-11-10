@@ -134,10 +134,24 @@ library: a small adapter written for the server library you use connects one
   :exc:`display.websocket.InvalidMessageError`.
 * It calls :meth:`MainLoop.stop` when the connection closes.
 
+The screen is at most :data:`display.websocket.MAX_COLS` columns by
+:data:`display.websocket.MAX_ROWS` rows, 223 each by default, the largest size
+an X10 mouse report can address in a terminal. A page in a larger window
+uses that size and leaves the rest of the window empty. For a taller or wider
+screen, give the same ``max_cols`` and ``max_rows`` to the
+:class:`display.websocket.Screen` and to :func:`display.websocket.html_page`.
+
 Every session is a live connection: there are no files, pipes or session tokens on
 the server. The screen accepts only the messages its page script sends: a known key
-name, or a window size, in a message of limited length.
+name, a window size, or a mouse event, in a message of limited length.
 :exc:`ExitMainLoop` raised by an input handler ends only the session it was raised in.
+
+The page reports mouse presses, releases and drags on the screen, and the scroll
+wheel, as the :ref:`mouse events <mouse-input>` of the other screens. It takes the
+mouse buttons on the screen area for the application, so text there cannot be
+selected with the mouse, and the right button does not open the browser's menu.
+The wheel turned with :kbd:`Ctrl` held is left to the browser, which zooms the
+page with it.
 
 The page has no inline script or style, so it works under a strict
 ``Content-Security-Policy``. The screen itself does no access control: the adapter

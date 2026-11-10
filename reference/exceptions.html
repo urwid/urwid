@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Exceptions &#8212; Urwid 5.1.0</title>
+    <title>Exceptions &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="constants.html" title="Constants"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Exceptions</a></li> 
       </ul>
@@ -55,6 +55,38 @@
 <dt class="sig sig-object py" id="urwid.WidgetError">
 <span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">WidgetError</span></span><a class="headerlink" href="#urwid.WidgetError" title="Link to this definition">¶</a></dt>
 <dd><p>Widget specific errors.</p>
+</dd></dl>
+
+<dl class="py exception">
+<dt class="sig sig-object py" id="urwid.WidgetSizingError">
+<span class="property"><span class="k"><span class="pre">exception</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">WidgetSizingError</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">message</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.WidgetSizingError" title="Link to this definition">¶</a></dt>
+<dd><p>A widget got a size of a sizing mode it does not support.</p>
+<p>The message names the widget, the size it got and the sizing modes it supports.
+The exception notes list the widgets that passed the size down to it, innermost first.
+The error that the wrong size caused is the <code class="docutils literal notranslate"><span class="pre">__cause__</span></code>.
+A pickled error keeps the message, the size, the notes and an attribute name, and drops the widget.</p>
+<p>The instances raised are also a <code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code>, an <code class="xref py py-exc docutils literal notranslate"><span class="pre">IndexError</span></code> or an <code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code>,
+the type of that cause, so code that catches the cause’s type still catches them.</p>
+<p>Create the error for <em>widget</em>, which got <em>size</em>; <em>size</em> is <code class="docutils literal notranslate"><span class="pre">None</span></code> when it is not known.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.WidgetSizingError.add_parent">
+<span class="sig-name descname"><span class="pre">add_parent</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">object</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.WidgetSizingError.add_parent" title="Link to this definition">¶</a></dt>
+<dd><p>Note that <em>widget</em> passed the size down, with its own <em>size</em>, to the widget with the error.</p>
+<p>A widget whose method calls the same method of its base class reaches here twice and is noted once.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.WidgetSizingError.size">
+<span class="sig-name descname"><span class="pre">size</span></span><a class="headerlink" href="#urwid.WidgetSizingError.size" title="Link to this definition">¶</a></dt>
+<dd><p>The size that widget got.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="urwid.WidgetSizingError.widget">
+<span class="sig-name descname"><span class="pre">widget</span></span><a class="headerlink" href="#urwid.WidgetSizingError.widget" title="Link to this definition">¶</a></dt>
+<dd><p>The widget that got the size it does not support.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py exception">
@@ -148,6 +180,12 @@ too.</p>
 <li><a class="reference internal" href="#">Exceptions</a><ul>
 <li><a class="reference internal" href="#urwid.ExitMainLoop"><code class="docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a></li>
 <li><a class="reference internal" href="#urwid.WidgetError"><code class="docutils literal notranslate"><span class="pre">WidgetError</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WidgetSizingError"><code class="docutils literal notranslate"><span class="pre">WidgetSizingError</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.WidgetSizingError.add_parent"><code class="docutils literal notranslate"><span class="pre">WidgetSizingError.add_parent()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WidgetSizingError.size"><code class="docutils literal notranslate"><span class="pre">WidgetSizingError.size</span></code></a></li>
+<li><a class="reference internal" href="#urwid.WidgetSizingError.widget"><code class="docutils literal notranslate"><span class="pre">WidgetSizingError.widget</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#urwid.ListBoxError"><code class="docutils literal notranslate"><span class="pre">ListBoxError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.ColumnsError"><code class="docutils literal notranslate"><span class="pre">ColumnsError</span></code></a></li>
 <li><a class="reference internal" href="#urwid.PileError"><code class="docutils literal notranslate"><span class="pre">PileError</span></code></a></li>
@@ -208,7 +246,7 @@ too.</p>
         <li class="right" >
           <a href="constants.html" title="Constants"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Exceptions</a></li> 
       </ul>

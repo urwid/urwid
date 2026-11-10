@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 5.1.0</title>
+    <title>Display Modules &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -608,7 +608,7 @@ click events along with keystrokes.</p>
 <span id="websocket-display"></span><h2>WebSocket display<a class="headerlink" href="#module-urwid.display.websocket" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.websocket.Screen">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.display.websocket.Transport" title="urwid.display.websocket.Transport"><span class="pre">Transport</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.websocket.Screen" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">transport</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#urwid.display.websocket.Transport" title="urwid.display.websocket.Transport"><span class="pre">Transport</span></a></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">80</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">24</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">223</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">223</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.websocket.Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Screen that draws into one browser page through a <a class="reference internal" href="#urwid.display.websocket.Transport" title="urwid.display.websocket.Transport"><code class="xref py py-class docutils literal notranslate"><span class="pre">Transport</span></code></a>.</p>
 <p>It takes input only from <a class="reference internal" href="#urwid.display.websocket.Screen.feed" title="urwid.display.websocket.Screen.feed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">feed()</span></code></a>, so it needs no file descriptor, and it runs on any event loop.
 Input reaches the main loop through an alarm of the event loop, which is what makes the main loop redraw.</p>
@@ -627,12 +627,14 @@ whose handler calls <a class="reference internal" href="#urwid.display.websocket
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>transport</strong> – the connection to the page.</p></li>
-<li><p><strong>cols</strong> – the width until the page reports its own; at most <code class="docutils literal notranslate"><span class="pre">MAX_COLS</span></code> is used.</p></li>
-<li><p><strong>rows</strong> – the height until the page reports its own; at most <code class="docutils literal notranslate"><span class="pre">MAX_ROWS</span></code> is used.</p></li>
+<li><p><strong>cols</strong> – the width until the page reports its own; at most <em>max_cols</em> is used.</p></li>
+<li><p><strong>rows</strong> – the height until the page reports its own; at most <em>max_rows</em> is used.</p></li>
+<li><p><strong>max_cols</strong> – the largest width the page may report; pass the same value to <a class="reference internal" href="#urwid.display.websocket.html_page" title="urwid.display.websocket.html_page"><code class="xref py py-func docutils literal notranslate"><span class="pre">html_page()</span></code></a>.</p></li>
+<li><p><strong>max_rows</strong> – the largest height the page may report; pass the same value to <a class="reference internal" href="#urwid.display.websocket.html_page" title="urwid.display.websocket.html_page"><code class="xref py py-func docutils literal notranslate"><span class="pre">html_page()</span></code></a>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>ValueError</strong> – <em>cols</em> or <em>rows</em> is less than 1.</p>
+<dd class="field-even"><p><strong>ValueError</strong> – <em>cols</em>, <em>rows</em>, <em>max_cols</em> or <em>max_rows</em> is less than 1.</p>
 </dd>
 </dl>
 <dl class="py method">
@@ -675,7 +677,18 @@ whose handler calls <a class="reference internal" href="#urwid.display.websocket
 a named key such as <code class="docutils literal notranslate"><span class="pre">&quot;page</span> <span class="pre">up&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;f5&quot;</span></code>, or one character that is not a control character,
 after the modifiers <code class="docutils literal notranslate"><span class="pre">&quot;shift</span> <span class="pre">&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;meta</span> <span class="pre">&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;ctrl</span> <span class="pre">&quot;</span></code> in that order.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;resize&quot;,</span> <span class="pre">&quot;cols&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;rows&quot;:</span> <span class="pre">&lt;int&gt;}</span></code> with both sizes at least 1.
-A size above <code class="docutils literal notranslate"><span class="pre">MAX_COLS</span></code> or <code class="docutils literal notranslate"><span class="pre">MAX_ROWS</span></code> is reduced to that limit.</p></li>
+A size above the screen’s <em>max_cols</em> or <em>max_rows</em> is reduced to that limit.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;mouse&quot;,</span> <span class="pre">&quot;event&quot;:</span> <span class="pre">&lt;name&gt;,</span> <span class="pre">&quot;button&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;col&quot;:</span> <span class="pre">&lt;int&gt;,</span> <span class="pre">&quot;row&quot;:</span> <span class="pre">&lt;int&gt;}</span></code>,
+where the name is <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">press&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">release&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;mouse</span> <span class="pre">drag&quot;</span></code>
+after the same modifiers as a key name,
+the button is 1 to 9 as <a class="reference internal" href="constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a> numbers them,
+and the column and row are at least 0.
+A position outside the screen is moved to its nearest edge.
+It reaches the main loop as an <code class="docutils literal notranslate"><span class="pre">(event,</span> <span class="pre">button,</span> <span class="pre">col,</span> <span class="pre">row)</span></code> tuple,
+and is dropped while mouse tracking is off.
+A drag replaces a drag of the same button that still waits for the main loop,
+and a wheel press is dropped while <code class="docutils literal notranslate"><span class="pre">MAX_PENDING_INPUT</span></code> inputs wait,
+so a fast drag or wheel does not end the session.</p></li>
 </ul>
 <p>Messages that arrive after <a class="reference internal" href="#urwid.display.websocket.Screen.close" title="urwid.display.websocket.Screen.close"><code class="xref py py-meth docutils literal notranslate"><span class="pre">close()</span></code></a> are ignored.</p>
 <dl class="field-list simple">
@@ -684,7 +697,7 @@ A size above <code class="docutils literal notranslate"><span class="pre">MAX_CO
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="#urwid.display.websocket.InvalidMessageError" title="urwid.display.websocket.InvalidMessageError"><strong>InvalidMessageError</strong></a> – the message is binary, longer than <code class="docutils literal notranslate"><span class="pre">MAX_MESSAGE_LENGTH</span></code>,
-not of one of the forms above, or more than <code class="docutils literal notranslate"><span class="pre">MAX_PENDING_INPUT</span></code> keys wait for the main loop.</p>
+not of one of the forms above, or more than <code class="docutils literal notranslate"><span class="pre">MAX_PENDING_INPUT</span></code> inputs wait for the main loop.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -693,20 +706,29 @@ not of one of the forms above, or more than <code class="docutils literal notran
 <dt class="sig sig-object py" id="urwid.display.websocket.Screen.get_cols_rows">
 <span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.websocket.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the size the page reported last, or the size given to the constructor.</p>
+<p>While queued input is handed to the main loop, it is the size that input arrived at instead,
+so the main loop lays out input that arrived before a later resize at the size the page had then.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.websocket.Screen.hook_event_loop">
-<span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.websocket.Screen.hook_event_loop" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.websocket.Screen.hook_event_loop" title="Link to this definition">¶</a></dt>
 <dd><p>Hand the input from <a class="reference internal" href="#urwid.display.websocket.Screen.feed" title="urwid.display.websocket.Screen.feed"><code class="xref py py-meth docutils literal notranslate"><span class="pre">feed()</span></code></a> to <em>callback</em> through alarms of <em>event_loop</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>event_loop</strong> – the event loop the main loop runs on.</p></li>
-<li><p><strong>callback</strong> – called with the key names and an empty list of raw key codes.</p></li>
+<li><p><strong>callback</strong> – called with the key names and mouse events, and an empty list of raw key codes.</p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.display.websocket.Screen.set_mouse_tracking">
+<span class="sig-name descname"><span class="pre">set_mouse_tracking</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.websocket.Screen.set_mouse_tracking" title="Link to this definition">¶</a></dt>
+<dd><p>Pass the mouse events the page sends to the main loop, or drop them.</p>
+<p>The page sends them in either case, so it takes the mouse buttons for the application all the time.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -746,11 +768,13 @@ not of one of the forms above, or more than <code class="docutils literal notran
 
 <dl class="py function">
 <dt class="sig sig-object py" id="urwid.display.websocket.html_page">
-<span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">html_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">websocket_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#urwid.display.websocket.html_page" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">html_page</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">websocket_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">223</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_rows</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">223</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#urwid.display.websocket.html_page" title="Link to this definition">¶</a></dt>
 <dd><p>Return the HTML page that connects to a <a class="reference internal" href="#urwid.display.websocket.Screen" title="urwid.display.websocket.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">Screen</span></code></a>.</p>
 <p>The page has no inline script or style,
 so it works under a <code class="docutils literal notranslate"><span class="pre">Content-Security-Policy</span></code> that allows scripts and styles from <code class="docutils literal notranslate"><span class="pre">'self'</span></code> only.
-It loads the <a class="reference internal" href="#urwid.display.websocket.STATIC_FILES" title="urwid.display.websocket.STATIC_FILES"><code class="xref py py-data docutils literal notranslate"><span class="pre">STATIC_FILES</span></code></a> by names relative to its own URL.</p>
+It loads the <a class="reference internal" href="#urwid.display.websocket.STATIC_FILES" title="urwid.display.websocket.STATIC_FILES"><code class="xref py py-data docutils literal notranslate"><span class="pre">STATIC_FILES</span></code></a> by names relative to its own URL.
+It carries the largest screen size, so the page fits its screen area to the size the screen uses
+and does not report the mouse beyond it.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">page</span> <span class="o">=</span> <span class="n">html_page</span><span class="p">(</span><span class="s2">"Demo &amp; test"</span><span class="p">,</span> <span class="s2">"ws"</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="s2">"&lt;title&gt;Demo &amp;amp; test&lt;/title&gt;"</span> <span class="ow">in</span> <span class="n">page</span>
 <span class="go">True</span>
@@ -763,7 +787,12 @@ It loads the <a class="reference internal" href="#urwid.display.websocket.STATIC
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>title</strong> – the application name shown in the title and above the screen; it is escaped.</p></li>
 <li><p><strong>websocket_path</strong> – the URL of the WebSocket, relative to the page’s URL; it is escaped.</p></li>
+<li><p><strong>max_cols</strong> – the largest width; the same value as the screen’s <em>max_cols</em>.</p></li>
+<li><p><strong>max_rows</strong> – the largest height; the same value as the screen’s <em>max_rows</em>.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – <em>max_cols</em> or <em>max_rows</em> is less than 1.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -787,6 +816,18 @@ It loads the <a class="reference internal" href="#urwid.display.websocket.STATIC
 </dd></dl>
 
 <dl class="py data">
+<dt class="sig sig-object py" id="urwid.display.websocket.MAX_COLS">
+<span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">MAX_COLS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">223</span></span><a class="headerlink" href="#urwid.display.websocket.MAX_COLS" title="Link to this definition">¶</a></dt>
+<dd><p>the default largest width, in columns: the largest an X10 mouse report can address in a terminal</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.display.websocket.MAX_ROWS">
+<span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">MAX_ROWS</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">223</span></span><a class="headerlink" href="#urwid.display.websocket.MAX_ROWS" title="Link to this definition">¶</a></dt>
+<dd><p>the default largest height, in rows, for the same reason</p>
+</dd></dl>
+
+<dl class="py data">
 <dt class="sig sig-object py" id="urwid.display.websocket.MAX_MESSAGE_LENGTH">
 <span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">MAX_MESSAGE_LENGTH</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></span><a class="headerlink" href="#urwid.display.websocket.MAX_MESSAGE_LENGTH" title="Link to this definition">¶</a></dt>
 <dd><p>the longest message from the browser, in characters; a valid message is far shorter</p>
@@ -795,7 +836,7 @@ It loads the <a class="reference internal" href="#urwid.display.websocket.STATIC
 <dl class="py data">
 <dt class="sig sig-object py" id="urwid.display.websocket.MAX_PENDING_INPUT">
 <span class="sig-prename descclassname"><span class="pre">urwid.display.websocket.</span></span><span class="sig-name descname"><span class="pre">MAX_PENDING_INPUT</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">64</span></span><a class="headerlink" href="#urwid.display.websocket.MAX_PENDING_INPUT" title="Link to this definition">¶</a></dt>
-<dd><p>the most keys received and not yet handed to the main loop</p>
+<dd><p>the most keys and mouse events received and not yet handed to the main loop</p>
 </dd></dl>
 
 </section>
@@ -1291,6 +1332,7 @@ keys are released.</p>
 <li><a class="reference internal" href="#urwid.display.websocket.Screen.feed"><code class="docutils literal notranslate"><span class="pre">Screen.feed()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.websocket.Screen.get_cols_rows"><code class="docutils literal notranslate"><span class="pre">Screen.get_cols_rows()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.websocket.Screen.hook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.hook_event_loop()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.websocket.Screen.set_mouse_tracking"><code class="docutils literal notranslate"><span class="pre">Screen.set_mouse_tracking()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.websocket.Screen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">Screen.unhook_event_loop()</span></code></a></li>
 </ul>
 </li>
@@ -1306,6 +1348,8 @@ keys are released.</p>
 <li><a class="reference internal" href="#urwid.display.websocket.StaticFile.read"><code class="docutils literal notranslate"><span class="pre">StaticFile.read()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#urwid.display.websocket.MAX_COLS"><code class="docutils literal notranslate"><span class="pre">MAX_COLS</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.websocket.MAX_ROWS"><code class="docutils literal notranslate"><span class="pre">MAX_ROWS</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.websocket.MAX_MESSAGE_LENGTH"><code class="docutils literal notranslate"><span class="pre">MAX_MESSAGE_LENGTH</span></code></a></li>
 <li><a class="reference internal" href="#urwid.display.websocket.MAX_PENDING_INPUT"><code class="docutils literal notranslate"><span class="pre">MAX_PENDING_INPUT</span></code></a></li>
 </ul>
@@ -1411,7 +1455,7 @@ keys are released.</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

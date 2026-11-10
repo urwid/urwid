@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>bigtext.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/bigtext.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Urwid Tutorial" href="../../tutorial/index.html" />
+    <link rel="prev" title="palette_test.py" href="palette_test.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../tutorial/index.html" title="Urwid Tutorial"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="palette_test.html" title="palette_test.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">bigtext.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="bigtext-py">
+<h1>bigtext.py<a class="headerlink" href="#bigtext-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos">  2</span><span class="c1">#</span>
+<span class="linenos">  3</span><span class="c1"># Urwid BigText example program</span>
+<span class="linenos">  4</span><span class="c1">#    Copyright (C) 2004-2009  Ian Ward</span>
+<span class="linenos">  5</span><span class="c1">#</span>
+<span class="linenos">  6</span><span class="c1">#    This library is free software; you can redistribute it and/or</span>
+<span class="linenos">  7</span><span class="c1">#    modify it under the terms of the GNU Lesser General Public</span>
+<span class="linenos">  8</span><span class="c1">#    License as published by the Free Software Foundation; either</span>
+<span class="linenos">  9</span><span class="c1">#    version 2.1 of the License, or (at your option) any later version.</span>
+<span class="linenos"> 10</span><span class="c1">#</span>
+<span class="linenos"> 11</span><span class="c1">#    This library is distributed in the hope that it will be useful,</span>
+<span class="linenos"> 12</span><span class="c1">#    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="linenos"> 13</span><span class="c1">#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span>
+<span class="linenos"> 14</span><span class="c1">#    Lesser General Public License for more details.</span>
+<span class="linenos"> 15</span><span class="c1">#</span>
+<span class="linenos"> 16</span><span class="c1">#    You should have received a copy of the GNU Lesser General Public</span>
+<span class="linenos"> 17</span><span class="c1">#    License along with this library; if not, write to the Free Software</span>
+<span class="linenos"> 18</span><span class="c1">#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</span>
+<span class="linenos"> 19</span><span class="c1">#</span>
+<span class="linenos"> 20</span><span class="c1"># Urwid web site: https://urwid.org/</span>
+<span class="linenos"> 21</span>
+<span class="linenos"> 22</span><span class="sd">"""Urwid example demonstrating use of the BigText widget."""</span>
+<span class="linenos"> 23</span>
+<span class="linenos"> 24</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 25</span>
+<span class="linenos"> 26</span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="linenos"> 27</span>
+<span class="linenos"> 28</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos"> 29</span>
+<span class="linenos"> 30</span><span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<span class="linenos"> 31</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="linenos"> 32</span>
+<span class="linenos"> 33</span>
+<span class="linenos"> 34</span><span class="k">class</span><span class="w"> </span><span class="nc">SwitchingPadding</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Padding</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">BigText</span><span class="p">]):</span>
+<span class="linenos"> 35</span><span class="w">    </span><span class="sd">"""Padding that switches its alignment based on the available width."""</span>
+<span class="linenos"> 36</span>
+<span class="linenos"> 37</span>    <span class="k">def</span><span class="w"> </span><span class="nf">padding_values</span><span class="p">(</span>
+<span class="linenos"> 38</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos"> 39</span>        <span class="n">size</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>  <span class="c1"># type: ignore[override]</span>
+<span class="linenos"> 40</span>        <span class="n">focus</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<span class="linenos"> 41</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="linenos"> 42</span><span class="w">        </span><span class="sd">"""Return the left and right padding, aligning left or right depending on the available width.</span>
+<span class="linenos"> 43</span>
+<span class="linenos"> 44</span><span class="sd">        :param size: render size passed by the parent widget</span>
+<span class="linenos"> 45</span><span class="sd">        :param focus: whether the wrapped widget is in focus</span>
+<span class="linenos"> 46</span><span class="sd">        :returns: left and right padding widths</span>
+<span class="linenos"> 47</span><span class="sd">        """</span>
+<span class="linenos"> 48</span>        <span class="n">maxcol</span> <span class="o">=</span> <span class="n">size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="linenos"> 49</span>        <span class="n">width</span><span class="p">,</span> <span class="n">_height</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">original_widget</span><span class="o">.</span><span class="n">pack</span><span class="p">((),</span> <span class="n">focus</span><span class="o">=</span><span class="n">focus</span><span class="p">)</span>  <span class="c1"># urwid.BigText is FIXED size widget</span>
+<span class="linenos"> 50</span>        <span class="k">if</span> <span class="n">maxcol</span> <span class="o">&gt;</span> <span class="n">width</span><span class="p">:</span>
+<span class="linenos"> 51</span>            <span class="bp">self</span><span class="o">.</span><span class="n">align</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">LEFT</span>
+<span class="linenos"> 52</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos"> 53</span>            <span class="bp">self</span><span class="o">.</span><span class="n">align</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RIGHT</span>
+<span class="linenos"> 54</span>        <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">padding_values</span><span class="p">(</span><span class="n">size</span><span class="p">,</span> <span class="n">focus</span><span class="p">)</span>
+<span class="linenos"> 55</span>
+<span class="linenos"> 56</span>
+<span class="linenos"> 57</span><span class="k">class</span><span class="w"> </span><span class="nc">BigTextDisplay</span><span class="p">:</span>
+<span class="linenos"> 58</span><span class="w">    </span><span class="sd">"""Interactive demo application for the :class:`urwid.BigText` widget."""</span>
+<span class="linenos"> 59</span>
+<span class="linenos"> 60</span>    <span class="n">palette</span><span class="p">:</span> <span class="n">typing</span><span class="o">.</span><span class="n">ClassVar</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[</span>
+<span class="linenos"> 61</span>        <span class="p">(</span><span class="s2">"body"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">),</span>
+<span class="linenos"> 62</span>        <span class="p">(</span><span class="s2">"header"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark red"</span><span class="p">,</span> <span class="s2">"bold"</span><span class="p">),</span>
+<span class="linenos"> 63</span>        <span class="p">(</span><span class="s2">"button normal"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">),</span>
+<span class="linenos"> 64</span>        <span class="p">(</span><span class="s2">"button select"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark green"</span><span class="p">),</span>
+<span class="linenos"> 65</span>        <span class="p">(</span><span class="s2">"button disabled"</span><span class="p">,</span> <span class="s2">"dark gray"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">),</span>
+<span class="linenos"> 66</span>        <span class="p">(</span><span class="s2">"edit"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">),</span>
+<span class="linenos"> 67</span>        <span class="p">(</span><span class="s2">"bigtext"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">),</span>
+<span class="linenos"> 68</span>        <span class="p">(</span><span class="s2">"chars"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">),</span>
+<span class="linenos"> 69</span>        <span class="p">(</span><span class="s2">"exit"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark cyan"</span><span class="p">),</span>
+<span class="linenos"> 70</span>    <span class="p">]</span>
+<span class="linenos"> 71</span>
+<span class="linenos"> 72</span>    <span class="k">def</span><span class="w"> </span><span class="nf">create_radio_button</span><span class="p">(</span>
+<span class="linenos"> 73</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos"> 74</span>        <span class="n">g</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">],</span>
+<span class="linenos"> 75</span>        <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos"> 76</span>        <span class="n">font</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Font</span><span class="p">,</span>
+<span class="linenos"> 77</span>        <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Font</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
+<span class="linenos"> 78</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]:</span>
+<span class="linenos"> 79</span><span class="w">        </span><span class="sd">"""Create a radio button for selecting a font.</span>
+<span class="linenos"> 80</span>
+<span class="linenos"> 81</span><span class="sd">        :param g: radio button group to add the new button to</span>
+<span class="linenos"> 82</span><span class="sd">        :param name: label for the radio button</span>
+<span class="linenos"> 83</span><span class="sd">        :param font: font this button selects</span>
+<span class="linenos"> 84</span><span class="sd">        :param fn: callback connected to the button's ``change`` signal, with *font* as its user data</span>
+<span class="linenos"> 85</span><span class="sd">        :returns: the radio button wrapped in an :class:`urwid.AttrMap`</span>
+<span class="linenos"> 86</span><span class="sd">        """</span>
+<span class="linenos"> 87</span>        <span class="n">w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">on_state_change</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">user_data</span><span class="o">=</span><span class="n">font</span><span class="p">)</span>
+<span class="linenos"> 88</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="s2">"button normal"</span><span class="p">,</span> <span class="s2">"button select"</span><span class="p">)</span>
+<span class="linenos"> 89</span>
+<span class="linenos"> 90</span>    <span class="k">def</span><span class="w"> </span><span class="nf">create_disabled_radio_button</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">]:</span>
+<span class="linenos"> 91</span><span class="w">        </span><span class="sd">"""Create a disabled placeholder shown for fonts unavailable in the current encoding mode.</span>
+<span class="linenos"> 92</span>
+<span class="linenos"> 93</span><span class="sd">        :param name: name of the unavailable font</span>
+<span class="linenos"> 94</span><span class="sd">        :returns: the placeholder text wrapped in an :class:`urwid.AttrMap`</span>
+<span class="linenos"> 95</span><span class="sd">        """</span>
+<span class="linenos"> 96</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> (UTF-8 mode required)"</span><span class="p">),</span> <span class="s2">"button disabled"</span><span class="p">)</span>
+<span class="linenos"> 97</span>
+<span class="linenos"> 98</span>    <span class="k">def</span><span class="w"> </span><span class="nf">create_edit</span><span class="p">(</span>
+<span class="linenos"> 99</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">100</span>        <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">101</span>        <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">102</span>        <span class="n">fn</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">typing</span><span class="o">.</span><span class="n">Any</span><span class="p">],</span>
+<span class="linenos">103</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">]:</span>
+<span class="linenos">104</span><span class="w">        </span><span class="sd">"""Create an edit widget and connect it to a change callback.</span>
+<span class="linenos">105</span>
+<span class="linenos">106</span><span class="sd">        :param label: caption shown before the editable text</span>
+<span class="linenos">107</span><span class="sd">        :param text: initial contents of the edit widget</span>
+<span class="linenos">108</span><span class="sd">        :param fn: callback connected to the widget's ``change`` signal, also invoked immediately</span>
+<span class="linenos">109</span><span class="sd">        :returns: the edit widget wrapped in an :class:`urwid.AttrMap`</span>
+<span class="linenos">110</span><span class="sd">        """</span>
+<span class="linenos">111</span>        <span class="n">w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+<span class="linenos">112</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+<span class="linenos">113</span>        <span class="n">fn</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+<span class="linenos">114</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="s2">"edit"</span><span class="p">)</span>
+<span class="linenos">115</span>
+<span class="linenos">116</span>    <span class="k">def</span><span class="w"> </span><span class="nf">set_font_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">font</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Font</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">117</span><span class="w">        </span><span class="sd">"""Switch the displayed :class:`urwid.BigText` to the selected font.</span>
+<span class="linenos">118</span>
+<span class="linenos">119</span><span class="sd">        :param w: radio button whose state changed</span>
+<span class="linenos">120</span><span class="sd">        :param state: new state of the radio button</span>
+<span class="linenos">121</span><span class="sd">        :param font: font the radio button selects</span>
+<span class="linenos">122</span><span class="sd">        """</span>
+<span class="linenos">123</span>        <span class="k">if</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">124</span>            <span class="bp">self</span><span class="o">.</span><span class="n">bigtext</span><span class="o">.</span><span class="n">set_font</span><span class="p">(</span><span class="n">font</span><span class="p">)</span>
+<span class="linenos">125</span>            <span class="bp">self</span><span class="o">.</span><span class="n">chars_avail</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="n">font</span><span class="o">.</span><span class="n">characters</span><span class="p">())</span>
+<span class="linenos">126</span>
+<span class="linenos">127</span>    <span class="k">def</span><span class="w"> </span><span class="nf">edit_change_event</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">widget</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">128</span><span class="w">        </span><span class="sd">"""Update the :class:`urwid.BigText` display with the edited text.</span>
+<span class="linenos">129</span>
+<span class="linenos">130</span><span class="sd">        :param widget: edit widget that changed</span>
+<span class="linenos">131</span><span class="sd">        :param text: new contents of the edit widget</span>
+<span class="linenos">132</span><span class="sd">        """</span>
+<span class="linenos">133</span>        <span class="bp">self</span><span class="o">.</span><span class="n">bigtext</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+<span class="linenos">134</span>
+<span class="linenos">135</span>    <span class="k">def</span><span class="w"> </span><span class="nf">setup_view</span><span class="p">(</span>
+<span class="linenos">136</span>        <span class="bp">self</span><span class="p">,</span>
+<span class="linenos">137</span>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span>
+<span class="linenos">138</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">],</span> <span class="kc">None</span><span class="p">],</span>
+<span class="linenos">139</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">BigText</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">],</span> <span class="kc">None</span><span class="p">]],</span>
+<span class="linenos">140</span>    <span class="p">]:</span>
+<span class="linenos">141</span><span class="w">        </span><span class="sd">"""Build the main view and the exit-confirmation overlay.</span>
+<span class="linenos">142</span>
+<span class="linenos">143</span><span class="sd">        :returns: the main frame, and an overlay of the exit prompt on top of that frame</span>
+<span class="linenos">144</span><span class="sd">        """</span>
+<span class="linenos">145</span>        <span class="n">fonts</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">get_all_fonts</span><span class="p">()</span>
+<span class="linenos">146</span>        <span class="c1"># setup mode radio buttons</span>
+<span class="linenos">147</span>        <span class="bp">self</span><span class="o">.</span><span class="n">font_buttons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">|</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">148</span>        <span class="n">group</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">149</span>        <span class="n">utf8</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">get_encoding_mode</span><span class="p">()</span> <span class="o">==</span> <span class="s2">"utf8"</span>
+<span class="linenos">150</span>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">fontcls</span> <span class="ow">in</span> <span class="n">fonts</span><span class="p">:</span>
+<span class="linenos">151</span>            <span class="n">font</span> <span class="o">=</span> <span class="n">fontcls</span><span class="p">()</span>
+<span class="linenos">152</span>            <span class="n">rb</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">|</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">]</span>
+<span class="linenos">153</span>            <span class="k">if</span> <span class="n">font</span><span class="o">.</span><span class="n">utf8_required</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">utf8</span><span class="p">:</span>
+<span class="linenos">154</span>                <span class="n">rb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_disabled_radio_button</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<span class="linenos">155</span>            <span class="k">else</span><span class="p">:</span>
+<span class="linenos">156</span>                <span class="n">radio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_radio_button</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">font</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">set_font_event</span><span class="p">)</span>
+<span class="linenos">157</span>                <span class="n">rb</span> <span class="o">=</span> <span class="n">radio</span>
+<span class="linenos">158</span>                <span class="k">if</span> <span class="n">fontcls</span> <span class="o">==</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Thin6x6Font</span><span class="p">:</span>
+<span class="linenos">159</span>                    <span class="n">chosen_font_rb</span> <span class="o">=</span> <span class="n">radio</span>
+<span class="linenos">160</span>                    <span class="n">exit_font</span> <span class="o">=</span> <span class="n">font</span>
+<span class="linenos">161</span>            <span class="bp">self</span><span class="o">.</span><span class="n">font_buttons</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rb</span><span class="p">)</span>
+<span class="linenos">162</span>
+<span class="linenos">163</span>        <span class="c1"># Create BigText</span>
+<span class="linenos">164</span>        <span class="bp">self</span><span class="o">.</span><span class="n">bigtext</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">BigText</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]  # font assigned before render</span>
+<span class="linenos">165</span>        <span class="n">bt</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">BoxAdapter</span><span class="p">(</span>
+<span class="linenos">166</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span>
+<span class="linenos">167</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span>
+<span class="linenos">168</span>                    <span class="n">SwitchingPadding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bigtext</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">LEFT</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+<span class="linenos">169</span>                    <span class="s2">"bigtext"</span><span class="p">,</span>
+<span class="linenos">170</span>                <span class="p">),</span>
+<span class="linenos">171</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">BOTTOM</span><span class="p">,</span>
+<span class="linenos">172</span>                <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">173</span>                <span class="mi">7</span><span class="p">,</span>
+<span class="linenos">174</span>            <span class="p">),</span>
+<span class="linenos">175</span>            <span class="mi">7</span><span class="p">,</span>
+<span class="linenos">176</span>        <span class="p">)</span>
+<span class="linenos">177</span>
+<span class="linenos">178</span>        <span class="c1"># Create chars_avail</span>
+<span class="linenos">179</span>        <span class="n">cah</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Characters Available:"</span><span class="p">)</span>
+<span class="linenos">180</span>        <span class="bp">self</span><span class="o">.</span><span class="n">chars_avail</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">ANY</span><span class="p">)</span>
+<span class="linenos">181</span>        <span class="n">ca</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">chars_avail</span><span class="p">,</span> <span class="s2">"chars"</span><span class="p">)</span>
+<span class="linenos">182</span>
+<span class="linenos">183</span>        <span class="n">chosen_font_rb</span><span class="o">.</span><span class="n">original_widget</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># causes set_font_event call</span>
+<span class="linenos">184</span>
+<span class="linenos">185</span>        <span class="c1"># Create Edit widget</span>
+<span class="linenos">186</span>        <span class="n">edit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">create_edit</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"Urwid BigText example"</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">edit_change_event</span><span class="p">)</span>
+<span class="linenos">187</span>
+<span class="linenos">188</span>        <span class="c1"># ListBox</span>
+<span class="linenos">189</span>        <span class="n">chars</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">cah</span><span class="p">,</span> <span class="n">ca</span><span class="p">])</span>
+<span class="linenos">190</span>        <span class="c1"># select_navigation lets TAB / SHIFT TAB move between the edit and the font buttons</span>
+<span class="linenos">191</span>        <span class="n">fonts_pile</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Fonts:"</span><span class="p">),</span> <span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">font_buttons</span><span class="p">],</span> <span class="n">focus_item</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">192</span>        <span class="n">col</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Columns</span><span class="p">([(</span><span class="mi">16</span><span class="p">,</span> <span class="n">chars</span><span class="p">),</span> <span class="n">fonts_pile</span><span class="p">],</span> <span class="mi">3</span><span class="p">,</span> <span class="n">focus_column</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">193</span>        <span class="n">bt_pile</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">([</span><span class="n">bt</span><span class="p">,</span> <span class="n">edit</span><span class="p">],</span> <span class="n">focus_item</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">194</span>        <span class="n">lines</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">AbstractFlowWidget</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">bt_pile</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(),</span> <span class="n">col</span><span class="p">]</span>
+<span class="linenos">195</span>        <span class="n">listbox</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">SimpleListWalker</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">196</span>
+<span class="linenos">197</span>        <span class="c1"># Frame</span>
+<span class="linenos">198</span>        <span class="n">w</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span>
+<span class="linenos">199</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span>
+<span class="linenos">200</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">],</span>
+<span class="linenos">201</span>            <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">202</span>        <span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span>
+<span class="linenos">203</span>            <span class="n">body</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">listbox</span><span class="p">,</span> <span class="s2">"body"</span><span class="p">),</span>
+<span class="linenos">204</span>            <span class="n">header</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span>
+<span class="linenos">205</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Urwid BigText example program - TAB / SHIFT TAB move focus, F8 exits."</span><span class="p">),</span> <span class="s2">"header"</span>
+<span class="linenos">206</span>            <span class="p">),</span>
+<span class="linenos">207</span>        <span class="p">)</span>
+<span class="linenos">208</span>
+<span class="linenos">209</span>        <span class="c1"># Exit message</span>
+<span class="linenos">210</span>        <span class="n">exit_w</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Overlay</span><span class="p">(</span>
+<span class="linenos">211</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">BigText</span><span class="p">((</span><span class="s2">"exit"</span><span class="p">,</span> <span class="s2">" Quit? "</span><span class="p">),</span> <span class="n">exit_font</span><span class="p">),</span>
+<span class="linenos">212</span>            <span class="n">w</span><span class="p">,</span>
+<span class="linenos">213</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">CENTER</span><span class="p">,</span>
+<span class="linenos">214</span>            <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">215</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">MIDDLE</span><span class="p">,</span>
+<span class="linenos">216</span>            <span class="kc">None</span><span class="p">,</span>
+<span class="linenos">217</span>        <span class="p">)</span>
+<span class="linenos">218</span>        <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">exit_w</span>
+<span class="linenos">219</span>
+<span class="linenos">220</span>    <span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">221</span><span class="w">        </span><span class="sd">"""Build the view and run the main loop until the user exits."""</span>
+<span class="linenos">222</span>        <span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">exit_view</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup_view</span><span class="p">()</span>
+<span class="linenos">223</span>        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">view</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">unhandled_input</span><span class="p">)</span>
+<span class="linenos">224</span>        <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">225</span>
+<span class="linenos">226</span>    <span class="k">def</span><span class="w"> </span><span class="nf">unhandled_input</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">227</span><span class="w">        </span><span class="sd">"""Handle keys not consumed by the widgets: :kbd:`f8` to confirm exit, :kbd:`y`/:kbd:`n` to answer it.</span>
+<span class="linenos">228</span>
+<span class="linenos">229</span><span class="sd">        :param key: unhandled key or mouse event</span>
+<span class="linenos">230</span><span class="sd">        :returns: ``True`` if the key was handled, ``None`` otherwise</span>
+<span class="linenos">231</span><span class="sd">        :raises urwid.ExitMainLoop: when the user confirms the exit prompt with :kbd:`y`</span>
+<span class="linenos">232</span><span class="sd">        """</span>
+<span class="linenos">233</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"f8"</span><span class="p">:</span>
+<span class="linenos">234</span>            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exit_view</span>
+<span class="linenos">235</span>            <span class="k">return</span> <span class="kc">True</span>
+<span class="linenos">236</span>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">exit_view</span><span class="p">:</span>
+<span class="linenos">237</span>            <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos">238</span>        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"y"</span><span class="p">,</span> <span class="s2">"Y"</span><span class="p">}:</span>
+<span class="linenos">239</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">240</span>        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"n"</span><span class="p">,</span> <span class="s2">"N"</span><span class="p">}:</span>
+<span class="linenos">241</span>            <span class="bp">self</span><span class="o">.</span><span class="n">loop</span><span class="o">.</span><span class="n">widget</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">view</span>
+<span class="linenos">242</span>            <span class="k">return</span> <span class="kc">True</span>
+<span class="linenos">243</span>        <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos">244</span>
+<span class="linenos">245</span>
+<span class="linenos">246</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">247</span><span class="w">    </span><span class="sd">"""Run the BigText example program."""</span>
+<span class="linenos">248</span>    <span class="n">BigTextDisplay</span><span class="p">()</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+<span class="linenos">249</span>
+<span class="linenos">250</span>
+<span class="linenos">251</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">252</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="palette_test.html"
+                          title="previous chapter">palette_test.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="../../tutorial/index.html"
+                          title="next chapter">Urwid Tutorial</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/bigtext.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../tutorial/index.html" title="Urwid Tutorial"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="palette_test.html" title="palette_test.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">bigtext.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

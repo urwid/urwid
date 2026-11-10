@@ -172,8 +172,8 @@ Event Loops
 
 Urwid's event loop classes handle waiting for things for the
 :class:`MainLoop`. The different event loops allow you to
-integrate with Asyncio_, Twisted_, Glib_, Tornado_, ZMQ_ libraries,
-or use a simple ``select``-based loop.
+integrate with Asyncio_, Trio_, Twisted_, Glib_, Tornado_, ZMQ_ libraries,
+or use a simple ``selectors``-based loop.
 Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.
 
@@ -187,6 +187,7 @@ of :exc:`ExitMainLoop` and other exceptions when using Glib_, Twisted_ or
 Tornado_ callbacks.
 
 .. _Asyncio: https://docs.python.org/3/library/asyncio.html
+.. _Trio: https://trio.readthedocs.io/
 .. _Twisted: http://twistedmatrix.com/trac/
 .. _Glib: http://developer.gnome.org/glib/stable/
 .. _Tornado: http://www.tornadoweb.org/
@@ -195,8 +196,8 @@ Tornado_ callbacks.
 ``SelectEventLoop``
 -------------------
 
-This event loop is based on ``select.select()``. This is the default event loop
-created if none is passed to :class:`~urwid.main_loop.MainLoop`.
+This event loop is based on the ``selectors`` module. This is the default
+event loop created if none is passed to :class:`MainLoop`.
 
 ::
 
@@ -237,6 +238,37 @@ This event loop integrates with the asyncio module in Python.
 .. seealso::
 
   :class:`AsyncioEventLoop reference <AsyncioEventLoop>`
+
+``TrioEventLoop``
+-----------------
+
+This event loop integrates with Trio. :meth:`~TrioEventLoop.alarm`,
+:meth:`~TrioEventLoop.watch_file` and :meth:`~TrioEventLoop.enter_idle` also
+accept an ``async def`` callback, which runs as a task in the loop's nursery.
+
+::
+
+    loop = urwid.MainLoop(widget, event_loop=urwid.TrioEventLoop())
+
+Inside a Trio program that is already running, start the loop with
+:meth:`~TrioEventLoop.run_async`::
+
+    async with trio.open_nursery() as nursery:
+        event_loop = urwid.TrioEventLoop()
+        loop = urwid.MainLoop(widget, event_loop=event_loop)
+        with loop.start():
+            await event_loop.run_async()
+        nursery.cancel_scope.cancel()
+
+.. note::
+
+    :meth:`~TrioEventLoop.run_in_executor` is not supported.
+    Run blocking calls with ``trio.to_thread.run_sync`` instead.
+    A worker thread hands its results to the widgets with :meth:`MainLoop.call_from_thread`.
+
+.. seealso::
+
+  :class:`TrioEventLoop reference <TrioEventLoop>`
 
 ``TwistedEventLoop``
 --------------------

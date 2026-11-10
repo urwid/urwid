@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Canvas Classes and Functions &#8212; Urwid 5.1.0</title>
+    <title>Canvas Classes and Functions &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>
@@ -225,12 +225,34 @@ or the overlay size is not positive</p>
 <span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">TextCanvas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">bytes</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">attr</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'0'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'U'</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cursor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">maxcol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">check_width</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.TextCanvas" title="Link to this definition">¶</a></dt>
 <dd><p>class for storing rendered text and attributes.</p>
 <p>Build a text canvas from the given lines and attributes.</p>
+<p>Each line of <em>text</em> is padded with spaces to <em>maxcol</em> columns.
+<em>attr</em> and <em>cs</em> hold one list of runs per line.
+A run is a <code class="docutils literal notranslate"><span class="pre">(value,</span> <span class="pre">length)</span></code> tuple that applies <em>value</em> to the next <em>length</em> bytes of the line.
+The runs of a line cover it from its first byte, and their lengths add up to at most the padded line’s length.
+The bytes after the last run, and every line with no list of runs, get <code class="docutils literal notranslate"><span class="pre">None</span></code>:
+the default attribute, or the default character set.</p>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">attr=[[(&quot;bold&quot;,</span> <span class="pre">3),</span> <span class="pre">(&quot;red&quot;,</span> <span class="pre">2)],</span> <span class="pre">[(&quot;blue&quot;,</span> <span class="pre">4)]]</span></code> with <code class="docutils literal notranslate"><span class="pre">text=[b&quot;foobar&quot;,</span> <span class="pre">b&quot;test</span> <span class="pre">string&quot;]</span></code>
+shows <code class="docutils literal notranslate"><span class="pre">foo</span></code> as <code class="docutils literal notranslate"><span class="pre">bold</span></code>, <code class="docutils literal notranslate"><span class="pre">ba</span></code> as <code class="docutils literal notranslate"><span class="pre">red</span></code>, <code class="docutils literal notranslate"><span class="pre">r</span></code> with the default attribute, <code class="docutils literal notranslate"><span class="pre">test</span></code> as <code class="docutils literal notranslate"><span class="pre">blue</span></code>,
+and the rest of the second line with the default attribute:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">canvas</span> <span class="o">=</span> <span class="n">TextCanvas</span><span class="p">([</span><span class="sa">b</span><span class="s2">"foobar"</span><span class="p">,</span> <span class="sa">b</span><span class="s2">"test string"</span><span class="p">],</span> <span class="p">[[(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">(</span><span class="s2">"red"</span><span class="p">,</span> <span class="mi">2</span><span class="p">)],</span> <span class="p">[(</span><span class="s2">"blue"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[[(</span><span class="n">a</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">_cs</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">row</span><span class="p">]</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">canvas</span><span class="o">.</span><span class="n">content</span><span class="p">()]</span>
+<span class="go">[[('bold', b'foo'), ('red', b'ba'), (None, b'r     ')], [('blue', b'test'), (None, b' string')]]</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>text</strong> – list of strings, one for each line</p></li>
-<li><p><strong>attr</strong> – list of run length encoded attributes for text</p></li>
-<li><p><strong>cs</strong> – list of run length encoded character set for text</p></li>
+<li><p><strong>text</strong> – lines of text, encoded in the screen’s encoding (see <a class="reference internal" href="global_settings.html#urwid.set_encoding" title="urwid.set_encoding"><code class="xref py py-func docutils literal notranslate"><span class="pre">urwid.set_encoding()</span></code></a>)</p></li>
+<li><p><strong>attr</strong> – runs of display attributes for each line:
+palette entry names, <a class="reference internal" href="attrspec.html#urwid.AttrSpec" title="urwid.AttrSpec"><code class="xref py py-class docutils literal notranslate"><span class="pre">AttrSpec</span></code></a> or <a class="reference internal" href="attrspec.html#urwid.LayeredAttr" title="urwid.LayeredAttr"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayeredAttr</span></code></a> values, or <code class="docutils literal notranslate"><span class="pre">None</span></code> for the default attribute</p></li>
+<li><p><strong>cs</strong> – <p>runs of character sets for each line:</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;0&quot;</span></code>: the DEC special graphics set, in a non-UTF-8 encoding.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;U&quot;</span></code>: bytes written unchanged, without filtering control characters;
+in a non-UTF-8 encoding, also the IBM PC character set.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">None</span></code>: the default set.</p></li>
+</ul>
+</p></li>
 <li><p><strong>cursor</strong> – (x,y) of cursor or None</p></li>
 <li><p><strong>maxcol</strong> – screen columns taken by this canvas</p></li>
 <li><p><strong>check_width</strong> – check and fix width of all lines in text</p></li>
@@ -239,7 +261,7 @@ or the overlay size is not positive</p>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
 <li><p><a class="reference internal" href="exceptions.html#urwid.CanvasError" title="urwid.CanvasError"><strong>CanvasError</strong></a> – a line of <em>text</em> is not a plain string in the screen encoding, is wider than <em>maxcol</em>, or
-has an attribute or character set run extending beyond its text.</p></li>
+has an attribute or character set run extending beyond its padded text.</p></li>
 <li><p><strong>TypeError</strong> – <em>maxcol</em> is not an integer.</p></li>
 </ul>
 </dd>
@@ -755,7 +777,7 @@ Widgets are not guaranteed to be weak-referenceable, so neither index can use we
         <li class="right" >
           <a href="attrspec.html" title="Raw Display Attributes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Canvas Classes and Functions</a></li> 
       </ul>

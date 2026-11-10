@@ -7,6 +7,9 @@ Exceptions
 
 .. autoexception:: WidgetError
 
+.. autoexception:: WidgetSizingError
+    :members: widget, size
+
 .. autoexception:: ListBoxError
 
 .. autoexception:: ColumnsError

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 5.1.0</title>
+    <title>Display Modules &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -206,10 +206,22 @@ and closes the connection when that raises
 <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.InvalidMessageError" title="urwid.display.websocket.InvalidMessageError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">display.websocket.InvalidMessageError</span></code></a>.</p></li>
 <li><p>It calls <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.stop" title="urwid.MainLoop.stop"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.stop()</span></code></a> when the connection closes.</p></li>
 </ul>
+<p>The screen is at most <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.MAX_COLS" title="urwid.display.websocket.MAX_COLS"><code class="xref py py-data docutils literal notranslate"><span class="pre">display.websocket.MAX_COLS</span></code></a> columns by
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.MAX_ROWS" title="urwid.display.websocket.MAX_ROWS"><code class="xref py py-data docutils literal notranslate"><span class="pre">display.websocket.MAX_ROWS</span></code></a> rows, 223 each by default, the largest size
+an X10 mouse report can address in a terminal. A page in a larger window
+uses that size and leaves the rest of the window empty. For a taller or wider
+screen, give the same <code class="docutils literal notranslate"><span class="pre">max_cols</span></code> and <code class="docutils literal notranslate"><span class="pre">max_rows</span></code> to the
+<a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.Screen" title="urwid.display.websocket.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.websocket.Screen</span></code></a> and to <a class="reference internal" href="../reference/display_modules.html#urwid.display.websocket.html_page" title="urwid.display.websocket.html_page"><code class="xref py py-func docutils literal notranslate"><span class="pre">display.websocket.html_page()</span></code></a>.</p>
 <p>Every session is a live connection: there are no files, pipes or session tokens on
 the server. The screen accepts only the messages its page script sends: a known key
-name, or a window size, in a message of limited length.
+name, a window size, or a mouse event, in a message of limited length.
 <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> raised by an input handler ends only the session it was raised in.</p>
+<p>The page reports mouse presses, releases and drags on the screen, and the scroll
+wheel, as the <a class="reference internal" href="userinput.html#mouse-input"><span class="std std-ref">mouse events</span></a> of the other screens. It takes the
+mouse buttons on the screen area for the application, so text there cannot be
+selected with the mouse, and the right button does not open the browser’s menu.
+The wheel turned with <kbd class="kbd docutils literal notranslate">Ctrl</kbd> held is left to the browser, which zooms the
+page with it.</p>
 <p>The page has no inline script or style, so it works under a strict
 <code class="docutils literal notranslate"><span class="pre">Content-Security-Policy</span></code>. The screen itself does no access control: the adapter
 checks the <code class="docutils literal notranslate"><span class="pre">Origin</span></code> of each WebSocket handshake, limits the message size and the
@@ -357,7 +369,7 @@ available.</p>
         <li class="right" >
           <a href="mainloop.html" title="Main Loop"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>

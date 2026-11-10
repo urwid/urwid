@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Encodings Supported &#8212; Urwid 5.1.0</title>
+    <title>Encodings Supported &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>
@@ -52,19 +52,20 @@ based on the configured locale. You may change that setting with the
 </pre></div>
 </div>
 <p>There are two distinct modes of handling encodings with Urwid: Unicode or
-Pass-through. The mode corresponds to using Unicode strings or normal strings
-in your widgets.</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">u</span><span class="s2">"El Niño"</span><span class="p">)</span>
-<span class="n">txt_b</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"El Niño"</span><span class="p">)</span>
+Pass-through. The mode corresponds to using Unicode strings (<code class="xref py py-class docutils literal notranslate"><span class="pre">str</span></code>) or
+byte strings (<code class="xref py py-class docutils literal notranslate"><span class="pre">bytes</span></code>) in your widgets. Unicode strings are the
+recommended way; byte strings are only useful when the output screen encoding
+does not map to Unicode code points.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">txt_a</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"El Niño"</span><span class="p">)</span>
+<span class="n">txt_b</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">b</span><span class="s2">"</span><span class="se">\xf5\xa1</span><span class="s2">"</span><span class="p">)</span>  <span class="c1"># EUC-JP char in user-defined area</span>
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">txt_a</span></code> will be automatically encoded when it is displayed (Unicode mode).</p>
-<p><code class="docutils literal notranslate"><span class="pre">txt_b</span></code> is <strong>assumed</strong> to be in the encoding the user is expecting and passed
-through as-is (Pass-through mode). If the encodings are different then the
-user will see “mojibake” (garbage) on their screen.</p>
-<p>The only time it makes sense to use pass-through mode is if you’re handling an
-encoding that does not round-trip to Unicode properly, or if you’re absolutely
-sure you know what you’re doing.</p>
+<p><code class="docutils literal notranslate"><span class="pre">txt_a</span></code> is a Unicode string and will be automatically encoded when it is
+displayed (Unicode mode).</p>
+<p><code class="docutils literal notranslate"><span class="pre">txt_b</span></code> is made from bytes. They are <strong>assumed</strong> to be in the encoding the
+user is expecting and passed through as-is (Pass-through mode). If the
+encodings are different then the user will see “mojibake” (garbage) on their
+screen.</p>
 <section id="unicode-support">
 <span id="id1"></span><h2>Unicode Support<a class="headerlink" href="#unicode-support" title="Link to this heading">¶</a></h2>
 <p>Urwid has a basic understanding of character widths so that the text layout
@@ -122,7 +123,7 @@ mode the widths are specified in the Unicode standard. For ISO-8859-* all
 bytes are assumed to be 1 column wide characters. For the remaining supported
 encodings any byte with the high-bit set is considered to be half of a 2-column
 wide character.</p>
-<p>The additional plains in EUC are not currently supported.</p>
+<p>The additional planes in EUC are not currently supported.</p>
 </section>
 <section id="future-work">
 <h2>Future Work<a class="headerlink" href="#future-work" title="Link to this heading">¶</a></h2>
@@ -131,10 +132,6 @@ setting. It should be possible to simultaneously support different encodings on
 different screens with Urwid. Making this work involves possibly changing the
 function signature of many widget methods, because encoding needs to be
 specified along with size and focus.</p>
-<p>Device-specific encodings should also be possible for Unicode mode. The LCD
-display module in development drives a device with a non-standard mapping of
-Unicode code points to 8-bit values, but it should still be possible to use a
-Unicode text to display the characters it supports.</p>
 </section>
 </section>
 
@@ -201,7 +198,7 @@ Unicode text to display the characters it supports.</p>
         <li class="right" >
           <a href="textlayout.html" title="Text Layout"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Encodings Supported</a></li> 
       </ul>

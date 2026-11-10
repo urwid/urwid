@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Testing Helpers &#8212; Urwid 5.1.0</title>
+    <title>Testing Helpers &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
       </ul>
@@ -96,6 +96,34 @@ runs for character sets or run-length encoding.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>one list of <code class="docutils literal notranslate"><span class="pre">(attr,</span> <span class="pre">text)</span></code> pairs per canvas row, the text decoded with the target encoding.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="urwid.testing.attrs_for_text">
+<span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">attrs_for_text</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">widget</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">AbstractWidget</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">_Size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">frozenset</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.testing.attrs_for_text" title="Link to this definition">¶</a></dt>
+<dd><p>Render <em>widget</em> and return the display attributes of the runs that contain <em>text</em>.</p>
+<p>Adjacent runs with the same attribute are merged first, as in <a class="reference internal" href="#urwid.testing.render_runs" title="urwid.testing.render_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">render_runs()</span></code></a>,
+so <em>text</em> is found even where the canvas splits it.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Text</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attrs_for_text</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">" there"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="s2">"Hi"</span><span class="p">)</span>
+<span class="go">frozenset({'bold'})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">attrs_for_text</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">" there"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">10</span><span class="p">,),</span> <span class="s2">"Hi there"</span><span class="p">)</span>
+<span class="go">frozenset()</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>widget</strong> – widget to render</p></li>
+<li><p><strong>size</strong> – size to render <em>widget</em> with: <code class="docutils literal notranslate"><span class="pre">()</span></code>, <code class="docutils literal notranslate"><span class="pre">(cols,)</span></code> or <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code></p></li>
+<li><p><strong>text</strong> – text to look for within one run</p></li>
+<li><p><strong>focus</strong> – whether <em>widget</em> is rendered in focus</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the attribute of every run containing <em>text</em>; empty when no single run contains it.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -330,7 +358,7 @@ application.</p>
 <h2>Harness screen<a class="headerlink" href="#harness-screen" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.testing.ScriptedScreen">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">ScriptedScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(80,</span> <span class="pre">24)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.testing.ScriptedScreen" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">ScriptedScreen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(80,</span> <span class="pre">24)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">()</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.testing.ScriptedScreen" title="Link to this definition">¶</a></dt>
 <dd><p>Screen without a terminal that records what is drawn and feeds scripted input to <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
 <p><code class="docutils literal notranslate"><span class="pre">MainLoop(widget,</span> <span class="pre">palette,</span> <span class="pre">screen=ScriptedScreen(...))</span></code> works with <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, which
 feeds one batch of <em>inputs</em> after every redraw and stops with <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> once they are used up,
@@ -340,6 +368,11 @@ recorded again, so <a class="reference internal" href="#urwid.testing.ScriptedSc
 number of draws differs between them. Assert the frames and <a class="reference internal" href="#urwid.testing.ScriptedScreen.last_text" title="urwid.testing.ScriptedScreen.last_text"><code class="xref py py-attr docutils literal notranslate"><span class="pre">last_text</span></code></a>, not a count of draws.</p>
 <p>The input batches are consumed, so one screen scripts one <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>. Alarms still pending
 after the last batch never fire.</p>
+<p><code class="docutils literal notranslate"><span class="pre">inputs=None</span></code> makes the screen unscripted: it feeds no input and never ends the loop.
+A <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> started on it with <a class="reference internal" href="main_loop.html#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> keeps serving alarms, watched files
+and <a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> calls under <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">VirtualClockEventLoop.run_until_idle()</span></code></a>,
+and the screen still records the frames drawn.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> on it returns only when a callback raises <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a>.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Edit</span><span class="p">,</span> <span class="n">Filler</span><span class="p">,</span> <span class="n">MainLoop</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span> <span class="o">=</span> <span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="o">=</span><span class="p">[[</span><span class="s2">"a"</span><span class="p">,</span> <span class="s2">"b"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"backspace"</span><span class="p">]])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">MainLoop</span><span class="p">(</span><span class="n">Filler</span><span class="p">(</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"&gt; "</span><span class="p">)),</span> <span class="n">screen</span><span class="o">=</span><span class="n">screen</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
@@ -355,7 +388,8 @@ after the last batch never fire.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>size</strong> – <code class="docutils literal notranslate"><span class="pre">(cols,</span> <span class="pre">rows)</span></code> returned by <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_cols_rows" title="urwid.testing.ScriptedScreen.get_cols_rows"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_cols_rows()</span></code></a>; assign <a class="reference internal" href="#urwid.testing.ScriptedScreen.size" title="urwid.testing.ScriptedScreen.size"><code class="xref py py-attr docutils literal notranslate"><span class="pre">size</span></code></a> to resize, then
 script a <code class="docutils literal notranslate"><span class="pre">&quot;window</span> <span class="pre">resize&quot;</span></code> key</p></li>
-<li><p><strong>inputs</strong> – batches of keys and mouse event tuples, one batch returned by each <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_input" title="urwid.testing.ScriptedScreen.get_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_input()</span></code></a></p></li>
+<li><p><strong>inputs</strong> – batches of keys and mouse event tuples, one batch returned by each <a class="reference internal" href="#urwid.testing.ScriptedScreen.get_input" title="urwid.testing.ScriptedScreen.get_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_input()</span></code></a>;
+<code class="docutils literal notranslate"><span class="pre">None</span></code> for an unscripted screen, which feeds no input and never ends the loop</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
@@ -378,6 +412,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 <dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.draw_screen">
 <span class="sig-name descname"><span class="pre">draw_screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="canvas.html#urwid.Canvas" title="urwid.Canvas"><span class="pre">Canvas</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.draw_screen" title="Link to this definition">¶</a></dt>
 <dd><p>Record <em>canvas</em> unless it shows the same frame as the last one, then schedule the next input batch.</p>
+<p>An unscripted screen schedules no input.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -405,7 +440,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 <dd class="field-odd"><p><strong>raw_keys</strong> – also return the raw key codes, which are always empty</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the batch, or <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">[])</span></code> when <em>raw_keys</em> is true.</p>
+<dd class="field-even"><p>the batch, or <code class="docutils literal notranslate"><span class="pre">(batch,</span> <span class="pre">[])</span></code> when <em>raw_keys</em> is true; an unscripted screen returns an empty batch.</p>
 </dd>
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><strong>ExitMainLoop</strong></a> – the scripted batches are used up.</p>
@@ -417,6 +452,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 <dt class="sig sig-object py" id="urwid.testing.ScriptedScreen.hook_event_loop">
 <span class="sig-name descname"><span class="pre">hook_event_loop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event_loop</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">EventLoop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Callable</span><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">_Input</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.ScriptedScreen.hook_event_loop" title="Link to this definition">¶</a></dt>
 <dd><p>Feed the input batches to <em>callback</em> through alarms of <em>event_loop</em>, one after every draw.</p>
+<p>An unscripted screen feeds nothing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -458,6 +494,139 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 </dd></dl>
 
 </section>
+<section id="virtual-clock">
+<h2>Virtual clock<a class="headerlink" href="#virtual-clock" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="urwid.testing.VirtualClockEventLoop">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.testing.</span></span><span class="sig-name descname"><span class="pre">VirtualClockEventLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.testing.VirtualClockEventLoop" title="Link to this definition">¶</a></dt>
+<dd><p>Event loop whose alarms fire on a clock of its own, which jumps to the next alarm instead of waiting for it.</p>
+<p>Pass it as <code class="docutils literal notranslate"><span class="pre">MainLoop(...,</span> <span class="pre">event_loop=VirtualClockEventLoop())</span></code> to test a widget or an application that sets
+alarms, such as <a class="reference internal" href="widget.html#urwid.Notifications" title="urwid.Notifications"><code class="xref py py-class docutils literal notranslate"><span class="pre">Notifications</span></code></a>, without real delays.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.set_alarm_in" title="urwid.MainLoop.set_alarm_in"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_alarm_in()</span></code></a> schedules against this clock.
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.set_alarm_at" title="urwid.MainLoop.set_alarm_at"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_alarm_at()</span></code></a> still takes a <code class="xref py py-func docutils literal notranslate"><span class="pre">time.time()</span></code> value, and only its offset from now counts.
+Alarms due together fire in the order they were set,
+and the loop enters idle, drawing the screen, as <a class="reference internal" href="main_loop.html#urwid.SelectEventLoop" title="urwid.SelectEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">SelectEventLoop</span></code></a> does.</p>
+<p>Watched files are polled without waiting, so input, <a class="reference internal" href="main_loop.html#urwid.MainLoop.watch_pipe" title="urwid.MainLoop.watch_pipe"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_pipe()</span></code></a> and
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> work as on the select loop.
+The clock moves only while no watched file is readable, so a file that stays readable keeps later alarms from
+coming due until <em>timeout</em> runs out.
+A loop with nothing left to do but watch files waits for them in real time, up to <em>timeout</em>.
+<a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> runs every pending alarm and readable file instead, and returns once none is left.</p>
+<p>The clock is the loop’s own: code that reads <code class="xref py py-func docutils literal notranslate"><span class="pre">time.monotonic()</span></code> itself does not see it move.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">MainLoop</span><span class="p">,</span> <span class="n">Notifications</span><span class="p">,</span> <span class="n">SolidFill</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(),</span> <span class="n">screen</span><span class="o">=</span><span class="n">ScriptedScreen</span><span class="p">(),</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">notifications</span> <span class="o">=</span> <span class="n">Notifications</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">notifications</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">"saved"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="mf">4.9</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span><span class="p">),</span> <span class="n">event_loop</span><span class="o">.</span><span class="n">now</span>
+<span class="go">(1, 4.9)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">len</span><span class="p">(</span><span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span><span class="p">)</span>
+<span class="go">0</span>
+</pre></div>
+</div>
+<p>Create a loop whose clock reads 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>timeout</strong> – seconds of real time a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run" title="urwid.testing.VirtualClockEventLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>, an <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a> or a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> may take</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.VirtualClockEventLoop.advance">
+<span class="sig-name descname"><span class="pre">advance</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seconds</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.VirtualClockEventLoop.advance" title="Link to this definition">¶</a></dt>
+<dd><p>Move the clock <em>seconds</em> ahead, firing every alarm that comes due on the way.</p>
+<p>Alarms fire in the order they come due, each with the clock at its due time,
+and the loop enters idle before the clock moves on.
+Readable watched files are served on the way, but the loop does not wait for one.
+Exceptions raised by the callbacks, <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> included, reach the caller.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seconds</strong> – how far to move the clock; 0 fires the alarms already due</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – <em>seconds</em> is negative.</p></li>
+<li><p><strong>RuntimeError</strong> – called from a callback of an <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a>, a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run" title="urwid.testing.VirtualClockEventLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> or a
+<a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> of this loop.</p></li>
+<li><p><strong>TimeoutError</strong> – the alarms still came due after <em>timeout</em> seconds of real time.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="urwid.testing.VirtualClockEventLoop.now">
+<span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">now</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></span><a class="headerlink" href="#urwid.testing.VirtualClockEventLoop.now" title="Link to this definition">¶</a></dt>
+<dd><p>Return the time of the loop’s clock, in seconds since the loop was created.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.VirtualClockEventLoop.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.VirtualClockEventLoop.run" title="Link to this definition">¶</a></dt>
+<dd><p>Run the loop until a callback raises <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>TimeoutError</strong> – the loop still ran after <em>timeout</em> seconds of real time.</p></li>
+<li><p><strong>RuntimeError</strong> – no alarm is pending and no file is watched, so the loop would wait forever.
+Also when called from a callback of an <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a>, a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run" title="urwid.testing.VirtualClockEventLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> or a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> of
+this loop.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="urwid.testing.VirtualClockEventLoop.run_until_idle">
+<span class="sig-name descname"><span class="pre">run_until_idle</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">pause</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="Link to this definition">¶</a></dt>
+<dd><p>Fire every pending alarm and serve every readable watched file, until none is left.</p>
+<p>The clock jumps from alarm to alarm, as in <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a>, and stops at the last alarm that fired.
+Alarms set by the callbacks fire in the same call.
+The loop enters idle before it returns, so a started <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> has drawn the screen.
+A watched file that is not readable is waited for only during the pauses.
+Exceptions raised by the callbacks, <a class="reference internal" href="exceptions.html#urwid.ExitMainLoop" title="urwid.ExitMainLoop"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ExitMainLoop</span></code></a> included, reach the caller.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">event_loop</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">event_loop</span><span class="o">.</span><span class="n">alarm</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="kc">None</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span><span class="o">.</span><span class="n">run_until_idle</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span><span class="o">.</span><span class="n">now</span>
+<span class="go">5.0</span>
+</pre></div>
+</div>
+<p>A <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> started on an unscripted <a class="reference internal" href="#urwid.testing.ScriptedScreen" title="urwid.testing.ScriptedScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">ScriptedScreen</span></code></a> serves
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> calls and its alarms here, without <a class="reference internal" href="main_loop.html#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a>:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">MainLoop</span><span class="p">,</span> <span class="n">SolidFill</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(),</span> <span class="n">screen</span><span class="o">=</span><span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">loop</span><span class="o">.</span><span class="n">call_from_thread</span><span class="p">(</span><span class="nb">print</span><span class="p">,</span> <span class="s2">"called back"</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">_</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">set_alarm_in</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">_</span><span class="p">:</span> <span class="nb">print</span><span class="p">(</span><span class="s2">"alarm"</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="n">event_loop</span><span class="o">.</span><span class="n">run_until_idle</span><span class="p">()</span>
+<span class="go">called back</span>
+<span class="go">alarm</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pause</strong> – seconds of real time to watch the files before each jump of the clock to the next alarm,
+so a worker thread polled by an alarm can hand back its result, for example through
+<a class="reference internal" href="main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>; the pauses count toward <em>timeout</em></p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – <em>pause</em> is negative or not finite.</p></li>
+<li><p><strong>RuntimeError</strong> – called from a callback of an <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a>, a <a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run" title="urwid.testing.VirtualClockEventLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> or a
+<a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> of this loop.</p></li>
+<li><p><strong>TimeoutError</strong> – alarms were still pending, or a file still readable, after <em>timeout</em> seconds of
+real time.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -475,6 +644,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 <li><a class="reference internal" href="#rendering">Rendering</a><ul>
 <li><a class="reference internal" href="#urwid.testing.render_text"><code class="docutils literal notranslate"><span class="pre">render_text()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.testing.render_runs"><code class="docutils literal notranslate"><span class="pre">render_runs()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.attrs_for_text"><code class="docutils literal notranslate"><span class="pre">attrs_for_text()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.testing.resolve_attr"><code class="docutils literal notranslate"><span class="pre">resolve_attr()</span></code></a></li>
 <li><a class="reference internal" href="#urwid.testing.resolve_runs"><code class="docutils literal notranslate"><span class="pre">resolve_runs()</span></code></a></li>
 </ul>
@@ -502,6 +672,16 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
 <li><a class="reference internal" href="#urwid.testing.ScriptedScreen.last_text"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.last_text</span></code></a></li>
 <li><a class="reference internal" href="#urwid.testing.ScriptedScreen.size"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.size</span></code></a></li>
 <li><a class="reference internal" href="#urwid.testing.ScriptedScreen.unhook_event_loop"><code class="docutils literal notranslate"><span class="pre">ScriptedScreen.unhook_event_loop()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#virtual-clock">Virtual clock</a><ul>
+<li><a class="reference internal" href="#urwid.testing.VirtualClockEventLoop"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop</span></code></a><ul>
+<li><a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.advance"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop.advance()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.now"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop.now</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop.run()</span></code></a></li>
+<li><a class="reference internal" href="#urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="docutils literal notranslate"><span class="pre">VirtualClockEventLoop.run_until_idle()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -554,7 +734,7 @@ script a <code class="docutils literal notranslate"><span class="pre">&quot;wind
         <li class="right" >
           <a href="canvas.html" title="Canvas Classes and Functions"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Helpers</a></li> 
       </ul>

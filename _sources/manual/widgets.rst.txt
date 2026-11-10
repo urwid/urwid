@@ -97,6 +97,13 @@ A widget may support more than one sizing mode, and :meth:`Widget.sizing`
 returns the set of modes it supports.  The sizing modes of a decoration or
 container widget depend on the widgets it contains and on its options.
 
+A widget can also accept a size it does not report.  A :class:`ListBox`
+renders at a flow size, but reports ``'flow'`` only with ``flow=True``; see
+:ref:`listbox-contents`.  A :class:`Frame` renders at a flow size when its body
+does, and reports ``'flow'`` only with ``flow=True`` as well.  See
+:ref:`shrink_to_fit <shrink-to-fit>` for a dialog that takes the rows of its
+content.
+
 .. list-table:: Sizing Modes of the Included Widgets
    :widths: 45 55
    :header-rows: 1
@@ -124,7 +131,8 @@ container widget depend on the widgets it contains and on its options.
        ``'clip'``
    * - :class:`Filler`
      - ``'box'``, and ``'flow'`` as well when its height is ``'pack'`` or a
-       given number of rows
+       given number of rows; see :ref:`shrink_to_fit <shrink-to-fit>` for a
+       ``'pack'`` height taller than the rows available
    * - :class:`BoxAdapter`
      - ``'flow'``; the wrapped widget is a box widget
    * - :class:`Pile`, :class:`Columns`
@@ -138,10 +146,19 @@ container widget depend on the widgets it contains and on its options.
      - ``'box'``, and ``'flow'`` as well when every body is a flow widget
    * - :class:`Overlay`
      - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
-       position options of the top widget allow it
-   * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
-       :class:`OverlayStack`, :class:`PopUpTarget`, :class:`ScrollBar`,
-       :class:`Scrollable`
+       position options of the top widget allow it; see
+       :ref:`shrink_to_fit <shrink-to-fit>` for a ``'pack'`` height taller
+       than the rows available
+   * - :class:`ListBox`, :class:`TreeListBox`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when the list
+       walker reports its length, or an estimate of it, and does not wrap
+       around; see :ref:`listbox-contents`
+   * - :class:`ScrollBar`
+     - ``'box'``, and ``'flow'`` as well around a ``ListBox(..., flow=True)``
+   * - :class:`Frame`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when its body
+       also supports ``'flow'``; it accepts a flow size whenever its body does
+   * - :class:`OverlayStack`, :class:`PopUpTarget`, :class:`Scrollable`
      - ``'box'``
 
 .. _basic-grafic-widgets:
@@ -162,10 +179,12 @@ child process and shows its terminal output.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more
-than one color supports each of those modes.  In a decoration or container
-tile, the colors inside the box show which sizing modes the wrapped widgets
-use.  The table in `Box, Flow and Fixed Widgets`_ lists the exact sizing modes
-of each widget.
+than one color supports each of those modes.  A mode a widget supports only
+with some options is drawn the same way, such as ``'flow'`` for
+``ListBox(..., flow=True)``.  In a decoration or container tile, the colors
+inside the box show which sizing modes the wrapped widgets use.  The table in
+`Box, Flow and Fixed Widgets`_ lists the exact sizing modes of each widget and
+the conditions for each mode.
 
 .. image:: images/urwid_widgets_2.png
 
@@ -405,8 +424,9 @@ flagged to be redrawn.
 iterable to ``container.contents`` to overwrite the values in
 with the ones provided.
 
-:class:`Columns`, :class:`Pile`, :class:`GridFlow`, :class:`Overlay` and
-:class:`Frame` support ``container.contents`` item assignment and deletion.
+:class:`Columns`, :class:`Pile`, :class:`GridFlow` and :class:`Frame` support
+``container.contents`` item assignment and deletion. :class:`Overlay` supports
+item assignment only, because its two items are fixed.
 
 ::
 
@@ -619,6 +639,30 @@ selected tab, not to the body::
 
     listbox = urwid.ListBox(walker, unfocused_focus_attr={"item": "item selected"})
 
+When the children carry their own :class:`AttrMap` focus maps, a fixed map
+cannot follow each child's own look.  ``unfocused_focus_attr_func`` takes a
+function instead: it is called with the focus child (the selected label of a
+:class:`Tabs`, the :class:`TableRow` of a :class:`Table`) and returns a map in
+any form :class:`AttrMap` takes, or ``None`` to fall back to
+``unfocused_focus_attr``.  It runs when the container's canvas is drawn
+afresh, so a result that depends on state outside the widgets needs the
+container invalidated before it shows::
+
+    def own_focus_map(child):
+        if not isinstance(child, urwid.AttrMap) or child.focus_map is None:
+            return None
+        return {child.attr_map.get(key, key): value for key, value in child.focus_map.items()}
+
+    pile = urwid.Pile(cells, unfocused_focus_attr_func=own_focus_map)
+
+``focus_map`` is ``None`` for an :class:`AttrMap` without one, and an
+attribute the normal map does not name passes through unchanged.  The mark is
+applied to the attributes the normal map has already produced, so it
+reproduces the focused look only while the normal map keeps apart the
+attributes the focus map tells apart: with ``attr_map={"a": "plain", "b":
+"plain"}`` and ``focus_map={"a": "one", "b": "two"}`` both parts are marked
+``"two"``.
+
 
 Pile Widgets
 ------------
@@ -671,8 +715,8 @@ new space.
 Table Widgets
 -------------
 
-:class:`Table` lines up rows of cells under a header that stays in place
-while the rows scroll.  Each :class:`TableColumn` gives its column a width:
+:class:`Table` lines up rows of cells between a header and an optional
+footer that stay in place while the rows scroll.  Each :class:`TableColumn` gives its column a width:
 ``PACK`` for the widest cell, a number of screen columns, or
 ``(WEIGHT, weight)`` for a share of the room the other columns leave::
 
@@ -703,6 +747,7 @@ rows as they were.
 
 A column's ``attr`` maps every cell of that column in the rows.
 It does not map the header label, which takes ``header_attr`` only,
+nor a footer built from cells, which takes ``footer_attr`` only,
 and it does not map a span row.
 The row's map applies over it: a dict ``attr`` or ``focus_attr`` of the row
 also maps the column attributes, so a dict ``focus_attr`` gives each column
@@ -719,15 +764,43 @@ whose width changes later needs :meth:`TableLayout.invalidate_widths`.
 
 The table sends ``"focus changed"`` like the other containers, and
 ``"activate"`` with the focus position when the focused row leaves the
-``activate`` command (:kbd:`enter` or :kbd:`space`) unhandled.  A mouse click
-moves the focus and reaches the cell, as in a :class:`ListBox`.  A
-``row_attr(index, data)`` callable colours rows by their position or their
-data, for example in stripes; it runs each time a row is drawn.  The
-``unfocused_focus_attr`` map is applied over the row's own map, so its keys
-are the attributes the row's map produces.
+``activate`` command (:kbd:`enter` or :kbd:`space`) unhandled.  A handler
+whose result is true consumes the key; otherwise the key is returned, as
+:class:`Overlay` does for ``"menu"``.  Every handler runs, whatever the earlier
+ones returned.  A mouse click moves the focus and reaches the cell, as in a
+:class:`ListBox`.  A ``row_attr(index, data)`` callable colours rows by their
+position or their data, for example in stripes; it runs each time a row is
+drawn.  The ``unfocused_focus_attr`` map is applied over the row's own map, so
+its keys are the attributes the row's map produces.
+
+``footer=`` takes the cells of a row drawn below the rows, such as totals.
+:attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
+:attr:`Table.layout` with its own maps (a span row for a one-line summary),
+or to ``None``.  Like the header, the footer shares the column widths and
+never takes the focus or a mouse click.
+
+A box size that does not fit the whole table can drop the header or the
+footer: ``header_drop=N`` drops the header while keeping it would leave the
+body fewer than ``N`` rows, and ``footer_drop`` does the same for the footer.
+The part with the larger threshold is dropped first, so the two numbers also
+set which part matters more; on equal thresholds the footer goes first.
+Nothing is dropped while all the rows fit, and a flow size shows both parts.
 
 In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
 gives the natural width, so a table can size a dialog by itself.
+
+:meth:`Table.set_focus` takes ``coming_from=`` as :meth:`ListBox.set_focus`
+does, so a jump scrolls as if the focus arrived from that edge.
+``wheel="view"`` makes the mouse wheel scroll the rows instead of moving the
+focus, as for a :class:`ListBox`; see `ListBox Focus and Scrolling`_.
+
+``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
+``scrollbar=None`` draws it only when the rows do not fit.
+The :class:`ScrollBar` parameters for its look, its side and its mouse
+handling are passed with a ``scrollbar_`` prefix, such as
+``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and
+``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
+of an application.
 
 :class:`urwid.widget.TableLayout`, the part that shares the widths, also
 works without a table: rows built with :meth:`TableLayout.row` line up in a
@@ -868,8 +941,8 @@ The alarm that dismisses a message is set on the ``loop`` given to the
 widget, or else on the loop running when :meth:`~Notifications.notify` is
 called (see :func:`get_running_loop`); a message with a timeout posted before
 the loop runs needs ``loop=``.  Call the widget from the thread running the
-loop only.  Another thread hands its message over through
-:meth:`MainLoop.watch_pipe`, or the event loop's own thread-safe scheduling.
+loop only.  Another thread hands its message over with
+:meth:`MainLoop.call_from_thread`.
 ``examples/notifications.py`` shows the widget as a footer.
 
 
@@ -922,10 +995,29 @@ and a handler that returns ``True`` consumes the press, for a dialog that closes
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.
 
+.. _shrink-to-fit:
+
+With a ``'pack'`` height, a top widget taller than the rows available is clipped at the bottom.
+With ``shrink_to_fit=True``, a top widget that also supports ``'box'`` is rendered as a box at those rows instead,
+and :class:`Filler` takes the same argument for its body.
+A dialog around a :class:`Table`, or around a :class:`Pile` with a weighted ``ListBox(..., flow=True)`` item,
+then takes the rows of its content, and scrolls the table or the list only when the screen is too short.
+A ``Frame(..., flow=True)`` around such a list keeps its footer, such as a row of buttons, on a short screen:
+with the body or the footer in focus, a :class:`Frame` trims its header first.
+``trim_first='footer'`` trims the footer first instead while the body is in focus,
+so a header, such as a path input above a list, keeps its rows longer than the footer does.
+``min_body_rows`` gives the body that many rows right after the part in focus,
+so optional controls in a header or footer do not take the whole screen.
+The body takes these rows before a header or a footer that is not in focus,
+so a screen with no more rows than that shows neither of them;
+see :meth:`Frame.frame_top_bottom` for the order.
+The top widget is measured in and out of focus on each layout.
+
 The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
 It holds a base widget, usually the application's :class:`Frame`, and a stack of open dialogs,
 each one an Overlay over the one below, and it is meant to be the :attr:`MainLoop.widget`.
 :meth:`OverlayStack.open` puts a widget on top with the Overlay layout options.
+It takes ``shrink_to_fit`` as well, for a dialog taller than the screen.
 Without a ``width`` or ``height``, a flow or box widget gets 80% of the width,
 a flow widget is packed to its rows, a box widget that is not a flow widget gets 80% of the height,
 and a widget that is fixed only is packed in both directions.
@@ -960,7 +1052,9 @@ the first and the last scrollbar row hold markers
 that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
 ``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
 and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
-The widget reports BOX sizing, and the wrapped widget must support BOX.
+The widget reports BOX sizing, and FLOW as well around a :class:`ListBox` with :attr:`ListBox.flow` set,
+also when the ListBox is wrapped in a decoration such as :class:`AttrMap`.
+The wrapped widget must support BOX.
 Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
 draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
@@ -1024,6 +1118,8 @@ and implement positioning API:
     **Optional** method for setting scrolling position.
 
     Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.
+    :class:`ScrollBar` does not call :meth:`ListBox.set_scrollpos`, so a :class:`ListBox` keeps scrolling by its focus
+    there; a subclass that defines its own method is called.
 
     If `position` is positive it is interpreted as lines from the top.
     If `position` is negative it is interpreted as lines from the bottom.
@@ -1053,17 +1149,31 @@ Its contents are displayed stacked vertically, and the
 One of the flow widgets displayed in the :class:`ListBox` is its
 focus widget.
 
-A :class:`ListBox` also accepts a flow size, although it reports BOX sizing only,
-so containers keep laying it out as a box widget.
+A :class:`ListBox` also accepts a flow size.
 At a flow size it shows all its widgets, and :meth:`ListBox.rows` returns the rows they take.
 The whole body is measured, so this is meant for lists short enough for a dialog.
 It needs a list walker that reports its length or an estimate of it, or a :class:`TreeWalker`,
 and that does not wrap around.
 
+By default a :class:`ListBox` reports BOX sizing only, so containers lay it out as a box widget.
+With ``flow=True`` it reports FLOW as well, over a list walker that reports its length or an estimate of it
+and does not wrap around; a :class:`TreeWalker` qualifies only when it reports its length.
+A container can then give it the rows of all its widgets:
+
+* A weighted ``ListBox(..., flow=True)`` item of a :class:`Pile` takes the rows of its widgets
+  when the Pile is rendered at a flow size, and the rows left over when it is rendered at a box size.
+  An item with a ``'pack'`` height is rendered at a flow size, so it shows every widget and does not scroll.
+* In a :class:`Columns` it is a flow widget like a :class:`Text`,
+  so a Columns of it and of columns that are flow widgets only is a flow widget too.
+* :class:`BoxAdapter` remains the way to give a :class:`ListBox` a fixed number of rows.
+
+See :ref:`shrink_to_fit <shrink-to-fit>` for a dialog that shrinks to the screen and scrolls its list.
+
 ListBox Focus and Scrolling
 ---------------------------
 
-The :class:`ListBox` is a box widget that contains flow widgets.
+The :class:`ListBox` is a box widget that contains flow widgets,
+and a flow widget as well with ``flow=True`` (see :ref:`listbox-contents`).
 Its contents are displayed stacked vertically, and the
 :class:`ListBox` allows the user to scroll through its content.
 One of the flow widgets displayed in the :class:`ListBox` is the
@@ -1122,6 +1232,27 @@ last row :kbd:`down`, so a parent :class:`Pile` moves the focus to the widget
 above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
+
+:meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
+is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
+contains the focus widget, so the focus stays only while one of its rows is in
+the new view.  Otherwise the selectable widget in the view nearest to the edge
+the focus left by takes it: searched from the top when the view moved down past
+the focus, and from the bottom when the view moved up.  When the view holds no
+selectable widget, the widget at that edge takes the focus, as with *UP* and
+*DOWN*.
+
+By default each notch of the mouse wheel moves the focus one row, as *UP* and
+*DOWN* do.
+Created with ``wheel="view"``, the :class:`ListBox` scrolls its view one row
+per notch instead, and moves the focus as :meth:`ListBox.set_scrollpos` does,
+so the focus stays where it is until it would leave the view.
+When the cursor of the selectable widget the focus would move to keeps the view
+from moving one row, the widget at the edge takes the focus instead.
+The attribute :attr:`ListBox.wheel` can be changed later.
+When the cursor of the focus widget keeps the view from moving,
+the notch moves the focus as in the default mode.
+In both modes a notch at the end of the list is returned unhandled.
 
 
 Dynamic ListBox with ListWalker
@@ -1571,7 +1702,7 @@ Widget Metaclass
 The :class:`Widget` base class has a metaclass defined that uses :class:`MetaSignals`
 to allow signals to be defined as a list of signal names
 in a ``signals`` class attribute.  This is equivalent to calling
-:func:`register_signal` with the class name and list of signals and all those
+:func:`register_signal` with the class and list of signals and all those
 defined in superclasses after the class definition.
 
 .. seealso::

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Main Loop &#8212; Urwid 5.1.0</title>
+    <title>Main Loop &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>
@@ -189,8 +189,8 @@ It collects the lines and asks for one drain while none is pending:</p>
 <span id="id2"></span><h2>Event Loops<a class="headerlink" href="#event-loops" title="Link to this heading">¶</a></h2>
 <p>Urwid’s event loop classes handle waiting for things for the
 <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>. The different event loops allow you to
-integrate with <a class="reference external" href="https://docs.python.org/3/library/asyncio.html">Asyncio</a>, <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a>, <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a>, <a class="reference external" href="https://pyzmq.readthedocs.io/en/latest/">ZMQ</a> libraries,
-or use a simple <code class="docutils literal notranslate"><span class="pre">select</span></code>-based loop.
+integrate with <a class="reference external" href="https://docs.python.org/3/library/asyncio.html">Asyncio</a>, <a class="reference external" href="https://trio.readthedocs.io/">Trio</a>, <a class="reference external" href="http://twistedmatrix.com/trac/">Twisted</a>, <a class="reference external" href="http://developer.gnome.org/glib/stable/">Glib</a>, <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a>, <a class="reference external" href="https://pyzmq.readthedocs.io/en/latest/">ZMQ</a> libraries,
+or use a simple <code class="docutils literal notranslate"><span class="pre">selectors</span></code>-based loop.
 Event loop classes abstract the particulars of waiting for input and
 calling functions as a result of timeouts.</p>
 <p>You will typically only have a single event loop in your application, even if
@@ -202,8 +202,8 @@ of <a class="reference internal" href="../reference/exceptions.html#urwid.ExitMa
 <a class="reference external" href="http://www.tornadoweb.org/">Tornado</a> callbacks.</p>
 <section id="selecteventloop">
 <h3><code class="docutils literal notranslate"><span class="pre">SelectEventLoop</span></code><a class="headerlink" href="#selecteventloop" title="Link to this heading">¶</a></h3>
-<p>This event loop is based on <code class="docutils literal notranslate"><span class="pre">select.select()</span></code>. This is the default event loop
-created if none is passed to <code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code>.</p>
+<p>This event loop is based on the <code class="docutils literal notranslate"><span class="pre">selectors</span></code> module. This is the default
+event loop created if none is passed to <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a>.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># same as urwid.MainLoop(widget, event_loop=urwid.SelectEventLoop())</span>
 <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">)</span>
 </pre></div>
@@ -239,6 +239,35 @@ Under Windows OS only <a class="reference external" href="https://docs.python.or
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/main_loop.html#urwid.AsyncioEventLoop" title="urwid.AsyncioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncioEventLoop</span> <span class="pre">reference</span></code></a></p>
+</div>
+</section>
+<section id="trioeventloop">
+<h3><code class="docutils literal notranslate"><span class="pre">TrioEventLoop</span></code><a class="headerlink" href="#trioeventloop" title="Link to this heading">¶</a></h3>
+<p>This event loop integrates with Trio. <a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop.alarm" title="urwid.TrioEventLoop.alarm"><code class="xref py py-meth docutils literal notranslate"><span class="pre">alarm()</span></code></a>,
+<a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop.watch_file" title="urwid.TrioEventLoop.watch_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">watch_file()</span></code></a> and <a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop.enter_idle" title="urwid.TrioEventLoop.enter_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">enter_idle()</span></code></a> also
+accept an <code class="docutils literal notranslate"><span class="pre">async</span> <span class="pre">def</span></code> callback, which runs as a task in the loop’s nursery.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">TrioEventLoop</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Inside a Trio program that is already running, start the loop with
+<a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop.run_async" title="urwid.TrioEventLoop.run_async"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_async()</span></code></a>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="k">with</span> <span class="n">trio</span><span class="o">.</span><span class="n">open_nursery</span><span class="p">()</span> <span class="k">as</span> <span class="n">nursery</span><span class="p">:</span>
+    <span class="n">event_loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">TrioEventLoop</span><span class="p">()</span>
+    <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+        <span class="k">await</span> <span class="n">event_loop</span><span class="o">.</span><span class="n">run_async</span><span class="p">()</span>
+    <span class="n">nursery</span><span class="o">.</span><span class="n">cancel_scope</span><span class="o">.</span><span class="n">cancel</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop.run_in_executor" title="urwid.TrioEventLoop.run_in_executor"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_in_executor()</span></code></a> is not supported.
+Run blocking calls with <code class="docutils literal notranslate"><span class="pre">trio.to_thread.run_sync</span></code> instead.
+A worker thread hands its results to the widgets with <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">MainLoop.call_from_thread()</span></code></a>.</p>
+</div>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/main_loop.html#urwid.TrioEventLoop" title="urwid.TrioEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">TrioEventLoop</span> <span class="pre">reference</span></code></a></p>
 </div>
 </section>
 <section id="twistedeventloop">
@@ -331,6 +360,7 @@ A worker running there hands its results to the widgets with <a class="reference
 <li><a class="reference internal" href="#event-loops">Event Loops</a><ul>
 <li><a class="reference internal" href="#selecteventloop"><code class="docutils literal notranslate"><span class="pre">SelectEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#asyncioeventloop"><code class="docutils literal notranslate"><span class="pre">AsyncioEventLoop</span></code></a></li>
+<li><a class="reference internal" href="#trioeventloop"><code class="docutils literal notranslate"><span class="pre">TrioEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#twistedeventloop"><code class="docutils literal notranslate"><span class="pre">TwistedEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#glibeventloop"><code class="docutils literal notranslate"><span class="pre">GLibEventLoop</span></code></a></li>
 <li><a class="reference internal" href="#tornadoeventloop"><code class="docutils literal notranslate"><span class="pre">TornadoEventLoop</span></code></a></li>
@@ -385,7 +415,7 @@ A worker running there hands its results to the widgets with <a class="reference
         <li class="right" >
           <a href="overview.html" title="Library Overview"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Main Loop</a></li> 
       </ul>

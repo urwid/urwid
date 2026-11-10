@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Urwid Tutorial &#8212; Urwid 5.1.0</title>
+    <title>Urwid Tutorial &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -18,7 +18,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Urwid Manual" href="../manual/index.html" />
-    <link rel="prev" title="Example Programs" href="../examples/index.html" /> 
+    <link rel="prev" title="bigtext.py" href="../examples/code/bigtext.html" /> 
   </head><body>
     <div class="related" role="navigation" aria-label="Related">
       <h3>Navigation</h3>
@@ -30,9 +30,9 @@
           <a href="../manual/index.html" title="Urwid Manual"
              accesskey="N">next</a> |</li>
         <li class="right" >
-          <a href="../examples/index.html" title="Example Programs"
+          <a href="../examples/code/bigtext.html" title="bigtext.py"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>  
@@ -135,7 +135,7 @@ widget’s content.</p></li>
 </a>
 <p>This program displays the string <code class="docutils literal notranslate"><span class="pre">Hello</span> <span class="pre">World</span></code> in the center of the screen.
 It uses different attributes for the text, the space on either side of the text
-and the space above and below the text. It waits for a keypress before exiting.</p>
+and the space above and below the text. It exits when the user presses <em>Q</em>.</p>
 <p>The screenshots above show how these widgets react to being resized.</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
 <span class="linenos"> 2</span>
@@ -383,7 +383,7 @@ content.</p></li>
 <li><p>Finally we attach our <em>on_exit_clicked()</em> function to our
 exit <a class="reference internal" href="../reference/widget.html#urwid.Button" title="urwid.Button"><code class="xref py py-class docutils literal notranslate"><span class="pre">Button</span></code></a>’s <code class="docutils literal notranslate"><span class="pre">'click'</span></code> signal.</p></li>
 <li><p><em>on_ask_change()</em> updates the reply text as the user enters their
-name and <em>on_exit_click()</em> exits.</p></li>
+name and <em>on_exit_clicked()</em> exits.</p></li>
 </ul>
 </section>
 <section id="multiple-questions">
@@ -537,7 +537,7 @@ The buttons are decorated with an <a class="reference internal" href="../referen
 a display attribute when a button is in focus.</p></li>
 <li><p><em>item_chosen()</em> replaces the menu displayed with text indicating the users’
 choice.</p></li>
-<li><p><em>exit_program()</em> causes the program to exit on any keystroke.</p></li>
+<li><p><em>exit_program()</em> exits the program when the Ok button is pressed.</p></li>
 <li><p>The menu is created and decorated with an <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> using a
 <a class="reference internal" href="../reference/widget.html#urwid.SolidFill" title="urwid.SolidFill"><code class="xref py py-class docutils literal notranslate"><span class="pre">SolidFill</span></code></a> as the background.  The <a class="reference internal" href="../reference/widget.html#urwid.Overlay" title="urwid.Overlay"><code class="xref py py-class docutils literal notranslate"><span class="pre">Overlay</span></code></a> is given a
 miniumum width and height but is allowed to expand to 60% of the available
@@ -1018,8 +1018,8 @@ follow as your application grows larger.</p>
 
   <div>
     <h4>Previous topic</h4>
-    <p class="topless"><a href="../examples/index.html"
-                          title="previous chapter">Example Programs</a></p>
+    <p class="topless"><a href="../examples/code/bigtext.html"
+                          title="previous chapter">bigtext.py</a></p>
   </div>
   <div>
     <h4>Next topic</h4>
@@ -1057,9 +1057,9 @@ follow as your application grows larger.</p>
           <a href="../manual/index.html" title="Urwid Manual"
              >next</a> |</li>
         <li class="right" >
-          <a href="../examples/index.html" title="Example Programs"
+          <a href="../examples/code/bigtext.html" title="bigtext.py"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Urwid Tutorial</a></li> 
       </ul>
     </div>

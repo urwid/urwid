@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>subproc.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/subproc.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="calc.py" href="calc.html" />
+    <link rel="prev" title="browse.py" href="browse.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="calc.html" title="calc.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="browse.html" title="browse.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">subproc.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="subproc-py">
+<h1>subproc.py<a class="headerlink" href="#subproc-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">"""Example: monitor and display the output of a subprocess while accepting input."""</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 6</span>
+<span class="linenos"> 7</span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="linenos"> 8</span><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="linenos"> 9</span><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<span class="linenos">10</span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="linenos">11</span>
+<span class="linenos">12</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos">13</span>
+<span class="linenos">14</span><span class="n">factor_me</span> <span class="o">=</span> <span class="mi">362923067964327863989661926737477737673859044111968554257667</span>
+<span class="linenos">15</span><span class="n">run_me</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">"subproc2.py"</span><span class="p">)</span>
+<span class="linenos">16</span>
+<span class="linenos">17</span><span class="n">output_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Factors of </span><span class="si">{</span><span class="n">factor_me</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">:</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">18</span><span class="n">edit_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">(</span><span class="s2">"Type anything or press enter to exit:"</span><span class="p">)</span>
+<span class="linenos">19</span><span class="n">frame_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">],</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Edit</span><span class="p">,</span> <span class="kc">None</span><span class="p">](</span>
+<span class="linenos">20</span>    <span class="n">header</span><span class="o">=</span><span class="n">edit_widget</span><span class="p">,</span>
+<span class="linenos">21</span>    <span class="n">body</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">output_widget</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">BOTTOM</span><span class="p">),</span>
+<span class="linenos">22</span>    <span class="n">focus_part</span><span class="o">=</span><span class="s2">"header"</span><span class="p">,</span>
+<span class="linenos">23</span><span class="p">)</span>
+<span class="linenos">24</span>
+<span class="linenos">25</span>
+<span class="linenos">26</span><span class="k">def</span><span class="w"> </span><span class="nf">exit_on_enter</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">27</span><span class="w">    </span><span class="sd">"""Handle keys not consumed by the widgets: :kbd:`enter` to exit.</span>
+<span class="linenos">28</span>
+<span class="linenos">29</span><span class="sd">    :param key: unhandled key or mouse event</span>
+<span class="linenos">30</span><span class="sd">    :raises urwid.ExitMainLoop: when the user presses :kbd:`enter`</span>
+<span class="linenos">31</span><span class="sd">    """</span>
+<span class="linenos">32</span>    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"enter"</span><span class="p">:</span>
+<span class="linenos">33</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">34</span>
+<span class="linenos">35</span>
+<span class="linenos">36</span><span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">frame_widget</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">exit_on_enter</span><span class="p">)</span>
+<span class="linenos">37</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span><span class="k">def</span><span class="w"> </span><span class="nf">received_output</span><span class="p">(</span><span class="n">data</span><span class="p">:</span> <span class="nb">bytes</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="linenos">40</span><span class="w">    </span><span class="sd">"""Append data received from the subprocess to the output widget.</span>
+<span class="linenos">41</span>
+<span class="linenos">42</span><span class="sd">    :param data: bytes read from the subprocess's standard output</span>
+<span class="linenos">43</span><span class="sd">    :returns: ``True`` to keep the pipe watch registered</span>
+<span class="linenos">44</span><span class="sd">    """</span>
+<span class="linenos">45</span>    <span class="n">output_widget</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">"str"</span><span class="p">,</span> <span class="n">output_widget</span><span class="o">.</span><span class="n">text</span><span class="p">)</span> <span class="o">+</span> <span class="n">data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">"utf8"</span><span class="p">))</span>
+<span class="linenos">46</span>    <span class="k">return</span> <span class="kc">True</span>
+<span class="linenos">47</span>
+<span class="linenos">48</span>
+<span class="linenos">49</span><span class="n">write_fd</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">watch_pipe</span><span class="p">(</span><span class="n">received_output</span><span class="p">)</span>
+<span class="linenos">50</span><span class="k">with</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">Popen</span><span class="p">(</span>  <span class="c1"># noqa: S603</span>
+<span class="linenos">51</span>    <span class="p">[</span><span class="s2">"python"</span><span class="p">,</span> <span class="s2">"-u"</span><span class="p">,</span> <span class="n">run_me</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">factor_me</span><span class="p">)],</span>  <span class="c1"># noqa: S607  # Example can be insecure</span>
+<span class="linenos">52</span>    <span class="n">stdout</span><span class="o">=</span><span class="n">write_fd</span><span class="p">,</span>
+<span class="linenos">53</span>    <span class="n">close_fds</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">54</span><span class="p">)</span> <span class="k">as</span> <span class="n">proc</span><span class="p">:</span>
+<span class="linenos">55</span>    <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="browse.html"
+                          title="previous chapter">browse.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="calc.html"
+                          title="next chapter">calc.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/subproc.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="calc.html" title="calc.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="browse.html" title="browse.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">subproc.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

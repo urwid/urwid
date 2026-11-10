@@ -250,14 +250,15 @@ Signal Names
 
    sent by :class:`BaseScreen` (and subclasses like
    :class:`display.raw.Screen`) when a palette entry is changed.
-   :class:`MainLoop` handles this signal by redrawing the whole
-   screen.
+   :class:`MainLoop` does not handle it. :class:`display.raw.Screen`
+   subscribes to it itself, so that its next :meth:`~BaseScreen.draw_screen`
+   redraws every row.
 
    An entry that :meth:`BaseScreen.register_palette` removes with ``replace=True``
    is sent with the specifications it is drawn with from then on: the terminal's
    default colors.
 
-.. data:: INPUT_DESCRIPTORS_CHANGED
+.. data:: display.common.INPUT_DESCRIPTORS_CHANGED
    :annotation: = 'input descriptors changed'
 
    sent by :class:`BaseScreen` (and subclasses like

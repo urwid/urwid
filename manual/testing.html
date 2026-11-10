@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Testing Widgets &#8212; Urwid 5.1.0</title>
+    <title>Testing Widgets &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="canvascache.html" title="Canvas Cache"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Widgets</a></li> 
       </ul>
@@ -48,7 +48,15 @@
 <p>A widget renders to a canvas and handles keys and mouse events through plain method calls, so a test needs no
 terminal. The <a class="reference internal" href="../reference/testing.html#module-urwid.testing" title="urwid.testing"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.testing</span></code></a> module collects the helpers such tests keep rewriting. It is not imported by
 <code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid</span></code>, so the examples below start with:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid.testing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ScriptedScreen</span><span class="p">,</span> <span class="n">check_sizing</span><span class="p">,</span> <span class="n">press</span><span class="p">,</span> <span class="n">render_runs</span><span class="p">,</span> <span class="n">render_text</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid.testing</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+    <span class="n">ScriptedScreen</span><span class="p">,</span>
+    <span class="n">VirtualClockEventLoop</span><span class="p">,</span>
+    <span class="n">attrs_for_text</span><span class="p">,</span>
+    <span class="n">check_sizing</span><span class="p">,</span>
+    <span class="n">press</span><span class="p">,</span>
+    <span class="n">render_runs</span><span class="p">,</span>
+    <span class="n">render_text</span><span class="p">,</span>
+<span class="p">)</span>
 </pre></div>
 </div>
 <p>Every check raises <code class="xref py py-exc docutils literal notranslate"><span class="pre">AssertionError</span></code> with a message that names the call and the mismatch, and the module
@@ -62,6 +70,12 @@ imports no test framework, so the helpers work with <code class="xref py py-mod 
 <span class="go">['ab ', 'cd ']</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">render_runs</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">"!"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,))</span>
 <span class="go">[[('bold', 'Hi'), (None, '!')]]</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.attrs_for_text" title="urwid.testing.attrs_for_text"><code class="xref py py-func docutils literal notranslate"><span class="pre">attrs_for_text()</span></code></a> returns the attributes of the runs that contain a text, to check how one label is drawn
+without spelling out the whole row:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">attrs_for_text</span><span class="p">(</span><span class="n">Text</span><span class="p">([(</span><span class="s2">"bold"</span><span class="p">,</span> <span class="s2">"Hi"</span><span class="p">),</span> <span class="s2">"!"</span><span class="p">]),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,),</span> <span class="s2">"Hi"</span><span class="p">)</span>
+<span class="go">frozenset({'bold'})</span>
 </pre></div>
 </div>
 <p><a class="reference internal" href="../reference/testing.html#urwid.testing.resolve_attr" title="urwid.testing.resolve_attr"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_attr()</span></code></a> and <a class="reference internal" href="../reference/testing.html#urwid.testing.resolve_runs" title="urwid.testing.resolve_runs"><code class="xref py py-func docutils literal notranslate"><span class="pre">resolve_runs()</span></code></a> show the colors a screen with a given palette draws those attributes
@@ -98,6 +112,48 @@ feeds scripted batches of input, stops the loop once they are used up, and recor
 <span class="go">['&gt; a   ']</span>
 </pre></div>
 </div>
+</section>
+<section id="alarms">
+<h2>Alarms<a class="headerlink" href="#alarms" title="Link to this heading">¶</a></h2>
+<p><a class="reference internal" href="../reference/testing.html#urwid.testing.VirtualClockEventLoop" title="urwid.testing.VirtualClockEventLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">VirtualClockEventLoop</span></code></a> runs the alarms of a <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> on a clock of its own.
+<a class="reference internal" href="../reference/testing.html#urwid.testing.VirtualClockEventLoop.advance" title="urwid.testing.VirtualClockEventLoop.advance"><code class="xref py py-meth docutils literal notranslate"><span class="pre">advance()</span></code></a> moves that clock ahead and fires every alarm that comes due on the way,
+so a widget that expires, blinks or polls is tested without waiting for it:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">urwid</span><span class="w"> </span><span class="kn">import</span> <span class="n">Notifications</span><span class="p">,</span> <span class="n">SolidFill</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">SolidFill</span><span class="p">(),</span> <span class="n">screen</span><span class="o">=</span><span class="n">ScriptedScreen</span><span class="p">(),</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">notifications</span> <span class="o">=</span> <span class="n">Notifications</span><span class="p">(</span><span class="n">loop</span><span class="o">=</span><span class="n">loop</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">_</span> <span class="o">=</span> <span class="n">notifications</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="s2">"saved"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span><span class="o">.</span><span class="n">advance</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span>
+<span class="go">()</span>
+</pre></div>
+</div>
+<p>When a test needs the state after everything an application has scheduled, rather than at a chosen time,
+<a class="reference internal" href="../reference/testing.html#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a> fires the alarms until none is pending and returns with the clock at the
+last one.
+Its <code class="docutils literal notranslate"><span class="pre">pause</span></code> argument watches the files for that many seconds of real time before each jump of the clock,
+so a worker thread polled by an alarm can hand back its result through <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a>.</p>
+<p><a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.call_from_thread" title="urwid.MainLoop.call_from_thread"><code class="xref py py-meth docutils literal notranslate"><span class="pre">call_from_thread()</span></code></a> needs a started loop, and a scripted screen ends a started loop once its
+input is used up. <code class="docutils literal notranslate"><span class="pre">ScriptedScreen(inputs=None)</span></code> is unscripted: it feeds no input and never ends the loop, so a
+loop started with <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop.start" title="urwid.MainLoop.start"><code class="xref py py-meth docutils literal notranslate"><span class="pre">start()</span></code></a> keeps serving alarms, watched files and calls from other threads
+under <a class="reference internal" href="../reference/testing.html#urwid.testing.VirtualClockEventLoop.run_until_idle" title="urwid.testing.VirtualClockEventLoop.run_until_idle"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run_until_idle()</span></code></a>, while the screen records the frames drawn:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span><span class="w"> </span><span class="nn">threading</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">event_loop</span> <span class="o">=</span> <span class="n">VirtualClockEventLoop</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">text</span> <span class="o">=</span> <span class="n">Text</span><span class="p">(</span><span class="s2">""</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">screen</span> <span class="o">=</span> <span class="n">ScriptedScreen</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loop</span> <span class="o">=</span> <span class="n">MainLoop</span><span class="p">(</span><span class="n">Filler</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">screen</span><span class="o">=</span><span class="n">screen</span><span class="p">,</span> <span class="n">event_loop</span><span class="o">=</span><span class="n">event_loop</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">start</span><span class="p">():</span>
+<span class="gp">... </span>    <span class="n">worker</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">loop</span><span class="o">.</span><span class="n">call_from_thread</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">set_text</span><span class="p">,</span> <span class="s2">"done"</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="n">worker</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">worker</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+<span class="gp">... </span>    <span class="n">_</span> <span class="o">=</span> <span class="n">loop</span><span class="o">.</span><span class="n">set_alarm_in</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">_</span><span class="p">:</span> <span class="n">text</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="s2">"later"</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="n">event_loop</span><span class="o">.</span><span class="n">run_until_idle</span><span class="p">(</span><span class="n">pause</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="p">[</span><span class="n">frame</span><span class="o">.</span><span class="n">decoded_text</span> <span class="k">for</span> <span class="n">frame</span> <span class="ow">in</span> <span class="n">screen</span><span class="o">.</span><span class="n">canvases</span><span class="p">]</span>
+<span class="go">[('done ',), ('later',)]</span>
+</pre></div>
+</div>
+<p>The clock is the loop’s own: a widget that reads <code class="xref py py-func docutils literal notranslate"><span class="pre">time.monotonic()</span></code> itself, such as <a class="reference internal" href="../reference/widget.html#urwid.Spinner" title="urwid.Spinner"><code class="xref py py-class docutils literal notranslate"><span class="pre">Spinner</span></code></a>
+choosing its frame, does not see it move.</p>
 <p>To keep the frames as HTML for documentation instead, use <a class="reference internal" href="../reference/display_modules.html#urwid.display.html_fragment.HtmlGenerator" title="urwid.display.html_fragment.HtmlGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.display.html_fragment.HtmlGenerator</span></code></a>.</p>
 </section>
 </section>
@@ -118,6 +174,7 @@ feeds scripted batches of input, stops the loop once they are used up, and recor
 <li><a class="reference internal" href="#sizing-checks">Sizing checks</a></li>
 <li><a class="reference internal" href="#input">Input</a></li>
 <li><a class="reference internal" href="#whole-applications">Whole applications</a></li>
+<li><a class="reference internal" href="#alarms">Alarms</a></li>
 </ul>
 </li>
 </ul>
@@ -166,7 +223,7 @@ feeds scripted batches of input, stops the loop once they are used up, and recor
         <li class="right" >
           <a href="canvascache.html" title="Canvas Cache"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Testing Widgets</a></li> 
       </ul>

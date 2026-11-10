@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Text Layout &#8212; Urwid 5.1.0</title>
+    <title>Text Layout &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="userinput.html" title="User Input"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout</a></li> 
       </ul>
@@ -111,20 +111,6 @@ section.</p>
 <p class="admonition-title">See also</p>
 <p><a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span> <span class="pre">widget</span> <span class="pre">reference</span></code></a></p>
 </div>
-<section id="custom-text-layouts">
-<h2>Custom Text Layouts<a class="headerlink" href="#custom-text-layouts" title="Link to this heading">¶</a></h2>
-<p>The <a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> is set as the class variable
-<a class="reference internal" href="../reference/widget.html#urwid.Text.layout" title="urwid.Text.layout"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Text.layout</span></code></a>. Individual <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a>
-widgets may use a different layout class, or you can change the default by
-setting the <a class="reference internal" href="../reference/widget.html#urwid.Text.layout" title="urwid.Text.layout"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Text.layout</span></code></a> class variable itself.</p>
-<p>A custom text layout class should extend the
-<a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span></code></a> base class and return text layout
-structures from its <code class="docutils literal notranslate"><span class="pre">layout()</span></code> method.</p>
-<div class="admonition seealso">
-<p class="admonition-title">See also</p>
-<p><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a></p>
-</div>
-</section>
 <section id="tab-characters">
 <h2>Tab Characters<a class="headerlink" href="#tab-characters" title="Link to this heading">¶</a></h2>
 <p><a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> moves a tab character to the next tab stop, as a word processor does.
@@ -138,6 +124,27 @@ as two columns. The explicit <code class="docutils literal notranslate"><span cl
 <p>A tab stays one character of the text, so the cursor of an <a class="reference internal" href="../reference/widget.html#urwid.Edit" title="urwid.Edit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Edit</span></code></a> widget steps over it in one move.
 A tab that would reach past the line end is cut there, and in the <code class="docutils literal notranslate"><span class="pre">space</span></code> wrap mode a tab is a break
 opportunity, like a space.</p>
+<p>With the layout above, the text is rendered like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">name</span>        <span class="n">value</span>   <span class="n">comment</span>
+<span class="mi">0</span><span class="o">----</span><span class="mi">5</span><span class="o">---</span><span class="mi">10</span><span class="o">---</span><span class="mi">15</span><span class="o">---</span><span class="mi">20</span><span class="o">---</span><span class="mi">25</span>
+</pre></div>
+</div>
+</section>
+<section id="custom-text-layouts">
+<h2>Custom Text Layouts<a class="headerlink" href="#custom-text-layouts" title="Link to this heading">¶</a></h2>
+<p>A <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widget created without a <code class="docutils literal notranslate"><span class="pre">layout</span></code> argument uses the shared
+<a class="reference internal" href="../reference/text_layout.html#urwid.StandardTextLayout" title="urwid.StandardTextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">StandardTextLayout</span></code></a> instance <code class="docutils literal notranslate"><span class="pre">urwid.text_layout.default_layout</span></code>.
+Individual <a class="reference internal" href="../reference/widget.html#urwid.Text" title="urwid.Text"><code class="xref py py-class docutils literal notranslate"><span class="pre">Text</span></code></a> widgets may use a different layout by passing it as
+<code class="docutils literal notranslate"><span class="pre">layout</span></code>, or you can change the default by replacing
+<code class="docutils literal notranslate"><span class="pre">urwid.text_layout.default_layout</span></code> before the widgets are created.
+<a class="reference internal" href="../reference/widget.html#urwid.Text.layout" title="urwid.Text.layout"><code class="xref py py-attr docutils literal notranslate"><span class="pre">Text.layout</span></code></a> is read-only and returns the layout of one widget.</p>
+<p>A custom text layout class should extend the
+<a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span></code></a> base class and return text layout
+structures from its <code class="docutils literal notranslate"><span class="pre">layout()</span></code> method.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference internal" href="../reference/text_layout.html#urwid.TextLayout" title="urwid.TextLayout"><code class="xref py py-class docutils literal notranslate"><span class="pre">TextLayout</span> <span class="pre">reference</span></code></a></p>
+</div>
 </section>
 <section id="text-layout-structures">
 <h2>Text Layout Structures<a class="headerlink" href="#text-layout-structures" title="Link to this heading">¶</a></h2>
@@ -195,8 +202,8 @@ and for tab characters, which it displays as spaces up to the next tab stop.</p>
             </a></p><h3>Table of contents</h3>
     <ul><li><a href="index.html">Manual</a></li><ul>
 <li><a class="reference internal" href="#">Text Layout</a><ul>
-<li><a class="reference internal" href="#custom-text-layouts">Custom Text Layouts</a></li>
 <li><a class="reference internal" href="#tab-characters">Tab Characters</a></li>
+<li><a class="reference internal" href="#custom-text-layouts">Custom Text Layouts</a></li>
 <li><a class="reference internal" href="#text-layout-structures">Text Layout Structures</a></li>
 </ul>
 </li>
@@ -246,7 +253,7 @@ and for tab characters, which it displays as spaces up to the next tab stop.</p>
         <li class="right" >
           <a href="userinput.html" title="User Input"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Text Layout</a></li> 
       </ul>

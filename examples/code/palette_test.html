@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>palette_test.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/palette_test.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="bigtext.py" href="bigtext.html" />
+    <link rel="prev" title="thread_worker.py" href="thread_worker.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="bigtext.html" title="bigtext.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="thread_worker.html" title="thread_worker.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">palette_test.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="palette-test-py">
+<h1>palette_test.py<a class="headerlink" href="#palette-test-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos">  1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos">  2</span><span class="c1">#</span>
+<span class="linenos">  3</span><span class="c1"># Urwid Palette Test.  Showing off highcolor support</span>
+<span class="linenos">  4</span><span class="c1">#    Copyright (C) 2004-2009  Ian Ward</span>
+<span class="linenos">  5</span><span class="c1">#</span>
+<span class="linenos">  6</span><span class="c1">#    This library is free software; you can redistribute it and/or</span>
+<span class="linenos">  7</span><span class="c1">#    modify it under the terms of the GNU Lesser General Public</span>
+<span class="linenos">  8</span><span class="c1">#    License as published by the Free Software Foundation; either</span>
+<span class="linenos">  9</span><span class="c1">#    version 2.1 of the License, or (at your option) any later version.</span>
+<span class="linenos"> 10</span><span class="c1">#</span>
+<span class="linenos"> 11</span><span class="c1">#    This library is distributed in the hope that it will be useful,</span>
+<span class="linenos"> 12</span><span class="c1">#    but WITHOUT ANY WARRANTY; without even the implied warranty of</span>
+<span class="linenos"> 13</span><span class="c1">#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU</span>
+<span class="linenos"> 14</span><span class="c1">#    Lesser General Public License for more details.</span>
+<span class="linenos"> 15</span><span class="c1">#</span>
+<span class="linenos"> 16</span><span class="c1">#    You should have received a copy of the GNU Lesser General Public</span>
+<span class="linenos"> 17</span><span class="c1">#    License along with this library; if not, write to the Free Software</span>
+<span class="linenos"> 18</span><span class="c1">#    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA</span>
+<span class="linenos"> 19</span><span class="c1">#</span>
+<span class="linenos"> 20</span><span class="c1"># Urwid web site: https://urwid.org/</span>
+<span class="linenos"> 21</span>
+<span class="linenos"> 22</span><span class="sd">"""Palette test.</span>
+<span class="linenos"> 23</span>
+<span class="linenos"> 24</span><span class="sd">Shows the available foreground and background settings</span>
+<span class="linenos"> 25</span><span class="sd">in monochrome, 16 color, 88 color, 256 color, and 24-bit (true) color modes.</span>
+<span class="linenos"> 26</span><span class="sd">"""</span>
+<span class="linenos"> 27</span>
+<span class="linenos"> 28</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 29</span>
+<span class="linenos"> 30</span><span class="kn">import</span><span class="w"> </span><span class="nn">re</span>
+<span class="linenos"> 31</span><span class="kn">import</span><span class="w"> </span><span class="nn">typing</span>
+<span class="linenos"> 32</span>
+<span class="linenos"> 33</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos"> 34</span>
+<span class="linenos"> 35</span><span class="n">_Widget</span> <span class="o">=</span> <span class="n">typing</span><span class="o">.</span><span class="n">TypeVar</span><span class="p">(</span><span class="s2">"_Widget"</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">AbstractWidget</span><span class="p">)</span>
+<span class="linenos"> 36</span>
+<span class="linenos"> 37</span><span class="k">if</span> <span class="n">typing</span><span class="o">.</span><span class="n">TYPE_CHECKING</span><span class="p">:</span>
+<span class="linenos"> 38</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span>
+<span class="linenos"> 39</span>    <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Literal</span>
+<span class="linenos"> 40</span>
+<span class="linenos"> 41</span><span class="n">CHART_TRUE</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="linenos"> 42</span><span class="s2">#e50000#e51000#e52000#e53000#e54000#e55000#e56000#e57000#e58000#e59000</span><span class="se">\</span>
+<span class="linenos"> 43</span><span class="s2">#e5a000#e5b100#e5c100#e5d100#e5e100#d9e500#c9e500#b9e500#a9e500#99e500</span><span class="se">\</span>
+<span class="linenos"> 44</span><span class="s2">#89e500#79e500#68e500#58e500#48e500#38e500#28e500#18e500#08e500#00e507</span><span class="se">\</span>
+<span class="linenos"> 45</span><span class="s2">#00e517#00e527#00e538#00e548#00e558#00e568#00e578#00e588#00e598#00e5a8</span><span class="se">\</span>
+<span class="linenos"> 46</span><span class="s2">#00e5b8#00e5c8#00e5d8#00e1e5#00d1e5#00c1e5#00b1e5#00a1e5#0091e5#0081e5</span><span class="se">\</span>
+<span class="linenos"> 47</span><span class="s2">#0071e5#0061e5#0051e5#0040e5#0030e5#0020e5#0010e5#0000e5#0f00e5#1f00e5</span><span class="se">\</span>
+<span class="linenos"> 48</span><span class="s2">#2f00e5#3f00e5#4f00e5#5f00e5#7000e5#8000e5#9000e5#a000e5#b000e5#c000e5</span><span class="se">\</span>
+<span class="linenos"> 49</span><span class="s2">#d000e5#e000e5#e500da#e500ca#e500b9#e500a9#e50099#e50089</span>
+<span class="linenos"> 50</span><span class="s2">#da0000#da0f00#da1e00#da2e00#da3d00#da4c00#da5c00#da6b00#da7a00#da8a00</span><span class="se">\</span>
+<span class="linenos"> 51</span><span class="s2">#da9900#daa800#dab800#dac700#dad600#cfda00#c0da00#b0da00#a1da00#92da00</span><span class="se">\</span>
+<span class="linenos"> 52</span><span class="s2">#82da00#73da00#64da00#54da00#45da00#35da00#26da00#17da00#07da00#00da07</span><span class="se">\</span>
+<span class="linenos"> 53</span><span class="s2">#00da16#00da26#00da35#00da44#00da54#00da63#00da72#00da82#00da91#00daa0</span><span class="se">\</span>
+<span class="linenos"> 54</span><span class="s2">#00dab0#00dabf#00dace#00d7da#00c8da#00b8da#00a9da#0099da#008ada#007bda</span><span class="se">\</span>
+<span class="linenos"> 55</span><span class="s2">#006bda#005cda#004dda#003dda#002eda#001fda#000fda#0000da#0e00da#1e00da</span><span class="se">\</span>
+<span class="linenos"> 56</span><span class="s2">#2d00da#3c00da#4c00da#5b00da#6a00da#7a00da#8900da#9800da#a800da#b700da</span><span class="se">\</span>
+<span class="linenos"> 57</span><span class="s2">#c600da#d600da#da00cf#da00c0#da00b1#da00a1#da0092#da0083</span>
+<span class="linenos"> 58</span><span class="s2">#d00000#d00e00#d01d00#d02b00#d03a00#d04800#d05700#d06600#d07400#d08300</span><span class="se">\</span>
+<span class="linenos"> 59</span><span class="s2">#d09100#d0a000#d0af00#d0bd00#d0cc00#c5d000#b6d000#a8d000#99d000#8ad000</span><span class="se">\</span>
+<span class="linenos"> 60</span><span class="s2">#7cd000#6dd000#5fd000#50d000#41d000#33d000#24d000#16d000#07d000#00d007</span><span class="se">\</span>
+<span class="linenos"> 61</span><span class="s2">#00d015#00d024#00d032#00d041#00d04f#00d05e#00d06d#00d07b#00d08a#00d098</span><span class="se">\</span>
+<span class="linenos"> 62</span><span class="s2">#00d0a7#00d0b6#00d0c4#00ccd0#00bed0#00afd0#00a1d0#0092d0#0083d0#0075d0</span><span class="se">\</span>
+<span class="linenos"> 63</span><span class="s2">#0066d0#0058d0#0049d0#003ad0#002cd0#001dd0#000fd0#0000d0#0e00d0#1c00d0</span><span class="se">\</span>
+<span class="linenos"> 64</span><span class="s2">#2b00d0#3900d0#4800d0#5600d0#6500d0#7400d0#8200d0#9100d0#9f00d0#ae00d0</span><span class="se">\</span>
+<span class="linenos"> 65</span><span class="s2">#bd00d0#cb00d0#d000c5#d000b7#d000a8#d00099#d0008b#d0007c</span>
+<span class="linenos"> 66</span><span class="s2">#c50000#c50d00#c51b00#c52900#c53700#c54500#c55300#c56000#c56e00#c57c00</span><span class="se">\</span>
+<span class="linenos"> 67</span><span class="s2">#c58a00#c59800#c5a600#c5b300#c5c100#bbc500#adc500#9fc500#91c500#83c500</span><span class="se">\</span>
+<span class="linenos"> 68</span><span class="s2">#75c500#68c500#5ac500#4cc500#3ec500#30c500#22c500#15c500#07c500#00c506</span><span class="se">\</span>
+<span class="linenos"> 69</span><span class="s2">#00c514#00c522#00c530#00c53e#00c54b#00c559#00c567#00c575#00c583#00c591</span><span class="se">\</span>
+<span class="linenos"> 70</span><span class="s2">#00c59e#00c5ac#00c5ba#00c2c5#00b4c5#00a6c5#0098c5#008ac5#007dc5#006fc5</span><span class="se">\</span>
+<span class="linenos"> 71</span><span class="s2">#0061c5#0053c5#0045c5#0037c5#002ac5#001cc5#000ec5#0000c5#0d00c5#1b00c5</span><span class="se">\</span>
+<span class="linenos"> 72</span><span class="s2">#2800c5#3600c5#4400c5#5200c5#6000c5#6e00c5#7c00c5#8900c5#9700c5#a500c5</span><span class="se">\</span>
+<span class="linenos"> 73</span><span class="s2">#b300c5#c100c5#c500bb#c500ad#c5009f#c50092#c50084#c50076</span>
+<span class="linenos"> 74</span><span class="s2">#ba0000#ba0d00#ba1a00#ba2700#ba3400#ba4100#ba4e00#ba5b00#ba6800#ba7500</span><span class="se">\</span>
+<span class="linenos"> 75</span><span class="s2">#ba8200#ba8f00#ba9c00#baaa00#bab700#b0ba00#a3ba00#96ba00#89ba00#7cba00</span><span class="se">\</span>
+<span class="linenos"> 76</span><span class="s2">#6fba00#62ba00#55ba00#48ba00#3bba00#2eba00#20ba00#13ba00#06ba00#00ba06</span><span class="se">\</span>
+<span class="linenos"> 77</span><span class="s2">#00ba13#00ba20#00ba2d#00ba3a#00ba47#00ba54#00ba61#00ba6e#00ba7c#00ba89</span><span class="se">\</span>
+<span class="linenos"> 78</span><span class="s2">#00ba96#00baa3#00bab0#00b7ba#00aaba#009dba#0090ba#0083ba#0076ba#0069ba</span><span class="se">\</span>
+<span class="linenos"> 79</span><span class="s2">#005cba#004eba#0041ba#0034ba#0027ba#001aba#000dba#0000ba#0c00ba#1900ba</span><span class="se">\</span>
+<span class="linenos"> 80</span><span class="s2">#2600ba#3300ba#4000ba#4e00ba#5b00ba#6800ba#7500ba#8200ba#8f00ba#9c00ba</span><span class="se">\</span>
+<span class="linenos"> 81</span><span class="s2">#a900ba#b600ba#ba00b1#ba00a4#ba0097#ba008a#ba007d#ba006f</span>
+<span class="linenos"> 82</span><span class="s2">#af0000#af0c00#af1800#af2400#af3100#af3d00#af4900#af5600#af6200#af6e00</span><span class="se">\</span>
+<span class="linenos"> 83</span><span class="s2">#af7b00#af8700#af9300#afa000#afac00#a6af00#9aaf00#8eaf00#81af00#75af00</span><span class="se">\</span>
+<span class="linenos"> 84</span><span class="s2">#69af00#5caf00#50af00#44af00#37af00#2baf00#1faf00#12af00#06af00#00af05</span><span class="se">\</span>
+<span class="linenos"> 85</span><span class="s2">#00af12#00af1e#00af2a#00af37#00af43#00af4f#00af5c#00af68#00af74#00af81</span><span class="se">\</span>
+<span class="linenos"> 86</span><span class="s2">#00af8d#00af99#00afa6#00adaf#00a0af#0094af#0088af#007baf#006faf#0063af</span><span class="se">\</span>
+<span class="linenos"> 87</span><span class="s2">#0056af#004aaf#003eaf#0031af#0025af#0019af#000caf#0000af#0b00af#1800af</span><span class="se">\</span>
+<span class="linenos"> 88</span><span class="s2">#2400af#3000af#3d00af#4900af#5500af#6200af#6e00af#7a00af#8700af#9300af</span><span class="se">\</span>
+<span class="linenos"> 89</span><span class="s2">#9f00af#ac00af#af00a7#af009a#af008e#af0082#af0075#af0069</span>
+<span class="linenos"> 90</span><span class="s2">#a50000#a50b00#a51700#a52200#a52e00#a53900#a54500#a55100#a55c00#a56800</span><span class="se">\</span>
+<span class="linenos"> 91</span><span class="s2">#a57300#a57f00#a58a00#a59600#a5a200#9ca500#90a500#85a500#79a500#6ea500</span><span class="se">\</span>
+<span class="linenos"> 92</span><span class="s2">#62a500#57a500#4ba500#3fa500#34a500#28a500#1da500#11a500#06a500#00a505</span><span class="se">\</span>
+<span class="linenos"> 93</span><span class="s2">#00a511#00a51c#00a528#00a533#00a53f#00a54b#00a556#00a562#00a56d#00a579</span><span class="se">\</span>
+<span class="linenos"> 94</span><span class="s2">#00a584#00a590#00a59c#00a2a5#0096a5#008ba5#007fa5#0074a5#0068a5#005da5</span><span class="se">\</span>
+<span class="linenos"> 95</span><span class="s2">#0051a5#0045a5#003aa5#002ea5#0023a5#0017a5#000ca5#0000a5#0b00a5#1600a5</span><span class="se">\</span>
+<span class="linenos"> 96</span><span class="s2">#2200a5#2d00a5#3900a5#4500a5#5000a5#5c00a5#6700a5#7300a5#7e00a5#8a00a5</span><span class="se">\</span>
+<span class="linenos"> 97</span><span class="s2">#9600a5#a100a5#a5009c#a50091#a50085#a5007a#a5006e#a50063</span>
+<span class="linenos"> 98</span><span class="s2">#9a0000#9a0a00#9a1500#9a2000#9a2b00#9a3600#9a4000#9a4b00#9a5600#9a6100</span><span class="se">\</span>
+<span class="linenos"> 99</span><span class="s2">#9a6c00#9a7700#9a8100#9a8c00#9a9700#929a00#879a00#7c9a00#719a00#679a00</span><span class="se">\</span>
+<span class="linenos">100</span><span class="s2">#5c9a00#519a00#469a00#3b9a00#309a00#269a00#1b9a00#109a00#059a00#009a05</span><span class="se">\</span>
+<span class="linenos">101</span><span class="s2">#009a10#009a1a#009a25#009a30#009a3b#009a46#009a50#009a5b#009a66#009a71</span><span class="se">\</span>
+<span class="linenos">102</span><span class="s2">#009a7c#009a87#009a91#00979a#008d9a#00829a#00779a#006c9a#00619a#00569a</span><span class="se">\</span>
+<span class="linenos">103</span><span class="s2">#004c9a#00419a#00369a#002b9a#00209a#00169a#000b9a#00009a#0a009a#15009a</span><span class="se">\</span>
+<span class="linenos">104</span><span class="s2">#20009a#2a009a#35009a#40009a#4b009a#56009a#61009a#6b009a#76009a#81009a</span><span class="se">\</span>
+<span class="linenos">105</span><span class="s2">#8c009a#97009a#9a0092#9a0087#9a007d#9a0072#9a0067#9a005c</span>
+<span class="linenos">106</span><span class="s2">#8f0000#8f0a00#8f1400#8f1e00#8f2800#8f3200#8f3c00#8f4600#8f5000#8f5a00</span><span class="se">\</span>
+<span class="linenos">107</span><span class="s2">#8f6400#8f6e00#8f7800#8f8200#8f8c00#888f00#7e8f00#748f00#698f00#5f8f00</span><span class="se">\</span>
+<span class="linenos">108</span><span class="s2">#558f00#4b8f00#418f00#378f00#2d8f00#238f00#198f00#0f8f00#058f00#008f04</span><span class="se">\</span>
+<span class="linenos">109</span><span class="s2">#008f0e#008f18#008f23#008f2d#008f37#008f41#008f4b#008f55#008f5f#008f69</span><span class="se">\</span>
+<span class="linenos">110</span><span class="s2">#008f73#008f7d#008f87#008d8f#00838f#00798f#006f8f#00658f#005b8f#00508f</span><span class="se">\</span>
+<span class="linenos">111</span><span class="s2">#00468f#003c8f#00328f#00288f#001e8f#00148f#000a8f#00008f#09008f#13008f</span><span class="se">\</span>
+<span class="linenos">112</span><span class="s2">#1d008f#27008f#31008f#3c008f#46008f#50008f#5a008f#64008f#6e008f#78008f</span><span class="se">\</span>
+<span class="linenos">113</span><span class="s2">#82008f#8c008f#8f0088#8f007e#8f0074#8f006a#8f0060#8f0056</span>
+<span class="linenos">114</span><span class="s2">#840000#840900#841200#841b00#842500#842e00#843700#844100#844a00#845300</span><span class="se">\</span>
+<span class="linenos">115</span><span class="s2">#845d00#846600#846f00#847900#848200#7d8400#748400#6b8400#628400#588400</span><span class="se">\</span>
+<span class="linenos">116</span><span class="s2">#4f8400#468400#3c8400#338400#2a8400#208400#178400#0e8400#048400#008404</span><span class="se">\</span>
+<span class="linenos">117</span><span class="s2">#00840d#008417#008420#008429#008433#00843c#008445#00844f#008458#008461</span><span class="se">\</span>
+<span class="linenos">118</span><span class="s2">#00846a#008474#00847d#008284#007984#007084#006684#005d84#005484#004a84</span><span class="se">\</span>
+<span class="linenos">119</span><span class="s2">#004184#003884#002e84#002584#001c84#001284#000984#000084#080084#120084</span><span class="se">\</span>
+<span class="linenos">120</span><span class="s2">#1b0084#240084#2e0084#370084#400084#4a0084#530084#5c0084#660084#6f0084</span><span class="se">\</span>
+<span class="linenos">121</span><span class="s2">#780084#820084#84007e#840074#84006b#840062#840059#84004f</span>
+<span class="linenos">122</span><span class="s2">#7a0000#7a0800#7a1100#7a1900#7a2200#7a2a00#7a3300#7a3b00#7a4400#7a4d00</span><span class="se">\</span>
+<span class="linenos">123</span><span class="s2">#7a5500#7a5e00#7a6600#7a6f00#7a7700#737a00#6b7a00#627a00#5a7a00#517a00</span><span class="se">\</span>
+<span class="linenos">124</span><span class="s2">#487a00#407a00#377a00#2f7a00#267a00#1e7a00#157a00#0d7a00#047a00#007a04</span><span class="se">\</span>
+<span class="linenos">125</span><span class="s2">#007a0c#007a15#007a1d#007a26#007a2e#007a37#007a40#007a48#007a51#007a59</span><span class="se">\</span>
+<span class="linenos">126</span><span class="s2">#007a62#007a6a#007a73#00787a#006f7a#00677a#005e7a#00557a#004d7a#00447a</span><span class="se">\</span>
+<span class="linenos">127</span><span class="s2">#003c7a#00337a#002b7a#00227a#001a7a#00117a#00087a#00007a#08007a#10007a</span><span class="se">\</span>
+<span class="linenos">128</span><span class="s2">#19007a#21007a#2a007a#33007a#3b007a#44007a#4c007a#55007a#5d007a#66007a</span><span class="se">\</span>
+<span class="linenos">129</span><span class="s2">#6f007a#77007a#7a0074#7a006b#7a0062#7a005a#7a0051#7a0049</span>
+<span class="linenos">130</span><span class="s2">#6f0000#6f0700#6f0f00#6f1700#6f1f00#6f2700#6f2e00#6f3600#6f3e00#6f4600</span><span class="se">\</span>
+<span class="linenos">131</span><span class="s2">#6f4e00#6f5500#6f5d00#6f6500#6f6d00#696f00#616f00#596f00#526f00#4a6f00</span><span class="se">\</span>
+<span class="linenos">132</span><span class="s2">#426f00#3a6f00#326f00#2b6f00#236f00#1b6f00#136f00#0b6f00#046f00#006f03</span><span class="se">\</span>
+<span class="linenos">133</span><span class="s2">#006f0b#006f13#006f1b#006f23#006f2a#006f32#006f3a#006f42#006f4a#006f51</span><span class="se">\</span>
+<span class="linenos">134</span><span class="s2">#006f59#006f61#006f69#006d6f#00656f#005e6f#00566f#004e6f#00466f#003e6f</span><span class="se">\</span>
+<span class="linenos">135</span><span class="s2">#00366f#002f6f#00276f#001f6f#00176f#000f6f#00086f#00006f#07006f#0f006f</span><span class="se">\</span>
+<span class="linenos">136</span><span class="s2">#17006f#1e006f#26006f#2e006f#36006f#3e006f#46006f#4d006f#55006f#5d006f</span><span class="se">\</span>
+<span class="linenos">137</span><span class="s2">#65006f#6d006f#6f0069#6f0062#6f005a#6f0052#6f004a#6f0042</span>
+<span class="linenos">138</span><span class="s2">#640000#640700#640e00#641500#641c00#642300#642a00#643100#643800#643f00</span><span class="se">\</span>
+<span class="linenos">139</span><span class="s2">#644600#644d00#645400#645b00#646200#5f6400#586400#516400#4a6400#436400</span><span class="se">\</span>
+<span class="linenos">140</span><span class="s2">#3c6400#356400#2e6400#266400#1f6400#186400#116400#0a6400#036400#006403</span><span class="se">\</span>
+<span class="linenos">141</span><span class="s2">#00640a#006411#006418#00641f#006426#00642d#006434#00643b#006442#006449</span><span class="se">\</span>
+<span class="linenos">142</span><span class="s2">#006451#006458#00645f#006364#005c64#005464#004d64#004664#003f64#003864</span><span class="se">\</span>
+<span class="linenos">143</span><span class="s2">#003164#002a64#002364#001c64#001564#000e64#000764#000064#060064#0d0064</span><span class="se">\</span>
+<span class="linenos">144</span><span class="s2">#140064#1b0064#230064#2a0064#310064#380064#3f0064#460064#4d0064#540064</span><span class="se">\</span>
+<span class="linenos">145</span><span class="s2">#5b0064#620064#64005f#640058#640051#64004a#640043#64003c</span>
+<span class="linenos">146</span><span class="s2">#590000#590600#590c00#591200#591900#591f00#592500#592c00#593200#593800</span><span class="se">\</span>
+<span class="linenos">147</span><span class="s2">#593f00#594500#594b00#595100#595800#555900#4e5900#485900#425900#3c5900</span><span class="se">\</span>
+<span class="linenos">148</span><span class="s2">#355900#2f5900#295900#225900#1c5900#165900#0f5900#095900#035900#005903</span><span class="se">\</span>
+<span class="linenos">149</span><span class="s2">#005909#00590f#005915#00591c#005922#005928#00592f#005935#00593b#005942</span><span class="se">\</span>
+<span class="linenos">150</span><span class="s2">#005948#00594e#005955#005859#005259#004b59#004559#003f59#003859#003259</span><span class="se">\</span>
+<span class="linenos">151</span><span class="s2">#002c59#002659#001f59#001959#001359#000c59#000659#000059#060059#0c0059</span><span class="se">\</span>
+<span class="linenos">152</span><span class="s2">#120059#180059#1f0059#250059#2b0059#320059#380059#3e0059#450059#4b0059</span><span class="se">\</span>
+<span class="linenos">153</span><span class="s2">#510059#580059#590055#59004f#590048#590042#59003c#590035</span>
+<span class="linenos">154</span><span class="s2">#4f0000#4f0500#4f0b00#4f1000#4f1600#4f1b00#4f2100#4f2600#4f2c00#4f3100</span><span class="se">\</span>
+<span class="linenos">155</span><span class="s2">#4f3700#4f3d00#4f4200#4f4800#4f4d00#4b4f00#454f00#3f4f00#3a4f00#344f00</span><span class="se">\</span>
+<span class="linenos">156</span><span class="s2">#2f4f00#294f00#244f00#1e4f00#194f00#134f00#0d4f00#084f00#024f00#004f02</span><span class="se">\</span>
+<span class="linenos">157</span><span class="s2">#004f08#004f0d#004f13#004f18#004f1e#004f23#004f29#004f2f#004f34#004f3a</span><span class="se">\</span>
+<span class="linenos">158</span><span class="s2">#004f3f#004f45#004f4a#004d4f#00484f#00424f#003d4f#00374f#00324f#002c4f</span><span class="se">\</span>
+<span class="linenos">159</span><span class="s2">#00274f#00214f#001b4f#00164f#00104f#000b4f#00054f#00004f#05004f#0a004f</span><span class="se">\</span>
+<span class="linenos">160</span><span class="s2">#10004f#16004f#1b004f#21004f#26004f#2c004f#31004f#37004f#3c004f#42004f</span><span class="se">\</span>
+<span class="linenos">161</span><span class="s2">#47004f#4d004f#4f004b#4f0045#4f0040#4f003a#4f0035#4f002f</span>
+<span class="linenos">162</span><span class="s2">#440000#440400#440900#440e00#441300#441800#441c00#442100#442600#442b00</span><span class="se">\</span>
+<span class="linenos">163</span><span class="s2">#443000#443400#443900#443e00#444300#404400#3c4400#374400#324400#2d4400</span><span class="se">\</span>
+<span class="linenos">164</span><span class="s2">#284400#244400#1f4400#1a4400#154400#104400#0c4400#074400#024400#004402</span><span class="se">\</span>
+<span class="linenos">165</span><span class="s2">#004407#00440b#004410#004415#00441a#00441f#004423#004428#00442d#004432</span><span class="se">\</span>
+<span class="linenos">166</span><span class="s2">#004437#00443b#004440#004344#003e44#003944#003444#003044#002b44#002644</span><span class="se">\</span>
+<span class="linenos">167</span><span class="s2">#002144#001c44#001844#001344#000e44#000944#000444#000044#040044#090044</span><span class="se">\</span>
+<span class="linenos">168</span><span class="s2">#0e0044#130044#170044#1c0044#210044#260044#2b0044#2f0044#340044#390044</span><span class="se">\</span>
+<span class="linenos">169</span><span class="s2">#3e0044#430044#440041#44003c#440037#440032#44002d#440029</span>
+<span class="linenos">170</span><span class="s2">#390000#390400#390800#390c00#391000#391400#391800#391c00#392000#392400</span><span class="se">\</span>
+<span class="linenos">171</span><span class="s2">#392800#392c00#393000#393400#393800#363900#323900#2e3900#2a3900#263900</span><span class="se">\</span>
+<span class="linenos">172</span><span class="s2">#223900#1e3900#1a3900#163900#123900#0e3900#0a3900#063900#023900#003901</span><span class="se">\</span>
+<span class="linenos">173</span><span class="s2">#003905#00390a#00390e#003912#003916#00391a#00391e#003922#003926#00392a</span><span class="se">\</span>
+<span class="linenos">174</span><span class="s2">#00392e#003932#003936#003839#003439#003039#002c39#002839#002439#002039</span><span class="se">\</span>
+<span class="linenos">175</span><span class="s2">#001c39#001839#001439#001039#000c39#000839#000439#000039#030039#070039</span><span class="se">\</span>
+<span class="linenos">176</span><span class="s2">#0b0039#100039#140039#180039#1c0039#200039#240039#280039#2c0039#300039</span><span class="se">\</span>
+<span class="linenos">177</span><span class="s2">#340039#380039#390036#390032#39002e#39002a#390026#390022</span>
+<span class="linenos">178</span><span class="s2">#2e0000#2e0300#2e0600#2e0900#2e0d00#2e1000#2e1300#2e1700#2e1a00#2e1d00</span><span class="se">\</span>
+<span class="linenos">179</span><span class="s2">#2e2000#2e2400#2e2700#2e2a00#2e2e00#2c2e00#292e00#252e00#222e00#1f2e00</span><span class="se">\</span>
+<span class="linenos">180</span><span class="s2">#1c2e00#182e00#152e00#122e00#0e2e00#0b2e00#082e00#052e00#012e00#002e01</span><span class="se">\</span>
+<span class="linenos">181</span><span class="s2">#002e04#002e08#002e0b#002e0e#002e12#002e15#002e18#002e1b#002e1f#002e22</span><span class="se">\</span>
+<span class="linenos">182</span><span class="s2">#002e25#002e29#002e2c#002e2e#002a2e#00272e#00242e#00212e#001d2e#001a2e</span><span class="se">\</span>
+<span class="linenos">183</span><span class="s2">#00172e#00132e#00102e#000d2e#000a2e#00062e#00032e#00002e#03002e#06002e</span><span class="se">\</span>
+<span class="linenos">184</span><span class="s2">#09002e#0d002e#10002e#13002e#16002e#1a002e#1d002e#20002e#24002e#27002e</span><span class="se">\</span>
+<span class="linenos">185</span><span class="s2">#2a002e#2d002e#2e002c#2e0029#2e0026#2e0022#2e001f#2e001c</span>
+<span class="linenos">186</span><span class="s2">#240000#240200#240500#240700#240a00#240c00#240f00#241100#241400#241600</span><span class="se">\</span>
+<span class="linenos">187</span><span class="s2">#241900#241b00#241e00#242100#242300#222400#1f2400#1d2400#1a2400#182400</span><span class="se">\</span>
+<span class="linenos">188</span><span class="s2">#152400#132400#102400#0e2400#0b2400#082400#062400#032400#012400#002401</span><span class="se">\</span>
+<span class="linenos">189</span><span class="s2">#002403#002406#002408#00240b#00240d#002410#002413#002415#002418#00241a</span><span class="se">\</span>
+<span class="linenos">190</span><span class="s2">#00241d#00241f#002422#002324#002124#001e24#001c24#001924#001624#001424</span><span class="se">\</span>
+<span class="linenos">191</span><span class="s2">#001124#000f24#000c24#000a24#000724#000524#000224#000024#020024#040024</span><span class="se">\</span>
+<span class="linenos">192</span><span class="s2">#070024#0a0024#0c0024#0f0024#110024#140024#160024#190024#1b0024#1e0024</span><span class="se">\</span>
+<span class="linenos">193</span><span class="s2">#200024#230024#240022#24001f#24001d#24001a#240018#240015</span>
+<span class="linenos">194</span><span class="s2">#190000#190100#190300#190500#190700#190800#190a00#190c00#190e00#191000</span><span class="se">\</span>
+<span class="linenos">195</span><span class="s2">#191100#191300#191500#191700#191900#181900#161900#141900#121900#111900</span><span class="se">\</span>
+<span class="linenos">196</span><span class="s2">#0f1900#0d1900#0b1900#091900#081900#061900#041900#021900#001900#001900</span><span class="se">\</span>
+<span class="linenos">197</span><span class="s2">#001902#001904#001906#001908#001909#00190b#00190d#00190f#001910#001912</span><span class="se">\</span>
+<span class="linenos">198</span><span class="s2">#001914#001916#001918#001919#001719#001519#001319#001119#001019#000e19</span><span class="se">\</span>
+<span class="linenos">199</span><span class="s2">#000c19#000a19#000919#000719#000519#000319#000119#000019#010019#030019</span><span class="se">\</span>
+<span class="linenos">200</span><span class="s2">#050019#070019#080019#0a0019#0c0019#0e0019#100019#110019#130019#150019</span><span class="se">\</span>
+<span class="linenos">201</span><span class="s2">#170019#180019#190018#190016#190014#190012#190011#19000f</span>
+<span class="linenos">202</span><span class="s2">"""</span>
+<span class="linenos">203</span><span class="c1"># raise Exception(CHART_TRUE)</span>
+<span class="linenos">204</span>
+<span class="linenos">205</span><span class="n">CHART_256</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="linenos">206</span><span class="s2">brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_</span>
+<span class="linenos">207</span><span class="s2">yellow_   light_red   light_magenta   light_blue   light_cyan   light_green</span>
+<span class="linenos">208</span>
+<span class="linenos">209</span><span class="s2">              #00f#06f#08f#0af#0df#0ff        black_______    dark_gray___</span>
+<span class="linenos">210</span><span class="s2">            #60f#00d#06d#08d#0ad#0dd#0fd        light_gray__    white_______</span>
+<span class="linenos">211</span><span class="s2">          #80f#60d#00a#06a#08a#0aa#0da#0fa</span>
+<span class="linenos">212</span><span class="s2">        #a0f#80d#60a#008#068#088#0a8#0d8#0f8</span>
+<span class="linenos">213</span><span class="s2">      #d0f#a0d#80d#608#006#066#086#0a6#0d6#0f6</span>
+<span class="linenos">214</span><span class="s2">    #f0f#d0d#a0a#808#606#000#060#080#0a0#0d0#0f0#0f6#0f8#0fa#0fd#0ff</span>
+<span class="linenos">215</span><span class="s2">      #f0d#d0a#a08#806#600#660#680#6a0#6d0#6f0#6f6#6f8#6fa#6fd#6ff#0df</span>
+<span class="linenos">216</span><span class="s2">        #f0a#d08#a06#800#860#880#8a0#8d0#8f0#8f6#8f8#8fa#8fd#8ff#6df#0af</span>
+<span class="linenos">217</span><span class="s2">          #f08#d06#a00#a60#a80#aa0#ad0#af0#af6#af8#afa#afd#aff#8df#6af#08f</span>
+<span class="linenos">218</span><span class="s2">            #f06#d00#d60#d80#da0#dd0#df0#df6#df8#dfa#dfd#dff#adf#8af#68f#06f</span>
+<span class="linenos">219</span><span class="s2">              #f00#f60#f80#fa0#fd0#ff0#ff6#ff8#ffa#ffd#fff#ddf#aaf#88f#66f#00f</span>
+<span class="linenos">220</span><span class="s2">                                    #fd0#fd6#fd8#fda#fdd#fdf#daf#a8f#86f#60f</span>
+<span class="linenos">221</span><span class="s2">      #66d#68d#6ad#6dd                #fa0#fa6#fa8#faa#fad#faf#d8f#a6f#80f</span>
+<span class="linenos">222</span><span class="s2">    #86d#66a#68a#6aa#6da                #f80#f86#f88#f8a#f8d#f8f#d6f#a0f</span>
+<span class="linenos">223</span><span class="s2">  #a6d#86a#668#688#6a8#6d8                #f60#f66#f68#f6a#f6d#f6f#d0f</span>
+<span class="linenos">224</span><span class="s2">#d6d#a6a#868#666#686#6a6#6d6#6d8#6da#6dd    #f00#f06#f08#f0a#f0d#f0f</span>
+<span class="linenos">225</span><span class="s2">  #d6a#a68#866#886#8a6#8d6#8d8#8da#8dd#6ad</span>
+<span class="linenos">226</span><span class="s2">    #d68#a66#a86#aa6#ad6#ad8#ada#add#8ad#68d</span>
+<span class="linenos">227</span><span class="s2">      #d66#d86#da6#dd6#dd8#dda#ddd#aad#88d#66d        g78_g82_g85_g89_g93_g100</span>
+<span class="linenos">228</span><span class="s2">                    #da6#da8#daa#dad#a8d#86d        g52_g58_g62_g66_g70_g74_</span>
+<span class="linenos">229</span><span class="s2">      #88a#8aa        #d86#d88#d8a#d8d#a6d        g27_g31_g35_g38_g42_g46_g50_</span>
+<span class="linenos">230</span><span class="s2">    #a8a#888#8a8#8aa    #d66#d68#d6a#d6d        g0__g3__g7__g11_g15_g19_g23_</span>
+<span class="linenos">231</span><span class="s2">      #a88#aa8#aaa#88a</span>
+<span class="linenos">232</span><span class="s2">            #a88#a8a</span>
+<span class="linenos">233</span><span class="s2">"""</span>
+<span class="linenos">234</span>
+<span class="linenos">235</span><span class="n">CHART_88</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="linenos">236</span><span class="s2">brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_</span>
+<span class="linenos">237</span><span class="s2">yellow_   light_red   light_magenta   light_blue   light_cyan   light_green</span>
+<span class="linenos">238</span>
+<span class="linenos">239</span><span class="s2">      #00f#08f#0cf#0ff            black_______    dark_gray___</span>
+<span class="linenos">240</span><span class="s2">    #80f#00c#08c#0cc#0fc            light_gray__    white_______</span>
+<span class="linenos">241</span><span class="s2">  #c0f#80c#008#088#0c8#0f8</span>
+<span class="linenos">242</span><span class="s2">#f0f#c0c#808#000#080#0c0#0f0#0f8#0fc#0ff            #88c#8cc</span>
+<span class="linenos">243</span><span class="s2">  #f0c#c08#800#880#8c0#8f0#8f8#8fc#8ff#0cf        #c8c#888#8c8#8cc</span>
+<span class="linenos">244</span><span class="s2">    #f08#c00#c80#cc0#cf0#cf8#cfc#cff#8cf#08f        #c88#cc8#ccc#88c</span>
+<span class="linenos">245</span><span class="s2">      #f00#f80#fc0#ff0#ff8#ffc#fff#ccf#88f#00f            #c88#c8c</span>
+<span class="linenos">246</span><span class="s2">                    #fc0#fc8#fcc#fcf#c8f#80f</span>
+<span class="linenos">247</span><span class="s2">                      #f80#f88#f8c#f8f#c0f        g62_g74_g82_g89_g100</span>
+<span class="linenos">248</span><span class="s2">                        #f00#f08#f0c#f0f        g0__g19_g35_g46_g52</span>
+<span class="linenos">249</span><span class="s2">"""</span>
+<span class="linenos">250</span>
+<span class="linenos">251</span><span class="n">CHART_16</span> <span class="o">=</span> <span class="s2">"""</span>
+<span class="linenos">252</span><span class="s2">brown__   dark_red_   dark_magenta_   dark_blue_   dark_cyan_   dark_green_</span>
+<span class="linenos">253</span><span class="s2">yellow_   light_red   light_magenta   light_blue   light_cyan   light_green</span>
+<span class="linenos">254</span>
+<span class="linenos">255</span><span class="s2">black_______    dark_gray___    light_gray__    white_______</span>
+<span class="linenos">256</span><span class="s2">"""</span>
+<span class="linenos">257</span>
+<span class="linenos">258</span><span class="n">ATTR_RE</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"(?P&lt;whitespace&gt;[ \n]*)(?P&lt;entry&gt;(?:#[0-9A-Fa-f]</span><span class="si">{6}</span><span class="s2">)|(?:#[0-9A-Fa-f]</span><span class="si">{3}</span><span class="s2">)|(?:[^ \n]+))"</span><span class="p">)</span>
+<span class="linenos">259</span><span class="n">LONG_ATTR</span> <span class="o">=</span> <span class="mi">7</span>
+<span class="linenos">260</span><span class="n">SHORT_ATTR</span> <span class="o">=</span> <span class="mi">4</span>  <span class="c1"># length of short high-colour descriptions which may</span>
+<span class="linenos">261</span><span class="c1"># be packed one after the next</span>
+<span class="linenos">262</span>
+<span class="linenos">263</span>
+<span class="linenos">264</span><span class="k">def</span><span class="w"> </span><span class="nf">parse_chart</span><span class="p">(</span>
+<span class="linenos">265</span>    <span class="n">chart</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">266</span>    <span class="n">convert</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span>
+<span class="linenos">267</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="linenos">268</span><span class="w">    </span><span class="sd">"""Convert string chart into text markup with the correct attributes.</span>
+<span class="linenos">269</span>
+<span class="linenos">270</span><span class="sd">    :param chart: palette chart as a string</span>
+<span class="linenos">271</span><span class="sd">    :param convert: function that converts a single palette entry to an (attr, text) tuple, or ``None`` if no</span>
+<span class="linenos">272</span><span class="sd">                     match is found</span>
+<span class="linenos">273</span><span class="sd">    :returns: text markup for the chart</span>
+<span class="linenos">274</span><span class="sd">    """</span>
+<span class="linenos">275</span>    <span class="n">out</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">276</span>    <span class="k">for</span> <span class="n">match</span> <span class="ow">in</span> <span class="n">ATTR_RE</span><span class="o">.</span><span class="n">finditer</span><span class="p">(</span><span class="n">chart</span><span class="p">):</span>
+<span class="linenos">277</span>        <span class="k">if</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"whitespace"</span><span class="p">):</span>
+<span class="linenos">278</span>            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"whitespace"</span><span class="p">))</span>
+<span class="linenos">279</span>        <span class="n">entry</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s2">"entry"</span><span class="p">)</span>
+<span class="linenos">280</span>        <span class="n">entry</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">"_"</span><span class="p">,</span> <span class="s2">" "</span><span class="p">)</span>
+<span class="linenos">281</span>        <span class="k">while</span> <span class="n">entry</span><span class="p">:</span>
+<span class="linenos">282</span>            <span class="k">if</span> <span class="n">chart</span> <span class="o">==</span> <span class="n">CHART_TRUE</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span> <span class="o">==</span> <span class="n">LONG_ATTR</span><span class="p">:</span>
+<span class="linenos">283</span>                <span class="n">attrtext</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">entry</span><span class="p">[:</span><span class="n">LONG_ATTR</span><span class="p">])</span>
+<span class="linenos">284</span>                <span class="n">elen</span> <span class="o">=</span> <span class="n">LONG_ATTR</span>
+<span class="linenos">285</span>            <span class="k">else</span><span class="p">:</span>
+<span class="linenos">286</span>                <span class="n">elen</span> <span class="o">=</span> <span class="n">SHORT_ATTR</span>
+<span class="linenos">287</span>                <span class="n">attrtext</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">entry</span><span class="p">[:</span><span class="n">SHORT_ATTR</span><span class="p">])</span>
+<span class="linenos">288</span>            <span class="c1"># try the first four characters</span>
+<span class="linenos">289</span>            <span class="k">if</span> <span class="n">attrtext</span><span class="p">:</span>
+<span class="linenos">290</span>                <span class="n">entry</span> <span class="o">=</span> <span class="n">entry</span><span class="p">[</span><span class="n">elen</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<span class="linenos">291</span>            <span class="k">else</span><span class="p">:</span>  <span class="c1"># try the whole thing</span>
+<span class="linenos">292</span>                <span class="n">attrtext</span> <span class="o">=</span> <span class="n">convert</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+<span class="linenos">293</span>                <span class="k">assert</span> <span class="n">attrtext</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"Invalid palette entry: </span><span class="si">{</span><span class="n">entry</span><span class="si">!r}</span><span class="s2">"</span>  <span class="c1"># noqa: S101  # "assert" is OK for examples</span>
+<span class="linenos">294</span>                <span class="n">elen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span>
+<span class="linenos">295</span>                <span class="n">entry</span> <span class="o">=</span> <span class="s2">""</span>
+<span class="linenos">296</span>            <span class="n">attr</span><span class="p">,</span> <span class="n">text</span> <span class="o">=</span> <span class="n">attrtext</span>
+<span class="linenos">297</span>            <span class="k">if</span> <span class="n">chart</span> <span class="o">==</span> <span class="n">CHART_TRUE</span><span class="p">:</span>
+<span class="linenos">298</span>                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">attr</span><span class="p">,</span> <span class="s2">"▄"</span><span class="p">))</span>
+<span class="linenos">299</span>            <span class="k">else</span><span class="p">:</span>
+<span class="linenos">300</span>                <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">attr</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">ljust</span><span class="p">(</span><span class="n">elen</span><span class="p">)))</span>
+<span class="linenos">301</span>    <span class="k">return</span> <span class="n">out</span>
+<span class="linenos">302</span>
+<span class="linenos">303</span>
+<span class="linenos">304</span><span class="k">def</span><span class="w"> </span><span class="nf">foreground_chart</span><span class="p">(</span>
+<span class="linenos">305</span>    <span class="n">chart</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">306</span>    <span class="n">background</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">307</span>    <span class="n">colors</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">16777216</span><span class="p">],</span>
+<span class="linenos">308</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="linenos">309</span><span class="w">    </span><span class="sd">"""Create text markup for a foreground colour chart.</span>
+<span class="linenos">310</span>
+<span class="linenos">311</span><span class="sd">    :param chart: palette chart as string</span>
+<span class="linenos">312</span><span class="sd">    :param background: colour to use for background of chart</span>
+<span class="linenos">313</span><span class="sd">    :param colors: number of colors</span>
+<span class="linenos">314</span><span class="sd">    :returns: text markup for the chart</span>
+<span class="linenos">315</span><span class="sd">    """</span>
+<span class="linenos">316</span>
+<span class="linenos">317</span>    <span class="k">def</span><span class="w"> </span><span class="nf">convert_foreground</span><span class="p">(</span><span class="n">entry</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">318</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">319</span>            <span class="n">attr</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">background</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+<span class="linenos">320</span>        <span class="k">except</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpecError</span><span class="p">:</span>
+<span class="linenos">321</span>            <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos">322</span>        <span class="k">return</span> <span class="n">attr</span><span class="p">,</span> <span class="n">entry</span>
+<span class="linenos">323</span>
+<span class="linenos">324</span>    <span class="k">return</span> <span class="n">parse_chart</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="n">convert_foreground</span><span class="p">)</span>
+<span class="linenos">325</span>
+<span class="linenos">326</span>
+<span class="linenos">327</span><span class="k">def</span><span class="w"> </span><span class="nf">background_chart</span><span class="p">(</span>
+<span class="linenos">328</span>    <span class="n">chart</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">329</span>    <span class="n">foreground</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="linenos">330</span>    <span class="n">colors</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">16777216</span><span class="p">],</span>
+<span class="linenos">331</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]:</span>
+<span class="linenos">332</span><span class="w">    </span><span class="sd">"""Create text markup for a background colour chart.</span>
+<span class="linenos">333</span>
+<span class="linenos">334</span><span class="sd">    Remaps 8 &lt;= colour &lt; 16 to high-colour versions in the hopes of greater compatibility.</span>
+<span class="linenos">335</span>
+<span class="linenos">336</span><span class="sd">    :param chart: palette chart as string</span>
+<span class="linenos">337</span><span class="sd">    :param foreground: colour to use for foreground of chart</span>
+<span class="linenos">338</span><span class="sd">    :param colors: number of colors</span>
+<span class="linenos">339</span><span class="sd">    :returns: text markup for the chart</span>
+<span class="linenos">340</span><span class="sd">    """</span>
+<span class="linenos">341</span>
+<span class="linenos">342</span>    <span class="k">def</span><span class="w"> </span><span class="nf">convert_background</span><span class="p">(</span><span class="n">entry</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">343</span>        <span class="k">try</span><span class="p">:</span>
+<span class="linenos">344</span>            <span class="n">attr</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">foreground</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+<span class="linenos">345</span>        <span class="k">except</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpecError</span><span class="p">:</span>
+<span class="linenos">346</span>            <span class="k">return</span> <span class="kc">None</span>
+<span class="linenos">347</span>        <span class="c1"># fix 8 &lt;= colour &lt; 16</span>
+<span class="linenos">348</span>        <span class="k">if</span> <span class="n">colors</span> <span class="o">&gt;</span> <span class="mi">16</span> <span class="ow">and</span> <span class="n">attr</span><span class="o">.</span><span class="n">background_basic</span> <span class="ow">and</span> <span class="n">attr</span><span class="o">.</span><span class="n">background_number</span> <span class="o">&gt;=</span> <span class="mi">8</span><span class="p">:</span>
+<span class="linenos">349</span>            <span class="c1"># use high-colour with same number</span>
+<span class="linenos">350</span>            <span class="n">entry</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"h</span><span class="si">{</span><span class="n">attr</span><span class="o">.</span><span class="n">background_number</span><span class="si">:</span><span class="s2">d</span><span class="si">}</span><span class="s2">"</span>
+<span class="linenos">351</span>            <span class="n">attr</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrSpec</span><span class="p">(</span><span class="n">foreground</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+<span class="linenos">352</span>        <span class="k">return</span> <span class="n">attr</span><span class="p">,</span> <span class="n">entry</span>
+<span class="linenos">353</span>
+<span class="linenos">354</span>    <span class="k">return</span> <span class="n">parse_chart</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="n">convert_background</span><span class="p">)</span>
+<span class="linenos">355</span>
+<span class="linenos">356</span>
+<span class="linenos">357</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">358</span><span class="w">    </span><span class="sd">"""Run the palette test example program."""</span>
+<span class="linenos">359</span>    <span class="n">palette</span> <span class="o">=</span> <span class="p">[</span>
+<span class="linenos">360</span>        <span class="p">(</span><span class="s2">"header"</span><span class="p">,</span> <span class="s2">"black,underline"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"standout,underline"</span><span class="p">,</span> <span class="s2">"black,underline"</span><span class="p">,</span> <span class="s2">"#88a"</span><span class="p">),</span>
+<span class="linenos">361</span>        <span class="p">(</span><span class="s2">"panel"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="s2">"#ffd"</span><span class="p">,</span> <span class="s2">"#00a"</span><span class="p">),</span>
+<span class="linenos">362</span>        <span class="p">(</span><span class="s2">"focus"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">,</span> <span class="s2">"dark cyan"</span><span class="p">,</span> <span class="s2">"standout"</span><span class="p">,</span> <span class="s2">"#ff8"</span><span class="p">,</span> <span class="s2">"#806"</span><span class="p">),</span>
+<span class="linenos">363</span>    <span class="p">]</span>
+<span class="linenos">364</span>
+<span class="linenos">365</span>    <span class="n">screen</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">Screen</span><span class="p">()</span>
+<span class="linenos">366</span>    <span class="n">screen</span><span class="o">.</span><span class="n">register_palette</span><span class="p">(</span><span class="n">palette</span><span class="p">)</span>
+<span class="linenos">367</span>
+<span class="linenos">368</span>    <span class="n">lb</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleListWalker</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">widget</span><span class="o">.</span><span class="n">AbstractFlowWidget</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">SimpleListWalker</span><span class="p">([])</span>
+<span class="linenos">369</span>    <span class="n">chart_offset</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># offset of chart in lb list</span>
+<span class="linenos">370</span>
+<span class="linenos">371</span>    <span class="n">mode_radio_buttons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">372</span>    <span class="n">chart_radio_buttons</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="linenos">373</span>
+<span class="linenos">374</span>    <span class="k">def</span><span class="w"> </span><span class="nf">fcs</span><span class="p">(</span><span class="n">widget</span><span class="p">:</span> <span class="n">_Widget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">_Widget</span><span class="p">]:</span>
+<span class="linenos">375</span>        <span class="c1"># wrap widgets that can take focus</span>
+<span class="linenos">376</span>        <span class="k">return</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">widget</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">"focus"</span><span class="p">)</span>
+<span class="linenos">377</span>
+<span class="linenos">378</span>    <span class="k">def</span><span class="w"> </span><span class="nf">set_mode</span><span class="p">(</span><span class="n">colors</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">16777216</span><span class="p">],</span> <span class="n">is_foreground_chart</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">379</span>        <span class="c1"># set terminal mode and redraw chart</span>
+<span class="linenos">380</span>        <span class="n">screen</span><span class="o">.</span><span class="n">set_terminal_properties</span><span class="p">(</span><span class="n">colors</span><span class="p">)</span>
+<span class="linenos">381</span>        <span class="n">screen</span><span class="o">.</span><span class="n">reset_default_terminal_palette</span><span class="p">()</span>
+<span class="linenos">382</span>
+<span class="linenos">383</span>        <span class="n">chart_fn</span> <span class="o">=</span> <span class="p">(</span><span class="n">background_chart</span><span class="p">,</span> <span class="n">foreground_chart</span><span class="p">)[</span><span class="n">is_foreground_chart</span><span class="p">]</span>
+<span class="linenos">384</span>        <span class="k">if</span> <span class="n">colors</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+<span class="linenos">385</span>            <span class="n">lb</span><span class="p">[</span><span class="n">chart_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()</span>
+<span class="linenos">386</span>        <span class="k">else</span><span class="p">:</span>
+<span class="linenos">387</span>            <span class="n">chart</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="p">{</span><span class="mi">16</span><span class="p">:</span> <span class="n">CHART_16</span><span class="p">,</span> <span class="mi">88</span><span class="p">:</span> <span class="n">CHART_88</span><span class="p">,</span> <span class="mi">256</span><span class="p">:</span> <span class="n">CHART_256</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">24</span><span class="p">:</span> <span class="n">CHART_TRUE</span><span class="p">}[</span><span class="n">colors</span><span class="p">]</span>
+<span class="linenos">388</span>            <span class="n">txt</span> <span class="o">=</span> <span class="n">chart_fn</span><span class="p">(</span><span class="n">chart</span><span class="p">,</span> <span class="s2">"default"</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+<span class="linenos">389</span>            <span class="n">lb</span><span class="p">[</span><span class="n">chart_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">CLIP</span><span class="p">)</span>
+<span class="linenos">390</span>
+<span class="linenos">391</span>    <span class="k">def</span><span class="w"> </span><span class="nf">on_mode_change</span><span class="p">(</span><span class="n">colors</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">88</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">16777216</span><span class="p">],</span> <span class="n">rb</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">392</span>        <span class="c1"># if this radio button is checked</span>
+<span class="linenos">393</span>        <span class="k">if</span> <span class="n">state</span><span class="p">:</span>
+<span class="linenos">394</span>            <span class="n">is_foreground_chart</span> <span class="o">=</span> <span class="n">chart_radio_buttons</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">state</span>
+<span class="linenos">395</span>            <span class="n">set_mode</span><span class="p">(</span><span class="n">colors</span><span class="p">,</span> <span class="n">typing</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">"bool"</span><span class="p">,</span> <span class="n">is_foreground_chart</span><span class="p">))</span>
+<span class="linenos">396</span>
+<span class="linenos">397</span>    <span class="k">def</span><span class="w"> </span><span class="nf">mode_rb</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">colors</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">]:</span>
+<span class="linenos">398</span>        <span class="c1"># mode radio buttons</span>
+<span class="linenos">399</span>        <span class="n">rb</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="n">mode_radio_buttons</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+<span class="linenos">400</span>        <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">rb</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">on_mode_change</span><span class="p">,</span> <span class="n">user_args</span><span class="o">=</span><span class="p">(</span><span class="n">colors</span><span class="p">,))</span>
+<span class="linenos">401</span>        <span class="k">return</span> <span class="n">fcs</span><span class="p">(</span><span class="n">rb</span><span class="p">)</span>
+<span class="linenos">402</span>
+<span class="linenos">403</span>    <span class="k">def</span><span class="w"> </span><span class="nf">on_chart_change</span><span class="p">(</span><span class="n">rb</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">404</span>        <span class="c1"># handle foreground check box state change</span>
+<span class="linenos">405</span>        <span class="n">set_mode</span><span class="p">(</span><span class="n">screen</span><span class="o">.</span><span class="n">colors</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+<span class="linenos">406</span>
+<span class="linenos">407</span>    <span class="k">def</span><span class="w"> </span><span class="nf">click_exit</span><span class="p">(</span><span class="n">button</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">typing</span><span class="o">.</span><span class="n">NoReturn</span><span class="p">:</span>
+<span class="linenos">408</span>        <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">409</span>
+<span class="linenos">410</span>    <span class="c1"># select_navigation lets TAB / SHIFT TAB move through the mode buttons, then the chart buttons and Exit</span>
+<span class="linenos">411</span>    <span class="n">lb</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span>
+<span class="linenos">412</span>        <span class="p">[</span>
+<span class="linenos">413</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Urwid Palette Test"</span><span class="p">),</span> <span class="s2">"header"</span><span class="p">),</span>
+<span class="linenos">414</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">AttrMap</span><span class="p">(</span>
+<span class="linenos">415</span>                <span class="n">urwid</span><span class="o">.</span><span class="n">Columns</span><span class="p">(</span>
+<span class="linenos">416</span>                    <span class="p">[</span>
+<span class="linenos">417</span>                        <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">(</span>
+<span class="linenos">418</span>                            <span class="p">[</span>
+<span class="linenos">419</span>                                <span class="n">mode_rb</span><span class="p">(</span><span class="s2">"Monochrome"</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<span class="linenos">420</span>                                <span class="n">mode_rb</span><span class="p">(</span><span class="s2">"16-Color"</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
+<span class="linenos">421</span>                                <span class="n">mode_rb</span><span class="p">(</span><span class="s2">"88-Color"</span><span class="p">,</span> <span class="mi">88</span><span class="p">),</span>
+<span class="linenos">422</span>                                <span class="n">mode_rb</span><span class="p">(</span><span class="s2">"256-Color"</span><span class="p">,</span> <span class="mi">256</span><span class="p">),</span>
+<span class="linenos">423</span>                                <span class="n">mode_rb</span><span class="p">(</span><span class="s2">"24-bit Color"</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="mi">24</span><span class="p">),</span>
+<span class="linenos">424</span>                            <span class="p">],</span>
+<span class="linenos">425</span>                            <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">426</span>                        <span class="p">),</span>
+<span class="linenos">427</span>                        <span class="n">urwid</span><span class="o">.</span><span class="n">Pile</span><span class="p">(</span>
+<span class="linenos">428</span>                            <span class="p">[</span>
+<span class="linenos">429</span>                                <span class="n">fcs</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="n">chart_radio_buttons</span><span class="p">,</span> <span class="s2">"Foreground Colors"</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">on_chart_change</span><span class="p">)),</span>
+<span class="linenos">430</span>                                <span class="n">fcs</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">RadioButton</span><span class="p">(</span><span class="n">chart_radio_buttons</span><span class="p">,</span> <span class="s2">"Background Colors"</span><span class="p">)),</span>
+<span class="linenos">431</span>                                <span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">(),</span>
+<span class="linenos">432</span>                                <span class="n">fcs</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Button</span><span class="p">(</span><span class="s2">"Exit"</span><span class="p">,</span> <span class="n">click_exit</span><span class="p">)),</span>
+<span class="linenos">433</span>                            <span class="p">],</span>
+<span class="linenos">434</span>                            <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">435</span>                        <span class="p">),</span>
+<span class="linenos">436</span>                    <span class="p">],</span>
+<span class="linenos">437</span>                    <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="linenos">438</span>                <span class="p">),</span>
+<span class="linenos">439</span>                <span class="s2">"panel"</span><span class="p">,</span>
+<span class="linenos">440</span>            <span class="p">),</span>
+<span class="linenos">441</span>        <span class="p">]</span>
+<span class="linenos">442</span>    <span class="p">)</span>
+<span class="linenos">443</span>
+<span class="linenos">444</span>    <span class="n">chart_offset</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">lb</span><span class="p">)</span>
+<span class="linenos">445</span>    <span class="n">lb</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">urwid</span><span class="o">.</span><span class="n">Divider</span><span class="p">()])</span>  <span class="c1"># placeholder for the chart</span>
+<span class="linenos">446</span>
+<span class="linenos">447</span>    <span class="n">set_mode</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>  <span class="c1"># displays the chart</span>
+<span class="linenos">448</span>
+<span class="linenos">449</span>    <span class="k">def</span><span class="w"> </span><span class="nf">unhandled_input</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">450</span>        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"Q"</span><span class="p">,</span> <span class="s2">"q"</span><span class="p">,</span> <span class="s2">"esc"</span><span class="p">}:</span>
+<span class="linenos">451</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">452</span>
+<span class="linenos">453</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">ListBox</span><span class="p">(</span><span class="n">lb</span><span class="p">,</span> <span class="n">select_navigation</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="n">screen</span><span class="o">=</span><span class="n">screen</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">unhandled_input</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">454</span>
+<span class="linenos">455</span>
+<span class="linenos">456</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">457</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="thread_worker.html"
+                          title="previous chapter">thread_worker.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="bigtext.html"
+                          title="next chapter">bigtext.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/palette_test.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="bigtext.html" title="bigtext.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="thread_worker.html" title="thread_worker.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">palette_test.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

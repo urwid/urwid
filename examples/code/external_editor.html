@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>external_editor.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/external_editor.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="thread_worker.py" href="thread_worker.html" />
+    <link rel="prev" title="spinner.py" href="spinner.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="thread_worker.html" title="thread_worker.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">external_editor.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="external-editor-py">
+<h1>external_editor.py<a class="headerlink" href="#external-editor-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">"""Example: hand the terminal to an external editor and show what was written in it.</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="sd">Press :kbd:`e` to edit the text in ``$EDITOR`` (``vi`` when it is not set) and :kbd:`q` to exit.</span>
+<span class="linenos"> 6</span><span class="sd">"""</span>
+<span class="linenos"> 7</span>
+<span class="linenos"> 8</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos"> 9</span>
+<span class="linenos">10</span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+<span class="linenos">11</span><span class="kn">import</span><span class="w"> </span><span class="nn">pathlib</span>
+<span class="linenos">12</span><span class="kn">import</span><span class="w"> </span><span class="nn">shlex</span>
+<span class="linenos">13</span><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<span class="linenos">14</span><span class="kn">import</span><span class="w"> </span><span class="nn">tempfile</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos">17</span>
+<span class="linenos">18</span><span class="n">text_widget</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Press e to edit this text in $EDITOR, q to exit.</span><span class="se">\n</span><span class="s2">"</span><span class="p">)</span>
+<span class="linenos">19</span>
+<span class="linenos">20</span>
+<span class="linenos">21</span><span class="k">def</span><span class="w"> </span><span class="nf">edit_text</span><span class="p">(</span><span class="n">loop</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">22</span><span class="w">    </span><span class="sd">"""Run the editor on a temporary file holding the text and show the edited content.</span>
+<span class="linenos">23</span>
+<span class="linenos">24</span><span class="sd">    :param loop: main loop whose screen is paused while the editor runs</span>
+<span class="linenos">25</span><span class="sd">    """</span>
+<span class="linenos">26</span>    <span class="c1"># $EDITOR is a shell command line such as "vim -f" or "code --wait", not an executable name</span>
+<span class="linenos">27</span>    <span class="n">editor</span> <span class="o">=</span> <span class="n">shlex</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"EDITOR"</span><span class="p">,</span> <span class="s2">""</span><span class="p">))</span> <span class="ow">or</span> <span class="p">[</span><span class="s2">"vi"</span><span class="p">]</span>
+<span class="linenos">28</span>    <span class="n">fd</span><span class="p">,</span> <span class="n">name</span> <span class="o">=</span> <span class="n">tempfile</span><span class="o">.</span><span class="n">mkstemp</span><span class="p">(</span><span class="n">suffix</span><span class="o">=</span><span class="s2">".txt"</span><span class="p">)</span>
+<span class="linenos">29</span>    <span class="n">path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+<span class="linenos">30</span>    <span class="k">try</span><span class="p">:</span>
+<span class="linenos">31</span>        <span class="k">with</span> <span class="n">os</span><span class="o">.</span><span class="n">fdopen</span><span class="p">(</span><span class="n">fd</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+<span class="linenos">32</span>            <span class="n">file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">text_widget</span><span class="o">.</span><span class="n">text</span><span class="p">))</span>
+<span class="linenos">33</span>        <span class="k">with</span> <span class="n">loop</span><span class="o">.</span><span class="n">paused</span><span class="p">():</span>
+<span class="linenos">34</span>            <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="o">*</span><span class="n">editor</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">path</span><span class="p">)],</span> <span class="n">check</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># noqa: S603  # Example can be insecure</span>
+<span class="linenos">35</span>        <span class="n">text_widget</span><span class="o">.</span><span class="n">set_text</span><span class="p">(</span><span class="n">path</span><span class="o">.</span><span class="n">read_text</span><span class="p">(</span><span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">))</span>
+<span class="linenos">36</span>    <span class="k">finally</span><span class="p">:</span>
+<span class="linenos">37</span>        <span class="n">path</span><span class="o">.</span><span class="n">unlink</span><span class="p">(</span><span class="n">missing_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="linenos">38</span>
+<span class="linenos">39</span>
+<span class="linenos">40</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">41</span><span class="w">    </span><span class="sd">"""Run the example."""</span>
+<span class="linenos">42</span>
+<span class="linenos">43</span>    <span class="k">def</span><span class="w"> </span><span class="nf">handle_key</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">44</span><span class="w">        </span><span class="sd">"""Handle keys not consumed by the widgets: :kbd:`e` to edit, :kbd:`q` to exit.</span>
+<span class="linenos">45</span>
+<span class="linenos">46</span><span class="sd">        :param key: unhandled key or mouse event</span>
+<span class="linenos">47</span><span class="sd">        :raises urwid.ExitMainLoop: when the user presses :kbd:`q`</span>
+<span class="linenos">48</span><span class="sd">        """</span>
+<span class="linenos">49</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"e"</span><span class="p">:</span>
+<span class="linenos">50</span>            <span class="n">edit_text</span><span class="p">(</span><span class="n">loop</span><span class="p">)</span>
+<span class="linenos">51</span>        <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"q"</span><span class="p">,</span> <span class="s2">"Q"</span><span class="p">}:</span>
+<span class="linenos">52</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">53</span>
+<span class="linenos">54</span>    <span class="n">loop</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">text_widget</span><span class="p">,</span> <span class="n">valign</span><span class="o">=</span><span class="n">urwid</span><span class="o">.</span><span class="n">TOP</span><span class="p">),</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">handle_key</span><span class="p">)</span>
+<span class="linenos">55</span>    <span class="n">loop</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">56</span>
+<span class="linenos">57</span>
+<span class="linenos">58</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">59</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="spinner.html"
+                          title="previous chapter">spinner.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="thread_worker.html"
+                          title="next chapter">thread_worker.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/external_editor.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="thread_worker.html" title="thread_worker.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">external_editor.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

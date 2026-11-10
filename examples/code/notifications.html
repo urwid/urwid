@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>notifications.py &#8212; Urwid 5.1.1</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+    <link rel="stylesheet" type="text/css" href="../../_static/classic.css?v=65f223dd" />
+    <link rel="stylesheet" type="text/css" href="../../_static/urwid_theme.css?v=de5f08c4" />
+    
+    <script src="../../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+    <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    
+    <link rel="canonical" href="https://urwid.org/examples/code/notifications.html" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="spinner.py" href="spinner.html" />
+    <link rel="prev" title="calc.py" href="calc.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="calc.html" title="calc.py"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">notifications.py</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="notifications-py">
+<h1>notifications.py<a class="headerlink" href="#notifications-py" title="Link to this heading">¶</a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="linenos"> 1</span><span class="ch">#!/usr/bin/env python</span>
+<span class="linenos"> 2</span>
+<span class="linenos"> 3</span><span class="sd">"""Example: messages of each severity in the footer of a window, each shown for five seconds.</span>
+<span class="linenos"> 4</span>
+<span class="linenos"> 5</span><span class="sd">i, w and e post an info, a warning and an error message, s posts one that stays until it is dismissed,</span>
+<span class="linenos"> 6</span><span class="sd">d dismisses the newest message, c clears them all, and q exits. The keys work in either case.</span>
+<span class="linenos"> 7</span><span class="sd">"""</span>
+<span class="linenos"> 8</span>
+<span class="linenos"> 9</span><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<span class="linenos">10</span>
+<span class="linenos">11</span><span class="kn">import</span><span class="w"> </span><span class="nn">itertools</span>
+<span class="linenos">12</span>
+<span class="linenos">13</span><span class="kn">import</span><span class="w"> </span><span class="nn">urwid</span>
+<span class="linenos">14</span>
+<span class="linenos">15</span>
+<span class="linenos">16</span><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">17</span><span class="w">    </span><span class="sd">"""Build the window with the notifications footer and the key handling, and run the main loop."""</span>
+<span class="linenos">18</span>    <span class="n">notifications</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Notifications</span><span class="p">(</span>
+<span class="linenos">19</span>        <span class="n">max_count</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<span class="linenos">20</span>        <span class="n">severity_attr</span><span class="o">=</span><span class="p">{</span>
+<span class="linenos">21</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">INFO</span><span class="p">:</span> <span class="s2">"info"</span><span class="p">,</span>
+<span class="linenos">22</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">:</span> <span class="s2">"warning"</span><span class="p">,</span>
+<span class="linenos">23</span>            <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">ERROR</span><span class="p">:</span> <span class="s2">"error"</span><span class="p">,</span>
+<span class="linenos">24</span>        <span class="p">},</span>
+<span class="linenos">25</span>        <span class="n">default</span><span class="o">=</span><span class="s2">"i: info  w: warning  e: error  s: sticky  d: dismiss  c: clear  q: quit"</span><span class="p">,</span>
+<span class="linenos">26</span>        <span class="n">default_attr</span><span class="o">=</span><span class="s2">"help"</span><span class="p">,</span>
+<span class="linenos">27</span>    <span class="p">)</span>
+<span class="linenos">28</span>    <span class="n">numbers</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="linenos">29</span>    <span class="n">severities</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"i"</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">INFO</span><span class="p">,</span> <span class="s2">"w"</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">WARNING</span><span class="p">,</span> <span class="s2">"e"</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Severity</span><span class="o">.</span><span class="n">ERROR</span><span class="p">}</span>
+<span class="linenos">30</span>
+<span class="linenos">31</span>    <span class="k">def</span><span class="w"> </span><span class="nf">unhandled</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="linenos">32</span>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<span class="linenos">33</span>            <span class="k">return</span>
+<span class="linenos">34</span>        <span class="c1"># Shift or Caps Lock sends the upper-case key</span>
+<span class="linenos">35</span>        <span class="n">key</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+<span class="linenos">36</span>        <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"q"</span><span class="p">:</span>
+<span class="linenos">37</span>            <span class="k">raise</span> <span class="n">urwid</span><span class="o">.</span><span class="n">ExitMainLoop</span>
+<span class="linenos">38</span>        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">severities</span><span class="p">:</span>
+<span class="linenos">39</span>            <span class="n">severity</span> <span class="o">=</span> <span class="n">severities</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+<span class="linenos">40</span>            <span class="n">notifications</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">severity</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="si">}</span><span class="s2"> message </span><span class="si">{</span><span class="nb">next</span><span class="p">(</span><span class="n">numbers</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">severity</span><span class="o">=</span><span class="n">severity</span><span class="p">)</span>
+<span class="linenos">41</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"s"</span><span class="p">:</span>
+<span class="linenos">42</span>            <span class="n">notifications</span><span class="o">.</span><span class="n">notify</span><span class="p">(</span><span class="sa">f</span><span class="s2">"sticky message </span><span class="si">{</span><span class="nb">next</span><span class="p">(</span><span class="n">numbers</span><span class="p">)</span><span class="si">}</span><span class="s2">, d dismisses it"</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="linenos">43</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"d"</span> <span class="ow">and</span> <span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span><span class="p">:</span>
+<span class="linenos">44</span>            <span class="n">notifications</span><span class="o">.</span><span class="n">dismiss</span><span class="p">(</span><span class="n">notifications</span><span class="o">.</span><span class="n">notifications</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="linenos">45</span>        <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s2">"c"</span><span class="p">:</span>
+<span class="linenos">46</span>            <span class="n">notifications</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+<span class="linenos">47</span>
+<span class="linenos">48</span>    <span class="n">body</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">(</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">(</span><span class="s2">"Messages appear in the footer, oldest at the top."</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">"center"</span><span class="p">))</span>
+<span class="linenos">49</span>    <span class="n">frame</span><span class="p">:</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Filler</span><span class="p">[</span><span class="n">urwid</span><span class="o">.</span><span class="n">Text</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Notifications</span><span class="p">]</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">Frame</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">footer</span><span class="o">=</span><span class="n">notifications</span><span class="p">)</span>
+<span class="linenos">50</span>    <span class="n">palette</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[</span>
+<span class="linenos">51</span>        <span class="p">(</span><span class="s2">"help"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"light gray"</span><span class="p">),</span>
+<span class="linenos">52</span>        <span class="p">(</span><span class="s2">"info"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark blue"</span><span class="p">),</span>
+<span class="linenos">53</span>        <span class="p">(</span><span class="s2">"warning"</span><span class="p">,</span> <span class="s2">"black"</span><span class="p">,</span> <span class="s2">"brown"</span><span class="p">),</span>
+<span class="linenos">54</span>        <span class="p">(</span><span class="s2">"error"</span><span class="p">,</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"dark red"</span><span class="p">),</span>
+<span class="linenos">55</span>    <span class="p">]</span>
+<span class="linenos">56</span>    <span class="n">urwid</span><span class="o">.</span><span class="n">MainLoop</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">palette</span><span class="p">,</span> <span class="n">unhandled_input</span><span class="o">=</span><span class="n">unhandled</span><span class="p">)</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+<span class="linenos">57</span>
+<span class="linenos">58</span>
+<span class="linenos">59</span><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<span class="linenos">60</span>    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../../index.html">
+              <img class="logo" src="../../_static/urwid-logo.png" alt="Logo of Urwid"/>
+            </a></p>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="calc.html"
+                          title="previous chapter">calc.py</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="spinner.html"
+                          title="next chapter">spinner.py</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../../_sources/examples/code/notifications.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="spinner.html" title="spinner.py"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="calc.html" title="calc.py"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Urwid 5.1.1</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Example Programs</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">notifications.py</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2014, Ian Ward et al.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 9.2.0.
+    </div>
+  </body>
+</html>

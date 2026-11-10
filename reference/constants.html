@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Constants &#8212; Urwid 5.1.0</title>
+    <title>Constants &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>
@@ -421,16 +421,17 @@ attribute, see <a class="reference internal" href="../manual/displayattributes.h
 <span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">UPDATE_PALETTE_ENTRY</span></span><span class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'update</span> <span class="pre">palette</span> <span class="pre">entry'</span></span><a class="headerlink" href="#urwid.UPDATE_PALETTE_ENTRY" title="Link to this definition">¶</a></dt>
 <dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseScreen</span></code></a> (and subclasses like
 <a class="reference internal" href="display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a>) when a palette entry is changed.
-<a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> handles this signal by redrawing the whole
-screen.</p>
+<a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> does not handle it. <a class="reference internal" href="display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a>
+subscribes to it itself, so that its next <a class="reference internal" href="display_modules.html#urwid.BaseScreen.draw_screen" title="urwid.BaseScreen.draw_screen"><code class="xref py py-meth docutils literal notranslate"><span class="pre">draw_screen()</span></code></a>
+redraws every row.</p>
 <p>An entry that <a class="reference internal" href="display_modules.html#urwid.BaseScreen.register_palette" title="urwid.BaseScreen.register_palette"><code class="xref py py-meth docutils literal notranslate"><span class="pre">BaseScreen.register_palette()</span></code></a> removes with <code class="docutils literal notranslate"><span class="pre">replace=True</span></code>
 is sent with the specifications it is drawn with from then on: the terminal’s
 default colors.</p>
 </dd></dl>
 
 <dl class="py data">
-<dt class="sig sig-object py" id="urwid.INPUT_DESCRIPTORS_CHANGED">
-<span class="sig-prename descclassname"><span class="pre">urwid.</span></span><span class="sig-name descname"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></span><span class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'input</span> <span class="pre">descriptors</span> <span class="pre">changed'</span></span><a class="headerlink" href="#urwid.INPUT_DESCRIPTORS_CHANGED" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="urwid.display.common.INPUT_DESCRIPTORS_CHANGED">
+<span class="sig-prename descclassname"><span class="pre">display.common.</span></span><span class="sig-name descname"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></span><span class="property"><span class="w"> </span><span class="pre">=</span> <span class="pre">'input</span> <span class="pre">descriptors</span> <span class="pre">changed'</span></span><a class="headerlink" href="#urwid.display.common.INPUT_DESCRIPTORS_CHANGED" title="Link to this definition">¶</a></dt>
 <dd><p>sent by <a class="reference internal" href="display_modules.html#urwid.BaseScreen" title="urwid.BaseScreen"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseScreen</span></code></a> (and subclasses like
 <a class="reference internal" href="display_modules.html#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">display.raw.Screen</span></code></a>) when the list of input file descriptors
 has changed.  <a class="reference internal" href="main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> handles this signal by updating
@@ -628,7 +629,7 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
 </li>
 <li><a class="reference internal" href="#signal-names">Signal Names</a><ul>
 <li><a class="reference internal" href="#urwid.UPDATE_PALETTE_ENTRY"><code class="docutils literal notranslate"><span class="pre">UPDATE_PALETTE_ENTRY</span></code></a></li>
-<li><a class="reference internal" href="#urwid.INPUT_DESCRIPTORS_CHANGED"><code class="docutils literal notranslate"><span class="pre">INPUT_DESCRIPTORS_CHANGED</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.common.INPUT_DESCRIPTORS_CHANGED"><code class="docutils literal notranslate"><span class="pre">display.common.INPUT_DESCRIPTORS_CHANGED</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#command-names">Command Names</a><ul>
@@ -692,7 +693,7 @@ or <a class="reference internal" href="widget.html#urwid.RadioButton" title="urw
         <li class="right" >
           <a href="command_map.html" title="Command Map"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Constants</a></li> 
       </ul>

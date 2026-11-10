@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Input &#8212; Urwid 5.1.0</title>
+    <title>User Input &#8212; Urwid 5.1.1</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=bfa18cfb"></script>
+    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
@@ -106,32 +106,16 @@ are sent.</p>
 <p>A control sequence that Urwid does not recognise is returned as a single key
 holding the characters after <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span></code>, so that its characters are not received
 as typed text: <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">1;2X</span></code> returns <code class="docutils literal notranslate"><span class="pre">'&lt;csi</span> <span class="pre">1;2X&gt;'</span></code>.</p>
-<p>With Unicode <a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a> you will also receive
-Unicode strings for any non-ASCII characters:</p>
+<p>Non-ASCII characters are returned as strings, whatever the
+<a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a>: input in a non-UTF-8 encoding is
+decoded with that encoding. A byte that is not a character of a non-UTF-8
+encoding is returned as the Latin-1 character with the same value. A byte that
+is not valid UTF-8 is returned as its value in angle brackets, such as
+<code class="docutils literal notranslate"><span class="pre">'&lt;255&gt;'</span></code>.</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Key pressed</p></th>
 <th class="head"><p>Input returned</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p>é</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">u'é'</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p>Ж</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">u'Ж'</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p>カ</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">u'カ'</span></code></p></td>
-</tr>
-</tbody>
-</table>
-<p>With non-Unicode <a class="reference internal" href="encodings.html#text-encodings"><span class="std std-ref">text encoding</span></a> characters will be sent
-as-is in the original encoding.</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Key pressed</p></th>
-<th class="head"><p>Input returned (each in its own encoding)</p></th>
 </tr>
 </thead>
 <tbody>
@@ -142,13 +126,10 @@ as-is in the original encoding.</p>
 <td><p><code class="docutils literal notranslate"><span class="pre">'Ж'</span></code></p></td>
 </tr>
 <tr class="row-even"><td><p>カ</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">'カ'</span></code> (two bytes)</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">'カ'</span></code></p></td>
 </tr>
 </tbody>
 </table>
-<p>Urwid does not try to convert this text to Unicode to avoid losing any
-information. If you want the input converted to Unicode in all cases you may
-create an input filter to do so.</p>
 <section id="extended-keys">
 <span id="id3"></span><h3>Extended Keys<a class="headerlink" href="#extended-keys" title="Link to this heading">¶</a></h3>
 <p>In the legacy encodings several keys send the same bytes: CTRL+I is TAB,
@@ -268,7 +249,7 @@ and CTRL+Z from raising signals, as <code class="docutils literal notranslate"><
 <p>Mouse input is sent as a (<em>event</em>, <em>button</em>, <em>x</em>, <em>y</em>) tuple. <em>event</em> is a string
 describing the event. If the <em>SHIFT</em>, <em>ALT</em> or <em>CTRL</em> keys are held when a mouse
 event is sent then <em>event</em> may be prefixed by <code class="docutils literal notranslate"><span class="pre">'shift</span> <span class="pre">'</span></code>, <code class="docutils literal notranslate"><span class="pre">'meta</span> <span class="pre">'</span></code> or
-<code class="docutils literal notranslate"><span class="pre">'ctrl'</span></code>. <em>button</em> is a number, named by <a class="reference internal" href="../reference/constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a>. <em>x</em> and <em>y</em>
+<code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">'</span></code>. <em>button</em> is a number, named by <a class="reference internal" href="../reference/constants.html#urwid.MouseButton" title="urwid.MouseButton"><code class="xref py py-class docutils literal notranslate"><span class="pre">MouseButton</span></code></a>. <em>x</em> and <em>y</em>
 are character coordinates starting from <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> at the top-left of the
 screen.</p>
 <p>Support for the right-mouse button and use of modifier keys is poor in many
@@ -335,7 +316,10 @@ does not pass them on. Offer another way to do what they do.</p>
 terminal’s mouse reports;</p></li>
 <li><p>the curses screen delivers 1 to 5, the buttons Python’s <code class="xref py py-mod docutils literal notranslate"><span class="pre">curses</span></code>
 defines;</p></li>
-<li><p>GPM, the Linux console mouse, delivers 1 to 3.</p></li>
+<li><p>GPM, the Linux console mouse, delivers 1 to 3;</p></li>
+<li><p>the WebSocket screen (<a class="reference internal" href="../reference/display_modules.html#module-urwid.display.websocket" title="urwid.display.websocket"><code class="xref py py-mod docutils literal notranslate"><span class="pre">urwid.display.websocket</span></code></a>) delivers 1 to 9: the
+three main buttons, the four wheel directions and the two side buttons the
+browser reports.</p></li>
 </ul>
 <p>A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
 and buttons 8 to 11 by adding 128, as described in the “Mouse Tracking”
@@ -358,7 +342,8 @@ which a user’s device mapping can change.</p>
 <section id="mouse-release-events">
 <h3><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events<a class="headerlink" href="#mouse-release-events" title="Link to this heading">¶</a></h3>
 <p>A mouse button was released. <em>button</em> names the released button in an SGR
-mouse report (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">&lt;</span> <span class="pre">...</span> <span class="pre">m</span></code>), on the curses screen and from GPM.
+mouse report (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">&lt;</span> <span class="pre">...</span> <span class="pre">m</span></code>), on the curses screen, from GPM and on the
+WebSocket screen.
 A terminal that sends X10 mouse reports (<code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">M</span> <span class="pre">...</span></code>) does not say which
 button was released, and <em>button</em> is then 0, <a class="reference internal" href="../reference/constants.html#urwid.MouseButton.UNKNOWN" title="urwid.MouseButton.UNKNOWN"><code class="xref py py-attr docutils literal notranslate"><span class="pre">MouseButton.UNKNOWN</span></code></a>.</p>
 </section>
@@ -443,7 +428,7 @@ one position off the screen if the user drags their mouse to the edge.</p>
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.0</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
