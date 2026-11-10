@@ -30,8 +30,11 @@ class FilterFrame(urwid.Frame[urwid.ListBox[int], urwid.Edit, urwid.Text]):
     """
 
     def __init__(self, listbox: urwid.ListBox[int], query: urwid.Edit, status: urwid.Text) -> None:
-        """Show *query* above *listbox* and *status* below it, with the focus in *query*."""
-        super().__init__(listbox, header=query, footer=status, focus_part="header")
+        """Show *query* above *listbox* and *status* below it, with the focus in *query*.
+
+        On a short screen the list keeps 3 rows before the status line, which wraps on a narrow one.
+        """
+        super().__init__(listbox, header=query, footer=status, focus_part="header", min_body_rows=3)
         self._query = query
 
     def keypress(self, size: tuple[int, int], key: str) -> str | None:  # type: ignore[override]

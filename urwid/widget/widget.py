@@ -1032,19 +1032,26 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
     so the instance state, which pickles and copies carry, is the one a plain attribute has.
     """
 
-    __slots__ = ("__weakref__", "_default", "_name")
+    __slots__ = ("__weakref__", "_default", "_name", "_validate")
 
-    def __init__(self, *, default: _AttributeValue | typing.Literal[_NoDefault.TOKEN] = _NoDefault.TOKEN) -> None:
+    def __init__(
+        self,
+        *,
+        default: _AttributeValue | typing.Literal[_NoDefault.TOKEN] = _NoDefault.TOKEN,
+        validate: Callable[[_AttributeValue], None] | None = None,
+    ) -> None:
         """Declare the attribute.
 
         :param default: the value read from an instance that has none stored, such as a widget unpickled from a
             release that did not have the attribute yet.
             Without a default, such a read raises :exc:`AttributeError`.
             The default is shared by every such instance, so it is an immutable value.
+        :param validate: called with each assigned value before it is stored; it raises to reject the value.
         """
         # Empty until __set_name__ runs: no attribute is stored under "", so a lookup by it misses.
         self._name = ""
         self._default = default
+        self._validate = validate
 
     def __set_name__(self, owner: type[AbstractWidget], name: str) -> None:
         self._name = name
@@ -1080,6 +1087,8 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
         return value
 
     def __set__(self, instance: AbstractWidget, value: _AttributeValue) -> None:
+        if self._validate is not None:
+            self._validate(value)
         vars(instance)[self._attribute_name()] = value
         instance._invalidate()
 

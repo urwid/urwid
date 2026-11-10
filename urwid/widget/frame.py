@@ -51,6 +51,28 @@ def _check_widget_subclass(widget: AbstractWidget | None) -> None:
         _deprecation.warn(f"{obj_class_path} is not implementing Widget API.", since="2.4.0", removed_in="7.0")
 
 
+def _check_min_body_rows(rows: int) -> None:
+    """Reject a minimum of body rows that is not a non-negative integer.
+
+    :raises TypeError: *rows* is not an integer.
+    :raises ValueError: *rows* is negative.
+    """
+    if not isinstance(rows, int):
+        raise TypeError(f"min_body_rows must be an integer, got {rows!r}")
+    if rows < 0:
+        raise ValueError(f"min_body_rows must not be negative, got {rows!r}")
+
+
+def _check_trim_first(part: Literal["header", "footer"]) -> None:
+    """Reject a part other than the header or the footer.
+
+    :raises ValueError: *part* is not the string ``'header'`` or ``'footer'``.
+    """
+    # A tuple compares by equality and needs no hash, so an unhashable value gets the same error as any other.
+    if not isinstance(part, str) or part not in ("header", "footer"):
+        raise ValueError(f"trim_first must be 'header' or 'footer', got {part!r}")
+
+
 class _FrameContents(
     MutableMapping[
         Literal["header", "footer", "body"],
@@ -137,6 +159,10 @@ class Frame(
     _sizing = frozenset([Sizing.BOX])
     #: Whether this Frame reports FLOW sizing as well, when its body reports it; see :meth:`sizing`.
     flow = _InvalidatingAttribute[bool](default=False)
+    #: Rows the body takes in a box size right after the part in focus; see :meth:`frame_top_bottom`.
+    min_body_rows = _InvalidatingAttribute[int](default=0, validate=_check_min_body_rows)
+    #: The part that gives up its rows first, ``'header'`` or ``'footer'``, while the body is in focus.
+    trim_first = _InvalidatingAttribute[Literal["header", "footer"]](default="header", validate=_check_trim_first)
 
     def __init__(
         self,
@@ -147,6 +173,8 @@ class Frame(
         *,
         select_navigation: bool = False,
         flow: bool = False,
+        min_body_rows: int = 0,
+        trim_first: Literal["header", "footer"] = "header",
     ) -> None:
         """Initialize a new Frame instance.
 
@@ -157,7 +185,13 @@ class Frame(
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
         :param flow: report FLOW sizing as well when the body reports it, see :attr:`flow`.
+        :param min_body_rows: rows the body keeps on a short screen, see :meth:`frame_top_bottom`.
+        :param trim_first: ``'header'`` or ``'footer'``, the part trimmed first while the body is in focus,
+            see :meth:`frame_top_bottom`.
+        :raises TypeError: *min_body_rows* is not an integer.
         :raises ValueError: *focus_part* is not one of the three frame parts.
+            *min_body_rows* is negative.
+            *trim_first* is not ``'header'`` or ``'footer'``.
 
         .. deprecated:: 2.4.0
             Passing a header, body or footer that does not implement the Widget API is deprecated.
@@ -180,6 +214,8 @@ class Frame(
             raise ValueError(f"Invalid focus part {focus_part!r}")
         self.select_navigation = select_navigation
         self.flow = flow
+        self.min_body_rows = min_body_rows
+        self.trim_first = trim_first
 
         _check_widget_subclass(header)
         _check_widget_subclass(body)
@@ -227,6 +263,8 @@ class Frame(
             "focus_part": self.focus_part,
             "select_navigation": self.select_navigation,
             "flow": self.flow,
+            "min_body_rows": self.min_body_rows,
+            "trim_first": self.trim_first,
         }
         return remove_defaults(attrs, Frame.__init__)
 
@@ -238,6 +276,8 @@ class Frame(
         yield "focus_part", self.focus_part
         yield "select_navigation", self.select_navigation, False
         yield "flow", self.flow, False
+        yield "min_body_rows", self.min_body_rows, 0
+        yield "trim_first", self.trim_first, "header"
 
     def sizing(self) -> frozenset[Sizing]:
         """Return BOX, and FLOW as well when :attr:`flow` is set and the body reports FLOW."""
@@ -505,6 +545,25 @@ class Frame(
         """
         Calculate the number of rows for the header and footer.
 
+        The parts take rows in this order, each one at most the rows it reports, and the body also takes the rest:
+
+        - header in focus: the header, :attr:`min_body_rows` of the body, the footer;
+        - footer in focus: the footer, :attr:`min_body_rows` of the body, the header;
+        - body in focus: :attr:`min_body_rows` of the body but at least 1, the part :attr:`trim_first` does not name,
+          the part it names.
+
+        With the default ``min_body_rows=0`` and ``trim_first='header'``, the part in focus is shown first,
+        and with the body or the footer in focus the header is trimmed before the footer.
+
+        >>> from urwid import Edit, ListBox, Pile, Text
+        >>> frame = Frame(ListBox([Text("entry")]), header=Edit("path: "), footer=Pile([Text("flag")] * 3))
+        >>> frame.frame_top_bottom((10, 4), True)
+        ((0, 3), (1, 3))
+        >>> frame.min_body_rows = 2
+        >>> frame.trim_first = "footer"
+        >>> frame.frame_top_bottom((10, 4), True)
+        ((1, 1), (1, 3))
+
         :param size: See :meth:`Widget.render` for details
         :param focus: ``True`` if this widget is in focus
         :returns: `(head rows, foot rows),(orig head, orig foot)`
@@ -521,35 +580,28 @@ class Frame(
         if footer is not None:
             frows = footer.rows((maxcol,), self.focus_part == "footer" and focus)
 
-        remaining = maxrow
-
-        if self.focus_part == "footer":
-            if frows >= remaining:
-                return (0, remaining), (hrows, frows)
-
-            remaining -= frows
-            if hrows >= remaining:
-                return (remaining, frows), (hrows, frows)
-
-        elif self.focus_part == "header":
-            if hrows >= maxrow:
-                return (remaining, 0), (hrows, frows)
-
-            remaining -= hrows
-            if frows >= remaining:
-                return (hrows, remaining), (hrows, frows)
-
-        elif hrows + frows >= remaining:
-            # self.focus_part == 'body'
-            rless1 = max(0, remaining - 1)
-            if frows >= remaining - 1:
-                return (0, rless1), (hrows, frows)
-
-            remaining -= frows
-            rless1 = max(0, remaining - 1)
-            return (rless1, frows), (hrows, frows)
-
-        return (hrows, frows), (hrows, frows)
+        min_body_rows = self.min_body_rows
+        match self.focus_part:
+            case "header":
+                htrim = min(hrows, maxrow)
+                ftrim = min(frows, max(0, maxrow - htrim - min_body_rows))
+            case "footer":
+                ftrim = min(frows, maxrow)
+                htrim = min(hrows, max(0, maxrow - ftrim - min_body_rows))
+            case "body":
+                # The body in focus keeps a row, so the focus stays in view.
+                remaining = max(0, maxrow - max(1, min_body_rows))
+                if hrows + frows <= remaining:
+                    htrim, ftrim = hrows, frows
+                elif self.trim_first == "header":
+                    ftrim = min(frows, remaining)
+                    htrim = min(hrows, remaining - ftrim)
+                else:
+                    htrim = min(hrows, remaining)
+                    ftrim = min(frows, remaining - htrim)
+            case _:
+                typing.assert_never(self.focus_part)
+        return (htrim, ftrim), (hrows, frows)
 
     def render(
         self,

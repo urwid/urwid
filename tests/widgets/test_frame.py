@@ -723,6 +723,100 @@ class FrameFlowTest(unittest.TestCase):
                 self.assertIn(("flow", flow, False), list(frame.__rich_repr__()))
 
 
+class FrameShortBoxTest(unittest.TestCase):
+    """The rows of a short Frame with ``min_body_rows`` and ``trim_first``."""
+
+    @staticmethod
+    def make_frame(
+        focus_part: typing.Literal["header", "footer", "body"],
+        *,
+        min_body_rows: int = 0,
+        trim_first: typing.Literal["header", "footer"] = "header",
+    ) -> urwid.Frame[urwid.Filler, urwid.Text, urwid.Text]:
+        """Return a Frame with a 1-row header and a 3-row footer around a selectable body."""
+        return urwid.Frame(
+            urwid.Filler(SelectableText("body")),
+            SelectableText("head"),
+            SelectableText("f1\nf2\nf3"),
+            focus_part=focus_part,
+            min_body_rows=min_body_rows,
+            trim_first=trim_first,
+        )
+
+    def test_rows(self) -> None:
+        """The part in focus first, then the body floor, then the header and the footer in the chosen order."""
+        cases: tuple[
+            tuple[typing.Literal["header", "footer", "body"], int, typing.Literal["header", "footer"], int, int, int],
+            ...,
+        ] = (
+            # focus, min_body_rows, trim_first, maxrow, header rows, footer rows
+            ("body", 0, "header", 4, 0, 3),
+            ("body", 0, "footer", 4, 1, 2),
+            ("body", 2, "header", 4, 0, 2),
+            ("body", 2, "footer", 4, 1, 1),
+            ("body", 2, "footer", 2, 0, 0),
+            ("body", 0, "footer", 1, 0, 0),
+            ("body", 2, "header", 9, 1, 3),
+            ("header", 0, "header", 4, 1, 3),
+            ("header", 2, "header", 4, 1, 1),
+            ("header", 2, "footer", 2, 1, 0),
+            ("footer", 0, "header", 4, 1, 3),
+            ("footer", 2, "header", 4, 0, 3),
+            ("footer", 2, "footer", 5, 0, 3),
+        )
+        for focus_part, min_body_rows, trim_first, maxrow, header_rows, footer_rows in cases:
+            with self.subTest(focus=focus_part, min_body_rows=min_body_rows, trim_first=trim_first, maxrow=maxrow):
+                frame = self.make_frame(focus_part, min_body_rows=min_body_rows, trim_first=trim_first)
+                self.assertEqual(
+                    ((header_rows, footer_rows), (1, 3)),
+                    frame.frame_top_bottom((6, maxrow), True),
+                )
+
+    def test_layout_follows_the_rows(self) -> None:
+        """Rendering, keys, mouse presses and the cursor use the trimmed layout, and an assignment redraws."""
+        frame = urwid.Frame(
+            urwid.Filler(urwid.Edit(edit_text="body"), "top"),
+            SelectableText("head"),
+            SelectableText("f1\nf2\nf3"),
+        )
+        self.assertEqual([b"body  ", b"f1    ", b"f2    ", b"f3    "], frame.render((6, 4)).text)
+        frame.min_body_rows = 2
+        frame.trim_first = "footer"
+        self.assertEqual([b"head  ", b"body  ", b"      ", b"f1    "], frame.render((6, 4)).text)
+        self.assertEqual((4, 1), frame.get_cursor_coords((6, 4)))
+        self.assertIsNone(frame.keypress((6, 4), "!"))
+        self.assertEqual([b"head  ", b"body! ", b"      ", b"f1    "], frame.render((6, 4)).text)
+        frame.mouse_event((6, 4), "mouse press", 1, 0, 3, focus=True)
+        self.assertEqual("footer", frame.focus_part)
+
+    def test_invalid_values(self) -> None:
+        """A bad floor or part is rejected in the constructor and on assignment, and leaves the value unchanged."""
+        cases: tuple[tuple[str, object, type[Exception]], ...] = (
+            ("min_body_rows", -1, ValueError),
+            ("min_body_rows", 1.5, TypeError),
+            ("min_body_rows", "2", TypeError),
+            ("trim_first", "body", ValueError),
+            ("trim_first", ["header"], ValueError),
+        )
+        for name, value, error in cases:
+            with self.subTest(name=name, value=value):
+                with self.assertRaises(error):
+                    self.make_frame("body", **{name: value})  # type: ignore[arg-type]
+                frame = self.make_frame("body")
+                with self.assertRaises(error):
+                    setattr(frame, name, value)
+                self.assertEqual((0, "header"), (frame.min_body_rows, frame.trim_first))
+
+    def test_repr(self) -> None:
+        """The options are shown in the repr when they differ from the defaults."""
+        self.assertNotIn("min_body_rows", repr(self.make_frame("body")))
+        frame = self.make_frame("body", min_body_rows=2, trim_first="footer")
+        self.assertIn("min_body_rows=2", repr(frame))
+        self.assertIn("trim_first='footer'", repr(frame))
+        self.assertIn(("min_body_rows", 2, 0), list(frame.__rich_repr__()))
+        self.assertIn(("trim_first", "footer", "header"), list(frame.__rich_repr__()))
+
+
 class ReducesToFrame:
     """Reduces to a ``Frame`` with the given state, which copies restore as pickles do."""
 
