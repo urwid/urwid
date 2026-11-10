@@ -1004,6 +1004,13 @@ A dialog around a :class:`Table`, or around a :class:`Pile` with a weighted ``Li
 then takes the rows of its content, and scrolls the table or the list only when the screen is too short.
 A ``Frame(..., flow=True)`` around such a list keeps its footer, such as a row of buttons, on a short screen:
 with the body or the footer in focus, a :class:`Frame` trims its header first.
+``trim_first='footer'`` trims the footer first instead while the body is in focus,
+so a header, such as a path input above a list, keeps its rows longer than the footer does.
+``min_body_rows`` gives the body that many rows right after the part in focus,
+so optional controls in a header or footer do not take the whole screen.
+The body takes these rows before a header or a footer that is not in focus,
+so a screen with no more rows than that shows neither of them;
+see :meth:`Frame.frame_top_bottom` for the order.
 The top widget is measured in and out of focus on each layout.
 
 The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
