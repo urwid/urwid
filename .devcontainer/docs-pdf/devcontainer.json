@@ -1,0 +1,10 @@
+{
+  "build": {
+    "dockerfile": "../dev.dockerfile",
+    "context": "..",
+    "target": "docs-pdf"
+  },
+  "name": "urwid-docs-pdf",
+  "containerUser": "ubuntu",
+  "init": true
+}
