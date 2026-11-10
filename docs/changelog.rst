@@ -2,6 +2,61 @@
 Changelog
 ---------
 
+Urwid 5.1.1
+============
+
+2026-11-10
+
+Breaking Changes ⚠
+++++++++++++++++++
+* ``CheckBox(checked_symbol=...)`` is keyword-only: passing it as the sixth positional argument raises ``TypeError`` by @penguinolog in https://github.com/urwid/urwid/pull/1603
+* The WebSocket display allows up to 223 columns and 223 rows by default, up from 200 columns and 100 rows; pass ``max_cols`` and ``max_rows`` to keep the old limits by @penguinolog in https://github.com/urwid/urwid/pull/1608
+
+New features 🗹
++++++++++++++++
+
+Layout and sizing
+^^^^^^^^^^^^^^^^^
+* Add ``shrink_to_fit=True`` to ``Overlay``, ``Filler`` and ``OverlayStack.open()``: a ``'pack'`` top widget or body taller than the screen that also supports BOX sizing is rendered as a box at the rows available instead of being cut off at the bottom, so a dialog keeps its border and buttons by @penguinolog in https://github.com/urwid/urwid/pull/1624
+* Add ``ListBox(flow=True)``: the list reports FLOW sizing over a body that knows its length, so a dialog takes the rows of its content and scrolls only when the screen is too short by @penguinolog in https://github.com/urwid/urwid/pull/1625
+* Accept a flow size in ``Frame`` when its body does, and add ``Frame(flow=True)`` to report FLOW sizing over such a body by @penguinolog in https://github.com/urwid/urwid/pull/1626
+* Add ``Frame(min_body_rows=..., trim_first=...)`` to choose which part of a ``Frame`` keeps its rows on a short screen by @penguinolog in https://github.com/urwid/urwid/pull/1627
+* Raise ``WidgetSizingError`` naming the widget, the size and the sizing modes it supports when a widget gets a size it cannot handle, instead of an unrelated ``ValueError`` or ``AttributeError`` from deep inside urwid; it subclasses the exception it replaces by @penguinolog in https://github.com/urwid/urwid/pull/1612
+
+Widgets
+^^^^^^^
+* Add ``ListBox.set_scrollpos()`` to scroll the view to an exact row, and ``wheel="view"`` for ``ListBox``, ``TreeListBox`` and ``Table``, where the mouse wheel scrolls the view rather than moving the focus by @penguinolog in https://github.com/urwid/urwid/pull/1616
+* Add ``Table(footer=...)`` for a row below the body, and ``header_drop`` / ``footer_drop`` thresholds that give the body room on a short screen by @penguinolog in https://github.com/urwid/urwid/pull/1609
+* Add ``Table.set_focus(position, coming_from=...)``, and ``unfocused_focus_attr_func=`` to compute the unfocused focus attribute per child in ``Pile``, ``Columns``, ``GridFlow``, ``ListBox``, ``Tabs`` and ``Table`` by @penguinolog in https://github.com/urwid/urwid/pull/1615
+* Pass ``ScrollBar`` options to ``Table`` as ``scrollbar_<name>`` keywords by @penguinolog in https://github.com/urwid/urwid/pull/1601
+* Add ``unchecked_symbol=`` and ``mixed_symbol=`` to ``CheckBox``, all three symbol keywords to ``RadioButton``, ``CheckBox.Symbols`` with common state marks, and more ``ScrollBar`` symbols by @penguinolog in https://github.com/urwid/urwid/pull/1603
+
+Displays
+^^^^^^^^
+* Add mouse input to the WebSocket display, and ``max_cols`` / ``max_rows`` to its ``Screen()`` and ``html_page()`` by @penguinolog in https://github.com/urwid/urwid/pull/1608
+
+Testing helpers
+^^^^^^^^^^^^^^^
+* Add ``urwid.testing.VirtualClockEventLoop``, whose alarms fire on a clock the test advances, and ``urwid.testing.attrs_for_text()`` by @penguinolog in https://github.com/urwid/urwid/pull/1620
+* Add ``VirtualClockEventLoop.run_until_idle()`` to run every pending alarm and readable watched file and then return by @penguinolog in https://github.com/urwid/urwid/pull/1621
+* Add ``ScriptedScreen(inputs=None)``, a screen that feeds no input and keeps a started loop running for ``run_until_idle()`` by @penguinolog in https://github.com/urwid/urwid/pull/1622
+
+Bug fixes 🕷
+++++++++++++
+* Return Enter and Space from ``Table`` to the enclosing widget unless an ``"activate"`` handler returns a true value; a handler that returns ``None`` no longer consumes the key by @penguinolog in https://github.com/urwid/urwid/pull/1614
+* Pass keys to the ``Frame`` body when the header and footer fill the ``Frame`` but ``render()`` still shows a body row by @penguinolog in https://github.com/urwid/urwid/pull/1626
+* Draw every line of a ``TextCanvas`` whose ``attr`` or ``cs`` list is shorter than ``text``, such as ``attr=[]``; such lines were counted by ``rows()`` but left out of ``content()`` by @penguinolog in https://github.com/urwid/urwid/pull/1611
+* Free a dropped ``Pile``, ``Columns``, ``GridFlow``, ``Tabs`` or ``Table`` without waiting for the cyclic garbage collector by @penguinolog in https://github.com/urwid/urwid/pull/1613
+
+Documentation 🕮
+++++++++++++++++
+* Remove Python 2 leftovers and correct manual and reference statements that no longer matched the code by @penguinolog in https://github.com/urwid/urwid/pull/1604
+* List which members of each widget symbol set the default console fonts display by @penguinolog in https://github.com/urwid/urwid/pull/1610
+* Document the ``TextCanvas`` attribute and character set runs, and show the source of each example program by @penguinolog in https://github.com/urwid/urwid/pull/1611
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.1.0...5.1.1
+
 Urwid 5.1.0
 ============
 
