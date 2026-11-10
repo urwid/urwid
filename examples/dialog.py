@@ -27,13 +27,15 @@ import sys
 import typing
 
 import urwid
+from urwid.command_map import Command
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Sequence
 
     from urwid.util import _TagMarkup
 
-    _Dimension: typing.TypeAlias = int | tuple[typing.Literal[urwid.WHSettings.RELATIVE], int]
+    _Width: typing.TypeAlias = int | tuple[typing.Literal[urwid.WHSettings.RELATIVE], int]
+    _Height: typing.TypeAlias = int | typing.Literal[urwid.WHSettings.PACK]
     _ListItem: typing.TypeAlias = "urwid.CheckBox | MenuItem"
 
 
@@ -55,8 +57,42 @@ class ExitButton(urwid.Button):
         self.exitcode = exitcode
 
 
+class BodyScrollingPile(urwid.Pile):
+    """Pile that scrolls its first item with the arrow and page keys while another item has the focus."""
+
+    #: Commands whose keys scroll the first item, looked up through the widget's command map.
+    scroll_commands: typing.ClassVar[frozenset[Command]] = frozenset(
+        (
+            Command.UP,
+            Command.DOWN,
+            Command.PAGE_UP,
+            Command.PAGE_DOWN,
+        )
+    )
+
+    def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
+        """Pass a scroll key to the first item and keep the focus where it is.
+
+        :returns: for a scroll key while another item has the focus, what the first item returns;
+            for any other key, what :meth:`Pile.keypress` returns.
+        """
+        if self._command_map[key] in self.scroll_commands and self.focus_position != 0:
+            _widths, _heights, size_args = self.get_rows_sizes(size, focus=True)
+            # The dialog builds the first item as a Pile, which takes a box or a flow size.
+            first = typing.cast("urwid.Pile", self.contents[0][0])
+            return first.keypress(typing.cast("tuple[int] | tuple[int, int]", size_args[0]), key)
+        return super().keypress(size, key)
+
+
 class DialogDisplay:
-    """Base dialog widget: a bordered, shadowed frame with an optional header and a button footer."""
+    """Base dialog widget: a bordered, shadowed frame with an optional header and a button footer.
+
+    A height of 0 sizes the dialog to its content, and shrinks it to the screen when the content is taller.
+    A long list then scrolls inside the dialog.
+    """
+
+    #: The Pile that holds the header and body above the buttons.
+    frame_class: typing.ClassVar[type[urwid.Pile]] = urwid.Pile
 
     palette: typing.ClassVar[list[tuple[str, str, str] | tuple[str, str, str, str]]] = [
         ("body", "black", "light gray", "standout"),
@@ -76,44 +112,69 @@ class DialogDisplay:
     ) -> None:
         """Initialize the bordered, shadowed dialog frame around `body`, with an optional header from `text`."""
         raw_width = int(width)
-        parsed_width: _Dimension = raw_width if raw_width > 0 else (urwid.RELATIVE, 80)
+        parsed_width: _Width = raw_width if raw_width > 0 else (urwid.RELATIVE, 80)
         raw_height = int(height)
-        parsed_height: _Dimension = raw_height if raw_height > 0 else (urwid.RELATIVE, 80)
+        parsed_height: _Height = raw_height if raw_height > 0 else urwid.PACK
 
         self.body = body
         if body is None:
             # fill space with nothing
             body = urwid.Filler(urwid.Divider(), urwid.TOP)
 
-        self.frame: urwid.Frame[urwid.Widget, urwid.Pile, urwid.Pile] = urwid.Frame(body, focus_part="footer")
+        # Every layer is a Pile rather than a Frame: a Frame is a box widget only, while a Pile with a weighted item
+        # is a box and a flow widget, so the dialog can take the rows of its content.
+        # The header and the body share the weighted item, so a dialog that is too short keeps its buttons.
+        content = urwid.Pile([("weight", 1, body)])
         if text is not None:
-            self.frame.header = urwid.Pile([urwid.Text(text), urwid.Divider()])
+            content.contents.insert(0, (urwid.Pile([urwid.Text(text), urwid.Divider()]), content.options(urwid.PACK)))
+            content.focus_position = 1
+        self.frame = self.frame_class([("weight", 1, content)])
+        self.body_position = 0
+        self.footer_position: int | None = None
+        # Exit code of the first button. A dialog can exit with it when no widget handles Enter.
+        self.default_exitcode: int | None = None
+        self.focus_part: typing.Literal["body", "footer"] = "footer"
         w: urwid.Widget = self.frame
 
         # pad area around listbox
         w = urwid.Padding(w, urwid.LEFT, left=2, right=2)
-        w = urwid.Filler(w, urwid.TOP, urwid.RELATIVE_100, top=1, bottom=1)
+        w = urwid.Pile([("pack", urwid.Divider()), ("weight", 1, w), ("pack", urwid.Divider())], focus_item=1)
         w = urwid.AttrMap(w, "body")
 
         # "shadow" effect
-        w = urwid.Columns([w, (2, urwid.AttrMap(urwid.Filler(urwid.Text(("border", "  ")), urwid.TOP), "shadow"))])
-        w = urwid.Frame(w, footer=urwid.AttrMap(urwid.Text(("border", "  ")), "shadow"))
+        shadow = urwid.AttrMap(urwid.Filler(urwid.Text(("border", "  ")), urwid.TOP), "shadow")
+        w = urwid.Columns([w, (2, shadow)], box_columns=[1])
+        w = urwid.Pile([("weight", 1, w), ("pack", urwid.AttrMap(urwid.Text(("border", "  ")), "shadow"))])
 
         # outermost border area
         w = urwid.Padding(w, urwid.CENTER, parsed_width)
-        w = urwid.Filler(w, urwid.MIDDLE, parsed_height)
+        w = urwid.Filler(w, urwid.MIDDLE, parsed_height, shrink_to_fit=True)
         w = urwid.AttrMap(w, "border")
 
         self.view: urwid.Widget = w
 
     def add_buttons(self, buttons: Sequence[tuple[str, int]]) -> None:
-        """Add a row of buttons to the dialog's footer, each raising `DialogExit` with its exit code."""
+        """Set the row of buttons in the dialog's footer, each raising `DialogExit` with its exit code."""
         lines = [
             urwid.AttrMap(ExitButton(name, self.button_press, exitcode), "selectable", "focus")
             for name, exitcode in buttons
         ]
         self.buttons = urwid.GridFlow(lines, 10, 3, 1, urwid.CENTER)
-        self.frame.footer = urwid.Pile([urwid.Divider(), self.buttons], focus_item=1)
+        self.default_exitcode = buttons[0][1] if buttons else None
+        footer = (urwid.Pile([urwid.Divider(), self.buttons], focus_item=1), self.frame.options(urwid.PACK))
+        if self.footer_position is None:
+            self.frame.contents.append(footer)
+            self.footer_position = len(self.frame.contents) - 1
+        else:
+            self.frame.contents[self.footer_position] = footer
+        self.set_focus_part(self.focus_part)
+
+    def set_focus_part(self, part: typing.Literal["body", "footer"]) -> None:
+        """Move the focus to the body or to the buttons, and keep the choice for buttons added later."""
+        self.focus_part = part
+        position = self.body_position if part == "body" else self.footer_position
+        if position is not None:
+            self.frame.focus_position = position
 
     def button_press(self, button: ExitButton) -> typing.NoReturn:
         """Raise `DialogExit` with the pressed button's exit code."""
@@ -121,12 +182,16 @@ class DialogDisplay:
 
     def main(self) -> tuple[int, str]:
         """Run the dialog's main loop and return its exit code and message."""
-        self.loop: urwid.MainLoop = urwid.MainLoop(self.view, self.palette)
+        self.loop: urwid.MainLoop = urwid.MainLoop(self.view, self.palette, unhandled_input=self.unhandled_input)
         try:
             self.loop.run()
         except DialogExit as e:
             return self.on_exit(e.args[0])
         raise AssertionError("unreachable: MainLoop.run() returned without raising DialogExit")
+
+    def unhandled_input(self, key: str | tuple[str, int, int, int]) -> bool | None:
+        """Leave input that no widget handled unhandled."""
+        return None
 
     def on_exit(self, exitcode: int) -> tuple[int, str]:
         """Return the exit code together with an empty message."""
@@ -144,22 +209,20 @@ class InputDialogDisplay(DialogDisplay):
     def __init__(self, text: _TagMarkup | None, height: int | str, width: int | str) -> None:
         """Initialize with an empty single-line text entry field, focused."""
         self.edit = urwid.Edit()
-        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker([self.edit])), "selectable", "focustext")
+        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker([self.edit]), flow=True), "selectable", "focustext")
 
         super().__init__(text, height, width, body)
 
-        self.frame.focus_position = "body"
+        self.set_focus_part("body")
 
-    def unhandled_key(self, size: tuple[int, int], k: str) -> None:
-        """Move focus between the entry field and the buttons."""
-        if k in {"up", "page up"}:
-            self.frame.focus_position = "body"
-        if k in {"down", "page down"}:
-            self.frame.focus_position = "footer"
-        if k == "enter":
-            # pass enter to the "ok" button
-            self.frame.focus_position = "footer"
-            self.view.keypress(size, k)
+    def unhandled_input(self, key: str | tuple[str, int, int, int]) -> bool | None:
+        """Press the first button on :kbd:`enter`, which the entry field leaves unhandled.
+
+        :raises DialogExit: on :kbd:`enter`, with the exit code of the first button.
+        """
+        if key != "enter" or self.default_exitcode is None:
+            return None
+        raise DialogExit(self.default_exitcode)
 
     def on_exit(self, exitcode: int) -> tuple[int, str]:
         """Return the exit code together with the entered text."""
@@ -167,7 +230,12 @@ class InputDialogDisplay(DialogDisplay):
 
 
 class TextDialogDisplay(DialogDisplay):
-    """Dialog that displays the contents of a file in a scrollable list box."""
+    """Dialog that displays the contents of a file in a scrollable list box.
+
+    The arrow and page keys scroll the file while the buttons have the focus.
+    """
+
+    frame_class = BodyScrollingPile
 
     def __init__(self, file: str, height: int | str, width: int | str) -> None:
         """Initialize with the contents of `file` loaded into the scrollable list box."""
@@ -175,16 +243,9 @@ class TextDialogDisplay(DialogDisplay):
             lines = [urwid.Text(line.rstrip()) for line in f]
         # read the whole file (being slow, not lazy this time)
 
-        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines)), "selectable", "focustext")
+        body = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines), flow=True), "selectable", "focustext")
 
         super().__init__(None, height, width, body)
-
-    def unhandled_key(self, size: tuple[int, int], k: str) -> None:
-        """Scroll the file's contents while keeping focus on the footer's buttons."""
-        if k in {"up", "page up", "down", "page down"}:
-            self.frame.focus_position = "body"
-            self.view.keypress(size, k)
-            self.frame.focus_position = "footer"
 
 
 class ListDialogDisplay(DialogDisplay):
@@ -220,22 +281,10 @@ class ListDialogDisplay(DialogDisplay):
             w = urwid.AttrMap(w, "selectable", "focus")
             lines.append(w)
 
-        lb = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines)), "selectable")
+        lb = urwid.AttrMap(urwid.ListBox(urwid.SimpleListWalker(lines), flow=True), "selectable")
         super().__init__(text, height, width, lb)
 
-        self.frame.focus_position = "body"
-
-    def unhandled_key(self, size: tuple[int, int], k: str) -> None:
-        """Move focus between the item list and the buttons."""
-        if k in {"up", "page up"}:
-            self.frame.focus_position = "body"
-        if k in {"down", "page down"}:
-            self.frame.focus_position = "footer"
-        if k == "enter":
-            # pass enter to the "ok" button
-            self.frame.focus_position = "footer"
-            self.buttons.focus_position = 0
-            self.view.keypress(size, k)
+        self.set_focus_part("body")
 
     def on_exit(self, exitcode: int) -> tuple[int, str]:
         """Print the tag of the item selected."""

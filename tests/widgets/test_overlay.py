@@ -1008,6 +1008,81 @@ class OverlayTest(unittest.TestCase):
                 self.assertEqual((5,), ovl.top_w_size((5, 3), 0, 0, 0, 3 - height))
                 self.assertEqual(["one  ", "two  ", "three"], urwid.testing.render_text(ovl, (5, 3)))
 
+    @staticmethod
+    def make_list_dialog(**kwargs: typing.Any) -> tuple[urwid.Overlay, urwid.ListBox]:
+        """Return a dialog of six buttons in a ListBox with flow set, above an OK button, and the ListBox."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Button(f"b{i}") for i in range(6)]), flow=True)
+        body = urwid.Pile([("weight", 1, urwid.ScrollBar(lbox)), ("pack", urwid.Button("ok"))])
+        overlay = urwid.Overlay(
+            urwid.LineBox(body),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            12,
+            urwid.MIDDLE,
+            urwid.PACK,
+            **kwargs,
+        )
+        return overlay, lbox
+
+    def test_list_dialog_fits(self) -> None:
+        """A dialog that fits takes the rows of all its buttons and draws no scrollbar, with the flag set or not."""
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit), warnings.catch_warnings():
+                warnings.simplefilter("error")
+                overlay, _lbox = self.make_list_dialog(shrink_to_fit=shrink_to_fit)
+                self.assertEqual(
+                    [
+                        "##############",
+                        "#┌──────────┐#",
+                        *(f"#│< b{i}     >│#" for i in range(6)),
+                        "#│< ok     >│#",
+                        "#└──────────┘#",
+                        "##############",
+                        "##############",
+                    ],
+                    urwid.testing.render_text(overlay, (14, 12), focus=True),
+                )
+
+    def test_list_dialog_taller_than_the_screen(self) -> None:
+        """With shrink_to_fit, a dialog taller than the screen keeps its OK button, and its list scrolls.
+
+        The focus stays visible as it moves down the list.
+        Without the flag the dialog is clipped at the bottom.
+        """
+        overlay, lbox = self.make_list_dialog(shrink_to_fit=True)
+        size = (14, 6)
+        self.assertEqual(
+            [
+                "#┌──────────┐#",
+                "#│< b0    >█│#",
+                "#│< b1    >█│#",
+                "#│< b2    > │#",
+                "#│< ok     >│#",
+                "#└──────────┘#",
+            ],
+            urwid.testing.render_text(overlay, size, focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(overlay, size, *["down"] * 5))
+        self.assertEqual(5, lbox.focus_position)
+        self.assertEqual(
+            [
+                "#┌──────────┐#",
+                "#│< b3    > │#",
+                "#│< b4    >█│#",
+                "#│< b5    >█│#",
+                "#│< ok     >│#",
+                "#└──────────┘#",
+            ],
+            urwid.testing.render_text(overlay, size, focus=True),
+        )
+        self.assertEqual((4, 3), overlay.get_cursor_coords(size))
+
+        clipped, _lbox = self.make_list_dialog()
+        self.assertEqual(
+            ["#┌──────────┐#", *(f"#│< b{i}     >│#" for i in range(5))],
+            urwid.testing.render_text(clipped, size, focus=True),
+        )
+
     def test_shrink_to_fit_repr(self) -> None:
         """The flag is shown in the repr when it is set."""
         for shrink_to_fit in (False, True):

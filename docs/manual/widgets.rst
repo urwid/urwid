@@ -97,6 +97,11 @@ A widget may support more than one sizing mode, and :meth:`Widget.sizing`
 returns the set of modes it supports.  The sizing modes of a decoration or
 container widget depend on the widgets it contains and on its options.
 
+A widget can also accept a size it does not report.  A :class:`ListBox`
+renders at a flow size, but reports ``'flow'`` only with ``flow=True``; see
+:ref:`listbox-contents`, and :ref:`shrink_to_fit <shrink-to-fit>` for a dialog
+that takes the rows of its content.
+
 .. list-table:: Sizing Modes of the Included Widgets
    :widths: 45 55
    :header-rows: 1
@@ -142,8 +147,13 @@ container widget depend on the widgets it contains and on its options.
        position options of the top widget allow it; see
        :ref:`shrink_to_fit <shrink-to-fit>` for a ``'pack'`` height taller
        than the rows available
-   * - :class:`Frame`, :class:`ListBox`, :class:`TreeListBox`,
-       :class:`OverlayStack`, :class:`PopUpTarget`, :class:`ScrollBar`,
+   * - :class:`ListBox`, :class:`TreeListBox`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when the list
+       walker reports its length, or an estimate of it, and does not wrap
+       around; see :ref:`listbox-contents`
+   * - :class:`ScrollBar`
+     - ``'box'``, and ``'flow'`` as well around a ``ListBox(..., flow=True)``
+   * - :class:`Frame`, :class:`OverlayStack`, :class:`PopUpTarget`,
        :class:`Scrollable`
      - ``'box'``
 
@@ -165,10 +175,12 @@ child process and shows its terminal output.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more
-than one color supports each of those modes.  In a decoration or container
-tile, the colors inside the box show which sizing modes the wrapped widgets
-use.  The table in `Box, Flow and Fixed Widgets`_ lists the exact sizing modes
-of each widget.
+than one color supports each of those modes.  A mode a widget supports only
+with some options is drawn the same way, such as ``'flow'`` for
+``ListBox(..., flow=True)``.  In a decoration or container tile, the colors
+inside the box show which sizing modes the wrapped widgets use.  The table in
+`Box, Flow and Fixed Widgets`_ lists the exact sizing modes of each widget and
+the conditions for each mode.
 
 .. image:: images/urwid_widgets_2.png
 
@@ -984,8 +996,8 @@ first wrap the flow widget with a :class:`Filler` widget.
 With a ``'pack'`` height, a top widget taller than the rows available is clipped at the bottom.
 With ``shrink_to_fit=True``, a top widget that also supports ``'box'`` is rendered as a box at those rows instead,
 and :class:`Filler` takes the same argument for its body.
-A dialog around a :class:`Table` then takes the rows of its content,
-and scrolls the table only when the screen is too short.
+A dialog around a :class:`Table`, or around a :class:`Pile` with a weighted ``ListBox(..., flow=True)`` item,
+then takes the rows of its content, and scrolls the table or the list only when the screen is too short.
 The top widget is measured in and out of focus on each layout.
 
 The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
@@ -1027,7 +1039,9 @@ the first and the last scrollbar row hold markers
 that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
 ``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
 and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
-The widget reports BOX sizing, and the wrapped widget must support BOX.
+The widget reports BOX sizing, and FLOW as well around a :class:`ListBox` with :attr:`ListBox.flow` set,
+also when the ListBox is wrapped in a decoration such as :class:`AttrMap`.
+The wrapped widget must support BOX.
 Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
 draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
@@ -1122,17 +1136,31 @@ Its contents are displayed stacked vertically, and the
 One of the flow widgets displayed in the :class:`ListBox` is its
 focus widget.
 
-A :class:`ListBox` also accepts a flow size, although it reports BOX sizing only,
-so containers keep laying it out as a box widget.
+A :class:`ListBox` also accepts a flow size.
 At a flow size it shows all its widgets, and :meth:`ListBox.rows` returns the rows they take.
 The whole body is measured, so this is meant for lists short enough for a dialog.
 It needs a list walker that reports its length or an estimate of it, or a :class:`TreeWalker`,
 and that does not wrap around.
 
+By default a :class:`ListBox` reports BOX sizing only, so containers lay it out as a box widget.
+With ``flow=True`` it reports FLOW as well, over a list walker that reports its length or an estimate of it
+and does not wrap around; a :class:`TreeWalker` qualifies only when it reports its length.
+A container can then give it the rows of all its widgets:
+
+* A weighted ``ListBox(..., flow=True)`` item of a :class:`Pile` takes the rows of its widgets
+  when the Pile is rendered at a flow size, and the rows left over when it is rendered at a box size.
+  An item with a ``'pack'`` height is rendered at a flow size, so it shows every widget and does not scroll.
+* In a :class:`Columns` it is a flow widget like a :class:`Text`,
+  so a Columns of it and of columns that are flow widgets only is a flow widget too.
+* :class:`BoxAdapter` remains the way to give a :class:`ListBox` a fixed number of rows.
+
+See :ref:`shrink_to_fit <shrink-to-fit>` for a dialog that shrinks to the screen and scrolls its list.
+
 ListBox Focus and Scrolling
 ---------------------------
 
-The :class:`ListBox` is a box widget that contains flow widgets.
+The :class:`ListBox` is a box widget that contains flow widgets,
+and a flow widget as well with ``flow=True`` (see :ref:`listbox-contents`).
 Its contents are displayed stacked vertically, and the
 :class:`ListBox` allows the user to scroll through its content.
 One of the flow widgets displayed in the :class:`ListBox` is the

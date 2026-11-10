@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import typing
 import unittest
+import warnings
 import weakref
 from unittest import mock
 
@@ -2053,17 +2054,69 @@ def _flow_body() -> list[urwid.Widget]:
 
 
 class ListBoxFlowSizeTest(unittest.TestCase):
-    """A ListBox rendered at a flow size shows all its widgets, while its sizing stays BOX."""
+    """A ListBox rendered at a flow size shows all its widgets; its sizing is BOX unless flow is set."""
 
     def test_sizing_stays_box(self) -> None:
         """Containers keep laying a ListBox out as a box widget."""
         self.assertEqual(frozenset((urwid.BOX,)), urwid.ListBox(_flow_body()).sizing())
 
+    def test_sizing_follows_flow_and_the_body(self) -> None:
+        """With flow set, FLOW is reported only over a body that reports its length and does not wrap around."""
+        box_flow = frozenset((urwid.BOX, urwid.FLOW))
+        box = frozenset((urwid.BOX,))
+        for walker_class in (urwid.SimpleListWalker, urwid.SimpleFocusListWalker, urwid.SimpleFocusDequeWalker):
+            with self.subTest(walker=walker_class.__name__):
+                self.assertEqual(box_flow, urwid.ListBox(walker_class([urwid.Text("a")]), flow=True).sizing())
+
+        wrapping = urwid.ListBox(urwid.SimpleListWalker([urwid.Text("a")], wrap_around=True), flow=True)
+        self.assertEqual(box, wrapping.sizing())
+        wrapping.body.wrap_around = False
+        self.assertEqual(box_flow, wrapping.sizing())
+        replaced = urwid.ListBox([urwid.Text("a")], flow=True)
+        replaced.body = urwid.SimpleListWalker([urwid.Text("a")], wrap_around=True)
+        self.assertEqual(box, replaced.sizing())
+
+        with self.assertWarns(DeprecationWarning):
+            duck = urwid.ListBox(DuckTypedWalker([urwid.Text("a")]), flow=True)
+        self.assertEqual(box, duck.sizing())
+        duck.body = urwid.SimpleListWalker([urwid.Text("a")])
+        self.assertEqual(box_flow, duck.sizing())
+        sized = urwid.ListBox([urwid.Text("a")], flow=True)
+        with self.assertWarns(DeprecationWarning):
+            sized.body = DuckTypedWalker([urwid.Text("a")])
+        self.assertEqual(box, sized.sizing())
+
+    def test_flow_attribute(self) -> None:
+        """Setting flow changes the sizing a parent Pile reports and redraws it at a flow size."""
+        lbox = urwid.ListBox(urwid.SimpleListWalker([urwid.Text(f"item{i}") for i in range(3)]))
+        pile = urwid.Pile([("weight", 1, lbox), ("pack", urwid.Text("end"))])
+        self.assertEqual(["item0 ", "end   "], urwid.testing.render_text(pile, (6, 2)))
+        self.assertNotIn(urwid.FLOW, pile.sizing())
+        lbox.flow = True
+        self.assertIn(urwid.FLOW, pile.sizing())
+        self.assertEqual(["item0 ", "item1 ", "item2 ", "end   "], urwid.testing.render_text(pile, (6,)))
+        self.assertIs(True, vars(lbox)["flow"])
+
+    def test_in_flow_columns(self) -> None:
+        """In a Columns rendered at a flow size, a ListBox with flow set takes the rows of its widgets."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Text(f"item{i}") for i in range(4)]), flow=True)
+        columns = urwid.Columns([lbox, urwid.Text("a\nb")])
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.assertEqual(
+                ["item0 a     ", "item1 b     ", "item2       ", "item3       "],
+                urwid.testing.render_text(columns, (12,)),
+            )
+
     def test_check_flow_sizing(self) -> None:
-        """A flow render has the rows that rows() reports, and the cursor that get_cursor_coords() reports."""
+        """A flow render has the rows that rows() reports, and the cursor that get_cursor_coords() reports.
+
+        With flow set, every sizing mode renders the size it reports.
+        """
         for widgets in ([], [urwid.Text("hello")], [urwid.Text("hello"), urwid.Edit("> ", "ab")]):
             with self.subTest(count=len(widgets)):
                 urwid.testing.check_flow_sizing(urwid.ListBox(urwid.SimpleListWalker(widgets)))
+                urwid.testing.check_sizing(urwid.ListBox(urwid.SimpleListWalker(widgets), flow=True), cols=10)
 
     def test_rows(self) -> None:
         """The rows are those of all widgets, whatever the focus position and the focus flag."""
@@ -2111,7 +2164,11 @@ class ListBoxFlowSizeTest(unittest.TestCase):
         self.assertTrue(checkbox.state)
 
     def test_tree_list_box_keys_at_a_flow_size(self) -> None:
-        """TreeListBox moves the focus to the parent at a flow size."""
+        """TreeListBox moves the focus to the parent at a flow size.
+
+        With flow set, it reports FLOW only over a TreeWalker that reports its length,
+        since a TreeWalker can generate children without end.
+        """
 
         class Leaf(urwid.TreeNode):
             """Leaf node shown as a TreeWidget."""
@@ -2139,12 +2196,23 @@ class ListBoxFlowSizeTest(unittest.TestCase):
             def load_child_node(self, key: int) -> Leaf:
                 return Leaf(None, parent=self, key=key, depth=1)
 
+        class SizedTreeWalker(urwid.TreeWalker):
+            """TreeWalker that reports the length of a tree known to be finite."""
+
+            def __len__(self) -> int:
+                return 2
+
         root = Root(None)
         tree = urwid.TreeListBox(urwid.TreeWalker(root))
         self.assertEqual(len(urwid.testing.render_text(tree, (10,))), tree.rows((10,)))
         tree.focus_position = root.get_child_node(0)
         self.assertEqual([], urwid.testing.press(tree, (10,), "left"))
         self.assertIs(root, tree.focus_position)
+
+        self.assertEqual(frozenset((urwid.BOX,)), urwid.TreeListBox(urwid.TreeWalker(root), flow=True).sizing())
+        sized = urwid.TreeListBox(SizedTreeWalker(root), flow=True)
+        self.assertEqual(frozenset((urwid.BOX, urwid.FLOW)), sized.sizing())
+        urwid.testing.check_sizing(sized, cols=10)
 
 
 class ListBoxConsumerApiTest(unittest.TestCase):

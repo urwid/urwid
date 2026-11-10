@@ -1424,6 +1424,61 @@ class PileTest(unittest.TestCase):
         self.assertEqual(expect_focused, pile.focus)
 
 
+class PileListBoxFlowTest(unittest.TestCase):
+    """A Pile holding a weighted ListBox with flow set."""
+
+    def test_weight_list_box_with_pack_items(self) -> None:
+        """The flow render equals the box render at the flow rows, and a box render gives the list what is left."""
+        lbox = urwid.ListBox([urwid.Text("one two three four five"), urwid.Text("six")], flow=True)
+        pile = urwid.Pile(
+            [
+                ("weight", 1, lbox),
+                ("pack", urwid.Divider()),
+                ("pack", urwid.Columns([urwid.Button("OK"), urwid.Button("Cancel")])),
+            ]
+        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            # FIXED comes from the button row, which gives the width the list is then laid out at.
+            self.assertEqual(frozenset((urwid.BOX, urwid.FLOW, urwid.FIXED)), pile.sizing())
+            urwid.testing.check_sizing(pile, cols=20)
+            rows = pile.rows((20,))
+            self.assertEqual(lbox.rows((20,)) + 2, rows)
+            self.assertEqual(
+                urwid.testing.render_text(pile, (20, rows), focus=True),
+                urwid.testing.render_text(pile, (20,), focus=True),
+            )
+            self.assertEqual(
+                ["one two three four  ", "                    ", "< OK     >< Cancel >"],
+                urwid.testing.render_text(pile, (20, 3), focus=True),
+            )
+
+    def test_up_and_down_keep_the_list_focus(self) -> None:
+        """Up and Down from a pack item into the list leave the list focus where it was, with or without a bar."""
+        for scrollbar, size, start, key, list_focus in (
+            (False, (20,), 2, "up", 0),
+            (False, (20,), 0, "down", 2),
+            (True, (20,), 2, "up", 0),
+            (False, (20, 4), 2, "up", 0),
+            (True, (20, 4), 0, "down", 2),
+        ):
+            with self.subTest(scrollbar=scrollbar, size=size, key=key):
+                lbox = urwid.ListBox(
+                    urwid.SimpleListWalker([urwid.CheckBox(f"item {i}") for i in range(3)]),
+                    flow=True,
+                )
+                middle = urwid.ScrollBar(lbox) if scrollbar else lbox
+                pile = urwid.Pile(
+                    [("pack", urwid.Edit("", "top")), ("weight", 1, middle), ("pack", urwid.Edit("", "bottom"))],
+                )
+                lbox.focus_position = list_focus
+                pile.focus_position = start
+                pile.render(size, focus=True)
+                self.assertEqual([], urwid.testing.press(pile, size, key))
+                self.assertEqual(1, pile.focus_position)
+                self.assertEqual(list_focus, lbox.focus_position)
+
+
 class PileSelectNavigationTest(unittest.TestCase):
     """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
 
