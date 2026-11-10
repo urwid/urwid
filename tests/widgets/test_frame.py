@@ -365,6 +365,20 @@ class FrameUndrawnPartTest(unittest.TestCase):
                     expected,
                 )
 
+    def test_redraw_after_empty_part_changes_at_a_flow_size(self) -> None:
+        """At a flow size, draw the Frame again when a header or footer of 0 rows gets rows."""
+        for part, expected in (("header", (b"new  ", b".....")), ("footer", (b".....", b"new  "))):
+            with self.subTest(part):
+                empty = urwid.Pile([])
+                frame = urwid.Frame(urwid.ListBox([urwid.Text(".....")]), **{part: empty})
+                assert_redraws_after_child_change(
+                    self,
+                    frame,
+                    (5,),
+                    lambda empty=empty: empty.contents.append((urwid.Text("new"), empty.options())),
+                    expected,
+                )
+
 
 class FrameKeypressTest(unittest.TestCase):
     def test_keypress_to_body(self):
@@ -406,12 +420,21 @@ class FrameKeypressTest(unittest.TestCase):
         f = urwid.Frame(urwid.SolidFill())
         self.assertEqual("x", f.keypress((10, 3), "x"))
 
-    def test_keypress_body_no_remaining_rows(self):
-        edit = urwid.Filler(urwid.Edit("", ""))
+    def test_keypress_body_on_a_short_frame(self) -> None:
+        """A body that render() shows gets the keys, also when the header and the footer are trimmed.
+
+        A frame of no rows shows no body and returns the key.
+        """
+        edit = urwid.Edit("", "")
         header = urwid.Text("one\ntwo\nthree")
         footer = urwid.Text("a\nb\nc")
-        f = urwid.Frame(edit, header, footer)
-        self.assertEqual("x", f.keypress((10, 4), "x"))
+        f = urwid.Frame(urwid.Filler(edit), header, footer)
+        self.assertEqual(
+            ["          ", "a         ", "b         ", "c         "], urwid.testing.render_text(f, (10, 4))
+        )
+        self.assertIsNone(f.keypress((10, 4), "x"))
+        self.assertEqual("x", edit.edit_text)
+        self.assertEqual("y", f.keypress((10, 0), "y"))
 
 
 class FrameMouseEventTest(unittest.TestCase):
@@ -579,6 +602,125 @@ class FrameSelectNavigationTest(unittest.TestCase):
         frame.select_navigation = True
         self.assertIsNone(frame.keypress(self.size, "tab"))
         self.assertEqual("body", frame.focus_position)
+
+
+class FrameFlowTest(unittest.TestCase):
+    """A Frame at a flow size, and its FLOW sizing with ``flow`` set."""
+
+    @staticmethod
+    def make_list(count: int) -> urwid.ListBox:
+        """Return a ListBox with flow set over *count* buttons."""
+        return urwid.ListBox(urwid.SimpleFocusListWalker([urwid.Button(f"b{i}") for i in range(count)]), flow=True)
+
+    def test_sizing(self) -> None:
+        """FLOW is reported only with flow set and a body that reports FLOW; setting flow redraws a parent."""
+        box_flow = frozenset((urwid.BOX, urwid.FLOW))
+        box = frozenset((urwid.BOX,))
+        for name, frame, expected in (
+            ("flow body, flow not set", urwid.Frame(self.make_list(2)), box),
+            ("flow body, flow set", urwid.Frame(self.make_list(2), flow=True), box_flow),
+            ("box body, flow set", urwid.Frame(urwid.ListBox([urwid.Text("a")]), flow=True), box),
+            (
+                "Pile body with a weighted flow list, flow set",
+                urwid.Frame(urwid.Pile([("weight", 1, self.make_list(2))]), flow=True),
+                box_flow,
+            ),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, frame.sizing())
+
+        frame = urwid.Frame(self.make_list(2), header=urwid.Text("head"))
+        pile = urwid.Pile([("weight", 1, frame), ("pack", urwid.Text("end"))])
+        self.assertEqual(["head  ", "< b0 >", "end   "], urwid.testing.render_text(pile, (6, 3)))
+        frame.flow = True
+        self.assertIn(urwid.FLOW, pile.sizing())
+        self.assertEqual(["head  ", "< b0 >", "< b1 >", "end   "], urwid.testing.render_text(pile, (6,)))
+        self.assertIs(True, vars(frame)["flow"])
+
+    def test_flow_size_without_flow_set(self) -> None:
+        """A flow size shows every part in full, whether or not flow is set."""
+        frame = urwid.Frame(self.make_list(3), header=urwid.Text("head"), footer=urwid.Text("foot"))
+        self.assertEqual(5, frame.rows((8,)))
+        self.assertEqual(
+            ["head    ", "< b0   >", "< b1   >", "< b2   >", "foot    "],
+            urwid.testing.render_text(frame, (8,)),
+        )
+        self.assertEqual(["< b0   >"], urwid.testing.render_text(urwid.Frame(self.make_list(1)), (8,)))
+        self.assertEqual([], urwid.testing.render_text(urwid.Frame(urwid.ListBox([])), (8,)))
+
+    def test_check_sizing(self) -> None:
+        """Every sizing mode renders the size it reports, cursor included, with any part in focus."""
+        for focus_part in ("header", "body", "footer"):
+            with self.subTest(focus_part=focus_part):
+                frame = urwid.Frame(
+                    urwid.ListBox([urwid.Text("a"), urwid.Edit("> ", "body")], flow=True),
+                    header=urwid.Edit("", "head"),
+                    footer=urwid.Edit("", "foot"),
+                    focus_part=focus_part,
+                    flow=True,
+                )
+                urwid.testing.check_sizing(frame, cols=10)
+
+    def test_input_at_a_flow_size(self) -> None:
+        """Keys reach the body, clicks reach the part under them, and the cursor is offset by the header rows."""
+        edit = urwid.Edit("", "ab")
+        ok_button = urwid.Button("ok")
+        frame = urwid.Frame(
+            urwid.ListBox([urwid.Text("a"), edit], flow=True),
+            header=urwid.Text("head\nline"),
+            footer=ok_button,
+        )
+        size = (8,)
+        frame.render(size, focus=True)
+        self.assertEqual([], urwid.testing.press(frame, size, "c"))
+        self.assertEqual("abc", edit.edit_text)
+        self.assertEqual((3, 3), frame.get_cursor_coords(size))
+
+        clicked: list[urwid.Button] = []
+        urwid.connect_signal(ok_button, "click", clicked.append)
+        self.assertTrue(urwid.testing.click(frame, size, 2, 4))
+        self.assertEqual(([ok_button], "footer"), (clicked, frame.focus_part))
+        self.assertTrue(urwid.testing.click(frame, size, 0, 3))
+        self.assertEqual("body", frame.focus_part)
+
+    def test_dialog_shrinks_and_keeps_its_buttons(self) -> None:
+        """In a pack Overlay with shrink_to_fit, a Frame dialog trims its header first and keeps its buttons.
+
+        Its list scrolls with the focus in the one row it has left.
+        """
+        lbox = self.make_list(6)
+        frame = urwid.Frame(
+            lbox,
+            header=urwid.Text("Pick"),
+            footer=urwid.Columns([urwid.Button("ok"), urwid.Button("no")]),
+            flow=True,
+        )
+        overlay = urwid.Overlay(
+            urwid.LineBox(frame),
+            urwid.SolidFill("#"),
+            urwid.CENTER,
+            16,
+            urwid.MIDDLE,
+            urwid.PACK,
+            shrink_to_fit=True,
+        )
+        size = (18, 4)
+        self.assertEqual(
+            ["#┌──────────────┐#", "#│< b0         >│#", "#│< ok  >< no  >│#", "#└──────────────┘#"],
+            urwid.testing.render_text(overlay, size, focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(overlay, size, *["down"] * 5))
+        self.assertEqual(5, lbox.focus_position)
+        self.assertEqual("#│< b5         >│#", urwid.testing.render_text(overlay, size, focus=True)[1])
+        self.assertEqual(10, len(urwid.testing.render_text(overlay, (18, 12), focus=True)) - 2)
+
+    def test_repr(self) -> None:
+        """The flag is shown in the repr when it is set."""
+        for flow in (False, True):
+            with self.subTest(flow=flow):
+                frame = urwid.Frame(self.make_list(1), flow=flow)
+                self.assertEqual(flow, "flow=True" in repr(frame))
+                self.assertIn(("flow", flow, False), list(frame.__rich_repr__()))
 
 
 class ReducesToFrame:

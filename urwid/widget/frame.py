@@ -17,7 +17,15 @@ from .container import (
     SelectNavigationMixin,
 )
 from .filler import Filler
-from .widget import AbstractBoxWidget, AbstractFlowWidget, AbstractWidget, Widget, WidgetError, _select_enter_child
+from .widget import (
+    AbstractBoxWidget,
+    AbstractFlowWidget,
+    AbstractWidget,
+    Widget,
+    WidgetError,
+    _InvalidatingAttribute,
+    _select_enter_child,
+)
 
 if typing.TYPE_CHECKING:
     from collections.abc import Iterator
@@ -111,6 +119,9 @@ class Frame(
 ):
     """Frame widget is a box widget with optional header and footer flow widgets placed above and below it.
 
+    It also accepts a flow size, when its body does: the header, the body and the footer then take all their rows.
+    It reports FLOW sizing only with :attr:`flow` set, so containers lay it out as a box widget by default.
+
     .. note:: The main difference between a Frame and a :class:`Pile` widget
         defined as: `Pile([('pack', header), body, ('pack', footer)])` is that
         the Frame will not automatically change focus up and down in response to keystrokes.
@@ -124,6 +135,8 @@ class Frame(
 
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
+    #: Whether this Frame reports FLOW sizing as well, when its body reports it; see :meth:`sizing`.
+    flow = _InvalidatingAttribute[bool](default=False)
 
     def __init__(
         self,
@@ -133,15 +146,17 @@ class Frame(
         focus_part: Literal["header", "footer", "body"] | AbstractWidget = "body",
         *,
         select_navigation: bool = False,
+        flow: bool = False,
     ) -> None:
         """Initialize a new Frame instance.
 
-        :param body: a box widget for the body of the frame
+        :param body: a box widget for the body of the frame, and a flow widget as well for a flow size
         :param header: a flow widget for above the body (or None)
         :param footer: a flow widget for below the body (or None)
         :param focus_part:  'header', 'footer' or 'body'
         :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
             see :ref:`select-navigation`.
+        :param flow: report FLOW sizing as well when the body reports it, see :attr:`flow`.
         :raises ValueError: *focus_part* is not one of the three frame parts.
 
         .. deprecated:: 2.4.0
@@ -164,6 +179,7 @@ class Frame(
         else:
             raise ValueError(f"Invalid focus part {focus_part!r}")
         self.select_navigation = select_navigation
+        self.flow = flow
 
         _check_widget_subclass(header)
         _check_widget_subclass(body)
@@ -210,6 +226,7 @@ class Frame(
             "footer": self._footer,
             "focus_part": self.focus_part,
             "select_navigation": self.select_navigation,
+            "flow": self.flow,
         }
         return remove_defaults(attrs, Frame.__init__)
 
@@ -220,6 +237,56 @@ class Frame(
         yield "footer", self._footer
         yield "focus_part", self.focus_part
         yield "select_navigation", self.select_navigation, False
+        yield "flow", self.flow, False
+
+    def sizing(self) -> frozenset[Sizing]:
+        """Return BOX, and FLOW as well when :attr:`flow` is set and the body reports FLOW."""
+        # A body that does not implement the Widget API has no sizing() and is laid out as a box widget.
+        if self.flow and Sizing.FLOW in getattr(self._body, "sizing", frozenset)():
+            return frozenset((Sizing.BOX, Sizing.FLOW))
+        return self._sizing
+
+    def _flow_rows(self, maxcol: int, *, focus: bool) -> tuple[int, int, int]:
+        """Return the rows of the header, the body and the footer at the width *maxcol*.
+
+        A missing header or footer has 0 rows.
+        """
+        header: AbstractFlowWidget | None = self._header
+        footer: AbstractFlowWidget | None = self._footer
+        body = typing.cast("AbstractFlowWidget", self._body)
+        return (
+            0 if header is None else header.rows((maxcol,), focus and self.focus_part == "header"),
+            body.rows((maxcol,), focus and self.focus_part == "body"),
+            0 if footer is None else footer.rows((maxcol,), focus and self.focus_part == "footer"),
+        )
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the total rows of the header, the body and the footer at the width in *size*.
+
+        It is used for a flow size, which shows every part in full.
+        The body has to accept a flow size.
+
+        >>> from urwid import ListBox, Text
+        >>> Frame(ListBox([Text("one"), Text("two")]), header=Text("head"), footer=Text("foot")).rows((10,))
+        4
+        """
+        (maxcol,) = size
+        return sum(self._flow_rows(maxcol, focus=focus))
+
+    def _layout(
+        self,
+        size: tuple[int, int] | tuple[int],
+        *,
+        focus: bool,
+    ) -> tuple[int, int, tuple[int] | tuple[int, int]]:
+        """Return the header rows shown, the first footer row and the size the body gets, for a box or a flow size."""
+        if len(size) == 1:
+            (maxcol,) = size
+            hrows, brows, _frows = self._flow_rows(maxcol, focus=focus)
+            return hrows, hrows + brows, (maxcol,)
+        maxcol, maxrow = size
+        (htrim, ftrim), _ = self.frame_top_bottom((maxcol, maxrow), focus)
+        return htrim, maxrow - ftrim, (maxcol, maxrow - htrim - ftrim)
 
     @property
     def focus_part(self) -> Literal["header", "footer", "body"]:
@@ -486,14 +553,18 @@ class Frame(
 
     def render(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
         """
         Render the Frame and return the resulting canvas.
 
+        At a flow size every part is rendered in full.
+
         :raises RuntimeError: the header or footer renders a different number of rows than it reported.
         """
+        if len(size) == 1:
+            return self._render_flow(size[0], focus=focus)
         (maxcol, maxrow) = size
         (htrim, ftrim), (hrows, frows) = self.frame_top_bottom((maxcol, maxrow), focus)
 
@@ -555,9 +626,32 @@ class Frame(
         out.children.extend(undrawn)
         return out
 
+    def _render_flow(self, maxcol: int, *, focus: bool) -> CompositeCanvas:
+        """Render every part at the width *maxcol*, the header above the body and the footer below it."""
+        combinelist = []
+        undrawn = []
+        parts: tuple[tuple[AbstractFlowWidget | None, Literal["header", "body", "footer"]], ...] = (
+            (self._header, "header"),
+            (typing.cast("AbstractFlowWidget", self._body), "body"),
+            (self._footer, "footer"),
+        )
+        for part, name in parts:
+            if part is None:
+                continue
+            canvas = part.render((maxcol,), focus and self.focus_part == name)
+            if canvas.rows():
+                combinelist.append((canvas, name, self.focus_part == name))
+            else:
+                # A part of 0 rows is not drawn, but it is listed in the canvas children,
+                # so the canvas cache drops this canvas when it changes.
+                undrawn.append((0, 0, canvas, name))
+        out = CanvasCombine(combinelist) if combinelist else CompositeCanvas(SolidCanvas(" ", maxcol, 0))
+        out.children.extend(undrawn)
+        return out
+
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """Pass keypress to widget in focus.
@@ -571,9 +665,9 @@ class Frame(
             return self._select_keypress_unhandled(unhandled)
         return unhandled
 
-    def _keypress_focus_part(self, size: tuple[int, int], key: str) -> str | None:
+    def _keypress_focus_part(self, size: tuple[int, int] | tuple[int], key: str) -> str | None:
         """Pass keypress to the part in focus and return what it leaves unhandled."""
-        (maxcol, maxrow) = size
+        maxcol = size[0]
         header: AbstractFlowWidget | None = self._header
         footer: AbstractFlowWidget | None = self._footer
 
@@ -585,19 +679,16 @@ class Frame(
             if not footer.selectable():
                 return key
             return footer.keypress((maxcol,), key)
-        if self.focus_part != "body":
+        if self.focus_part != "body" or not self.body.selectable():
             return key
-        remaining = maxrow
-        if header is not None:
-            remaining -= header.rows((maxcol,))
-        if footer is not None:
-            remaining -= footer.rows((maxcol,))
-        if remaining <= 0:
+        if len(size) == 1:
+            return typing.cast("AbstractFlowWidget", self.body).keypress((maxcol,), key)
+        # The body gets the rows render() gives it, so a body row on screen also gets the keys.
+        (header_rows, footer_rows), _ = self.frame_top_bottom(size, focus=True)
+        body_rows = size[1] - header_rows - footer_rows
+        if body_rows <= 0:
             return key
-
-        if not self.body.selectable():
-            return key
-        return self.body.keypress((maxcol, remaining), key)
+        return self.body.keypress((maxcol, body_rows), key)
 
     def _select_candidates(
         self,
@@ -626,7 +717,7 @@ class Frame(
 
     def mouse_event(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -634,8 +725,8 @@ class Frame(
         focus: bool,
     ) -> bool | None:
         """Pass mouse event to appropriate part of frame. Focus may be changed on button 1 press."""
-        (maxcol, maxrow) = size
-        (htrim, ftrim), (_hrows, _frows) = self.frame_top_bottom((maxcol, maxrow), focus)
+        maxcol = size[0]
+        htrim, footer_top, body_size = self._layout(size, focus=focus)
         header: AbstractFlowWidget | None = self._header
         footer: AbstractFlowWidget | None = self._footer
 
@@ -648,14 +739,14 @@ class Frame(
                 return False
             return header.mouse_event((maxcol,), event, button, col, row, focus)
 
-        if footer is not None and row >= maxrow - ftrim:  # within footer
+        if footer is not None and row >= footer_top:  # within footer
             focus = focus and self.focus_part == "footer"
             if is_mouse_press(event) and button == MouseButton.LEFT and footer.selectable():
                 self.focus_position = "footer"
 
             if not hasattr(footer, "mouse_event"):
                 return False
-            return footer.mouse_event((maxcol,), event, button, col, row - maxrow + ftrim, focus)
+            return footer.mouse_event((maxcol,), event, button, col, row - footer_top, focus)
 
         # within body
         focus = focus and self.focus_part == "body"
@@ -664,12 +755,12 @@ class Frame(
 
         if not hasattr(self.body, "mouse_event"):
             return False
-        return self.body.mouse_event((maxcol, maxrow - htrim - ftrim), event, button, col, row - htrim, focus)
+        return self.body.mouse_event(body_size, event, button, col, row - htrim, focus)  # type: ignore[arg-type]
 
-    def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
+    def get_cursor_coords(self, size: tuple[int, int] | tuple[int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focus widget."""
-        (maxcol, maxrow) = size
-        (hrows, frows), _ = self.frame_top_bottom(size, True)
+        maxcol = size[0]
+        hrows, footer_top, body_size = self._layout(size, focus=True)
         header: AbstractFlowWidget | None = self._header
         footer: AbstractFlowWidget | None = self._footer
 
@@ -682,11 +773,11 @@ class Frame(
             if not self.body.selectable() or not hasattr(self.body, "get_cursor_coords"):
                 return None
             row_adjust = hrows
-            coords = self.body.get_cursor_coords((maxcol, maxrow - hrows - frows))
+            coords = self.body.get_cursor_coords(body_size)
         else:
             if footer is None or not footer.selectable() or not hasattr(footer, "get_cursor_coords"):
                 return None
-            row_adjust = maxrow - frows
+            row_adjust = footer_top
             coords = footer.get_cursor_coords((maxcol,))
 
         if coords is None:
