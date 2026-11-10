@@ -406,12 +406,21 @@ class FrameKeypressTest(unittest.TestCase):
         f = urwid.Frame(urwid.SolidFill())
         self.assertEqual("x", f.keypress((10, 3), "x"))
 
-    def test_keypress_body_no_remaining_rows(self):
-        edit = urwid.Filler(urwid.Edit("", ""))
+    def test_keypress_body_on_a_short_frame(self) -> None:
+        """A body that render() shows gets the keys, also when the header and the footer are trimmed.
+
+        A frame of no rows shows no body and returns the key.
+        """
+        edit = urwid.Edit("", "")
         header = urwid.Text("one\ntwo\nthree")
         footer = urwid.Text("a\nb\nc")
-        f = urwid.Frame(edit, header, footer)
-        self.assertEqual("x", f.keypress((10, 4), "x"))
+        f = urwid.Frame(urwid.Filler(edit), header, footer)
+        self.assertEqual(
+            ["          ", "a         ", "b         ", "c         "], urwid.testing.render_text(f, (10, 4))
+        )
+        self.assertIsNone(f.keypress((10, 4), "x"))
+        self.assertEqual("x", edit.edit_text)
+        self.assertEqual("y", f.keypress((10, 0), "y"))
 
 
 class FrameMouseEventTest(unittest.TestCase):

@@ -585,19 +585,14 @@ class Frame(
             if not footer.selectable():
                 return key
             return footer.keypress((maxcol,), key)
-        if self.focus_part != "body":
+        if self.focus_part != "body" or not self.body.selectable():
             return key
-        remaining = maxrow
-        if header is not None:
-            remaining -= header.rows((maxcol,))
-        if footer is not None:
-            remaining -= footer.rows((maxcol,))
-        if remaining <= 0:
+        # The body gets the rows render() gives it, so a body row on screen also gets the keys.
+        (header_rows, footer_rows), _ = self.frame_top_bottom(size, focus=True)
+        body_rows = maxrow - header_rows - footer_rows
+        if body_rows <= 0:
             return key
-
-        if not self.body.selectable():
-            return key
-        return self.body.keypress((maxcol, remaining), key)
+        return self.body.keypress((maxcol, body_rows), key)
 
     def _select_candidates(
         self,
