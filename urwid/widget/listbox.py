@@ -687,14 +687,14 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         offset: int,
         *,
         forward: bool,
-    ) -> tuple[_K, int]:
-        """Return the position of the selectable widget in the view nearest to the edge *widget*.
+    ) -> tuple[AbstractFlowWidget, _K, int]:
+        """Return the selectable widget in the view nearest to the edge *widget*.
 
         The first row of the edge widget is at *offset* in the view.
         The search walks down the view from it when *forward* is true, and up the view otherwise.
 
-        :returns: the position of the widget found and the offset of its first row,
-            or *position* and *offset* when the view holds no selectable widget.
+        :returns: the widget found, its position and the offset of its first row,
+            or *widget*, *position* and *offset* when the view holds no selectable widget.
         """
         maxcol, maxrow = size
         # the row the next candidate starts at when walking down, or ends before when walking up
@@ -705,9 +705,9 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             if start >= maxrow or start + rows <= 0:
                 break
             if rows and candidate.selectable():
-                return candidate_pos, start
+                return candidate, candidate_pos, start
             edge = start + rows if forward else start
-        return position, offset
+        return widget, position, offset
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
         """Return the current scrolling position."""
@@ -783,7 +783,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             for widget, walk_pos in self._walk_body(focus_pos, forward=True):
                 rows = widget.rows((maxcol,))
                 if start + rows > top:
-                    target, start = self._selectable_in_view(
+                    _widget, target, start = self._selectable_in_view(
                         (maxcol, maxrow), widget, walk_pos, start - top, forward=True
                     )
                     start += top
@@ -793,7 +793,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             for widget, walk_pos in self._walk_body(focus_pos, forward=False):
                 start -= widget.rows((maxcol,))
                 if start < bottom:
-                    target, start = self._selectable_in_view(
+                    _widget, target, start = self._selectable_in_view(
                         (maxcol, maxrow), widget, walk_pos, start - top, forward=False
                     )
                     start += top
@@ -2419,7 +2419,9 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         middle = typing.cast("VisibleInfo", self.calculate_visible(size, focus)).middle
         focus_rows = middle.focus_rows
         # Where the focus may go, in order: a selectable widget in the new view, then the widget at its edge.
-        targets: list[tuple[_K, int]] = [(middle.focus_pos, middle.offset - step)]
+        targets: list[tuple[AbstractFlowWidget, _K, int]] = [
+            (middle.focus_widget, middle.focus_pos, middle.offset - step)
+        ]
         if step > 0 and middle.offset - step <= -focus_rows:
             start = middle.offset + focus_rows  # the first row below the focus widget
             for widget, position in self._walk_body(middle.focus_pos, forward=True):
@@ -2427,7 +2429,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
                 if start + rows > 1:
                     targets = [
                         self._selectable_in_view(size, widget, position, start - 1, forward=True),
-                        (position, start - 1),
+                        (widget, position, start - 1),
                     ]
                     break
                 start += rows
@@ -2440,22 +2442,20 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
                 if start < maxrow - 1:
                     targets = [
                         self._selectable_in_view(size, widget, position, start + 1, forward=False),
-                        (position, start + 1),
+                        (widget, position, start + 1),
                     ]
                     break
             else:
                 return False  # only widgets without rows precede
 
-        saved = (self.offset_rows, self.inset_fraction, self.pref_col)
-        for target, new_offset in targets:
-            self.change_focus(size, target, new_offset)
+        # Each candidate is laid out without moving the body's focus, so a notch moves it at most once.
+        for widget, target, new_offset in targets:
             # The view can land elsewhere: a render in focus keeps the cursor of the focus widget visible,
             # and widgets without rows past an end are not reported by ends_visible().
-            if typing.cast("VisibleInfo", self.calculate_visible(size, focus)).middle.offset == new_offset:
+            offset_inset = (max(new_offset, 0), max(-new_offset, 0))
+            if self._calculate_visible_around(size, focus, (widget, target), offset_inset).middle.offset == new_offset:
+                self.change_focus(size, target, new_offset)
                 return True
-            # Restore the state the notch found, so the next attempt or the "focus" step that follows starts from it.
-            self.change_focus(size, middle.focus_pos, middle.offset)
-            self.offset_rows, self.inset_fraction, self.pref_col = saved
         return None
 
     def ends_visible(self, size: tuple[int, int], focus: bool = False) -> list[Literal["top", "bottom"]]:

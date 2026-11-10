@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import dataclasses
 import html
+import itertools
 import json
 import pathlib
 import string
@@ -442,7 +443,7 @@ class Screen(BrowserScreen):
                 if self._closed or not batch:
                     break
                 if self._callback is not callback:
-                    self._pending[:0] = [key for later in batches[index:] for key in later]
+                    self._pending[:0] = itertools.chain.from_iterable(batches[index:])
                     self._resize_sizes[:0] = sizes
                     if self._event_loop is not None and self._delivery is None:
                         self._delivery = self._event_loop.alarm(0, self._deliver)
