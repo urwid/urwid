@@ -90,7 +90,7 @@ class SelectEventLoop(EventLoop):
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
         """
-        tm = time.monotonic() + seconds
+        tm = self._clock() + seconds
         handle = (tm, next(self._tie_break), callback)
         heapq.heappush(self._alarms, handle)
         return handle
@@ -171,6 +171,24 @@ class SelectEventLoop(EventLoop):
                 with suppress(InterruptedError):
                     self._loop()
 
+    def _clock(self) -> float:
+        """Return the time alarms are scheduled against, in seconds."""
+        return time.monotonic()
+
+    def _wait(self, selector: selectors.BaseSelector, timeout: float | None) -> list[selectors.SelectorKey]:
+        """Wait for a watched file to become readable.
+
+        :param selector: selector registering every watched file
+        :param timeout: seconds to wait at most, or ``None`` to wait without a limit while a file is watched
+        :returns: the keys of the readable files.
+        """
+        if not self._watch_files and timeout is not None:
+            # Windows `select()` requires at least one socket and fails with WSAEINVAL on an empty set,
+            # while on POSIX it is just a sleep.
+            time.sleep(timeout)
+            return []
+        return [event for event, _ in selector.select(timeout)]
+
     def _loop(self) -> None:
         """Run a single iteration of the event loop."""
         entering_idle = False
@@ -182,24 +200,18 @@ class SelectEventLoop(EventLoop):
 
                 if self._alarms:
                     timeout_ = self._alarms[0][0]
-                    timeout = max(timeout, timeout_ - time.monotonic())
+                    timeout = max(timeout, timeout_ - self._clock())
 
                 if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
                     timeout = 0.0
                     entering_idle = True
 
                 self.logger.debug(f"Waiting for input: timeout={timeout!r}")
-                if self._watch_files:
-                    ready = [event for event, _ in selector.select(timeout)]
-                else:
-                    # Windows `select()` requires at least one socket and fails with WSAEINVAL on an empty set,
-                    # while on POSIX it is just a sleep.
-                    time.sleep(timeout)
-                    ready = []
+                ready = self._wait(selector, timeout)
 
             elif self._watch_files:
                 self.logger.debug("Waiting for input: timeout")
-                ready = [event for event, _ in selector.select()]
+                ready = self._wait(selector, None)
             else:
                 ready = []
 
@@ -219,7 +231,7 @@ class SelectEventLoop(EventLoop):
             self._did_something = True
 
         # A continuously readable descriptor must not prevent expired alarms from running.
-        if self._alarms and self._alarms[0][0] <= time.monotonic():
+        if self._alarms and self._alarms[0][0] <= self._clock():
             _alarm_time, _tie_break, alarm_callback = heapq.heappop(self._alarms)
             self.logger.debug(f"Calling scheduled {alarm_callback!r}")
             alarm_callback()

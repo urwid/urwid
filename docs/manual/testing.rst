@@ -12,6 +12,7 @@ terminal. The :mod:`urwid.testing` module collects the helpers such tests keep r
 
     from urwid.testing import (
         ScriptedScreen,
+        VirtualClockEventLoop,
         attrs_for_text,
         check_sizing,
         press,
@@ -75,5 +76,24 @@ feeds scripted batches of input, stops the loop once they are used up, and recor
     >>> MainLoop(Filler(Edit("> ")), screen=screen).run()
     >>> screen.last_text
     ['> a   ']
+
+Alarms
+======
+
+:class:`VirtualClockEventLoop` runs the alarms of a :class:`~urwid.MainLoop` on a clock of its own.
+:meth:`~VirtualClockEventLoop.advance` moves that clock ahead and fires every alarm that comes due on the way,
+so a widget that expires, blinks or polls is tested without waiting for it::
+
+    >>> from urwid import Notifications, SolidFill
+    >>> event_loop = VirtualClockEventLoop()
+    >>> loop = MainLoop(SolidFill(), screen=ScriptedScreen(), event_loop=event_loop)
+    >>> notifications = Notifications(loop=loop, timeout=5)
+    >>> _ = notifications.notify("saved")
+    >>> event_loop.advance(5)
+    >>> notifications.notifications
+    ()
+
+The clock is the loop's own: a widget that reads :func:`time.monotonic` itself, such as :class:`~urwid.Spinner`
+choosing its frame, does not see it move.
 
 To keep the frames as HTML for documentation instead, use :class:`urwid.display.html_fragment.HtmlGenerator`.

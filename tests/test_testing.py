@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import asyncio
+import socket
+import threading
 import typing
 import unittest
 
 import urwid
 import urwid.testing
+from tests.util import external_loop
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.util import set_temporary_encoding
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
+    from collections.abc import Callable, Hashable
 
 
 class FocusText(urwid.Widget):
@@ -492,3 +495,191 @@ class ScriptedScreenTest(unittest.TestCase):
         screen.unhook_event_loop(event_loop)
         self.assertEqual([], event_loop._alarms)
         self.assertEqual([], fed)
+
+
+class VirtualClockEventLoopTest(unittest.TestCase):
+    """Tests for :class:`urwid.testing.VirtualClockEventLoop`."""
+
+    def setUp(self) -> None:
+        """Create a loop and the list :meth:`record` appends to."""
+        self.event_loop = urwid.testing.VirtualClockEventLoop()
+        self.fired: list[tuple[str, float]] = []
+
+    def record(self, name: str) -> Callable[[], None]:
+        """Return a callback that appends *name* and the loop's time to :attr:`fired`."""
+        return lambda: self.fired.append((name, self.event_loop.now))
+
+    def socket_pair(self) -> tuple[socket.socket, socket.socket]:
+        """Return a connected ``(reader, writer)`` pair, closed after the test."""
+        reader, writer = socket.socketpair()
+        self.addCleanup(reader.close)
+        self.addCleanup(writer.close)
+        return reader, writer
+
+    def test_advance_fires_due_alarms_in_order_at_their_time(self) -> None:
+        """Alarms fire in due order, ties in the order set, each at its due time; a removed one never fires."""
+        self.event_loop.alarm(2, self.record("late"))
+        self.event_loop.alarm(1, self.record("first"))
+        self.event_loop.alarm(1, self.record("second"))
+        self.event_loop.remove_alarm(self.event_loop.alarm(1.5, self.record("removed")))
+        self.event_loop.alarm(3, self.record("after"))
+        self.event_loop.advance(2)
+        self.assertEqual([("first", 1), ("second", 1), ("late", 2)], self.fired)
+        self.assertEqual(2, self.event_loop.now)
+        self.event_loop.advance(0.5)
+        self.assertEqual(2.5, self.event_loop.now)
+        self.assertEqual(3, len(self.fired))
+        self.event_loop.advance(0)
+        self.assertEqual(3, len(self.fired))
+
+    def test_alarm_set_by_an_alarm_fires_in_the_same_advance(self) -> None:
+        """An alarm set by a firing alarm is due from the firing alarm's time."""
+
+        def chain() -> None:
+            self.fired.append(("chain", self.event_loop.now))
+            self.event_loop.alarm(0.2, self.record("chained"))
+
+        self.event_loop.alarm(1, chain)
+        self.event_loop.advance(5)
+        self.assertEqual([("chain", 1), ("chained", 1.2)], self.fired)
+        self.assertEqual(5, self.event_loop.now)
+
+    def test_advance_rejects_a_negative_step(self) -> None:
+        """The clock never moves back."""
+        with self.assertRaisesRegex(ValueError, "must not be negative"):
+            self.event_loop.advance(-1)
+
+    def test_exceptions_from_an_alarm_reach_the_caller(self) -> None:
+        """``ExitMainLoop`` and any other exception raised by an alarm leave ``advance()``."""
+        for exc in (urwid.ExitMainLoop, ZeroDivisionError):
+            with self.subTest(exc.__name__):
+
+                def fail(exc: type[BaseException] = exc) -> typing.NoReturn:
+                    raise exc
+
+                self.event_loop.alarm(1, fail)
+                with self.assertRaises(exc):
+                    self.event_loop.advance(1)
+
+    def test_clock_stops_at_the_alarm_that_raised(self) -> None:
+        """An exception leaves the clock at the failing alarm, and the next ``advance()`` goes on from there."""
+
+        def fail() -> typing.NoReturn:
+            raise ZeroDivisionError
+
+        self.event_loop.alarm(1, fail)
+        self.event_loop.alarm(2, self.record("next"))
+        with self.assertRaises(ZeroDivisionError):
+            self.event_loop.advance(5)
+        self.assertEqual(1, self.event_loop.now)
+        self.event_loop.advance(1)
+        self.assertEqual([("next", 2)], self.fired)
+        self.assertEqual(2, self.event_loop.now)
+
+    def test_advance_and_run_cannot_be_nested(self) -> None:
+        """A callback that calls ``advance()`` or ``run()`` on its own loop is refused, and the outer call goes on."""
+        errors: list[str] = []
+
+        def nest(call: Callable[[], None]) -> None:
+            try:
+                call()
+            except RuntimeError as exc:
+                errors.append(str(exc))
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        self.event_loop.alarm(1, lambda: nest(lambda: self.event_loop.advance(1)))
+        self.event_loop.alarm(2, lambda: nest(self.event_loop.run))
+        self.event_loop.alarm(3, self.record("after"))
+        self.event_loop.advance(3)
+        self.event_loop.alarm(1, lambda: nest(lambda: self.event_loop.advance(0)))
+        self.event_loop.alarm(2, stop)
+        self.event_loop.run()
+        self.assertEqual(["advance() and run() cannot be called while the loop runs"] * 3, errors)
+        self.assertEqual([("after", 3)], self.fired)
+        self.assertEqual(5, self.event_loop.now)
+
+    def test_idle_runs_after_alarms(self) -> None:
+        """The idle callbacks run after the alarms that fired, before the clock moves on."""
+        self.event_loop.enter_idle(self.record("idle"))
+        self.event_loop.alarm(1, self.record("alarm"))
+        self.event_loop.advance(5)
+        self.assertEqual([("alarm", 1), ("idle", 1)], self.fired)
+
+    def test_readable_file_is_served_without_waiting(self) -> None:
+        """A readable watched file is served on the way; an unreadable one is not waited for."""
+        reader, writer = self.socket_pair()
+        self.event_loop.watch_file(reader.fileno(), lambda: self.fired.append((reader.recv(1).decode(), 0)))
+        self.event_loop.advance(1)
+        self.assertEqual([], self.fired)
+        writer.send(b"x")
+        self.event_loop.advance(0)
+        self.assertEqual([("x", 0)], self.fired)
+
+    def test_run_jumps_to_the_alarm_that_exits(self) -> None:
+        """``run()`` reaches an alarm an hour ahead without waiting for it."""
+
+        def stop() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        self.event_loop.alarm(3600, stop)
+        self.event_loop.run()
+        self.assertEqual(3600, self.event_loop.now)
+
+    def test_run_with_nothing_to_wait_for(self) -> None:
+        """``run()`` with no alarm and no watched file fails instead of hanging."""
+        with self.assertRaisesRegex(RuntimeError, "would wait forever"):
+            self.event_loop.run()
+
+    def test_run_gives_up_after_the_real_time_timeout(self) -> None:
+        """``run()`` fails after the real-time timeout, waiting for a file or firing endless alarms."""
+        reader, _writer = self.socket_pair()
+
+        def rearm() -> None:
+            self.event_loop.alarm(1, rearm)
+
+        starts: tuple[tuple[str, Callable[[], None]], ...] = (("idle file", lambda: None), ("endless alarms", rearm))
+        for name, start in starts:
+            with self.subTest(name):
+                event_loop = self.event_loop = urwid.testing.VirtualClockEventLoop(timeout=0.05)
+                event_loop.watch_file(reader.fileno(), self.record("read"))
+                start()
+                with self.assertRaises(TimeoutError):
+                    event_loop.run()
+                self.assertEqual([], self.fired)
+
+    def test_advance_gives_up_after_the_real_time_timeout(self) -> None:
+        """An alarm that re-arms itself at no delay ends ``advance()`` with an error, the clock left at that alarm."""
+        event_loop = urwid.testing.VirtualClockEventLoop(timeout=0.05)
+
+        def rearm() -> None:
+            event_loop.alarm(0, rearm)
+
+        event_loop.alarm(1, rearm)
+        with self.assertRaises(TimeoutError):
+            event_loop.advance(2)
+        self.assertEqual(1, event_loop.now)
+
+    def test_main_loop_alarms_draw_and_thread_calls(self) -> None:
+        """A ``MainLoop`` alarm and a ``call_from_thread()`` call are drawn on the following idle."""
+        text = urwid.Text("start")
+        loop = external_loop(urwid.Filler(text), event_loop=self.event_loop)
+        draw_screen = typing.cast("unittest.mock.Mock", loop.screen.draw_screen)
+
+        def shown() -> str:
+            _size, canvas = draw_screen.call_args.args
+            rows: tuple[str, ...] = canvas.decoded_text
+            return "".join(rows).strip()
+
+        loop.set_alarm_in(10, lambda _loop, _data: text.set_text("alarm"))
+        with loop.start():
+            self.event_loop.advance(9)
+            self.assertEqual("start", shown())
+            self.event_loop.advance(1)
+            self.assertEqual("alarm", shown())
+            worker = threading.Thread(target=loop.call_from_thread, args=(text.set_text, "thread"))
+            worker.start()
+            worker.join(timeout=5)
+            self.event_loop.advance(0)
+            self.assertEqual("thread", shown())

@@ -25,15 +25,17 @@ Every check raises :exc:`AssertionError` with a message, so the helpers work wit
 from __future__ import annotations
 
 import collections
+import time
 import typing
 
 from urwid.canvas import CanvasCache
 from urwid.display.common import BaseScreen
-from urwid.event_loop import ExitMainLoop
+from urwid.event_loop import ExitMainLoop, SelectEventLoop
 from urwid.util import get_encoding, is_mouse_event
 from urwid.widget.constants import Sizing
 
 if typing.TYPE_CHECKING:
+    import selectors
     from collections.abc import Callable, Hashable, Iterable
     from typing import Literal
 
@@ -48,6 +50,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = (
     "ScriptedScreen",
+    "VirtualClockEventLoop",
     "attrs_for_text",
     "check_box_sizing",
     "check_fixed_sizing",
@@ -541,3 +544,145 @@ class ScriptedScreen(BaseScreen):
             self._feed_handle = None
         self._event_loop = None
         self._callback = None
+
+
+class VirtualClockEventLoop(SelectEventLoop):
+    """Event loop whose alarms fire on a clock of its own, which jumps to the next alarm instead of waiting for it.
+
+    Pass it as ``MainLoop(..., event_loop=VirtualClockEventLoop())`` to test a widget or an application that sets
+    alarms, such as :class:`~urwid.Notifications`, without real delays.
+    :meth:`~urwid.MainLoop.set_alarm_in` schedules against this clock.
+    :meth:`~urwid.MainLoop.set_alarm_at` still takes a :func:`time.time` value, and only its offset from now counts.
+    Alarms due together fire in the order they were set,
+    and the loop enters idle, drawing the screen, as :class:`~urwid.SelectEventLoop` does.
+
+    Watched files are polled without waiting, so input, :meth:`~urwid.MainLoop.watch_pipe` and
+    :meth:`~urwid.MainLoop.call_from_thread` work as on the select loop.
+    The clock moves only while no watched file is readable, so a file that stays readable keeps later alarms from
+    coming due until *timeout* runs out.
+    A loop with nothing left to do but watch files waits for them in real time, up to *timeout*.
+
+    The clock is the loop's own: code that reads :func:`time.monotonic` itself does not see it move.
+
+    >>> from urwid import MainLoop, Notifications, SolidFill
+    >>> event_loop = VirtualClockEventLoop()
+    >>> loop = MainLoop(SolidFill(), screen=ScriptedScreen(), event_loop=event_loop)
+    >>> notifications = Notifications(loop=loop, timeout=5)
+    >>> _ = notifications.notify("saved")
+    >>> event_loop.advance(4.9)
+    >>> len(notifications.notifications), event_loop.now
+    (1, 4.9)
+    >>> event_loop.advance(0.1)
+    >>> len(notifications.notifications)
+    0
+    """
+
+    def __init__(self, *, timeout: float = 5.0) -> None:
+        """Create a loop whose clock reads 0.
+
+        :param timeout: seconds of real time a :meth:`run` or an :meth:`advance` may take
+        """
+        super().__init__()
+        self._timeout = timeout
+        self._now = 0.0
+        self._deadline: float | None = None
+        # Clock time an advance() stops at; None while run() runs.
+        self._target: float | None = None
+        self._reached = False
+
+    @property
+    def now(self) -> float:
+        """Return the time of the loop's clock, in seconds since the loop was created."""
+        return self._now
+
+    def advance(self, seconds: float) -> None:
+        """Move the clock *seconds* ahead, firing every alarm that comes due on the way.
+
+        Alarms fire in the order they come due, each with the clock at its due time,
+        and the loop enters idle before the clock moves on.
+        Readable watched files are served on the way, but the loop does not wait for one.
+        Exceptions raised by the callbacks, :exc:`~urwid.ExitMainLoop` included, reach the caller.
+
+        :param seconds: how far to move the clock; 0 fires the alarms already due
+        :raises ValueError: *seconds* is negative.
+        :raises RuntimeError: called from a callback of an :meth:`advance` or a :meth:`run` of this loop.
+        :raises TimeoutError: the alarms still came due after *timeout* seconds of real time.
+        """
+        if seconds < 0:
+            raise ValueError(f"seconds must not be negative, got {seconds!r}")
+        self._check_not_running()
+        target = self._now + seconds
+        self._target = target
+        self._reached = False
+        self._deadline = time.monotonic() + self._timeout
+        try:
+            while not self._reached and (self._alarms or self._did_something or self._watch_files):
+                self._loop()
+        finally:
+            self._target = None
+            self._deadline = None
+        self._now = target
+
+    def run(self) -> None:
+        """Run the loop until a callback raises :exc:`~urwid.ExitMainLoop`.
+
+        :raises TimeoutError: the loop still ran after *timeout* seconds of real time.
+        :raises RuntimeError: no alarm is pending and no file is watched, so the loop would wait forever.
+            Also when called from a callback of an :meth:`advance` or a :meth:`run` of this loop.
+        """
+        self._check_not_running()
+        self._deadline = time.monotonic() + self._timeout
+        try:
+            super().run()
+        finally:
+            self._deadline = None
+
+    def _check_not_running(self) -> None:
+        """Refuse to start a run inside another one, which would overwrite its target and deadline.
+
+        :raises RuntimeError: an :meth:`advance` or a :meth:`run` of this loop is running.
+        """
+        # Both set the deadline for their whole duration, and only they set it.
+        if self._deadline is not None:
+            raise RuntimeError("advance() and run() cannot be called while the loop runs")
+
+    def _loop(self) -> None:
+        """Run one iteration of the loop, unless it has run out of real time or has nothing to wait for."""
+        if self._deadline is not None and time.monotonic() >= self._deadline:
+            raise TimeoutError(f"the event loop still ran after {self._timeout} seconds")
+        if not (self._alarms or self._did_something or self._watch_files):
+            raise RuntimeError("no alarm is pending and no file is watched, so the event loop would wait forever")
+        super()._loop()
+
+    def _clock(self) -> float:
+        """Return the time of the loop's clock."""
+        return self._now
+
+    def _wait(self, selector: selectors.BaseSelector, timeout: float | None) -> list[selectors.SelectorKey]:
+        """Return the readable watched files.
+
+        When none is readable, the clock moves to the next alarm, or to the end of an :meth:`advance`, without waiting.
+        A :meth:`run` with no alarm pending waits for a file in real time, up to its deadline.
+
+        :param selector: selector registering every watched file
+        :param timeout: seconds until the next alarm is due; ``None`` when none is pending
+        :returns: the keys of the readable files.
+        :raises TimeoutError: :meth:`run` waited for a watched file until the real-time deadline.
+        """
+        if self._watch_files and (ready := [event for event, _ in selector.select(0)]):
+            return ready
+        if timeout == 0:
+            return []
+        # A positive timeout always runs to the first alarm.
+        due = None if timeout is None else self._alarms[0][0]
+        if self._target is not None and (due is None or due > self._target):
+            self._now = self._target
+            self._reached = True
+            return []
+        if due is not None:
+            self._now = due
+            return []
+        remaining = 0.0 if self._deadline is None else max(0.0, self._deadline - time.monotonic())
+        if self._watch_files and (ready := [event for event, _ in selector.select(remaining)]):
+            return ready
+        raise TimeoutError(f"no watched file became readable within {self._timeout} seconds")
