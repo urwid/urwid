@@ -10,6 +10,8 @@ Rendering
 
 .. autofunction:: render_runs
 
+.. autofunction:: attrs_for_text
+
 .. autofunction:: resolve_attr
 
 .. autofunction:: resolve_runs
@@ -37,3 +39,9 @@ Harness screen
 
 .. autoclass:: ScriptedScreen
    :members: last_text, get_cols_rows, draw_screen, get_input, hook_event_loop, unhook_event_loop
+
+Virtual clock
+-------------
+
+.. autoclass:: VirtualClockEventLoop
+   :members: now, advance, run
