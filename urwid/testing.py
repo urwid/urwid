@@ -430,6 +430,12 @@ class ScriptedScreen(BaseScreen):
     The input batches are consumed, so one screen scripts one :meth:`~urwid.MainLoop.run`. Alarms still pending
     after the last batch never fire.
 
+    ``inputs=None`` makes the screen unscripted: it feeds no input and never ends the loop.
+    A :class:`~urwid.MainLoop` started on it with :meth:`~urwid.MainLoop.start` keeps serving alarms, watched files
+    and :meth:`~urwid.MainLoop.call_from_thread` calls under :meth:`VirtualClockEventLoop.run_until_idle`,
+    and the screen still records the frames drawn.
+    :meth:`~urwid.MainLoop.run` on it returns only when a callback raises :exc:`~urwid.ExitMainLoop`.
+
     >>> from urwid import Edit, Filler, MainLoop
     >>> screen = ScriptedScreen(size=(6, 1), inputs=[["a", "b"], ["backspace"]])
     >>> MainLoop(Filler(Edit("> ")), screen=screen).run()
@@ -443,17 +449,18 @@ class ScriptedScreen(BaseScreen):
         self,
         *,
         size: tuple[int, int] = (80, 24),
-        inputs: Iterable[Iterable[_Input]] = (),
+        inputs: Iterable[Iterable[_Input]] | None = (),
     ) -> None:
         """Create an unstarted screen.
 
         :param size: ``(cols, rows)`` returned by :meth:`get_cols_rows`; assign :attr:`size` to resize, then
             script a ``"window resize"`` key
-        :param inputs: batches of keys and mouse event tuples, one batch returned by each :meth:`get_input`
+        :param inputs: batches of keys and mouse event tuples, one batch returned by each :meth:`get_input`;
+            ``None`` for an unscripted screen, which feeds no input and never ends the loop
         :raises TypeError: a batch is not a sequence of keys and mouse event tuples.
         """
         batches: list[list[_Input]] = []
-        for batch in inputs:
+        for batch in () if inputs is None else inputs:
             items = None if isinstance(batch, (str, bytes)) or is_mouse_event(batch) else list(batch)
             if items is None or not all(isinstance(item, str) or is_mouse_event(item) for item in items):
                 raise TypeError(f"each input batch must be a sequence of keys and mouse event tuples, got {batch!r}")
@@ -465,7 +472,8 @@ class ScriptedScreen(BaseScreen):
         self.canvases: list[Canvas] = []
         #: number of :meth:`draw_screen` calls, recorded or not
         self.draw_count = 0
-        self._inputs = collections.deque(batches)
+        # None for an unscripted screen.
+        self._inputs = None if inputs is None else collections.deque(batches)
         self._frame: tuple[tuple[int, int], list[typing.Any], tuple[int, int] | None] | None = None
         self._event_loop: EventLoop | None = None
         self._callback: Callable[[list[_Input], list[int]], typing.Any] | None = None
@@ -486,6 +494,8 @@ class ScriptedScreen(BaseScreen):
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Record *canvas* unless it shows the same frame as the last one, then schedule the next input batch.
 
+        An unscripted screen schedules no input.
+
         :param size: ``(cols, rows)`` the canvas was rendered for
         :param canvas: canvas to show
         """
@@ -494,7 +504,7 @@ class ScriptedScreen(BaseScreen):
         if frame != self._frame:
             self._frame = frame
             self.canvases.append(canvas)
-        if self._event_loop is not None and self._feed_handle is None:
+        if self._inputs is not None and self._event_loop is not None and self._feed_handle is None:
             self._feed_handle = self._event_loop.alarm(0, self._feed)
 
     def _feed(self) -> None:
@@ -512,12 +522,15 @@ class ScriptedScreen(BaseScreen):
         """Return the next input batch.
 
         :param raw_keys: also return the raw key codes, which are always empty
-        :returns: the batch, or ``(batch, [])`` when *raw_keys* is true.
+        :returns: the batch, or ``(batch, [])`` when *raw_keys* is true; an unscripted screen returns an empty batch.
         :raises ExitMainLoop: the scripted batches are used up.
         """
-        if not self._inputs:
+        if self._inputs is None:
+            batch: list[_Input] = []
+        elif self._inputs:
+            batch = self._inputs.popleft()
+        else:
             raise ExitMainLoop
-        batch = self._inputs.popleft()
         if raw_keys:
             return batch, []
         return batch
@@ -528,6 +541,8 @@ class ScriptedScreen(BaseScreen):
         callback: Callable[[list[_Input], list[int]], typing.Any],
     ) -> None:
         """Feed the input batches to *callback* through alarms of *event_loop*, one after every draw.
+
+        An unscripted screen feeds nothing.
 
         :param event_loop: event loop to schedule the batches on
         :param callback: function taking the keys and the raw key codes of one batch
@@ -633,6 +648,19 @@ class VirtualClockEventLoop(SelectEventLoop):
         >>> event_loop.run_until_idle()
         >>> event_loop.now
         5.0
+
+        A :class:`~urwid.MainLoop` started on an unscripted :class:`ScriptedScreen` serves
+        :meth:`~urwid.MainLoop.call_from_thread` calls and its alarms here, without :meth:`~urwid.MainLoop.run`:
+
+        >>> from urwid import MainLoop, SolidFill
+        >>> event_loop = VirtualClockEventLoop()
+        >>> loop = MainLoop(SolidFill(), screen=ScriptedScreen(inputs=None), event_loop=event_loop)
+        >>> with loop.start():
+        ...     loop.call_from_thread(print, "called back")
+        ...     _ = loop.set_alarm_in(1, lambda *_: print("alarm"))
+        ...     event_loop.run_until_idle()
+        called back
+        alarm
 
         :param pause: seconds of real time to watch the files before each jump of the clock to the next alarm,
             so a worker thread polled by an alarm can hand back its result, for example through
