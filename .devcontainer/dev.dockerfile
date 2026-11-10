@@ -1,4 +1,4 @@
-FROM ubuntu:26.04
+FROM ubuntu:26.04 AS dev
 RUN apt-get update -y \
     && apt-get upgrade -y \
     && apt-get install -y \
@@ -36,3 +36,21 @@ ENV LC_ALL=C.UTF-8
 # exist with these permissions before it can create its socket; a
 # non-root container user can't create it itself.
 RUN mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
+
+# The PDF documentation, built by docs/tools/build_pdf.sh: LuaLaTeX, latexmk
+# and the LaTeX packages Sphinx uses, with FreeFont for the text. The fonts
+# installed above are the fallbacks docs/conf.py names for the box-drawing,
+# CJK, emoji and symbol characters. xindy builds the index for LuaLaTeX.
+# .github/workflows/documentation-pdf.yml installs the same packages; a
+# change to one list is made to the other.
+FROM dev AS docs-pdf
+RUN apt-get update -y \
+    && apt-get install -y --no-install-recommends \
+      latexmk \
+      texlive-luatex \
+      texlive-latex-recommended \
+      texlive-latex-extra \
+      texlive-fonts-recommended \
+      xindy \
+      fonts-freefont-otf \
+    && apt-get clean

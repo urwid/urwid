@@ -227,13 +227,28 @@ htmlhelp_basename = "Urwiddoc"
 
 # -- Options for LaTeX output --------------------------------------------------
 
+# LuaLaTeX, because the documentation contains box-drawing, CJK and emoji characters that pdfLaTeX cannot typeset.
+# The fallback chain takes each character the main fonts lack from the first font in the chain that has it.
+latex_engine = "lualatex"
 latex_elements = {
-    # The paper size ('letterpaper' or 'a4paper').
-    # 'papersize': 'letterpaper',
-    # The font size ('10pt', '11pt' or '12pt').
-    # 'pointsize': '10pt',
-    # Additional stuff for the LaTeX preamble.
-    # 'preamble': '',
+    "fontpkg": r"""
+\directlua{luaotfload.add_fallback("urwidfallback", {
+  "DejaVu Sans:mode=harf;",
+  "Noto Sans Mono:mode=harf;",
+  "Noto Sans CJK SC:mode=harf;",
+  "Noto Color Emoji:mode=harf;",
+  "Noto Sans Symbols2:mode=harf;",
+})}
+\setmainfont{FreeSerif}[
+  Extension=.otf, UprightFont=*, BoldFont=*Bold, ItalicFont=*Italic, BoldItalicFont=*BoldItalic,
+  RawFeature={fallback=urwidfallback},
+]
+\setsansfont{FreeSans}[
+  Extension=.otf, UprightFont=*, BoldFont=*Bold, ItalicFont=*Oblique, BoldItalicFont=*BoldOblique,
+  RawFeature={fallback=urwidfallback},
+]
+\setmonofont{DejaVu Sans Mono}[Scale=MatchLowercase, RawFeature={fallback=urwidfallback}]
+""",
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
