@@ -50,6 +50,24 @@ class WidgetPickleTest(unittest.TestCase):
                 self.assertEqual(("a", "right"), (result.text, result.align))
                 self.assertEqual("a", pickle.loads(pickle.dumps(PlainReduceText("a"), protocol=protocol)))
 
+    def test_state_without_an_added_attribute(self) -> None:
+        """A widget whose state predates an attribute with a default reads the default and lays out as before."""
+        for widget, name, default in (
+            (
+                urwid.Overlay(urwid.Text("a"), urwid.SolidFill("#"), "center", 4, "middle", "pack"),
+                "shrink_to_fit",
+                False,
+            ),
+            (urwid.Filler(urwid.Text("a")), "shrink_to_fit", False),
+        ):
+            with self.subTest(type(widget).__name__):
+                state = dict(vars(widget))
+                del state[name]
+                restored = copyreg.__newobj__(type(widget))
+                vars(restored).update(state)
+                self.assertEqual(default, getattr(restored, name))
+                self.assertEqual(widget.render((6, 3)).text, restored.render((6, 3)).text)
+
 
 class WidgetSizingErrorTest(unittest.TestCase):
     """A size of an unsupported sizing mode raises an error that names the widget."""

@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import abc
+import enum
 import functools
 import logging
 import types
@@ -1018,6 +1019,12 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
 _AttributeValue = typing.TypeVar("_AttributeValue")
 
 
+class _NoDefault(enum.Enum):
+    """Marker type for an :class:`_InvalidatingAttribute` without a default."""
+
+    TOKEN = enum.auto()
+
+
 class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
     """Widget attribute whose assignment invalidates the widget's cached canvases and rows.
 
@@ -1025,11 +1032,19 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
     so the instance state, which pickles and copies carry, is the one a plain attribute has.
     """
 
-    __slots__ = ("__weakref__", "_name")
+    __slots__ = ("__weakref__", "_default", "_name")
 
-    def __init__(self) -> None:
+    def __init__(self, *, default: _AttributeValue | typing.Literal[_NoDefault.TOKEN] = _NoDefault.TOKEN) -> None:
+        """Declare the attribute.
+
+        :param default: the value read from an instance that has none stored, such as a widget unpickled from a
+            release that did not have the attribute yet.
+            Without a default, such a read raises :exc:`AttributeError`.
+            The default is shared by every such instance, so it is an immutable value.
+        """
         # Empty until __set_name__ runs: no attribute is stored under "", so a lookup by it misses.
         self._name = ""
+        self._default = default
 
     def __set_name__(self, owner: type[AbstractWidget], name: str) -> None:
         self._name = name
@@ -1057,6 +1072,8 @@ class _InvalidatingAttribute(typing.Generic[_AttributeValue]):
         try:
             value: _AttributeValue = vars(instance)[self._name]
         except KeyError:
+            if self._default is not _NoDefault.TOKEN:
+                return self._default
             name = self._attribute_name()
             msg = f"{type(instance).__name__!r} object has no attribute {name!r}"
             raise AttributeError(msg, name=name, obj=instance) from None

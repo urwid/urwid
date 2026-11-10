@@ -189,6 +189,7 @@ class OverlayStack(WidgetWrap[Widget]):
         right: int = 0,
         top: int = 0,
         bottom: int = 0,
+        shrink_to_fit: bool = False,
         close_on_menu: bool | None = None,
         close_on_click_outside: bool | None = None,
         on_close: Callable[[typing.Any], object] | None = None,
@@ -215,6 +216,8 @@ class OverlayStack(WidgetWrap[Widget]):
         :param right: columns of padding on the right of the dialog.
         :param top: rows of padding above the dialog.
         :param bottom: rows of padding below the dialog.
+        :param shrink_to_fit: with a ``"pack"`` height, render a dialog that also supports ``"box"`` and is taller
+            than the rows available as a box at those rows, as for :class:`Overlay`.
         :param close_on_menu: close this dialog on a key for the ``menu`` command it leaves unhandled.
             ``None`` uses :attr:`close_on_menu`.
         :param close_on_click_outside: close this dialog on a press of mouse button 1, 2 or 3 outside it.
@@ -248,6 +251,7 @@ class OverlayStack(WidgetWrap[Widget]):
             right,
             top,
             bottom,
+            shrink_to_fit=shrink_to_fit,
         )
         if self._close_on_menu if close_on_menu is None else close_on_menu:
             signals.connect_signal(overlay, "menu", _close_by_signal, weak_args=(self,), user_args=(widget,))

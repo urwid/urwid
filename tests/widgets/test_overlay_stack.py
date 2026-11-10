@@ -383,12 +383,13 @@ class OverlayStackSizingDefaultsTest(unittest.TestCase):
                 self.assertEqual(10, len(render_text(stack, (40, 10))))
 
     def test_explicit_options(self) -> None:
-        """A given width and height reach the ``Overlay`` unchanged, and an invalid one opens nothing."""
+        """Given layout options reach the ``Overlay`` unchanged, and an invalid one opens nothing."""
         stack = urwid.OverlayStack(urwid.SolidFill("."))
-        stack.open(urwid.Text("text"), width=(urwid.RELATIVE, 50), height=(urwid.RELATIVE, 50))
+        stack.open(urwid.Text("text"), width=(urwid.RELATIVE, 50), height=(urwid.RELATIVE, 50), shrink_to_fit=True)
         overlay = top_overlay(stack)
         self.assertEqual((urwid.WHSettings.RELATIVE, 50), (overlay.width_type, overlay.width_amount))
         self.assertEqual((urwid.WHSettings.RELATIVE, 50), (overlay.height_type, overlay.height_amount))
+        self.assertIs(True, overlay.shrink_to_fit)
 
         for label, options, error in (
             ("unknown width", {"width": ("bogus", 1)}, urwid.OverlayError),

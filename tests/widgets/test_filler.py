@@ -6,7 +6,7 @@ import warnings
 
 import urwid
 import urwid.testing
-from tests.util import assert_attribute_redraws
+from tests.util import FocusHeightWidget, assert_attribute_redraws
 
 
 class CursorWidget(urwid.Widget):
@@ -26,6 +26,8 @@ class CursorWidget(urwid.Widget):
         self.cursor_pos = cursor
         self.move_result = move_result
         self.mouse_result = mouse_result
+        #: The size each input and cursor method was called with, as ``(method name, size)``.
+        self.sizes: list[tuple[str, tuple[int] | tuple[int, int]]] = []
 
     def sizing(self) -> frozenset[urwid.Sizing]:
         return self._sizing_set
@@ -42,15 +44,18 @@ class CursorWidget(urwid.Widget):
         return urwid.TextCanvas([b" " * maxcol for _ in range(maxrow)], maxcol=maxcol)
 
     def keypress(self, size: tuple[int, int] | tuple[int], key: str) -> str | None:
-        return None
+        self.sizes.append(("keypress", size))
 
     def get_cursor_coords(self, size: tuple[int, int] | tuple[int]) -> tuple[int, int] | None:
+        self.sizes.append(("get_cursor_coords", size))
         return self.cursor_pos
 
     def get_pref_col(self, size: tuple[int, int] | tuple[int]) -> int:
+        self.sizes.append(("get_pref_col", size))
         return self.cursor_pos[0] if self.cursor_pos else 0
 
     def move_cursor_to_coords(self, size: tuple[int, int] | tuple[int], col: int, row: int) -> bool:
+        self.sizes.append(("move_cursor_to_coords", size))
         return self.move_result
 
     def mouse_event(
@@ -62,6 +67,7 @@ class CursorWidget(urwid.Widget):
         row: int,
         focus: bool,
     ) -> bool:
+        self.sizes.append(("mouse_event", size))
         return self.mouse_result
 
 
@@ -118,6 +124,34 @@ class TrimWidget(urwid.Widget):
         return None
 
 
+class FlowOnlyRenderWidget(urwid.Widget):
+    """A widget that reports BOX and FLOW sizing but renders only at a flow size, one digit per row."""
+
+    _sizing = frozenset([urwid.BOX, urwid.FLOW])
+
+    def __init__(self, num_rows: int) -> None:
+        """Build a widget of *num_rows* rows."""
+        super().__init__()
+        self.num_rows = num_rows
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the number of rows given to the constructor."""
+        return self.num_rows
+
+    def render(self, size: tuple[int], focus: bool = False) -> urwid.TextCanvas:
+        """Render the rows; a box size fails to unpack."""
+        (maxcol,) = size
+        return urwid.TextCanvas([str(i).encode().ljust(maxcol) for i in range(self.num_rows)], maxcol=maxcol)
+
+
+def make_table(num_rows: int) -> urwid.Table:
+    """Return a one-column table of *num_rows* rows ``r0``, ``r1``, ... with no header.
+
+    A table supports both FLOW and BOX sizing, and scrolls at a box size.
+    """
+    return urwid.Table([urwid.TableColumn()], [[f"r{i}"] for i in range(num_rows)], header=False)
+
+
 class FillerTest(unittest.TestCase):
     def test_layout_attributes_invalidate(self) -> None:
         """Setting a layout attribute of a rendered ``Filler`` redraws it."""
@@ -132,6 +166,11 @@ class FillerTest(unittest.TestCase):
             ("top", make_text("top"), 2),
             ("bottom", make_text("bottom"), 2),
             ("min_height", make_relative, 4),
+            (
+                "shrink_to_fit",
+                lambda **kwargs: urwid.Filler(urwid.LineBox(make_table(12)), valign="top", **kwargs),
+                True,
+            ),
         ):
             with self.subTest(name):
                 assert_attribute_redraws(self, make, (2, 10), name, value)
@@ -251,6 +290,10 @@ class FillerTest(unittest.TestCase):
             "<Filler box/flow widget <Text fixed/flow widget 'hai'>>",
             repr(urwid.Filler(urwid.Text("hai"))),
         )
+        self.assertEqual(
+            "<Filler box/flow widget <Text fixed/flow widget 'hai'> shrink_to_fit=True>",
+            repr(urwid.Filler(urwid.Text("hai"), shrink_to_fit=True)),
+        )
 
     def test_sizing(self):
         with self.subTest("Flow supported for PACK height (flow widget)"):
@@ -361,6 +404,96 @@ class FillerTest(unittest.TestCase):
 
         self.assertEqual((4, 3), filler.pack((4, 3)))
         self.assertEqual([b"body", b"    ", b"    "], filler.render((4, 3)).text)
+
+    def test_shrink_to_fit(self) -> None:
+        """With shrink_to_fit, a PACK body taller than the rows available is rendered as a box at those rows.
+
+        The body keeps its border and scrolls.
+        A body that fits is rendered at its flow size, and the flag off clips the body as before.
+        """
+        body = urwid.LineBox(make_table(6))
+        flow_text = urwid.testing.render_text(body, (6,), focus=True)
+        self.assertEqual(8, len(flow_text))
+        filler = urwid.Filler(body, valign="top", shrink_to_fit=True)
+        self.assertEqual(
+            ["┌────┐", "│r0  │", "│r1  │", "└────┘"],
+            urwid.testing.render_text(filler, (6, 4), focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(filler, (6, 4), *["down"] * 5))
+        self.assertEqual(
+            ["┌────┐", "│r4  │", "│r5  │", "└────┘"],
+            urwid.testing.render_text(filler, (6, 4), focus=True),
+        )
+        self.assertEqual([*flow_text, " " * 6], urwid.testing.render_text(filler, (6, 9), focus=True))
+        urwid.testing.check_sizing(filler, cols=6, rows=4)
+
+        clipped = urwid.Filler(urwid.LineBox(make_table(6)), valign="top")
+        self.assertEqual(flow_text[:4], urwid.testing.render_text(clipped, (6, 4), focus=True))
+
+    def test_shrink_to_fit_with_margins(self) -> None:
+        """The rows between the top and bottom margins are the box a body taller than them is rendered at."""
+        filler = urwid.Filler(urwid.LineBox(make_table(6)), top=1, bottom=1, shrink_to_fit=True)
+        self.assertEqual(
+            ["      ", "┌────┐", "│r0  │", "│r1  │", "└────┘", "      "],
+            urwid.testing.render_text(filler, (6, 6), focus=True),
+        )
+
+    def test_shrink_to_fit_focus_dependent_height(self) -> None:
+        """A body taller than the rows available only in focus is rendered as a box in either focus.
+
+        Mouse events reach it at the size it is rendered at in focus.
+        """
+        body = FocusHeightWidget()
+        filler = urwid.Filler(body, valign="top", shrink_to_fit=True)
+        size = (4, 3)
+        for focus, lines in ((False, ["xxxx", "xxxx", "    "]), (True, ["xxxx", "xxxx", "xxxx"])):
+            with self.subTest(focus=focus):
+                self.assertEqual(lines, urwid.testing.render_text(filler, size, focus=focus))
+        self.assertTrue(filler.mouse_event(size, "mouse press", 1, 0, 0, True))
+        self.assertEqual([("mouse_event", (4, 3))], body.sizes)
+
+    def test_shrink_to_fit_input_sizes(self) -> None:
+        """Keys, mouse events and the cursor reach a body taller than the rows available at the box size.
+
+        With the flag off they reach it at the flow size.
+        """
+        for shrink_to_fit, body_size in ((True, (10, 2)), (False, (10,))):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                body = CursorWidget([urwid.BOX, urwid.FLOW], num_rows=5)
+                widget = urwid.Filler(body, valign="top", top=1, shrink_to_fit=shrink_to_fit)
+                size = (10, 3)
+                widget.keypress(size, "enter")
+                widget.get_cursor_coords(size)
+                widget.get_pref_col(size)
+                widget.move_cursor_to_coords(size, 0, 1)
+                widget.mouse_event(size, "mouse press", 1, 0, 1, True)
+                self.assertEqual(
+                    [
+                        (method, body_size)
+                        for method in (
+                            "keypress",
+                            "get_cursor_coords",
+                            "get_pref_col",
+                            "move_cursor_to_coords",
+                            "mouse_event",
+                        )
+                    ],
+                    body.sizes,
+                )
+
+    def test_shrink_to_fit_without_box_support(self) -> None:
+        """A body without BOX support is clipped with the flag set, as without it."""
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                widget = urwid.Filler(TrimWidget(5, cursor=(0, 4)), shrink_to_fit=shrink_to_fit)
+                canvas = widget.render((10, 3), focus=True)
+                self.assertEqual(3, canvas.rows())
+                self.assertEqual((0, 2), canvas.cursor)
+
+    def test_box_claim_without_box_render_is_unaffected_by_default(self) -> None:
+        """A body that claims BOX but renders only at a flow size is rendered at its flow size, and clipped."""
+        body = FlowOnlyRenderWidget(5)
+        self.assertEqual(["0", "1", "2"], urwid.testing.render_text(urwid.Filler(body), (1, 3)))
 
     def test_render_trim_no_cursor(self) -> None:
         """When the body has no cursor, an oversized canvas is trimmed straight to maxrow."""

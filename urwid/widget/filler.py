@@ -48,6 +48,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
     bottom = _InvalidatingAttribute[int]()
     #: Minimum height of the body for a relative height, or ``None`` for no minimum.
     min_height = _InvalidatingAttribute[int | None]()
+    #: Render a ``'pack'`` body taller than the rows available as a box at those rows.
+    shrink_to_fit = _InvalidatingAttribute[bool](default=False)
 
     def __init__(
         self,
@@ -66,6 +68,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
         min_height: int | None = None,
         top: int = 0,
         bottom: int = 0,
+        *,
+        shrink_to_fit: bool = False,
     ) -> None:
         """
         :param body: a flow widget or box widget to be filled around (stored as self.original_widget)
@@ -95,6 +99,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         :param top: a fixed number of rows to fill at the top
         :param bottom: a fixed number of rows to fill at the bottom
+        :param shrink_to_fit: with a ``'pack'`` height, render a body taller than the rows available as a box at
+            those rows, instead of clipping it.
+            It applies only to a body that also supports ``'box'``, such as a :class:`LineBox` around a
+            :class:`Table`.
+            It has no effect for other heights.
         :raises FillerError: *valign* is not a vertical alignment value, or a fixed height is combined with a valign it
             cannot be used with.
 
@@ -152,6 +161,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         self.top = top
         self.bottom = bottom
+        self.shrink_to_fit = shrink_to_fit
         self.valign_type: Literal[WHSettings.RELATIVE] | VAlign
         self.valign_amount: int | None
         self.height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
@@ -210,6 +220,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
             "top": self.top,
             "bottom": self.bottom,
             "min_height": self.min_height,
+            "shrink_to_fit": self.shrink_to_fit,
         }
         return remove_defaults(attrs, Filler.__init__)
 
@@ -222,11 +233,17 @@ class Filler(WidgetDecoration[WrappedWidget]):
         Return the number of rows to pad on the top and bottom.
 
         Override this method to define custom padding behaviour.
+
+        With :attr:`shrink_to_fit`, a ``'pack'`` height taller than the rows available is cut down to those rows.
         """
         maxcol, maxrow = self.pack(size, focus)
 
         if self.height_type == WHSettings.PACK:
-            height = typing.cast("AbstractFlowWidget", self._original_widget).rows((maxcol,), focus=focus)
+            body = self._original_widget
+            height = typing.cast("AbstractFlowWidget", body).rows((maxcol,), focus=focus)
+            # A body without the "sizing" method is a legacy widget, which is never shrunk.
+            if self.shrink_to_fit and Sizing.BOX in getattr(body, "sizing", frozenset)():
+                height = min(height, max(0, maxrow - self.top - self.bottom))
             return calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -249,6 +266,27 @@ class Filler(WidgetDecoration[WrappedWidget]):
             self.bottom,
         )
 
+    def _body_size(self, size: tuple[int, int], top: int, bottom: int) -> tuple[int] | tuple[int, int]:
+        """Return the size the body is rendered at in the box *size* between *top* and *bottom* filler rows.
+
+        A ``'pack'`` height gives a flow size.
+        With :attr:`shrink_to_fit` it gives a box size of the rows available instead,
+        when the body is taller than those rows in or out of focus.
+        """
+        maxcol, maxrow = size
+        if self.height_type != WHSettings.PACK:
+            return (maxcol, maxrow - top - bottom)
+        available = max(0, maxrow - top - bottom)
+        body = typing.cast("AbstractFlowWidget", self._original_widget)
+        # Both focus states: a box canvas has the rows it is given, so it matches the fillers of either one.
+        if (
+            self.shrink_to_fit
+            and Sizing.BOX in getattr(body, "sizing", frozenset)()
+            and any(body.rows((maxcol,), focus) > available for focus in (False, True))
+        ):
+            return (maxcol, available)
+        return (maxcol,)
+
     def render(
         self,
         size: tuple[int, int] | tuple[int],  # type: ignore[override]
@@ -258,10 +296,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         maxcol, maxrow = self.pack(size, focus)
         top, bottom = self.filler_values(size, focus)
 
-        if self.height_type == WHSettings.PACK:
-            canv = self._original_widget.render((maxcol,), focus)
-        else:
-            canv = self._original_widget.render((maxcol, maxrow - top - bottom), focus)
+        canv = self._original_widget.render(self._body_size((maxcol, maxrow), top, bottom), focus)
         canv = CompositeCanvas(canv)
 
         if maxrow and canv.rows() > maxrow and canv.cursor is not None:
@@ -281,11 +316,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
     ) -> str | None:
         """Pass keypress to self.original_widget."""
         maxcol, maxrow = self.pack(size, True)
-        if self.height_type == WHSettings.PACK:
+        if self.height_type == WHSettings.PACK and not self.shrink_to_fit:
             return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol, maxrow), True)
-        return self._original_widget.keypress((maxcol, maxrow - top - bottom), key)
+        return self._original_widget.keypress(self._body_size((maxcol, maxrow), top, bottom), key)
 
     def get_cursor_coords(self, size: tuple[int, int] | tuple[int]) -> tuple[int, int] | None:
         """Return cursor coords from self.original_widget if any."""
@@ -294,10 +329,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return None
 
         top, bottom = self.filler_values(size, True)
-        if self.height_type == WHSettings.PACK:
-            coords = self._original_widget.get_cursor_coords((maxcol,))
-        else:
-            coords = self._original_widget.get_cursor_coords((maxcol, maxrow - top - bottom))
+        coords = self._original_widget.get_cursor_coords(self._body_size((maxcol, maxrow), top, bottom))
         if not coords:
             return None
         x, y = coords
@@ -315,11 +347,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return None
 
         x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None
-        if self.height_type == WHSettings.PACK:
+        if self.height_type == WHSettings.PACK and not self.shrink_to_fit:
             x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
-            x = self._original_widget.get_pref_col((maxcol, maxrow - top - bottom))
+            x = self._original_widget.get_pref_col(self._body_size((maxcol, maxrow), top, bottom))
 
         return x
 
@@ -338,14 +370,13 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if row < top or row >= maxrow - bottom:
             return False
 
-        if self.height_type == WHSettings.PACK:
-            target_size: tuple[int] | tuple[int, int] = (maxcol,)
-        else:
-            target_size = (maxcol, maxrow - top - bottom)
-
         return typing.cast(
             "bool",
-            self._original_widget.move_cursor_to_coords(target_size, col, row - top),
+            self._original_widget.move_cursor_to_coords(
+                self._body_size((maxcol, maxrow), top, bottom),
+                col,
+                row - top,
+            ),
         )
 
     def mouse_event(
@@ -366,17 +397,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if row < top or row >= maxrow - bottom:
             return False
 
-        if self.height_type == WHSettings.PACK:
-            return self._original_widget.mouse_event(
-                (maxcol,),
-                event,
-                button,
-                col,
-                row - top,
-                focus,
-            )
         return self._original_widget.mouse_event(
-            (maxcol, maxrow - top - bottom),
+            self._body_size((maxcol, maxrow), top, bottom),
             event,
             button,
             col,

@@ -8,7 +8,7 @@ import urwid
 import urwid.testing
 from urwid.command_map import Command
 from urwid.widget import overlay as overlay_mod
-from tests.util import assert_attribute_redraws
+from tests.util import FocusHeightWidget, assert_attribute_redraws
 
 
 class NotAWidget:
@@ -45,6 +45,15 @@ class KeyEater(urwid.SolidFill):
 
     def keypress(self, size: tuple[int, int], key: str) -> None:
         return None
+
+
+def make_table_dialog(num_rows: int, **kwargs: typing.Any) -> urwid.Overlay[urwid.LineBox, urwid.SolidFill]:
+    """Return a 6 column wide, top aligned bordered table of *num_rows* rows over ``#``, with a PACK height.
+
+    A table supports both FLOW and BOX sizing, and scrolls at a box size.
+    """
+    table = urwid.Table([urwid.TableColumn()], [[f"r{i}"] for i in range(num_rows)], header=False)
+    return urwid.Overlay(urwid.LineBox(table), urwid.SolidFill("#"), urwid.LEFT, 6, urwid.TOP, urwid.PACK, **kwargs)
 
 
 class OverlayTest(unittest.TestCase):
@@ -124,6 +133,7 @@ class OverlayTest(unittest.TestCase):
             ("bottom", maker(valign="bottom"), 1),
             ("min_width", maker(width=("relative", 10)), 4),
             ("min_height", maker(height=("relative", 25)), 3),
+            ("shrink_to_fit", lambda **kwargs: make_table_dialog(12, **kwargs), True),
         ):
             with self.subTest(name):
                 assert_attribute_redraws(self, make, (6, 4), name, value)
@@ -879,6 +889,132 @@ class OverlayTest(unittest.TestCase):
         height = top_w.rows((5,))
         self.assertGreater(height, 3)
         self.assertEqual((0, 0, 0, 3 - height), ovl.calculate_padding_filler((5, 3), False))
+
+    def test_shrink_to_fit(self) -> None:
+        """With shrink_to_fit, a PACK top widget taller than the screen is rendered as a box at the screen rows.
+
+        It keeps its border and scrolls.
+        A top widget that fits is rendered at its flow size, and the flag off clips the top widget as before.
+        """
+        flow_text = urwid.testing.render_text(make_table_dialog(6).top_w, (6,), focus=True)
+        self.assertEqual(8, len(flow_text))
+        clipped = make_table_dialog(6)
+        self.assertEqual(flow_text[:4], urwid.testing.render_text(clipped, (6, 4), focus=True))
+
+        ovl = make_table_dialog(6, shrink_to_fit=True)
+        self.assertEqual((0, 0, 0, 0), ovl.calculate_padding_filler((6, 4), True))
+        self.assertEqual((6, 4), ovl.top_w_size((6, 4), 0, 0, 0, 0))
+        self.assertEqual(
+            ["┌────┐", "│r0  │", "│r1  │", "└────┘"],
+            urwid.testing.render_text(ovl, (6, 4), focus=True),
+        )
+        self.assertEqual([], urwid.testing.press(ovl, (6, 4), *["down"] * 5))
+        self.assertEqual(
+            ["┌────┐", "│r4  │", "│r5  │", "└────┘"],
+            urwid.testing.render_text(ovl, (6, 4), focus=True),
+        )
+        self.assertEqual((6,), ovl.top_w_size((6, 9), *ovl.calculate_padding_filler((6, 9), True)))
+        self.assertEqual([*flow_text, "######"], urwid.testing.render_text(ovl, (6, 9), focus=True))
+        urwid.testing.check_box_sizing(ovl)
+
+    def test_shrink_to_fit_with_margins(self) -> None:
+        """The rows between the top and bottom margins are the box a top widget taller than them is rendered at.
+
+        A negative margin adds no rows to that box.
+        """
+        for margins, fillers, lines in (
+            (
+                {"top": 1, "bottom": 1},
+                (0, 0, 1, 1),
+                ["######", "┌────┐", "│r0  │", "│r1  │", "└────┘", "######"],
+            ),
+            (
+                {"top": -1},
+                (0, 0, 0, 0),
+                ["┌────┐", "│r0  │", "│r1  │", "│r2  │", "│r3  │", "└────┘"],
+            ),
+        ):
+            with self.subTest(**margins):
+                ovl = make_table_dialog(6, shrink_to_fit=True, **margins)
+                self.assertEqual(fillers, ovl.calculate_padding_filler((6, 6), True))
+                self.assertEqual(lines, urwid.testing.render_text(ovl, (6, 6), focus=True))
+
+    def test_shrink_to_fit_focus_dependent_height(self) -> None:
+        """A top widget taller than the rows available only in focus is rendered as a box in either focus.
+
+        A box canvas has the rows it is given, so it matches the fillers of either focus.
+        """
+        ovl = urwid.Overlay(
+            FocusHeightWidget(),
+            urwid.SolidFill("#"),
+            urwid.LEFT,
+            4,
+            urwid.TOP,
+            urwid.PACK,
+            shrink_to_fit=True,
+        )
+        size = (4, 3)
+        for focus, fillers, lines in (
+            (False, (0, 0, 0, 1), ["xxxx", "xxxx", "####"]),
+            (True, (0, 0, 0, 0), ["xxxx", "xxxx", "xxxx"]),
+        ):
+            with self.subTest(focus=focus):
+                self.assertEqual(fillers, ovl.calculate_padding_filler(size, focus))
+                self.assertEqual((4, 3 - fillers[3]), ovl.top_w_size(size, *fillers))
+                self.assertEqual(lines, urwid.testing.render_text(ovl, size, focus=focus))
+
+    def test_shrink_to_fit_input_sizes(self) -> None:
+        """Keys, mouse events and the cursor reach a top widget taller than the screen at the box size.
+
+        With the flag off they reach it at the flow size.
+        """
+        for shrink_to_fit, top_w_size in ((True, (4, 3)), (False, (4,))):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                top_w = FocusHeightWidget()
+                ovl = urwid.Overlay(
+                    top_w,
+                    urwid.SolidFill("#"),
+                    urwid.LEFT,
+                    4,
+                    urwid.TOP,
+                    urwid.PACK,
+                    shrink_to_fit=shrink_to_fit,
+                )
+                size = (4, 3)
+                self.assertEqual("x", ovl.keypress(size, "x"))
+                self.assertEqual((0, 0), ovl.get_cursor_coords(size))
+                self.assertTrue(ovl.mouse_event(size, "mouse press", 1, 0, 0, True))
+                self.assertEqual(
+                    [(method, top_w_size) for method in ("keypress", "get_cursor_coords", "mouse_event")],
+                    top_w.sizes,
+                )
+
+    def test_shrink_to_fit_without_box_support(self) -> None:
+        """A top widget without BOX support is clipped with the flag set, as without it."""
+        top_w = urwid.Text("one two three four five six seven eight nine ten")
+        height = top_w.rows((5,))
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                ovl = urwid.Overlay(
+                    top_w,
+                    urwid.SolidFill("#"),
+                    urwid.CENTER,
+                    5,
+                    urwid.TOP,
+                    None,
+                    shrink_to_fit=shrink_to_fit,
+                )
+                self.assertEqual((0, 0, 0, 3 - height), ovl.calculate_padding_filler((5, 3), False))
+                self.assertEqual((5,), ovl.top_w_size((5, 3), 0, 0, 0, 3 - height))
+                self.assertEqual(["one  ", "two  ", "three"], urwid.testing.render_text(ovl, (5, 3)))
+
+    def test_shrink_to_fit_repr(self) -> None:
+        """The flag is shown in the repr when it is set."""
+        for shrink_to_fit in (False, True):
+            with self.subTest(shrink_to_fit=shrink_to_fit):
+                ovl = make_table_dialog(1, shrink_to_fit=shrink_to_fit)
+                self.assertEqual(shrink_to_fit, "shrink_to_fit=True" in repr(ovl))
+                self.assertIn(("shrink_to_fit", shrink_to_fit, False), list(ovl.__rich_repr__()))
 
     def test_render_returns_bottom_only_when_bottom_canvas_is_empty(self) -> None:
         for description, top_w, height in (
