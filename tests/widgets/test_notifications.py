@@ -12,7 +12,7 @@ import weakref
 
 import urwid
 from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, collect_and_count_alive, external_loop
-from urwid.testing import check_sizing, render_runs, render_text
+from urwid.testing import VirtualClockEventLoop, check_sizing, render_runs, render_text
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -481,7 +481,7 @@ class NotificationsRunningLoopTest(unittest.TestCase):
     def test_expires_on_running_loop(self) -> None:
         """A message posted inside an alarm uses the running loop, and expires through its real alarm."""
         widget = urwid.Notifications(timeout=0.01)
-        loop = external_loop()
+        loop = external_loop(event_loop=VirtualClockEventLoop())
         seen: list[list[str]] = []
 
         def post(_loop: urwid.MainLoop, _data: object) -> None:
@@ -521,7 +521,7 @@ class NotificationsLifetimeTest(unittest.TestCase):
     @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_expired_message_is_freed(self) -> None:
         """A message that expired through the loop's alarm is freed, and no alarm is left."""
-        loop = external_loop()
+        loop = external_loop(event_loop=VirtualClockEventLoop())
         widget = urwid.Notifications(loop=loop, timeout=0.01)
         refs: list[weakref.ReferenceType[typing.Any]] = []
 
