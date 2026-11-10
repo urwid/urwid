@@ -1182,14 +1182,19 @@ changed later.  An empty ListBox returns the keys in both modes.
 :meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
 is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
 contains the focus widget, so the focus stays only while one of its rows is in
-the new view.  Otherwise the first widget in the view takes the focus when the
-view moved down past it, and the last widget when the view moved up.
+the new view.  Otherwise the selectable widget in the view nearest to the edge
+the focus left by takes it: searched from the top when the view moved down past
+the focus, and from the bottom when the view moved up.  When the view holds no
+selectable widget, the widget at that edge takes the focus, as with *UP* and
+*DOWN*.
 
 By default each notch of the mouse wheel moves the focus one row, as *UP* and
 *DOWN* do.
 Created with ``wheel="view"``, the :class:`ListBox` scrolls its view one row
 per notch instead, and moves the focus as :meth:`ListBox.set_scrollpos` does,
 so the focus stays where it is until it would leave the view.
+When the cursor of the selectable widget the focus would move to keeps the view
+from moving one row, the widget at the edge takes the focus instead.
 The attribute :attr:`ListBox.wheel` can be changed later.
 When the cursor of the focus widget keeps the view from moving,
 the notch moves the focus as in the default mode.
