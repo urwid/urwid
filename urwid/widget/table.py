@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import itertools
 import math
+import operator
 import sys
 import typing
 import weakref
@@ -1138,7 +1139,7 @@ class Table(Widget):
             if threshold is not None
         ]
         # a stable sort keeps the footer ahead of the header on equal thresholds
-        thresholds.sort(key=lambda item: item[0], reverse=True)
+        thresholds.sort(key=operator.itemgetter(0), reverse=True)
         for threshold, part in thresholds:
             body = maxrow - hrows - frows
             # every later threshold is smaller, so the body satisfies those as well
