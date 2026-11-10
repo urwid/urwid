@@ -47,7 +47,7 @@ from .list_walker import (
     SimpleFocusListWalker,
     SimpleListWalker,
 )
-from .widget import Widget, _select_enter_child, nocache_widget_render_instance
+from .widget import Widget, _InvalidatingAttribute, _select_enter_child, nocache_widget_render_instance
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterator
@@ -255,6 +255,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
+    #: Whether this ListBox reports FLOW sizing as well, when the body allows it; see :meth:`sizing`.
+    flow = _InvalidatingAttribute[bool](default=False)
 
     @typing.overload
     def __init__(
@@ -267,6 +269,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        flow: bool = False,
     ) -> None: ...
 
     @typing.overload
@@ -280,6 +283,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        flow: bool = False,
     ) -> None: ...
 
     def __init__(
@@ -292,6 +296,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         focus_when_empty: bool = True,
         edge: Literal["return", "stop"] = "return",
         wheel: Literal["focus", "view"] = "focus",
+        flow: bool = False,
     ) -> None:
         """Create the ListBox widget.
 
@@ -307,6 +312,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             ``False`` lets a container move the focus past an empty ListBox.
         :param edge: what :kbd:`up` at the first row and :kbd:`down` at the last row do; see :attr:`edge`.
         :param wheel: what a notch of the vertical mouse wheel moves; see :attr:`wheel`.
+        :param flow: report FLOW sizing as well, so that a container can lay the ListBox out with the rows of all
+            its widgets; see :meth:`sizing`.
 
         .. deprecated:: 4.0.2
             Passing a *body* that is not a :class:`ListWalker` but has a ``get_focus`` method is deprecated.
@@ -358,6 +365,17 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         self.focus_when_empty = focus_when_empty
         self.edge = edge
         self.wheel = wheel
+        self.flow = flow
+
+    def sizing(self) -> frozenset[Sizing]:
+        """Return BOX, and FLOW as well when :attr:`flow` is set and the body allows it.
+
+        The body allows it when it reports its length, or an estimate of it, and does not wrap around.
+        The whole body is measured on each flow layout, so this is meant for lists short enough for a dialog.
+        """
+        if self.flow and self._body_has_length and not getattr(self._body, "wrap_around", False):
+            return self._sizing | {Sizing.FLOW}
+        return self._sizing
 
     def selectable(self) -> bool:
         """Return whether the ListBox accepts the input focus.
@@ -449,6 +467,12 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             )
         else:
             self._body = SimpleListWalker(body)
+        # Kept as a flag so that sizing(), called per child on every layout of a parent, stays a cheap read.
+        # A TreeWalker can generate its children without end, so only a body that knows its length is measured.
+        self._body_has_length = isinstance(self._body, ScrollSupportingBody) and isinstance(
+            self._body,
+            (Sized, EstimatedSized),
+        )
         try:
             # A weak reference lets a ListBox over a long-lived walker be collected; the handler goes with it.
             signals.connect_signal(self._body, "modified", type(self)._invalidate, weak_args=[self])

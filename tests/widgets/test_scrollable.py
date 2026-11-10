@@ -1367,7 +1367,7 @@ def trivial_AttrMap(widget):
 
 
 class TestScrollBarFlowSize(unittest.TestCase):
-    """ScrollBar rendered at a flow size, while its sizing stays BOX."""
+    """ScrollBar rendered at a flow size; its sizing is BOX unless the wrapped ListBox has flow set."""
 
     TEXT = "one two three four five six"
 
@@ -1416,6 +1416,56 @@ class TestScrollBarFlowSize(unittest.TestCase):
                     urwid.ListBox([urwid.Edit("", "abcd"), urwid.Edit("", "efgh")]), side=side, visible=visible
                 )
                 urwid.testing.check_flow_sizing(widget)
+
+    def test_sizing_follows_the_wrapped_widget(self) -> None:
+        """FLOW is reported around a ListBox with flow set that reports FLOW, and BOX only otherwise.
+
+        A wrapped ListBox that reports FLOW on its own, without flow set, is laid out as BOX.
+        """
+
+        class OwnFlowListBox(urwid.ListBox):
+            """ListBox that reports FLOW on its own, without flow set."""
+
+            def sizing(self) -> frozenset[urwid.Sizing]:
+                return frozenset((urwid.BOX, urwid.FLOW))
+
+        box = frozenset((urwid.BOX,))
+        wrapping = urwid.SimpleListWalker([urwid.Text("a")], wrap_around=True)
+        for name, wrapped, expected in (
+            ("flow list", urwid.ListBox([urwid.Text("a")], flow=True), frozenset((urwid.BOX, urwid.FLOW))),
+            (
+                "flow list in an AttrMap",
+                urwid.AttrMap(urwid.ListBox([urwid.Text("a")], flow=True), "list"),
+                frozenset((urwid.BOX, urwid.FLOW)),
+            ),
+            (
+                "flow list in a Filler that hides FLOW",
+                urwid.Filler(urwid.ListBox([urwid.Text("a")], flow=True), height=(urwid.RELATIVE, 100)),
+                box,
+            ),
+            ("box list", urwid.ListBox([urwid.Text("a")]), box),
+            ("wrapping flow list", urwid.ListBox(wrapping, flow=True), box),
+            ("scrollable", urwid.Scrollable(urwid.Text("a")), box),
+            ("FLOW reported on its own", OwnFlowListBox([urwid.Text("a")]), box),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, urwid.ScrollBar(wrapped).sizing())
+
+    def test_sizing_agrees_with_the_list_box(self) -> None:
+        """The ScrollBar reports FLOW exactly when the ListBox it wraps does, whatever true or false flow it has."""
+        for flow in (True, 1, "yes", False, 0, None):
+            with self.subTest(flow=flow):
+                lbox = urwid.ListBox([urwid.Text("a")], flow=flow)  # type: ignore[arg-type]
+                self.assertEqual(lbox.sizing(), urwid.ScrollBar(lbox).sizing())
+
+    def test_sizing_with_a_cursor(self) -> None:
+        """Around a ListBox with flow set, every sizing mode renders the size it reports, cursor included."""
+        for side, visible in itertools.product(("right", "left"), (None, True, False)):
+            with self.subTest(side=side, visible=visible):
+                lbox = urwid.ListBox([urwid.Text(self.TEXT), urwid.Edit("> ", "ab")], flow=True)
+                urwid.testing.check_sizing(urwid.ScrollBar(lbox, side=side, visible=visible), cols=10)
+                wrapped = urwid.AttrMap(urwid.ListBox([urwid.Text(self.TEXT), urwid.Edit("> ", "ab")], flow=True), "a")
+                urwid.testing.check_sizing(urwid.ScrollBar(wrapped, side=side, visible=visible), cols=10)
 
     def test_get_cursor_coords(self) -> None:
         """The cursor of the Edit below the wrapped Text is reported where a flow render draws it."""

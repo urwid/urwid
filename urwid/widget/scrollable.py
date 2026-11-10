@@ -32,6 +32,7 @@ import typing
 from urwid.util import is_mouse_press
 
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, MouseButton, Sizing
+from .listbox import ListBox
 from .widget import AbstractBoxWidget, AbstractWidget
 from .widget_decoration import WidgetDecoration, WidgetError
 
@@ -42,7 +43,6 @@ if typing.TYPE_CHECKING:
     from urwid import Canvas, CompositeCanvas
 
     from .container import WidgetContainerListContentsMixin
-    from .listbox import ListBox
     from .widget import AbstractFixedWidget, AbstractFlowWidget
 
 
@@ -645,12 +645,26 @@ def _pos_at_thumb_top(row: int, posmax: int, thumb_travel: int) -> int:
 
 
 class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
-    """Box widget decoration that adds a scrollbar alongside a scrollable wrapped widget."""
+    """Widget decoration that adds a scrollbar alongside a scrollable wrapped widget."""
 
     Symbols: typing.ClassVar[type[ScrollbarSymbols]] = ScrollbarSymbols
 
     def sizing(self) -> frozenset[Sizing]:
-        """Return that this widget is always a box widget."""
+        """Return BOX, and FLOW as well for a wrapped :class:`ListBox` with :attr:`ListBox.flow` set.
+
+        The ListBox may be wrapped in decorations such as :class:`AttrMap`, as long as they report FLOW too.
+        """
+        # Only the opt-in of the ListBox counts: a wrapped widget that reports FLOW on its own is laid out as BOX.
+        # The flag is tested by truth, as ListBox.sizing() tests it.
+        # Containers call sizing() on every layout, so a box-only wrapped widget is answered before any walk,
+        # and the walk tests a class rather than the SupportsScroll protocol, which is slow for a widget it misses.
+        ow = self._original_widget
+        if Sizing.FLOW not in ow.sizing():
+            return frozenset((Sizing.BOX,))
+
+        lbox = next((w for w in orig_iter(ow) if isinstance(w, ListBox)), None)
+        if lbox is not None and lbox.flow:
+            return frozenset((Sizing.BOX, Sizing.FLOW))
         return frozenset((Sizing.BOX,))
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
@@ -703,7 +717,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         thumb_focus_attr: Hashable = None,
         marker_dim_attr: Hashable = None,
     ) -> None:
-        """Box widget that adds a scrollbar to `widget`.
+        """Create a widget that adds a scrollbar to `widget`.
 
         :param widget: box widget that has, or wraps a widget that has, the following methods:
 
@@ -804,8 +818,6 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """
         if self._visible is False:
             return None
-
-        from .listbox import ListBox
 
         maxcol, maxrow = size
 
@@ -1154,8 +1166,6 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     def _move_thumb(self, layout: _ScrollbarLayout, row: int, focus: bool) -> bool:
         """Scroll so the thumb top is at *row*, and return whether the wrapped widget could be scrolled."""
-        from .listbox import ListBox
-
         newpos = _pos_at_thumb_top(row - layout.trough_top, layout.posmax, layout.trough_height - layout.thumb_height)
 
         ow_base = self.scrolling_base_widget
@@ -1176,8 +1186,6 @@ def _scrolls_by_scrollpos(widget: SupportsScroll | None) -> bool:
     :meth:`ListBox.set_scrollpos` is left out, so the scrollbar keeps scrolling a :class:`ListBox` by its focus.
     A subclass that defines its own `set_scrollpos` is scrolled through it.
     """
-    from .listbox import ListBox
-
     return (
         hasattr(widget, "set_scrollpos") and getattr(type(widget), "set_scrollpos", None) is not ListBox.set_scrollpos
     )
