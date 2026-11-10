@@ -99,8 +99,10 @@ container widget depend on the widgets it contains and on its options.
 
 A widget can also accept a size it does not report.  A :class:`ListBox`
 renders at a flow size, but reports ``'flow'`` only with ``flow=True``; see
-:ref:`listbox-contents`, and :ref:`shrink_to_fit <shrink-to-fit>` for a dialog
-that takes the rows of its content.
+:ref:`listbox-contents`.  A :class:`Frame` renders at a flow size when its body
+does, and reports ``'flow'`` only with ``flow=True`` as well.  See
+:ref:`shrink_to_fit <shrink-to-fit>` for a dialog that takes the rows of its
+content.
 
 .. list-table:: Sizing Modes of the Included Widgets
    :widths: 45 55
@@ -153,8 +155,10 @@ that takes the rows of its content.
        around; see :ref:`listbox-contents`
    * - :class:`ScrollBar`
      - ``'box'``, and ``'flow'`` as well around a ``ListBox(..., flow=True)``
-   * - :class:`Frame`, :class:`OverlayStack`, :class:`PopUpTarget`,
-       :class:`Scrollable`
+   * - :class:`Frame`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when its body
+       also supports ``'flow'``; it accepts a flow size whenever its body does
+   * - :class:`OverlayStack`, :class:`PopUpTarget`, :class:`Scrollable`
      - ``'box'``
 
 .. _basic-grafic-widgets:
@@ -998,6 +1002,8 @@ With ``shrink_to_fit=True``, a top widget that also supports ``'box'`` is render
 and :class:`Filler` takes the same argument for its body.
 A dialog around a :class:`Table`, or around a :class:`Pile` with a weighted ``ListBox(..., flow=True)`` item,
 then takes the rows of its content, and scrolls the table or the list only when the screen is too short.
+A ``Frame(..., flow=True)`` around such a list keeps its footer, such as a row of buttons, on a short screen:
+with the body or the footer in focus, a :class:`Frame` trims its header first.
 The top widget is measured in and out of focus on each layout.
 
 The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.

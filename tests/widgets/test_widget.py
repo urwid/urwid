@@ -60,6 +60,7 @@ class WidgetPickleTest(unittest.TestCase):
             ),
             (urwid.Filler(urwid.Text("a")), "shrink_to_fit", False),
             (urwid.ListBox([urwid.Text("a")]), "flow", False),
+            (urwid.Frame(urwid.ListBox([urwid.Text("a")])), "flow", False),
         ):
             with self.subTest(type(widget).__name__):
                 state = dict(vars(widget))
