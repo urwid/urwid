@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 import socket
 import threading
 import typing
@@ -544,10 +545,17 @@ class VirtualClockEventLoopTest(unittest.TestCase):
         self.assertEqual([("chain", 1), ("chained", 1.2)], self.fired)
         self.assertEqual(5, self.event_loop.now)
 
-    def test_advance_rejects_a_negative_step(self) -> None:
-        """The clock never moves back."""
-        with self.assertRaisesRegex(ValueError, "must not be negative"):
-            self.event_loop.advance(-1)
+    def test_negative_step_or_pause_is_rejected(self) -> None:
+        """The clock never moves back, and a pause is a finite, non-negative real time."""
+        calls: tuple[tuple[str, Callable[[], None], str], ...] = (
+            ("advance", lambda: self.event_loop.advance(-1), "must not be negative"),
+            ("negative pause", lambda: self.event_loop.run_until_idle(pause=-1), "must be finite and not negative"),
+            ("nan pause", lambda: self.event_loop.run_until_idle(pause=math.nan), "must be finite and not negative"),
+            ("inf pause", lambda: self.event_loop.run_until_idle(pause=math.inf), "must be finite and not negative"),
+        )
+        for name, call, message in calls:
+            with self.subTest(name), self.assertRaisesRegex(ValueError, message):
+                call()
 
     def test_exceptions_from_an_alarm_reach_the_caller(self) -> None:
         """``ExitMainLoop`` and any other exception raised by an alarm leave ``advance()``."""
@@ -562,22 +570,25 @@ class VirtualClockEventLoopTest(unittest.TestCase):
                     self.event_loop.advance(1)
 
     def test_clock_stops_at_the_alarm_that_raised(self) -> None:
-        """An exception leaves the clock at the failing alarm, and the next ``advance()`` goes on from there."""
+        """An exception leaves the clock at the failing alarm, and the next call goes on from there."""
 
         def fail() -> typing.NoReturn:
             raise ZeroDivisionError
 
-        self.event_loop.alarm(1, fail)
-        self.event_loop.alarm(2, self.record("next"))
-        with self.assertRaises(ZeroDivisionError):
-            self.event_loop.advance(5)
-        self.assertEqual(1, self.event_loop.now)
-        self.event_loop.advance(1)
-        self.assertEqual([("next", 2)], self.fired)
-        self.assertEqual(2, self.event_loop.now)
+        for name, args in (("advance", (5,)), ("run_until_idle", ())):
+            with self.subTest(name):
+                self.setUp()
+                self.event_loop.alarm(1, fail)
+                self.event_loop.alarm(2, self.record("next"))
+                with self.assertRaises(ZeroDivisionError):
+                    getattr(self.event_loop, name)(*args)
+                self.assertEqual(1, self.event_loop.now)
+                self.event_loop.advance(1)
+                self.assertEqual([("next", 2)], self.fired)
+                self.assertEqual(2, self.event_loop.now)
 
-    def test_advance_and_run_cannot_be_nested(self) -> None:
-        """A callback that calls ``advance()`` or ``run()`` on its own loop is refused, and the outer call goes on."""
+    def test_runs_cannot_be_nested(self) -> None:
+        """A callback that starts any run of its own loop is refused, and the outer call goes on."""
         errors: list[str] = []
 
         def nest(call: Callable[[], None]) -> None:
@@ -596,9 +607,62 @@ class VirtualClockEventLoopTest(unittest.TestCase):
         self.event_loop.alarm(1, lambda: nest(lambda: self.event_loop.advance(0)))
         self.event_loop.alarm(2, stop)
         self.event_loop.run()
-        self.assertEqual(["advance() and run() cannot be called while the loop runs"] * 3, errors)
+        self.event_loop.alarm(1, lambda: nest(self.event_loop.run_until_idle))
+        self.event_loop.run_until_idle()
+        self.assertEqual(["advance(), run() and run_until_idle() cannot be called while the loop runs"] * 4, errors)
         self.assertEqual([("after", 3)], self.fired)
-        self.assertEqual(5, self.event_loop.now)
+        self.assertEqual(6, self.event_loop.now)
+
+    def test_run_until_idle_fires_every_alarm_and_stops_at_the_last(self) -> None:
+        """Alarms set by alarms fire too, idle runs after each, and an unreadable watched file is not waited for."""
+        reader, _writer = self.socket_pair()
+        self.event_loop.watch_file(reader.fileno(), self.record("read"))
+        self.event_loop.enter_idle(self.record("idle"))
+
+        def chain() -> None:
+            self.fired.append(("chain", self.event_loop.now))
+            self.event_loop.alarm(3600, self.record("chained"))
+
+        self.event_loop.alarm(2, chain)
+        self.event_loop.alarm(1, self.record("first"))
+        self.event_loop.run_until_idle()
+        expected = [("first", 1), ("idle", 1), ("chain", 2), ("idle", 2), ("chained", 3602), ("idle", 3602)]
+        self.assertEqual(expected, self.fired)
+        self.assertEqual(3602, self.event_loop.now)
+        self.fired.clear()
+        self.event_loop.run_until_idle()
+        self.assertEqual([], self.fired)
+        self.assertEqual(3602, self.event_loop.now)
+
+    def test_run_until_idle_with_nothing_to_do(self) -> None:
+        """A loop with no alarm and no watched file returns at once, where ``run()`` fails."""
+        self.event_loop.run_until_idle()
+        self.assertEqual(0, self.event_loop.now)
+
+    def test_run_until_idle_gives_up_after_the_real_time_timeout(self) -> None:
+        """Endless alarms end ``run_until_idle()`` with an error, and a pause does not outlast the timeout."""
+
+        def rearm() -> None:
+            self.event_loop.alarm(1, rearm)
+
+        for pause in (0, 3600):
+            with self.subTest(pause=pause):
+                self.event_loop = urwid.testing.VirtualClockEventLoop(timeout=0.05)
+                self.event_loop.alarm(1, rearm)
+                with self.assertRaises(TimeoutError):
+                    self.event_loop.run_until_idle(pause=pause)
+
+    def test_run_until_idle_pause_lets_a_thread_answer_before_the_next_alarm(self) -> None:
+        """With a pause, a file a thread makes readable is served before the clock jumps to the next alarm."""
+        reader, writer = self.socket_pair()
+        self.event_loop.watch_file(reader.fileno(), lambda: self.fired.append((reader.recv(1).decode(), 0)))
+        self.event_loop.alarm(1, self.record("alarm"))
+        # Without the pause the clock jumps to the alarm, and the loop returns, before the worker has sent.
+        worker = threading.Timer(0.05, writer.send, args=(b"x",))
+        worker.start()
+        self.event_loop.run_until_idle(pause=0.5)
+        worker.join(timeout=5)
+        self.assertEqual([("x", 0), ("alarm", 1)], self.fired)
 
     def test_idle_runs_after_alarms(self) -> None:
         """The idle callbacks run after the alarms that fired, before the clock moves on."""

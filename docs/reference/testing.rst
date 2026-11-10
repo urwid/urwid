@@ -44,4 +44,4 @@ Virtual clock
 -------------
 
 .. autoclass:: VirtualClockEventLoop
-   :members: now, advance, run
+   :members: now, advance, run_until_idle, run

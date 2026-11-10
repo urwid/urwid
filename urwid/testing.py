@@ -25,6 +25,7 @@ Every check raises :exc:`AssertionError` with a message, so the helpers work wit
 from __future__ import annotations
 
 import collections
+import math
 import time
 import typing
 
@@ -561,6 +562,7 @@ class VirtualClockEventLoop(SelectEventLoop):
     The clock moves only while no watched file is readable, so a file that stays readable keeps later alarms from
     coming due until *timeout* runs out.
     A loop with nothing left to do but watch files waits for them in real time, up to *timeout*.
+    :meth:`run_until_idle` runs every pending alarm and readable file instead, and returns once none is left.
 
     The clock is the loop's own: code that reads :func:`time.monotonic` itself does not see it move.
 
@@ -580,15 +582,17 @@ class VirtualClockEventLoop(SelectEventLoop):
     def __init__(self, *, timeout: float = 5.0) -> None:
         """Create a loop whose clock reads 0.
 
-        :param timeout: seconds of real time a :meth:`run` or an :meth:`advance` may take
+        :param timeout: seconds of real time a :meth:`run`, an :meth:`advance` or a :meth:`run_until_idle` may take
         """
         super().__init__()
         self._timeout = timeout
         self._now = 0.0
         self._deadline: float | None = None
-        # Clock time an advance() stops at; None while run() runs.
+        # Clock time an advance() stops at, math.inf for run_until_idle(); None while run() runs.
         self._target: float | None = None
         self._reached = False
+        # Seconds of real time spent watching files before the clock jumps to the next alarm.
+        self._pause = 0.0
 
     @property
     def now(self) -> float:
@@ -605,14 +609,55 @@ class VirtualClockEventLoop(SelectEventLoop):
 
         :param seconds: how far to move the clock; 0 fires the alarms already due
         :raises ValueError: *seconds* is negative.
-        :raises RuntimeError: called from a callback of an :meth:`advance` or a :meth:`run` of this loop.
+        :raises RuntimeError: called from a callback of an :meth:`advance`, a :meth:`run` or a
+            :meth:`run_until_idle` of this loop.
         :raises TimeoutError: the alarms still came due after *timeout* seconds of real time.
         """
         if seconds < 0:
             raise ValueError(f"seconds must not be negative, got {seconds!r}")
-        self._check_not_running()
         target = self._now + seconds
+        self._run_to(target, pause=0.0)
+        self._now = target
+
+    def run_until_idle(self, *, pause: float = 0.0) -> None:
+        """Fire every pending alarm and serve every readable watched file, until none is left.
+
+        The clock jumps from alarm to alarm, as in :meth:`advance`, and stops at the last alarm that fired.
+        Alarms set by the callbacks fire in the same call.
+        The loop enters idle before it returns, so a started :class:`~urwid.MainLoop` has drawn the screen.
+        A watched file that is not readable is waited for only during the pauses.
+        Exceptions raised by the callbacks, :exc:`~urwid.ExitMainLoop` included, reach the caller.
+
+        >>> event_loop = VirtualClockEventLoop()
+        >>> _ = event_loop.alarm(3, lambda: event_loop.alarm(2, lambda: None))
+        >>> event_loop.run_until_idle()
+        >>> event_loop.now
+        5.0
+
+        :param pause: seconds of real time to watch the files before each jump of the clock to the next alarm,
+            so a worker thread polled by an alarm can hand back its result, for example through
+            :meth:`~urwid.MainLoop.call_from_thread`; the pauses count toward *timeout*
+        :raises ValueError: *pause* is negative or not finite.
+        :raises RuntimeError: called from a callback of an :meth:`advance`, a :meth:`run` or a
+            :meth:`run_until_idle` of this loop.
+        :raises TimeoutError: alarms were still pending, or a file still readable, after *timeout* seconds of
+            real time.
+        """
+        if not (math.isfinite(pause) and pause >= 0):
+            raise ValueError(f"pause must be finite and not negative, got {pause!r}")
+        self._run_to(math.inf, pause=pause)
+
+    def _run_to(self, target: float, *, pause: float) -> None:
+        """Run the loop until the next alarm is due after *target* and no file is readable.
+
+        :param target: clock time to stop at; :data:`math.inf` runs until no alarm is pending
+        :param pause: seconds of real time to watch the files before the clock jumps to the next alarm
+        :raises RuntimeError: an :meth:`advance`, a :meth:`run` or a :meth:`run_until_idle` of this loop is running.
+        :raises TimeoutError: the loop still ran after *timeout* seconds of real time.
+        """
+        self._check_not_running()
         self._target = target
+        self._pause = pause
         self._reached = False
         self._deadline = time.monotonic() + self._timeout
         try:
@@ -620,15 +665,16 @@ class VirtualClockEventLoop(SelectEventLoop):
                 self._loop()
         finally:
             self._target = None
+            self._pause = 0.0
             self._deadline = None
-        self._now = target
 
     def run(self) -> None:
         """Run the loop until a callback raises :exc:`~urwid.ExitMainLoop`.
 
         :raises TimeoutError: the loop still ran after *timeout* seconds of real time.
         :raises RuntimeError: no alarm is pending and no file is watched, so the loop would wait forever.
-            Also when called from a callback of an :meth:`advance` or a :meth:`run` of this loop.
+            Also when called from a callback of an :meth:`advance`, a :meth:`run` or a :meth:`run_until_idle` of
+            this loop.
         """
         self._check_not_running()
         self._deadline = time.monotonic() + self._timeout
@@ -640,11 +686,11 @@ class VirtualClockEventLoop(SelectEventLoop):
     def _check_not_running(self) -> None:
         """Refuse to start a run inside another one, which would overwrite its target and deadline.
 
-        :raises RuntimeError: an :meth:`advance` or a :meth:`run` of this loop is running.
+        :raises RuntimeError: an :meth:`advance`, a :meth:`run` or a :meth:`run_until_idle` of this loop is running.
         """
-        # Both set the deadline for their whole duration, and only they set it.
+        # Each of them sets the deadline for its whole duration, and only they set it.
         if self._deadline is not None:
-            raise RuntimeError("advance() and run() cannot be called while the loop runs")
+            raise RuntimeError("advance(), run() and run_until_idle() cannot be called while the loop runs")
 
     def _loop(self) -> None:
         """Run one iteration of the loop, unless it has run out of real time or has nothing to wait for."""
@@ -661,7 +707,10 @@ class VirtualClockEventLoop(SelectEventLoop):
     def _wait(self, selector: selectors.BaseSelector, timeout: float | None) -> list[selectors.SelectorKey]:
         """Return the readable watched files.
 
-        When none is readable, the clock moves to the next alarm, or to the end of an :meth:`advance`, without waiting.
+        When none is readable, the clock moves to the next alarm.
+        A :meth:`run_until_idle` with a pause first watches the files, or sleeps when none is watched,
+        for that pause or until its deadline.
+        An :meth:`advance` or a :meth:`run_until_idle` with no alarm due at or before its target ends instead.
         A :meth:`run` with no alarm pending waits for a file in real time, up to its deadline.
 
         :param selector: selector registering every watched file
@@ -676,10 +725,16 @@ class VirtualClockEventLoop(SelectEventLoop):
         # A positive timeout always runs to the first alarm.
         due = None if timeout is None else self._alarms[0][0]
         if self._target is not None and (due is None or due > self._target):
-            self._now = self._target
+            # advance() sets the clock to its target once the loop has stopped.
             self._reached = True
             return []
         if due is not None:
+            if self._pause and self._deadline is not None:
+                pause = min(self._pause, max(0.0, self._deadline - time.monotonic()))
+                if not self._watch_files:
+                    time.sleep(pause)
+                elif ready := [event for event, _ in selector.select(pause)]:
+                    return ready
             self._now = due
             return []
         remaining = 0.0 if self._deadline is None else max(0.0, self._deadline - time.monotonic())

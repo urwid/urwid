@@ -93,6 +93,12 @@ so a widget that expires, blinks or polls is tested without waiting for it::
     >>> notifications.notifications
     ()
 
+When a test needs the state after everything an application has scheduled, rather than at a chosen time,
+:meth:`~VirtualClockEventLoop.run_until_idle` fires the alarms until none is pending and returns with the clock at the
+last one.
+Its ``pause`` argument watches the files for that many seconds of real time before each jump of the clock,
+so a worker thread polled by an alarm can hand back its result through :meth:`~urwid.MainLoop.call_from_thread`.
+
 The clock is the loop's own: a widget that reads :func:`time.monotonic` itself, such as :class:`~urwid.Spinner`
 choosing its frame, does not see it move.
 
