@@ -197,6 +197,33 @@ class RenderRunsTest(unittest.TestCase):
         self.assertEqual([], urwid.testing.render_runs(urwid.SolidFill(), (0, 0)))
 
 
+class AttrsForTextTest(unittest.TestCase):
+    """Tests for :func:`urwid.testing.attrs_for_text`."""
+
+    def test_attributes_of_the_runs_holding_the_text(self) -> None:
+        """Every run holding the text contributes its attribute, on any row."""
+        widget = urwid.Pile([urwid.Text([("a", "ok"), ("b", "fail")]), urwid.Text(("c", "ok"))])
+        self.assertEqual(frozenset({"a", "c"}), urwid.testing.attrs_for_text(widget, (6,), "ok"))
+        self.assertEqual(frozenset({"b"}), urwid.testing.attrs_for_text(widget, (6,), "fail"))
+
+    def test_text_across_two_attributes_is_not_found(self) -> None:
+        """A text that spans two attributes is in no single run."""
+        widget = urwid.Text([("a", "ok"), ("b", "fail")])
+        self.assertEqual(frozenset(), urwid.testing.attrs_for_text(widget, (6,), "kf"))
+
+    def test_text_in_runs_split_by_the_canvas(self) -> None:
+        """Runs the canvas splits for a character set are merged before the search."""
+        widget = urwid.Text(("a", "a\N{BOX DRAWINGS LIGHT HORIZONTAL}b"))
+        with set_temporary_encoding("ascii"):
+            urwid.CanvasCache.clear()
+            self.assertEqual(frozenset({"a"}), urwid.testing.attrs_for_text(widget, (3,), "aqb"))
+
+    def test_focus(self) -> None:
+        """The runs are taken from the canvas rendered with *focus*."""
+        widget = urwid.AttrMap(urwid.SelectableIcon("x"), "normal", "focused")
+        self.assertEqual(frozenset({"focused"}), urwid.testing.attrs_for_text(widget, (1,), "x", focus=True))
+
+
 class ResolveAttrTest(unittest.TestCase):
     palette: typing.ClassVar[list[tuple[Hashable, ...]]] = [
         ("x", "dark red", "light gray", "bold", "#f00", "#000"),

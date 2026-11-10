@@ -10,6 +10,8 @@ Rendering
 
 .. autofunction:: render_runs
 
+.. autofunction:: attrs_for_text
+
 .. autofunction:: resolve_attr
 
 .. autofunction:: resolve_runs

@@ -10,7 +10,14 @@ A widget renders to a canvas and handles keys and mouse events through plain met
 terminal. The :mod:`urwid.testing` module collects the helpers such tests keep rewriting. It is not imported by
 :mod:`urwid`, so the examples below start with::
 
-    from urwid.testing import ScriptedScreen, check_sizing, press, render_runs, render_text
+    from urwid.testing import (
+        ScriptedScreen,
+        attrs_for_text,
+        check_sizing,
+        press,
+        render_runs,
+        render_text,
+    )
 
 Every check raises :exc:`AssertionError` with a message that names the call and the mismatch, and the module
 imports no test framework, so the helpers work with :mod:`unittest`, pytest or any other runner.
@@ -26,6 +33,12 @@ Rendering
     ['ab ', 'cd ']
     >>> render_runs(Text([("bold", "Hi"), "!"]), (3,))
     [[('bold', 'Hi'), (None, '!')]]
+
+:func:`attrs_for_text` returns the attributes of the runs that contain a text, to check how one label is drawn
+without spelling out the whole row::
+
+    >>> attrs_for_text(Text([("bold", "Hi"), "!"]), (3,), "Hi")
+    frozenset({'bold'})
 
 :func:`resolve_attr` and :func:`resolve_runs` show the colors a screen with a given palette draws those attributes
 with.

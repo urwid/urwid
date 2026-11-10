@@ -48,6 +48,7 @@ if typing.TYPE_CHECKING:
 
 __all__ = (
     "ScriptedScreen",
+    "attrs_for_text",
     "check_box_sizing",
     "check_fixed_sizing",
     "check_flow_sizing",
@@ -121,6 +122,33 @@ def render_runs(widget: AbstractWidget, size: _Size, *, focus: bool = False) -> 
     :returns: one list of ``(attr, text)`` pairs per canvas row, the text decoded with the target encoding.
     """
     return _runs(widget.render(size, focus=focus))
+
+
+def attrs_for_text(
+    widget: AbstractWidget,
+    size: _Size,
+    text: str,
+    *,
+    focus: bool = False,
+) -> frozenset[Hashable]:
+    """Render *widget* and return the display attributes of the runs that contain *text*.
+
+    Adjacent runs with the same attribute are merged first, as in :func:`render_runs`,
+    so *text* is found even where the canvas splits it.
+
+    >>> from urwid import Text
+    >>> attrs_for_text(Text([("bold", "Hi"), " there"]), (10,), "Hi")
+    frozenset({'bold'})
+    >>> attrs_for_text(Text([("bold", "Hi"), " there"]), (10,), "Hi there")
+    frozenset()
+
+    :param widget: widget to render
+    :param size: size to render *widget* with: ``()``, ``(cols,)`` or ``(cols, rows)``
+    :param text: text to look for within one run
+    :param focus: whether *widget* is rendered in focus
+    :returns: the attribute of every run containing *text*; empty when no single run contains it.
+    """
+    return frozenset(attr for row in render_runs(widget, size, focus=focus) for attr, run in row if text in run)
 
 
 class _PaletteScreen(BaseScreen):
