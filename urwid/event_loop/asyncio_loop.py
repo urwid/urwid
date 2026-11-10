@@ -187,8 +187,9 @@ class AsyncioEventLoop(EventLoop):
         call_idle = self._also_call_idle(callback)
 
         def fire() -> None:
-            if (handle := handle_ref()) is not None:
-                self._pending_alarms.discard(handle)
+            # The loop holds the running handle alive; keep only a weak reference here.
+            fired_handle = typing.cast("asyncio.TimerHandle", handle_ref())
+            self._pending_alarms.discard(fired_handle)
             call_idle()
 
         handle = self._loop.call_later(seconds, fire)
@@ -200,7 +201,8 @@ class AsyncioEventLoop(EventLoop):
         """
         Remove an alarm.
 
-        :returns: True if the alarm was still pending, False if it has fired or was removed already.
+        :returns: True if the alarm was still pending, False if it has fired, was removed already,
+            or was cancelled directly with handle.cancel().
         """
         existed = handle in self._pending_alarms and not handle.cancelled()
         self._pending_alarms.discard(handle)
