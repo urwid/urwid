@@ -2822,6 +2822,19 @@ class ListBoxWheelModeTest(unittest.TestCase):
         lbox.render(size, focus=True)
         self.assertEqual((3, 3, 0), (lbox.get_scrollpos(size, focus=True), lbox.focus_position, lbox.pref_col))
 
+    def test_view_moves_focus_once(self) -> None:
+        """A notch moves the focus of the body at most once, whichever candidates it passes over."""
+        size = (10, 3)
+        # The Edit is the candidate twice, and its cursor on its last row keeps it out of a one-row scroll each time.
+        edit = urwid.Edit("", "l1\nl2\nl3\nl4", multiline=True)
+        walker = urwid.SimpleFocusListWalker([SelectableText("a"), edit, SelectableText("c")])
+        moves: list[tuple[int | None, int | None]] = []
+        walker.set_focus_moved_callback(lambda old, new: moves.append((old, new)))
+        lbox = urwid.ListBox(walker, wheel="view")
+        lbox.render(size, focus=True)
+        self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        self.assertEqual([(0, 1)], moves)
+
     def test_view_returns_wheel_at_the_end(self) -> None:
         """At the last row a further notch down is returned unhandled, so a parent can use it."""
         size = (5, 3)
