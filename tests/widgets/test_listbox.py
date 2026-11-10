@@ -2413,6 +2413,29 @@ class ListBoxScrollProtocolTest(unittest.TestCase):
                     canvas.decoded_text,
                 )
 
+    def test_set_scrollpos_selectable(self) -> None:
+        """A focus that leaves the view goes to the selectable widget nearest the edge it left by."""
+        size = (5, 3)
+        # Items 0, 1, 5 and 9 are selectable, the others are not; each item takes one row.
+        selectable = {0, 1, 5, 9}
+        for start_focus, position, expected_focus in (
+            (0, 3, 5),  # the focus left above: the first selectable widget from the top of the view
+            (0, 2, 2),  # no selectable widget in the view: the first widget in it
+            (9, 0, 1),  # the focus left below: the first selectable widget from the bottom of the view
+            (9, 4, 5),
+        ):
+            with self.subTest(start_focus=start_focus, position=position):
+                lbox = urwid.ListBox(
+                    urwid.SimpleListWalker(
+                        [SelectableText(str(i)) if i in selectable else urwid.Text(str(i)) for i in range(10)]
+                    )
+                )
+                lbox.set_focus(start_focus)
+                lbox.render(size)
+                lbox.set_scrollpos(position)
+                lbox.render(size)
+                self.assertEqual((position, expected_focus), (lbox.get_scrollpos(size), lbox.focus_position))
+
     def test_set_scrollpos_after_pending_focus(self) -> None:
         """A focus placement still pending from before does not move the view away from the requested row."""
         size = (5, 3)
@@ -2759,6 +2782,45 @@ class ListBoxWheelModeTest(unittest.TestCase):
                     self.assertIs(handled, lbox.mouse_event(size, "mouse press", button, 0, 0, focus=True))
                     lbox.render(size, focus=True)
                     self.assertEqual((top, focus_position), (lbox.get_scrollpos(size), lbox.focus_position))
+
+    def test_view_selectable(self) -> None:
+        """A notch that scrolls the focus out of view hands it to the nearest selectable widget in the view."""
+        size = (5, 3)
+        # Items 0, 1, 5 and 9 are selectable, the others are not; each item takes one row.
+        selectable = {0, 1, 5, 9}
+        walker = urwid.SimpleFocusListWalker(
+            [SelectableText(str(i)) if i in selectable else urwid.Text(str(i)) for i in range(10)]
+        )
+        lbox = urwid.ListBox(walker, wheel="view")
+        lbox.render(size, focus=True)
+        # Each notch: button, then the expected first visible row and focus position after it.
+        # Rows 2-4 hold no selectable widget, so the widget at the edge takes the focus there.
+        for button, top, focus_position in ((5, 1, 1), (5, 2, 2), (5, 3, 5), (4, 2, 4), (4, 1, 1)):
+            self.assertTrue(lbox.mouse_event(size, "mouse press", button, 0, 0, focus=True))
+            lbox.render(size, focus=True)
+            self.assertEqual((top, focus_position), (lbox.get_scrollpos(size), lbox.focus_position))
+
+    def test_view_selectable_with_cursor_out_of_view(self) -> None:
+        """A selectable widget whose cursor would move the view leaves the focus to the widget at the edge.
+
+        The preferred cursor column stays the one the notch found, not the one of the widget that was passed over.
+        """
+        size = (5, 3)
+        # Item 2 has its cursor in column 0; item 5 is a three-row Edit with its cursor at the end of its last row.
+        walker = urwid.SimpleFocusListWalker([
+            *map(urwid.Text, "01"),
+            urwid.Edit("", "ab", edit_pos=0),
+            *map(urwid.Text, "34"),
+            urwid.Edit("", "5a\n5b\n5c", multiline=True),
+            *map(urwid.Text, "6789"),
+        ])
+        lbox = urwid.ListBox(walker, wheel="view")
+        lbox.render(size, focus=True)
+        lbox.change_focus(size, 2, 0)
+        lbox.render(size, focus=True)
+        self.assertTrue(lbox.mouse_event(size, "mouse press", 5, 0, 0, focus=True))
+        lbox.render(size, focus=True)
+        self.assertEqual((3, 3, 0), (lbox.get_scrollpos(size, focus=True), lbox.focus_position, lbox.pref_col))
 
     def test_view_returns_wheel_at_the_end(self) -> None:
         """At the last row a further notch down is returned unhandled, so a parent can use it."""
