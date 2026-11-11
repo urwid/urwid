@@ -28,6 +28,7 @@ import functools
 import inspect
 import logging
 import typing
+import weakref
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -89,7 +90,7 @@ class AsyncioEventLoop(EventLoop):
         self._idle_handle: int = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
         self._background_tasks: set[asyncio.Task[typing.Any]] = set()
-        self._pending_alarms: set[asyncio.TimerHandle] = set()
+        self._pending_alarms: weakref.WeakSet[asyncio.TimerHandle] = weakref.WeakSet()
 
     def __del__(self) -> None:
         """Close the runner created for a loop that was neither given nor running.
@@ -186,10 +187,13 @@ class AsyncioEventLoop(EventLoop):
         call_idle = self._also_call_idle(callback)
 
         def fire() -> None:
-            self._pending_alarms.discard(handle)
+            # The loop holds the running handle alive; keep only a weak reference here.
+            fired_handle = typing.cast("asyncio.TimerHandle", handle_ref())
+            self._pending_alarms.discard(fired_handle)
             call_idle()
 
         handle = self._loop.call_later(seconds, fire)
+        handle_ref = weakref.ref(handle)
         self._pending_alarms.add(handle)
         return handle
 
@@ -197,14 +201,13 @@ class AsyncioEventLoop(EventLoop):
         """
         Remove an alarm.
 
-        :returns: True if the alarm was still pending, False if it has fired or was removed already.
+        :returns: True if the alarm was still pending, False if it has fired, was removed already,
+            or was cancelled directly with handle.cancel().
         """
+        existed = handle in self._pending_alarms and not handle.cancelled()
+        self._pending_alarms.discard(handle)
         handle.cancel()
-        try:
-            self._pending_alarms.remove(handle)
-        except KeyError:
-            return False
-        return True
+        return existed
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """Call callback() when fd has some data to read.

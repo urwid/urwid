@@ -14,6 +14,7 @@ import threading
 import time
 import typing
 import unittest
+import weakref
 from unittest import mock
 
 import urwid
@@ -739,6 +740,105 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
         self.evl_runner.close()
 
     _expected_idle_handle = None
+
+    def test_remove_alarm_from_its_callback(self):
+        async def scenario():
+            removed = self.loop.create_future()
+
+            def callback():
+                removed.set_result(self.evl.remove_alarm(handle))
+
+            handle = self.evl.alarm(0, callback)
+
+            self.assertFalse(await asyncio.wait_for(removed, 1))
+
+        self.loop.run_until_complete(scenario())
+
+    def test_remove_alarm_from_its_async_callback(self):
+        async def scenario():
+            removed = self.loop.create_future()
+
+            async def callback():
+                await asyncio.sleep(0)
+                removed.set_result(self.evl.remove_alarm(handle))
+
+            handle = self.evl.alarm(0, callback)
+
+            self.assertFalse(await asyncio.wait_for(removed, 1))
+
+        self.loop.run_until_complete(scenario())
+
+    def test_directly_cancelled_alarm(self):
+        async def scenario():
+            handle = self.evl.alarm(60, lambda: None)
+            handle.cancel()
+
+            self.assertFalse(self.evl.remove_alarm(handle))
+
+        self.loop.run_until_complete(scenario())
+
+    def test_directly_cancelled_handle_is_not_retained(self):
+        async def scenario():
+            handle = self.evl.alarm(60, lambda: None)
+            handle_ref = weakref.ref(handle)
+            handle.cancel()
+            del handle
+
+            # This fresh loop has no earlier timer: the cancelled handle is at the
+            # head of asyncio's scheduled heap and is dropped on the next iteration.
+            await asyncio.sleep(0)
+            gc.collect()
+
+            self.assertIsNone(handle_ref())
+
+        self.loop.run_until_complete(scenario())
+
+    def test_removing_one_alarm_preserves_another(self):
+        async def scenario():
+            fired = self.loop.create_future()
+            called = []
+            cancelled = self.evl.alarm(0, lambda: called.append(True))
+            remaining = self.evl.alarm(0, lambda: fired.set_result(None))
+
+            self.assertTrue(self.evl.remove_alarm(cancelled))
+            await asyncio.wait_for(fired, 1)
+
+            self.assertFalse(self.evl.remove_alarm(remaining))
+            self.assertEqual(called, [])
+
+        self.loop.run_until_complete(scenario())
+
+    def test_fired_handle_stays_uncancelled(self):
+        async def scenario():
+            fired = self.loop.create_future()
+            handle = self.evl.alarm(0, lambda: fired.set_result(None))
+
+            await asyncio.wait_for(fired, 1)
+
+            self.assertFalse(handle.cancelled())
+
+        self.loop.run_until_complete(scenario())
+
+    @unittest.skipUnless(sys.implementation.name == "cpython", "Requires reference counting")
+    def test_fired_handle_does_not_require_cyclic_gc(self):
+        async def scenario():
+            gc_was_enabled = gc.isenabled()
+            gc.disable()
+            try:
+                fired = self.loop.create_future()
+                handle = self.evl.alarm(0, lambda: fired.set_result(None))
+                handle_ref = weakref.ref(handle)
+                del handle
+
+                await asyncio.wait_for(fired, 1)
+                await asyncio.sleep(0)
+
+                self.assertIsNone(handle_ref())
+            finally:
+                if gc_was_enabled:
+                    gc.enable()
+
+        self.loop.run_until_complete(scenario())
 
     def test_main_loops_in_separate_tasks_see_their_own(self) -> None:
         """Two loops started in two tasks of one asyncio loop each see their own; a third task sees none."""
