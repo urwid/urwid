@@ -255,6 +255,10 @@ value from the widget:
     drop_down = urwid.DropDown(["Red", "Green", "Blue"], selected=1)
     urwid.connect_signal(drop_down, "change", on_change)
 
+The ``'postchange'`` signal is sent with the previous index once
+:attr:`DropDown.selected` and the label show the new option, so a callback
+that reads the widget sees the new value.
+
 The list is a pop-up, so :class:`DropDown` needs a :class:`PopUpTarget`;
 see :class:`DropDown` for the requirement.
 

@@ -61,6 +61,22 @@ class DropDownSelectionTest(unittest.TestCase):
         self.assertEqual([(0, 2)], seen)
         self.assertEqual([b"blue  v"], drop_down.render(()).text)
 
+    def test_postchange_signal_sees_the_new_value(self) -> None:
+        """ "postchange" follows a change, with the previous index, once the label shows the new option."""
+        drop_down = urwid.DropDown(COLOURS)
+        seen = []
+        urwid.connect_signal(
+            drop_down,
+            "postchange",
+            lambda widget, previous: seen.append((widget.selected, previous, widget.render(()).text)),
+        )
+
+        drop_down.selected = 2
+        drop_down.selected = 2  # no change, no signal
+        drop_down.selected = 1
+
+        self.assertEqual([(2, 0, [b"blue  v"]), (1, 2, [b"green v"])], seen)
+
     def test_selected_out_of_range(self) -> None:
         drop_down = urwid.DropDown(COLOURS)
         with self.assertRaises(IndexError):
