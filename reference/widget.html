@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 5.1.1</title>
+    <title>Widget Classes &#8212; Urwid 5.1.2</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=1bd908e2"></script>
+    <script src="../_static/documentation_options.js?v=2c218288"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -2124,7 +2124,13 @@ are drawn with the DEC special graphics character set.</p></li>
 <p class="admonition-title">Note</p>
 <p>The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
 and of Windows Terminal, show every member.
-The default fonts of the Linux virtual console and of the classic Windows console
+The default fonts of the Linux virtual console are:</p>
+<ul class="simple">
+<li><p>Ubuntu: Fixed 8x16.</p></li>
+<li><p>Fedora and openSUSE: eurlatgr.</p></li>
+<li><p>Arch: the built-in 8x16 font of the kernel.</p></li>
+</ul>
+<p>The default fonts of the Linux virtual console and of the classic Windows console
 show these non-ASCII members:</p>
 <table class="docutils align-default">
 <thead>
@@ -2783,6 +2789,14 @@ function call for a single callback</p></li>
 </dl>
 <p>..note:: <cite>pack</cite> method expect, that <cite>Columns</cite> backend widget is not modified from outside</p>
 <p>Signals supported: <code class="docutils literal notranslate"><span class="pre">'change'</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;postchange&quot;</span></code></p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;change&quot;</span></code> is sent before the state changes.
+The callback gets the new state.
+<a class="reference internal" href="#urwid.CheckBox.state" title="urwid.CheckBox.state"><code class="xref py py-attr docutils literal notranslate"><span class="pre">state</span></code></a> still holds the old one.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;postchange&quot;</span></code> is sent after the state changes.
+The callback gets the old state.
+<a class="reference internal" href="#urwid.CheckBox.state" title="urwid.CheckBox.state"><code class="xref py py-attr docutils literal notranslate"><span class="pre">state</span></code></a> holds the new one.</p></li>
+</ul>
 <p>Register signal handler with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">check_box</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
@@ -2816,7 +2830,13 @@ Unregister signal handlers with:</p>
 <p class="admonition-title">Note</p>
 <p>The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
 and of Windows Terminal, show every member.
-The default fonts of the Linux virtual console and of the classic Windows console
+The default fonts of the Linux virtual console are:</p>
+<ul class="simple">
+<li><p>Ubuntu: Fixed 8x16.</p></li>
+<li><p>Fedora and openSUSE: eurlatgr.</p></li>
+<li><p>Arch: the built-in 8x16 font of the kernel.</p></li>
+</ul>
+<p>The default fonts of the Linux virtual console and of the classic Windows console
 show these non-ASCII members:</p>
 <table class="docutils align-default">
 <thead>
@@ -2853,77 +2873,98 @@ show these non-ASCII members:</p>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_CIRCLE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MIDDLE_DOT</span></code></p></td>
+<td><p>·</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_CIRCLE</span></code></p></td>
 <td><p>●</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>no</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WHITE_CIRCLE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WHITE_CIRCLE</span></code></p></td>
 <td><p>○</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FULL_BLOCK</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FISHEYE</span></code></p></td>
+<td><p>◉</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CIRCLED_SLASH</span></code></p></td>
+<td><p>⊘</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">FULL_BLOCK</span></code></p></td>
 <td><p>█</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MEDIUM_SHADE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MEDIUM_SHADE</span></code></p></td>
 <td><p>▒</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">MINUS_SIGN</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">MINUS_SIGN</span></code></p></td>
 <td><p>U+2212</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>no</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">EN_DASH</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">EN_DASH</span></code></p></td>
 <td><p>U+2013</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>no</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">LIGHT_SHADE</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">LIGHT_SHADE</span></code></p></td>
 <td><p>░</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">HALF_CIRCLE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HALF_CIRCLE</span></code></p></td>
 <td><p>◐</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_SQUARE</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_SQUARE</span></code></p></td>
 <td><p>■</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">WHITE_SQUARE</span></code></p></td>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">WHITE_SQUARE</span></code></p></td>
 <td><p>□</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
 <td><p>yes</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_SQUARE_SMALL</span></code></p></td>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BLACK_SQUARE_SMALL</span></code></p></td>
 <td><p>▪</p></td>
 <td><p>no</p></td>
 <td><p>no</p></td>
@@ -3157,7 +3198,11 @@ function call for a single ‘change’ callback</p></li>
 <p>This function will append the new radio button to group.
 “first True” will set to True if group is empty.
 A button created with state True clears the other buttons of the group, as <a class="reference internal" href="#urwid.RadioButton.set_state" title="urwid.RadioButton.set_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_state()</span></code></a> does.</p>
-<p>Signals supported: <code class="docutils literal notranslate"><span class="pre">'change'</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;postchange&quot;</span></code></p>
+<p>Signals supported: <code class="docutils literal notranslate"><span class="pre">'change'</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;postchange&quot;</span></code>, sent as described for <a class="reference internal" href="#urwid.CheckBox" title="urwid.CheckBox"><code class="xref py py-class docutils literal notranslate"><span class="pre">CheckBox</span></code></a>.</p>
+<p>Selecting a button with <a class="reference internal" href="#urwid.RadioButton.set_state" title="urwid.RadioButton.set_state"><code class="xref py py-meth docutils literal notranslate"><span class="pre">set_state()</span></code></a> sends its own signals first.
+Then the previously selected button of the group is cleared and sends its signals.
+So in the handlers of the newly selected button the previously selected button is still True.
+In the <code class="docutils literal notranslate"><span class="pre">&quot;postchange&quot;</span></code> handler of the cleared button, <a class="reference internal" href="#urwid.RadioButton.selected_button" title="urwid.RadioButton.selected_button"><code class="xref py py-attr docutils literal notranslate"><span class="pre">selected_button</span></code></a> is the new selection.</p>
 <p>Register signal handler with:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">radio_button</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">user_data</span><span class="p">)</span>
 </pre></div>
@@ -3178,6 +3223,18 @@ Unregister signal handlers with:</p>
 <span class="go">&lt;RadioButton selectable fixed/flow widget 'Disagree' state=False&gt;</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">b2</span><span class="o">.</span><span class="n">render</span><span class="p">((</span><span class="mi">15</span><span class="p">,),</span> <span class="n">focus</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">text</span>  <span class="c1"># ... = b in Python 3</span>
 <span class="go">[...'( ) Disagree   ']</span>
+</pre></div>
+</div>
+<p>Signal order when the selection moves from b1 to b2,
+printed as the button, the signal argument and then the states of b1 and b2:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span><span class="w"> </span><span class="nf">report</span><span class="p">(</span><span class="n">button</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="n">button</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">b1</span><span class="o">.</span><span class="n">state</span><span class="p">,</span> <span class="n">b2</span><span class="o">.</span><span class="n">state</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">report</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">bgroup</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"change"</span><span class="p">,</span> <span class="s2">"postchange"</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b2</span><span class="o">.</span><span class="n">set_state</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">Disagree True True False</span>
+<span class="go">Disagree False True True</span>
+<span class="go">Agree False True True</span>
+<span class="go">Agree True False True</span>
 </pre></div>
 </div>
 <dl class="py property">
@@ -7354,7 +7411,13 @@ Only the <code class="docutils literal notranslate"><span class="pre">ASCII</spa
 <p class="admonition-title">Note</p>
 <p>The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
 and of Windows Terminal, show every member.
-The default fonts of the Linux virtual console and of the classic Windows console
+The default fonts of the Linux virtual console are:</p>
+<ul class="simple">
+<li><p>Ubuntu: Fixed 8x16.</p></li>
+<li><p>Fedora and openSUSE: eurlatgr.</p></li>
+<li><p>Arch: the built-in 8x16 font of the kernel.</p></li>
+</ul>
+<p>The default fonts of the Linux virtual console and of the classic Windows console
 show these non-ASCII members:</p>
 <table class="docutils align-default">
 <thead>
@@ -8498,7 +8561,13 @@ On a terminal without UTF-8:</p>
 <p class="admonition-title">Note</p>
 <p>The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
 and of Windows Terminal, show every member.
-The default fonts of the Linux virtual console and of the classic Windows console
+The default fonts of the Linux virtual console are:</p>
+<ul class="simple">
+<li><p>Ubuntu: Fixed 8x16.</p></li>
+<li><p>Fedora and openSUSE: eurlatgr.</p></li>
+<li><p>Arch: the built-in 8x16 font of the kernel.</p></li>
+</ul>
+<p>The default fonts of the Linux virtual console and of the classic Windows console
 show none of the non-ASCII members,
 so use <code class="xref py py-attr docutils literal notranslate"><span class="pre">LINE</span></code> or <code class="xref py py-attr docutils literal notranslate"><span class="pre">DOTS</span></code> there unless the console font has wider coverage.</p>
 </div>
@@ -9013,7 +9082,13 @@ and <a class="reference internal" href="#urwid.widget.scrollable.ScrollbarSymbol
 <p class="admonition-title">Note</p>
 <p>The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
 and of Windows Terminal, show every member.
-The default fonts of the Linux virtual console and of the classic Windows console
+The default fonts of the Linux virtual console are:</p>
+<ul class="simple">
+<li><p>Ubuntu: Fixed 8x16.</p></li>
+<li><p>Fedora and openSUSE: eurlatgr.</p></li>
+<li><p>Arch: the built-in 8x16 font of the kernel.</p></li>
+</ul>
+<p>The default fonts of the Linux virtual console and of the classic Windows console
 show these non-ASCII members:</p>
 <table class="docutils align-default">
 <thead>
@@ -10469,7 +10544,7 @@ show these non-ASCII members:</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.1</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
