@@ -294,9 +294,25 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
     if start_offs > end_offs:
         raise ValueError((start_offs, end_offs))
 
+    window = max(pref_col, 0) + 16
+    if (
+        type(text) is str
+        and type(start_offs) is int
+        and type(end_offs) is int
+        and type(pref_col) is int
+        and 0 <= start_offs <= end_offs <= len(text)
+        and pref_col >= 0
+    ):
+        stop = min(end_offs, start_offs + window)
+        segment = text[start_offs:stop]
+        if SAFE_ASCII_RE.fullmatch(segment) and (stop == end_offs or pref_col < len(segment) - 1):
+            # Keep a character beyond the target so a following combining mark
+            # cannot change the boundary at the returned position.
+            cols = min(pref_col, len(segment))
+            return start_offs + cols, cols
+
     cols = 0
     pos = start_offs
-    window = max(pref_col, 0) + 16
     while True:
         stop = min(end_offs, pos + window)
         # iterating a slice uses the C segmenter of wcwidth, iterating a range of the whole text does not
@@ -352,7 +368,7 @@ def calc_text_pos(text: str | bytes, start_offs: int, end_offs: int, pref_col: i
             if str_pos < wcwidth.grapheme_boundary_before(decoded, len(decoded)):
                 break
             window *= 2
-        byte_offset = len(decoded[:str_pos].encode("utf-8"))
+        byte_offset = str_pos if decoded.isascii() else len(decoded[:str_pos].encode("utf-8"))
         return start_offs + byte_offset, cols
 
     # "wide" and "narrow"
