@@ -70,6 +70,12 @@ class TabsSymbols(enum.StrEnum):
     .. note::
         The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
         and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console are:
+
+        - Ubuntu: Fixed 8x16.
+        - Fedora and openSUSE: eurlatgr.
+        - Arch: the built-in 8x16 font of the kernel.
+
         The default fonts of the Linux virtual console and of the classic Windows console
         show these non-ASCII members:
 

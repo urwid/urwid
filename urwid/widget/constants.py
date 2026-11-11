@@ -608,6 +608,12 @@ class _BoxSymbolsCollection(typing.NamedTuple):
     .. note::
         The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
         and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console are:
+
+        - Ubuntu: Fixed 8x16.
+        - Fedora and openSUSE: eurlatgr.
+        - Arch: the built-in 8x16 font of the kernel.
+
         The default fonts of the Linux virtual console and of the classic Windows console show these:
 
         ===================================  ======  ======  ======  ====  =======
@@ -651,6 +657,12 @@ class BAR_SYMBOLS(enum.StrEnum):
     .. note::
         The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
         and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console are:
+
+        - Ubuntu: Fixed 8x16.
+        - Fedora and openSUSE: eurlatgr.
+        - Arch: the built-in 8x16 font of the kernel.
+
         The default fonts of the Linux virtual console and of the classic Windows console show only the full block,
         so the partial blocks need a console font with wider coverage there.
     """
@@ -667,6 +679,12 @@ class _SHADE_SYMBOLS(typing.NamedTuple):
     .. note::
         The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
         and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console are:
+
+        - Ubuntu: Fixed 8x16.
+        - Fedora and openSUSE: eurlatgr.
+        - Arch: the built-in 8x16 font of the kernel.
+
         The default fonts of the Linux virtual console and of the classic Windows console show these:
 
         ================  ======  ======  ======  ====  =======
