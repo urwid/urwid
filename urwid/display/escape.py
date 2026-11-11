@@ -501,7 +501,7 @@ class KeyqueueTrie:
         """Read an X10 mouse report from the codes and return the resulting input.
 
         A report cut short is consumed and gives ``None`` as its input.
-        It is cut short when the next ``ESC [`` sequence starts in place of one of its three bytes,
+        It is cut short when the next ``ESC [ M`` report starts in place of one of its three bytes,
         or when the codes end after one or two of them.
         The FreeBSD ``vt(4)`` console sends such reports, since it leaves out a column or row past 94.
 
@@ -510,13 +510,13 @@ class KeyqueueTrie:
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
         # Any other byte below the offset is a coordinate the terminal wrapped past 255, as the Linux console does;
-        # 27 is one too (column or row 250), so only ESC followed by "[" marks the next sequence.
-        # That leaves a wrapped click at column 250 of row 58 read as a report cut short.
+        # 27 is one too (column or row 250), so only a whole "ESC [ M" marks the next report.
         for i, k in enumerate(keys[:3]):
             if k == 27:
-                if keys[i + 1 : i + 2] == [ord("[")]:
+                following = tuple(keys[i + 1 : i + 3])
+                if following == _NEXT_MOUSE_REPORT:
                     return None, keys[i:]
-                if i + 1 == len(keys) and more_available:
+                if more_available and len(following) < 2 and following == _NEXT_MOUSE_REPORT[: len(following)]:
                     raise MoreInputRequired
         if len(keys) < 3:
             if more_available:
@@ -975,6 +975,8 @@ _MOUSE_BYTE_MAX: typing.Final = 255
 # the 0-based column or row an X10 report cannot carry: xterm sends it, and any farther one, as a NUL byte,
 # which decodes back to this value
 MOUSE_X10_PAST_END: typing.Final = 255 - _MOUSE_BYTE_OFFSET
+# the codes after ESC that start an X10 report
+_NEXT_MOUSE_REPORT: typing.Final = (ord("["), ord("M"))
 
 
 #################################################

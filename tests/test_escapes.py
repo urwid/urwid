@@ -435,7 +435,6 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ("cut press at the end", press_cut, []),
             ("cut press before a cut release", press_cut + release_cut, []),
             ("cut press before a whole one", press_cut + press, [("mouse press", 1, 0, 0)]),
-            ("cut press before a key", [*press_cut, *b"\x1b[A"], ["up"]),
             ("ESC before a cut press", [27, *press_cut], ["esc"]),
         ):
             with self.subTest(name):
@@ -455,11 +454,13 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                 [27, *b"[M", 32, 33, 27, *b"\x1b[M !!"],
                 [("mouse press", 1, 0, 250), ("mouse press", 1, 0, 0)],
             ),
+            ("column 250 of row 58", [27, *b"[M", 32, 27, *b"[x"], [("mouse press", 1, 250, 58), "x"]),
         ):
             with self.subTest(name):
                 self.assertEqual(expected, self._decode_all(codes))
-        with self.assertRaises(escape.MoreInputRequired):
-            escape.process_keyqueue([27, *b"[M", 32, 33, 27], more_available=True)
+        for codes in ([27, *b"[M", 32, 33, 27], [27, *b"[M", 32, 27, *b"["]):
+            with self.subTest(codes=codes), self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue(codes, more_available=True)
 
     def test_mouse_x10_release(self):
         x, y = 8, 15
