@@ -2,6 +2,33 @@
 Changelog
 ---------
 
+Urwid 5.1.2
+============
+
+2026-11-11
+
+New features 🗹
++++++++++++++++
+* Add ``CheckBox.Symbols.MIDDLE_DOT``, ``FISHEYE`` and ``CIRCLED_SLASH`` by @penguinolog in https://github.com/urwid/urwid/pull/1631
+
+Bug fixes 🕷
+++++++++++++
+* Handle mouse input on the FreeBSD console: the curses screen no longer stops on a ``KEY_MOUSE`` with no matching event, and the raw screen drops an X10 mouse report that vt(4) cuts short instead of reading the next report as its coordinate by @penguinolog in https://github.com/urwid/urwid/pull/1630
+* Stop ``AsyncioEventLoop`` from retaining alarms cancelled natively with ``handle.cancel()``; ``remove_alarm()`` returns ``False`` for such an alarm by @IlyaKhalafi in https://github.com/urwid/urwid/pull/1458, adopted by @charan-rathore in https://github.com/urwid/urwid/pull/1628
+
+Documentation 🕮
+++++++++++++++++
+* Document when ``CheckBox`` and ``RadioButton`` send ``change`` and ``postchange``, what each passes, and the order of signals when a ``RadioButton`` selection moves by @maruixin-kls in https://github.com/urwid/urwid/pull/1291
+* List what each FreeBSD console delivers as mouse input by @penguinolog in https://github.com/urwid/urwid/pull/1630
+* Name the default Linux console fonts in the coverage notes of the widget symbol sets by @penguinolog in https://github.com/urwid/urwid/pull/1631
+
+New Contributors
+++++++++++++++++
+* @maruixin-kls made their first contribution in https://github.com/urwid/urwid/pull/1291
+
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.1.1...5.1.2
+
 Urwid 5.1.1
 ============
 
