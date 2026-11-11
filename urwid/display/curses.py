@@ -477,9 +477,17 @@ class Screen(BaseScreen, RealTerminal):
         return processed, raw
 
     def _encode_mouse_event(self) -> list[int]:
-        # convert to escape sequence
+        """Encode the pending curses mouse event as X10 mouse reports.
+
+        :returns: the codes of the reports, empty when ncurses has no event in its queue.
+        """
         last_state = next_state = self.last_bstate
-        (_id, x, y, _z, bstate) = curses.getmouse()
+        try:
+            (_id, x, y, _z, bstate) = curses.getmouse()
+        except curses.error:
+            # ncurses returns KEY_MOUSE also when its queue holds no event matching the mask,
+            # e.g. for every pointer move on the FreeBSD syscons console, and getmouse() then fails.
+            return []
 
         mod = 0
         if bstate & curses.BUTTON_SHIFT:

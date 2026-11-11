@@ -260,3 +260,10 @@ class CursesMouseTest(unittest.TestCase):
             ):
                 keys, _rest = escape.process_keyqueue(screen._encode_mouse_event(), more_available=False)
                 self.assertEqual([expected], keys)
+
+    def test_key_mouse_without_a_queued_event_is_dropped(self) -> None:
+        """Report nothing when ncurses delivers KEY_MOUSE but getmouse() finds no event in its queue."""
+        curses = curses_display.curses
+        screen = curses_display.Screen()
+        with mock.patch.object(curses, "getmouse", side_effect=curses.error("getmouse() returned ERR")):
+            self.assertEqual([], screen._encode_mouse_event())
