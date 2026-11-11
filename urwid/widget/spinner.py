@@ -52,6 +52,12 @@ class SpinnerFrames(enum.Enum):
     .. note::
         The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
         and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console are:
+
+        - Ubuntu: Fixed 8x16.
+        - Fedora and openSUSE: eurlatgr.
+        - Arch: the built-in 8x16 font of the kernel.
+
         The default fonts of the Linux virtual console and of the classic Windows console
         show none of the non-ASCII members,
         so use :attr:`LINE` or :attr:`DOTS` there unless the console font has wider coverage.

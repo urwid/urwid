@@ -162,6 +162,12 @@ class CheckBox(WidgetWrap[Columns]):
         .. note::
             The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
             and of Windows Terminal, show every member.
+            The default fonts of the Linux virtual console are:
+
+            - Ubuntu: Fixed 8x16.
+            - Fedora and openSUSE: eurlatgr.
+            - Arch: the built-in 8x16 font of the kernel.
+
             The default fonts of the Linux virtual console and of the classic Windows console
             show these non-ASCII members:
 
@@ -171,8 +177,11 @@ class CheckBox(WidgetWrap[Columns]):
             ``CHECK_MARK``          ✓       no      yes     no    no
             ``BALLOT_X``            ✗       yes     yes     no    no
             ``BULLET``              •       yes     yes     yes   yes
+            ``MIDDLE_DOT``          ·       yes     yes     yes   yes
             ``BLACK_CIRCLE``        ●       yes     yes     no    yes
             ``WHITE_CIRCLE``        ○       no      no      yes   yes
+            ``FISHEYE``             ◉       no      no      no    no
+            ``CIRCLED_SLASH``       ⊘       yes     no      no    no
             ``FULL_BLOCK``          █       yes     yes     yes   yes
             ``MEDIUM_SHADE``        ▒       yes     yes     yes   yes
             ``MINUS_SIGN``          U+2212  yes     yes     no    yes
@@ -196,8 +205,11 @@ class CheckBox(WidgetWrap[Columns]):
         CHECK_MARK = "✓"
         BALLOT_X = "✗"
         BULLET = "•"
+        MIDDLE_DOT = "·"
         BLACK_CIRCLE = "●"
         WHITE_CIRCLE = "○"
+        FISHEYE = "◉"
+        CIRCLED_SLASH = "⊘"
         FULL_BLOCK = "█"
         MEDIUM_SHADE = "▒"
         # Marks that pair with the checked/unchecked ones above for the "mixed" state
