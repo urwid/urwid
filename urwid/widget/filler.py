@@ -1,3 +1,5 @@
+"""Filler: a decoration that lets a flow widget be used as a box widget."""
+
 from __future__ import annotations
 
 import typing
@@ -17,18 +19,20 @@ from .constants import (
     simplify_height,
     simplify_valign,
 )
+from .widget import _InvalidatingAttribute
 from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
+    from .constants import Align
     from .widget import AbstractFlowWidget, AbstractWidget
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
 class FillerError(WidgetError):
-    pass
+    """Filler related errors."""
 
 
 class FillerWarning(WidgetWarning):
@@ -36,6 +40,17 @@ class FillerWarning(WidgetWarning):
 
 
 class Filler(WidgetDecoration[WrappedWidget]):
+    """Box widget decoration that vertically aligns a flow or box widget within the available space."""
+
+    #: Number of blank rows above the body.
+    top = _InvalidatingAttribute[int]()
+    #: Number of blank rows below the body.
+    bottom = _InvalidatingAttribute[int]()
+    #: Minimum height of the body for a relative height, or ``None`` for no minimum.
+    min_height = _InvalidatingAttribute[int | None]()
+    #: Render a ``'pack'`` body taller than the rows available as a box at those rows.
+    shrink_to_fit = _InvalidatingAttribute[bool](default=False)
+
     def __init__(
         self,
         body: WrappedWidget,
@@ -53,10 +68,11 @@ class Filler(WidgetDecoration[WrappedWidget]):
         min_height: int | None = None,
         top: int = 0,
         bottom: int = 0,
+        *,
+        shrink_to_fit: bool = False,
     ) -> None:
         """
         :param body: a flow widget or box widget to be filled around (stored as self.original_widget)
-        :type body: Widget
 
         :param valign: one of:
             ``'top'``, ``'middle'``, ``'bottom'``,
@@ -82,9 +98,12 @@ class Filler(WidgetDecoration[WrappedWidget]):
               integer number of rows for the widget when height not fixed
 
         :param top: a fixed number of rows to fill at the top
-        :type top: int
         :param bottom: a fixed number of rows to fill at the bottom
-        :type bottom: int
+        :param shrink_to_fit: with a ``'pack'`` height, render a body taller than the rows available as a box at
+            those rows, instead of clipping it.
+            It applies only to a body that also supports ``'box'``, such as a :class:`LineBox` around a
+            :class:`Table`.
+            It has no effect for other heights.
         :raises FillerError: *valign* is not a vertical alignment value, or a fixed height is combined with a valign it
             cannot be used with.
 
@@ -117,7 +136,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         # convert old flow mode parameters height=None and height='flow' to height='pack'
         elif height is None or height in {Sizing.FLOW, WHSettings.PACK}:  # 'pack' used to be called 'flow'
-            normalized_height = WHSettings.PACK
+            normalized_height = WHSettings.PACK  # pylint: disable=redefined-variable-type  # declared union type
 
         else:
             normalized_height = height
@@ -138,17 +157,17 @@ class Filler(WidgetDecoration[WrappedWidget]):
             raise FillerError(f"invalid valign: {valign!r}")
 
         else:
-            normalized_valign = VAlign(valign)
+            normalized_valign = VAlign(valign)  # pylint: disable=redefined-variable-type  # declared union type
 
         self.top = top
         self.bottom = bottom
+        self.shrink_to_fit = shrink_to_fit
         self.valign_type: Literal[WHSettings.RELATIVE] | VAlign
         self.valign_amount: int | None
         self.height_type: Literal[WHSettings.PACK, WHSettings.GIVEN, WHSettings.RELATIVE]
         self.height_amount: int | None
         self.valign_type, self.valign_amount = normalize_valign(normalized_valign, FillerError)
-        # PACK is reported as FLOW|PACK by normalize_height, while FLOW is not a valid Filler height type
-        self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)  # type: ignore[assignment]
+        self.height_type, self.height_amount = normalize_height(normalized_height, FillerError)
 
         if self.height_type not in {WHSettings.GIVEN, WHSettings.PACK}:
             self.min_height = min_height
@@ -163,6 +182,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
         Rules:
         * height == PACK: the height is taken from the wrapped widget, which therefore should support FLOW
+
+        :warns FillerWarning: the height is PACK and the wrapped widget does not support FLOW sizing.
         """
         sizing: set[Sizing] = {Sizing.BOX}
         if self.height_type in {WHSettings.PACK, WHSettings.GIVEN}:
@@ -199,40 +220,9 @@ class Filler(WidgetDecoration[WrappedWidget]):
             "top": self.top,
             "bottom": self.bottom,
             "min_height": self.min_height,
+            "shrink_to_fit": self.shrink_to_fit,
         }
         return remove_defaults(attrs, Filler.__init__)
-
-    @property
-    def body(self) -> WrappedWidget:
-        """
-        The wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    @body.setter
-    def body(self, new_body: WrappedWidget) -> None:
-        """
-        Replace the wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``body``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as body. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_body
 
     def selectable(self) -> bool:
         """Return selectable from body."""
@@ -243,11 +233,17 @@ class Filler(WidgetDecoration[WrappedWidget]):
         Return the number of rows to pad on the top and bottom.
 
         Override this method to define custom padding behaviour.
+
+        With :attr:`shrink_to_fit`, a ``'pack'`` height taller than the rows available is cut down to those rows.
         """
         maxcol, maxrow = self.pack(size, focus)
 
         if self.height_type == WHSettings.PACK:
-            height = typing.cast("AbstractFlowWidget", self._original_widget).rows((maxcol,), focus=focus)
+            body = self._original_widget
+            height = typing.cast("AbstractFlowWidget", body).rows((maxcol,), focus=focus)
+            # A body without the "sizing" method is a legacy widget, which is never shrunk.
+            if self.shrink_to_fit and Sizing.BOX in getattr(body, "sizing", frozenset)():
+                height = min(height, max(0, maxrow - self.top - self.bottom))
             return calculate_top_bottom_filler(
                 maxrow,
                 self.valign_type,
@@ -270,6 +266,27 @@ class Filler(WidgetDecoration[WrappedWidget]):
             self.bottom,
         )
 
+    def _body_size(self, size: tuple[int, int], top: int, bottom: int) -> tuple[int] | tuple[int, int]:
+        """Return the size the body is rendered at in the box *size* between *top* and *bottom* filler rows.
+
+        A ``'pack'`` height gives a flow size.
+        With :attr:`shrink_to_fit` it gives a box size of the rows available instead,
+        when the body is taller than those rows in or out of focus.
+        """
+        maxcol, maxrow = size
+        if self.height_type != WHSettings.PACK:
+            return (maxcol, maxrow - top - bottom)
+        available = max(0, maxrow - top - bottom)
+        body = typing.cast("AbstractFlowWidget", self._original_widget)
+        # Both focus states: a box canvas has the rows it is given, so it matches the fillers of either one.
+        if (
+            self.shrink_to_fit
+            and Sizing.BOX in getattr(body, "sizing", frozenset)()
+            and any(body.rows((maxcol,), focus) > available for focus in (False, True))
+        ):
+            return (maxcol, available)
+        return (maxcol,)
+
     def render(
         self,
         size: tuple[int, int] | tuple[int],  # type: ignore[override]
@@ -279,10 +296,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
         maxcol, maxrow = self.pack(size, focus)
         top, bottom = self.filler_values(size, focus)
 
-        if self.height_type == WHSettings.PACK:
-            canv = self._original_widget.render((maxcol,), focus)
-        else:
-            canv = self._original_widget.render((maxcol, maxrow - top - bottom), focus)
+        canv = self._original_widget.render(self._body_size((maxcol, maxrow), top, bottom), focus)
         canv = CompositeCanvas(canv)
 
         if maxrow and canv.rows() > maxrow and canv.cursor is not None:
@@ -297,16 +311,16 @@ class Filler(WidgetDecoration[WrappedWidget]):
 
     def keypress(
         self,
-        size: tuple[int, int] | tuple[()],  # type: ignore[override]
+        size: tuple[int, int] | tuple[int],  # type: ignore[override]  # box and flow only, no fixed size
         key: str,
     ) -> str | None:
         """Pass keypress to self.original_widget."""
         maxcol, maxrow = self.pack(size, True)
-        if self.height_type == WHSettings.PACK:
+        if self.height_type == WHSettings.PACK and not self.shrink_to_fit:
             return self._original_widget.keypress((maxcol,), key)
 
         top, bottom = self.filler_values((maxcol, maxrow), True)
-        return self._original_widget.keypress((maxcol, maxrow - top - bottom), key)
+        return self._original_widget.keypress(self._body_size((maxcol, maxrow), top, bottom), key)
 
     def get_cursor_coords(self, size: tuple[int, int] | tuple[int]) -> tuple[int, int] | None:
         """Return cursor coords from self.original_widget if any."""
@@ -315,10 +329,7 @@ class Filler(WidgetDecoration[WrappedWidget]):
             return None
 
         top, bottom = self.filler_values(size, True)
-        if self.height_type == WHSettings.PACK:
-            coords = self._original_widget.get_cursor_coords((maxcol,))
-        else:
-            coords = self._original_widget.get_cursor_coords((maxcol, maxrow - top - bottom))
+        coords = self._original_widget.get_cursor_coords(self._body_size((maxcol, maxrow), top, bottom))
         if not coords:
             return None
         x, y = coords
@@ -326,38 +337,46 @@ class Filler(WidgetDecoration[WrappedWidget]):
             y = maxrow - 1
         return x, y + top
 
-    def get_pref_col(self, size: tuple[int, int] | tuple[int]) -> int | None:
+    def get_pref_col(
+        self,
+        size: tuple[int, int] | tuple[int],
+    ) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
         """Return pref_col from self.original_widget if any."""
         maxcol, maxrow = self.pack(size, True)
         if not hasattr(self._original_widget, "get_pref_col"):
             return None
 
-        if self.height_type == WHSettings.PACK:
-            x = typing.cast("int | None", self._original_widget.get_pref_col((maxcol,)))
+        x: int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None
+        if self.height_type == WHSettings.PACK and not self.shrink_to_fit:
+            x = self._original_widget.get_pref_col((maxcol,))
         else:
             top, bottom = self.filler_values(size, True)
-            x = typing.cast("int| None", self._original_widget.get_pref_col((maxcol, maxrow - top - bottom)))
+            x = self._original_widget.get_pref_col(self._body_size((maxcol, maxrow), top, bottom))
 
         return x
 
-    def move_cursor_to_coords(self, size: tuple[int, int] | tuple[int], col: int, row: int) -> bool:
+    def move_cursor_to_coords(
+        self,
+        size: tuple[int, int] | tuple[int],
+        col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
+        row: int,
+    ) -> bool:
         """Pass to self.original_widget."""
         maxcol, maxrow = self.pack(size, True)
         if not hasattr(self._original_widget, "move_cursor_to_coords"):
             return True
 
         top, bottom = self.filler_values(size, True)
-        if row < top or row >= maxcol - bottom:
+        if row < top or row >= maxrow - bottom:
             return False
-
-        if self.height_type == WHSettings.PACK:
-            target_size: tuple[int] | tuple[int, int] = (maxcol,)
-        else:
-            target_size = (maxcol, maxrow - top - bottom)
 
         return typing.cast(
             "bool",
-            self._original_widget.move_cursor_to_coords(target_size, col, row - top),
+            self._original_widget.move_cursor_to_coords(
+                self._body_size((maxcol, maxrow), top, bottom),
+                col,
+                row - top,
+            ),
         )
 
     def mouse_event(
@@ -378,17 +397,8 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if row < top or row >= maxrow - bottom:
             return False
 
-        if self.height_type == WHSettings.PACK:
-            return self._original_widget.mouse_event(
-                (maxcol,),
-                event,
-                button,
-                col,
-                row - top,
-                focus,
-            )
         return self._original_widget.mouse_event(
-            (maxcol, maxrow - top - bottom),
+            self._body_size((maxcol, maxrow), top, bottom),
             event,
             button,
             col,
@@ -407,10 +417,9 @@ def calculate_top_bottom_filler(
     top: int,
     bottom: int,
 ) -> tuple[int, int]:
-    """
-    Return the amount of filler (or clipping) on the top and
-    bottom part of maxrow rows to satisfy the following:
+    """Return the amount of filler (or clipping) on the top and bottom part of maxrow rows.
 
+    :param maxrow: number of rows available
     :param valign_type: 'top', 'middle', 'bottom', 'relative'
     :param valign_amount: a percentage when align_type=='relative'
     :param height_type: 'given', 'relative', 'clip'

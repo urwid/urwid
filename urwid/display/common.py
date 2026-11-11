@@ -18,29 +18,53 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Colour and attribute handling and the base classes shared by all display modules."""
+
 from __future__ import annotations
 
 import abc
+import dataclasses
+import enum
+import functools
 import logging
 import os
 import sys
+import types
 import typing
-import warnings
 
 from urwid import signals
-from urwid.util import StoppingContext, int_scale
+from urwid.util import LayeredAttr, StoppingContext, int_scale
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Sequence
-
-    from typing_extensions import Literal, Self
+    from collections.abc import Hashable, Iterable, Mapping, Sequence
+    from typing import Literal, Self
 
     from urwid import Canvas
+
+    # One register_palette() item:
+    # (name, like_other_name)
+    # or the 3, 4 or 6 positional arguments of register_palette_entry().
+    # A name is any hashable value, None being the default attribute.
+    PaletteEntry = (
+        tuple[Hashable, Hashable]
+        | tuple[Hashable, str, str]
+        | tuple[Hashable, str, str, str | tuple[str, ...] | None]
+        | tuple[
+            Hashable,
+            str,
+            str,
+            str | tuple[str, ...] | None,
+            str | None,
+            str | None,
+        ]
+    )
 
 IS_WINDOWS = sys.platform == "win32"
 
 # for replacing unprintable bytes with '?'
-UNPRINTABLE_TRANS_TABLE = b"?" * 32 + bytes(range(32, 256))
+UNPRINTABLE_TRANS_TABLE = bytes.maketrans(bytes(range(32)), b"?" * 32)
+# for replacing decoded C1 control characters (U+0080-U+009F) with '?'
+UNPRINTABLE_C1_TRANS_TABLE = str.maketrans(dict.fromkeys(range(0x80, 0xA0), "?"))
 
 
 # signals sent by BaseScreen
@@ -147,7 +171,17 @@ _BLINK =           0x800000000000000
 _ITALICS =        0x1000000000000000
 _STRIKETHROUGH =  0x2000000000000000
 _FAINT =          0x4000000000000000
+_FG_INHERIT =     0x8000000000000000
+_BG_INHERIT =    0x10000000000000000
 # fmt: on
+
+# a setting turned off explicitly ('no-bold'), kept apart from "not mentioned" in every attribute, as a terminal
+# keeps an SGR reset;
+# the shift puts the off bits (65-71) above _BG_INHERIT (64)
+_SETTING_OFF_SHIFT = 9
+_SETTINGS_OFF_MASK = (
+    _STANDOUT | _UNDERLINE | _BOLD | _BLINK | _ITALICS | _STRIKETHROUGH | _FAINT
+) << _SETTING_OFF_SHIFT
 
 _FG_MASK = (
     _FG_COLOR_MASK
@@ -160,10 +194,15 @@ _FG_MASK = (
     | _ITALICS
     | _STRIKETHROUGH
     | _FAINT
+    | _FG_INHERIT
+    | _SETTINGS_OFF_MASK
 )
-_BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR
+_BG_MASK = _BG_COLOR_MASK | _BG_BASIC_COLOR | _BG_HIGH_COLOR | _BG_INHERIT
+_INHERIT_MASK = _FG_INHERIT | _BG_INHERIT
 
 DEFAULT = "default"
+#: colour keyword taking the colour from the enclosing attribute (:meth:`AttrSpec.layered_over`)
+INHERIT = "inherit"
 BLACK = "black"
 DARK_RED = "dark red"
 DARK_GREEN = "dark green"
@@ -199,6 +238,9 @@ _BASIC_COLORS = [
     LIGHT_CYAN,
     WHITE,
 ]
+# name -> index, for the O(1) lookup AttrSpec needs on every color it parses
+# (_BASIC_COLORS itself is kept for the reverse, index -> name, direction)
+_BASIC_COLOR_INDEX = {color: index for index, color in enumerate(_BASIC_COLORS)}
 
 _ATTRIBUTES = {
     "bold": _BOLD,
@@ -209,20 +251,33 @@ _ATTRIBUTES = {
     "strikethrough": _STRIKETHROUGH,
     "faint": _FAINT,
 }
+_SETTING_OFF_PREFIX = "no-"
+_ATTRIBUTES_OFF = {f"{_SETTING_OFF_PREFIX}{name}": flag << _SETTING_OFF_SHIFT for name, flag in _ATTRIBUTES.items()}
+
+# AttrSpec.__init__() and __set_foreground()/__set_background() are called
+# once per colored run of text an application constructs, so these are
+# hoisted to module scope rather than re-built as set literals on every call.
+_VALID_COLOR_COUNTS = frozenset({1, 16, 88, 256, 2**24})
+_DEFAULT_COLOR_NAMES = frozenset({"", "default"})
+# BaseScreen.resolve_attr() memo size: attrs built from AttrSpec instances (ANSI text, terminals) are unbounded
+_RESOLVED_ATTRS_LIMIT = 4096
+# urwid's own caps on Hyperlink fields: VTE and iTerm2 refuse longer URIs, and VTE refuses longer ids
+_HYPERLINK_URI_MAX_LEN = 2083
+_HYPERLINK_ID_MAX_LEN = 250
+# URI schemes an HTML-producing screen turns into a link, none of which can run script in the page
+_BROWSER_SCHEMES = frozenset({"file", "http", "https", "mailto", "sftp"})
 
 
 def _value_lookup_table(values: Sequence[int], size: int) -> list[int]:
-    """
-    Generate a lookup table for finding the closest item in values.
-    Lookup returns (index into values)+1
+    """Generate a lookup table for finding the closest item in *values*.
 
     :param values: list of values in ascending order, all < size
     :param size: size of lookup table and maximum value
+    :returns: one entry per value from 0 to *size* - 1, holding the index into *values* of the closest item.
 
     >>> _value_lookup_table([0, 7, 9], 10)
     [0, 0, 0, 0, 1, 1, 1, 1, 2, 2]
     """
-
     middle_values = [0] + [(values[i] + values[i + 1] + 1) // 2 for i in range(len(values) - 1)] + [size]
     lookup_table = []
     for i in range(len(middle_values) - 1):
@@ -296,9 +351,10 @@ def _color_desc_true(num: int) -> str:
     return f"#{num:06x}"
 
 
+@functools.lru_cache(maxsize=256)
 def _color_desc_256(num: int) -> str:
-    """
-    Return a string description of color number num.
+    """Return a string description of color number *num*.
+
     0..15 -> 'h0'..'h15' basic colors (as high-colors)
     16..231 -> '#000'..'#fff' color cube colors
     232..255 -> 'g3'..'g93' grays
@@ -332,9 +388,10 @@ def _color_desc_256(num: int) -> str:
     return f"g{_GRAY_STEPS_256_101[num - _GRAY_START_256]:d}"
 
 
+@functools.lru_cache(maxsize=88)
 def _color_desc_88(num: int) -> str:
-    """
-    Return a string description of color number num.
+    """Return a string description of color number *num*.
+
     0..15 -> 'h0'..'h15' basic colors (as high-colors)
     16..79 -> '#000'..'#fff' color cube colors
     80..87 -> 'g18'..'g90' grays
@@ -367,6 +424,7 @@ def _color_desc_88(num: int) -> str:
     return f"g{_GRAY_STEPS_88_101[num - _GRAY_START_88]:d}"
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_true(desc: str) -> int | None:
     if (c := _parse_color_256(desc)) is not None:
         (r, g, b) = _COLOR_VALUES_256[c]
@@ -386,15 +444,16 @@ def _parse_color_true(desc: str) -> int | None:
     return None
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_256(desc: str) -> int | None:
-    """
-    Return a color number for the description desc.
+    """Return a color number for the description *desc*.
+
     'h0'..'h255' -> 0..255 actual color number
     '#000'..'#fff' -> 16..231 color cube colors
     'g0'..'g100' -> 16, 232..255, 231 grays and color cube black/white
     'g#00'..'g#ff' -> 16, 232...255, 231 gray and color cube black/white
 
-    Returns None if desc is invalid.
+    :returns: None if desc is invalid.
 
     >>> _parse_color_256("h142")
     142
@@ -455,6 +514,7 @@ def _parse_color_256(desc: str) -> int | None:
         return None
 
 
+@functools.lru_cache(maxsize=512)
 def _true_to_256(desc: str) -> str | None:
     if not (desc.startswith("#") and len(desc) == 7):
         return None
@@ -463,15 +523,16 @@ def _true_to_256(desc: str) -> str | None:
     return _color_desc_256(typing.cast("int", c256))  # we control input
 
 
+@functools.lru_cache(maxsize=512)
 def _parse_color_88(desc: str) -> int | None:
-    """
-    Return a color number for the description desc.
+    """Return a color number for the description *desc*.
+
     'h0'..'h87' -> 0..87 actual color number
     '#000'..'#fff' -> 16..79 color cube colors
     'g0'..'g100' -> 16, 80..87, 79 grays and color cube black/white
     'g#00'..'g#ff' -> 16, 80...87, 79 gray and color cube black/white
 
-    Returns None if desc is invalid.
+    :returns: None if desc is invalid.
 
     >>> _parse_color_88("h142")
     >>> _parse_color_88("h42")
@@ -536,23 +597,103 @@ def _parse_color_88(desc: str) -> int | None:
 
 
 class AttrSpecError(Exception):
-    pass
+    """Raised when an :class:`AttrSpec` is constructed with an invalid color specification."""
+
+
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
+class Hyperlink:
+    """Terminal hyperlink (OSC 8) carried by an :class:`AttrSpec`.
+
+    The fields keep the names of the OSC 8 specification.
+    Only printable ASCII is accepted, so a link cannot inject other escape sequences.
+    The URI is limited to 2083 characters and the id to 250: these are urwid's compatibility limits,
+    taken from the terminals that refuse longer values (VTE and iTerm2 for the URI, VTE for the id).
+    The specification itself sets no limit.
+
+    An empty URI is the explicit "no link" state, :data:`NO_HYPERLINK`:
+    it hides the link of an enclosing attribute.
+
+    :param uri: the link target
+    :param id: groups the cells of one link that the terminal highlights together,
+        when the link is drawn in several separate runs
+    :raises ValueError: *uri* or *id* holds a character outside printable ASCII or is too long,
+        *id* holds ``:`` or ``;``, or *id* is given with an empty *uri*.
+
+    >>> Hyperlink("https://urwid.org", id="home")
+    Hyperlink(uri='https://urwid.org', id='home')
+    """
+
+    uri: str
+    _: dataclasses.KW_ONLY
+    id: str = ""
+
+    def __post_init__(self) -> None:
+        """Validate the fields as the class docstring describes."""
+        for name, value, limit in (
+            ("uri", self.uri, _HYPERLINK_URI_MAX_LEN),
+            ("id", self.id, _HYPERLINK_ID_MAX_LEN),
+        ):
+            if not (value.isascii() and value.isprintable()):
+                raise ValueError(f"Hyperlink {name} must be printable ASCII: {value!r}")
+            if len(value) > limit:
+                raise ValueError(
+                    f"Hyperlink {name} is {len(value):d} characters long, "
+                    f"over urwid's compatibility limit of {limit:d}, as some terminals refuse longer values"
+                )
+        if ":" in self.id or ";" in self.id:
+            raise ValueError(f"Hyperlink id must not contain ':' or ';': {self.id!r}")
+        if not self.uri and self.id:
+            raise ValueError(f"Hyperlink id {self.id!r} given without a URI")
+
+
+#: hyperlink of an attribute that hides the link of the enclosing attribute
+NO_HYPERLINK = Hyperlink("")
+
+
+def _browser_href(link: Hyperlink) -> str | None:
+    """Return the URI of *link* to use as an HTML ``href``, or ``None`` when a browser must not follow it.
+
+    The URI is stripped of spaces the way the WHATWG URL parser strips it before reading the scheme
+    (the control characters it also strips cannot occur in a :class:`Hyperlink`).
+    Only the schemes in ``_BROWSER_SCHEMES`` are allowed, so a link can never run script in the page.
+
+    >>> _browser_href(Hyperlink(" https://urwid.org"))
+    'https://urwid.org'
+    >>> _browser_href(Hyperlink("JaVaScRiPt:alert(1)")) is None
+    True
+    """
+    href = link.uri.strip(" ")
+    scheme, sep, _rest = href.partition(":")
+    if sep and scheme.lower() in _BROWSER_SCHEMES:
+        return href
+    return None
+
+
+class _Keep(enum.Enum):
+    """Default of :meth:`AttrSpec.copy_modified` arguments for which ``None`` is a real value."""
+
+    KEEP = enum.auto()
 
 
 class AttrSpec:
-    __slots__ = ("__value",)
+    """Text attribute specification, encoding foreground and background colors and display settings."""
+
+    __slots__ = ("__hash_value", "__hyperlink", "__value")
 
     def __init__(
         self,
-        fg: str,
-        bg: str,
+        fg: str = INHERIT,
+        bg: str = INHERIT,
         colors: Literal[1, 16, 88, 256, 16777216] = 256,
+        *,
+        hyperlink: Hyperlink | str | None = None,
     ) -> None:
         """
         :param fg: a string containing a comma-separated foreground color and settings
 
               Color values:
               'default' (use the terminal's default foreground),
+              'inherit' (take the color from the enclosing attribute, see :meth:`layered_over`),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray', 'dark gray',
               'light red', 'light green', 'yellow', 'light blue',
@@ -568,7 +709,9 @@ class AttrSpec:
               'h8' (color number 8), 'h255' (color number 255)
 
               Setting:
-              'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint'
+              'bold', 'italics', 'underline', 'blink', 'standout', 'strikethrough', 'faint';
+              with 'no-' in front ('no-bold') a setting is turned off rather than taken from the
+              enclosing attribute; it is part of the attribute, so 'red,no-bold' and 'red' are unequal
 
               Some terminals use 'bold' for bright colors.
               Most terminals ignore the 'blink' setting.
@@ -578,6 +721,7 @@ class AttrSpec:
 
               Color values:
               'default' (use the terminal's default background),
+              'inherit' (take the color from the enclosing attribute),
               'black', 'dark red', 'dark green', 'brown', 'dark blue',
               'dark magenta', 'dark cyan', 'light gray'
 
@@ -587,11 +731,16 @@ class AttrSpec:
               An empty string will be treated the same as 'default'.
 
         :param colors: the maximum colors available for the specification
-        :raises AttrSpecError: *colors* is not a supported palette size, or *fg*/*bg* need more colours than *colors*.
 
                    Valid values include: 1, 16, 88, 256, and 2**24.  High-color
                    values are only usable with 88, 256, or 2**24 colors.  With
                    1 color only the foreground settings may be used.
+
+        :param hyperlink: the terminal hyperlink of the text, a string being its URI;
+            ``None`` takes the link of the enclosing attribute, and :data:`NO_HYPERLINK` hides it.
+        :raises AttrSpecError: *colors* is not a supported palette size.
+            *fg* or *bg* is invalid, or needs more colours than *colors*.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
 
         >>> AttrSpec("dark red", "light gray", 16)
         AttrSpec('dark red', 'light gray')
@@ -601,8 +750,12 @@ class AttrSpec:
         AttrSpec('#dda', '#006')
         >>> AttrSpec("#ddb", "#004", 88)
         AttrSpec('#ccc', '#000', colors=88)
+        >>> AttrSpec("inherit,bold", "dark blue")
+        AttrSpec('inherit,bold', 'dark blue')
+        >>> AttrSpec(hyperlink="https://urwid.org")
+        AttrSpec('inherit', 'inherit', hyperlink=Hyperlink(uri='https://urwid.org', id=''))
         """
-        if colors not in {1, 16, 88, 256, 2**24}:
+        if colors not in _VALID_COLOR_COUNTS:
             raise AttrSpecError(f"invalid number of colors ({colors:d}).")
         self.__value = 0 | _HIGH_88_COLOR * (colors == 88) | _HIGH_TRUE_COLOR * (colors == 2**24)
         self.__set_foreground(fg)
@@ -611,13 +764,37 @@ class AttrSpec:
             raise AttrSpecError(
                 f"foreground/background ({fg!r}/{bg!r}) require more colors than have been specified ({colors:d})."
             )
+        self.__hyperlink = Hyperlink(hyperlink) if isinstance(hyperlink, str) else hyperlink
+        self.__hash_value = hash((self.__class__, self.__value, self.__hyperlink))
 
     def copy_modified(
         self,
         fg: str | None = None,
         bg: str | None = None,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+        *,
+        hyperlink: Hyperlink | str | Literal[_Keep.KEEP] | None = _Keep.KEEP,
     ) -> Self:
+        """Return a new :class:`AttrSpec`, replacing *fg*, *bg*, *colors* and/or *hyperlink* with the given values.
+
+        Without *colors*, the result uses 88 colors or true color when this specification was made for them,
+        else 256 colors, so a color can be added to a specification that has none.
+        The hyperlink is kept unless *hyperlink* is given; ``None`` makes the result take the enclosing one.
+
+        The result is built with this object's class.
+        The *hyperlink* keyword is passed to its constructor only when the result has a link,
+        so a subclass whose constructor takes only *fg*, *bg* and *colors* works for every other change.
+
+        :raises AttrSpecError: *colors* is not a supported palette size, or *fg* or *bg* is invalid or needs
+            more colors than the result has.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
+        :raises TypeError: the result has a link and the constructor of this object's class does not accept it.
+
+        >>> AttrSpec("inherit,bold", "inherit").copy_modified(bg="dark blue")
+        AttrSpec('inherit,bold', 'dark blue')
+        >>> AttrSpec(hyperlink="https://urwid.org").copy_modified(hyperlink=None)
+        AttrSpec('inherit', 'inherit')
+        """
         if fg is None:
             foreground = self.foreground
         else:
@@ -628,16 +805,22 @@ class AttrSpec:
         else:
             background = bg
 
-        if colors is None:
-            new_colors = self.colors
-        else:
-            new_colors = colors
+        new_colors = self.__color_mode() if colors is None else colors
+        if (link := self.__hyperlink if hyperlink is _Keep.KEEP else hyperlink) is None:
+            return self.__class__(foreground, background, new_colors)
+        return self.__class__(foreground, background, new_colors, hyperlink=link)
 
-        return self.__class__(foreground, background, new_colors)
+    def __color_mode(self) -> Literal[88, 256, 16777216]:
+        """Return the color mode this specification was made for: 88 colors, true color, or else 256 colors."""
+        if self.__value & _HIGH_88_COLOR:
+            return 88
+        if self.__value & _HIGH_TRUE_COLOR:
+            return 16777216
+        return 256
 
     def __hash__(self) -> int:
         """Instance is immutable and hashable."""
-        return hash((self.__class__, self.__value))
+        return self.__hash_value
 
     @property
     def _value(self) -> int:
@@ -645,63 +828,103 @@ class AttrSpec:
         return self.__value
 
     @property
+    def hyperlink(self) -> Hyperlink | None:
+        """Return the terminal hyperlink, ``None`` when it is taken from the enclosing attribute."""
+        return self.__hyperlink
+
+    def style_only(self) -> AttrSpec:
+        """Return this attribute without its hyperlink, for code that only draws colors and settings.
+
+        >>> AttrSpec("yellow", "dark blue", hyperlink="https://urwid.org").style_only()
+        AttrSpec('yellow', 'dark blue')
+        """
+        if self.__hyperlink is None:
+            return self
+        return self.copy_modified(hyperlink=None)
+
+    @property
     def foreground_basic(self) -> bool:
+        """Return whether the foreground color is one of the 16 basic colors."""
         return self.__value & _FG_BASIC_COLOR != 0
 
     @property
     def foreground_high(self) -> bool:
+        """Return whether the foreground color is a 88- or 256-color palette entry."""
         return self.__value & _FG_HIGH_COLOR != 0
 
     @property
     def foreground_true(self) -> bool:
+        """Return whether the foreground color is a 24-bit true color."""
         return self.__value & _FG_TRUE_COLOR != 0
 
     @property
     def foreground_number(self) -> int:
+        """Return the encoded foreground color number."""
         return self.__value & _FG_COLOR_MASK
 
     @property
+    def foreground_inherit(self) -> bool:
+        """Return whether the foreground color is taken from the enclosing attribute."""
+        return self.__value & _FG_INHERIT != 0
+
+    @property
     def background_basic(self) -> bool:
+        """Return whether the background color is one of the 16 basic colors."""
         return self.__value & _BG_BASIC_COLOR != 0
 
     @property
     def background_high(self) -> bool:
+        """Return whether the background color is a 88- or 256-color palette entry."""
         return self.__value & _BG_HIGH_COLOR != 0
 
     @property
     def background_true(self) -> bool:
+        """Return whether the background color is a 24-bit true color."""
         return self.__value & _BG_TRUE_COLOR != 0
 
     @property
     def background_number(self) -> int:
+        """Return the encoded background color number."""
         return (self.__value & _BG_COLOR_MASK) >> _BG_SHIFT
 
     @property
+    def background_inherit(self) -> bool:
+        """Return whether the background color is taken from the enclosing attribute."""
+        return self.__value & _BG_INHERIT != 0
+
+    @property
     def italics(self) -> bool:
+        """Return whether the italics setting is enabled."""
         return self.__value & _ITALICS != 0
 
     @property
     def bold(self) -> bool:
+        """Return whether the bold setting is enabled."""
         return self.__value & _BOLD != 0
 
     @property
     def underline(self) -> bool:
+        """Return whether the underline setting is enabled."""
         return self.__value & _UNDERLINE != 0
 
     @property
     def blink(self) -> bool:
+        """Return whether the blink setting is enabled."""
         return self.__value & _BLINK != 0
 
     @property
     def standout(self) -> bool:
+        """Return whether the standout setting is enabled."""
         return self.__value & _STANDOUT != 0
 
     @property
     def strikethrough(self) -> bool:
+        """Return whether the strikethrough setting is enabled."""
         return self.__value & _STRIKETHROUGH != 0
 
     @property
     def faint(self) -> bool:
+        """Return whether the faint setting is enabled."""
         return self.__value & _FAINT != 0
 
     @property
@@ -722,18 +945,19 @@ class AttrSpec:
         return 1
 
     def __repr__(self) -> str:
-        """
-        Return an executable python representation of the AttrSpec
-        object.
-        """
+        """Return an executable python representation of the AttrSpec object."""
         args = f"{self.foreground!r}, {self.background!r}"
         if self.colors == 88:
             # 88-color mode is the only one that is handled differently
             args = f"{args}, colors=88"
+        if self.__hyperlink is not None:
+            args = f"{args}, hyperlink={self.__hyperlink!r}"
         return f"{self.__class__.__name__}({args})"
 
     def _foreground_color(self) -> str:
         """Return only the color component of the foreground."""
+        if self.foreground_inherit:
+            return INHERIT
         if not (self.foreground_basic or self.foreground_high or self.foreground_true):
             return "default"
         if self.foreground_basic:
@@ -746,6 +970,7 @@ class AttrSpec:
 
     @property
     def foreground(self) -> str:
+        """Return the foreground color and settings as a comma-separated string."""
         return (
             self._foreground_color()
             + ",bold" * self.bold
@@ -755,6 +980,7 @@ class AttrSpec:
             + ",underline" * self.underline
             + ",strikethrough" * self.strikethrough
             + ",faint" * self.faint
+            + "".join(f",{name}" for name, flag in _ATTRIBUTES_OFF.items() if self.__value & flag)
         )
 
     def __set_foreground(self, foreground: str) -> None:
@@ -770,17 +996,24 @@ class AttrSpec:
         # handle comma-separated foreground
         for part in foreground.split(","):
             part = part.strip()  # noqa: PLW2901
-            if part in _ATTRIBUTES:
-                # parse and store "settings"/attributes in flags
-                if flags & _ATTRIBUTES[part]:
-                    raise AttrSpecError(f"Setting {part!r} specified more than once in foreground ({foreground!r})")
-                flags |= _ATTRIBUTES[part]
+            if (on_flag := _ATTRIBUTES.get(part.removeprefix(_SETTING_OFF_PREFIX))) is not None:
+                # parse and store "settings"/attributes in flags, a setting and its "no-" form being one setting
+                off_flag = on_flag << _SETTING_OFF_SHIFT
+                attribute_flag = off_flag if part.startswith(_SETTING_OFF_PREFIX) else on_flag
+                if flags & (on_flag | off_flag):
+                    raise AttrSpecError(
+                        f"Setting {part!r} repeats or contradicts another in foreground ({foreground!r})"
+                    )
+                flags |= attribute_flag
                 continue
             # past this point we must be specifying a color
-            if part in {"", "default"}:
+            if part in _DEFAULT_COLOR_NAMES:
                 scolor = 0
-            elif part in _BASIC_COLORS:
-                scolor = _BASIC_COLORS.index(part)
+            elif part == INHERIT:
+                scolor = 0
+                flags |= _FG_INHERIT
+            elif (basic_color := _BASIC_COLOR_INDEX.get(part)) is not None:
+                scolor = basic_color
                 flags |= _FG_BASIC_COLOR
             elif self.__value & _HIGH_88_COLOR:
                 scolor = _parse_color_88(part)
@@ -804,6 +1037,8 @@ class AttrSpec:
     @property
     def background(self) -> str:
         """Return the background color."""
+        if self.background_inherit:
+            return INHERIT
         if not (self.background_basic or self.background_high or self.background_true):
             return "default"
         if self.background_basic:
@@ -822,10 +1057,13 @@ class AttrSpec:
         """
         flags = 0
         color: int | None
-        if background in {"", "default"}:
+        if background in _DEFAULT_COLOR_NAMES:
             color = 0
-        elif background in _BASIC_COLORS:
-            color = _BASIC_COLORS.index(background)
+        elif background == INHERIT:
+            color = 0
+            flags |= _BG_INHERIT
+        elif (basic_color := _BASIC_COLOR_INDEX.get(background)) is not None:
+            color = basic_color
             flags |= _BG_BASIC_COLOR
         elif self.__value & _HIGH_88_COLOR:
             color = _parse_color_88(background)
@@ -841,12 +1079,12 @@ class AttrSpec:
         self.__value = (self.__value & ~_BG_MASK) | (color << _BG_SHIFT) | flags
 
     def get_rgb_values(self) -> tuple[int | None, int | None, int | None, int | None, int | None, int | None]:
-        """
-        Return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue) color components.
+        """Return ``(fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)`` color components.
+
         Each component is in the range 0-255.
         Values are taken from the XTerm defaults and may not exactly match the user's terminal.
 
-        If the foreground or background is 'default' then all their compenents will be returned as None.
+        If the foreground or background is 'default' or 'inherit' then all their components will be returned as None.
 
         >>> AttrSpec("yellow", "#ccf", colors=88).get_rgb_values()
         (255, 255, 0, 205, 205, 255)
@@ -862,7 +1100,7 @@ class AttrSpec:
             if self.foreground_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.foreground_number!r}")
             vals = _COLOR_VALUES_88[self.foreground_number]
-        elif self.colors == 2**24:
+        elif self.foreground_true:
             h = f"{self.foreground_number:06x}"
             vals = typing.cast(
                 "tuple[int, int, int]",
@@ -871,50 +1109,165 @@ class AttrSpec:
         else:
             vals = _COLOR_VALUES_256[self.foreground_number]
 
+        bg_vals: tuple[int | None, int | None, int | None]
         if not (self.background_basic or self.background_high or self.background_true):
-            return (*vals, None, None, None)
-        if self.colors == 88:
+            bg_vals = (None, None, None)
+        elif self.colors == 88:
             if self.background_number >= 88:
                 raise ValueError(f"Invalid AttrSpec _value: {self.background_number!r}")
-            return (*vals, *_COLOR_VALUES_88[self.background_number])
-        if self.colors == 2**24:
+            bg_vals = _COLOR_VALUES_88[self.background_number]
+        elif self.background_true:
             h = f"{self.background_number:06x}"
-            return (*vals, *(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])))
+            bg_vals = typing.cast(
+                "tuple[int, int, int]",
+                tuple(int(x, 16) for x in (h[0:2], h[2:4], h[4:6])),
+            )
+        else:
+            bg_vals = _COLOR_VALUES_256[self.background_number]
 
-        return (*vals, *_COLOR_VALUES_256[self.background_number])
+        fg_red, fg_green, fg_blue = vals
+        bg_red, bg_green, bg_blue = bg_vals
+        return (fg_red, fg_green, fg_blue, bg_red, bg_green, bg_blue)
+
+    def layered_over(
+        self,
+        outer: AttrSpec,
+        *,
+        colors: Literal[1, 16, 88, 256, 16777216] | None = None,
+    ) -> AttrSpec:
+        """Return this attribute with its 'inherit' colors and its missing hyperlink taken from *outer*.
+
+        An attribute with no 'inherit' color is opaque: its colors and settings are kept unchanged.
+        Otherwise, each setting this attribute turns on ('bold') or off ('no-bold') is kept,
+        and a setting it does not mention is taken from *outer*.
+        The result may still inherit a color, when *outer* inherits it too.
+        The hyperlink is resolved on its own: without one, this attribute takes the hyperlink of *outer*.
+        The result is a plain :class:`AttrSpec` whenever it differs from this attribute.
+
+        :param outer: the enclosing attribute
+        :param colors: the color mode of the result, normally the terminal's;
+            ``None`` uses the larger color mode of the two attributes
+        :raises AttrSpecError: a color of either attribute needs more colors than *colors*.
+
+        >>> AttrSpec("dark red,bold", "inherit").layered_over(AttrSpec("inherit,underline", "dark blue"))
+        AttrSpec('dark red,bold,underline', 'dark blue')
+        >>> AttrSpec("dark red", "default").layered_over(AttrSpec("yellow", "dark blue"))
+        AttrSpec('dark red', 'default')
+        >>> AttrSpec("inherit,no-bold", "inherit").layered_over(AttrSpec("yellow,bold,underline", "dark blue"))
+        AttrSpec('yellow,underline,no-bold', 'dark blue')
+        >>> AttrSpec("dark red", "default").layered_over(AttrSpec("yellow,bold", "dark blue", hyperlink="https://a.b"))
+        AttrSpec('dark red', 'default', hyperlink=Hyperlink(uri='https://a.b', id=''))
+        """
+        link = self.__hyperlink if self.__hyperlink is not None else outer.hyperlink
+        if not self.__value & _INHERIT_MASK:
+            if link is self.__hyperlink:
+                return self
+            return AttrSpec(self.foreground, self.background, self.__color_mode(), hyperlink=link)
+        fg = (outer if self.foreground_inherit else self).foreground.partition(",")[0]
+        bg = outer.background if self.background_inherit else self.background
+        own_settings = self.foreground.split(",")[1:]
+        outer_settings = outer.foreground.split(",")[1:]
+        settings = ""
+        for name, off_name in zip(_ATTRIBUTES, _ATTRIBUTES_OFF, strict=True):
+            # the inner attribute's own state, else the outer one's, else not mentioned
+            for state in (own_settings, outer_settings):
+                if name in state or off_name in state:
+                    settings += f",{name}" if name in state else f",{off_name}"
+                    break
+        return AttrSpec(
+            fg + settings,
+            bg,
+            max(self.colors, outer.colors) if colors is None else colors,
+            hyperlink=link,
+        )
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, AttrSpec) and self.__value == other._value
+        """Return whether `other` is an :class:`AttrSpec` with the same underlying value and hyperlink."""
+        return isinstance(other, AttrSpec) and self.__value == other._value and self.__hyperlink == other.hyperlink
 
     def __ne__(self, other: object) -> bool:
+        """Return whether `other` is not equal to this :class:`AttrSpec`."""
         return not self == other
 
 
+#: default RGB values substituted for a palette entry's 'default' foreground/background,
+#: matching the black-on-light-gray terminal default used by the HTML-producing screens
+_default_aspec = AttrSpec("black", "light gray")
+_default_fg_rgb = _default_aspec.get_rgb_values()[:3]
+_default_bg_rgb = _default_aspec.get_rgb_values()[3:]
+
+
+def attr_spec_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
+    """Return the (foreground, background, extra CSS declarations) hex colors for *aspec*.
+
+    Covers every :class:`AttrSpec` display setting a browser can render: color (falling back to
+    the default black-on-light-gray for an unset foreground/background), ``standout`` (swaps
+    foreground and background), ``underline``/``strikethrough`` (combined into one
+    ``text-decoration``), ``bold``, ``italics``, ``blink`` (a step-start CSS animation, since the
+    ``text-decoration:blink`` value browsers used to support has been dropped) and ``faint``.
+    The hyperlink is not part of the style.
+    """
+    return _style_to_css(aspec.style_only())
+
+
+@functools.lru_cache(maxsize=_RESOLVED_ATTRS_LIMIT)
+def _style_to_css(aspec: AttrSpec) -> tuple[str, str, str]:
+    """Return :func:`attr_spec_to_css` for an attribute without a hyperlink, cached per style."""
+    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
+    if fg_r is None:
+        fg_r, fg_g, fg_b = _default_fg_rgb
+    if bg_r is None:
+        bg_r, bg_g, bg_b = _default_bg_rgb
+    fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
+    bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
+    if aspec.standout:
+        fg, bg = bg, fg
+
+    decoration = [name for name, on in (("underline", aspec.underline), ("line-through", aspec.strikethrough)) if on]
+
+    extra = ""
+    if decoration:
+        extra += f";text-decoration:{' '.join(decoration)}"
+    if aspec.bold:
+        extra += ";font-weight:bold"
+    if aspec.italics:
+        extra += ";font-style:italic"
+    if aspec.blink:
+        extra += ";animation:urwid-blink 1s step-start infinite"
+    if aspec.faint:
+        extra += ";opacity:0.5"
+    return fg, bg, extra
+
+
 class RealTerminal:
+    """Mixin providing access to the real terminal's signal key settings."""
+
     def __init__(self) -> None:
+        """Initialize with no signal keys saved yet."""
         super().__init__()
         self._signal_keys_set = False
-        self._old_signal_keys: tuple[int, int, int, int, int] | None = None
+        self._old_signal_keys: tuple[bytes, bytes, bytes, bytes, bytes] | None = None
 
     if IS_WINDOWS:
 
         def tty_signal_keys(
             self,
-            intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
-            start: Literal["undefined"] | int | None = None,
-            stop: Literal["undefined"] | int | None = None,
-            susp: Literal["undefined"] | int | None = None,
+            intr: Literal["undefined"] | int | bytes | None = None,
+            quit: Literal["undefined"] | int | bytes | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
+            start: Literal["undefined"] | int | bytes | None = None,
+            stop: Literal["undefined"] | int | bytes | None = None,
+            susp: Literal["undefined"] | int | bytes | None = None,
             fileno: int | None = None,
-        ) -> tuple[int, int, int, int, int] | None:
-            """
-            Read and/or set the tty's signal character settings.
-            This function returns the current settings as a tuple.
+        ) -> tuple[bytes, bytes, bytes, bytes, bytes] | None:
+            r"""Read and/or set the tty's signal character settings.
+
+            This function returns the current settings as a tuple of one-byte strings,
+            as termios reports them, which may be passed back to restore them.
 
             Use the string 'undefined' to unmap keys from their signals.
             The value None is used when no change is being made.
             Setting signal keys is done using the integer ascii
-            code for the key, eg.  3 for CTRL+C.
+            code for the key, eg.  3 for CTRL+C, or its one-byte string, eg. b"\x03".
 
             If this function is called after start() has been called
             then the original settings will be restored when stop()
@@ -926,27 +1279,27 @@ class RealTerminal:
 
         def tty_signal_keys(
             self,
-            intr: Literal["undefined"] | int | None = None,
-            quit: Literal["undefined"] | int | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
-            start: Literal["undefined"] | int | None = None,
-            stop: Literal["undefined"] | int | None = None,
-            susp: Literal["undefined"] | int | None = None,
+            intr: Literal["undefined"] | int | bytes | None = None,
+            quit: Literal["undefined"] | int | bytes | None = None,  # noqa: A002  # pylint: disable=redefined-builtin
+            start: Literal["undefined"] | int | bytes | None = None,
+            stop: Literal["undefined"] | int | bytes | None = None,
+            susp: Literal["undefined"] | int | bytes | None = None,
             fileno: int | None = None,
-        ) -> tuple[int, int, int, int, int] | None:
-            """
-            Read and/or set the tty's signal character settings.
-            This function returns the current settings as a tuple.
+        ) -> tuple[bytes, bytes, bytes, bytes, bytes] | None:
+            r"""Read and/or set the tty's signal character settings.
+
+            This function returns the current settings as a tuple of one-byte strings,
+            as termios reports them, which may be passed back to restore them.
 
             Use the string 'undefined' to unmap keys from their signals.
             The value None is used when no change is being made.
             Setting signal keys is done using the integer ascii
-            code for the key, eg.  3 for CTRL+C.
+            code for the key, eg.  3 for CTRL+C, or its one-byte string, eg. b"\x03".
 
             If this function is called after start() has been called
             then the original settings will be restored when stop()
             is called.
             """
-
             import termios
 
             if fileno is None:
@@ -964,15 +1317,18 @@ class RealTerminal:
                 sattr[termios.VSUSP],
             )
 
-            if intr == "undefined":
+            # termios reports these keys as bytes, and the tuple returned below is passed back
+            # here to restore them, so check the type first: comparing bytes with str raises
+            # BytesWarning under `python -bb`.
+            if isinstance(intr, str) and intr == "undefined":
                 intr = 0
-            if quit == "undefined":
+            if isinstance(quit, str) and quit == "undefined":
                 quit = 0  # noqa: A001
-            if start == "undefined":
+            if isinstance(start, str) and start == "undefined":
                 start = 0
-            if stop == "undefined":
+            if isinstance(stop, str) and stop == "undefined":
                 stop = 0
-            if susp == "undefined":
+            if isinstance(susp, str) and susp == "undefined":
                 susp = 0
 
             if intr is not None:
@@ -994,31 +1350,77 @@ class RealTerminal:
 
 
 class ScreenError(Exception):
-    pass
+    """Raised for errors in :class:`BaseScreen` and its subclasses."""
+
+
+class PaletteEntrySpecs(typing.NamedTuple):
+    """The specifications one palette entry is drawn with, one per number of colors.
+
+    The position of each field is the index :meth:`BaseScreen.resolve_attr` takes.
+    """
+
+    #: 16 colors
+    basic: AttrSpec
+    #: monochrome
+    mono: AttrSpec
+    #: 88 colors
+    high_88: AttrSpec
+    #: 256 colors
+    high_256: AttrSpec
+    #: true color
+    high_true: AttrSpec
+
+
+class InputClosedError(RuntimeError):
+    """Raised when the screen's input reaches end of file.
+
+    A terminal that hangs up is one cause.
+    It is a :exc:`RuntimeError`, so a handler that catches :exc:`RuntimeError` around :meth:`MainLoop.run` catches it
+    too.
+    """
 
 
 class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
-    """
-    Base class for Screen classes (raw_display.Screen, ..., etc.)
-    """
+    """Base class for Screen classes (display.raw.Screen, ..., etc.)."""
 
     signals: typing.ClassVar[list[str]] = [UPDATE_PALETTE_ENTRY, INPUT_DESCRIPTORS_CHANGED]
 
     def __init__(self) -> None:
+        """Initialize an unstarted screen with an empty palette."""
         super().__init__()
 
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
-        self._palette: dict[str | None, tuple[AttrSpec, AttrSpec, AttrSpec, AttrSpec, AttrSpec]] = {}
+        self._palette: dict[Hashable, PaletteEntrySpecs] = {}
+        self._resolved_attrs: dict[tuple[Hashable, int], AttrSpec] = {}
         self._started: bool = False
 
     @property
     def started(self) -> bool:
+        """Return whether the screen has been started and not yet stopped."""
         return self._started
 
+    @property
+    def palette(self) -> Mapping[Hashable, PaletteEntrySpecs]:
+        """Return a read-only view of the registered palette entries.
+
+        The view follows later changes to the palette.
+        Change the palette with :meth:`register_palette` and :meth:`register_palette_entry`.
+
+        >>> from urwid.display.html_fragment import HtmlGenerator
+        >>> screen = HtmlGenerator()
+        >>> screen.register_palette_entry("title", "white", "dark blue")
+        >>> screen.palette["title"].basic
+        AttrSpec('white', 'dark blue')
+
+        :returns: per entry name, the specifications it is drawn with; ``None`` names the default attribute.
+        """
+        return types.MappingProxyType(self._palette)
+
     def start(self, *args: typing.Any, **kwargs: typing.Any) -> StoppingContext:
-        """Set up the screen.  If the screen has already been started, does
-        nothing.
+        """Set up the screen.
+
+        If the screen has already been started, does nothing.
 
         May be used as a context manager, in which case :meth:`stop` will
         automatically be called at the end of the block:
@@ -1038,41 +1440,28 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """Perform the actual setup of the screen. Subclasses should override this method."""
 
     def stop(self) -> None:
-        if self._started:
-            self._stop()
+        """Tear down the screen if it has been started.
+
+        Emits ``INPUT_DESCRIPTORS_CHANGED`` once the screen is marked stopped,
+        so an event loop hooked to the screen stops watching its input.
+
+        You shouldn't override this method; override :meth:`_stop`.
+        """
+        if not self._started:
+            return
+        self._stop()
         self._started = False
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _stop(self) -> None:
         """Perform actual teardown of the screen. Subclasses should override this method."""
 
-    def run_wrapper(
-        self,
-        fn: Callable[[], typing.Any],
-        *args: typing.Any,
-        **kwargs: typing.Any,
-    ) -> None:
-        """Start the screen, call a function, then stop the screen.
-
-        Extra arguments are passed to `start`.
-
-        .. deprecated:: 1.3.0
-            Call `start` as a context manager instead. This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "run_wrapper is deprecated in favor of calling `start` as a context manager."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=3,
-        )
-        with self.start(*args, **kwargs):
-            fn()
-
     def set_mouse_tracking(self, enable: bool = True) -> None:
-        pass
+        """Enable or disable tracking of mouse movement events. A no-op here; subclasses override it."""
 
     @abc.abstractmethod
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
-        pass
+        """Draw *canvas* of the given *size* to the screen. Subclasses must implement this method."""
 
     def clear(self) -> None:
         """Clear the screen if possible.
@@ -1087,17 +1476,25 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         """
         return 80, 24
 
-    def register_palette(
-        self,
-        palette: Iterable[
-            tuple[str, str] | tuple[str, str, str] | tuple[str, str, str, str] | tuple[str, str, str, str, str, str]
-        ],
-    ) -> None:
+    def register_palette(self, palette: Iterable[PaletteEntry], *, replace: bool = False) -> None:
         """Register a set of palette entries.
+
+        With *replace*, the entries that *palette* does not name are removed once all of its entries are registered.
+        A removed name is drawn in the terminal's default colors, as a name that was never registered is.
+        The ``None`` entry is kept unless *palette* names it, so the screen keeps its default attribute.
+
+        >>> from urwid.display.html_fragment import HtmlGenerator
+        >>> screen = HtmlGenerator()
+        >>> screen.register_palette([("title", "white", "dark blue"), ("body", "black", "light gray")])
+        >>> screen.register_palette([("body", "white", "black")], replace=True)
+        >>> list(screen.palette)
+        [None, 'body']
 
         :param palette: a list of (name, like_other_name) or
             (name, foreground, background, mono, foreground_high, background_high) tuples
+        :param replace: remove the entries that *palette* does not name
         :raises ScreenError: an entry is neither a 2-, 3-, 4- nor 6-tuple, or copies a name that is not registered yet.
+            The entries before it stay registered, and with *replace* no entry is removed.
 
             The (name, like_other_name) format will copy the settings
             from the palette entry like_other_name, which must appear
@@ -1108,21 +1505,39 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             values.  See register_palette_entry() for a description
             of the tuple values.
         """
-
+        names: set[Hashable] = {None}
         for item in palette:
             if len(item) in {3, 4, 6}:
+                # pyrefly: ignore[bad-argument-type]  # a union of tuples of different lengths
                 self.register_palette_entry(*item)
+                names.add(item[0])
                 continue
             if len(item) != 2:
                 raise ScreenError(f"Invalid register_palette entry: {item!r}")
             name, like_name = item
             if like_name not in self._palette:
                 raise ScreenError(f"palette entry '{like_name}' doesn't exist")
+            signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *self._palette[like_name])
             self._palette[name] = self._palette[like_name]
+            self._resolved_attrs.clear()
+            names.add(name)
+        if not replace:
+            return
+        removed = [name for name in self._palette if name not in names]
+        if not removed:
+            return
+        # what a removed name is drawn with from now on, sent so that displays caching per name draw it again
+        default_specs = PaletteEntrySpecs(
+            *(AttrSpec(DEFAULT, DEFAULT, colors) for colors in (16, 1, 88, 256, 16777216))
+        )
+        for name in removed:
+            signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *default_specs)
+            del self._palette[name]
+            self._resolved_attrs.clear()
 
     def register_palette_entry(
         self,
-        name: str | None,
+        name: Hashable,
         foreground: str,
         background: str,
         mono: str | tuple[str, ...] | None = None,
@@ -1131,13 +1546,14 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
     ) -> None:
         """Register a single palette entry.
 
-        :param name: new entry/attribute name
+        :param name: new entry/attribute name, any hashable value; ``None`` names the default attribute
 
         :param foreground: a string containing a comma-separated foreground
             color and settings
 
             Color values:
             'default' (use the terminal's default foreground),
+            'inherit' (take the color from the enclosing attribute),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray', 'dark gray',
             'light red', 'light green', 'yellow', 'light blue',
@@ -1154,6 +1570,7 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
 
             Background color values:
             'default' (use the terminal's default background),
+            'inherit' (take the color from the enclosing attribute),
             'black', 'dark red', 'dark green', 'brown', 'dark blue',
             'dark magenta', 'dark cyan', 'light gray'
 
@@ -1191,7 +1608,16 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
             mono = ",".join(mono)
         if mono is None:
             mono = DEFAULT
-        mono_spec = AttrSpec(mono, DEFAULT, 1)
+        if basic.foreground_inherit or basic.background_inherit:
+            # monochrome has no colors to inherit, but the settings are combined the same way
+            mono_settings = [part for part in mono.split(",") if part.strip() not in _DEFAULT_COLOR_NAMES]
+            mono_spec = AttrSpec(
+                ",".join((INHERIT if basic.foreground_inherit else DEFAULT, *mono_settings)),
+                INHERIT if basic.background_inherit else DEFAULT,
+                1,
+            )
+        else:
+            mono_spec = AttrSpec(mono, DEFAULT, 1)
 
         if foreground_high is None:
             foreground_high = foreground
@@ -1217,8 +1643,52 @@ class BaseScreen(abc.ABC, metaclass=signals.MetaSignals):
         else:
             high_88 = AttrSpec(foreground_high, background_high, 88)
 
-        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, basic, mono_spec, high_88, high_256, high_true)
-        self._palette[name] = (basic, mono_spec, high_88, high_256, high_true)
+        entry = PaletteEntrySpecs(basic, mono_spec, high_88, high_256, high_true)
+        signals.emit_signal(self, UPDATE_PALETTE_ENTRY, name, *entry)
+        self._palette[name] = entry
+        self._resolved_attrs.clear()
+
+    def resolve_attr(self, attr: Hashable, index: int) -> AttrSpec:
+        """Return the :class:`AttrSpec` to draw a canvas run with display attribute *attr*.
+
+        Starting from the palette entry of ``None``, each layer of *attr* (a palette name, an :class:`AttrSpec`
+        or a :class:`LayeredAttr`), outermost first, is placed over the result so far with
+        :meth:`AttrSpec.layered_over`. A name missing from the palette is drawn with 'default' colors,
+        hiding the layers under it.
+
+        :param attr: display attribute of a canvas run
+        :param index: position in the palette entry tuple: 0 for 16 colors, 1 for monochrome,
+            2 for 88 colors, 3 for 256 colors, 4 for true color
+        :raises IndexError: *index* is outside 0-4 and a layer is a palette name.
+        """
+        key = (attr, index)
+        if (found := self._resolved_attrs.get(key)) is not None:
+            return found
+        if isinstance(attr, LayeredAttr):
+            layers: tuple[Hashable, ...] = (*attr.layers, None)
+        elif attr is None:
+            layers = (None,)
+        else:
+            layers = (attr, None)
+        result: AttrSpec | None = None
+        for layer in reversed(layers):
+            if isinstance(layer, AttrSpec):
+                spec = layer
+            elif (entry := self._palette.get(layer)) is not None:
+                spec = entry[index]
+            elif layer is None:
+                continue
+            else:
+                self.logger.debug(f"Undefined attribute: {layer!r}")
+                spec = AttrSpec(DEFAULT, DEFAULT)
+            # 88-color numbers differ from 256-color ones, so an 88-color screen keeps its own encoding
+            result = spec if result is None else spec.layered_over(result, colors=88 if index == 2 else None)
+        if result is None:
+            result = AttrSpec(DEFAULT, DEFAULT)
+        if len(self._resolved_attrs) >= _RESOLVED_ATTRS_LIMIT:
+            self._resolved_attrs.clear()
+        self._resolved_attrs[key] = result
+        return result
 
 
 def _test() -> None:

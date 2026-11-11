@@ -1,6 +1,30 @@
 from __future__ import annotations
 
+import contextlib
+import errno
+import gc
+import os
+import selectors
+import sys
+import typing
+import unittest.mock
+
+import pytest
+
 import urwid
+
+if typing.TYPE_CHECKING:
+    import weakref
+    from collections.abc import Callable, Collection, Iterator
+
+
+# GraalPy keeps an item removed from a list with del, pop() or remove() alive until the list itself is freed;
+# only clear() releases it. A test that frees an item removed from a list is expected to fail there.
+XFAIL_GRAALPY_LIST_KEEPS_REMOVED = pytest.mark.xfail(
+    sys.implementation.name == "graalpy",
+    reason="GraalPy keeps items removed from a list alive while the list lives",
+    strict=False,
+)
 
 
 class SelectableText(urwid.Text):
@@ -9,3 +33,232 @@ class SelectableText(urwid.Text):
 
     def keypress(self, size, key):
         return key
+
+
+class FocusHeightWidget(urwid.Widget):
+    """Selectable BOX and FLOW widget that is 2 rows tall out of focus and 5 rows in focus.
+
+    It records the size each input and cursor method is called with.
+    """
+
+    _sizing = frozenset((urwid.BOX, urwid.FLOW))
+    _selectable = True
+
+    def __init__(self) -> None:
+        """Build the widget with no size recorded."""
+        super().__init__()
+        #: The size each input and cursor method was called with, as ``(method name, size)``.
+        self.sizes: list[tuple[str, tuple[int] | tuple[int, int]]] = []
+
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return 5 rows in focus and 2 rows out of focus."""
+        return 5 if focus else 2
+
+    def render(self, size: tuple[int] | tuple[int, int], focus: bool = False) -> urwid.TextCanvas:
+        """Render rows of ``x``, as many as :meth:`rows` reports for a flow size."""
+        maxcol = size[0]
+        maxrow = self.rows((maxcol,), focus) if len(size) == 1 else size[1]
+        return urwid.TextCanvas([b"x" * maxcol for _ in range(maxrow)], maxcol=maxcol)
+
+    def keypress(self, size: tuple[int] | tuple[int, int], key: str) -> str | None:
+        """Record the size and return every key unhandled."""
+        self.sizes.append(("keypress", size))
+        return key
+
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int]:
+        """Record the size and report the cursor in the top left corner."""
+        self.sizes.append(("get_cursor_coords", size))
+        return 0, 0
+
+    def mouse_event(
+        self,
+        size: tuple[int] | tuple[int, int],
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
+        """Record the size and handle the event."""
+        self.sizes.append(("mouse_event", size))
+        return True
+
+
+def collect_and_count_alive(refs: Collection[weakref.ReferenceType[typing.Any]]) -> int:
+    """Collect garbage until a pass frees none of the objects behind *refs*, and return how many are alive.
+
+    A tracing collector (PyPy, GraalPy) frees an object released by a weakref callback only in a pass after the one
+    that ran the callback, and GraalPy, once a thread has been started, can defer a pass's callbacks to the next one.
+    Stopping after an unchanged pass takes at least two passes, so the callbacks of the last freeing pass have run.
+    """
+    before = None
+    for _ in range(10):
+        gc.collect()
+        alive = sum(ref() is not None for ref in refs)
+        if alive == before:
+            break
+        before = alive
+    return alive
+
+
+class Index:
+    """Integer-like object whose ``__index__`` and ``__int__`` give different values."""
+
+    def __init__(self, value: int) -> None:
+        self.value = value
+
+    def __index__(self) -> int:
+        return self.value
+
+    def __int__(self) -> int:
+        return 1
+
+
+class CountingIndex:
+    """Integer-like object that counts how often ``__index__`` is called."""
+
+    def __init__(self, value: int = 0) -> None:
+        self.value = value
+        self.calls = 0
+
+    def __index__(self) -> int:
+        self.calls += 1
+        return self.value
+
+
+class TtyRefusingSelector(selectors.SelectSelector):
+    """Stand-in for ``KqueueSelector`` on macOS, which refuses to register a descriptor opened from ``/dev/tty``."""
+
+    def register(self, fileobj: typing.Any, events: int, data: typing.Any = None) -> selectors.SelectorKey:
+        """Refuse *fileobj* with ``EINVAL``."""
+        raise OSError(errno.EINVAL, "Invalid argument")
+
+
+def assert_attribute_redraws(
+    test: unittest.TestCase,
+    make: Callable[..., urwid.Widget],
+    size: tuple[int] | tuple[int, int],
+    name: str,
+    value: typing.Any,
+) -> None:
+    """Assert that setting attribute *name* of a rendered widget redraws it as one built with that value.
+
+    :param make: builds the widget; it is called with no arguments, and with ``name=value``.
+    :param size: size to render at; with one dimension, ``rows()`` is compared as well.
+    """
+    widget = make()
+    # The canvas cache holds canvases weakly: keep the old one alive, as a screen showing it does.
+    old_canvas = widget.render(size)
+    if len(size) == 1:
+        widget.rows(size)
+    setattr(widget, name, value)
+    expected = make(**{name: value})
+    expected_text = expected.render(size).text
+    test.assertNotEqual(old_canvas.text, expected_text, f"{name}={value!r} does not change the canvas")
+    test.assertEqual(expected_text, widget.render(size).text)
+    # Pickles and copies carry the instance state: it keeps the attribute under its own name across releases.
+    test.assertEqual(value, vars(widget)[name])
+    if len(size) == 1:
+        test.assertEqual(expected.rows(size), widget.rows(size))
+
+
+def assert_redraws_after_child_change(
+    test: unittest.TestCase,
+    container: urwid.Widget,
+    size: tuple[()] | tuple[int] | tuple[int, int],
+    change: Callable[[], object],
+    expected: tuple[bytes, ...],
+    *,
+    focus: bool = False,
+) -> None:
+    """Assert that a rendered *container* is drawn again after *change* changes one of its children.
+
+    :param test: the test case that reports the failure; it also clears the canvas cache when it ends.
+    :param container: the widget whose canvas has to be drawn again.
+    :param size: size to render at.
+    :param change: changes a child, without touching *container* itself.
+    :param expected: the text of the canvas after the change.
+    :param focus: whether *container* is rendered in focus.
+    """
+    urwid.CanvasCache.clear()
+    test.addCleanup(urwid.CanvasCache.clear)
+    # The canvas cache holds canvases weakly: keep the old one alive, as a screen showing it does.
+    old_canvas = container.render(size, focus)
+    change()
+    test.assertIsNone(urwid.CanvasCache.fetch(container, type(container), size, focus))
+    test.assertNotEqual(expected, tuple(old_canvas.text))
+    test.assertEqual(expected, tuple(container.render(size, focus).text))
+
+
+def external_loop(
+    widget: urwid.Widget | None = None,
+    event_loop: urwid.EventLoop | None = None,
+    **kwargs: typing.Any,
+) -> urwid.MainLoop:
+    """Return a loop over a mock raw screen, which start() hooks into *event_loop* without a terminal."""
+    screen = unittest.mock.Mock(spec=urwid.display.raw.Screen)
+    screen.started = True
+    screen.get_cols_rows.return_value = (10, 5)
+    return urwid.MainLoop(
+        widget if widget is not None else urwid.SolidFill(),
+        screen=screen,
+        event_loop=event_loop if event_loop is not None else urwid.SelectEventLoop(),
+        handle_mouse=False,
+        **kwargs,
+    )
+
+
+class NonExternalLoopScreen(urwid.BaseScreen):
+    """Screen with no ``hook_event_loop`` support, forcing :meth:`MainLoop._run_screen_event_loop`."""
+
+    def __init__(self, cols_rows: tuple[int, int] = (10, 5)) -> None:
+        super().__init__()
+        self._cols_rows = cols_rows
+        self.input_calls = 0
+        self.timeouts: list[float | None] = []
+
+    def get_cols_rows(self) -> tuple[int, int]:
+        return self._cols_rows
+
+    def draw_screen(self, size: tuple[int, int], canvas: typing.Any) -> None:
+        pass
+
+    def get_input(self, raw_keys: bool = False) -> tuple[list[typing.Any], list[int]]:
+        self.input_calls += 1
+        return [], []
+
+    def set_input_timeouts(self, max_wait: float | None = None) -> None:
+        self.timeouts.append(max_wait)
+
+
+def _forbidden_process_call(*args: object) -> typing.NoReturn:
+    """Fail a test that signals a process while the child of a terminal is mocked."""
+    msg = f"process signalled with {args} while the child process is mocked"
+    raise AssertionError(msg)
+
+
+@contextlib.contextmanager
+def pipe_terminal() -> Iterator[tuple[urwid.Terminal, int]]:
+    """Yield a terminal whose pty master is the read end of a pipe, with the pipe's write end.
+
+    No child process is started, the tty is not touched, and :meth:`urwid.Terminal.terminate` does nothing,
+    so the pipe can be watched by a real selector.
+    """
+    from unittest import mock  # noqa: PLC0415  # urwid.vterm, which the patches import, does not exist on Windows
+
+    rd, wr = os.pipe()
+    try:
+        with (
+            mock.patch("urwid.vterm.pty.fork", return_value=(1 << 30, rd)),
+            mock.patch("urwid.vterm.atexit"),
+            mock.patch("urwid.vterm.fcntl.ioctl", return_value=0),
+            mock.patch("urwid.vterm.RealTerminal"),
+            mock.patch("urwid.vterm.os.kill", side_effect=_forbidden_process_call),
+            mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden_process_call),
+            mock.patch("urwid.vterm.signal.pthread_kill", side_effect=_forbidden_process_call),
+            mock.patch.object(urwid.Terminal, "terminate"),
+        ):
+            yield urwid.Terminal(["/bin/false"]), wr
+    finally:
+        os.close(rd)
+        os.close(wr)

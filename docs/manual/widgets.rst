@@ -93,6 +93,74 @@ calculate their :attr:`maxrow` based on the :attr:`maxcol` value.
 Fixed widgets expect the value ``()`` to be passed in to functions that take
 a size because they know their :attr:`maxcol` and :attr:`maxrow` values.
 
+A widget may support more than one sizing mode, and :meth:`Widget.sizing`
+returns the set of modes it supports.  The sizing modes of a decoration or
+container widget depend on the widgets it contains and on its options.
+
+A widget can also accept a size it does not report.  A :class:`ListBox`
+renders at a flow size, but reports ``'flow'`` only with ``flow=True``; see
+:ref:`listbox-contents`.  A :class:`Frame` renders at a flow size when its body
+does, and reports ``'flow'`` only with ``flow=True`` as well.  See
+:ref:`shrink_to_fit <shrink-to-fit>` for a dialog that takes the rows of its
+content.
+
+.. list-table:: Sizing Modes of the Included Widgets
+   :widths: 45 55
+   :header-rows: 1
+
+   * - widget
+     - sizing modes
+   * - :class:`Text`, :class:`ANSIText`, :class:`TreeWidget`,
+       :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
+       :class:`RadioButton`, :class:`DropDown`, :class:`Spinner`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Edit` and its subclasses, :class:`Divider`,
+       :class:`ProgressBar`, :class:`Notifications`
+     - ``'flow'``
+   * - :class:`BigText`
+     - ``'fixed'``
+   * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
+       :class:`Terminal`
+     - ``'box'``
+   * - :class:`AttrMap`, :class:`LineBox`, :class:`PopUpLauncher`,
+       :class:`WidgetDisable`, :class:`WidgetPlaceholder`
+     - the modes of the wrapped widget
+   * - :class:`Padding`
+     - the modes of the wrapped widget, and ``'fixed'`` as well when its width
+       is a given number of columns; only ``'flow'`` when its width is
+       ``'clip'``
+   * - :class:`Filler`
+     - ``'box'``, and ``'flow'`` as well when its height is ``'pack'`` or a
+       given number of rows; see :ref:`shrink_to_fit <shrink-to-fit>` for a
+       ``'pack'`` height taller than the rows available
+   * - :class:`BoxAdapter`
+     - ``'flow'``; the wrapped widget is a box widget
+   * - :class:`Pile`, :class:`Columns`
+     - depend on the widgets they contain and their options
+   * - :class:`GridFlow`
+     - ``'flow'`` and ``'fixed'``
+   * - :class:`Table`
+     - ``'box'`` and ``'flow'``, and ``'fixed'`` as well when no column is
+       weighted
+   * - :class:`Tabs`
+     - ``'box'``, and ``'flow'`` as well when every body is a flow widget
+   * - :class:`Overlay`
+     - ``'box'``, and ``'flow'`` and ``'fixed'`` as well when the size and
+       position options of the top widget allow it; see
+       :ref:`shrink_to_fit <shrink-to-fit>` for a ``'pack'`` height taller
+       than the rows available
+   * - :class:`ListBox`, :class:`TreeListBox`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when the list
+       walker reports its length, or an estimate of it, and does not wrap
+       around; see :ref:`listbox-contents`
+   * - :class:`ScrollBar`
+     - ``'box'``, and ``'flow'`` as well around a ``ListBox(..., flow=True)``
+   * - :class:`Frame`
+     - ``'box'``, and ``'flow'`` as well with ``flow=True`` when its body
+       also supports ``'flow'``; it accepts a flow size whenever its body does
+   * - :class:`OverlayStack`, :class:`PopUpTarget`, :class:`Scrollable`
+     - ``'box'``
+
 .. _basic-grafic-widgets:
 
 Included Widgets
@@ -102,10 +170,122 @@ Included Widgets
 
 .. image:: images/urwid_widgets_1.png
 
-Basic and graphic widgets are the content with which users interact. They may
-also be used as part of custom widgets you create.
+Basic widgets, controls and graphic widgets are the content with which users
+interact. They may also be used as part of custom widgets you create.
+Controls are the widgets a user operates to make a choice: :class:`Button`,
+:class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
+The graphic widgets also include :class:`Terminal`, a box widget that runs a
+child process and shows its terminal output.
+
+The color of a widget's title in the figures shows the sizing modes it
+supports: blue for box, orange for flow and yellow for fixed.  A title in more
+than one color supports each of those modes.  A mode a widget supports only
+with some options is drawn the same way, such as ``'flow'`` for
+``ListBox(..., flow=True)``.  In a decoration or container tile, the colors
+inside the box show which sizing modes the wrapped widgets use.  The table in
+`Box, Flow and Fixed Widgets`_ lists the exact sizing modes of each widget and
+the conditions for each mode.
 
 .. image:: images/urwid_widgets_2.png
+
+.. _controls:
+
+Controls
+========
+
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` send a signal
+when the user activates them with :kbd:`enter`, :kbd:`space` or a mouse
+click: ``'click'`` for a button and ``'change'`` for a check box or a radio
+button.  :class:`GridFlow` arranges a group of them in equal-width cells.
+The ``selected_button`` property of a :class:`RadioButton` returns the selected
+button of its group, or ``None`` when no button of the group is selected.
+
+A :class:`Button` shows its label between ``<`` and ``>``.  The ``left`` and
+``right`` keywords replace a bracket with other markup, such as ``"["``, and
+markup with no text, such as ``""``, leaves the bracket out, so
+``Button(label, left="", right="")`` is clickable plain text.  The cursor
+rests on the first character of the label while the button is in focus;
+``cursor_position=None`` hides it, as it does for a :class:`SelectableIcon`.
+
+SelectableIcon Widgets
+----------------------
+
+:class:`SelectableIcon` is a :class:`Text` widget that takes the focus and
+shows the cursor at a fixed position in its text while it is in focus:
+``cursor_position``, the first character by default.  It is the part of
+:class:`Button`, :class:`CheckBox` and :class:`RadioButton` that takes the
+focus, and it can be used on its own as a row of a menu or of a
+:class:`ListBox` that the user chooses by moving the focus to it::
+
+    rows = [
+        urwid.AttrMap(urwid.SelectableIcon(name), None, focus_map="reversed")
+        for name in ("red", "green", "blue")
+    ]
+    listbox = urwid.ListBox(urwid.SimpleFocusListWalker(rows))
+
+It handles no keys and no mouse events: it returns every key, so the
+container or the application acts on :kbd:`enter`.  ``cursor_position=None``
+shows no cursor, which makes it the same as ``Text(markup, selectable=True)``;
+see `ListBox Focus and Scrolling`_.
+
+DropDown Widgets
+----------------
+
+:class:`DropDown` shows the selected option of a list of options, followed by
+an indicator.  :kbd:`enter`, :kbd:`space` or a mouse click opens a pop-up list
+of all the options with the selected one in focus.  Activating an option in
+the list selects it and closes the list, and :kbd:`esc` closes the list
+without a change.  The list opens below the widget, or above it when it does
+not fit below, and it shows at most ``max_visible_items`` options at once and
+scrolls through the rest.  A drop-down with a single option has nothing to
+choose, so it is read-only: it is not selectable, opens no list, and leaves
+the key or the click to the widgets above it.
+
+The :attr:`DropDown.selected` property holds the index of the selected
+option, and :attr:`DropDown.options` holds the markup of every option.
+The ``'change'`` signal is sent with the new index before
+:attr:`DropDown.selected` changes, so a callback still reads the previous
+value from the widget:
+
+::
+
+    def on_change(drop_down: urwid.DropDown, new_index: int) -> None:
+        status.set_text(["Selected: ", drop_down.options[new_index]])
+
+    drop_down = urwid.DropDown(["Red", "Green", "Blue"], selected=1)
+    urwid.connect_signal(drop_down, "change", on_change)
+
+The list is a pop-up, so :class:`DropDown` needs a :class:`PopUpTarget`;
+see :class:`DropDown` for the requirement.
+
+The tour.py_ example program shows two drop-down widgets.
+
+.. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
+
+Edit Widgets
+------------
+
+:class:`Edit` handles the readline editing commands described in
+:class:`CommandMap`: moving and deleting by word and to the line ends.  No key
+is mapped to them by default.  :meth:`CommandMap.bind_readline` maps the usual
+readline keys, such as :kbd:`ctrl a`, :kbd:`ctrl e`, :kbd:`ctrl w` and
+:kbd:`meta b`, either on the shared ``urwid.command_map`` or on a copy that a
+subclass sets as its ``_command_map``::
+
+    class ReadlineEdit(urwid.Edit):
+        _command_map = urwid.command_map.copy()
+        _command_map.bind_readline()
+
+An :class:`Edit` created with ``undo_limit`` keeps that many changes made by
+keys, which the ``'undo'`` and ``'redo'`` commands take back and make again;
+:meth:`CommandMap.bind_readline` maps :kbd:`ctrl _` to ``'undo'``.  Setting
+the text from the application clears this history, so that a reused edit does
+not bring back an earlier value.  An :class:`Edit` given a ``kill_buffer``
+list puts the text the word and line delete commands remove into it, and the ``'yank'``
+command (:kbd:`ctrl y` in the preset) inserts the newest entry; several edits
+can share one list.
+
+The tour.py_ example program shows such an edit.
 
 .. _decoration-widgets:
 
@@ -120,6 +300,69 @@ If you might be using more than one decoration widget you may use the
 "most" original_widget.
 :attr:`Widget.base_widget` points to ``self`` on all non-decoration widgets, so
 it is safe to use in any situation.
+
+.. _pop-up-widgets:
+
+Pop-up Widgets
+==============
+
+A pop-up is a widget drawn on top of the other widgets on the screen, such as
+a menu or the list of a :class:`DropDown`.  Two decoration widgets work
+together to show it:
+
+* :class:`PopUpLauncher` wraps the widget that opens the pop-up.  A subclass
+  implements :meth:`PopUpLauncher.create_pop_up`, which returns the pop-up
+  widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
+  position relative to the launcher and its size.  Calling
+  :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
+  opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
+  closes it when the pop-up leaves :kbd:`esc` unhandled.
+  ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
+  click outside the pop-up; that click does not reach the widget under it.
+  :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
+  :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
+  at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
+  against.
+* :class:`PopUpTarget` is a box widget that draws the open pop-up of a
+  launcher inside it, and any pop-up opened from that pop-up, as an
+  :class:`Overlay` over its own content.  A pop-up
+  is shown only inside a :class:`PopUpTarget`.  ``MainLoop(..., pop_ups=True)``
+  wraps the topmost widget in one, so a pop-up can use the whole screen.
+
+A pop-up that would extend past an edge of the :class:`PopUpTarget` is moved,
+and shrunk when it is larger, to fit inside it.  When the parameters include
+``anchor_height``, the number of launcher rows directly above the pop-up, the
+pop-up is kept off those rows: it is placed below the launcher when it fits
+there, above the launcher when it fits there, and otherwise on the side with
+more rows, with its height clipped to that side.  A pop-up widget may itself be
+a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
+relative to the pop-up that opened it.
+
+The calc.py_ example program has a :guilabel:`Theme` button that opens a pop-up, and
+:class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose
+pop-up is its list of options.
+
+.. _calc.py: https://github.com/urwid/urwid/blob/master/examples/calc.py
+
+.. _special-widgets:
+
+Special Widgets
+===============
+
+These decoration widgets change how the widget they wrap takes part in the
+interface, not how it looks:
+
+* :class:`WidgetDisable` disables interaction with the wrapped widget: while
+  its ``disabled`` property is ``True`` (the default), it is never selectable,
+  it is skipped by focus navigation, and it always renders the wrapped widget
+  without focus.  Setting the property to ``False`` enables the wrapped widget
+  again without replacing the decoration; a disabled look, such as an
+  :class:`AttrMap` around it, is up to the application.
+* :class:`WidgetPlaceholder` shows the widget stored in its
+  ``original_widget`` property, and assigning a new widget to that property
+  replaces the widget shown without modifying the container that holds the
+  placeholder.  It is useful for an interface with several pages, or for
+  showing and hiding a menu or a status bar.
 
 .. _container-widgets:
 
@@ -181,8 +424,9 @@ flagged to be redrawn.
 iterable to ``container.contents`` to overwrite the values in
 with the ones provided.
 
-:class:`Columns`, :class:`Pile`, :class:`GridFlow`, :class:`Overlay` and
-:class:`Frame` support ``container.contents`` item assignment and deletion.
+:class:`Columns`, :class:`Pile`, :class:`GridFlow` and :class:`Frame` support
+``container.contents`` item assignment and deletion. :class:`Overlay` supports
+item assignment only, because its two items are fixed.
 
 ::
 
@@ -258,6 +502,167 @@ walker interface was defined.  Note that a custom list walker might also generat
 an unbounded number of positions, so care should be used with this interface and
 :class:`ListBox`.
 
+.. _select-navigation:
+
+Moving the Focus with Tab
+-------------------------
+
+The default command map binds :kbd:`tab` and :kbd:`ctrl n` to the
+``'next selectable'`` command and :kbd:`shift tab` and :kbd:`ctrl p` to the
+``'prev selectable'`` command.  :class:`Pile`, :class:`Columns`,
+:class:`Frame`, :class:`ListBox` and :class:`GridFlow` handle these commands
+only when they are created with ``select_navigation=True`` (or have their
+``select_navigation`` attribute set).  Otherwise the keys are returned
+unhandled, so an application that handles :kbd:`tab` in its
+``unhandled_input`` keeps working.
+
+An opted-in container handles ``'next selectable'`` this way, and
+``'prev selectable'`` the same way in the opposite direction:
+
+#. The key goes to the child in focus first, like every other key.  A child
+   that handles it keeps it: an :class:`Edit` created with ``allow_tab=True``
+   inserts a tab, an :class:`Edit` with a ``text_completer`` completes its text when
+   the completer returns something, and an opted-in child container moves its
+   own focus.
+#. When the child returns the key unhandled, the container moves its focus to
+   the next selectable child and enters it (see below).  The following key
+   presses go to that child until it returns the key unhandled again.
+#. When there is no selectable child after the focus, the container moves its
+   focus back to its first selectable child, enters it, and returns the key
+   unhandled.  An opted-in parent then moves on to its own next child.  At the
+   outermost opted-in container the same key press has already put the focus
+   on its first selectable child, and the key still reaches
+   ``unhandled_input``, which an application may use or ignore.
+
+Each key press is decided from the answer of the child in focus and from the
+current contents and focus of the container, so children added, removed or
+changed between key presses are taken into account.
+
+Entering a child means calling its ``enter_selectable(reverse=...)`` method,
+when it has one.  An opted-in container starts at its first selectable child
+(its last one, for ``'prev selectable'``) and enters that child in turn.
+A container that is not opted in keeps its focus and is a single stop, the
+same as a widget without the method, such as a :class:`ListBox` of records.
+Decoration widgets such as :class:`Padding`, :class:`AttrMap` and
+:class:`LineBox`, and :class:`WidgetWrap` subclasses, forward the method to
+the widget they send keys to; a subclass that sends keys to another widget
+overrides ``enter_selectable()`` to match.  :class:`WidgetDisable` is never
+entered while it is disabled.  :class:`PopUpTarget` does not forward the method and keeps every
+focus under it, because the widget that receives its keys is known only
+after the pop-ups were laid out at the current size.
+
+After a step or a reset, every opted-in container on the new focus path,
+reached through containers and decorations that implement the method, is at
+its first (last) selectable child.  Containers off the new focus path keep
+their focus until they are entered.
+
+``container.focus_first_selectable()`` and
+``container.focus_last_selectable()`` move the focus to the first or last
+selectable child and enter it, whether or not the container is opted in.
+They return whether a selectable child exists.  :class:`ListBox` searches its
+whole body, not only the visible rows.
+
+A child of :class:`Pile`, :class:`Columns` or :class:`GridFlow` sized
+``(GIVEN, 0)`` is not drawn, so neither these commands nor the arrow keys
+move the focus to it.  A container whose only selectable children are sized
+this way still reports itself as selectable to its parent.
+
+Every focus change made by this navigation is an assignment to
+``container.focus_position``, so a subclass that overrides the
+``focus_position`` setter sees each one.  :class:`ListBox` places the new
+focus like any undirected focus change: a visible widget stays where it is,
+and a widget out of view is centred.
+
+A custom container gets the same behaviour from :class:`SelectNavigationMixin`,
+or from :class:`SelectNavigationListContentsMixin` when its positions are
+indexes into a ``contents`` list; the mixin documentation lists what the
+container has to provide.
+
+``select_navigation=True`` on a :class:`ListBox` expects a finite body:
+``get_next()`` and ``get_prev()`` of its list walker reach
+``(None, None)`` in both directions.  A body without an end never returns
+from the search.  A list walker created with
+``wrap_around=True``, such as :class:`SimpleFocusListWalker`, is traversed
+from the first to the last position of its ``positions()``, so the key is
+returned at its end.  Another list walker that repeats a position is treated
+as ending where the walk comes back to the focus: the search does not loop,
+but the key is returned only when no other selectable widget is left.
+
+.. _focus-changed-signal:
+
+Reacting to Focus Changes
+-------------------------
+
+:class:`Pile`, :class:`Columns`, :class:`GridFlow` and :class:`Tabs` send the
+``"focus changed"`` signal after their focus position changed: by a key, a
+mouse click, the ``focus_position`` setter, or a change of ``contents`` that
+moves the focus to another position.  Replacing the widget in focus at the
+same position is not reported.  A handler receives the container, the old and
+the new position; a position is ``None`` while the container is empty.  The
+handler runs after the change, so the container already reports the new
+focus::
+
+    def on_focus_changed(pile, old_position, new_position):
+        status.set_text(f"field {new_position}")
+
+    urwid.connect_signal(pile, "focus changed", on_focus_changed)
+
+The signal is sent once for a change of ``contents``, after the contents
+list's modified callback.  Replacing the callback set with
+``contents.set_focus_changed_callback()``, which runs before the change, does
+not stop the signal.
+
+:class:`Frame` sends the same signal after its focus part changed: by a key
+with ``select_navigation``, a mouse click, the ``focus_position`` or
+``focus_part`` setter, or the removal of the header or the footer in focus,
+which moves the focus to the body.  Its positions are ``'header'``,
+``'body'`` and ``'footer'``, never ``None``.  Replacing the widget of the part
+in focus is not reported.
+
+The positions of :class:`Tabs` are tab indexes.  Deleting the selected tab
+when another tab follows it keeps the index, so the next tab becomes selected
+without a signal.  Moving the bar cursor is not reported either: it does not
+select a tab.
+
+A handler that moves the focus again sends a new signal before the remaining
+handlers of the first one run, so those see the second change first.  The
+arguments of each signal, not the current ``focus_position``, describe the
+change it reports.
+
+A focus child is drawn with its focus attributes only while its container is
+in focus.  To keep it marked when the focus moves to another part of the
+screen, give :class:`Pile`, :class:`Columns`, :class:`ListBox` or
+:class:`GridFlow` an ``unfocused_focus_attr``: while the container renders
+without focus, it applies that attribute map to the focus child's canvas, in
+any form :class:`AttrMap` takes.  :class:`Tabs` applies it to the label of the
+selected tab, not to the body::
+
+    listbox = urwid.ListBox(walker, unfocused_focus_attr={"item": "item selected"})
+
+When the children carry their own :class:`AttrMap` focus maps, a fixed map
+cannot follow each child's own look.  ``unfocused_focus_attr_func`` takes a
+function instead: it is called with the focus child (the selected label of a
+:class:`Tabs`, the :class:`TableRow` of a :class:`Table`) and returns a map in
+any form :class:`AttrMap` takes, or ``None`` to fall back to
+``unfocused_focus_attr``.  It runs when the container's canvas is drawn
+afresh, so a result that depends on state outside the widgets needs the
+container invalidated before it shows::
+
+    def own_focus_map(child):
+        if not isinstance(child, urwid.AttrMap) or child.focus_map is None:
+            return None
+        return {child.attr_map.get(key, key): value for key, value in child.focus_map.items()}
+
+    pile = urwid.Pile(cells, unfocused_focus_attr_func=own_focus_map)
+
+``focus_map`` is ``None`` for an :class:`AttrMap` without one, and an
+attribute the normal map does not name passes through unchanged.  The mark is
+applied to the attributes the normal map has already produced, so it
+reproduces the focused look only while the normal map keeps apart the
+attributes the focus map tells apart: with ``attr_map={"a": "plain", "b":
+"plain"}`` and ``focus_map={"a": "one", "b": "two"}`` both parts are marked
+``"two"``.
+
 
 Pile Widgets
 ------------
@@ -286,6 +691,12 @@ Columns widgets are selectable only if the column in focus is selectable.
 If a focus column is not specified the first selectable widget will be chosen as the
 focus column.
 
+The keys move the focus only to columns that are drawn.  A column 0 columns wide,
+or one left out because the columns do not fit the width, is skipped, since the
+user cannot see it.  A Columns wider than the screen therefore does not scroll to
+its hidden columns when the focus moves; it shows them again once it is wide
+enough.
+
 
 GridFlow Widgets
 ----------------
@@ -301,6 +712,269 @@ GridFlow widget is resized it regenerates the display widget to accommodate the
 new space.
 
 
+Table Widgets
+-------------
+
+:class:`Table` lines up rows of cells between a header and an optional
+footer that stay in place while the rows scroll.  Each :class:`TableColumn` gives its column a width:
+``PACK`` for the widest cell, a number of screen columns, or
+``(WEIGHT, weight)`` for a share of the room the other columns leave::
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT),
+            urwid.TableColumn("Note", width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+        ],
+        [["urwid", "1.2M", "console user interface library"]],
+        focus_attr="row focus",
+        unfocused_focus_attr="row marked",
+    )
+    table.body.append(["tour.py", "18K", "the example program"])
+
+A cell is a widget or text markup.  Markup becomes a text cell with the
+column's ``align`` and ``wrap``; a widget keeps its own, so pass an aligned
+widget where that matters.  A cell has to support ``'flow'`` sizing.  Only a
+cell that also supports ``'fixed'`` sizing is measured for a ``PACK`` column,
+so an :class:`Edit` column is best given a number or a weight.
+
+:attr:`Table.body` holds the rows.  A sequence of cells added to it becomes a
+:class:`TableRow`, which carries a ``data`` object for the caller, its own
+``attr`` and ``focus_attr``, and whether it is selectable.  Every row is
+selectable unless built otherwise, so a row of plain text takes the focus.
+A change that does not fit the columns raises :exc:`TableError` and leaves the
+rows as they were.
+
+A column's ``attr`` maps every cell of that column in the rows.
+It does not map the header label, which takes ``header_attr`` only,
+nor a footer built from cells, which takes ``footer_attr`` only,
+and it does not map a span row.
+The row's map applies over it: a dict ``attr`` or ``focus_attr`` of the row
+also maps the column attributes, so a dict ``focus_attr`` gives each column
+its own focus colour.
+
+When the columns do not fit, the weighted columns are at their minimum
+first, then the ``PACK`` columns shrink towards their ``min_width``, and as the
+last resort the rightmost column is hidden.  A given width never shrinks.
+A hidden column is skipped by the keyboard.
+
+Cells are measured once, when their row is built.  A text cell the table
+made measures itself again when its text changes.  A widget passed as a cell
+whose width changes later needs :meth:`TableLayout.invalidate_widths`.
+
+The table sends ``"focus changed"`` like the other containers, and
+``"activate"`` with the focus position when the focused row leaves the
+``activate`` command (:kbd:`enter` or :kbd:`space`) unhandled.  A handler
+whose result is true consumes the key; otherwise the key is returned, as
+:class:`Overlay` does for ``"menu"``.  Every handler runs, whatever the earlier
+ones returned.  A mouse click moves the focus and reaches the cell, as in a
+:class:`ListBox`.  A ``row_attr(index, data)`` callable colours rows by their
+position or their data, for example in stripes; it runs each time a row is
+drawn.  The ``unfocused_focus_attr`` map is applied over the row's own map, so
+its keys are the attributes the row's map produces.
+
+``footer=`` takes the cells of a row drawn below the rows, such as totals.
+:attr:`Table.footer` can be set later to cells, to a :class:`TableRow` of
+:attr:`Table.layout` with its own maps (a span row for a one-line summary),
+or to ``None``.  Like the header, the footer shares the column widths and
+never takes the focus or a mouse click.
+
+A box size that does not fit the whole table can drop the header or the
+footer: ``header_drop=N`` drops the header while keeping it would leave the
+body fewer than ``N`` rows, and ``footer_drop`` does the same for the footer.
+The part with the larger threshold is dropped first, so the two numbers also
+set which part matters more; on equal thresholds the footer goes first.
+Nothing is dropped while all the rows fit, and a flow size shows both parts.
+
+In a flow size, ``max_rows`` limits the rows shown, and ``Table.pack(())``
+gives the natural width, so a table can size a dialog by itself.
+
+:meth:`Table.set_focus` takes ``coming_from=`` as :meth:`ListBox.set_focus`
+does, so a jump scrolls as if the focus arrived from that edge.
+``wheel="view"`` makes the mouse wheel scroll the rows instead of moving the
+focus, as for a :class:`ListBox`; see `ListBox Focus and Scrolling`_.
+
+``scrollbar=True`` draws a :class:`ScrollBar` beside the rows, and
+``scrollbar=None`` draws it only when the rows do not fit.
+The :class:`ScrollBar` parameters for its look, its side and its mouse
+handling are passed with a ``scrollbar_`` prefix, such as
+``scrollbar_thumb_char``, ``scrollbar_end_markers``, ``scrollbar_side`` and
+``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
+of an application.
+
+:class:`urwid.widget.TableLayout`, the part that shares the widths, also
+works without a table: rows built with :meth:`TableLayout.row` line up in a
+:class:`Pile` or a :class:`ListBox` of their own, such as the label and value
+columns of a form.
+
+
+Tabs Widgets
+------------
+
+:class:`Tabs` shows a row of tab labels over the body of the selected tab.
+It is built from ``(label, body)`` pairs, and the label is text markup or a
+widget::
+
+    tabs = urwid.Tabs(
+        [
+            ("Log", urwid.Text("12:00 started")),
+            ("Settings", urwid.Edit("Name: ", "demo")),
+            ("Help", urwid.Text("F1 for help")),
+        ],
+        selected=1,
+        selected_map="tab selected",
+    )
+
+which renders 24 columns wide as::
+
+    Log Settings Help
+    Name: demo
+
+The selected tab is the focus of the container: ``focus_position`` is its
+index and ``focus`` its body.  Keys go to the body, and a mouse click on a
+label selects its tab.  The ``'next tab'`` and ``'previous tab'`` commands
+select the neighbour and wrap around at the ends.  No key is mapped to them
+by default, since :kbd:`tab` already moves the focus between widgets in many
+applications; bind them to the keys the application uses::
+
+    from urwid.command_map import Command
+
+    urwid.command_map.bind(Command.NEXT_TAB, "meta right")
+    urwid.command_map.bind(Command.PREVIOUS_TAB, "meta left")
+
+With two or more tabs the widget is selectable, so a parent container passes
+it these commands even when no body takes keys.
+
+With ``bar_selectable=True`` the label row can take the keyboard focus:
+:kbd:`up`, when the body leaves it unhandled, moves the focus to the bar,
+:kbd:`left` and :kbd:`right` move a bar cursor there, :kbd:`enter` selects
+the tab under it and :kbd:`down` returns to the body.  With a single tab there
+is nothing to switch to, so the bar never takes the focus and the tab
+commands are returned to the widgets above.  ``bar_position="bottom"`` draws
+the bar under the body, and the up and down keys swap their roles.  When the
+labels do not fit, the bar centres the selected label, or the label under the
+bar cursor while the bar has the focus.  An edge with labels hidden past it
+shows ``<`` or ``>``, and a click on it selects the nearest hidden tab on that
+side.  With five tabs in 12 columns, the first and then the third selected::
+
+    one two thr>
+    <wo three f>
+
+The ``overflow_markers`` argument sets the markers, from
+:class:`Tabs.Symbols <urwid.widget.tabs.TabsSymbols>` or any text::
+
+    tabs = urwid.Tabs(
+        pages,
+        overflow_markers=(urwid.Tabs.Symbols.ARROW_TRIANGLE_LEFT, urwid.Tabs.Symbols.ARROW_TRIANGLE_RIGHT),
+    )
+
+``None`` draws no markers, and an empty string leaves that edge without one.
+
+``attr_map`` applies to every label, ``selected_map`` to the selected one and
+``focus_map`` to the label under the bar cursor.
+
+Labels on a colored background read as a row of buttons.  The ``underline``
+argument instead draws a line row between the labels and the body: its first
+glyph across the width and its second one along the selected label, which
+joins that label to its body.  The line takes ``attr_map``, and its part along
+the selected label ``selected_map``, so a palette can leave the labels without
+a background::
+
+    tabs = urwid.Tabs(
+        pages,
+        underline=(urwid.Tabs.Symbols.LINE_LIGHT, urwid.Tabs.Symbols.LINE_HEAVY),
+        attr_map="tab",
+        selected_map="tab selected",
+    )
+
+which renders the second of three tabs 17 columns wide as::
+
+    Log Settings Help
+    ────━━━━━━━━─────
+    Name: demo
+
+``LINE_ASCII`` and ``LINE_ASCII_DOUBLE`` are also drawn on terminals without
+UTF-8.  ``bar_position="bottom"`` puts the line above the labels.  A click on
+the line acts as a click on the label row next to it, including on an overflow
+marker.
+
+:attr:`Tabs.contents` holds ``(body, label)`` pairs, body first as in the
+other containers; :meth:`Tabs.options` turns markup into a label widget::
+
+    tabs.contents.append((urwid.Text("new body"), urwid.Tabs.options("New")))
+    del tabs.contents[0]
+
+Removing the selected tab selects the next one, or the previous one when it
+was the last.  The ``"focus changed"`` signal reports the index, see
+:ref:`focus-changed-signal`, so an application that shows the selected tab
+somewhere else also updates that display after its own changes of
+``contents``.  ``examples/calc.py`` uses the signal to move the number shown
+to the calculator of the selected tab.
+
+
+Notifications Widgets
+---------------------
+
+:class:`Notifications` lists messages that disappear after a timeout, the
+oldest at the top.  It is a flow widget, usually the footer of a
+:class:`Frame`, and takes no rows while it is empty and has no ``default``
+text::
+
+    notifications = urwid.Notifications(
+        severity_attr={urwid.Severity.WARNING: "warning", urwid.Severity.ERROR: "error"},
+    )
+    frame = urwid.Frame(body, footer=notifications)
+
+    notifications.notify("saved")
+    notifications.notify("disk almost full", severity=urwid.Severity.WARNING, timeout=None)
+
+A message stays for ``timeout`` seconds, 5 unless the widget or the
+:meth:`~Notifications.notify` call says otherwise, and ``timeout=None`` keeps
+it until :meth:`~Notifications.dismiss` or :meth:`~Notifications.clear` takes
+it down.  ``max_count=1`` turns the list into a status line, where each new
+message replaces the last one, and ``default`` is the text shown while no
+message is showing::
+
+    status = urwid.Notifications(max_count=1, default="q: quit")
+
+The alarm that dismisses a message is set on the ``loop`` given to the
+widget, or else on the loop running when :meth:`~Notifications.notify` is
+called (see :func:`get_running_loop`); a message with a timeout posted before
+the loop runs needs ``loop=``.  Call the widget from the thread running the
+loop only.  Another thread hands its message over with
+:meth:`MainLoop.call_from_thread`.
+``examples/notifications.py`` shows the widget as a footer.
+
+
+Spinner Widgets
+---------------
+
+:class:`Spinner` is a :class:`Text` widget that shows its frames in turn
+while some work runs, for work without a known total, where a
+:class:`ProgressBar` has nothing to show.  It shows only the frame, so a
+label goes into its own :class:`Text` next to it::
+
+    spinner = urwid.Spinner(urwid.Spinner.Frames.BRAILLE)
+    row = urwid.Columns([(urwid.PACK, spinner), urwid.Text("loading")], dividechars=1)
+
+    spinner.start()  # when the work begins
+    spinner.stop()  # when it ends, on every path
+
+:meth:`~Spinner.start` sets an alarm that shows the next frame every
+``interval`` seconds, on the ``loop`` given to the widget or else on the loop
+running when :meth:`~Spinner.start` is called (see
+:func:`get_running_loop`).  The frame is
+chosen from the time elapsed since the start, so a late alarm skips frames
+instead of slowing the spinner down.  :meth:`~Spinner.stop` removes the alarm
+and shows the ``idle`` text, by default spaces as wide as a frame, so a
+``PACK`` cell keeps its width.  Stop a spinner that leaves the screen: the
+pending alarm keeps it alive.  An application with its own tick calls
+:meth:`~Spinner.step` instead, which needs no loop.  Call the widget from the
+thread running the loop only; another thread hands the call over with
+:meth:`MainLoop.call_from_thread`.  ``examples/spinner.py`` shows every preset
+of :class:`Spinner.Frames <urwid.widget.spinner.SpinnerFrames>`.
+
+
 Overlay Widgets
 ---------------
 
@@ -312,9 +986,51 @@ This widget can be used to create effects such as overlapping "windows" or pop-u
 
 The Overlay widget always treats the top widget as the one in focus.
 All keyboard input will be passed to the top widget.
+When the top widget leaves a key for the ``menu`` command (:kbd:`esc` by default) unhandled,
+the Overlay sends its ``"menu"`` signal with itself as the argument.
+A handler that returns ``True`` consumes the key, which makes it the place to close a dialog on :kbd:`esc`.
+A press of mouse button 1, 2 or 3 outside the top widget sends the ``"click outside"`` signal the same way,
+and a handler that returns ``True`` consumes the press, for a dialog that closes on a click outside it.
 
 If you want to use a flow widget for the bottom widget,
 first wrap the flow widget with a :class:`Filler` widget.
+
+.. _shrink-to-fit:
+
+With a ``'pack'`` height, a top widget taller than the rows available is clipped at the bottom.
+With ``shrink_to_fit=True``, a top widget that also supports ``'box'`` is rendered as a box at those rows instead,
+and :class:`Filler` takes the same argument for its body.
+A dialog around a :class:`Table`, or around a :class:`Pile` with a weighted ``ListBox(..., flow=True)`` item,
+then takes the rows of its content, and scrolls the table or the list only when the screen is too short.
+A ``Frame(..., flow=True)`` around such a list keeps its footer, such as a row of buttons, on a short screen:
+with the body or the footer in focus, a :class:`Frame` trims its header first.
+``trim_first='footer'`` trims the footer first instead while the body is in focus,
+so a header, such as a path input above a list, keeps its rows longer than the footer does.
+``min_body_rows`` gives the body that many rows right after the part in focus,
+so optional controls in a header or footer do not take the whole screen.
+The body takes these rows before a header or a footer that is not in focus,
+so a screen with no more rows than that shows neither of them;
+see :meth:`Frame.frame_top_bottom` for the order.
+The top widget is measured in and out of focus on each layout.
+
+The :class:`OverlayStack` widget is a box widget for dialogs that open on top of each other.
+It holds a base widget, usually the application's :class:`Frame`, and a stack of open dialogs,
+each one an Overlay over the one below, and it is meant to be the :attr:`MainLoop.widget`.
+:meth:`OverlayStack.open` puts a widget on top with the Overlay layout options.
+It takes ``shrink_to_fit`` as well, for a dialog taller than the screen.
+Without a ``width`` or ``height``, a flow or box widget gets 80% of the width,
+a flow widget is packed to its rows, a box widget that is not a flow widget gets 80% of the height,
+and a widget that is fixed only is packed in both directions.
+:meth:`OverlayStack.close` takes the top dialog down, or a given dialog and every dialog above it,
+and passes a result to the dialog's ``on_close`` callback and to the ``"closed"`` signal.
+
+With ``close_on_menu`` or ``close_on_click_outside``, a dialog also closes on a key for the ``menu`` command
+(:kbd:`esc` by default) it leaves unhandled, or on a press outside it, with the result ``None``.
+Both are defaults set on the stack that each :meth:`~OverlayStack.open` call can override,
+for example to keep the first dialog of an application open.
+Call the stack from the thread running the loop only;
+another thread hands the call over with :meth:`MainLoop.call_from_thread`.
+``examples/calc.py`` opens its help dialog in an :class:`OverlayStack`.
 
 
 Scrollable Widgets
@@ -328,12 +1044,33 @@ ScrollBar Widget
 ----------------
 The :class:`ScrollBar` widget draw optional scrollbar on the right or left side of widget if scrolling is required
 (widget not fit in the desired amount of rows).
-The widget is always rendered BOX and wrapped widget is also should be BOX.
+With ``visible=True`` the scrollbar is drawn even when no scrolling is required,
+so the wrapped widget keeps the same width whatever its content.
+With ``visible=False`` it is never drawn: the wrapped widget gets the full width and still scrolls by keys and wheel.
+With ``end_markers``, such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``,
+the first and the last scrollbar row hold markers
+that scroll one step when clicked; a marker whose end of the content is visible is drawn with ``marker_dim_attr``.
+``attr`` and ``thumb_attr`` set the display attributes of the bar and the thumb,
+and ``focus_attr`` and ``thumb_focus_attr`` replace them when the scrollbar is rendered in focus.
+The widget reports BOX sizing, and FLOW as well around a :class:`ListBox` with :attr:`ListBox.flow` set,
+also when the ListBox is wrapped in a decoration such as :class:`AttrMap`.
+The wrapped widget must support BOX.
+Around a :class:`ListBox` it also accepts a flow size: it then takes the rows of the list,
+draws no scrollbar with ``visible=None``, and fills the scrollbar with the thumb with ``visible=True``.
 In case of other widget types, they should be wrapped to support BOX sizing.
 
 * :class:`Scrollable` make any FLOW or FIXED widget compatible with scrollable api.
 * :class:`ListBox` can be used with :class:`ScrollBar` directly,
-  all input is always handled by :class:`ListBox` and it's widgets.
+  all input outside the scrollbar and the mouse wheel over it are handled by :class:`ListBox` and it's widgets.
+  By default a click or drag on the scrollbar does nothing.
+  With ``scroll_by_focus=True`` a click or drag on the scrollbar scrolls the :class:`ListBox` by moving its focus
+  to the widget at the top of the new view (at the end of the list the view may shift to fill the rows);
+  the focus stays when the view does.
+  It is off by default, because this focus change does not pass through the :class:`ListBox` input methods.
+* :class:`ScrollBar` and :class:`Scrollable` always accept the input focus.
+  With ``delegate_selectable=True`` they accept it only when the wrapped widget is selectable,
+  so a container moves the focus past a :class:`ListBox` created with ``focus_when_empty=False`` while it is empty.
+  It is off by default, because a wrapped widget that is not selectable then cannot be scrolled by keys.
 
 Keyboard positioning keys and mouse wheel is used for scrolling if not handled by the wrapped widget.
 Scrolling is done on per-line basis.
@@ -381,6 +1118,8 @@ and implement positioning API:
     **Optional** method for setting scrolling position.
 
     Method is called on mouse wheel scroll if it implemented and mouse event was not handled by widget.
+    :class:`ScrollBar` does not call :meth:`ListBox.set_scrollpos`, so a :class:`ListBox` keeps scrolling by its focus
+    there; a subclass that defines its own method is called.
 
     If `position` is positive it is interpreted as lines from the top.
     If `position` is negative it is interpreted as lines from the bottom.
@@ -410,10 +1149,31 @@ Its contents are displayed stacked vertically, and the
 One of the flow widgets displayed in the :class:`ListBox` is its
 focus widget.
 
+A :class:`ListBox` also accepts a flow size.
+At a flow size it shows all its widgets, and :meth:`ListBox.rows` returns the rows they take.
+The whole body is measured, so this is meant for lists short enough for a dialog.
+It needs a list walker that reports its length or an estimate of it, or a :class:`TreeWalker`,
+and that does not wrap around.
+
+By default a :class:`ListBox` reports BOX sizing only, so containers lay it out as a box widget.
+With ``flow=True`` it reports FLOW as well, over a list walker that reports its length or an estimate of it
+and does not wrap around; a :class:`TreeWalker` qualifies only when it reports its length.
+A container can then give it the rows of all its widgets:
+
+* A weighted ``ListBox(..., flow=True)`` item of a :class:`Pile` takes the rows of its widgets
+  when the Pile is rendered at a flow size, and the rows left over when it is rendered at a box size.
+  An item with a ``'pack'`` height is rendered at a flow size, so it shows every widget and does not scroll.
+* In a :class:`Columns` it is a flow widget like a :class:`Text`,
+  so a Columns of it and of columns that are flow widgets only is a flow widget too.
+* :class:`BoxAdapter` remains the way to give a :class:`ListBox` a fixed number of rows.
+
+See :ref:`shrink_to_fit <shrink-to-fit>` for a dialog that shrinks to the screen and scrolls its list.
+
 ListBox Focus and Scrolling
 ---------------------------
 
-The :class:`ListBox` is a box widget that contains flow widgets.
+The :class:`ListBox` is a box widget that contains flow widgets,
+and a flow widget as well with ``flow=True`` (see :ref:`listbox-contents`).
 Its contents are displayed stacked vertically, and the
 :class:`ListBox` allows the user to scroll through its content.
 One of the flow widgets displayed in the :class:`ListBox` is the
@@ -453,6 +1213,46 @@ a selectable widget into view so that the user can see the new focus widget in
 its entirety. This behavior can be used to bring more than a single widget into
 view by using composite widgets to combine a selectable widget with other
 widgets that should be displayed at the same time.
+
+A row of text that the user chooses by moving the focus to it can be created
+with ``Text(markup, selectable=True)``.  It takes the focus but shows no
+cursor and returns every key, so the :class:`ListBox` or the application
+handles them; wrap it in an :class:`AttrMap` with a ``focus_map`` to mark the
+row in focus.
+
+A :class:`ListBox` accepts the input focus even when it is empty.  Created
+with ``focus_when_empty=False`` it is not selectable while its body is empty,
+so a container moves the focus past it; wrap it in a :class:`ScrollBar` with
+``delegate_selectable=True`` to keep that behind a scrollbar.  While such a
+ListBox is in focus and empty, its container passes the keys on to its own
+parent instead.
+
+At the first row a :class:`ListBox` returns :kbd:`up` unhandled, and at the
+last row :kbd:`down`, so a parent :class:`Pile` moves the focus to the widget
+above or below the list.  Created with ``edge="stop"`` it consumes those keys
+and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
+changed later.  An empty ListBox returns the keys in both modes.
+
+:meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
+is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
+contains the focus widget, so the focus stays only while one of its rows is in
+the new view.  Otherwise the selectable widget in the view nearest to the edge
+the focus left by takes it: searched from the top when the view moved down past
+the focus, and from the bottom when the view moved up.  When the view holds no
+selectable widget, the widget at that edge takes the focus, as with *UP* and
+*DOWN*.
+
+By default each notch of the mouse wheel moves the focus one row, as *UP* and
+*DOWN* do.
+Created with ``wheel="view"``, the :class:`ListBox` scrolls its view one row
+per notch instead, and moves the focus as :meth:`ListBox.set_scrollpos` does,
+so the focus stays where it is until it would leave the view.
+When the cursor of the selectable widget the focus would move to keeps the view
+from moving one row, the widget at the edge takes the focus instead.
+The attribute :attr:`ListBox.wheel` can be changed later.
+When the cursor of the focus widget keeps the view from moving,
+the notch moves the focus as in the default mode.
+In both modes a notch at the end of the list is returned unhandled.
 
 
 Dynamic ListBox with ListWalker
@@ -495,6 +1295,13 @@ position then you need to remember to increment the focus position in the
 :class:`SimpleListWalker` object or the contents of the
 :class:`ListBox` will shift.
 
+The :class:`FilteredListWalker` shows the widgets of another list walker that
+pass a predicate, such as the rows matching a query typed into an
+:class:`Edit`. Its positions are the indices of the source walker, so a position
+from the view addresses the same widget in the source, and widgets are added or
+removed through the source. The filter_list.py_ example program narrows a list as
+a query is typed.
+
 A custom List Walker object may be passed to the
 :class:`ListBox` constructor instead of a plain list of widgets.
 List Walker objects must implement the :ref:`list-walker-interface`.
@@ -519,6 +1326,7 @@ directories to be hidden from view when they are "collapsed".
 .. _fib.py: https://github.com/urwid/urwid/blob/master/examples/fib.py
 .. _edit.py: https://github.com/urwid/urwid/blob/master/examples/edit.py
 .. _browse.py: https://github.com/urwid/urwid/blob/master/examples/browse.py
+.. _filter_list.py: https://github.com/urwid/urwid/blob/master/examples/filter_list.py
 
 
 Setting the Focus
@@ -569,6 +1377,13 @@ above and below the focus widget.
 A :class:`SimpleFocusListWalker`
 is a list walker that behaves like a normal Python list. It may be used any
 time you will be displaying a moderate number of widgets.
+
+A log or a progress view that grows at the end can be created with
+``SimpleFocusListWalker(..., follow_end=True)``, or with a bounded
+:class:`SimpleFocusDequeWalker` and the same keyword.  While the focus is on
+the last widget, appended widgets take the focus, so the :class:`ListBox`
+keeps showing the newest one.  Once the user moves the focus up, appending
+leaves it where it is.
 
 If you need to display a large number of widgets you should implement your own
 list walker that manages creating widgets as they are requested and destroying
@@ -653,11 +1468,63 @@ There is an optional iteration helper method that may be defined in any list wal
 When this is defined it will be used by :meth:`ListBox.__iter__` and
 :meth:`ListBox.__reversed__`:
 
-.. method:: positions(reverse=False)
+.. method:: positions(*, reverse=False)
 
-   return a forward or reverse iterable of positions
+   return a forward or reverse iterable of positions.
+   :class:`ListBox` always passes *reverse* by keyword, so a custom walker may accept it
+   either positionally or as keyword-only.
 
 .. currentmodule:: urwid
+
+Tree Widgets
+------------
+
+:class:`TreeListBox` shows a tree through a :class:`TreeWalker`.  Each node is
+a :class:`TreeNode` or a :class:`ParentNode`, and its
+:meth:`TreeNode.load_widget` creates the :class:`TreeWidget` that draws it.
+The application never builds a tree widget itself, so a tree widget is
+customised by overriding class attributes in a subclass, not by constructor
+arguments::
+
+    class FileWidget(urwid.TreeWidget):
+        unexpanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_RIGHT, 0)
+        expanded_icon = urwid.SelectableIcon(urwid.TreeWidget.Symbols.TRIANGLE_DOWN, 0)
+        leaf_icon = urwid.Text(urwid.TreeWidget.Symbols.BULLET)
+        connector_lines = True
+        line_attr = "tree line"
+
+which renders 22 columns wide, with ``2/`` collapsed, as::
+
+    ▼ /: root
+    ├──▼ 1/: nested_1
+    │  ├──• 1: child_11
+    │  └──• 2: child_12
+    └──▶ 2/: nested_2
+
+The icons may be any widgets.  The icon column is as wide as the widest icon
+of fixed size, and a click on any of its cells expands or collapses the node.
+:attr:`TreeWidget.leaf_icon` is ``None`` by default, which leaves a leaf
+without an icon column; with an icon set, the text of a leaf starts in the same
+column as the text of a parent at the same depth.
+
+With :attr:`TreeWidget.connector_lines` set, the indentation of each node
+shows lines to its parent and to its siblings.  The glyphs are
+``line_vertical``, ``line_tee``, ``line_corner`` and ``line_horizontal``, each
+one column wide; ``line_tip`` ends the connector next to the icon.
+``line_attr`` is the display attribute of the lines and ``line_tip_attr`` the
+one of the tip.  A row too narrow for the indentation and one more column
+leaves the lines out.  After the child keys of a node change, call
+``get_child_keys(reload=True)`` on it, so the lines of the child that was last
+and of the one that is now last are drawn again.  A subclass that builds its
+own layout in :meth:`TreeWidget.get_indented_widget` places the widget from
+:meth:`TreeWidget.get_lines_widget` at the start of the row, as a box column.
+
+:class:`TreeWidget.Symbols <urwid.widget.treetools.TreeSymbols>` lists the
+glyphs for icons and lines.  On a terminal without UTF-8 the ASCII ones are
+drawn as they are and the light lines with the DEC special graphics character
+set; every other glyph is drawn with its replacement from
+:func:`set_ascii_fallbacks`, or as ``?``.  The defaults, ``+``, ``-`` and the
+light lines, are drawn correctly on every terminal.
 
 Custom Widgets
 ==============
@@ -832,20 +1699,12 @@ specified) then this method must move the cursor to that position and return
 Widget Metaclass
 ================
 
-The :class:`Widget` base class has a metaclass defined that
-creates a ``__super`` attribute for calling your superclass:
-``self.__super`` is the same as the usual ``super(MyClassName, self)``.
-This shortcut is of little use with Python 3's new ``super()`` syntax, but
-will likely be retained for backwards compatibility in future versions.
-
-This metaclass also uses :class:`MetaSignal`
+The :class:`Widget` base class has a metaclass defined that uses :class:`MetaSignals`
 to allow signals to be defined as a list of signal names
 in a ``signals`` class attribute.  This is equivalent to calling
-:func:`register_signal` with the class name and list of signals and all those
+:func:`register_signal` with the class and list of signals and all those
 defined in superclasses after the class definition.
 
 .. seealso::
 
     :class:`Widget metaclass WidgetMeta <WidgetMeta>`
-
-

@@ -18,19 +18,18 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
 import contextlib
+import errno
 import fcntl
 import functools
 import os
-import selectors
 import signal
 import struct
+import subprocess
 import sys
 import termios
 import tty
@@ -40,7 +39,7 @@ from subprocess import PIPE, Popen
 from urwid import signals
 
 from . import _raw_display_base, escape
-from .common import INPUT_DESCRIPTORS_CHANGED
+from .common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
@@ -48,27 +47,74 @@ if typing.TYPE_CHECKING:
 
     from urwid.event_loop import EventLoop
 
-    SignalHandler = typing.Union[Callable[[int, typing.Union[FrameType, None]], typing.Any], int, None]
+    SignalHandler = Callable[[int, FrameType | None], typing.Any] | int | None
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
+
+
+# GPM event-type bits, as reported by the `mev` helper on its `Ax<hex>` field.
+# See GPM's public gpm.h, Gpm_Event.type.
+_GPM_MOVE = 1
+_GPM_DRAG = 2
+_GPM_DOWN = 4
+_GPM_UP = 8
+_GPM_SINGLE = 16
+_GPM_DOUBLE = 32
+_GPM_TRIPLE = 64
+_GPM_MFLAG = 128
+_GPM_HARD = 256
+
+# Event-type combinations actually emitted by `mev -e 158`, decoded against the bitmask above.
+_GPM_EV_DOWN_SINGLE = _GPM_DOWN | _GPM_SINGLE  # 20: first click of a press
+_GPM_EV_DOWN_DOUBLE = _GPM_DOWN | _GPM_DOUBLE  # 36: second click of a press
+_GPM_EV_DOWN_TRIPLE = _GPM_DOWN | _GPM_SINGLE | _GPM_DOUBLE  # 52: third click of a press
+_GPM_EV_DRAG = _GPM_DRAG | _GPM_SINGLE | _GPM_MFLAG  # 146
+_GPM_EV_UP_DOUBLE = _GPM_UP | _GPM_DOUBLE  # 40: release ending a double click
+
+# GPM Gpm_Event.buttons bits, from gpm.h.
+_GPM_B_LEFT = 4
+_GPM_B_MIDDLE = 2
+_GPM_B_RIGHT = 1
+
+# GPM Gpm_Event.modifiers bits. GPM documents this field as the Linux console "get shift state"
+# byte (TIOCLINUX subcode 6): bit 0 is shift, bit 1 is AltGr, bit 2 is control, bit 3 is (left) alt.
+_GPM_MOD_SHIFT = 1
+_GPM_MOD_ALTGR = 2
+_GPM_MOD_CTRL = 4
+_GPM_MOD_ALT = 8
+
+# most bytes of terminal input read per wake-up
+_INPUT_READ_LIMIT = 65536
+
+# seconds the gpm helper is given to exit on SIGINT before it is killed
+_GPM_STOP_TIMEOUT = 1.0
 
 
 class Screen(_raw_display_base.Screen):
+    """Raw screen backend that drives a real POSIX terminal."""
+
     def __init__(
         self,
-        input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002  # pylint: disable=redefined-builtin
+        input: _raw_display_base.SupportsFileno = sys.stdin,  # noqa: A002
         output: _raw_display_base.TextWriter = sys.stdout,
-        bracketed_paste_mode: bool = False,
-        focus_reporting: bool = False,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
+        extended_keys: bool = False,
     ) -> None:
-        """Initialize a screen that directly prints escape codes to an output
-        terminal.
+        """Initialize a screen that directly prints escape codes to an output terminal.
 
-        :param bracketed_paste_mode: enable bracketed paste mode in the host terminal. If the host terminal supports it,
-            the application will receive `begin paste` and `end paste` keystrokes when the user pastes text.
-        :param focus_reporting: enable focus reporting in the host terminal. If the host terminal supports it, the
-            application will receive `focus in` and `focus out` keystrokes when the application gains and loses focus.
+        :param input: the terminal input, read through its file descriptor.
+        :param output: the terminal output, which the escape codes are written to.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
+            and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
+            Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -77,37 +123,53 @@ class Screen(_raw_display_base.Screen):
             and delivers them to this process (urwid/urwid#1268).
             ``SIGINT`` is left for the application or its event loop to handle as it sees fit.
             ``SIGTSTP`` is handled by this class:
-            `signal_init()` installs a handler that restores the terminal before actually suspending the process,
-            and the paired `SIGCONT` handler puts the terminal back into cbreak/alternate-buffer mode
-            and forces a redraw on resume, so a stray Ctrl+Z does not leave a stale,
-            unresponsive frame painted on screen.
-            Applications that install their own ``SIGTSTP``/``SIGCONT`` handlers on top of this one
+            `signal_init()` installs a handler that wakes the input loop,
+            which restores the terminal before actually suspending the process,
+            then puts the terminal back into cbreak/alternate-buffer mode and forces a redraw on resume,
+            so a stray Ctrl+Z does not leave a stale, unresponsive frame painted on screen.
+            The suspend therefore waits until the application next reads input,
+            through `get_input()` or the callback `hook_event_loop()` registers.
+            Applications that install their own ``SIGTSTP`` handler on top of this one
             should chain to the previous handler (as this class does) rather than replacing it outright,
             and multithreaded applications must call `signal_init()` and `signal_restore()` from the main thread,
             since only the main thread can receive process signals.
+            `start()` also clears the ``IEXTEN`` flag, which cbreak mode leaves on,
+            so on macOS and the BSDs Ctrl+V, Ctrl+O and Ctrl+Y reach the application
+            instead of being handled by the terminal driver.
+            It clears ``FLUSHO`` as well: a Ctrl+O typed before the start can leave that output discard on,
+            and without ``IEXTEN`` no Ctrl+O can turn it off.
+            `stop()` restores both flags.
         """
-        super().__init__(input, output)
+        super().__init__(
+            input,
+            output,
+            bracketed_paste_mode=bracketed_paste_mode,
+            focus_reporting=focus_reporting,
+            extended_keys=extended_keys,
+        )
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
-        self.bracketed_paste_mode = bracketed_paste_mode
-        self.focus_reporting = focus_reporting
+        self._old_termios_settings: list[typing.Any] | None = None
 
         # These store the previous signal handlers after setting ours
-        self._prev_sigcont_handler: SignalHandler = None
         self._prev_sigtstp_handler: SignalHandler = None
         self._prev_sigwinch_handler: SignalHandler = None
+        # Set by the SIGTSTP handler, carried out by get_available_raw_input().
+        self._suspend_requested = False
 
     def __repr__(self) -> str:
         return (
             f"<{self.__class__.__name__}("
             f"input={self._term_input_file}, "
             f"output={self._term_output_file}, "
-            f"bracketed_paste_mode={self.bracketed_paste_mode}, "
-            f"focus_reporting={self.focus_reporting})>"
+            f"bracketed_paste_mode={self.modes.bracketed_paste}, "
+            f"focus_reporting={self.modes.focus_reporting})>"
         )
 
-    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
-        """
+    def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
+        """Record a terminal resize and pass the signal on to the previous handler.
+
+        :param signum: the signal number.
         :param frame: will always be None when the GLib event loop is being used.
         """
         super()._sigwinch_handler(signum, frame)
@@ -116,50 +178,17 @@ class Screen(_raw_display_base.Screen):
             self._prev_sigwinch_handler(signum, frame)
 
     def _sigtstp_handler(self, signum: int, frame: FrameType | None = None) -> None:
-        """Tear the screen down, then re-raise ``SIGTSTP`` with its default disposition so the process actually stops.
+        """Request a suspend, carried out by :meth:`get_available_raw_input` in the thread reading input.
 
-        ``SIGCONT`` is blocked for the duration of this handler.
-        Without that guard, a ``fg`` issued by an enclosing shell (for example a wrapper script)
-        while this handler is still restoring the terminal can interrupt it
-        and run :meth:`_sigcont_handler` before the process has actually stopped:
-        CPython checks for pending signals
-        -- and will invoke a newly-arrived handler -- at the next bytecode boundary,
-        even while another handler is already executing.
-        That leaves the redraw logic believing it has resumed while the trailing `os.kill()` call below
-        still suspends the process a moment later,
-        so the first ``fg`` appears to do nothing and a second ``^Z``/``fg`` cycle
-        is needed to actually resume (see urwid/urwid#889).
-        Blocking ``SIGCONT`` here defers its delivery until we unblock it immediately after the process has genuinely
-        stopped and resumed, which removes the race.
+        Restoring the terminal writes to it, changes the termios settings and re-hooks the event loop.
+        None of that is safe at the arbitrary point of the program a signal interrupts,
+        so the handler only sets a flag and wakes the input loop.
         """
-        previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, {signal.SIGCONT})
-        try:
-            self.stop()  # Restores the previous signal handlers
-            self._prev_sigcont_handler = self.signal_handler_setter(signal.SIGCONT, self._sigcont_handler)
-            # Handled by the previous handler.
-            # If non-default, it may set its own SIGCONT handler which should hopefully call our own.
-            os.kill(os.getpid(), signal.SIGTSTP)
-        finally:
-            signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
-
-    def _sigcont_handler(self, signum: int, frame: FrameType | None = None) -> None:
-        """
-        :param frame: will always be None when the GLib event loop is being used.
-        """
-        self.signal_restore()
-
-        if callable(self._prev_sigcont_handler):
-            # May set its own SIGTSTP handler which would be stored and replaced in
-            # `signal_init()` (via `start()`).
-            self._prev_sigcont_handler(signum, frame)
-
-        self.start()
-        self._sigwinch_handler(28, None)
+        self._suspend_requested = True
+        self._wake_input_loop()
 
     def signal_init(self) -> None:
-        """
-        Called in the startup of run wrapper to set the SIGWINCH
-        and SIGTSTP signal handlers.
+        """Set the SIGWINCH and SIGTSTP signal handlers, called in the startup of run wrapper.
 
         Override this function to call from main thread in threaded
         applications.
@@ -168,15 +197,12 @@ class Screen(_raw_display_base.Screen):
         self._prev_sigtstp_handler = self.signal_handler_setter(signal.SIGTSTP, self._sigtstp_handler)
 
     def signal_restore(self) -> None:
-        """
-        Called in the finally block of run wrapper to restore the
-        SIGTSTP, SIGCONT and SIGWINCH signal handlers.
+        """Restore the SIGTSTP and SIGWINCH signal handlers, called in the finally block of run wrapper.
 
         Override this function to call from main thread in threaded
         applications.
         """
         self.signal_handler_setter(signal.SIGTSTP, self._prev_sigtstp_handler or signal.SIG_DFL)
-        self.signal_handler_setter(signal.SIGCONT, self._prev_sigcont_handler or signal.SIG_DFL)
         self.signal_handler_setter(signal.SIGWINCH, self._prev_sigwinch_handler or signal.SIG_DFL)
 
     def _mouse_tracking(self, enable: bool) -> None:
@@ -194,10 +220,10 @@ class Screen(_raw_display_base.Screen):
         """
         if not os.path.isfile("/usr/bin/mev"):
             return
-        if not os.environ.get("TERM", "").lower().startswith("linux"):
+        if not _raw_display_base._is_linux_console(self.term):  # pylint: disable=protected-access  # same package
             return
 
-        m = Popen(  # pylint: disable=consider-using-with
+        m = Popen(
             ["/usr/bin/mev", "-e", "158"],
             stdin=PIPE,
             stdout=PIPE,
@@ -205,16 +231,27 @@ class Screen(_raw_display_base.Screen):
             encoding="ascii",
         )
         if m.stdout is None:
+            with m:  # closes the pipes and reaps the process on the way out
+                m.kill()
             raise RuntimeError("gpm mouse tracking stdout was not created")
-        fcntl.fcntl(m.stdout.fileno(), fcntl.F_SETFL, os.O_NONBLOCK)
+        os.set_blocking(m.stdout.fileno(), False)
         self.gpm_mev = m
+        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _stop_gpm_tracking(self) -> None:
-        if not self.gpm_mev:
+        """Stop the gpm helper, close its pipes and stop watching its output."""
+        gpm_mev, self.gpm_mev = self.gpm_mev, None
+        if gpm_mev is None:
             return
-        os.kill(self.gpm_mev.pid, signal.SIGINT)
-        os.waitpid(self.gpm_mev.pid, 0)
-        self.gpm_mev = None
+        try:
+            with gpm_mev:  # closes both pipes and reaps the process on the way out
+                gpm_mev.send_signal(signal.SIGINT)
+                try:
+                    gpm_mev.wait(_GPM_STOP_TIMEOUT)
+                except subprocess.TimeoutExpired:
+                    gpm_mev.kill()
+        finally:
+            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
 
     def _start(  # pylint: disable=keyword-arg-before-vararg
         self,
@@ -225,31 +262,52 @@ class Screen(_raw_display_base.Screen):
         """
         Initialize the screen and input mode.
 
-        :param alternate_buffer: use an alternate screen buffer
+        :param alternate_buffer: use an alternate screen buffer.
+            The switch is not sent to a terminal that reported it has no alternate screen.
+        :param args: not supported; any value raises :exc:`TypeError`.
+        :param kwargs: not supported; any value raises :exc:`TypeError`.
         :raises TypeError: unexpected positional or keyword arguments were given.
         """
         if args or kwargs:
             raise TypeError(f"start() got unexpected arguments: {args=!r}, {kwargs=!r}")
 
         if alternate_buffer:
-            self.write(escape.SWITCH_TO_ALTERNATE_BUFFER)
+            # A terminal that reported no alternate screen on an earlier start ignores the switch, and the frames are
+            # drawn the same either way.
+            if self.modes.alternate_buffer is not False:
+                self.write(escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.enable_seq)
             self._rows_used = None
         else:
             self._rows_used = 0
-
-        if self.bracketed_paste_mode:
-            self.write(escape.ENABLE_BRACKETED_PASTE_MODE)
-
-        if self.focus_reporting:
-            self.write(escape.ENABLE_FOCUS_REPORTING)
+        # Set as soon as the buffer is actually switched, not after: _stop() (e.g. from cleanup
+        # after a later exception in this method) has to know to restore the normal buffer.
+        self._alternate_buffer = alternate_buffer
 
         fd = self._input_fileno()
         if fd is not None and os.isatty(fd):
             self._old_termios_settings = termios.tcgetattr(fd)
             tty.setcbreak(fd)
+            # setcbreak() leaves IEXTEN on, and with it the macOS and BSD drivers still act on ctrl v (VLNEXT),
+            # ctrl o (VDISCARD, which toggles FLUSHO, and the driver drops every write while FLUSHO is set)
+            # and ctrl y (VDSUSP).
+            # FLUSHO is cleared too, because with IEXTEN off no ctrl o can clear it.
+            # ISIG stays as it is for tty_signal_keys().
+            mode = termios.tcgetattr(fd)
+            mode[tty.LFLAG] &= ~(termios.IEXTEN | termios.FLUSHO)
+            termios.tcsetattr(fd, termios.TCSANOW, mode)
+
+        self._detect_terminal_modes()
+
+        if self.modes.bracketed_paste:
+            self.write(escape.PrivateMode.BRACKETED_PASTE.enable_seq)
+
+        if self.modes.focus_reporting:
+            self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
+
+        self._enable_keyboard_protocol()
+        self._show_title()
 
         self.signal_init()
-        self._alternate_buffer = alternate_buffer
         self._next_timeout = self.max_wait
 
         if not self._signal_keys_set:
@@ -262,39 +320,56 @@ class Screen(_raw_display_base.Screen):
         super()._start(*args, **kwargs)  # type: ignore[safe-super]
 
     def _stop(self) -> None:
-        """
-        Restore the screen.
-        """
+        """Restore the screen."""
         self.clear()
-
-        if self.bracketed_paste_mode:
-            self.write(escape.DISABLE_BRACKETED_PASTE_MODE)
-
-        if self.focus_reporting:
-            self.write(escape.DISABLE_FOCUS_REPORTING)
-
-        signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
-
         self.signal_restore()
 
-        self._stop_mouse_restore_buffer()
-        self._stop_restore_palette()
+        try:
+            try:
+                if self.modes.bracketed_paste:
+                    self.write(escape.PrivateMode.BRACKETED_PASTE.disable_seq)
 
-        fd = self._input_fileno()
-        if fd is not None and os.isatty(fd):
-            termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
+                if self.modes.focus_reporting:
+                    self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
 
-        if self._old_signal_keys:
-            self.tty_signal_keys(*self._old_signal_keys, fd)
+                # before the alternate screen is left: the kitty keyboard flags are kept per screen
+                self._disable_keyboard_protocol()
+
+                self._stop_restore_palette()
+                self._restore_title()
+                self._stop_mouse_restore_buffer()
+            except OSError as exc:
+                # A hung-up terminal (EIO, or ENXIO on FreeBSD) or a closed output pipe (EPIPE) has nothing to restore,
+                # and raising here would hide the error that ended the run, such as the closed input.
+                if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
+                    raise
+            finally:
+                # a failed write skips the step of _mouse_tracking() that stops the helper
+                self._stop_gpm_tracking()
+        finally:
+            # the terminal settings are restored also when an error other than a hang-up ended the writes
+            fd = self._input_fileno()
+            try:
+                if fd is not None and os.isatty(fd) and self._old_termios_settings is not None:
+                    termios.tcsetattr(fd, termios.TCSAFLUSH, self._old_termios_settings)
+
+                if self._old_signal_keys:
+                    self.tty_signal_keys(*self._old_signal_keys, fd)
+            except termios.error:
+                # A terminal that hung up after the isatty() check is no tty any more and has no settings to restore.
+                # One that still is, such as a terminal an orphaned process group may not change, reports its error.
+                if fd is None or os.isatty(fd):
+                    raise
+
+        # A suspend requested while the screen ran must not stop the process after a later restart.
+        self._suspend_requested = False
 
         super()._stop()  # type: ignore[safe-super]
 
     def get_input_descriptors(self) -> list[_raw_display_base.SupportsFileno | int]:
-        """
-        Return a list of integer file descriptors that should be
-        polled in external event loops to check for user input.
+        """Return a list of integer file descriptors that should be polled in external event loops.
 
-        Use this method if you are implementing your own event loop.
+        Used to check for user input. Use this method if you are implementing your own event loop.
 
         This method is only called by `hook_event_loop`, so if you override
         that, you can safely ignore this.
@@ -308,9 +383,7 @@ class Screen(_raw_display_base.Screen):
         return fd_list
 
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
-        """
-        Remove any hooks added by hook_event_loop.
-        """
+        """Remove any hooks added by hook_event_loop."""
         for handle in self._current_event_loop_handles:
             event_loop.remove_watch_file(handle)
 
@@ -323,12 +396,15 @@ class Screen(_raw_display_base.Screen):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
-        """
-        Register the given callback with the event loop, to be called with new
-        input whenever it's available.  The callback should be passed a list of
-        processed keys and a list of unprocessed keycodes.
+        """Register the given callback with the event loop, to be called with new input whenever it's available.
+
+        The callback should be passed a list of processed keys and a list of unprocessed keycodes.
 
         Subclasses may wish to use parse_input to wrap the callback.
+
+        .. deprecated:: 5.0
+            A subclass that defines ``get_input_nonblocking()`` is still polled through it.
+            Override :meth:`get_available_raw_input` instead. This API will be removed in version 7.0.
         """
         if hasattr(self, "get_input_nonblocking"):
             wrapper = self._make_legacy_input_wrapper(event_loop, callback)
@@ -343,14 +419,30 @@ class Screen(_raw_display_base.Screen):
         handles = [event_loop.watch_file(fd if isinstance(fd, int) else fd.fileno(), wrapper) for fd in fds]
         self._current_event_loop_handles = handles
 
+    def get_available_raw_input(self) -> list[int]:
+        """Return any currently available input, then carry out a suspend requested by ``SIGTSTP``.
+
+        The screen is stopped before the process suspends itself, and restarted and fully redrawn on resume.
+        The flag is checked after the wake-up socket is drained, so a later request keeps its wake-up pending.
+        """
+        codes = super().get_available_raw_input()
+        if self._suspend_requested and self._started:
+            self._suspend_requested = False
+            self.stop()  # restores the previous SIGTSTP disposition, which the kill below runs
+            os.kill(os.getpid(), signal.SIGTSTP)
+            self.start()
+            self._resized = True
+        return codes
+
     def _get_input_codes(self) -> list[int]:
         return super()._get_input_codes() + self._get_gpm_codes()
 
     def _get_gpm_codes(self) -> list[int]:
         codes: list[int] = []
+        gpm_mev = self.gpm_mev
         try:
-            while self.gpm_mev is not None and self.gpm_event_pending:
-                if self.gpm_mev.stdout is None:
+            while gpm_mev is not None and self.gpm_event_pending:
+                if gpm_mev.stdout is None:
                     return codes
                 codes.extend(self._encode_gpm_event())
         except OSError as e:
@@ -358,11 +450,11 @@ class Screen(_raw_display_base.Screen):
                 raise
         return codes
 
-    def _read_raw_input(self, timeout: int) -> bytearray:
+    def _read_raw_input(self, timeout: float) -> bytearray:
         """
-        Read whatever raw input is available, waiting at most *timeout* seconds.
+        Read at most `_INPUT_READ_LIMIT` bytes of the raw input available, waiting at most *timeout* seconds.
 
-        :raises RuntimeError: the input file has been closed.
+        :raises InputClosedError: the input file has been closed.
         """
         ready = self._wait_for_input_ready(timeout)
         gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
@@ -374,32 +466,25 @@ class Screen(_raw_display_base.Screen):
         if fd is None or fd not in ready:
             return chars
 
-        with selectors.DefaultSelector() as selector:
-            selector.register(fd, selectors.EVENT_READ)
-            input_ready = selector.select(0)
-            while input_ready:
-                chunk = os.read(fd, 1024)
-                if not chunk:
-                    raise RuntimeError("stdin has been closed")
-                chars.extend(chunk)
-                input_ready = selector.select(0)
-
-            return chars
+        # `fd` was just reported ready, so this read does not block. Input beyond the limit is read on the next pass.
+        chunk = os.read(fd, _INPUT_READ_LIMIT)
+        if not chunk:
+            raise InputClosedError("stdin has been closed")
+        chars.extend(chunk)
+        return chars
 
     def _encode_gpm_event(self) -> list[int]:
         self.gpm_event_pending = False
         if self.gpm_mev is None or self.gpm_mev.stdout is None:
             return []
 
-        s = self.gpm_mev.stdout.readline()
-        event_result = s.split(",")
+        event_result = self.gpm_mev.stdout.readline().split(",")
         if len(event_result) != 6:
             # unexpected output, stop tracking
             self._stop_gpm_tracking()
-            signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
             return []
 
-        ev_, x_, y_, _ign, b_, m_ = s.split(",")
+        ev_, x_, y_, _ign, b_, m_ = event_result
         ev = int(ev_.rsplit("x", 1)[-1], 16)
         x = int(x_.rsplit(" ", 1)[-1])
         y = int(y_.lstrip().split(" ", 1)[0])
@@ -412,57 +497,57 @@ class Screen(_raw_display_base.Screen):
         result: list[int] = []
 
         mod = 0
-        if m & 1:
+        if m & _GPM_MOD_SHIFT:
             mod |= 4  # shift
-        if m & 10:
+        if m & (_GPM_MOD_ALTGR | _GPM_MOD_ALT):
             mod |= 8  # alt
-        if m & 4:
+        if m & _GPM_MOD_CTRL:
             mod |= 16  # ctrl
 
         def append_button(b: int) -> None:
             b |= mod
             result.extend([27, ord("["), ord("M"), b + 32, x + 32, y + 32])
 
-        if ev in {20, 36, 52}:  # press
-            if b & 4 and last_state & 1 == 0:
+        if ev in {_GPM_EV_DOWN_SINGLE, _GPM_EV_DOWN_DOUBLE, _GPM_EV_DOWN_TRIPLE}:  # press
+            if b & _GPM_B_LEFT and last_state & 1 == 0:
                 append_button(0)
                 next_state |= 1
-            if b & 2 and last_state & 2 == 0:
+            if b & _GPM_B_MIDDLE and last_state & 2 == 0:
                 append_button(1)
                 next_state |= 2
-            if b & 1 and last_state & 4 == 0:
+            if b & _GPM_B_RIGHT and last_state & 4 == 0:
                 append_button(2)
                 next_state |= 4
-        elif ev == 146:  # drag
-            if b & 4:
-                append_button(0 + escape.MOUSE_DRAG_FLAG)
-            elif b & 2:
-                append_button(1 + escape.MOUSE_DRAG_FLAG)
-            elif b & 1:
-                append_button(2 + escape.MOUSE_DRAG_FLAG)
+        elif ev == _GPM_EV_DRAG:  # drag
+            if b & _GPM_B_LEFT:
+                append_button(0 + escape.MouseBit.DRAG)
+            elif b & _GPM_B_MIDDLE:
+                append_button(1 + escape.MouseBit.DRAG)
+            elif b & _GPM_B_RIGHT:
+                append_button(2 + escape.MouseBit.DRAG)
         else:  # release
-            if b & 4 and last_state & 1:
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~1
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~2
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_RELEASE_FLAG)
                 next_state &= ~4
-        if ev == 40:  # double click (release)
-            if b & 4 and last_state & 1:
+        if ev == _GPM_EV_UP_DOUBLE:  # double click (release)
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG)
-        elif ev == 52:
-            if b & 4 and last_state & 1:
+        elif ev == _GPM_EV_DOWN_TRIPLE:  # triple click (press)
+            if b & _GPM_B_LEFT and last_state & 1:
                 append_button(0 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 2 and last_state & 2:
+            if b & _GPM_B_MIDDLE and last_state & 2:
                 append_button(1 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
-            if b & 1 and last_state & 4:
+            if b & _GPM_B_RIGHT and last_state & 4:
                 append_button(2 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2)
 
         self.last_bstate = next_state
@@ -470,7 +555,7 @@ class Screen(_raw_display_base.Screen):
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""
-        y, x = super().get_cols_rows()
+        x, y = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
                 buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 8)

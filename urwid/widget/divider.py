@@ -1,3 +1,5 @@
+"""Divider: a horizontal line widget."""
+
 from __future__ import annotations
 
 import enum
@@ -6,11 +8,37 @@ import typing
 from urwid.canvas import CompositeCanvas, SolidCanvas
 
 from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
-from .widget import Widget
+from .widget import Widget, _InvalidatingAttribute
 
 
-class DividerSymbols(str, enum.Enum):
-    """Common symbols for divider widgets."""
+class DividerSymbols(enum.StrEnum):
+    """Common symbols for divider widgets.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ==================  ======  ======  ======  ====  =======
+        Member              Symbol  Ubuntu  Fedora  Arch  Windows
+        ==================  ======  ======  ======  ====  =======
+        ``LIGHT_HL``        ─       yes     yes     yes   yes
+        ``LIGHT_4_DASHES``  ┈       yes     no      no    no
+        ``LIGHT_3_DASHES``  ┄       yes     no      no    no
+        ``LIGHT_2_DASHES``  ╌       yes     no      no    no
+        ``HEAVY_HL``        ━       yes     yes     no    no
+        ``HEAVY_4_DASHES``  ┉       yes     no      no    no
+        ``HEAVY_3_DASHES``  ┅       yes     no      no    no
+        ``HEAVY_2_DASHES``  ╍       yes     no      no    no
+        ``DOUBLE_HL``       ═       yes     yes     yes   yes
+        ``FULL_BLOCK``      █       yes     yes     yes   yes
+        ``DARK_SHADE``      ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``    ▒       yes     yes     yes   yes
+        ``LITE_SHADE``      ░       yes     yes     yes   yes
+        ==================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
+    """
 
     # Lines
     LIGHT_HL = BOX_SYMBOLS.LIGHT.HORIZONTAL
@@ -31,15 +59,20 @@ class DividerSymbols(str, enum.Enum):
 
 
 class Divider(Widget):
-    """
-    Horizontal divider widget
-    """
+    """Horizontal divider widget."""
 
     Symbols = DividerSymbols
 
     _sizing = frozenset([Sizing.FLOW])
 
     ignore_focus = True
+
+    #: Character repeated across the line.
+    div_char = _InvalidatingAttribute[str | bytes]()
+    #: Number of blank lines above the line.
+    top = _InvalidatingAttribute[int]()
+    #: Number of blank lines below the line.
+    bottom = _InvalidatingAttribute[int]()
 
     def __init__(
         self,
@@ -49,13 +82,10 @@ class Divider(Widget):
     ) -> None:
         """
         :param div_char: character to repeat across line
-        :type div_char: bytes or unicode
 
         :param top: number of blank lines above
-        :type top: int
 
         :param bottom: number of blank lines below
-        :type bottom: int
 
         >>> Divider()
         <Divider flow widget>

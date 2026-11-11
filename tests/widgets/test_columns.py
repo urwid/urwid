@@ -1,16 +1,17 @@
 from __future__ import annotations
 
+import math
 import typing
 import unittest
 import warnings
 
 import urwid
-from tests.util import SelectableText
+import urwid.testing
+from tests.util import SelectableText, assert_redraws_after_child_change
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Collection
-
-    from typing_extensions import Literal
+    from collections.abc import Callable, Collection
+    from typing import Literal
 
 
 class NotAWidget:
@@ -90,6 +91,25 @@ class ImplementWidget:
         focus: bool,
     ) -> bool | None:
         return False
+
+
+class ParentMutatingText(SelectableText):
+    """Selectable text that runs *callback* before returning a key unhandled or accepting a cursor move."""
+
+    def __init__(self, markup: str, callback: Callable[[], object]) -> None:
+        """Run *callback* on every keypress and cursor move."""
+        super().__init__(markup)
+        self.callback = callback
+
+    def keypress(self, size: tuple[int], key: str) -> str:
+        """Run the callback, then return *key* unhandled."""
+        self.callback()
+        return super().keypress(size, key)
+
+    def move_cursor_to_coords(self, _size: tuple[int], _col: int, _row: int) -> bool:
+        """Run the callback, then accept the cursor move."""
+        self.callback()
+        return True
 
 
 class ColumnsTest(unittest.TestCase):
@@ -457,6 +477,89 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(3, canvas.cols())
         self.assertEqual([b"###", b"###"], canvas.text)
 
+    def test_hidden_focus_column_cursor(self) -> None:
+        widget = urwid.Columns([(10, urwid.Edit("", "abc"))])
+        self.assertEqual([0], widget.column_widths((5,), focus=True))
+        self.assertIsNone(widget.render((5,), focus=True).cursor)
+        self.assertIsNone(widget.get_cursor_coords((5,)))
+        self.assertEqual(0, widget.get_pref_col((5,)))
+
+        canvas = urwid.ListBox([widget]).render((5, 3), focus=True)
+        self.assertIsNone(canvas.cursor)
+
+    def test_hidden_column_positions(self) -> None:
+        def make_columns() -> tuple[urwid.Columns, urwid.Edit]:
+            edit = urwid.Edit("", "cdef", edit_pos=2)
+            # the first column is dropped and rendered without its divider
+            return urwid.Columns([(6, urwid.Edit("", "ab")), (4, edit)], dividechars=1, focus_column=1), edit
+
+        widget, edit = make_columns()
+        self.assertEqual([0, 4], widget.column_widths((5,), focus=True))
+        canvas = widget.render((5,), focus=True)
+        self.assertEqual([b"cdef "], canvas.text)
+        self.assertEqual((2, 0), canvas.cursor)
+        self.assertEqual((2, 0), widget.get_cursor_coords((5,)))
+        self.assertEqual(2, widget.get_pref_col((5,)))
+
+        with self.subTest("move_cursor_to_coords"):
+            widget, edit = make_columns()
+            self.assertTrue(widget.move_cursor_to_coords((5,), 1, 0))
+            self.assertEqual(1, edit.edit_pos)
+
+        with self.subTest("mouse_event"):
+            widget, edit = make_columns()
+            self.assertTrue(widget.mouse_event((5,), "mouse press", 1, 1, 0, True))
+            self.assertEqual(1, edit.edit_pos)
+
+    def test_given_zero_column_has_no_divider(self) -> None:
+        """A column sized ``(GIVEN, 0)`` reserves no divider, as render draws none for it."""
+        with self.subTest("hidden middle column"):
+            widget = urwid.Columns(
+                [(4, urwid.Text("aaaa")), (0, urwid.Text("bbbb")), (4, urwid.Text("cccc"))],
+                dividechars=3,
+            )
+            self.assertEqual([4, 0, 4], widget.column_widths((11,)))
+            self.assertEqual([b"aaaa   cccc"], widget.render((11,)).text)
+
+        with self.subTest("pack column of width 0"):
+            widget = urwid.Columns(
+                [(4, urwid.Text("aaaa")), (urwid.PACK, urwid.Text("")), (4, urwid.Text("cccc"))],
+                dividechars=3,
+            )
+            self.assertEqual([4, 0, 4], widget.column_widths((11,)))
+            self.assertEqual([b"aaaa   cccc"], widget.render((11,)).text)
+
+        with self.subTest("hidden last column"):
+            widget = urwid.Columns([(4, urwid.Text("aaaa")), (0, urwid.Text("bbbb"))], dividechars=3)
+            self.assertEqual([4, 0], widget.column_widths((4,)))
+            self.assertEqual([b"aaaa"], widget.render((4,)).text)
+
+        with self.subTest("pack"):
+            widget = urwid.Columns(
+                [(0 if i % 2 else 1, SelectableText("x")) for i in range(14)],
+                dividechars=1,
+            )
+            self.assertEqual((13, 1), widget.pack(()))
+            self.assertEqual(13, widget.render(()).cols())
+
+    def test_hidden_column_gets_no_cursor_or_keys(self) -> None:
+        """The cursor movement does not focus a hidden column, and a hidden focus column gets no keys."""
+        for col, expected in (("left", 1), ("right", 1), (-1, 1), (0, 1)):
+            with self.subTest(col=col):
+                widget = urwid.Columns(
+                    [(0, urwid.Edit("", "a")), (3, urwid.Edit("", "b")), (0, urwid.Edit("", "c"))],
+                    focus_column=1,
+                )
+                self.assertTrue(widget.move_cursor_to_coords((5,), col, 0))
+                self.assertEqual(expected, widget.focus_position)
+
+        edit = urwid.Edit("", "abc")
+        widget = urwid.Columns([(3, SelectableText("a")), (0, edit)], focus_column=1)
+        self.assertEqual("x", widget.keypress((5,), "x"))
+        self.assertEqual("abc", edit.edit_text)
+        self.assertIsNone(widget.keypress((5,), "left"))
+        self.assertEqual(0, widget.focus_position)
+
     def test_focus_column(self):
         button_1 = urwid.Button("Selectable")
         button_2 = urwid.Button("Other selectable")
@@ -484,6 +587,252 @@ class ColumnsTest(unittest.TestCase):
             self.assertEqual(button_2, widget.focus)
             widget.keypress((), "left")
             self.assertEqual(1, widget.focus_position)
+
+        with self.subTest("Widget not in the list, as Pile does"), self.assertRaises(ValueError):
+            urwid.Columns(widget_list, focus_column=urwid.Text("Other"))
+
+    def test_keypress_empty_contents(self) -> None:
+        self.assertEqual("x", urwid.Columns([]).keypress((10,), "x"))
+
+    def test_keypress_skips_hidden_column(self) -> None:
+        """A column that is not drawn is skipped by the arrow keys and Tab.
+
+        The cases are ``(GIVEN, 0)``, packed to 0, of weight 0 with a ``min_width`` of 0, and of weight 0 in a fixed
+        Columns.
+        """
+        for hidden, min_width, size in (
+            ((urwid.GIVEN, 0, SelectableText("hidden")), 1, (20,)),
+            ((urwid.PACK, SelectableText("")), 1, (20,)),
+            ((urwid.PACK, SelectableText("")), 1, ()),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 0, (20,)),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 1, ()),
+        ):
+            for key, start, expected in (("right", 0, 2), ("left", 2, 0), ("tab", 0, 2), ("shift tab", 2, 0)):
+                with self.subTest(hidden=hidden[0], min_width=min_width, size=size, key=key):
+                    columns = urwid.Columns(
+                        [SelectableText("a"), hidden, SelectableText("c")],
+                        min_width=min_width,
+                        select_navigation=True,
+                    )
+                    columns.focus_position = start
+                    self.assertIsNone(columns.keypress(size, key))
+                    self.assertEqual(expected, columns.focus_position)
+
+    def test_select_column_hidden_by_last_layout(self) -> None:
+        """The focus moves skip a column only while the last layout left it 0 wide."""
+
+        class WideWhenFocused(SelectableText):
+            """Selectable text that packs 3 columns wide when focused and 0 otherwise."""
+
+            def pack(self, size=(), focus=False):
+                return (3 if focus else 0, 1)
+
+        with self.subTest("0 wide while unfocused"):
+            columns = urwid.Columns([(urwid.PACK, SelectableText("a")), (urwid.PACK, WideWhenFocused(""))])
+            self.assertEqual("right", columns.keypress((20,), "right"))
+            self.assertEqual(0, columns.focus_position)
+
+        with self.subTest("weight 0 drawn min_width wide"):
+            columns = urwid.Columns([SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b"))])
+            self.assertIsNone(columns.keypress((20,), "right"))
+            self.assertEqual(1, columns.focus_position)
+
+        for key in ("right", "tab"):
+            with self.subTest("contents changed by the focus column", key=key):
+                columns = urwid.Columns(
+                    [
+                        ParentMutatingText(
+                            "a", lambda: columns.contents.append((SelectableText("new"), columns.options()))
+                        ),
+                        (urwid.WEIGHT, 0, SelectableText("hidden")),
+                        SelectableText("c"),
+                    ],
+                    min_width=0,
+                    select_navigation=True,
+                )
+                columns.render((20,), focus=True)
+                self.assertIsNone(columns.keypress((20,), key))
+                self.assertEqual(2, columns.focus_position)
+
+        with self.subTest("fixed layout between two equal layouts"):
+            columns = urwid.Columns([SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b")), SelectableText("c")])
+            columns.column_widths((20,), focus=True)
+            columns.get_column_sizes((), focus=True)
+            self.assertIsNone(columns.keypress((20,), "right"))
+            self.assertEqual(1, columns.focus_position)
+
+        with self.subTest("focus_first_selectable"):
+            columns = urwid.Columns([(urwid.PACK, SelectableText("")), SelectableText("b")], focus_column=1)
+            columns.column_widths((20,), focus=True)
+            self.assertTrue(columns.focus_first_selectable())
+            self.assertEqual(1, columns.focus_position)
+
+        for hidden in ((urwid.PACK, SelectableText("")), (urwid.WEIGHT, 0, SelectableText(""))):
+            with self.subTest("contents changed after the layout", hidden=hidden[0]):
+                columns = urwid.Columns([hidden, SelectableText("b")], focus_column=1, min_width=0)
+                columns.column_widths((20,), focus=True)
+                columns.contents.insert(0, (SelectableText("a"), columns.options()))
+                self.assertTrue(columns.focus_first_selectable())
+                self.assertEqual(0, columns.focus_position)
+
+    def test_select_skips_every_zero_width_column(self) -> None:
+        """Left, right and select navigation skip a column of width 0, whatever left it 0 wide."""
+
+        class OverriddenWidths(urwid.Columns):
+            """Columns that lays out its middle column 0 wide through an overridden ``column_widths``."""
+
+            def column_widths(self, size, focus=False):
+                return [3, 0, size[0] - 3]
+
+        cases = {
+            "dropped for lack of room": (
+                lambda: urwid.Columns(
+                    [(5, SelectableText("a")), (5, SelectableText("b")), (5, SelectableText("c"))],
+                    focus_column=2,
+                    select_navigation=True,
+                ),
+                (5,),
+                2,
+                ("left", "shift tab"),
+                None,
+            ),
+            "packed to 0": (
+                lambda: urwid.Columns(
+                    [SelectableText("a"), (urwid.PACK, SelectableText("")), SelectableText("c")],
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+            "weight 0 with min_width 0": (
+                lambda: urwid.Columns(
+                    [SelectableText("a"), (urwid.WEIGHT, 0, SelectableText("b")), SelectableText("c")],
+                    min_width=0,
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+            "overridden column_widths": (
+                lambda: OverriddenWidths(
+                    [SelectableText("a"), SelectableText("b"), SelectableText("c")],
+                    select_navigation=True,
+                ),
+                (20,),
+                0,
+                ("right", "tab"),
+                2,
+            ),
+        }
+        for name, (make, size, start, keys, expected) in cases.items():
+            for key in keys:
+                with self.subTest(name, key=key):
+                    columns = make()
+                    columns.focus_position = start
+                    columns.render(size, focus=True)
+                    if expected is None:
+                        # every column left of the focus is dropped: the key is returned and the focus stays
+                        self.assertEqual(key, columns.keypress(size, key))
+                        self.assertEqual(start, columns.focus_position)
+                    else:
+                        self.assertIsNone(columns.keypress(size, key))
+                        self.assertEqual(expected, columns.focus_position)
+
+    def test_navigation_does_not_scroll_to_columns_left_out(self) -> None:
+        """Columns that do not fit the width are not reached by the keys, so the focus never moves off screen."""
+        for key, start in (("right", 0), ("left", 2), ("tab", 0), ("shift tab", 2)):
+            with self.subTest(key=key):
+                columns = urwid.Columns(
+                    [(10, SelectableText(str(i))) for i in range(3)],
+                    focus_column=start,
+                    select_navigation=True,
+                )
+                columns.render((15,), focus=True)
+                self.assertEqual(key, columns.keypress((15,), key))
+                self.assertEqual(start, columns.focus_position)
+
+    def test_hidden_focus_column_kept_through_resize(self) -> None:
+        """A resize that hides the focus column and one that shows it again leave the focus position unchanged."""
+        columns = urwid.Columns(
+            [(5, SelectableText("a")), (5, urwid.Edit("", "b")), (5, SelectableText("c"))],
+            focus_column=1,
+        )
+        columns.render((15,), focus=True)
+        self.assertEqual((5 + 1, 0), columns.get_cursor_coords((15,)))
+
+        with self.subTest("hidden"):
+            # the column left of the focus is dropped first, the one right of it is not laid out
+            self.assertEqual([0, 0], columns.column_widths((4,), focus=True))
+            columns.render((4,), focus=True)
+            self.assertIsNone(columns.get_cursor_coords((4,)))
+            for key in ("left", "right"):
+                self.assertEqual(key, columns.keypress((4,), key))
+                self.assertEqual(1, columns.focus_position)
+
+        with self.subTest("shown again"):
+            columns.render((15,), focus=True)
+            self.assertEqual(1, columns.focus_position)
+            self.assertEqual((5 + 1, 0), columns.get_cursor_coords((15,)))
+
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting ``dividechars`` or ``min_width`` lays the columns out again and redraws them."""
+        with self.subTest("dividechars"):
+            widget = urwid.Columns([(4, urwid.Text("aaaa")), (4, urwid.Text("cccc"))])
+            self.assertEqual([b"aaaacccc"], widget.render((8,)).text)
+            widget.dividechars = 1
+            self.assertEqual([4], widget.column_widths((8,)))
+            self.assertEqual([b"aaaa    "], widget.render((8,)).text)
+
+        with self.subTest("min_width"):
+            widget = urwid.Columns([urwid.Text("a"), urwid.Text("b"), urwid.Text("c")])
+            self.assertEqual([1, 1], widget.column_widths((2,)))
+            widget.min_width = 2
+            self.assertEqual([2], widget.column_widths((2,)))
+
+    def test_default_focus_skips_hidden_columns(self) -> None:
+        """A column that is not drawn gets the initial focus only when no other column is selectable."""
+        for hidden, min_width in (
+            ((urwid.GIVEN, 0, SelectableText("hidden")), 1),
+            ((urwid.WEIGHT, 0, SelectableText("hidden")), 0),
+        ):
+            with self.subTest(hidden=hidden[0], other_selectable=True):
+                columns = urwid.Columns([hidden, SelectableText("b")], min_width=min_width)
+                self.assertEqual(1, columns.focus_position)
+            with self.subTest(hidden=hidden[0], other_selectable=False):
+                columns = urwid.Columns(
+                    [urwid.Text("a"), hidden, (*hidden[:-1], SelectableText("hidden"))],
+                    min_width=min_width,
+                )
+                self.assertEqual(1, columns.focus_position)
+        with self.subTest("weight 0 drawn min_width wide"):
+            columns = urwid.Columns([(urwid.WEIGHT, 0, SelectableText("a")), SelectableText("b")])
+            self.assertEqual(0, columns.focus_position)
+
+    def test_select_reset_skips_given_zero(self) -> None:
+        """The reset past the last column and ``focus_first_selectable`` skip a hidden first column."""
+        columns = urwid.Columns(
+            [(urwid.GIVEN, 0, SelectableText("hidden")), SelectableText("b"), SelectableText("c")],
+            select_navigation=True,
+        )
+        columns.focus_position = 2
+        self.assertEqual("tab", columns.keypress((20,), "tab"))
+        self.assertEqual(1, columns.focus_position)
+        columns.focus_position = 0
+        self.assertTrue(columns.focus_first_selectable())
+        self.assertEqual(1, columns.focus_position)
+
+    def test_pack_fixed_pack_item_not_fixed(self) -> None:
+        widget = urwid.Columns([(urwid.PACK, urwid.Text("x")), (urwid.PACK, urwid.ProgressBar(None, None))])
+        with self.assertRaises(urwid.ColumnsError):
+            widget.pack(())
+
+    def test_options_given_amount_not_int(self) -> None:
+        with self.assertRaises(urwid.ColumnsError):
+            urwid.Columns.options(urwid.GIVEN, 1.5)
 
     def test_pack_not_enough_info(self):
         """Test special case for not official fixed pack and render support."""
@@ -859,15 +1208,6 @@ class ColumnsTest(unittest.TestCase):
     def test_init_with_a_generator(self):
         urwid.Columns(urwid.Text(c) for c in "ABC")
 
-    def test_old_attributes(self):
-        c = urwid.Columns([urwid.Text("a"), urwid.SolidFill("x")], box_columns=[1])
-        with self.assertWarns(DeprecationWarning):
-            self.assertEqual(c.box_columns, [1])
-        with self.assertWarns(DeprecationWarning):
-            c.box_columns = []
-
-        self.assertEqual(c.box_columns, [])
-
     def test_box_column(self):
         c = urwid.Columns([urwid.Filler(urwid.Edit()), urwid.Text("")], box_columns=[0])
         c.keypress((10,), "x")
@@ -890,7 +1230,7 @@ class ColumnsTest(unittest.TestCase):
 
         with self.subTest("Focus"):
             self.assertEqual(c.focus, None)
-            self.assertRaises(IndexError, lambda: getattr(c, "focus_position"))
+            self.assertRaises(IndexError, lambda: c.focus_position)
             self.assertRaises(IndexError, lambda: setattr(c, "focus_position", None))
             self.assertRaises(IndexError, lambda: setattr(c, "focus_position", 0))
 
@@ -940,53 +1280,6 @@ class ColumnsTest(unittest.TestCase):
         c.focus_position = 0
         self.assertRaises(IndexError, lambda: setattr(c, "focus_position", -1))
         self.assertRaises(IndexError, lambda: setattr(c, "focus_position", 2))
-
-    def test_deprecated(self):
-        t1 = urwid.Text("one")
-        t2 = urwid.Text("two")
-        sf = urwid.SolidFill("x")
-        # old methods:
-        c = urwid.Columns([t1, ("weight", 3, t2), sf], box_columns=[2])
-        with self.subTest("Focus"):
-            c.set_focus(0)
-            self.assertRaises(IndexError, lambda: c.set_focus(-1))
-            self.assertRaises(IndexError, lambda: c.set_focus(3))
-            c.set_focus(t2)
-            self.assertEqual(c.focus_position, 1)
-            self.assertRaises(ValueError, lambda: c.set_focus("nonexistant"))
-
-        with self.subTest("Contents"):
-            self.assertEqual(c.widget_list, [t1, t2, sf])
-            self.assertEqual(c.column_types, [("weight", 1), ("weight", 3), ("weight", 1)])
-            self.assertEqual(c.box_columns, [2])
-
-        with self.subTest("Contents change"):
-            c.widget_list = [t2, t1, sf]
-            self.assertEqual(c.widget_list, [t2, t1, sf])
-            self.assertEqual(c.box_columns, [2])
-
-            self.assertEqual(
-                c.contents,
-                [(t2, ("weight", 1, False)), (t1, ("weight", 3, False)), (sf, ("weight", 1, True))],
-            )
-            self.assertEqual(c.focus_position, 1)  # focus unchanged
-            c.column_types = [("flow", None), ("weight", 2), ("fixed", 5)]  # use the old name
-            self.assertEqual(c.column_types, [("flow", None), ("weight", 2), ("fixed", 5)])
-            self.assertEqual(
-                c.contents,
-                [(t2, ("pack", None, False)), (t1, ("weight", 2, False)), (sf, ("given", 5, True))],
-            )
-            self.assertEqual(c.focus_position, 1)  # focus unchanged
-
-        with self.subTest("Contents change 2"):
-            c.widget_list = [t1]
-            self.assertEqual(len(c.contents), 1)
-            self.assertEqual(c.focus_position, 0)
-            c.widget_list.extend([t2, t1])
-            self.assertEqual(len(c.contents), 3)
-            self.assertEqual(c.column_types, [("flow", None), ("weight", 1), ("weight", 1)])
-            c.column_types[:] = [("weight", 2)]
-            self.assertEqual(len(c.contents), 1)
 
     def test_regression_columns_different_height(self):
         size = (20, 5)
@@ -1042,6 +1335,19 @@ class ColumnsTest(unittest.TestCase):
         self.assertIs(second, columns.focus)
         self.assertEqual(1, columns.focus_position)
 
+    def test_selectable_follows_child_change(self) -> None:
+        """A child changing its selectability after it was added is seen by the columns and its keypress."""
+        placeholder = urwid.WidgetPlaceholder(urwid.Text("wait"))
+        columns = urwid.Columns([placeholder])
+        self.assertFalse(columns.selectable())
+
+        placeholder.original_widget = urwid.Edit()
+        self.assertTrue(columns.selectable())
+        self.assertIsNone(columns.keypress((10,), "a"))
+
+        placeholder.original_widget = urwid.Text("done")
+        self.assertFalse(columns.selectable())
+
     def test_pack_given_and_weight_footer_row(self) -> None:
         """Footer-style row: weighted SolidFill spacers around given-width buttons."""
         ok_button = urwid.Button("OK", align=urwid.CENTER)
@@ -1065,3 +1371,190 @@ class ColumnsTest(unittest.TestCase):
         self.assertEqual(1, canvas.rows())
         self.assertIn(b"<   OK   >", canvas.text[0])
         self.assertIn(b"< Cancel >", canvas.text[0])
+
+    def test_non_finite_width_amount_rejected(self) -> None:
+        """Infinite, NaN, and beyond-float-range amounts are rejected on every way into the contents."""
+        for amount in (math.inf, math.nan, 10**400):
+            for width_type in (urwid.WEIGHT, urwid.GIVEN):
+                with self.subTest(amount=amount, width_type=width_type):
+                    item = (width_type, amount, urwid.Text("a"))
+                    with self.assertRaises(urwid.ColumnsError):
+                        urwid.Columns([item])
+
+                    columns = urwid.Columns([urwid.Text("b")])
+                    options = (width_type, amount, False)
+                    with self.assertRaises(urwid.ColumnsError):
+                        columns.contents.append((urwid.Text("a"), options))
+                    with self.assertRaises(urwid.ColumnsError):
+                        columns.contents = [(urwid.Text("a"), options)]
+
+    def test_given_width_not_int_rejected(self) -> None:
+        """A given width is a number of columns, so a float is rejected even when it is integral."""
+        for amount in (1.5, 3.0):
+            with self.subTest(amount=amount):
+                with self.assertRaises(urwid.ColumnsError):
+                    urwid.Columns([(urwid.GIVEN, amount, urwid.Text("a"))])
+                with self.assertRaises(urwid.ColumnsError):
+                    urwid.Columns([(amount, urwid.Text("a"))])
+                columns = urwid.Columns([])
+                with self.assertRaises(urwid.ColumnsError):
+                    columns.contents.append((urwid.Text("a"), (urwid.GIVEN, amount, False)))
+                with self.assertRaises(urwid.ColumnsError):
+                    columns.contents = [(urwid.Text("a"), (urwid.GIVEN, amount, False))]
+                self.assertEqual(0, len(columns.contents))
+        self.assertEqual(1, len(urwid.Columns([(urwid.WEIGHT, 1.5, urwid.Text("a"))]).contents))
+
+    def test_huge_finite_weights(self) -> None:
+        """Weights whose sum exceeds the float range still divide the width between them."""
+        columns = urwid.Columns(
+            [urwid.Text("a"), (urwid.WEIGHT, 1e308, urwid.Text("b")), (urwid.WEIGHT, 1e308, urwid.Text("c"))]
+        )
+        self.assertEqual([1, 10, 9], columns.column_widths((20,)))
+        self.assertEqual(20, columns.render((20,)).cols())
+
+    def test_all_zero_weights(self) -> None:
+        """Columns whose weights are all zero keep their minimum width instead of dividing by a zero total."""
+        columns = urwid.Columns([(urwid.WEIGHT, 0, urwid.Text("a")), (urwid.WEIGHT, 0, urwid.Text("b"))])
+        self.assertEqual([1, 1], columns.column_widths((20,)))
+        self.assertEqual(20, columns.render((20,)).cols())
+
+    def test_fixed_column_sizes_weights_too_far_apart(self) -> None:
+        """Raise ColumnsError when the weight ratio scales a fixed width past what a float can hold."""
+        columns = urwid.Columns([(urwid.WEIGHT, 5e-324, urwid.Text("a")), (urwid.WEIGHT, 1, urwid.Text("b"))])
+        with self.assertRaisesRegex(urwid.ColumnsError, "too far apart"):
+            columns.pack(())
+        with self.assertRaisesRegex(urwid.ColumnsError, "too far apart"):
+            columns.render(())
+
+    def test_keypress_child_changes_contents(self) -> None:
+        """An unhandled key moves the focus from the contents the focused child left behind."""
+        with self.subTest("Items before the focus removed"):
+            edits = [urwid.Edit("", text) for text in "abc"]
+            columns = urwid.Columns(
+                [*edits, ParentMutatingText("d", lambda: columns.contents.__delitem__(slice(0, 2)))]
+            )
+            columns.focus_position = 3
+            self.assertIsNone(columns.keypress((40,), "left"))
+            self.assertIs(edits[2], columns.focus)
+
+        with self.subTest("All items removed"):
+            columns = urwid.Columns(
+                [urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(slice(None)))]
+            )
+            columns.focus_position = 1
+            self.assertEqual("left", columns.keypress((40,), "left"))
+
+        with self.subTest("All items removed, select navigation"):
+            columns = urwid.Columns(
+                [urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(slice(None)))],
+                select_navigation=True,
+            )
+            columns.focus_position = 1
+            self.assertEqual("tab", columns.keypress((40,), "tab"))
+
+    def test_move_cursor_to_coords_child_changes_contents(self) -> None:
+        """The focus does not move to a position the child's contents change made stale."""
+        columns = urwid.Columns([urwid.Edit("", "a"), ParentMutatingText("b", lambda: columns.contents.__delitem__(0))])
+        self.assertFalse(columns.move_cursor_to_coords((40,), 30, 0))
+        self.assertEqual(0, columns.focus_position)
+
+    def test_redraw_after_undrawn_pack_column_changes(self) -> None:
+        """Draw the Columns again when a pack column it did not draw changes width."""
+        empty = urwid.Text("")
+        dropped = urwid.Text("x" * 10)
+        fixed_empty = urwid.Text("")
+        for name, columns, size, change, expected in (
+            (
+                "0 wide",
+                urwid.Columns([(urwid.PACK, empty), urwid.Text("rest")]),
+                (8,),
+                lambda: empty.set_text("ab"),
+                (b"abrest  ",),
+            ),
+            (
+                "dropped for room",
+                urwid.Columns([urwid.Text("left"), (urwid.PACK, dropped)]),
+                (8,),
+                lambda: dropped.set_text("y"),
+                (b"left   y",),
+            ),
+            (
+                "fixed",
+                urwid.Columns([(urwid.PACK, fixed_empty), (urwid.PACK, urwid.Text("rest"))]),
+                (),
+                lambda: fixed_empty.set_text("ab"),
+                (b"abrest",),
+            ),
+        ):
+            with self.subTest(name):
+                assert_redraws_after_child_change(self, columns, size, change, expected)
+
+    def test_undrawn_box_only_pack_column(self) -> None:
+        """Render a Columns whose undrawn pack column holds a widget that only supports BOX sizing."""
+
+        class ZeroPackFill(urwid.SolidFill):
+            """A BOX-only widget that packs to 0 columns, so a pack column holding it is not drawn."""
+
+            def pack(self, size=(), focus=False):
+                return (0, 1)
+
+        columns = urwid.Columns([(urwid.PACK, ZeroPackFill("x")), urwid.SolidFill("a")])
+        with self.assertWarns(urwid.widget.ColumnsWarning):
+            self.assertEqual((b"aaa", b"aaa"), tuple(columns.render((3, 2)).text))
+
+    def test_squish(self):
+        urwid.testing.check_box_sizing(urwid.Columns([urwid.SolidFill()]))
+        urwid.testing.check_box_sizing(urwid.Columns([(4, urwid.SolidFill())]))
+
+
+class ColumnsSelectNavigationTest(unittest.TestCase):
+    """``select_navigation`` moves the focus on unhandled ``'next selectable'``/``'prev selectable'``."""
+
+    size = (20,)
+
+    def _columns(self, *, select_navigation: bool = True) -> urwid.Columns:
+        return urwid.Columns(
+            [SelectableText("a"), urwid.Text("-"), SelectableText("b"), urwid.Text("-"), SelectableText("c")],
+            select_navigation=select_navigation,
+        )
+
+    def test_off_by_default(self) -> None:
+        """Without the flag the key is returned and the entry hook keeps the focus."""
+        columns = self._columns(select_navigation=False)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+        columns.focus_position = 2
+        columns.enter_selectable(reverse=True)
+        self.assertEqual(2, columns.focus_position)
+
+    def test_traversal(self) -> None:
+        """Steps skip non-selectable children, and past the edge the key is returned after a reset."""
+        columns = self._columns()
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(2, columns.focus_position)
+        self.assertIsNone(columns.keypress(self.size, "ctrl n"))
+        self.assertEqual(4, columns.focus_position)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+        self.assertEqual("ctrl p", columns.keypress(self.size, "ctrl p"))
+        self.assertEqual(4, columns.focus_position)
+        self.assertIsNone(columns.keypress(self.size, "shift tab"))
+        self.assertEqual(2, columns.focus_position)
+
+    def test_contents_changed_between_presses(self) -> None:
+        """An appended selectable is reached, and a removal continues from the new focus."""
+        columns = self._columns()
+        columns.focus_position = 4
+        columns.contents.append((SelectableText("d"), columns.options()))
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(5, columns.focus_position)
+        del columns.contents[3:]
+        self.assertEqual(2, columns.focus_position)
+        self.assertEqual("tab", columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)
+
+    def test_child_keeps_handled_key(self) -> None:
+        """A child that handles the key keeps it."""
+        columns = urwid.Columns([urwid.Edit(allow_tab=True), SelectableText("b")], select_navigation=True)
+        self.assertIsNone(columns.keypress(self.size, "tab"))
+        self.assertEqual(0, columns.focus_position)

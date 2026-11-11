@@ -19,14 +19,18 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Edit widgets that accept only integer or decimal numbers."""
+
 from __future__ import annotations
 
 import decimal
+import operator
 import re
+import sys
 import typing
-import warnings
 
-from urwid import Edit
+from urwid import Edit, _deprecation
+from urwid.command_map import Command
 
 if typing.TYPE_CHECKING:
     from collections.abc import Container
@@ -35,7 +39,7 @@ if typing.TYPE_CHECKING:
 
 
 class NumEdit(Edit):
-    """NumEdit - edit numerical types
+    """NumEdit - edit numerical types.
 
     based on the characters in 'allowed' different numerical types
     can be edited:
@@ -56,8 +60,9 @@ class NumEdit(Edit):
         *,
         trim_leading_zeros: bool = True,
         allow_negative: bool = False,
-    ):
-        """
+    ) -> None:
+        """Initialize a numeric edit widget restricted to the given set of characters.
+
         :param allowed: characters accepted by this widget
         :param caption: caption markup
         :param default: default edit value
@@ -67,7 +72,7 @@ class NumEdit(Edit):
 
         .. deprecated:: 2.2.3
             The ``trimLeadingZeros`` argument is deprecated, use the ``trim_leading_zeros``
-            keyword argument instead.
+            keyword argument instead. The argument will be removed in version 7.0.
         """
         super().__init__(caption, default)
         self._allowed = allowed
@@ -75,17 +80,15 @@ class NumEdit(Edit):
         self._allow_negative = allow_negative
 
         if trimLeadingZeros is not None:
-            warnings.warn(
-                "'trimLeadingZeros' argument is deprecated. Use 'trim_leading_zeros' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'trimLeadingZeros' argument is deprecated. Use 'trim_leading_zeros' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             self._trim_leading_zeros = trimLeadingZeros
 
     def valid_char(self, ch: str) -> bool:
-        """
-        Return true for allowed characters.
-        """
+        """Return true for allowed characters."""
         if len(ch) == 1:
             if ch.upper() in self._allowed:
                 return True
@@ -93,9 +96,15 @@ class NumEdit(Edit):
             return self._allow_negative and ch == "-" and self.edit_pos == 0 and "-" not in self.edit_text
         return False
 
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters, after one leading ``-`` with *allow_negative*."""
+        if self._allow_negative and result_text[:1] == "-":
+            result_text = result_text[1:]
+        return all(char.upper() in self._allowed for char in typing.cast("str", result_text))
+
     def keypress(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """
@@ -129,19 +138,27 @@ class NumEdit(Edit):
         >>> e.edit_text
         '1'
         """
-        unhandled = super().keypress(size, key)
+        with self._editing():  # the trim belongs to the undo step of the key
+            unhandled = super().keypress(size, key)
 
-        if not unhandled and self._trim_leading_zeros:
-            # trim leading zeros
-            while self.edit_pos > 0 and self.edit_text[:1] == "0":
-                self.set_edit_pos(self.edit_pos - 1)
-                self.set_edit_text(self.edit_text[1:])
+            # a restored state is kept as it was shown
+            restored = self._command_map[key] in {Command.UNDO, Command.REDO}
+            if not unhandled and not restored and self._trim_leading_zeros:
+                # trim leading zeros after the sign, but keep the zero of "0" and "0.5"
+                sign = int(self.edit_text.startswith("-"))
+                while (
+                    self.edit_pos > sign
+                    and self.edit_text[sign : sign + 1] == "0"
+                    and self.edit_text[sign + 1 : sign + 2].isalnum()
+                ):
+                    self.set_edit_pos(self.edit_pos - 1)
+                    self.set_edit_text(self.edit_text[:sign] + self.edit_text[sign + 1 :])
 
         return unhandled
 
 
 class IntegerEdit(NumEdit):
-    """Edit widget for integer values"""
+    """Edit widget for integer values."""
 
     def __init__(
         self,
@@ -151,11 +168,17 @@ class IntegerEdit(NumEdit):
         *,
         allow_negative: bool = False,
     ) -> None:
-        """
+        """Initialize an edit widget restricted to integer values.
+
         :param caption: caption markup
-        :param default: default edit value
-        :raises ValueError: *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, or does not
-            consist of digits valid for *base*.
+        :param default: numeric initial value, or a string of digits in the selected base
+        :param base: the numeric base of the value, from 2 to 36
+        :param allow_negative: accept a negative default and a leading minus sign in input
+        :raises TypeError: *base* is not an integer.
+        :raises ValueError: *base* is outside 2 to 36.
+            *default* is not an ``int``, ``str`` or integral :class:`decimal.Decimal`, does not consist of digits
+            valid for *base*, is negative without *allow_negative*, or has more digits than
+            :func:`sys.get_int_max_str_digits` allows.
 
         >>> IntegerEdit("", 42)
         <IntegerEdit selectable flow widget '42' edit_pos=2>
@@ -201,33 +224,60 @@ class IntegerEdit(NumEdit):
         >>> e, size = IntegerEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
-        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
+        ValueError: default: Only 'str', 'int' or Decimal input allowed
         >>> e, size = IntegerEdit("", decimal.Decimal("10.0")), (10,)
         Traceback (most recent call last):
             ...
         ValueError: not an 'integer Decimal' instance
         """
+        base = operator.index(base)
+        if not 2 <= base <= 36:
+            raise ValueError(f"invalid base: {base}; expected a value from 2 to 36")
         self.base = base
         val = ""
         allowed_chars = self.ALLOWED[: self.base]
         if default is not None:
-            if not isinstance(default, (int, str, decimal.Decimal)):
+            if isinstance(default, bool) or not isinstance(default, (int, str, decimal.Decimal)):
                 raise ValueError("default: Only 'str', 'int' or Decimal input allowed")
 
-            # convert to a long first, this will raise a ValueError
-            # in case a float is passed or some other error
-            if isinstance(default, str) and len(default):
-                # check if it is a valid initial value
-                validation_re = f"^[{allowed_chars}]+$"
-                if not re.match(validation_re, str(default), re.IGNORECASE):
+            if isinstance(default, str):
+                digits = default[1:] if allow_negative and default.startswith("-") else default
+                if default and not re.fullmatch(f"[{allowed_chars}]+", digits, re.IGNORECASE):
+                    raise ValueError(f"invalid value: {default} for base {base}")
+                val = default
+
+            else:
+                if isinstance(default, decimal.Decimal):
+                    # NaN and infinity have a str exponent; a negative exponent is a fractional part, even "10.0"
+                    exponent = default.as_tuple().exponent
+                    if not isinstance(exponent, int) or exponent < 0:
+                        raise ValueError("not an 'integer Decimal' instance")
+                    # int() would build the whole value of a huge exponent before str() below can refuse it
+                    max_digits = sys.get_int_max_str_digits()
+                    # adjusted() of a zero is its exponent, so Decimal("0E+5000") is skipped as the zero it is
+                    if max_digits and default and default.adjusted() >= max_digits:
+                        raise ValueError(f"default has more than {max_digits} digits")
+
+                number = int(default)
+                if number < 0 and not allow_negative:
                     raise ValueError(f"invalid value: {default} for base {base}")
 
-            elif isinstance(default, decimal.Decimal) and default.as_tuple()[2] != 0:
-                # a Decimal instance with no fractional part
-                raise ValueError("not an 'integer Decimal' instance")
+                # str() refuses a value over sys.get_int_max_str_digits() at once, so the loop below stays short
+                decimal_text = str(number)
+                if base == 10:
+                    val = decimal_text
+                else:
+                    sign = "-" if number < 0 else ""
+                    number = abs(number)
+                    converted_digits = []
+                    while number:
+                        number, remainder = divmod(number, base)
+                        converted_digits.append(self.ALLOWED[remainder])
+                    val = sign + ("".join(reversed(converted_digits)) or "0")
 
-            # convert possible int, long or Decimal to str
-            val = str(default)
+            if val:
+                # fail here rather than in value(): int() refuses digit strings over sys.get_int_max_str_digits()
+                int(val, base)
 
         super().__init__(
             allowed_chars,
@@ -280,17 +330,23 @@ class FloatEdit(NumEdit):
         decimal_separator: str = ".",
         allow_negative: bool = False,
     ) -> None:
-        """
+        """Initialize a decimal edit widget.
+
         :param caption: caption markup
-        :param default: default edit value
+        :param default: default edit value. Strings must use the configured decimal separator.
+        :param preserveSignificance: deprecated positional form of *preserve_significance*
+        :param decimalSeparator: deprecated positional form of *decimal_separator*
         :param preserve_significance: return value has the same signif. as default
         :param decimal_separator: use '.' as separator by default, optionally a ','
-        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`, or *decimal_separator* is
-            neither ``'.'`` nor ``','``.
+        :param allow_negative: accept a leading minus sign in string defaults and input
+        :raises ValueError: *default* is not an ``int``, ``str`` or :class:`decimal.Decimal`.
+            *default* is a string with the other decimal separator, is not a number, or is not a finite value.
+            *decimal_separator* is neither ``'.'`` nor ``','``.
 
         .. deprecated:: 2.2.3
             The ``preserveSignificance`` and ``decimalSeparator`` arguments are deprecated,
             use the ``preserve_significance`` and ``decimal_separator`` keyword arguments instead.
+            The arguments will be removed in version 7.0.
 
         >>> FloatEdit("", "1.065434")
         <FloatEdit selectable flow widget '1.065434' edit_pos=8>
@@ -334,15 +390,15 @@ class FloatEdit(NumEdit):
         >>> e, size = FloatEdit("", 10.0), (10,)
         Traceback (most recent call last):
             ...
-        ValueError: default: Only 'str', 'int', 'long' or Decimal input allowed
+        ValueError: default: Only 'str', 'int' or Decimal input allowed
         """
-        self.significance = None
+        self.significance: decimal.Decimal | None = None
         self._decimal_separator = decimal_separator
         if decimalSeparator is not None:
-            warnings.warn(
-                "'decimalSeparator' argument is deprecated. Use 'decimal_separator' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'decimalSeparator' argument is deprecated. Use 'decimal_separator' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             self._decimal_separator = decimalSeparator
 
@@ -350,10 +406,10 @@ class FloatEdit(NumEdit):
             raise ValueError(f"invalid decimal separator: {self._decimal_separator}")
 
         if preserveSignificance is not None:
-            warnings.warn(
-                "'preserveSignificance' argument is deprecated. Use 'preserve_significance' keyword argument",
-                DeprecationWarning,
-                stacklevel=3,
+            _deprecation.warn(
+                "'preserveSignificance' argument is deprecated. Use 'preserve_significance' keyword argument.",
+                since="2.2.3",
+                removed_in="7.0",
             )
             preserve_significance = preserveSignificance
 
@@ -364,24 +420,55 @@ class FloatEdit(NumEdit):
 
             if isinstance(default, str) and default:
                 # check if it is a float, raises a ValueError otherwise
+                invalid_separator = "," if self._decimal_separator == "." else "."
+                if invalid_separator in default:
+                    raise ValueError(f"invalid decimal separator in default value: {invalid_separator}")
+                default = default.replace(self._decimal_separator, ".")
                 float(default)
                 default = decimal.Decimal(default)
+
+            if isinstance(default, decimal.Decimal) and not default.is_finite():
+                raise ValueError("default: must be a finite decimal value")
 
             if preserve_significance and isinstance(default, decimal.Decimal):
                 self.significance = default
 
-            val = str(default)
+            val = format(default, "f") if isinstance(default, decimal.Decimal) else str(default)
+            val = val.replace(".", self._decimal_separator)
 
         super().__init__(self.ALLOWED[0:10] + self._decimal_separator, caption, val, allow_negative=allow_negative)
 
+    def valid_char(self, ch: str) -> bool:
+        """Return true for allowed characters, refusing a second decimal separator."""
+        if ch == self._decimal_separator and ch in self.edit_text:
+            return False
+        return super().valid_char(ch)
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is allowed characters with at most one decimal separator."""
+        return typing.cast("str", result_text).count(self._decimal_separator) <= 1 and super()._valid_insert(
+            text, result_text
+        )
+
     def value(self) -> decimal.Decimal | None:
-        """
-        Return the numeric value of self.edit_text.
-        """
+        """Return the numeric value of self.edit_text."""
         if self.edit_text:
             normalized = decimal.Decimal(self.edit_text.replace(self._decimal_separator, "."))
             if self.significance is not None:
-                return normalized.quantize(self.significance)
+                normalized_tuple = normalized.as_tuple()
+                significance_tuple = self.significance.as_tuple()
+                # as_tuple().exponent is typed as a union with the non-finite
+                # markers; derive both exponents from adjusted() instead, which
+                # is always a plain int: exponent == adjusted() - len(digits) + 1.
+                normalized_exponent = normalized.adjusted() - len(normalized_tuple.digits) + 1
+                significance_exponent = self.significance.adjusted() - len(significance_tuple.digits) + 1
+                precision = max(
+                    len(normalized_tuple.digits) + max(0, normalized_exponent - significance_exponent),
+                    len(significance_tuple.digits),
+                )
+                with decimal.localcontext() as context:
+                    context.prec = max(context.prec, precision)
+                    return normalized.quantize(self.significance)
             return normalized
 
         return None

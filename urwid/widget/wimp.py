@@ -18,8 +18,11 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Simple interactive widgets: selectable icons, check boxes, radio buttons and buttons."""
+
 from __future__ import annotations
 
+import enum
 import typing
 
 from urwid.canvas import CompositeCanvas
@@ -29,14 +32,13 @@ from urwid.text_layout import calc_coords
 from urwid.util import is_mouse_press
 
 from .columns import Columns
-from .constants import Align, WrapMode
+from .constants import Align, MouseButton, WrapMode
 from .text import Text
 from .widget import WidgetError, WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, MutableSequence
-
-    from typing_extensions import Literal, Self
+    from typing import Literal, Self
 
     from urwid.canvas import TextCanvas
     from urwid.text_layout import TextLayout
@@ -46,32 +48,32 @@ if typing.TYPE_CHECKING:
 
 
 class SelectableIcon(Text):
+    """Selectable text widget that shows a fixed-position cursor when focused."""
+
     ignore_focus = False
     _selectable = True
 
     def __init__(
         self,
         text: _TagMarkup,
-        cursor_position: int = 0,
+        cursor_position: int | None = 0,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
     ) -> None:
-        """
+        """Create a text widget that is selectable.
+
+        A cursor is displayed at a fixed location in the text when in focus, unless *cursor_position* is ``None``.
+        This widget has no special handling of keyboard or mouse input.
+
         :param text: markup for this widget; see :class:`Text` for
                      description of text markup
         :param cursor_position: position the cursor will appear in the
-                                text when this widget is in focus
+                                text when this widget is in focus;
+                                ``None`` shows no cursor
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: text alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: text wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
-
-        This is a text widget that is selectable.  A cursor
-        displayed at a fixed location in the text when in focus.
-        This widget has no special handling of keyboard or mouse input.
         """
         super().__init__(text, align=align, wrap=wrap, layout=layout)
         self._cursor_position = cursor_position
@@ -81,9 +83,7 @@ class SelectableIcon(Text):
         size: tuple[int] | tuple[()],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:
-        """
-        Render the text content of this widget with a cursor when
-        in focus.
+        """Render the text content of this widget with a cursor when in focus.
 
         >>> si = SelectableIcon("[!]")
         >>> si
@@ -100,6 +100,7 @@ class SelectableIcon(Text):
         [b'((*))']
         >>> si.render((), focus=True).cursor
         (2, 0)
+        >>> SelectableIcon("item", None).render((8,), focus=True).cursor
         """
         c: TextCanvas | CompositeCanvas = super().render(size, focus)
         if focus:
@@ -109,11 +110,11 @@ class SelectableIcon(Text):
         return c
 
     def get_cursor_coords(self, size: tuple[int] | tuple[()]) -> tuple[int, int] | None:
+        """Return the position of the cursor if visible.
+
+        This method is required for widgets that display a cursor.
         """
-        Return the position of the cursor if visible.  This method
-        is required for widgets that display a cursor.
-        """
-        if self._cursor_position > len(self.text):
+        if self._cursor_position is None or self._cursor_position > len(self.text):
             return None
         # find out where the cursor will be displayed based on
         # the text layout
@@ -132,24 +133,81 @@ class SelectableIcon(Text):
         size: tuple[int] | tuple[()],  # type: ignore[override]
         key: str,
     ) -> str:
-        """
-        No keys are handled by this widget.  This method is
-        required for selectable widgets.
+        """No keys are handled by this widget.
+
+        This method is required for selectable widgets.
         """
         return key
 
 
 class CheckBoxError(WidgetError):
-    pass
+    """Error raised for invalid :class:`CheckBox` usage."""
 
 
 class CheckBox(WidgetWrap[Columns]):
+    """Selectable widget that toggles between checked, unchecked, and mixed states."""
+
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("[X]", 1),
         False: SelectableIcon("[ ]", 1),
         "mixed": SelectableIcon("[#]", 1),
     }
     reserve_columns = 4
+
+    class Symbols(enum.StrEnum):
+        """Common symbols suitable for the state marks of :class:`CheckBox` and :class:`RadioButton`.
+
+        Only the ASCII members are drawn on terminals without UTF-8.
+
+        .. note::
+            The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+            and of Windows Terminal, show every member.
+            The default fonts of the Linux virtual console and of the classic Windows console
+            show these non-ASCII members:
+
+            ======================  ======  ======  ======  ====  =======
+            Member                  Symbol  Ubuntu  Fedora  Arch  Windows
+            ======================  ======  ======  ======  ====  =======
+            ``CHECK_MARK``          ✓       no      yes     no    no
+            ``BALLOT_X``            ✗       yes     yes     no    no
+            ``BULLET``              •       yes     yes     yes   yes
+            ``BLACK_CIRCLE``        ●       yes     yes     no    yes
+            ``WHITE_CIRCLE``        ○       no      no      yes   yes
+            ``FULL_BLOCK``          █       yes     yes     yes   yes
+            ``MEDIUM_SHADE``        ▒       yes     yes     yes   yes
+            ``MINUS_SIGN``          U+2212  yes     yes     no    yes
+            ``EN_DASH``             U+2013  yes     yes     no    yes
+            ``LIGHT_SHADE``         ░       yes     yes     yes   yes
+            ``HALF_CIRCLE``         ◐       no      no      no    no
+            ``BLACK_SQUARE``        ■       yes     yes     yes   yes
+            ``WHITE_SQUARE``        □       no      no      no    yes
+            ``BLACK_SQUARE_SMALL``  ▪       no      no      no    yes
+            ======================  ======  ======  ======  ====  =======
+
+            A member marked ``no`` needs a console font with wider coverage.
+        """
+
+        X = "X"
+        ASTERISK = "*"
+        HASH = "#"
+        PLUS = "+"
+        MINUS = "-"
+        SPACE = " "
+        CHECK_MARK = "✓"
+        BALLOT_X = "✗"
+        BULLET = "•"
+        BLACK_CIRCLE = "●"
+        WHITE_CIRCLE = "○"
+        FULL_BLOCK = "█"
+        MEDIUM_SHADE = "▒"
+        # Marks that pair with the checked/unchecked ones above for the "mixed" state
+        MINUS_SIGN = "−"  # noqa: RUF001
+        EN_DASH = "–"  # noqa: RUF001
+        LIGHT_SHADE = "░"
+        HALF_CIRCLE = "◐"
+        BLACK_SQUARE = "■"
+        WHITE_SQUARE = "□"
+        BLACK_SQUARE_SMALL = "▪"
 
     # allow users of this class to listen for change events
     # sent when the state of this widget is modified
@@ -164,7 +222,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -175,7 +236,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"], _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -186,7 +250,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[False] = False,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -197,7 +264,10 @@ class CheckBox(WidgetWrap[Columns]):
         has_mixed: typing.Literal[True] = True,
         on_state_change: Callable[[Self, bool | typing.Literal["mixed"]], typing.Any] | None = None,
         user_data: None = None,
+        *,
         checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -213,15 +283,23 @@ class CheckBox(WidgetWrap[Columns]):
             | None
         ) = None,
         user_data: _T | None = None,
+        *,
         checked_symbol: str | None = None,
+        unchecked_symbol: str | None = None,
+        mixed_symbol: str | None = None,
     ) -> None:
-        """
+        """Create the CheckBox widget.
+
         :param label: markup for check box label
         :param state: False, True or "mixed"
         :param has_mixed: True if "mixed" is a state to cycle through
         :param on_state_change: shorthand for connect_signal()
                                 function call for a single callback
         :param user_data: user_data for on_state_change
+        :param checked_symbol: the symbol drawn inside the brackets for the checked state,
+            ``None`` for the default one (keyword only, see :class:`CheckBox.Symbols`)
+        :param unchecked_symbol: the same for the unchecked state
+        :param mixed_symbol: the same for the "mixed" state
         :raises ValueError: *state* is not one of the states of this check box.
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
@@ -257,13 +335,24 @@ class CheckBox(WidgetWrap[Columns]):
         self._label = Text(label)
         self.has_mixed = has_mixed
 
-        self._state = state
-        if checked_symbol:
+        self._state: bool | Literal["mixed"] = state
+        overrides: dict[bool | Literal["mixed"], str | None] = {
+            True: checked_symbol,
+            False: unchecked_symbol,
+            "mixed": mixed_symbol,
+        }
+        custom: dict[bool | Literal["mixed"], SelectableIcon] = {}
+        for key, symbol in overrides.items():
+            if not symbol:
+                continue
+            icon_text = self.states[key].text
+            if isinstance(icon_text, bytes):
+                icon_text = icon_text.decode("utf-8")
+            custom[key] = SelectableIcon(f"{icon_text[:1]}{symbol}{icon_text[-1:]}", 1)
+        if custom:
+            # Brackets are taken from the (possibly downstream-overridden) ``states`` class variable.
             # Copy the class-level table so a custom mark does not leak into other CheckBox instances.
-            self.states = {  # type: ignore[misc]
-                **self.states,
-                True: SelectableIcon(f"[{checked_symbol}]", 1),
-            }
+            self.states = {**self.states, **custom}  # type: ignore[misc]
         # The old way of listening for a change was to pass the callback
         # in to the constructor.  Just convert it to the new way:
         if on_state_change:
@@ -277,28 +366,29 @@ class CheckBox(WidgetWrap[Columns]):
             ),
         )
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
         size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
     ) -> tuple[int, int]:
-        """Pack for widget.
+        r"""Pack for widget.
 
         :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
+        :returns: the (columns, rows) the widget needs.
 
         >>> cb = CheckBox("test")
         >>> cb.pack((10,))
         (10, 1)
         >>> cb.pack()
         (8, 1)
-        >>> ml_cb = CheckBox("Multi\\nline\\ncheckbox")
+        >>> ml_cb = CheckBox("Multi\nline\ncheckbox")
         >>> ml_cb.pack()
         (12, 3)
         >>> ml_cb.pack((), True)
         (12, 3)
         """
-        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
+        return super().pack(size or (), focus)
 
     def _repr_words(self) -> list[str]:
         return [*super()._repr_words(), repr(self.label)]
@@ -399,7 +489,7 @@ class CheckBox(WidgetWrap[Columns]):
 
     state = property(get_state, set_state)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """
         Toggle state on 'activate' command.
 
@@ -449,7 +539,15 @@ class CheckBox(WidgetWrap[Columns]):
         elif self.state == "mixed":
             self.set_state(False)
 
-    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
         """
         Toggle state on button 1 press.
 
@@ -462,13 +560,15 @@ class CheckBox(WidgetWrap[Columns]):
         >>> cb.state
         True
         """
-        if button != 1 or not is_mouse_press(event):
+        if button != MouseButton.LEFT or not is_mouse_press(event):
             return False
         self.toggle_state()
         return True
 
 
 class RadioButton(CheckBox):
+    """Checkbox-like widget that exclusively selects itself within a shared group list."""
+
     states: typing.ClassVar[dict[bool | Literal["mixed"], SelectableIcon]] = {
         True: SelectableIcon("(X)", 1),
         False: SelectableIcon("( )", 1),
@@ -484,6 +584,10 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool, _T], typing.Any] | None = None,
         user_data: _T = ...,
+        *,
+        checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -494,6 +598,10 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = ...,
         on_state_change: Callable[[Self, bool], typing.Any] | None = None,
         user_data: None = None,
+        *,
+        checked_symbol: str | None = ...,
+        unchecked_symbol: str | None = ...,
+        mixed_symbol: str | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -503,19 +611,28 @@ class RadioButton(CheckBox):
         state: bool | Literal["first True"] = "first True",
         on_state_change: Callable[[Self, bool, _T], typing.Any] | Callable[[Self, bool], typing.Any] | None = None,
         user_data: _T | None = None,
+        *,
+        checked_symbol: str | None = None,
+        unchecked_symbol: str | None = None,
+        mixed_symbol: str | None = None,
     ) -> None:
-        """
+        """Create the RadioButton widget.
+
         :param group: list for radio buttons in same group
         :param label: markup for radio button label
         :param state: False, True, "mixed" or "first True"
         :param on_state_change: shorthand for connect_signal()
                                 function call for a single 'change' callback
         :param user_data: user_data for on_state_change
+        :param checked_symbol: symbol inside the parentheses for the True state (keyword only)
+        :param unchecked_symbol: the same for the False state
+        :param mixed_symbol: the same for the "mixed" state
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 
         This function will append the new radio button to group.
         "first True" will set to True if group is empty.
+        A button created with state True clears the other buttons of the group, as :meth:`set_state` does.
 
         Signals supported: ``'change'``, ``"postchange"``
 
@@ -550,8 +667,13 @@ class RadioButton(CheckBox):
             has_mixed=False,
             on_state_change=on_state_change,
             user_data=user_data,
+            checked_symbol=checked_symbol,
+            unchecked_symbol=unchecked_symbol,
+            mixed_symbol=mixed_symbol,
         )
         group.append(self)
+        if state is True:
+            self._clear_others()
 
     def set_state(self, state: bool | Literal["mixed"], do_callback: bool = True) -> None:
         """
@@ -592,11 +714,18 @@ class RadioButton(CheckBox):
         if state is not True:
             return
 
-        # clear the state of each other radio button
+        self._clear_others()
+
+    def _clear_others(self) -> None:
+        """Clear the state of each other radio button of the group.
+
+        It stops once a signal handler clears this button.
+        The selection then belongs to whoever did that.
+        """
         for cb in self.group:
-            if cb is self:
-                continue
-            if cb.state:
+            if self._state is not True:
+                break
+            if cb is not self and cb.state:
                 cb.state = False
 
     def toggle_state(self) -> None:
@@ -617,11 +746,42 @@ class RadioButton(CheckBox):
         """
         self.set_state(True)
 
+    @property
+    def selected_button(self) -> RadioButton | None:
+        """Get the button of the group that is selected.
+
+        :returns: the first button of ``group`` whose state is True,
+            or ``None`` when no button of the group is selected, for example when every button was created
+            with ``state=False``.
+
+        >>> bgroup = []  # button group
+        >>> b1 = RadioButton(bgroup, "Agree")
+        >>> b2 = RadioButton(bgroup, "Disagree")
+        >>> b2.selected_button is b1
+        True
+        >>> b2.set_state(True)
+        >>> b1.selected_button.label
+        'Disagree'
+        """
+        return next((button for button in self.group if button.state is True), None)
+
     # Re-bind so ``radio.state = True`` uses this class's exclusive setter, not CheckBox.state.
     state = property(CheckBox.get_state, set_state)
 
 
+def _button_bracket(default: Text, markup: _TagMarkup | None) -> list[tuple[int, Text]]:
+    """Return the :class:`Button` column for one bracket: none when *markup* has no text."""
+    if markup is None:
+        return [(1, default)]
+    bracket = Text(markup)
+    if not bracket.text:
+        return []
+    return [(bracket.pack()[0], bracket)]
+
+
 class Button(WidgetWrap[Columns]):
+    """Selectable widget that emits a ``click`` signal when activated."""
+
     button_left = Text("<")
     button_right = Text(">")
 
@@ -637,6 +797,9 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
+        cursor_position: int | None = ...,
+        left: _TagMarkup | None = ...,
+        right: _TagMarkup | None = ...,
     ) -> None: ...
 
     @typing.overload
@@ -649,6 +812,9 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = ...,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = ...,
         layout: TextLayout | None = ...,
+        cursor_position: int | None = ...,
+        left: _TagMarkup | None = ...,
+        right: _TagMarkup | None = ...,
     ) -> None: ...
 
     def __init__(
@@ -660,18 +826,25 @@ class Button(WidgetWrap[Columns]):
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         layout: TextLayout | None = None,
+        cursor_position: int | None = 0,
+        left: _TagMarkup | None = None,
+        right: _TagMarkup | None = None,
     ) -> None:
-        """
+        """Create the Button widget.
+
         :param label: markup for button label
         :param on_press: shorthand for connect_signal()
                          function call for a single callback
         :param user_data: user_data for on_press
         :param align: typically ``'left'``, ``'center'`` or ``'right'``
-        :type align: label alignment mode
         :param wrap: typically ``'space'``, ``'any'``, ``'clip'`` or ``'ellipsis'``
-        :type wrap: label wrapping mode
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
+        :param cursor_position: position of the cursor in the label when the button is in focus;
+            ``None`` shows no cursor, see :class:`SelectableIcon`
+        :param left: markup for the left bracket, in a column as wide as its text;
+            ``None`` uses :attr:`button_left` in a column of width 1, and markup with no text
+            leaves out the bracket together with the space after it
+        :param right: markup for the right bracket, the same way as *left* with :attr:`button_right`
 
         ..note:: `pack` method expect, that `Columns` backend widget is not modified from outside
 
@@ -699,10 +872,15 @@ class Button(WidgetWrap[Columns]):
         >>> with set_temporary_encoding("utf-8"):
         ...     wrapped_button.render((7,), focus=False).text[0].decode("utf-8")
         '< Lo… >'
+        >>> Button("Ok", left="[[", right="]]").render((8,)).text
+        [b'[[ Ok ]]']
+        >>> Button("Link", left="", right="").render((4,)).text
+        [b'Link']
+        >>> Button("Ok", cursor_position=None).render((6,), focus=True).cursor
         """
-        self._label = SelectableIcon(label, 0, align=align, wrap=wrap, layout=layout)
+        self._label = SelectableIcon(label, cursor_position, align=align, wrap=wrap, layout=layout)
         cols = Columns(
-            [(1, self.button_left), self._label, (1, self.button_right)],
+            [*_button_bracket(self.button_left, left), self._label, *_button_bracket(self.button_right, right)],
             dividechars=1,
         )
         super().__init__(cols)
@@ -712,7 +890,7 @@ class Button(WidgetWrap[Columns]):
         if on_press:
             connect_signal(self, "click", on_press, user_data)
 
-    def pack(
+    def pack(  # type: ignore[override]
         self,
         size: tuple[()] | tuple[int] | None = (),
         focus: bool = False,
@@ -721,6 +899,7 @@ class Button(WidgetWrap[Columns]):
 
         :param size: size data. Special case: () - get minimal widget size to fit
         :param focus: widget is focused
+        :returns: the (columns, rows) the widget needs.
 
         >>> btn = Button("Some button")
         >>> btn.pack((10,))
@@ -730,7 +909,7 @@ class Button(WidgetWrap[Columns]):
         >>> btn.pack((), True)
         (15, 1)
         """
-        return typing.cast("tuple[int, int]", super().pack(size or (), focus))
+        return super().pack(size or (), focus)
 
     def _repr_words(self) -> list[str]:
         # include button.label in repr(button)
@@ -763,7 +942,7 @@ class Button(WidgetWrap[Columns]):
 
     label = property(get_label)
 
-    def keypress(self, size: tuple[int], key: str) -> str | None:
+    def keypress(self, size: tuple[int], key: str) -> str | None:  # type: ignore[override]
         """
         Send 'click' signal on 'activate' command.
 
@@ -786,7 +965,15 @@ class Button(WidgetWrap[Columns]):
         self._emit("click")
         return None
 
-    def mouse_event(self, size: tuple[int], event: str, button: int, x: int, y: int, focus: bool) -> bool:
+    def mouse_event(
+        self,
+        size: tuple[int],  # type: ignore[override]
+        event: str,
+        button: int,
+        col: int,
+        row: int,
+        focus: bool,
+    ) -> bool:
         """
         Send 'click' signal on button 1 press.
 
@@ -803,7 +990,7 @@ class Button(WidgetWrap[Columns]):
         >>> clicked_buttons
         ['Ok']
         """
-        if button != 1 or not is_mouse_press(event):
+        if button != MouseButton.LEFT or not is_mouse_press(event):
             return False
 
         self._emit("click")

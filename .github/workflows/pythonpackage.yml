@@ -52,23 +52,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Install Ubuntu dependencies
-        run: |
-          sudo apt-get -qq update
-          sudo apt-get install -y python3-dev python3-gi python3-gi-cairo
-          sudo apt-get install -y gobject-introspection libgirepository-2.0-dev libcairo2-dev
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Create virtual environment
-        run: uv venv --python-preference only-system
+        run: uv venv --python 3.14
       - name: Install package with all extras
-        run: uv pip install -e ".[curses,glib,serial,tornado,trio,twisted,zmq]"
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r pylint-requirements.txt
+      # tests are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Lint with pylint
         run: uv run --no-project pylint --output-format=github urwid
 
@@ -77,34 +69,58 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Create virtual environment
-        run: uv venv --python-preference only-system
+        run: uv venv --python 3.14
       - name: Install package with all extras
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r mypy-requirements.txt
+      # tests other than tests/type_checks are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Type check with mypy
-        run: uv run --no-project mypy urwid
+        run: uv run --no-project mypy urwid examples tests/type_checks
+
+  Pyrefly:
+    name: Check with Pyrefly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.3
+      - name: Create virtual environment
+        run: uv venv --python 3.14
+      - name: Install package with all extras
+        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
+      - name: Install dependencies
+        run: uv pip install --upgrade -r pyrefly-requirements.txt
+      - name: Type check with Pyrefly
+        run: uv run --no-project pyrefly check --output-format full-text-with-github
 
   Test:
-    needs: [ Ruff-format, Ruff, PyLint, Mypy ]
+    needs: [ Ruff-format, Ruff, PyLint, Mypy, Pyrefly ]
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 6
       matrix:
         os: [ "ubuntu-latest", "windows-latest" ]
-        # , "macos-latest"
-        # enable macOS only if OS specific branch will be added
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13", "3.14" ]
+        # A "t" suffix selects the free-threaded (PEP 703, --disable-gil) build.
+        python-version: [ "3.11", "3.12", "3.13", "3.14", "3.15", "3.13t", "3.14t", "3.15t", "pypy3.11" ]
+        # The macOS jobs are disabled because no macOS runners are available at the moment; re-enable them once
+        # runners are back. urwid has no macOS-specific code: macOS runs the POSIX paths Linux covers, so the oldest
+        # and newest CPython, plus the newest free-threaded build, are enough to catch selector (kqueue) and other
+        # POSIX differences.
+        # include:
+        #   - os: "macos-latest"
+        #     python-version: "3.11"
+        #   - os: "macos-latest"
+        #     python-version: "3.15"
+        #   - os: "macos-latest"
+        #     python-version: "3.15t"
         exclude:
+          # trio needs cffi on Windows, which publishes no 3.13t wheel and refuses to build for it.
           - os: "windows-latest"
-            python-version: "3.14"
+            python-version: "3.13t"
 
     steps:
       - uses: actions/checkout@v7
@@ -116,26 +132,23 @@ jobs:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
-      - name: Install Ubuntu dependencies
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get -qq update
-          sudo apt-get install -y python3-dev python3-gi python3-gi-cairo
-          sudo apt-get install -y gobject-introspection libgirepository-2.0-dev libcairo2-dev
-      - name: Install Mac OS X dependencies
-        if: runner.os == 'macOS'
-        run: |
-          brew install gtk+3 gobject-introspection gtk-mac-integration
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Create virtual environment
         run: uv venv --python-preference only-system --python ${{ matrix.python-version }}
       - name: Install dependencies
         run: uv pip install -r pytest_requirements.txt
-      - name: Install PyGObject
-        if: runner.os == 'Linux' || runner.os == 'macOS'
-        run: uv pip install PyGObject
       - name: Install package with all extras
-        run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
+        # pyzmq (zmq) and windows-curses (curses) publish no free-threaded wheels for every supported version.
+        # windows-curses publishes no 3.15 wheel and no sdist; the curses extra is empty outside Windows.
+        # The PyPy extras match the pypy3 tox environment.
+        run: >-
+          uv pip install -e ".[${{ startsWith(matrix.python-version, 'pypy')
+          && 'serial,tornado,trio'
+          || endsWith(matrix.python-version, 't')
+          && 'serial,tornado,trio,twisted'
+          || matrix.python-version == '3.15'
+          && 'serial,tornado,trio,twisted,zmq'
+          || 'curses,serial,tornado,trio,twisted,zmq' }}]"
       - name: Test
         run: uv run --no-project python -m pytest --cov-report=term --cov-report=xml
       - name: Coveralls Parallel
@@ -165,18 +178,11 @@ jobs:
         with:
           fetch-depth: 0  # need for setuptools_scm
 
-      - uses: actions/setup-python@v7
-        with:
-          python-version: "3.x"
-
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
-
-      - name: Install dependencies
-        run: uv pip install --system -U build
+        uses: astral-sh/setup-uv@v10.3.3
 
       - name: Build dist
-        run: python -m build
+        run: uv build
 
       - uses: actions/upload-artifact@v7
         with:
@@ -196,15 +202,8 @@ jobs:
     needs: [ build ]
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
-      - name: Install dependencies
-        run: |
-          uv pip install --system --upgrade twine
+        uses: astral-sh/setup-uv@v10.3.3
       - uses: actions/download-artifact@v8
         with:
           # unpacks default artifact into dist/
@@ -214,8 +213,7 @@ jobs:
           path: dist
 
       - name: Validate metadata
-        run: |
-          twine check dist/*
+        run: uvx twine check dist/*
 
   upload_pypi:
     needs: [ build, Metadata ]

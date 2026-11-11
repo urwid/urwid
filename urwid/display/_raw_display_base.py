@@ -18,43 +18,70 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-Direct terminal UI implementation
-"""
+"""Direct terminal UI implementation."""
 
 from __future__ import annotations
 
 import abc
+import base64
 import contextlib
 import dataclasses
+import errno
 import functools
+import operator
 import os
+import pathlib
 import platform
+import re
 import selectors
 import signal
 import socket
+import stat
+import struct
 import sys
 import typing
 
-from urwid import signals, str_util, util
+from urwid import _deprecation, signals, str_util, util
+from urwid._selectors import read_selector
 
 from . import escape
-from .common import UNPRINTABLE_TRANS_TABLE, UPDATE_PALETTE_ENTRY, AttrSpec, BaseScreen, RealTerminal
+from .common import (
+    _COLOR_VALUES_88,
+    _COLOR_VALUES_256,
+    _RESOLVED_ATTRS_LIMIT,
+    UNPRINTABLE_C1_TRANS_TABLE,
+    UNPRINTABLE_TRANS_TABLE,
+    UPDATE_PALETTE_ENTRY,
+    AttrSpec,
+    BaseScreen,
+    RealTerminal,
+)
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Mapping, Sequence
+    from collections.abc import Callable, Hashable, Iterable, Mapping, Sequence
     from types import FrameType
-
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid import Canvas, EventLoop
 
+    from .common import Hyperlink
+
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _PrivateModeReport = tuple[typing.Literal["private mode report"], str, int]
+    _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
+    _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
+    _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
+    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
+    _DecodedInputWithReports = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
+
+# signal has no SIGWINCH on Windows; _win32_raw_display passes its own signum explicitly, so this
+# default is only ever actually used on POSIX.
+_SIGWINCH = getattr(signal, "SIGWINCH", 28)
 
 _ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
 
@@ -102,16 +129,87 @@ _WINDOWS_256COLOR_BUILD = 10586
 _WINDOWS_TRUECOLOR_BUILD = 14931
 _TRUECOLOR_TERM_PROGRAMS = frozenset({"hyper", "tabby", "vscode", "vscode-insiders"})
 
+# Compiled terminfo entries, as term(5) describes them.
+# ncurses' built-in search path on common systems, searched after TERMINFO, ~/.terminfo and TERMINFO_DIRS.
+_TERMINFO_SYSTEM_DIRS = ("/etc/terminfo", "/lib/terminfo", "/usr/share/terminfo", "/usr/lib/terminfo")
+# Header magic -> struct format of one numeric capability: the legacy format has 16-bit numbers,
+# the ncurses 6.1 extended number format has 32-bit numbers.
+_TERMINFO_NUMBER_FORMATS: Mapping[int, str] = {0o432: "<h", 0o1036: "<i"}
+_TERMINFO_HEADER = struct.Struct("<6h")
+_TERMINFO_COLORS_INDEX = 13  # position of "colors" among the predefined numeric capabilities
+_TERMINFO_MAX_SIZE = 32768  # bytes read from an entry: the largest entry ncurses accepts
+# Minimum terminfo "colors" value -> the colour count it allows; 8-colour terminals use bold for the bright half.
+_TERMINFO_COLOR_COUNTS: Sequence[tuple[int, _ColorCount]] = ((16777216, 16777216), (256, 256), (88, 88), (8, 16))
+
+# ANSI SGR base codes (ECMA-48 / ISO 6429): 30-37 selects a standard foreground color, 90-97 a
+# bright one without needing bold; 40-47 selects a standard background color, 100-107 a bright
+# one. AttrSpec numbers its 16 basic colors 0-15, with 8-15 being "the bright half", so
+# _SGR_BRIGHT_OFFSET is subtracted from the AttrSpec number before adding the bright SGR base.
+_SGR_FG_BASE = 30
+_SGR_FG_BRIGHT_BASE = 90
+_SGR_BG_BASE = 40
+_SGR_BG_BRIGHT_BASE = 100
+_SGR_BRIGHT_OFFSET = 8
+
+# Index into the (basic, mono, high_88, high_256, high_true) tuple that
+# BaseScreen.register_palette_entry() emits via UPDATE_PALETTE_ENTRY, keyed by this screen's
+# current color count.
+_ATTRSPEC_INDEX_BY_COLORS: Mapping[_ColorCount, int] = {16: 0, 1: 1, 88: 2, 256: 3, 16777216: 4}
+
 
 @dataclasses.dataclass(frozen=True)
 class TerminalProperties:
-    """Capabilities inferred from TERM and standard color environment variables."""
+    """Capabilities inferred from TERM, its terminfo entry and standard colour environment variables."""
 
     colors: _ColorCount
     has_underline: bool
     fg_bright_is_bold: bool
     bg_bright_is_blink: bool
     back_color_erase: bool
+
+
+@dataclasses.dataclass
+class TermModes:
+    """Terminal modes negotiated with the real host terminal (counterpart to `vterm.TermModes`).
+
+    None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
+    """
+
+    alternate_buffer: bool | None = None
+    mouse_reporting: bool | None = None
+    mouse_sgr_mode: bool | None = None
+    focus_reporting: bool | None = None
+    bracketed_paste: bool | None = None
+    synchronized_output: bool | None = None
+    grapheme_clustering: bool | None = None
+    # Resolved by the replies to the keyboard protocol queries, which are sent only for Screen(extended_keys=True).
+    kitty_keyboard: bool | None = None
+    modify_other_keys: bool | None = None
+
+    # escape.PrivateMode member -> the field it resolves.
+    _FIELDS: typing.ClassVar[Mapping[str, str]] = {
+        escape.PrivateMode.ALTERNATE_SCREEN_BUFFER: "alternate_buffer",
+        escape.PrivateMode.MOUSE_REPORTING: "mouse_reporting",
+        escape.PrivateMode.MOUSE_SGR_MODE: "mouse_sgr_mode",
+        escape.PrivateMode.FOCUS_REPORTING: "focus_reporting",
+        escape.PrivateMode.BRACKETED_PASTE: "bracketed_paste",
+        escape.PrivateMode.SYNCHRONIZED_OUTPUT: "synchronized_output",
+        escape.PrivateMode.GRAPHEME_CLUSTERING: "grapheme_clustering",
+    }
+
+    def set_from_codes(self, *response: tuple[str, int]) -> frozenset[str]:
+        """Apply DECRPM (mode, value) pairs; return the field names newly resolved to supported."""
+        newly_supported = set()
+        for mode, value in response:
+            field = self._FIELDS.get(mode)
+            if field is None:
+                continue
+            was_unresolved = getattr(self, field) is None
+            supported = value in escape.DECRQM_SETTABLE_VALUES
+            setattr(self, field, supported)
+            if was_unresolved and supported:
+                newly_supported.add(field)
+        return frozenset(newly_supported)
 
 
 def _term_families(term: str) -> frozenset[str]:
@@ -126,6 +224,31 @@ def _term_families(term: str) -> frozenset[str]:
         if part:
             families.update(token for token in part.split("-") if token)
     return frozenset(families)
+
+
+# ``linux``, optionally with a kernel version as in the terminfo names ``linux2.6`` and ``linux3.0``,
+# then the end of the name or a ``-`` or ``.`` suffix.
+_LINUX_CONSOLE_TERM = re.compile(r"linux(?:\d+(?:\.\d+)*)?(?:[-.]|$)", re.IGNORECASE)
+
+
+def _is_linux_console(term: str) -> bool:
+    """Tell whether a TERM value names the Linux virtual console.
+
+    ``linux``, ``linux-16color``, ``linux.utf8`` and the versioned terminfo names such as ``linux2.6.26`` do.
+    A multiplexer that names its outer terminal, such as ``screen.linux``, is not the console.
+    """
+    return _LINUX_CONSOLE_TERM.match(term) is not None
+
+
+def _rejects_osc(term: str) -> bool:
+    """Tell whether the terminal a TERM value names cannot take a window title or clipboard sequence.
+
+    The Linux virtual console reads only its own palette sequences and prints the others as text.
+    fbterm has neither a window title nor a clipboard.
+    A ``dumb`` terminal reads no escape sequences.
+    On Windows, TERM does not describe the console, so only the Linux console names count there.
+    """
+    return _is_linux_console(term) or (term.lower() in {"dumb", "fbterm"} and not IS_WINDOWS)
 
 
 def _parse_force_color(value: str) -> _ColorCount:
@@ -145,6 +268,7 @@ def _parse_force_color(value: str) -> _ColorCount:
 def _windows_version() -> tuple[int, int, int] | None:
     if sys.platform != "win32":
         return None
+    # pyrefly: ignore[missing-attribute]  # Windows only, behind a platform check
     version = sys.getwindowsversion()  # pylint: disable=no-member
     return (version.major, version.minor, version.build)
 
@@ -186,52 +310,199 @@ def _colors_from_term(term: str, families: frozenset[str]) -> _ColorCount:
     return 16
 
 
+def _parse_terminfo_colors(data: bytes) -> int | None:
+    """Return the ``colors`` capability of a compiled terminfo entry.
+
+    The entry is untrusted data, so its header is checked before its sizes are used as offsets.
+
+    :returns: the number of colours, or None when the entry has no ``colors``.
+    :raises ValueError: the entry is not in a compiled terminfo format, or it is shorter than its header says.
+    """
+    if len(data) < _TERMINFO_HEADER.size:
+        raise ValueError
+    magic, *sizes = _TERMINFO_HEADER.unpack_from(data)
+    names_size, booleans_count, numbers_count, strings_count, strings_size = sizes
+    number_format = _TERMINFO_NUMBER_FORMATS.get(magic)
+    if number_format is None or min(sizes) < 0:
+        raise ValueError
+    number_size = struct.calcsize(number_format)
+    numbers_offset = _TERMINFO_HEADER.size + names_size + booleans_count
+    numbers_offset += numbers_offset % 2  # the numbers start on an even byte
+    # The string offsets are 16-bit and followed by the string table.
+    if numbers_offset + numbers_count * number_size + 2 * strings_count + strings_size > len(data):
+        raise ValueError
+    if numbers_count <= _TERMINFO_COLORS_INDEX:
+        return None
+    (colors,) = struct.unpack_from(number_format, data, numbers_offset + _TERMINFO_COLORS_INDEX * number_size)
+    # -1 marks an absent capability and -2 a cancelled one
+    return colors if colors > 0 else None
+
+
+def _read_terminfo_entry(path: pathlib.Path) -> bytes | None:
+    """Return the start of the regular file at *path*.
+
+    Opening a device, even briefly, can disturb its other users: a serial port asserts DTR.
+    So a device is never opened, even if the entry is replaced while it is being read:
+
+    - The path is resolved with realpath(), which reads links without opening anything.
+    - stat() checks that the resolved path is a regular file.
+    - Each component is opened through the previous directory with O_NOFOLLOW, so a symlink planted afterwards fails.
+    - O_NONBLOCK and O_NOCTTY stop a FIFO from blocking and a tty from becoming the controlling terminal.
+
+    :returns: up to ``_TERMINFO_MAX_SIZE`` bytes, or None when *path* is missing, unreadable or not a regular file.
+    """
+    try:
+        real = os.path.realpath(path, strict=True)
+        if not stat.S_ISREG(pathlib.Path(real).stat().st_mode):
+            return None
+        *directories, name = pathlib.PurePath(real).parts
+        fd = os.open(directories[0], os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            for directory in directories[1:]:
+                parent, fd = fd, -1
+                try:
+                    fd = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=parent)
+                finally:
+                    os.close(parent)
+            entry = os.open(name, os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY | os.O_NOFOLLOW, dir_fd=fd)
+        finally:
+            if fd >= 0:
+                os.close(fd)
+    # ValueError: a directory from the environment holds NUL or a lone surrogate.
+    # RecursionError: realpath() before Python 3.13 recurses once per link of a long symlink chain.
+    # NotImplementedError: dir_fd is unavailable at run time, as on macOS 10.9.
+    except (OSError, ValueError, RecursionError, NotImplementedError):
+        return None
+    try:
+        return os.read(entry, _TERMINFO_MAX_SIZE) if stat.S_ISREG(os.fstat(entry).st_mode) else None
+    except OSError:
+        return None
+    finally:
+        os.close(entry)
+
+
+def _terminfo_colors(term: str, environ: Mapping[str, str]) -> _ColorCount | None:
+    """Return the colour count the terminfo entry of *term* allows.
+
+    The stdlib ``curses.setupterm()`` loads one entry per process and ignores later terminal names,
+    so the compiled entry is read directly.
+    Directories are searched in ncurses' order: ``TERMINFO``, ``$HOME/.terminfo``, ``TERMINFO_DIRS``,
+    then the system directories.
+    In each one the entry is looked up under its first letter, and under that letter's hexadecimal code as on macOS.
+    The first valid entry found is used, and a malformed one is passed over as ncurses does.
+
+    Native Windows has no terminfo database, and a Win32 path can name a device such as ``COM1`` by its file name,
+    so nothing is looked up there.
+
+    :returns: the colour count, or None when no valid entry is found or it allows fewer than 8 colours.
+    """
+    if IS_WINDOWS:
+        return None
+    # TERM comes from the environment and becomes a file name. Only the characters terminal names use are accepted,
+    # so it cannot name another directory or a path the file system cannot encode.
+    if not term or not term.isascii() or not all(char.isalnum() or char in "+-._" for char in term):
+        return None
+    directories: list[pathlib.Path] = []
+    if terminfo := environ.get("TERMINFO"):
+        directories.append(pathlib.Path(terminfo))
+    if home := environ.get("HOME"):
+        directories.append(pathlib.Path(home, ".terminfo"))
+    directories.extend(pathlib.Path(entry) for entry in environ.get("TERMINFO_DIRS", "").split(os.pathsep) if entry)
+    directories.extend(pathlib.Path(directory) for directory in _TERMINFO_SYSTEM_DIRS)
+    for directory in directories:
+        for subdirectory in (term[0], f"{ord(term[0]):x}"):
+            if (data := _read_terminfo_entry(directory / subdirectory / term)) is None:
+                continue
+            try:
+                colors = _parse_terminfo_colors(data)
+            except ValueError:  # malformed: ncurses passes over it too
+                continue
+            if colors is None:
+                return None
+            return next((count for minimum, count in _TERMINFO_COLOR_COUNTS if colors >= minimum), None)
+    return None
+
+
+def detect_term_colors(
+    term: str | None = None,
+    environ: Mapping[str, str] | None = None,
+    *,
+    windows_version: tuple[int, int, int] | None = None,
+) -> _ColorCount:
+    """Detect the colour count of the terminal.
+
+    Sources, the first that decides wins:
+
+    - ``NO_COLOR``, then ``FORCE_COLOR`` / ``CLICOLOR_FORCE``, then ``CLICOLOR=0``.
+    - A monochrome TERM such as ``dumb``.
+    - A 24-bit host: ``COLORTERM=truecolor``, Windows Terminal, ConEmu, VS Code, or Windows 10 from build 14931.
+    - Any other ``COLORTERM``, which means at least 256 colours.
+    - The Windows 10 console from build 10586, which has 256 colours.
+    - TERM itself.
+
+    TERM gives a count by its name, matched by family so ``gnome-256color``, ``konsole-direct``
+    and ``rxvt-unicode-256color`` are recognized.
+    The ``colors`` capability of its terminfo entry raises that count and never lowers it.
+    The entry is searched in the ``TERMINFO``, ``$HOME/.terminfo`` and ``TERMINFO_DIRS`` directories of *environ*,
+    then in the system terminfo directories; native Windows has no terminfo lookup.
+
+    :param term: the terminal name; ``TERM`` from *environ* when None.
+    :param environ: the environment; :data:`os.environ` when None.
+    :param windows_version: the Windows version as (major, minor, build); the running system's when None.
+    :returns: the colour count: 1, 16, 88, 256 or 16777216.
+
+    >>> detect_term_colors("xterm", {"FORCE_COLOR": "3"})
+    16777216
+    >>> detect_term_colors("xterm-256color", {"NO_COLOR": "1"})
+    1
+    """
+    env = os.environ if environ is None else environ
+    force = env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE")
+    if env.get("NO_COLOR") or (env.get("CLICOLOR") == "0" and not force):
+        return 1
+    if force:
+        return _parse_force_color(force)
+    term_value = env.get("TERM", "") if term is None else term
+    term_colors = _colors_from_term(term_value, _term_families(term_value))
+    # The name rules know hosts whose entries understate them, such as the truecolor families.
+    if (terminfo_colors := _terminfo_colors(term_value, env)) is not None:
+        term_colors = max(term_colors, terminfo_colors)
+    if term_colors == 1:
+        return 1
+    win_colors = _windows_console_colors(_windows_version() if windows_version is None else windows_version)
+    if _truecolor_host(env) or win_colors == 16777216:
+        return 16777216
+    # Any other COLORTERM, or the Windows console, sets the minimum.
+    minimum: _ColorCount = 256 if env.get("COLORTERM") else win_colors or 1
+    return max(term_colors, minimum)
+
+
 def detect_terminal_properties(
     term: str | None = None,
     environ: Mapping[str, str] | None = None,
     *,
     windows_version: tuple[int, int, int] | None = None,
 ) -> TerminalProperties:
-    """Detect raw-display capabilities from TERM and standard color environment variables.
+    """Detect raw-display capabilities from TERM and standard colour environment variables.
 
-    Environment handling follows the NO_COLOR spec and common COLORTERM / FORCE_COLOR / CLICOLOR_FORCE /
-    CLICOLOR conventions.
-    TERM names are matched by family so ``gnome-256color``, ``konsole-direct``
-    and ``rxvt-unicode-256color`` are recognized.
+    The colour count comes from :func:`detect_term_colors`.
+    TERM names are matched by family, so ``screen.xterm-256color`` is treated as both screen and xterm.
 
-    On Windows 10 and later the console VT host is used when TERM is empty or generic:
-    256 colors from build 10586, 24-bit color from build 14931. Windows Terminal
-    (``WT_SESSION``), ConEmu and VS Code's terminal are treated as 24-bit hosts even
+    On Windows 10 and later the console VT host is used when TERM is empty or generic.
+    Windows Terminal (``WT_SESSION``), ConEmu and VS Code's terminal are treated as VT hosts even
     when TERM still reports ``xterm-256color``.
     """
     env = os.environ if environ is None else environ
     term_value = env.get("TERM", "") if term is None else term
     families = _term_families(term_value)
     term_l = term_value.lower()
-    term_colors = _colors_from_term(term_value, families)
     if windows_version is None:
         windows_version = _windows_version()
     win_colors = _windows_console_colors(windows_version)
-    vt_truecolor = _truecolor_host(env) or win_colors == 16777216
-    vt_host = vt_truecolor or win_colors in {256, 16777216}
-
-    if env.get("NO_COLOR"):
-        colors: _ColorCount = 1
-    elif force := env.get("FORCE_COLOR") or env.get("CLICOLOR_FORCE"):
-        colors = _parse_force_color(force)
-    elif env.get("CLICOLOR") == "0" or term_colors == 1:
-        colors = 1
-    elif vt_truecolor:
-        colors = 16777216
-    elif env.get("COLORTERM") and term_colors < 256:
-        colors = 256
-    elif win_colors is not None and term_colors < win_colors:
-        colors = win_colors
-    else:
-        colors = term_colors
+    vt_host = _truecolor_host(env) or win_colors in {256, 16777216}
 
     has_underline = not bool(families & _NO_UNDERLINE_FAMILIES)
-    linux_console = bool(term_value) and term_value.lower().split(".", 1)[0].split("-", 1)[0] == "linux"
+    linux_console = _is_linux_console(term_value)
     fg_bright_is_bold = not bool(families & _INDEPENDENT_BRIGHT_FAMILIES)
     if vt_host and not linux_console:
         fg_bright_is_bold = False
@@ -240,7 +511,7 @@ def detect_terminal_properties(
     back_color_erase = "bce" in term_l or not families & {"screen", "dumb", "unknown"}
 
     return TerminalProperties(
-        colors=colors,
+        colors=detect_term_colors(term_value, env, windows_version=windows_version),
         has_underline=has_underline,
         fg_bright_is_bold=fg_bright_is_bold,
         bg_bright_is_blink=bg_bright_is_blink,
@@ -248,22 +519,38 @@ def detect_terminal_properties(
     )
 
 
+# the start of a raw sequence in a charset "U" run: ESC or a C1 control as UTF-8, and only ESC in the
+# single and double byte encodings, where bytes 0x80-0x9f are glyphs of the IBM PC character set or parts of characters
+_RAW_SEQUENCE_UTF8 = re.compile(rb"\x1b|\xc2[\x80-\x9f]")
+_RAW_SEQUENCE_BYTES = re.compile(rb"\x1b")
+# C0 and C1 control characters and DEL: in a window title, BEL, ESC or ST would end the title and start a sequence
+_TITLE_CONTROLS = re.compile("[\x00-\x1f\x7f-\x9f]")
+# bytes a terminal reading 8-bit controls takes as C1 controls, such as 0x9c (ST) and 0x9b (CSI)
+_C1_BYTES = re.compile(rb"[\x80-\x9f]")
+
+
 @typing.runtime_checkable
 class SupportsFileno(typing.Protocol):
     """Object that can be used to obtain an OS-level file descriptor."""
 
-    def fileno(self) -> int: ...
+    def fileno(self) -> int:
+        """Return the underlying OS-level file descriptor."""
+        ...
 
 
 class TextWriter(typing.Protocol):
     """Text output stream used by the raw display."""
 
-    def write(self, data: str, /) -> object: ...
+    def write(self, data: str, /) -> object:
+        """Write `data` to the stream."""
 
-    def flush(self) -> object: ...
+    def flush(self) -> object:
+        """Flush buffered output to the stream."""
 
 
 class Screen(BaseScreen, RealTerminal):
+    """Shared base for the raw POSIX and Windows screen backends that talk directly to the terminal."""
+
     _term_input_file: SupportsFileno
     _term_output_file: TextWriter
 
@@ -271,31 +558,65 @@ class Screen(BaseScreen, RealTerminal):
         self,
         input: SupportsFileno,  # noqa: A002  # pylint: disable=redefined-builtin
         output: TextWriter,
+        bracketed_paste_mode: bool | None = None,
+        focus_reporting: bool | None = None,
+        extended_keys: bool = False,
     ) -> None:
-        """Initialize a screen that directly prints escape codes to an output
-        terminal.
+        """Initialize a screen that directly prints escape codes to an output terminal.
+
+        :param input: the terminal input, read through its file descriptor.
+        :param output: the terminal output, which the escape codes are written to.
+        :param bracketed_paste_mode: enable bracketed paste (`begin`/`end paste` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param focus_reporting: enable focus reporting (`focus in`/`focus out` keystrokes).
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
+        :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
+            and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
+            Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
         """
         super().__init__()
 
         self._partial_codes: list[int] = []
-        self._pal_escape: dict[str | None, str] = {}
-        self._pal_attrspec: dict[str | None, AttrSpec] = {}
-        self._alternate_buffer: bool = False
+        self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
+        self.extended_keys = extended_keys
+        # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
+        self._keyboard_query_pending = False
+        # the private modes queried by the last start and not answered yet
+        self._mode_queries_pending: set[str] = set()
+        # the modifyOtherKeys value the terminal reported, written back when the screen stops
+        self._modify_other_keys_reported: int | None = None
+        self._keyboard_protocol_enabled: Literal["kitty", "modify other keys"] | None = None
+        # escape sequence per canvas run attribute, filled as attributes are drawn
+        self._pal_escape: dict[Hashable, str] = {}
         self._modified_palette_entries: set[int] = set()
-        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, self._on_update_palette_entry)
+        # Connected through a weak reference: a bound method would be a reference cycle back to this screen,
+        # keeping its sockets open until the cyclic garbage collector happened to run.
+        signals.connect_signal(self, UPDATE_PALETTE_ENTRY, type(self)._on_update_palette_entry, weak_args=(self,))
         self.term = os.environ.get("TERM", "")
+        self.colors = detect_term_colors(self.term, os.environ)
         properties = detect_terminal_properties(self.term, os.environ)
-        self.colors = properties.colors
         self.has_underline = properties.has_underline
         self.fg_bright_is_bold = properties.fg_bright_is_bold
         self.bg_bright_is_blink = properties.bg_bright_is_blink
         self.back_color_erase = properties.back_color_erase
+        # OSC 8 hyperlinks are drawn only when the application turns them on: no query exists
+        self.hyperlinks = False
+        # the window title set_title() asked for, shown while the screen runs
+        self._title: str | None = None
+        # the title the terminal had before is saved, and is given back when the screen stops
+        self._title_saved = False
         self.prev_input_resize = 0
         self.set_input_timeouts()
-        self.screen_buf: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] | None = None
+        self.screen_buf: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] | None = None
+        # screen_buf with each attribute as its escape sequence: rows are compared by what the terminal shows,
+        # so a palette change redraws only the rows it changes
+        self._drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
         self.maxrow: int | None = None
+        self._alternate_buffer = False
         self._mouse_tracking_enabled = False
         self.last_bstate = 0
         self._setup_G1_done = False
@@ -312,6 +633,7 @@ class Screen(BaseScreen, RealTerminal):
         # pipe for signalling external event loops about resize events
         self._resize_pipe_rd, self._resize_pipe_wr = socket.socketpair()
         self._resize_pipe_rd.setblocking(False)
+        self._resize_pipe_wr.setblocking(False)
 
     def __del__(self) -> None:
         self._resize_pipe_rd.close()
@@ -320,19 +642,23 @@ class Screen(BaseScreen, RealTerminal):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}(input={self._term_input_file}, output={self._term_output_file})>"
 
-    def _sigwinch_handler(self, signum: int = 28, frame: FrameType | None = None) -> None:
-        """
+    def _sigwinch_handler(self, signum: int = _SIGWINCH, frame: FrameType | None = None) -> None:
+        """Record a terminal resize and wake the input loop.
+
+        This runs at an arbitrary point of the program (a signal handler, or the console reader thread on Windows),
+        so it only sets a flag and writes to the wake-up socket.
+        :meth:`parse_input` reports the resize and drops the screen buffer in the thread that draws the screen.
+
+        :param signum: the signal number; it is not used.
         :param frame: will always be None when the GLib event loop is being used.
         """
-        logger = self.logger.getChild("signal_handlers")
-
-        logger.debug(f"SIGWINCH handler called with signum={signum!r}, frame={frame!r}")
-
-        if IS_WINDOWS or not self._resized:
-            self._resize_pipe_wr.send(b"R")
-            logger.debug("Sent fake resize input to the pipe")
         self._resized = True
-        self.screen_buf = None
+        self._wake_input_loop()
+
+    def _wake_input_loop(self) -> None:
+        """Make the input descriptors readable, without blocking when a wake-up is already pending."""
+        with contextlib.suppress(BlockingIOError):
+            self._resize_pipe_wr.send(b"R")
 
     @property
     def _term_input_io(self) -> SupportsFileno | None:
@@ -341,7 +667,7 @@ class Screen(BaseScreen, RealTerminal):
         return None
 
     def _input_fileno(self) -> int | None:
-        """Returns the fileno of the input stream, or None if it doesn't have one.
+        """Return the fileno of the input stream, or None if it doesn't have one.
 
         A stream without a fileno can't participate in whatever.
         """
@@ -350,11 +676,10 @@ class Screen(BaseScreen, RealTerminal):
 
         return None
 
-    def _on_update_palette_entry(self, name: str | None, *attrspecs: AttrSpec) -> None:
-        # copy the attribute to a dictionary containing the escape seqences
-        a: AttrSpec = attrspecs[{16: 0, 1: 1, 88: 2, 256: 3, 2**24: 4}[self.colors]]
-        self._pal_attrspec[name] = a
-        self._pal_escape[name] = self._attrspec_to_escape(a)
+    def _on_update_palette_entry(self, name: Hashable, *attrspecs: AttrSpec) -> None:
+        # any drawn attribute may inherit colors from the changed entry; the next draw compares every row again
+        self._pal_escape.clear()
+        self._screen_buf_canvas = None
 
     def set_input_timeouts(
         self,
@@ -362,9 +687,9 @@ class Screen(BaseScreen, RealTerminal):
         complete_wait: float = 0.125,
         resize_wait: float = 0.125,
     ) -> None:
-        """
-        Set the get_input timeout values.  All values are in floating
-        point numbers of seconds.
+        """Set the get_input timeout values.
+
+        All values are in floating point numbers of seconds.
 
         :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
             None
@@ -386,21 +711,178 @@ class Screen(BaseScreen, RealTerminal):
         """
         Enable (or disable) mouse tracking.
 
-        After calling this function get_input will include mouse
-        click events along with keystrokes.
+        After calling this function get_input will include mouse click events along with keystrokes.
         """
-        enable = bool(enable)
         if enable == self._mouse_tracking_enabled:
             return
 
         self._mouse_tracking(enable)
-        self._mouse_tracking_enabled = enable
 
     def _mouse_tracking(self, enable: bool) -> None:
-        if enable:
-            self.write(escape.MOUSE_TRACKING_ON)
+        """Write the mouse tracking escape sequences and track `_mouse_tracking_enabled`.
+
+        A no-op when *enable* is True but mouse reporting was detected unsupported -- there is
+        nothing to enable, and the tracked state has to agree.
+        """
+        if enable and self.modes.mouse_reporting is False:
+            self._mouse_tracking_enabled = False
+            return
+        self.write(escape.MOUSE_TRACKING_ON if enable else escape.MOUSE_TRACKING_OFF)
+        self._mouse_tracking_enabled = enable
+
+    def _is_real_terminal(self) -> bool:
+        """Whether input/output are a real terminal that could answer a DECRQM probe.
+
+        Overridden on Windows, whose input is a socket, not a descriptor `os.isatty` can inspect.
+        """
+        fd = self._input_fileno()
+        return fd is not None and os.isatty(fd)
+
+    # TermModes field -> the sequence that enables it, once confirmed supported from a sentinel.
+    _PRIVATE_MODE_ENABLE_SEQUENCE: typing.ClassVar[Mapping[str, str]] = {
+        "bracketed_paste": escape.PrivateMode.BRACKETED_PASTE.enable_seq,
+        "focus_reporting": escape.PrivateMode.FOCUS_REPORTING.enable_seq,
+    }
+
+    def _detect_terminal_modes(self) -> None:
+        """Send DECRQM queries for the private modes still at their sentinel; does not wait for a reply.
+
+        Replies are recognized later, during normal `parse_input()`
+        (see `escape.KeyqueueTrie.read_private_mode_report`, `_apply_terminal_reports()`).
+        With ``extended_keys``, the kitty keyboard protocol and modifyOtherKeys are queried as well, once.
+        """
+        if not self._is_real_terminal():
+            return
+
+        modes = [
+            escape.PrivateMode.SYNCHRONIZED_OUTPUT,
+            escape.PrivateMode.GRAPHEME_CLUSTERING,
+            escape.PrivateMode.ALTERNATE_SCREEN_BUFFER,
+            escape.PrivateMode.MOUSE_REPORTING,
+            escape.PrivateMode.MOUSE_SGR_MODE,
+        ]
+        if self.modes.bracketed_paste is None:
+            modes.append(escape.PrivateMode.BRACKETED_PASTE)
+        if self.modes.focus_reporting is None:
+            modes.append(escape.PrivateMode.FOCUS_REPORTING)
+
+        # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
+        self._mode_queries_pending = set(modes)
+        queries = "".join(mode.query for mode in modes)
+        if self.extended_keys and self.modes.kitty_keyboard is None and not self._keyboard_query_pending:
+            # A terminal ignores a query it does not know, and answers Primary DA in the order it reads the queries,
+            # so a protocol that has no reply by the time the Primary DA reply arrives is not supported.
+            queries += escape.KITTY_KEYBOARD_QUERY + escape.MODIFY_OTHER_KEYS_QUERY + escape.REPORT_DEVICE_ATTRIBUTES
+            self._keyboard_query_pending = True
+        self.write(queries)
+        self.flush()
+
+    def _apply_terminal_reports(
+        self,
+        decoded_codes: _DecodedInputWithReports,
+    ) -> _DecodedInput:
+        """Apply the query replies among *decoded_codes* to `self.modes` and strip them out.
+
+        A reply counts only as the answer to a query urwid sent and has no answer for yet.
+        Any other reply is dropped without effect, so input that only looks like a reply cannot change the modes.
+
+        - A private mode report counts once for each mode queried.
+        - A keyboard protocol reply counts between the keyboard protocol queries and the Primary DA reply sent
+          after them.
+        """
+        logger = self.logger.getChild("terminal_reports")
+        filtered: _DecodedInput = []
+        reports: list[tuple[str, int]] = []
+        for item in decoded_codes:
+            match item:
+                case ("private mode report", str() as mode, int() as value) if mode in self._mode_queries_pending:
+                    self._mode_queries_pending.discard(mode)
+                    reports.append((mode, value))
+                case ("private mode report", *_):
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("keyboard protocol report" | "modify keys report" | "device attributes", *_) if (
+                    not self._keyboard_query_pending
+                ):
+                    logger.debug(f"Dropped a reply to a query urwid has no answer pending for: {item!r}")
+                case ("keyboard protocol report", _flags):
+                    self.modes.kitty_keyboard = True
+                case ("modify keys report", escape.MODIFY_OTHER_KEYS_RESOURCE, value):
+                    self.modes.modify_other_keys = True
+                    self._modify_other_keys_reported = value
+                case ("modify keys report", *_):
+                    pass  # another key modifier resource, which urwid did not query
+                case ("device attributes", _attributes):
+                    # the Primary DA reply that ends the answers to the keyboard protocol queries
+                    self._keyboard_query_pending = False
+                    self.modes.kitty_keyboard = bool(self.modes.kitty_keyboard)
+                    self.modes.modify_other_keys = bool(self.modes.modify_other_keys)
+                    self._enable_keyboard_protocol()
+                case _:
+                    filtered.append(item)
+
+        if reports:
+            enable = [
+                code
+                for field in self.modes.set_from_codes(*reports)
+                if (code := self._PRIVATE_MODE_ENABLE_SEQUENCE.get(field, ""))
+            ]
+            if enable:
+                self.write("".join(enable))
+                self.flush()
+
+        return filtered
+
+    def _enable_keyboard_protocol(self) -> None:
+        """Turn on the keyboard protocol the terminal answered for, preferring kitty's to modifyOtherKeys.
+
+        Only for ``extended_keys``, and once per start of the screen: the kitty flags are pushed on the stack of the
+        screen in use, so they are popped before the alternate screen is left (see `_disable_keyboard_protocol()`).
+        """
+        if not self.extended_keys or not self._started or self._keyboard_protocol_enabled is not None:
+            return
+        if self.modes.kitty_keyboard:
+            self.write(escape.KITTY_KEYBOARD_PUSH)
+            self._keyboard_protocol_enabled = "kitty"
+        elif self.modes.modify_other_keys:
+            self.write(escape.MODIFY_OTHER_KEYS_ON)
+            self._keyboard_protocol_enabled = "modify other keys"
         else:
-            self.write(escape.MOUSE_TRACKING_OFF)
+            return
+        self.flush()
+
+    def _disable_keyboard_protocol(self) -> None:
+        """Restore the keyboard protocol state `_enable_keyboard_protocol()` changed, as the screen stops.
+
+        Replies not read by then can be lost, as a POSIX stop discards the pending input, so queries still waiting for
+        them are sent again on the next start.
+        """
+        if self._keyboard_protocol_enabled == "kitty":
+            self.write(escape.KITTY_KEYBOARD_POP)
+        elif self._keyboard_protocol_enabled == "modify other keys":
+            self.write(escape.set_modify_other_keys(self._modify_other_keys_reported))
+        self._keyboard_protocol_enabled = None
+        self._keyboard_query_pending = False
+
+    def _drop_past_end_mouse_events(self, codes: _DecodedInput) -> _DecodedInput:
+        """Drop the mouse events at a position an X10 report cannot carry, when the terminal has no SGR reports.
+
+        Without SGR reports every mouse report is in the X10 encoding, and xterm sends a column or row past its limit
+        as a NUL byte. That byte decodes as the limit itself, so the event would arrive at a wrong position.
+        A release is kept, since it ends a press or a drag the application tracks.
+        """
+        if self.modes.mouse_sgr_mode is not False:
+            return codes
+        return [
+            code
+            for code in codes
+            if not (
+                isinstance(code, tuple)
+                and len(code) == 4
+                and escape.MOUSE_X10_PAST_END in code[2:]
+                # a release ends a press or a drag the application tracks, wherever it happens
+                and not code[0].endswith("mouse release")
+            )
+        ]
 
     @abc.abstractmethod
     def _start(  # pylint: disable=keyword-arg-before-vararg
@@ -413,23 +895,50 @@ class Screen(BaseScreen, RealTerminal):
         Initialize the screen and input mode.
 
         :param alternate_buffer: use alternate screen buffer
+        :param args: not supported; an implementation raises :exc:`TypeError` when any is given.
+        :param kwargs: not supported; an implementation raises :exc:`TypeError` when any is given.
         """
 
     def _stop_mouse_restore_buffer(self) -> None:
         """Stop mouse tracking and restore the screen."""
-        self._mouse_tracking(False)
+        # Keep the state the application requested: _start() restores it on a restart.
+        mouse_tracking_requested = self._mouse_tracking_enabled
+        try:
+            self._mouse_tracking(False)
+        finally:
+            self._mouse_tracking_enabled = mouse_tracking_requested
 
-        move_cursor = ""
+        move_cursor = "" if self.maxrow is None else escape.set_cursor_position(0, self.maxrow)
         if self._alternate_buffer:
-            move_cursor = escape.RESTORE_NORMAL_BUFFER
-        elif self.maxrow is not None:
-            move_cursor = escape.set_cursor_position(0, self.maxrow)
-        self.write(self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
+            # Below the last frame first: the move lands on its last row and the line feed goes past it.
+            # A terminal without an alternate screen drew the frames on its main screen and ignores the switch back,
+            # and one with it scrolls only the alternate screen and restores the cursor saved by the switch.
+            if move_cursor:
+                move_cursor += "\n"
+            move_cursor += escape.PrivateMode.ALTERNATE_SCREEN_BUFFER.disable_seq
+        # an application's own "U" run, or a partly written frame, can leave a hyperlink open
+        close = escape.HYPERLINK_CLOSE if self.hyperlinks else ""
+        self.write(close + self._attrspec_to_escape(AttrSpec("", "")) + escape.SI + move_cursor + escape.SHOW_CURSOR)
         self.flush()
+        # leaving the alternate screen restores the G1 the terminal had before, and whatever runs before the next
+        # start can reset the character sets, so G1 is designated again then
+        self._setup_G1_done = False
 
     def _stop_restore_palette(self) -> None:
-        """Reset (OSC 104) any palette entries modify_terminal_palette() changed this session."""
+        """Reset any palette entries modify_terminal_palette() changed this session.
+
+        The entries go back to the terminal's default, not to what they were before the screen started.
+        OSC 104 resets the changed entries only.
+        The Linux console can only reset all 16 entries at once.
+        Its reset sequence has no terminator, so a terminal that only claims ``TERM=linux`` reads it as an
+        unterminated OSC string: call this before other escape sequences are written, which end that string.
+        """
         if not self._modified_palette_entries:
+            return
+        if _is_linux_console(self.term):
+            self.write(escape.LINUX_RESET_PALETTE)
+            self.flush()
+            self._modified_palette_entries.clear()
             return
         if self.term == "fbterm":
             # fbterm's palette-modification escape (used in modify_terminal_palette) has no
@@ -438,15 +947,109 @@ class Screen(BaseScreen, RealTerminal):
             return
 
         indexes = ";".join(str(index) for index in sorted(self._modified_palette_entries))
-        self.write(f"\x1b]104;{indexes}\x1b\\")
+        self.write(f"{escape.OSC}104;{indexes}{escape.ST}")
         self.flush()
         self._modified_palette_entries.clear()
 
+    def set_title(self, title: str | None) -> None:
+        """Set the window title of the terminal.
+
+        The title is shown while the screen runs.
+        One set before :meth:`start` is shown when the screen starts.
+        Each start saves the title the terminal had, and stopping the screen gives it back,
+        so the shell's title is back while :meth:`MainLoop.paused` runs another program.
+
+        Control characters are removed from *title*: a title built from data could otherwise end the title
+        and send the rest of the text as terminal commands.
+        Characters the terminal encoding cannot represent are replaced with ``?``.
+        So are characters a single-byte encoding writes with a byte from 0x80 to 0x9f,
+        which a terminal can read as C1 controls.
+
+        The previous title is saved on the terminal's title stack (xterm ``XTWINOPS`` 22 and 23).
+        A terminal without the stack ignores it, and keeps the application's title after the screen stops.
+        On a Windows console the title is set and saved through the console API instead.
+        Nothing is sent to the Linux virtual console or fbterm, which have no window title.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the title as text.
+
+        :param title: the new window title, or None to give the terminal back the title it had before.
+        """
+        self._title = None if title is None else _TITLE_CONTROLS.sub("", title)
+        if self._started:
+            self._show_title()
+
+    def _show_title(self) -> None:
+        """Show the title :meth:`set_title` asked for, saving the terminal's own title first."""
+        if self._title is None:
+            self._restore_title()
+            return
+        if _rejects_osc(self.term):
+            return
+        if not self._title_saved:
+            self._save_title()
+            self._title_saved = True
+        self._write_title(self._title)
+        self.flush()
+
+    def _restore_title(self) -> None:
+        """Give the terminal back the title it had before :meth:`_show_title` saved it."""
+        if not self._title_saved:
+            return
+        self._title_saved = False
+        self._restore_saved_title()
+        self.flush()
+
+    def _save_title(self) -> None:
+        """Save the terminal's current window title; :meth:`_restore_saved_title` gives it back."""
+        self.write(escape.TITLE_PUSH)
+
+    def _restore_saved_title(self) -> None:
+        """Give the terminal back the window title :meth:`_save_title` saved."""
+        self.write(escape.TITLE_POP)
+
+    def _write_title(self, title: str) -> None:
+        """Write *title*, which has no control characters, as the terminal's window title."""
+        encoding = util.get_encoding()
+        if util.get_encoding_mode() == "narrow":
+            title = "".join("?" if _C1_BYTES.search(char.encode(encoding, "replace")) else char for char in title)
+        self.write(f"{escape.SET_TITLE}{title.encode(encoding, 'replace').decode(encoding)}{escape.BEL}")
+
+    def copy_to_clipboard(self, text: str) -> None:
+        """Copy text to the system clipboard through the terminal.
+
+        The text is sent as UTF-8 in base64 inside OSC 52,
+        so no character of it can reach the terminal as a command.
+        A lone surrogate, as in a file name that did not decode, is sent as ``?``.
+        The sequence travels with the screen output, so it also reaches the user's terminal over SSH.
+        What happens next is up to the terminal:
+
+        - many terminal emulators copy the text;
+        - some ask the user first, or copy only after the feature is turned on in their settings;
+        - tmux passes the text on with its ``set-clipboard`` option on;
+        - a terminal without OSC 52 ignores the sequence.
+
+        No reply tells the application which case it was.
+        Terminals and multiplexers also drop a sequence longer than their own limit, so a long text may not arrive.
+        The whole text is written at once, and a long one holds up the main loop until the terminal has read it.
+
+        Nothing is sent to the Linux virtual console or fbterm, which have no clipboard.
+        Nothing is sent to a ``dumb`` terminal outside Windows either, which would print the sequence as text.
+
+        :param text: the text to copy.
+        :raises RuntimeError: the screen is not running.
+            A console that reads escape sequences only while the screen runs, such as the Windows console,
+            would print the sequence as text.
+        """
+        if not self._started:
+            raise RuntimeError("Start the screen before copying to the clipboard")
+        if _rejects_osc(self.term):
+            return
+        data = base64.b64encode(text.encode("utf-8", "replace")).decode("ascii")
+        self.write(f"{escape.SET_CLIPBOARD}{data}{escape.BEL}")
+        self.flush()
+
     @abc.abstractmethod
     def _stop(self) -> None:
-        """
-        Restore the screen.
-        """
+        """Restore the screen."""
 
     def write(self, data: str) -> None:
         """Write some data to the terminal.
@@ -471,10 +1074,11 @@ class Screen(BaseScreen, RealTerminal):
     def get_input(self, raw_keys: Literal[True]) -> tuple[_DecodedInput, list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> _DecodedInput | tuple[_DecodedInput, list[int]]:
-        """Return pending input as a list.
+        r"""Return pending input as a list.
 
         :param raw_keys: return raw keycodes as well as translated versions
         :raises RuntimeError: the screen has not been started.
+        :raises InputClosedError: the input reached end of file.
 
         This function will immediately return all the input since the
         last time it was called.  If there is no input pending it will
@@ -493,17 +1097,9 @@ class Screen(BaseScreen, RealTerminal):
         * Key combinations:  :kbd:`shift f1`, :kbd:`meta a`, :kbd:`ctrl b`
         * Window events:  ``"window resize"``
 
-        When a narrow encoding is not enabled:
+        Other characters, decoded from the terminal encoding (UTF-8, or a single- or double-byte encoding):
 
-        * "Extended ASCII" characters:  "\\xa1", "\\xb2", "\\xfe"
-
-        When a wide encoding is enabled:
-
-        * Double-byte characters:  "\\xa1\\xea", "\\xb2\\xd4"
-
-        When utf8 encoding is enabled:
-
-        * Unicode characters: u"\\u00a5", u'\\u253c"
+        * Unicode characters: "\u00a5", "\u253c", "\u4e2d"
 
         Examples of mouse events returned:
 
@@ -514,6 +1110,8 @@ class Screen(BaseScreen, RealTerminal):
                       ('ctrl mouse drag', 1, 18, 13)
         * Mouse button release: ('mouse release', 0, 18, 13),
                                 ('ctrl mouse release', 0, 17, 23)
+
+        The button number is a :class:`~urwid.MouseButton` value.
         """
         logger = self.logger.getChild("get_input")
         if not self._started:
@@ -548,11 +1146,9 @@ class Screen(BaseScreen, RealTerminal):
         return keys
 
     def get_input_descriptors(self) -> list[SupportsFileno | int]:
-        """
-        Return a list of integer file descriptors that should be
-        polled in external event loops to check for user input.
+        """Return a list of integer file descriptors that should be polled in external event loops.
 
-        Use this method if you are implementing your own event loop.
+        Used to check for user input. Use this method if you are implementing your own event loop.
 
         This method is only called by `hook_event_loop`, so if you override
         that, you can safely ignore this.
@@ -570,9 +1166,7 @@ class Screen(BaseScreen, RealTerminal):
 
     @abc.abstractmethod
     def unhook_event_loop(self, event_loop: EventLoop) -> None:
-        """
-        Remove any hooks added by hook_event_loop.
-        """
+        """Remove any hooks added by hook_event_loop."""
 
     @abc.abstractmethod
     def hook_event_loop(
@@ -580,12 +1174,15 @@ class Screen(BaseScreen, RealTerminal):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> None:
-        """
-        Register the given callback with the event loop, to be called with new
-        input whenever it's available.  The callback should be passed a list of
-        processed keys and a list of unprocessed keycodes.
+        """Register the given callback with the event loop, to be called with new input whenever it's available.
+
+        The callback should be passed a list of processed keys and a list of unprocessed keycodes.
 
         Subclasses may wish to use parse_input to wrap the callback.
+
+        .. deprecated:: 5.0
+            A subclass that defines ``get_input_nonblocking()`` is still polled through it.
+            Override :meth:`get_available_raw_input` instead. This API will be removed in version 7.0.
         """
 
     _input_timeout: typing.Any = None
@@ -595,9 +1192,16 @@ class Screen(BaseScreen, RealTerminal):
         event_loop: EventLoop,
         callback: Callable[[_DecodedInput, list[int]], typing.Any],
     ) -> Callable[[], None]:
+        """Support old Screen classes that still have a get_input_nonblocking and expect it to work.
+
+        :warns DeprecationWarning: always, since overriding ``get_input_nonblocking()`` is deprecated.
         """
-        Support old Screen classes that still have a get_input_nonblocking and expect it to work.
-        """
+        _deprecation.warn(
+            f"{self.__class__.__module__}.{self.__class__.__qualname__} defines get_input_nonblocking(). "
+            "Override get_available_raw_input() instead.",
+            since="5.0",
+            removed_in="7.0",
+        )
 
         @functools.wraps(callback)
         def wrapper() -> None:
@@ -605,7 +1209,6 @@ class Screen(BaseScreen, RealTerminal):
                 event_loop.remove_alarm(self._input_timeout)
                 self._input_timeout = None
 
-            # should we deprecate?
             timeout, keys, raw = self.get_input_nonblocking()  # type: ignore[attr-defined]  # pylint: disable=no-member
             if timeout is not None:
                 self._input_timeout = event_loop.alarm(timeout, wrapper)
@@ -623,6 +1226,8 @@ class Screen(BaseScreen, RealTerminal):
 
         This method is only used by the default `hook_event_loop`
         implementation; you can safely ignore it if you implement your own.
+
+        :raises InputClosedError: the input reached end of file.
         """
         logger = self.logger.getChild("get_available_raw_input")
         codes = [*self._partial_codes, *self._get_input_codes()]
@@ -673,10 +1278,8 @@ class Screen(BaseScreen, RealTerminal):
         the screen or event loop look like; it only deals with parsing keycodes
         and setting a timeout when an incomplete one is detected.
 
-        `codes` should be a sequence of keycodes, i.e. bytes.  A bytearray is
-        appropriate, but beware of using bytes, which only iterates as integers on Python 3.
+        `codes` is a list of keycodes: the integer values of the input bytes, or curses key codes.
         """
-
         logger = self.logger.getChild("parse_input")
 
         # Note: event_loop may be None for 100% synchronous support, only used
@@ -686,10 +1289,12 @@ class Screen(BaseScreen, RealTerminal):
             self._input_timeout = None
 
         original_codes = codes
-        decoded_codes = []
+        decoded_codes: _DecodedInputWithReports = []
         try:
             while codes:
-                run, remaining_codes = escape.process_keyqueue(codes, wait_for_more)
+                run, remaining_codes = escape.process_keyqueue(
+                    codes, wait_for_more, keyboard_protocol=self._keyboard_protocol_enabled
+                )
                 codes = remaining_codes.copy()
                 decoded_codes.extend(run)
         except escape.MoreInputRequired:
@@ -711,29 +1316,29 @@ class Screen(BaseScreen, RealTerminal):
             raw_codes = original_codes
             self._partial_codes = []
 
-        logger.debug(f"Decoded codes: {decoded_codes!r}, raw codes: {raw_codes!r}")
+        output_codes = self._drop_past_end_mouse_events(self._apply_terminal_reports(decoded_codes))
+
+        logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
         if self._resized:
-            decoded_codes.append("window resize")
-            logger.debug('Added "window resize" to the codes')
             self._resized = False
+            self.screen_buf = None
+            output_codes.append("window resize")
+            logger.debug('Added "window resize" to the codes')
 
         if callback:
-            callback(decoded_codes, raw_codes)
+            callback(output_codes, raw_codes)
             return None
 
         # For get_input
-        return decoded_codes, raw_codes
+        return output_codes, raw_codes
 
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
         logger = self.logger.getChild("wait_for_input_ready")
         fd_list = self.get_input_descriptors()
 
         logger.debug(f"Waiting for input: descriptors={fd_list!r}, timeout={timeout!r}")
-        with selectors.DefaultSelector() as selector:
-            for fd in fd_list:
-                selector.register(fd, selectors.EVENT_READ)
-
+        with read_selector((fd, None) for fd in fd_list) as selector:
             ready = selector.select(timeout)
 
         logger.debug(f"Input ready: {ready}")
@@ -741,23 +1346,21 @@ class Screen(BaseScreen, RealTerminal):
         return [event.fd for event, _ in ready]
 
     @abc.abstractmethod
-    def _read_raw_input(self, timeout: int) -> Iterable[int]: ...
+    def _read_raw_input(self, timeout: float) -> Iterable[int]: ...
 
     def _get_keyboard_codes(self) -> Iterable[int]:
         return self._read_raw_input(0)
 
     def _setup_G1(self) -> None:
-        """
-        Initialize the G1 character set to graphics mode if required.
+        """Initialize the G1 character set to graphics mode if required.
+
+        :raises OSError: the terminal could not be written to. The setup is tried again on the next draw.
         """
         if self._setup_G1_done:
             return
 
-        while True:
-            with contextlib.suppress(OSError):
-                self.write(escape.DESIGNATE_G1_SPECIAL)
-                self.flush()
-                break
+        self.write(escape.DESIGNATE_G1_SPECIAL)
+        self.flush()
         self._setup_G1_done = True
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
@@ -765,45 +1368,31 @@ class Screen(BaseScreen, RealTerminal):
 
         :raises RuntimeError: the screen has not been started.
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
+        :raises OSError: the terminal could not be written to, for a reason other than an interrupted system call.
         """
 
-        def set_cursor_home() -> str:
-            if not partial_display():
-                return escape.set_cursor_position(0, 0)
-            return escape.CURSOR_HOME_COL + escape.move_cursor_up(cy)
-
         def set_cursor_position(x: int, y: int) -> str:
-            if not partial_display():
+            if self._rows_used is None:
                 return escape.set_cursor_position(x, y)
             if cy > y:
                 return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_up(cy - y) + escape.move_cursor_right(x)
             return "\b" + escape.CURSOR_HOME_COL + escape.move_cursor_down(y - cy) + escape.move_cursor_right(x)
 
-        def is_blank_row(row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]) -> bool:
-            if len(row) > 1:
-                return False
-            return not row[0][2].strip()
-
-        def using_standout_or_underline(a: AttrSpec | str | None) -> bool:
-            a = self._pal_attrspec.get(a, a)  # type: ignore[arg-type]
-            return isinstance(a, AttrSpec) and (a.standout or a.underline)
-
-        def partial_display() -> bool:
-            """Returns True if the screen is in partial display mode ie. only some rows belong to the display"""
-            return self._rows_used is not None
-
         def handle_row(
-            attr: AttrSpec | str | None,
+            attr: Hashable,
             charset: Literal["0", "U"] | None,
             run: bytes,
             last: bool,
         ) -> None:
             """Append the escape sequences and text of one canvas run to the output.
 
+            The bytes of a charset "U" run are written unchanged, OSC 8 sequences included:
+            they belong to the application, and urwid's own hyperlinks only wrap attribute-linked runs.
+
             :raises TypeError: *run* is not a byte string.
             :raises ValueError: *charset* is not a known character set flag.
             """
-            nonlocal last_charset_flag, last_attributes, first  # type: ignore[misc]
+            nonlocal last_charset_flag, last_attributes, first, link_open  # type: ignore[misc]
 
             if not isinstance(run, bytes):  # canvases render with bytes
                 raise TypeError(run)
@@ -812,7 +1401,14 @@ class Screen(BaseScreen, RealTerminal):
                 run = run.translate(UNPRINTABLE_TRANS_TABLE)
 
             if last_attributes != attr:
-                output.append(self._attr_to_escape(attr))
+                attr_escape = self._attr_to_escape(attr)
+                if self.hyperlinks:
+                    # only an escape that opens a hyperlink ends with ST, and an open replaces any open link
+                    opens = attr_escape.endswith(escape.ST)
+                    if link_open and not opens:
+                        output.append(escape.HYPERLINK_CLOSE)
+                    link_open = opens
+                output.append(attr_escape)
                 last_attributes = attr
 
             if last:
@@ -836,6 +1432,8 @@ class Screen(BaseScreen, RealTerminal):
                 last_charset_flag = charset
 
             line_text = run.decode(encoding, "replace")
+            if charset != "U" and not line_text.isascii():
+                line_text = line_text.translate(UNPRINTABLE_C1_TRANS_TABLE)
 
             if not last:
                 output.append(line_text)
@@ -843,10 +1441,14 @@ class Screen(BaseScreen, RealTerminal):
                 if not IS_WINDOWS:
                     output.extend((escape.INSERT_ON, line_text, escape.INSERT_OFF))
                 else:
-                    output.extend((f"{escape.ESC}[{str_util.calc_width(line_text, 0, len(line_text))}@", line_text))
+                    output.extend((f"{escape.CSI}{str_util.calc_width(line_text, 0, len(line_text))}@", line_text))
 
                 if encoding != "utf-8" and charset == "U":
                     output.append(escape.IBMPC_OFF)
+
+            if self.hyperlinks and charset == "U":
+                # the run may have closed or replaced urwid's hyperlink, so the next run reopens its own
+                last_attributes = link_closed
 
             first = False
 
@@ -875,24 +1477,28 @@ class Screen(BaseScreen, RealTerminal):
 
         logger.debug(f"Drawing screen with size {size!r}")
 
-        last_attributes: AttrSpec | str | None = None  # Default = empty
+        last_attributes: Hashable = None  # Default = empty
+        # last_attributes after a hyperlink is closed: unequal to every attribute, so the next run reopens its link
+        link_closed = object()
+        # whether the output has a hyperlink open that urwid opened
+        link_open = False
 
         output: list[str] = [escape.HIDE_CURSOR, self._attr_to_escape(last_attributes)]
 
-        if not partial_display():
+        if self._rows_used is None:
             output.append(escape.CURSOR_HOME)
 
-        osb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]]
-        if self.screen_buf:
-            osb = self.screen_buf
-        else:
-            osb = []
-        sb: list[list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]]] = []
+        osb: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = self._drawn_rows if self.screen_buf else []
+        sb: list[list[tuple[Hashable, Literal["0", "U"] | None, bytes]]] = []
+        drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         cy = self._cy
         y = -1
 
-        ins = None
-        output.append(set_cursor_home())
+        ins: list[tuple[Hashable, Literal["0", "U"] | None, bytes]] = []
+        if self._rows_used is None:
+            output.append(escape.set_cursor_position(0, 0))
+        else:
+            output.append(escape.CURSOR_HOME_COL + escape.move_cursor_up(cy))
         cy = 0
 
         first = True
@@ -900,22 +1506,24 @@ class Screen(BaseScreen, RealTerminal):
 
         for row in canvas.content():
             y += 1
-            if osb and y < len(osb) and osb[y] == row:
+            drawn_row: list[tuple[str, Literal["0", "U"] | None, bytes]] = [
+                (self._attr_to_escape(a), cs, run) for a, cs, run in row
+            ]
+            sb.append(row)
+            drawn_rows.append(drawn_row)
+            if osb and y < len(osb) and osb[y] == drawn_row:
                 # this row of the screen buffer matches what is
                 # currently displayed, so we can skip this line
-                sb.append(osb[y])
                 continue
-
-            sb.append(row)
 
             # leave blank lines off display when we are using
             # the default screen buffer (allows partial screen)
-            if partial_display() and y > typing.cast("int", self._rows_used):
-                if is_blank_row(row):
+            if self._rows_used is not None and y > self._rows_used:
+                if len(row) == 1 and not row[0][2].strip():
                     continue
                 self._rows_used = y
 
-            if y or partial_display():
+            if y or self._rows_used is not None:
                 output.append(set_cursor_position(0, y))
             # after updating the line we will be just over the
             # edge, but terminals still treat this as being
@@ -927,7 +1535,15 @@ class Screen(BaseScreen, RealTerminal):
 
             if row:
                 a, cs, run = row[-1]
-                if run[-1:] == b" " and self.back_color_erase and not using_standout_or_underline(a):
+                if (
+                    run[-1:] == b" "
+                    and self.back_color_erase
+                    and not (
+                        (pal_a := self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])).standout
+                        or pal_a.underline
+                        or (self.hyperlinks and pal_a.hyperlink is not None and pal_a.hyperlink.uri)
+                    )
+                ):
                     whitespace_at_end = True
                     row = [*row[:-1], (a, cs, run.rstrip(b" "))]  # noqa: PLW2901
                 elif y == maxrow - 1 and maxcol > 1:
@@ -939,8 +1555,17 @@ class Screen(BaseScreen, RealTerminal):
                 handle_row(a, cs, run, last=False)
 
             if ins:
-                (a, cs, run) = ins
+                a, cs, run = ins[0]
                 handle_row(a, cs, run, last=True)
+                # runs of no width between Y and Z follow Y, and add nothing to shift
+                for a, cs, run in ins[1:]:
+                    handle_row(a, cs, run, last=False)
+
+            if link_open:
+                # a hyperlink left open would cover the cursor moves and erased cells up to the next run
+                output.append(escape.HYPERLINK_CLOSE)
+                link_open = False
+                last_attributes = link_closed
 
             if whitespace_at_end:
                 output.append(escape.ERASE_IN_LINE_RIGHT)
@@ -954,121 +1579,128 @@ class Screen(BaseScreen, RealTerminal):
             # handle resize before trying to draw screen
             return
         try:
-            for line in output:
-                if isinstance(line, bytes):
-                    line = line.decode(encoding, "replace")  # noqa: PLW2901
-                self.write(line)
+            # A single write() call, rather than one per output fragment, avoids paying the
+            # per-call overhead (and, for a real file, a separate write syscall) once per row.
+            frame = "".join(output)
+            if self.modes.synchronized_output:
+                # Confirmed supported; the terminal defers painting until END_SYNCHRONIZED_UPDATE.
+                frame = (
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.enable_seq}"
+                    f"{frame}"
+                    f"{escape.PrivateMode.SYNCHRONIZED_OUTPUT.disable_seq}"
+                )
+            self.write(frame)
             self.flush()
         except OSError as e:
             # ignore interrupted syscall
-            if e.args[0] != 4:
+            if e.args[0] != errno.EINTR:
                 raise
 
         self.screen_buf = sb
+        self._drawn_rows = drawn_rows
         self._screen_buf_canvas = canvas
 
     def _last_row(
         self,
-        row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
+        row: list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
     ) -> tuple[
-        list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]],
+        list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
         int,
-        tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes] | None,
+        list[tuple[Hashable, Literal["0", "U"] | None, bytes]],
     ]:
         """On the last row we need to slide the bottom right character into place.
-
-        Calculate the new line, attr and an insert sequence to do that.
 
         eg. last row:
         XXXXXXXXXXXXXXXXXXXXYZ
 
         Y will be drawn after Z, shifting Z into position.
 
-        When the whole row is a single grapheme, as happens with a double width
-        character on a two column screen, there is no Y to draw after Z.
-        The row is then returned untouched and no insert sequence is produced.
+        Runs of no width, such as a bidi mark or a combining mark, are neither Y nor Z:
+        those after Z are drawn after Z, and those between Y and Z are written after Y
+        is inserted, so each stays behind the character it follows.
+
+        The row is returned untouched, with nothing to insert and its bottom right
+        character written directly, when:
+
+        - nothing of any width comes before Z, as happens with a double width
+          character on a two column screen, so there is no Y to draw after Z;
+        - a non-empty run of no width in charset "U" comes after Y;
+        - Y or Z is taken from a charset "U" run holding the start of a raw sequence.
+
+        A charset "U" run holds the application's raw bytes. The column count can read
+        the parameters of an escape sequence there as text and cut it, and the sequence,
+        such as an OSC 8 hyperlink, applies to what is written after it, so moving it
+        around Y would change what it applies to.
+
+        :returns: the row to draw, the columns to move back over Z, and the runs to insert, Y first.
         """
+        end = len(row)
+        while end > 1 and not str_util.calc_width(row[end - 1][2], 0, len(row[end - 1][2])):
+            end -= 1
+        tail = row[end:]
 
-        new_row: list[tuple[AttrSpec | str | None, Literal["0", "U"] | None, bytes]] = row[:-1]
-        z_attr, z_cs, last_text = row[-1]
+        raw_sequence = _RAW_SEQUENCE_UTF8 if str_util.get_byte_encoding() == "utf8" else _RAW_SEQUENCE_BYTES
+        z_attr, z_cs, last_text = row[end - 1]
+        if z_cs == "U" and raw_sequence.search(last_text):
+            return row, 0, []
         last_cols = str_util.calc_width(last_text, 0, len(last_text))
-        last_offs, z_col = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
-        if last_offs == 0:
-            if not new_row:
-                return row, 0, None
-            z_text = last_text
-            del new_row[-1]
-            # we need another segment
-            y_attr, y_cs, nlast_text = row[-2]
-            nlast_cols = str_util.calc_width(nlast_text, 0, len(nlast_text))
-            z_col += nlast_cols
-            nlast_offs, y_col = str_util.calc_text_pos(nlast_text, 0, len(nlast_text), nlast_cols - 1)
-            y_text = nlast_text[nlast_offs:]
-            if nlast_offs:
-                new_row.append((y_attr, y_cs, nlast_text[:nlast_offs]))
-        else:
-            z_text = last_text[last_offs:]
-            y_attr, y_cs = z_attr, z_cs
-            nlast_cols = str_util.calc_width(last_text, 0, last_offs)
-            nlast_offs, y_col = str_util.calc_text_pos(last_text, 0, last_offs, nlast_cols - 1)
-            y_text = last_text[nlast_offs:last_offs]
-            if nlast_offs:
-                new_row.append((y_attr, y_cs, last_text[:nlast_offs]))
+        last_offs, _ = str_util.calc_text_pos(last_text, 0, len(last_text), last_cols - 1)
+        z_text = last_text[last_offs:]
+        head = row[: end - 1]
+        if last_offs:
+            head.append((z_attr, z_cs, last_text[:last_offs]))
 
+        y_end = len(head)
+        while y_end and not str_util.calc_width(head[y_end - 1][2], 0, len(head[y_end - 1][2])):
+            y_end -= 1
+        if not y_end or any(cs == "U" and run for _, cs, run in (*head[y_end:], *tail)):
+            return row, 0, []
+
+        y_attr, y_cs, y_run = head[y_end - 1]
+        if y_cs == "U" and raw_sequence.search(y_run):
+            return row, 0, []
+        y_cols = str_util.calc_width(y_run, 0, len(y_run))
+        y_offs, _ = str_util.calc_text_pos(y_run, 0, len(y_run), y_cols - 1)
+        new_row = head[: y_end - 1]
+        if y_offs:
+            new_row.append((y_attr, y_cs, y_run[:y_offs]))
         new_row.append((z_attr, z_cs, z_text))
-        return new_row, z_col - y_col, (y_attr, y_cs, y_text)
+        new_row.extend(tail)
+        # Z is drawn where Y starts, so move back over Z to insert Y in front of it
+        return new_row, str_util.calc_width(z_text, 0, len(z_text)), [(y_attr, y_cs, y_run[y_offs:]), *head[y_end:]]
 
     def clear(self) -> None:
-        """
-        Force the screen to be completely repainted on the next
-        call to draw_screen().
-        """
+        """Force the screen to be completely repainted on the next call to draw_screen()."""
         self.screen_buf = None
 
-    def _attr_to_escape(self, a: AttrSpec | str | None) -> str:
-        """Convert attribute instance a to an escape sequence for the terminal."""
-        if found := self._pal_escape.get(a):  # type: ignore[arg-type]
+    def _attr_to_escape(self, a: Hashable) -> str:
+        """Convert canvas run attribute a to an escape sequence for the terminal.
+
+        With :attr:`hyperlinks` on, the escape of an attribute with a hyperlink ends with the OSC 8 sequence opening it.
+        """
+        if found := self._pal_escape.get(a):
             return found
-        if isinstance(a, AttrSpec):
-            return self._attrspec_to_escape(a)
-        if a is None:
-            return self._attrspec_to_escape(AttrSpec("default", "default"))
-        # undefined attributes use default/default
-        self.logger.debug(f"Undefined attribute: {a!r}")
-        return self._attrspec_to_escape(AttrSpec("default", "default"))
+        spec = self.resolve_attr(a, _ATTRSPEC_INDEX_BY_COLORS[self.colors])
+        found = self._attrspec_to_escape(spec)
+        if self.hyperlinks and spec.hyperlink is not None and spec.hyperlink.uri:
+            found += escape.hyperlink_open(spec.hyperlink)
+        if len(self._pal_escape) >= _RESOLVED_ATTRS_LIMIT:
+            self._pal_escape.clear()
+        self._pal_escape[a] = found
+        return found
 
     def _attrspec_to_escape(self, a: AttrSpec) -> str:
-        """
-        Convert AttrSpec instance a to an escape sequence for the terminal
+        r"""Convert AttrSpec instance a to an escape sequence for the terminal.
 
         >>> from urwid.display.raw import Screen  # this class is abstract
         >>> s = Screen()
         >>> s.set_terminal_properties(colors=256)
         >>> a2e = s._attrspec_to_escape
         >>> a2e(s.AttrSpec("brown", "dark green"))
-        '\\x1b[0;33;42m'
+        '\x1b[0;33;42m'
         >>> a2e(s.AttrSpec("#fea,underline", "#d0d"))
-        '\\x1b[0;38;5;229;4;48;5;164m'
+        '\x1b[0;38;5;229;4;48;5;164m'
         """
-        if self.term == "fbterm":
-            fg = escape.ESC + f"[1;{a.foreground_number:d}}}"
-            bg = escape.ESC + f"[2;{a.background_number:d}}}"
-            return fg + bg
-
-        if a.foreground_true:
-            fg = f"38;2;{';'.join(str(part) for part in a.get_rgb_values()[0:3])}"
-        elif a.foreground_high:
-            fg = f"38;5;{a.foreground_number:d}"
-        elif a.foreground_basic:
-            if a.foreground_number > 7:
-                if self.fg_bright_is_bold:
-                    fg = f"1;{a.foreground_number - 8 + 30:d}"
-                else:
-                    fg = f"{a.foreground_number - 8 + 90:d}"
-            else:
-                fg = f"{a.foreground_number + 30:d}"
-        else:
-            fg = "39"
         st = (
             "1;" * a.bold
             + "2;" * a.faint
@@ -1078,6 +1710,30 @@ class Screen(BaseScreen, RealTerminal):
             + "7;" * a.standout
             + "9;" * a.strikethrough
         )
+        if self.term == "fbterm":
+            # fbterm takes a palette color from its own sequences, after SGR for the default colors and the settings;
+            # an unset color has no palette entry, as entry 0 is black. Its 39 also ends underline, so it comes first.
+            escapes = f"{escape.CSI}0;39;49;{st}".removesuffix(";") + "m"
+            if a.foreground_basic or a.foreground_high:
+                escapes += f"{escape.CSI}1;{a.foreground_number:d}}}"
+            if a.background_basic or a.background_high:
+                escapes += f"{escape.CSI}2;{a.background_number:d}}}"
+            return escapes
+
+        if a.foreground_true:
+            fg = f"38;2;{';'.join(str(part) for part in a.get_rgb_values()[0:3])}"
+        elif a.foreground_high:
+            fg = f"38;5;{a.foreground_number:d}"
+        elif a.foreground_basic:
+            if a.foreground_number > 7:
+                if self.fg_bright_is_bold:
+                    fg = f"1;{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BASE:d}"
+                else:
+                    fg = f"{a.foreground_number - _SGR_BRIGHT_OFFSET + _SGR_FG_BRIGHT_BASE:d}"
+            else:
+                fg = f"{a.foreground_number + _SGR_FG_BASE:d}"
+        else:
+            fg = "39"
         if a.background_true:
             bg = f"48;2;{';'.join(str(part) for part in a.get_rgb_values()[3:6])}"
         elif a.background_high:
@@ -1085,28 +1741,33 @@ class Screen(BaseScreen, RealTerminal):
         elif a.background_basic:
             if a.background_number > 7:
                 if self.bg_bright_is_blink:
-                    bg = f"5;{a.background_number - 8 + 40:d}"
+                    bg = f"5;{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BASE:d}"
                 else:
                     # this doesn't work on most terminals
-                    bg = f"{a.background_number - 8 + 100:d}"
+                    bg = f"{a.background_number - _SGR_BRIGHT_OFFSET + _SGR_BG_BRIGHT_BASE:d}"
             else:
-                bg = f"{a.background_number + 40:d}"
+                bg = f"{a.background_number + _SGR_BG_BASE:d}"
         else:
             bg = "49"
-        return f"{escape.ESC}[0;{fg};{st}{bg}m"
+        return f"{escape.CSI}0;{fg};{st}{bg}m"
 
     def set_terminal_properties(
         self,
         colors: Literal[1, 16, 88, 256, 16777216] | None = None,
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
+        hyperlinks: bool | None = None,
     ) -> None:
-        """
+        """Set the terminal's color and attribute-rendering properties.
+
         :param colors: number of colors terminal supports (1, 16, 88, 256, or 2**24) or None to leave unchanged
         :param bright_is_bold: set to True if this terminal uses the bold setting to create bright colors (numbers
             8-15), set to False if this Terminal can create bright colors without bold or None to leave unchanged
         :param has_underline: set to True if this terminal can use the underline setting, False if it cannot or None to
             leave unchanged
+        :param hyperlinks: set to True to draw the hyperlinks of display attributes as OSC 8 links,
+            False to draw them as plain text, or None to leave unchanged.
+            Off by default: no query for OSC 8 support exists, so applications that know their terminal set it.
         """
         if colors is None:
             colors = self.colors
@@ -1114,22 +1775,28 @@ class Screen(BaseScreen, RealTerminal):
             bright_is_bold = self.fg_bright_is_bold
         if has_underline is None:
             has_underline = self.has_underline
+        if hyperlinks is None:
+            hyperlinks = self.hyperlinks
 
-        if colors == self.colors and bright_is_bold == self.fg_bright_is_bold and has_underline == self.has_underline:
+        if (
+            colors == self.colors
+            and bright_is_bold == self.fg_bright_is_bold
+            and has_underline == self.has_underline
+            and hyperlinks == self.hyperlinks
+        ):
             return
 
         self.colors = colors
         self.fg_bright_is_bold = bright_is_bold
         self.has_underline = has_underline
+        self.hyperlinks = hyperlinks
 
         self.clear()
-        self._pal_escape = {}
-        for p, v in self._palette.items():
-            self._on_update_palette_entry(p, *v)
+        self._pal_escape.clear()
 
     def reset_default_terminal_palette(self) -> None:
-        """
-        Attempt to set the terminal palette to default values as taken from xterm.
+        """Attempt to set the terminal palette to default values as taken from xterm.
+
         Uses a number of colors from the current set_terminal_properties() screen setting.
         """
         if self.colors == 1:
@@ -1139,37 +1806,66 @@ class Screen(BaseScreen, RealTerminal):
         else:
             colors = self.colors
 
-        def rgb_values(n: int) -> tuple[int | None, int | None, int | None]:
-            if colors == 16:
-                aspec = AttrSpec(f"h{n:d}", "", 256)
-            else:
-                aspec = AttrSpec(f"h{n:d}", "", typing.cast("Literal[1, 16, 88, 256, 16777216]", colors))
-            return aspec.get_rgb_values()[:3]
-
-        entries = [(n, *rgb_values(n)) for n in range(min(colors, 256))]
+        values = _COLOR_VALUES_88 if colors == 88 else _COLOR_VALUES_256
+        entries = [(n, *values[n]) for n in range(min(colors, 256))]
         self.modify_terminal_palette(entries)
 
-    def modify_terminal_palette(self, entries: list[tuple[int, int | None, int | None, int | None]]) -> None:
-        """
-        entries - list of (index, red, green, blue) tuples.
+    def modify_terminal_palette(self, entries: Iterable[tuple[int, int, int, int]]) -> None:
+        """Attempt to set part of the terminal palette; this does not work on all terminals.
 
-        Attempt to set part of the terminal palette (this does not work on all terminals.)
         The changes are sent as a single escape sequence so they should all take effect at the same time.
+        The Linux console takes one sequence per entry instead, and applies each as it arrives.
 
         0 <= index < 256 (some terminals will only have 16 or 88 colors)
         0 <= red, green, blue < 256
-        """
 
-        if self.term == "fbterm":
+        The Linux console has only entries 0-15 and skips the others.
+        Which terminal is in use, and so which entries it has, is up to the caller to check (:attr:`term`)
+        before relying on the change.
+
+        :param entries: list of (index, red, green, blue) tuples.
+        :raises TypeError: an index or a red, green or blue value is not an integer.
+        :raises ValueError: on the Linux console, an index or a red, green or blue value is outside 0-255,
+            which its sequence cannot carry.
+        """
+        checked: list[tuple[int, int, int, int]] = []
+        for entry in entries:
+            try:
+                index, red, green, blue = map(operator.index, entry)
+            except TypeError as exc:
+                raise TypeError(f"Palette entry has a value that is not an integer: {entry!r}") from exc
+            checked.append((index, red, green, blue))
+        entries = checked
+
+        if _is_linux_console(self.term):
+            sequences: list[str] = []
+            applied: list[tuple[int, int, int, int]] = []
+            for index, red, green, blue in entries:
+                if index not in range(256) or any(value not in range(256) for value in (red, green, blue)):
+                    raise ValueError(f"Linux console palette entry out of range: {(index, red, green, blue)!r}")
+                if index < 16:
+                    sequences.append(f"{escape.LINUX_SET_PALETTE}{index:x}{red:02x}{green:02x}{blue:02x}")
+                    applied.append((index, red, green, blue))
+            entries = applied
+            self.write("".join(sequences))
+        elif self.term == "fbterm":
             modify = [f"{index:d};{red:d};{green:d};{blue:d}" for index, red, green, blue in entries]
-            self.write(f"\x1b[3;{';'.join(modify)}}}")
+            self.write(f"{escape.CSI}3;{';'.join(modify)}}}")
         else:
             modify = [f"{index:d};rgb:{red:02x}/{green:02x}/{blue:02x}" for index, red, green, blue in entries]
-            self.write(f"\x1b]4;{';'.join(modify)}\x1b\\")
+            self.write(f"{escape.OSC}4;{';'.join(modify)}{escape.ST}")
         self.flush()
         self._modified_palette_entries.update(index for index, _red, _green, _blue in entries)
 
     # shortcut for creating an AttrSpec with this screen object's
     # number of colors
-    def AttrSpec(self, fg: str, bg: str) -> AttrSpec:
-        return AttrSpec(fg, bg, self.colors)
+    def AttrSpec(self, fg: str, bg: str, *, hyperlink: Hyperlink | str | None = None) -> AttrSpec:
+        """Create an :class:`AttrSpec` using this screen's number of colors.
+
+        :param fg: the foreground color and settings, as for :class:`AttrSpec`
+        :param bg: the background color, as for :class:`AttrSpec`
+        :param hyperlink: the terminal hyperlink of the text, as for :class:`AttrSpec`
+        :raises AttrSpecError: *fg* or *bg* is invalid or needs more colors than this screen has.
+        :raises ValueError: *hyperlink* is a string that is not a valid :class:`Hyperlink` URI.
+        """
+        return AttrSpec(fg, bg, self.colors, hyperlink=hyperlink)

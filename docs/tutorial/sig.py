@@ -18,7 +18,7 @@ def on_ask_change(_edit: urwid.Edit, new_edit_text: str) -> None:
 
 
 def on_exit_clicked(_button: urwid.Button) -> typing.NoReturn:
-    raise urwid.ExitMainLoop()
+    raise urwid.ExitMainLoop
 
 
 urwid.connect_signal(ask, "change", on_ask_change)

@@ -17,6 +17,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Lint YAML files
         run: uv run --no-project --with-requirements yamllint-requirements.txt yamllint . -f github
+
+  actionlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check workflow files
+        uses: reviewdog/action-actionlint@v1

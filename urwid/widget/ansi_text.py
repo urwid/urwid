@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import typing
 
-from urwid.ansi_parser import AnsiParser
+from urwid.ansi_parser import AnsiParser, ParsedLine
 
 from .constants import Align, WrapMode
 from .text import Text
@@ -30,17 +30,15 @@ from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable, Iterable, Iterator
+    from typing import Literal
 
-    from typing_extensions import Literal
-
-    from urwid.ansi_parser import ParsedLine
     from urwid.display import AttrSpec
 
 __all__ = ("ANSIText",)
 
 
 class ANSIText(WidgetWrap[Text]):
-    """A read-only widget interpreting ANSI/VT100 colour, horizontal and (optionally) vertical movement escapes.
+    r"""A read-only widget interpreting ANSI/VT100 colour, horizontal and (optionally) vertical movement escapes.
 
     It acts almost exactly like a read-only :class:`~urwid.Text` widget for the resolved, escape-free content.
 
@@ -50,7 +48,7 @@ class ANSIText(WidgetWrap[Text]):
     :class:`~urwid.Text` for the same resolved characters, without needing to forward those calls by hand.
 
     By default (``one_line=False``), a newline genuinely starts a new row, ``CSI n A``/``B`` genuinely moves the
-    cursor up/down between rows, and a bare ``\\r`` genuinely overwrites the current row in place (letting
+    cursor up/down between rows, and a bare ``\r`` genuinely overwrites the current row in place (letting
     progress-bar-style redraw sequences resolve correctly) -- ``ansi_text`` is treated as a single, complete block,
     meant to render one already-complete captured screen/block.
 
@@ -58,33 +56,37 @@ class ANSIText(WidgetWrap[Text]):
     :class:`~urwid.ansi_parser.AnsiParser`'s ``one_line`` flag for the underlying parsing semantics. In this mode,
     line ends and vertical cursor movement are treated as meaningless outside a single line (stripped/split rather
     than resolved into rows): since the underlying parser always
-    returns a ``tuple[ParsedLine, ...]`` in this mode (line-end characters are structural split points, never
-    silently discarded), constructing an :class:`ANSIText` directly from text containing an embedded line end only
-    surfaces the *first* resulting line -- no data is lost (the full split is always computed), but only the first
-    line is exposed by this widget instance. Use :meth:`from_lines` to turn arbitrary multi-line (or arbitrarily
-    chunked) raw text into a complete sequence of :class:`ANSIText` instances, in either mode.
+    returns a ``tuple[ParsedLine, ...]`` in this mode (line ends, VT and FF outside an OSC string are structural
+    split points, never silently discarded), constructing an :class:`ANSIText` directly from text containing an
+    embedded line end only surfaces the *first* resulting line -- no data is lost (the full split is always
+    computed), but only the first line is exposed by this widget instance. Use :meth:`from_lines` to turn arbitrary
+    multi-line (or arbitrarily chunked) raw text into a complete sequence of :class:`ANSIText` instances, in either
+    mode.
 
     >>> ANSIText("hello")
     <ANSIText fixed/flow widget 'hello'>
-    >>> ANSIText("a\\nb").text
-    'a\\nb'
-    >>> ANSIText("a\\nb", one_line=True).text
+    >>> ANSIText("a\nb").text
+    'a\nb'
+    >>> ANSIText("a\nb", one_line=True).text
     'a'
     """
 
     def __init__(
         self,
         ansi_text: str,
-        previous_attr: AttrSpec | None = None,
+        previous_attr: AttrSpec | ParsedLine | ANSIText | None = None,
         *,
         one_line: bool = False,
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode = WrapMode.SPACE,
         align: Literal["left", "center", "right"] | Align = Align.LEFT,
     ) -> None:
-        """
+        """Build the widget from a block of ANSI/VT100-escaped text.
+
         :param ansi_text: a block of text, optionally spanning several lines and containing ANSI/VT100 escape
             sequences. If ``one_line`` is true, only its first physical line is surfaced by this widget instance.
-        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`).
+        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`), or
+            the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text, to carry its character
+            sets in as well.
         :param one_line: restrict this widget to a single physical line of resolved text rather than resolving the
             whole block into multi-row output.
         :param wrap: forwarded to the internal :class:`~urwid.Text`.
@@ -92,13 +94,14 @@ class ANSIText(WidgetWrap[Text]):
         """
         self._one_line = one_line
         super().__init__(Text("", align=align, wrap=wrap))
+        self._parsed = ParsedLine("", [], None)
         self.set_ansi_text(ansi_text, previous_attr)
 
     def _repr_words(self) -> list[str]:
         first = super()._repr_words()
         return [*first, repr(self.text)]
 
-    def set_ansi_text(self, ansi_text: str, previous_attr: AttrSpec | None = None) -> None:
+    def set_ansi_text(self, ansi_text: str, previous_attr: AttrSpec | ParsedLine | ANSIText | None = None) -> None:
         """Re-parse ``ansi_text`` and invalidate this widget.
 
         Parsing uses the mode (``one_line``) this widget was constructed with; if ``one_line`` is true, only the
@@ -106,11 +109,20 @@ class ANSIText(WidgetWrap[Text]):
 
         :param ansi_text: a block of text, optionally spanning several lines and containing ANSI/VT100 escape
             sequences.
-        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`).
+        :param previous_attr: SGR/colour state to carry in from previously parsed text (see :attr:`last_attr`), or
+            the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text, to carry its character
+            sets in as well.
         """
-        parser = AnsiParser(previous_attr, one_line=self._one_line)
+        parser = AnsiParser(self._previous_state(previous_attr), one_line=self._one_line)
         parser.feed(ansi_text)
         self._set_parsed(parser.finalize()[0])
+
+    @staticmethod
+    def _previous_state(previous_attr: AttrSpec | ParsedLine | ANSIText | None) -> AttrSpec | ParsedLine | None:
+        """Return what :class:`~urwid.ansi_parser.AnsiParser` continues from, a widget replaced by its parsed line."""
+        if isinstance(previous_attr, ANSIText):
+            return previous_attr._parsed  # pylint: disable=protected-access  # the same class's own state
+        return previous_attr
 
     def _set_parsed(self, parsed: ParsedLine) -> None:
         self._parsed = parsed
@@ -127,14 +139,12 @@ class ANSIText(WidgetWrap[Text]):
         return markup
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """
-        :returns: (*text*, *display attributes*), see :meth:`urwid.Text.get_text`.
-        """
+        """Return (*text*, *display attributes*), see :meth:`urwid.Text.get_text`."""
         return self._w.get_text()
 
     @property
     def text(self) -> str | bytes:
-        """Read-only property returning the resolved, escape-free text of this widget (may contain ``\\n``)."""
+        r"""Read-only property returning the resolved, escape-free text of this widget (may contain ``\n``)."""
         return self.get_text()[0]
 
     @property
@@ -147,7 +157,8 @@ class ANSIText(WidgetWrap[Text]):
         """The SGR/colour state in effect at the very end of this widget's text.
 
         Feed this in as ``previous_attr`` to a subsequently constructed :class:`ANSIText` to continue the same
-        colour state.
+        colour state; feed this widget itself instead to continue the character sets (such as the DEC
+        Special Graphics line drawing) as well.
         """
         return self._parsed.last_attr
 
@@ -186,7 +197,7 @@ class ANSIText(WidgetWrap[Text]):
         :param align: forwarded to the internal :class:`~urwid.Text`.
         :returns: a new :class:`ANSIText` wrapping ``parsed``.
         """
-        obj = cls.__new__(cls)
+        obj: ANSIText = cls.__new__(cls)
         obj._one_line = one_line
         WidgetWrap.__init__(obj, Text("", align=align, wrap=wrap))
         obj._set_parsed(parsed)
@@ -196,7 +207,7 @@ class ANSIText(WidgetWrap[Text]):
     def from_lines(
         cls,
         chunks: Iterable[str],
-        previous_attr: AttrSpec | None = None,
+        previous_attr: AttrSpec | ParsedLine | ANSIText | None = None,
         *,
         one_line: bool = False,
         **kwargs: typing.Any,
@@ -210,9 +221,8 @@ class ANSIText(WidgetWrap[Text]):
         calls :meth:`~urwid.ansi_parser.AnsiParser.finalize` only once the iterable is exhausted.
 
         If ``one_line`` is true, one :class:`ANSIText` is yielded per line the shared parser completes, in order,
-        with SGR colour state carried forward continuously: each produced :class:`ANSIText`'s ``previous_attr`` is
-        the previous one's :attr:`last_attr`, whether that previous line came from the same chunk or an earlier
-        one.
+        with SGR colour state and character sets carried forward continuously: each produced :class:`ANSIText`
+        continues from the previous one, whether that previous line came from the same chunk or an earlier one.
 
         If ``one_line`` is false (the default), this naturally reduces to yielding exactly *one* :class:`ANSIText`
         once every chunk has been consumed, representing the entire accumulated multi-chunk block resolved into
@@ -222,14 +232,15 @@ class ANSIText(WidgetWrap[Text]):
         :param chunks: an iterable of raw text chunks, not required to be aligned on line or escape-sequence
             boundaries.
         :param previous_attr: SGR/colour state to seed the shared parser with, as if it were carried over from
-            previously parsed text.
+            previously parsed text, or the :class:`ANSIText` or :class:`~urwid.ansi_parser.ParsedLine` of that text,
+            to carry its character sets in as well.
         :param one_line: parse in single-line-splitting mode (see the class docstring) rather than resolving the
             whole accumulated input into one multi-row block.
         :param kwargs: forwarded to :meth:`_from_parsed` (i.e. ``wrap``/``align`` for the internal
             :class:`~urwid.Text`).
-        :returns: an iterator yielding one or more :class:`ANSIText` instances, in order, depending on ``one_line``.
+        :yields: one or more :class:`ANSIText` instances, in order, depending on ``one_line``.
         """
-        parser = AnsiParser(previous_attr, one_line=one_line)
+        parser = AnsiParser(cls._previous_state(previous_attr), one_line=one_line)
         for chunk in chunks:
             parser.feed(chunk)
         for parsed in parser.finalize():

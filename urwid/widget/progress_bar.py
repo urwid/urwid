@@ -1,6 +1,12 @@
+"""ProgressBar: a flow widget that displays a completion percentage."""
+
 from __future__ import annotations
 
+import math
 import typing
+
+from urwid.str_util import calc_text_pos
+from urwid.util import get_encoding_mode, rle_subseg
 
 from .constants import BAR_SYMBOLS, Align, Sizing, WrapMode
 from .text import Text
@@ -13,8 +19,11 @@ if typing.TYPE_CHECKING:
 
 
 class ProgressBar(Widget):
+    """Flow widget that displays a completion percentage as a bar of Unicode block characters."""
+
     _sizing = frozenset([Sizing.FLOW])
 
+    # pyrefly: ignore[unsupported-operation]  # a str enum member is a str
     eighths = BAR_SYMBOLS.HORISONTAL[:8]  # Full width line is made by style
 
     text_align = Align.CENTER
@@ -23,11 +32,12 @@ class ProgressBar(Widget):
         self,
         normal: Hashable,
         complete: Hashable,
-        current: int = 0,
+        current: float = 0,
         done: int = 100,
         satt: Hashable = None,
     ) -> None:
-        """
+        """Build the progress bar with the given display attributes and range.
+
         :param normal: display attribute for incomplete part of progress bar
         :param complete: display attribute for complete part of progress bar
         :param current: current progress
@@ -35,7 +45,7 @@ class ProgressBar(Widget):
         :param satt: display attribute for smoothed part of bar where the
                      foreground of satt corresponds to the normal part and the
                      background corresponds to the complete part.
-                     If satt is ``None`` then no smoothing will be done.
+                     Smoothing requires UTF-8 encoding. If satt is ``None`` then no smoothing will be done.
 
         >>> from urwid import LineBox
         >>> pb = ProgressBar("a", "b")
@@ -77,10 +87,8 @@ class ProgressBar(Widget):
         self._label: Text | None = None
         self._render_label: Callable[..., TextCanvas] | None = None
 
-    def set_completion(self, current: int) -> None:
-        """
-        :param current: current progress
-        """
+    def set_completion(self, current: float) -> None:
+        """:param current: current progress"""
         self._current = current
         self._invalidate()
 
@@ -88,25 +96,46 @@ class ProgressBar(Widget):
 
     @property
     def done(self) -> int:
+        """Return the progress amount that represents 100%."""
         return self._done
 
     @done.setter
     def done(self, done: int) -> None:
-        """
-        :param done: progress amount at 100%
-        """
+        """:param done: progress amount at 100%"""
         self._done = done
         self._invalidate()
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the number of rows the progress bar occupies, always 1."""
         return 1
 
-    def get_text(self) -> str:
+    def _scaled_completion(self, scale: int) -> float:
+        """Return the completed fraction of the bar multiplied by ``scale``, clamped to ``[0, scale]``.
+
+        A ``done`` that is not positive, or a NaN result, counts as nothing completed.
+        When ``current`` or ``done`` is too large for a float, the bar is complete if ``current`` exceeds ``done``.
         """
-        Return the progress bar percentage text.
+        completed: float = 0
+        if self.done > 0:
+            try:
+                completed = self.current * scale / self.done
+                # Scaling finite progress can overflow even while its fraction
+                # is below one. Divide first only on that overflow path, so
+                # ordinary values keep their existing rounding behavior.
+                if math.isinf(completed) and 0 < self.current < self.done:
+                    completed = (self.current / self.done) * scale
+            except OverflowError:
+                completed = scale if self.current > self.done else 0
+        if math.isnan(completed):
+            return 0
+        return min(scale, max(0, completed))
+
+    def get_text(self) -> str:
+        """Return the progress bar percentage text.
+
         You can override this method to display custom text.
         """
-        percent = min(100, max(0, int(self.current * 100 / self.done)))
+        percent = int(self._scaled_completion(100))
         return f"{percent!s} %"
 
     def render(
@@ -114,9 +143,7 @@ class ProgressBar(Widget):
         size: tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas:
-        """
-        Render the progress bar.
-        """
+        """Render the progress bar."""
         # pylint: disable=protected-access
         (maxcol,) = size
         label, render_label = self._label, self._render_label
@@ -133,28 +160,37 @@ class ProgressBar(Widget):
             label.set_align_mode(self.text_align)
         c = render_label((maxcol,))
 
-        cf = float(self.current) * maxcol / self.done
-        ccol_dirty = int(cf)
-        ccol = len(c._text[0][:ccol_dirty].decode("utf-8", "ignore").encode("utf-8"))
-        cs = 0
-        if self.satt is not None:
-            cs = int((cf - ccol) * 8)
-        if ccol < 0 or (ccol == cs == 0):
-            c._attr = [[(self.normal, maxcol)]]
-        elif ccol >= maxcol:
-            c._attr = [[(self.complete, maxcol)]]
-        elif cs and c._text[0][ccol] == 32:
-            t = c._text[0]
-            cenc = self.eighths[cs].encode("utf-8")
-            c._text[0] = t[:ccol] + cenc + t[ccol + 1 :]
-            a = []
-            if ccol > 0:
-                a.append((self.complete, ccol))
-            a.append((self.satt, len(cenc)))
-            if maxcol - ccol - 1 > 0:
-                a.append((self.normal, maxcol - ccol - 1))
-            c._attr = [a]
-            c._cs = [[(None, len(c._text[0]))]]
+        cf = self._scaled_completion(maxcol)
+        completed_cols = int(cf)
+        t = c._text[0]
+        if t.isascii():
+            completed_bytes = completed_cols
         else:
-            c._attr = [[(self.complete, ccol), (self.normal, maxcol - ccol)]]
+            completed_bytes, _ = calc_text_pos(t, 0, len(t), completed_cols)
+        smoothing = 0
+        if self.satt is not None and get_encoding_mode() == "utf8":
+            smoothing = int((cf - completed_cols) * 8)
+        if completed_bytes == smoothing == 0:
+            c._attr = [[(self.normal, len(t))]]
+        elif cf >= maxcol:
+            c._attr = [[(self.complete, len(t))]]
+        elif smoothing and completed_bytes < len(t) and t[completed_bytes] == 32:
+            cenc = self.eighths[smoothing].encode("utf-8")
+            c._text[0] = t[:completed_bytes] + cenc + t[completed_bytes + 1 :]
+            a = []
+            if completed_bytes > 0:
+                a.append((self.complete, completed_bytes))
+            a.append((self.satt, len(cenc)))
+            if len(t) - completed_bytes - 1 > 0:
+                a.append((self.normal, len(t) - completed_bytes - 1))
+            c._attr = [a]
+            c._cs = [
+                [
+                    *rle_subseg(c._cs[0], 0, completed_bytes),
+                    (None, len(cenc)),
+                    *rle_subseg(c._cs[0], completed_bytes + 1, len(t)),
+                ]
+            ]
+        else:
+            c._attr = [[(self.complete, completed_bytes), (self.normal, len(t) - completed_bytes)]]
         return c

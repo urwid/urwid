@@ -1,41 +1,58 @@
+"""AttrWrap: the deprecated predecessor of AttrMap."""
+
 from __future__ import annotations
 
 import typing
-import warnings
+
+from urwid import _deprecation
 
 from .attr_map import AttrMap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable, Mapping
+    from collections.abc import Hashable
 
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+
+    from .attr_map import _AttrMapLike
     from .constants import Sizing
     from .widget import AbstractWidget
+else:
+    from urwid._deprecation import deprecated
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
+@deprecated(
+    "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead. "
+    "Deprecated since urwid 0.9.9, will be removed in version 7.0.",
+    category=None,
+)
 class AttrWrap(AttrMap[WrappedWidget]):
-    """
-    A special case of the :class:`AttrMap` widget that passes all function calls
-    and variable references on to the wrapped widget.
+    """A special case of the :class:`AttrMap` widget.
+
+    Passes all function calls and variable references on to the wrapped widget.
 
     .. deprecated:: 0.9.9
         Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
+        This API will be removed in version 7.0.
     """
 
     def __init__(
         self,
         w: WrappedWidget,
-        attr: Hashable | Mapping[Hashable, Hashable],
-        focus_attr: Hashable | Mapping[Hashable, Hashable] = None,
+        attr: _AttrMapLike,
+        focus_attr: _AttrMapLike = None,
     ) -> None:
-        """
+        """Build the widget from an existing widget and attribute mapping.
+
         :param w: widget to wrap (stored as self.original_widget)
         :param attr: attribute to apply to w
         :param focus_attr: attribute to apply when in focus, if None use attr
 
         .. deprecated:: 0.9.9
             Maintained for backwards compatibility only, new code should use :class:`AttrMap` instead.
+            This API will be removed in version 7.0.
 
         >>> from urwid import Divider, Edit, Text
         >>> AttrWrap(Divider("!"), "bright")
@@ -49,10 +66,10 @@ class AttrWrap(AttrMap[WrappedWidget]):
         >>> next(aw.render(size, focus=True).content())
         [('fgreet', None, ...'hi   ')]
         """
-        warnings.warn(
+        _deprecation.warn(
             "AttrWrap is maintained for backwards compatibility only, new code should use AttrMap instead.",
-            PendingDeprecationWarning,
-            stacklevel=2,
+            since="0.9.9",
+            removed_in="7.0",
         )
         super().__init__(w, attr, focus_attr)
 
@@ -65,63 +82,31 @@ class AttrWrap(AttrMap[WrappedWidget]):
             d["focus_attr"] = self.focus_attr
         return d
 
-    @property
-    def w(self) -> WrappedWidget:
-        """
-        The wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self.original_widget
-
-    @w.setter
-    def w(self, new_widget: WrappedWidget) -> None:
-        """
-        Replace the wrapped widget.
-
-        .. deprecated:: 0.9.9
-            The widget used to be stored as ``w``. Use :attr:`original_widget` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "backwards compatibility, widget used to be stored as original_widget. API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self.original_widget = new_widget
-
     def get_attr(self) -> Hashable:
+        """Return the attribute applied to the wrapped widget."""
         return typing.cast("Hashable", self.attr_map[None])
 
     def set_attr(self, attr: Hashable) -> None:
         """
-        Set the attribute to apply to the wrapped widget
+        Set the attribute to apply to the wrapped widget.
 
         >> w = AttrWrap(Divider("-"), None)
         >> w.set_attr('new_attr')
         >> w
         <AttrWrap flow widget <Divider flow widget '-'> attr='new_attr'>
         """
-        self.set_attr_map({None: attr})
+        self.set_attr_map(attr)
 
     attr = property(get_attr, set_attr)
 
     def get_focus_attr(self) -> Hashable | None:
+        """Return the attribute applied to the wrapped widget when it is in focus."""
         if focus_map := self.focus_map:
             return typing.cast("Hashable", focus_map[None])
         return None
 
     def set_focus_attr(self, focus_attr: Hashable) -> None:
-        """
-        Set the attribute to apply to the wapped widget when it is in
-        focus
+        """Set the attribute to apply to the wrapped widget when it is in focus.
 
         If None this widget will use the attr instead (no change when in
         focus).
@@ -134,7 +119,7 @@ class AttrWrap(AttrMap[WrappedWidget]):
         >> w
         <AttrWrap flow widget <Divider flow widget '-'> attr='old'>
         """
-        self.set_focus_map({None: focus_attr})
+        self.set_focus_map(focus_attr)
 
     focus_attr = property(get_focus_attr, set_focus_attr)
 
@@ -148,4 +133,5 @@ class AttrWrap(AttrMap[WrappedWidget]):
         return getattr(self._original_widget, name)
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return the sizing modes supported by the wrapped widget."""
         return self._original_widget.sizing()

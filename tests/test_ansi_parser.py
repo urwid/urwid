@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import os
+import typing
 import unittest
+from unittest import mock
 
+import urwid.display.raw
 from urwid.ansi_parser import (
     LOGGER,
+    MAX_OSC_LENGTH,
     AnsiParser,
+    CharsetState,
     ParsedLine,
     SkippedOp,
+    attrspec_with_hyperlink,
     parse_ansi_line,
     parse_ansi_text,
+    resolve_osc_hyperlink,
     sgi_params_to_attrspec,
 )
-from urwid.display import AttrSpec
+from urwid.display import NO_HYPERLINK, AttrSpec, Hyperlink, escape
 from urwid.util import rle_len
 
 
@@ -69,6 +77,27 @@ class SgrContinuationTest(unittest.TestCase):
         self.assertEqual(lines[0].last_attr, lines[1].attrib[0][0])
         self.assertIsNotNone(lines[0].last_attr)
 
+    def test_continuation_from_parsed_line(self) -> None:
+        """Carry the character sets as well when the previous ParsedLine itself is passed as previous_attr."""
+        lines = parse_ansi_line("\x0ea\nb\x0fc\x1b)A\nd")
+        self.assertEqual(
+            [CharsetState("B", "0", 1), CharsetState("B", "A", 0), CharsetState("B", "A", 0)],
+            [line.last_charsets for line in lines],
+        )
+        first = parse_ansi_line("\x1b[31m\x1b(A\x0eq")[-1]
+        self.assertEqual(CharsetState("A", "0", 1), first.last_charsets)
+        red = AttrSpec("dark red", "inherit")
+        for mode, line, attr_only in (
+            ("one_line", parse_ansi_line("q\x0fq", first)[0], parse_ansi_line("q\x0fq", first.last_attr)[0]),
+            ("block", parse_ansi_text("q\x0fq", first), parse_ansi_text("q\x0fq", first.last_attr)),
+        ):
+            with self.subTest(mode=mode):
+                self.assertEqual("\u2500q", line.text)
+                self.assertEqual([(red, 2)], line.attrib)
+                self.assertEqual(CharsetState("A", "0", 0), line.last_charsets)
+                # the attribute alone starts with the default character sets
+                self.assertEqual("qq", attr_only.text)
+
 
 class StreamingFeedTest(unittest.TestCase):
     def test_chunked_feed_matches_single_call(self) -> None:
@@ -80,6 +109,21 @@ class StreamingFeedTest(unittest.TestCase):
         single = parse_ansi_line("abc\nd")
         self.assertEqual([line.text for line in single], [line.text for line in streamed])
         self.assertEqual([line.attrib for line in single], [line.attrib for line in streamed])
+
+    def test_sgr_settings_reset_and_reenabled_across_feed_calls(self) -> None:
+        parser = AnsiParser(one_line=True)
+        for chunk in ("\x1b[3;9ma", "\x1b[23mb", "\x1b[3mc"):
+            parser.feed(chunk)
+        lines = parser.finalize()
+
+        self.assertEqual(
+            [
+                (AttrSpec("inherit,italics,strikethrough", "inherit"), 1),
+                (AttrSpec("inherit,strikethrough,no-italics", "inherit"), 1),
+                (AttrSpec("inherit,italics,strikethrough", "inherit"), 1),
+            ],
+            lines[0].attrib,
+        )
 
     def test_line_end_split_across_feed_calls(self) -> None:
         parser = AnsiParser(one_line=True)
@@ -141,79 +185,161 @@ class HorizontalMovementTest(unittest.TestCase):
 
 class StripAndLogTest(unittest.TestCase):
     def _assert_skip(self, text: str, kind: str, level: str) -> SkippedOp:
-        with self.assertLogs(LOGGER, level="INFO") as captured:
+        with self.assertLogs(LOGGER, level="DEBUG") as captured:
             lines = parse_ansi_line(text)
         line = lines[0]
         self.assertTrue(line.skipped, f"expected a SkippedOp for {text!r}")
         op = line.skipped[0]
         self.assertEqual(kind, op.kind)
-        self.assertTrue(any(record.levelname == level for record in captured.records))
+        self.assertEqual({level}, {record.levelname for record in captured.records})
         return op
 
     def test_vertical_move_up_down(self) -> None:
-        self._assert_skip("\x1b[2A", "vertical-move", "INFO")
-        self._assert_skip("\x1b[2B", "vertical-move", "INFO")
+        self._assert_skip("\x1b[2A", "vertical-move", "DEBUG")
+        self._assert_skip("\x1b[2B", "vertical-move", "DEBUG")
 
     def test_vertical_move_next_prev_line(self) -> None:
-        self._assert_skip("\x1b[1E", "vertical-move", "INFO")
-        self._assert_skip("\x1b[1F", "vertical-move", "INFO")
+        self._assert_skip("\x1b[1E", "vertical-move", "DEBUG")
+        self._assert_skip("\x1b[1F", "vertical-move", "DEBUG")
 
     def test_vertical_move_absolute_row(self) -> None:
-        self._assert_skip("\x1b[5d", "vertical-move", "INFO")
+        self._assert_skip("\x1b[5d", "vertical-move", "DEBUG")
 
     def test_vertical_move_row_col(self) -> None:
-        self._assert_skip("\x1b[3;4H", "vertical-move", "INFO")
-        self._assert_skip("\x1b[3;4f", "vertical-move", "INFO")
+        self._assert_skip("\x1b[3;4H", "vertical-move", "DEBUG")
+        self._assert_skip("\x1b[3;4f", "vertical-move", "DEBUG")
 
     def test_terminal_setting_modes(self) -> None:
-        self._assert_skip("\x1b[?25h", "terminal-setting", "INFO")
-        self._assert_skip("\x1b[?25l", "terminal-setting", "INFO")
+        self._assert_skip("\x1b[?25h", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[?25l", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_scroll_region(self) -> None:
-        self._assert_skip("\x1b[1;10r", "terminal-setting", "INFO")
+        self._assert_skip("\x1b[1;10r", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_erase(self) -> None:
-        self._assert_skip("\x1b[2J", "terminal-setting", "INFO")
-        self._assert_skip("\x1b[K", "terminal-setting", "INFO")
+        self._assert_skip("\x1b[2J", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[K", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_save_restore_cursor(self) -> None:
-        self._assert_skip("\x1b[s", "terminal-setting", "INFO")
-        self._assert_skip("\x1b[u", "terminal-setting", "INFO")
-        self._assert_skip("\x1b7", "terminal-setting", "INFO")
-        self._assert_skip("\x1b8", "terminal-setting", "INFO")
+        self._assert_skip("\x1b[s", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[u", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b7", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b8", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_charset(self) -> None:
-        self._assert_skip("\x1b(B", "terminal-setting", "INFO")
-        self._assert_skip("\x1b%G", "terminal-setting", "INFO")
+        self._assert_skip("\x1b%G", "terminal-setting", "DEBUG")
+
+    def test_fbterm_setting_other_than_a_color(self) -> None:
+        """Skip an fbterm sequence that sets no color, such as a palette entry, and a color index out of range."""
+        self._assert_skip("\x1b[3;1;2;3}", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[1;256}", "unknown", "DEBUG")
 
     def test_terminal_setting_reset(self) -> None:
-        self._assert_skip("\x1bc", "terminal-setting", "INFO")
+        self._assert_skip("\x1bc", "terminal-setting", "DEBUG")
+
+    def test_escape_interrupted_by_escape(self) -> None:
+        """Drop a sequence still being read at an ESC, record it as skipped, and parse the new sequence."""
+        red = AttrSpec("dark red", "inherit")
+        interrupted = "escape sequence interrupted by ESC"
+        for text, skipped, expected_text, attrib in (
+            ("\x1b[3\x1b[31mx", [("\x1b[3", interrupted)], "x", [(red, 1)]),
+            ("\x1b\x1b[31mx", [("\x1b", interrupted)], "x", [(red, 1)]),
+            ("\x1b(\x1b(0q", [("\x1b(", interrupted)], "\u2500", [(None, 1)]),
+            ("\x1b#\x1b[31mx", [("\x1b#", interrupted)], "x", [(red, 1)]),
+            ("\x1b%\x1b[31mx", [("\x1b%", interrupted)], "x", [(red, 1)]),
+            # the first ESC ends the OSC string unapplied and starts a sequence that the second one drops
+            (
+                "\x1b]0;t\x1b\x1b[31mx",
+                [("\x1b]0;t", "unterminated OSC string"), ("\x1b", interrupted)],
+                "x",
+                [(red, 1)],
+            ),
+            (
+                f"\x1b[{'1' * 300}\x1b[31mx",
+                [
+                    (
+                        f"\x1b[{'1' * 256}",
+                        f"{interrupted}, its CSI parameters of 256 characters or more truncated",
+                    )
+                ],
+                "x",
+                [(red, 1)],
+            ),
+        ):
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(text=text[:20], one_line=one_line, split=split):
+                        parser = AnsiParser(one_line=one_line)
+                        parser.feed(text[:split])
+                        parser.feed(text[split:])
+                        (line,) = parser.finalize()
+                        self.assertEqual(expected_text, line.text)
+                        self.assertEqual(attrib, line.attrib)
+                        self.assertEqual(skipped, [(op.raw, op.reason) for op in line.skipped])
+
+    def test_escape_with_hash_intermediate_is_no_single_character_sequence(self) -> None:
+        """Skip ESC # followed by a final other than 8 as unknown, not as the sequence of that final alone."""
+        for final in "cHM7":
+            with self.subTest(final=final):
+                self._assert_skip(f"\x1b#{final}", "unknown", "DEBUG")
+        self.assertEqual("\u2500", parse_ansi_text("\x0e\x1b#cq").text)
 
     def test_terminal_setting_insert_delete(self) -> None:
         for final in "@LMPX":
-            self._assert_skip(f"\x1b[1{final}", "terminal-setting", "INFO")
+            self._assert_skip(f"\x1b[1{final}", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_device_queries(self) -> None:
-        self._assert_skip("\x1b[c", "terminal-setting", "INFO")
-        self._assert_skip("\x1b[5n", "terminal-setting", "INFO")
+        self._assert_skip("\x1b[c", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[5n", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_tabstops(self) -> None:
-        self._assert_skip("\x1bH", "terminal-setting", "INFO")
-        self._assert_skip("\x1b[g", "terminal-setting", "INFO")
+        self._assert_skip("\x1bH", "terminal-setting", "DEBUG")
+        self._assert_skip("\x1b[g", "terminal-setting", "DEBUG")
 
     def test_terminal_setting_osc_palette(self) -> None:
-        self._assert_skip("\x1b]Pnrrggbbx", "terminal-setting", "INFO")
-        self._assert_skip("\x1b]R", "terminal-setting", "INFO")
+        """Skip a palette set, which ends with its 7th hex digit, and a palette reset, keeping the text after them."""
+        for text, raw in (("\x1b]Pabcdef0xy", "\x1b]Pabcdef0"), ("\x1b]Rxy", "\x1b]R")):
+            with self.subTest(text=text):
+                op = self._assert_skip(text, "terminal-setting", "DEBUG")
+                self.assertEqual(raw, op.raw)
+                self.assertEqual("xy", parse_ansi_text(text).text)
+
+    def test_osc_palette_set_cut_short_by_escape(self) -> None:
+        """End a palette set cut short by ST or by a new sequence at the ESC, not take the ESC as its 7th digit."""
+        line = parse_ansi_text("\x1b]Pabcdef\x1b\\xy")
+        self.assertEqual("xy", line.text)
+        self.assertEqual([("terminal-setting", "\x1b]Pabcdef")], [(op.kind, op.raw) for op in line.skipped])
+        line = parse_ansi_text("\x1b]Pabcdef\x1b[31mxy")
+        self.assertEqual("xy", line.text)
+        self.assertEqual([(AttrSpec("dark red", "inherit"), 2)], line.attrib)
 
     def test_terminal_setting_unrecognised_osc(self) -> None:
-        self._assert_skip("\x1b]666parsed right?\x1b\\", "terminal-setting", "INFO")
+        self._assert_skip("\x1b]666parsed right?\x1b\\", "terminal-setting", "DEBUG")
 
-    def test_unknown_csi_logs_warning(self) -> None:
-        op = self._assert_skip("\x1b[9~", "unknown", "WARNING")
+    def test_unknown_csi_logs_debug(self) -> None:
+        op = self._assert_skip("\x1b[9~", "unknown", "DEBUG")
         self.assertEqual("unknown", op.kind)
 
-    def test_unknown_escape_logs_warning(self) -> None:
-        self._assert_skip("\x1b|", "unknown", "WARNING")
+    def test_unknown_escape_logs_debug(self) -> None:
+        self._assert_skip("\x1b|", "unknown", "DEBUG")
+
+    def test_csi_with_sub_parameters_or_intermediate_bytes_is_skipped_whole(self) -> None:
+        """Strip a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
+        for sequence in (
+            "\x1b[38:5:196m",
+            "\x1b[38:2::255:0:0m",
+            "\x1b[4:3m",
+            "\x1b[2 q",
+            "\x1b[>4;1m",
+            "\x1b[=5u",
+            "\x1b[!p",
+        ):
+            with self.subTest(sequence=sequence):
+                op = self._assert_skip(f"{sequence}text", "unknown", "DEBUG")
+                self.assertEqual(sequence, op.raw)
+                line = parse_ansi_text(f"{sequence}text")
+                self.assertEqual("text", line.text)
+                self.assertIsNone(line.last_attr)
 
     def test_never_raises(self) -> None:
         # a grab-bag of recognised and unrecognised sequences must never
@@ -271,6 +397,96 @@ class SideChannelTest(unittest.TestCase):
         self.assertIsNone(lines[1].leds)
 
 
+class HyperlinkTest(unittest.TestCase):
+    """OSC 8 sets the hyperlink of the text written after it, independently of SGR."""
+
+    LINK = Hyperlink("https://urwid.org", id="home")
+
+    def test_link_opened_and_closed(self) -> None:
+        """Link the text between the opening and the closing OSC 8, with either terminator."""
+        for terminator in ("\x07", "\x1b\\"):
+            with self.subTest(terminator=terminator):
+                line = parse_ansi_text(f"a\x1b]8;id=home;https://urwid.org{terminator}link\x1b]8;;{terminator}b")
+                self.assertEqual("alinkb", line.text)
+                self.assertEqual(
+                    [(None, 1), (AttrSpec(hyperlink=self.LINK), 4), (None, 1)],
+                    line.attrib,
+                )
+                self.assertEqual([], line.skipped)
+                self.assertIsNone(line.last_attr)
+
+    def test_sgr_does_not_end_link(self) -> None:
+        """Keep the link through SGR changes and SGR 0, as terminals do."""
+        line = parse_ansi_text("\x1b]8;;https://urwid.org\x07\x1b[31ma\x1b[0mb\x1b]8;;\x07\x1b[31mc")
+        link = Hyperlink("https://urwid.org")
+        self.assertEqual(
+            [
+                (AttrSpec("dark red", "inherit", hyperlink=link), 1),
+                (AttrSpec(hyperlink=link), 1),
+                (AttrSpec("dark red", "inherit"), 1),
+            ],
+            line.attrib,
+        )
+
+    def test_link_carried_to_next_line(self) -> None:
+        """Carry the link across line ends and into a parser seeded with ``last_attr``."""
+        first, second = parse_ansi_line("\x1b]8;id=home;https://urwid.org\x07a\nb")
+        self.assertEqual([(AttrSpec(hyperlink=self.LINK), 1)], second.attrib)
+        (continued,) = parse_ansi_line("c\x1b]8;;\x07d", first.last_attr)
+        self.assertEqual([(AttrSpec(hyperlink=self.LINK), 1), (None, 1)], continued.attrib)
+
+    def test_invalid_link_ends_current_link(self) -> None:
+        """Skip an OSC 8 command urwid cannot draw, and draw the text after it without the previous link."""
+        for body in ("8;;https://urwid.org/\u00e9", "8;id=x", f"8;;{'u' * 2084}"):
+            with self.subTest(body=body[:20]):
+                line = parse_ansi_text(f"\x1b]8;;https://urwid.org\x07a\x1b]{body}\x07b")
+                self.assertEqual("ab", line.text)
+                self.assertEqual([(AttrSpec(hyperlink="https://urwid.org"), 1), (None, 1)], line.attrib)
+                self.assertEqual(
+                    [SkippedOp("unknown", f"\x1b]{body}", "invalid OSC 8 hyperlink, current link ended")],
+                    line.skipped,
+                )
+
+    def test_overlong_link_ends_current_link(self) -> None:
+        """End the current link at an OSC 8 command too long to buffer, as at any other refused one."""
+        line = parse_ansi_text(f"\x1b]8;;https://urwid.org\x07a\x1b]8;;{'u' * MAX_OSC_LENGTH}\x07b")
+        self.assertEqual("ab", line.text)
+        self.assertEqual([(AttrSpec(hyperlink="https://urwid.org"), 1), (None, 1)], line.attrib)
+
+    def test_link_on_attrspec_subclass(self) -> None:
+        """Set a link over a ``previous_attr`` whose class constructor takes no ``hyperlink`` keyword."""
+
+        class LegacyAttrSpec(AttrSpec):
+            def __init__(self, fg: str, bg: str, colors: int = 256) -> None:  # type: ignore[override]
+                super().__init__(fg, bg, colors)  # type: ignore[arg-type]
+
+        (line,) = parse_ansi_line("\x1b]8;;https://urwid.org\x07a", LegacyAttrSpec("dark red", "inherit"))
+        self.assertEqual([(AttrSpec("dark red", "inherit", hyperlink="https://urwid.org"), 1)], line.attrib)
+
+    def test_resolve_osc_hyperlink(self) -> None:
+        """Take the id parameter, ignore other parameters, and keep ``;`` inside the URI."""
+        cases = {
+            "8;;https://urwid.org": Hyperlink("https://urwid.org"),
+            "8;foo=bar:id=home:baz;https://urwid.org/a;b": Hyperlink("https://urwid.org/a;b", id="home"),
+            "08;;https://urwid.org": Hyperlink("https://urwid.org"),
+            "8;id=home;": NO_HYPERLINK,
+            "2;title": None,
+            "666": None,
+        }
+        for body, expected in cases.items():
+            with self.subTest(body=body):
+                self.assertEqual(expected, resolve_osc_hyperlink(body))
+
+    def test_attrspec_with_hyperlink_removal(self) -> None:
+        """Return ``None`` for an attribute left with nothing but unset colors, and keep any other attribute."""
+        linked = AttrSpec("default", "default", hyperlink=self.LINK)
+        self.assertIsNone(attrspec_with_hyperlink(linked, NO_HYPERLINK, unset_color="default"))
+        self.assertEqual(
+            AttrSpec("default,bold", "default"),
+            attrspec_with_hyperlink(linked.copy_modified(fg="default,bold"), None, unset_color="default"),
+        )
+
+
 class SgiParamsToAttrspecTest(unittest.TestCase):
     def test_basic_foreground(self) -> None:
         self.assertEqual(AttrSpec("dark red", "default"), sgi_params_to_attrspec([31], None))
@@ -314,7 +530,10 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         self.assertIsNone(reset)
 
     def test_default_default_is_none(self) -> None:
-        self.assertIsNone(sgi_params_to_attrspec([39, 49], None))
+        """Return no attribute for default colors, also after a reset of a setting that was never set."""
+        for params in ([39, 49], [22], [23], [29]):
+            with self.subTest(params=params):
+                self.assertIsNone(sgi_params_to_attrspec(params, None))
 
     def test_never_raises_on_charset_codes(self) -> None:
         # SGR 10/11/12 toggle vterm-only charset/display-control state;
@@ -324,6 +543,150 @@ class SgiParamsToAttrspecTest(unittest.TestCase):
         result = sgi_params_to_attrspec([31, 11], None)
         self.assertEqual(AttrSpec("dark red", "default"), result)
 
+    def test_extended_color_value_zero_is_no_reset(self) -> None:
+        """Keep the settings and the other color when an extended color ends in a 0, and reset on a final SGR 0."""
+        previous = sgi_params_to_attrspec([1, 44], None)
+        for params, expected in (
+            ([38, 5, 0], AttrSpec("h0,bold", "h4", 256)),
+            ([38, 2, 1, 2, 0], AttrSpec("#010200,bold", "dark blue", 16777216)),
+            ([1, 0], None),
+            ([38, 5, 1, 0], None),
+            ([38, 2, 1, 2, 3, 0], None),
+        ):
+            with self.subTest(params=params):
+                self.assertEqual(expected, sgi_params_to_attrspec(params, previous))
+
+    def test_bold_without_brightening(self) -> None:
+        """Keep bold a setting of its own, apart from the brightness of the foreground, without bright_is_bold."""
+        for steps, expected in (
+            ([[31, 1]], AttrSpec("dark red,bold", "inherit")),
+            ([[1, 31], [4]], AttrSpec("dark red,bold,underline", "inherit")),
+            ([[91, 1]], AttrSpec("light red,bold", "inherit")),
+            ([[91, 1], [22]], AttrSpec("light red,no-bold,no-faint", "inherit")),
+        ):
+            with self.subTest(steps=steps):
+                attr = None
+                for params in steps:
+                    attr = sgi_params_to_attrspec(params, attr, unset_color="inherit", bright_is_bold=False)
+                self.assertEqual(expected, attr)
+
+    def test_applied_on_top_of_previous(self) -> None:
+        """Apply each step of SGR parameters on top of the attribute the steps before it produced.
+
+        Cases by unset_color:
+
+        - 'default': a color keeps its own depth and brightness, and a setting stays, when other parameters change.
+        - 'inherit': unset colors and settings are left to the enclosing attribute.
+          SGR 22, 23 and 29 are kept as 'no-' settings, and SGR 0 clears everything.
+        """
+        for label, unset_color, steps, expected in (
+            (
+                "default: 256-color foreground beside a true-color background",
+                "default",
+                [[38, 5, 100, 48, 2, 1, 2, 3]],
+                AttrSpec("#878700", "#010203", colors=2**24),
+            ),
+            (
+                "default: basic foreground beside a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3, 31]],
+                AttrSpec("dark red", "#010203", colors=2**24),
+            ),
+            (
+                "default: basic foreground after a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3], [31]],
+                AttrSpec("dark red", "#010203", colors=2**24),
+            ),
+            (
+                "default: 256-color foreground after a true-color background",
+                "default",
+                [[48, 2, 1, 2, 3], [38, 5, 100]],
+                AttrSpec("#878700", "#010203", colors=2**24),
+            ),
+            (
+                "default: bright foreground keeps its brightness",
+                "default",
+                [[91], [4]],
+                AttrSpec("light red,underline", "default"),
+            ),
+            (
+                "default: bright background keeps its brightness",
+                "default",
+                [[101], [4]],
+                AttrSpec("default,underline", "light red"),
+            ),
+            (
+                "default: bold brightening stays while bold",
+                "default",
+                [[1, 31], [4]],
+                AttrSpec("light red,bold,underline", "default"),
+            ),
+            ("default: bold brightening goes with bold", "default", [[1, 31], [22]], AttrSpec("dark red", "default")),
+            ("default: italics kept across a color", "default", [[3], [31]], AttrSpec("dark red,italics", "default")),
+            (
+                "default: strikethrough kept across a color",
+                "default",
+                [[9], [31]],
+                AttrSpec("dark red,strikethrough", "default"),
+            ),
+            ("inherit: foreground only", "inherit", [[31]], AttrSpec("dark red", "inherit")),
+            ("inherit: SGR 39 resets the foreground", "inherit", [[31, 44], [39]], AttrSpec("inherit", "dark blue")),
+            ("inherit: SGR 0 resets everything", "inherit", [[31, 44], [0]], None),
+            (
+                "inherit: SGR 22 turns bold off",
+                "inherit",
+                [[31, 1], [22]],
+                AttrSpec("dark red,no-bold,no-faint", "inherit"),
+            ),
+            (
+                "inherit: SGR 1 turns bold on again",
+                "inherit",
+                [[31, 1], [22], [1]],
+                AttrSpec("light red,bold,no-faint", "inherit"),
+            ),
+            ("inherit: SGR 0 clears a reset", "inherit", [[22], [0]], None),
+            (
+                "inherit: a reset survives explicit colors",
+                "inherit",
+                [[22], [31, 41], [39, 49]],
+                AttrSpec("inherit,no-bold,no-faint", "inherit"),
+            ),
+            ("inherit: SGR 3 italics", "inherit", [[3]], AttrSpec("inherit,italics", "inherit")),
+            (
+                "inherit: italics kept across colors",
+                "inherit",
+                [[3], [31, 44]],
+                AttrSpec("dark red,italics", "dark blue"),
+            ),
+            ("inherit: SGR 23 turns italics off", "inherit", [[3], [23]], AttrSpec("inherit,no-italics", "inherit")),
+            ("inherit: italics on again", "inherit", [[3], [23], [3]], AttrSpec("inherit,italics", "inherit")),
+            ("inherit: SGR 9 strikethrough", "inherit", [[9]], AttrSpec("inherit,strikethrough", "inherit")),
+            (
+                "inherit: strikethrough kept across colors",
+                "inherit",
+                [[9], [31, 44]],
+                AttrSpec("dark red,strikethrough", "dark blue"),
+            ),
+            (
+                "inherit: SGR 29 turns strikethrough off",
+                "inherit",
+                [[9], [29]],
+                AttrSpec("inherit,no-strikethrough", "inherit"),
+            ),
+            (
+                "inherit: strikethrough on again",
+                "inherit",
+                [[9], [29], [9]],
+                AttrSpec("inherit,strikethrough", "inherit"),
+            ),
+        ):
+            with self.subTest(label):
+                attr = None
+                for params in steps:
+                    attr = sgi_params_to_attrspec(params, attr, unset_color=unset_color)
+                self.assertEqual(expected, attr)
+
 
 class ParsedLineDataclassTest(unittest.TestCase):
     def test_fields_have_expected_defaults(self) -> None:
@@ -332,6 +695,13 @@ class ParsedLineDataclassTest(unittest.TestCase):
         self.assertIsNone(line.title)
         self.assertIsNone(line.leds)
         self.assertEqual([], line.skipped)
+        self.assertEqual(CharsetState("B", "0", 0), line.last_charsets)
+
+    def test_charset_state_refuses_other_slots(self) -> None:
+        """Refuse a selected slot other than G0 or G1 when the state is built."""
+        for selected in (-1, 2):
+            with self.subTest(selected=selected), self.assertRaises(ValueError):
+                CharsetState(selected=selected)  # type: ignore[arg-type]
 
     def test_rle_len_matches_text_length(self) -> None:
         lines = parse_ansi_line("\x1b[31mred\x1b[0m and plain")
@@ -434,14 +804,14 @@ class AnsiParserScreenModeTest(unittest.TestCase):
         self.assertEqual("caps_lock", result.leds)
 
     def test_terminal_setting_still_stripped_and_logged(self) -> None:
-        with self.assertLogs(LOGGER, level="INFO"):
+        with self.assertLogs(LOGGER, level="DEBUG"):
             result = parse_ansi_text("a\x1b[2Jb")
         self.assertTrue(result.skipped)
         self.assertEqual("terminal-setting", result.skipped[0].kind)
         self.assertEqual("ab", result.text)
 
     def test_terminal_setting_save_restore_cursor_still_stripped(self) -> None:
-        with self.assertLogs(LOGGER, level="INFO"):
+        with self.assertLogs(LOGGER, level="DEBUG"):
             result = parse_ansi_text("a\x1b[sb")
         self.assertTrue(result.skipped)
         self.assertEqual("terminal-setting", result.skipped[0].kind)
@@ -456,6 +826,495 @@ class AnsiParserScreenModeTest(unittest.TestCase):
 
         result = parse_ansi_text("\x1b[31mred\nplain\rover\x1b[1Bnext")
         self.assertEqual(len(result.text), rle_len(result.attrib))
+
+
+class UntrustedInputBoundsTest(unittest.TestCase):
+    """Escape sequences from untrusted input cannot make the parser allocate without bound or raise.
+
+    Each input is large enough to exceed the parser's limits, yet small enough to stay cheap if a limit regresses.
+    """
+
+    def test_cursor_right_and_absolute_column_are_bounded(self) -> None:
+        """Cap the CSI C step and the CSI G column."""
+        for text in ("\x1b[100000Cx", "\x1b[100000Gx", "ab\x1b[100000Gx"):
+            with self.subTest(text=text):
+                line = parse_ansi_line(text)[0]
+                self.assertLessEqual(len(line.text), 1025)
+                self.assertTrue(line.text.endswith(" x"))
+
+    def test_cursor_right_step_is_capped_on_long_lines(self) -> None:
+        """Advance a cursor past a long line by the full step, capped per sequence."""
+        line = parse_ansi_line("a" * 1500 + "\x1b[3Cy")[0]
+        self.assertTrue(line.text.endswith("a   y"))
+        line = parse_ansi_line("a" * 1500 + "\x1b[100000Cy")[0]
+        self.assertEqual(1500 + 1024 + 1, len(line.text))
+
+    def test_cursor_down_and_absolute_row_are_bounded(self) -> None:
+        """Cap the CSI B and E steps and the CSI d and H rows and columns."""
+        for text in ("\x1b[100000Bx", "\x1b[100000Ex", "\x1b[100000dx", "\x1b[100000;100000Hx"):
+            with self.subTest(text=text):
+                rows = parse_ansi_text(text).text.split("\n")
+                self.assertLessEqual(len(rows), 1025)
+                self.assertLessEqual(len(rows[-1]), 1024)
+                self.assertTrue(rows[-1].endswith("x"))
+
+    def test_cursor_down_step_is_capped_below_many_rows(self) -> None:
+        """Advance a cursor below many newline rows by the full step, capped per sequence."""
+        result = parse_ansi_text("\n" * 2000 + "\x1b[5Bx")
+        self.assertEqual(2006, len(result.text.split("\n")))
+        result = parse_ansi_text("\n" * 2000 + "\x1b[100000Bx")
+        self.assertEqual(2000 + 1024 + 1, len(result.text.split("\n")))
+
+    def test_overlong_csi_parameter_is_skipped(self) -> None:
+        """Skip a CSI parameter longer than the default 4300-digit limit of int()."""
+        result = parse_ansi_text("a\x1b[" + "9" * 5000 + "mb")
+        self.assertEqual("ab", result.text)
+        self.assertIsNone(result.last_attr)
+        self.assertEqual(["unknown"], [op.kind for op in result.skipped])
+
+    def test_unterminated_csi_buffer_is_bounded(self) -> None:
+        """Stop buffering CSI parameters at the length bound."""
+        parser = AnsiParser()
+        parser.feed("\x1b[" + "1;" * 10000)
+        self.assertLessEqual(len(parser._escbuf), 640)
+
+    def test_unterminated_osc_buffer_is_bounded(self) -> None:
+        """Stop buffering an OSC string at the length bound."""
+        parser = AnsiParser()
+        parser.feed("\x1b]0;" + "A" * 100000)
+        self.assertLessEqual(len(parser._escbuf), 10000)
+
+    def test_overlong_osc_is_skipped_up_to_its_terminator(self) -> None:
+        """Skip an over-long OSC string, discarding it up to either terminator."""
+        for terminator in ("\x07", "\x1b\\"):
+            with self.subTest(terminator=terminator):
+                result = parse_ansi_text("a\x1b]0;" + "A" * 10000 + terminator + "b")
+                self.assertEqual(["unknown"], [op.kind for op in result.skipped])
+                self.assertEqual("ab", result.text)
+                self.assertIsNone(result.title)
+
+    def test_out_of_range_extended_colours_are_ignored(self) -> None:
+        """Ignore a 256-colour index or truecolour component outside 0..255."""
+        for params in ([38, 5, 99999999], [48, 5, 256], [38, 2, 999, 999, 999], [48, 2, 0, 0, 256]):
+            with self.subTest(params=params):
+                self.assertIsNone(sgi_params_to_attrspec(params, None))
+                # the colour's own parameters are consumed, the rest still applies
+                self.assertEqual(AttrSpec("dark red", "default"), sgi_params_to_attrspec([*params, 31], None))
+
+    def test_out_of_range_colour_through_parser(self) -> None:
+        """Ignore out-of-range extended colours in parsed text."""
+        result = parse_ansi_line("\x1b[38;5;99999999mX\x1b[38;2;999;999;999mY")[0]
+        self.assertEqual("XY", result.text)
+        self.assertIsNone(result.last_attr)
+
+    def test_skipped_list_is_capped(self) -> None:
+        """Record only the first 65536 skipped sequences, in both modes, also for a run of ESC bytes."""
+        for text, first in (
+            ("\x1b[2J" + "\x1b[K" * 70000, ["\x1b[2J", "\x1b[K"]),
+            ("\x1b" * 70000, ["\x1b", "\x1b"]),
+        ):
+            for one_line in (True, False):
+                with self.subTest(text=text[:4], one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    skipped = parser.finalize()[0].skipped
+                    self.assertEqual(65536, len(skipped))
+                    self.assertEqual(first, [op.raw for op in skipped[:2]])
+
+    def test_skipped_cap_is_per_line_in_one_line_mode(self) -> None:
+        """Start each line with an empty skipped list, so a full line does not cap the next one."""
+        parser = AnsiParser(one_line=True)
+        parser.feed("\x1b[K" * 70000 + "\n\x1b[K")
+        lines = parser.finalize()
+        self.assertEqual([65536, 1], [len(line.skipped) for line in lines])
+
+    def test_column_padding_is_bounded(self) -> None:
+        """Limit the cells padded to reach moved columns to 1024 * 1024 plus 8 per input character."""
+        for unit in ("\n\x1b[1024Gx", "\x1b[1024Cx"):
+            text = unit * 3000
+            for one_line in (True, False):
+                with self.subTest(unit=unit, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    lines = parser.finalize()
+                    cells = sum(len(line.text) - line.text.count("\n") for line in lines)
+                    self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
+                    skipped = [op for line in lines for op in line.skipped if op.raw == unit[-8:-1]]
+                    self.assertTrue(skipped)
+
+    def test_row_padding_is_bounded(self) -> None:
+        """Limit the empty rows vertical moves insert, each counted as 8 cells."""
+        text = "\x1b[1024Bx" * 500
+        result = parse_ansi_text(text)
+        rows = result.text.split("\n")
+        self.assertLessEqual(8 * len(rows) + sum(map(len, rows)), 1024 * 1024 + 8 * len(text) + 500)
+        self.assertEqual(500, "".join(rows).count("x"))
+        self.assertIn("\x1b[1024B", [op.raw for op in result.skipped])
+
+    def test_padding_cut_is_recorded_against_the_column_move(self) -> None:
+        """Record a cut against the column move, not a vertical move one_line mode skips."""
+        line = parse_ansi_line("\x1b[1024C" * 1100 + "\x1b[5Ax")[0]
+        cut = [op.raw for op in line.skipped if op.reason.startswith("padding limit")]
+        self.assertEqual(["\x1b[1024C"], cut)
+
+    def test_padding_budget_spans_feed_calls(self) -> None:
+        """Grow the padding budget with every feed call, up to the same limit as one call with all the text."""
+        text = "\n\x1b[1024Gx" * 3000
+        parser = AnsiParser()
+        for start in range(0, len(text), 7):
+            parser.feed(text[start : start + 7])
+        result = parser.finalize()[0].text
+        cells = len(result) - result.count("\n")
+        self.assertLessEqual(cells, 1024 * 1024 + 8 * len(text) + 3000)
+        self.assertGreater(cells, 1024 * 1024 + 3000)
+
+    def test_sparse_full_screen_drawing_is_kept(self) -> None:
+        """Keep the padding of a sparse drawing far below the padding limit."""
+        result = parse_ansi_text("\x1b[1;1Htop\x1b[60;200Hmid\x1b[1000;1000Hend")
+        expected = ["top"] + [""] * 58 + [" " * 199 + "mid"] + [""] * 939 + [" " * 999 + "end"]
+        self.assertEqual(expected, result.text.split("\n"))
+        self.assertEqual([], result.skipped)
+
+
+class OscTerminationTest(unittest.TestCase):
+    """An ESC inside an OSC string either starts the ST terminator or ends the string and starts a new sequence."""
+
+    def _parse_chunked(self, chunks: list[str], one_line: bool) -> ParsedLine:
+        parser = AnsiParser(one_line=one_line)
+        for chunk in chunks:
+            parser.feed(chunk)
+        return parser.finalize()[0]
+
+    def test_unterminated_osc_ends_at_escape(self) -> None:
+        """End an OSC string at an ESC not followed by a backslash, unapplied, and parse what follows."""
+        text = "a\x1b]0;title\x1b[31mred text\x07b"
+        red = sgi_params_to_attrspec([31], None, unset_color="inherit")
+        for one_line in (True, False):
+            for split in range(len(text) + 1):
+                with self.subTest(one_line=one_line, split=split):
+                    line = self._parse_chunked([text[:split], text[split:]], one_line)
+                    self.assertEqual("ared textb", line.text)
+                    self.assertEqual([(None, 1), (red, 9)], line.attrib)
+                    self.assertIsNone(line.title)
+                    self.assertEqual(1, line.bel)
+                    self.assertEqual([("unknown", "\x1b]0;title")], [(op.kind, op.raw) for op in line.skipped])
+
+    def test_osc_terminated_by_st_across_feed_calls(self) -> None:
+        """Apply an OSC title whose ESC backslash terminator is split across two feed calls."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["\x1b]0;title\x1b", "\\rest"], one_line)
+                self.assertEqual("title", line.title)
+                self.assertEqual("rest", line.text)
+
+    def test_title_never_contains_escape(self) -> None:
+        """Take the title from the OSC string an ESC starts, not from the unterminated one before it."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["\x1b]0;ti\x1b", "]0;tle\x07x"], one_line)
+                self.assertEqual("tle", line.title)
+                self.assertEqual("x", line.text)
+
+    def test_control_characters_in_osc_are_ignored(self) -> None:
+        """Neither execute a control character inside an OSC string nor take it into the body, as a terminal does."""
+        link = AttrSpec(hyperlink="https://urwid.org")
+        for control in ("\n", "\r", "\r\n", "\n\r", "\x00", "\x01", "\b", "\t"):
+            text = f"a\x1b]8;;https://ur{control}wid.org\x07b\x1b]0;ti{control}tle\x07\x1b]8;;\x07c"
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(control=control, one_line=one_line, split=split):
+                        line = self._parse_chunked([text[:split], text[split:]], one_line)
+                        self.assertEqual("abc", line.text)
+                        self.assertEqual([(None, 1), (link, 1), (None, 1)], line.attrib)
+                        self.assertEqual("title", line.title)
+                        self.assertEqual([], line.skipped)
+
+    def test_osc_cancelled_by_can_and_sub(self) -> None:
+        """Abort an OSC string unapplied at CAN or SUB, and parse what follows as text."""
+        for cancel in ("\x18", "\x1a"):
+            text = f"a\x1b]0;ti{cancel}tle\x07b"
+            for one_line in (True, False):
+                for split in range(len(text) + 1):
+                    with self.subTest(cancel=cancel, one_line=one_line, split=split):
+                        line = self._parse_chunked([text[:split], text[split:]], one_line)
+                        self.assertEqual("atleb", line.text)
+                        self.assertIsNone(line.title)
+                        self.assertEqual(1, line.bel)
+                        self.assertEqual([("unknown", "\x1b]0;ti")], [(op.kind, op.raw) for op in line.skipped])
+
+    def test_delete_in_osc_is_kept(self) -> None:
+        """Keep DEL inside an OSC string as part of it, as a terminal does."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;ti\x7ftle\x07b"], one_line)
+                self.assertEqual("ab", line.text)
+                self.assertEqual("ti\x7ftle", line.title)
+
+    def test_control_after_escape_in_osc_is_executed(self) -> None:
+        """Execute a control character between an ESC and the rest of an OSC string, as a terminal does."""
+        for control, text in (("\n", "a\nb"), ("\t", "a       b"), ("\x00", "ab"), ("\x01", "ab"), ("\b", "b")):
+            with self.subTest(control=control):
+                line = parse_ansi_text(f"a\x1b]0;t\x1b{control}\\b")
+                self.assertEqual(text, line.text)
+                self.assertEqual("t", line.title)
+                self.assertEqual([], line.skipped)
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;tx\x1b\tbc"], one_line)
+                self.assertEqual("a       c", line.text)
+                self.assertIsNone(line.title)
+                self.assertEqual(["\x1b]0;tx", "\x1bb"], [op.raw for op in line.skipped])
+
+    def test_unterminated_osc_hides_the_rest(self) -> None:
+        """Hide all text after an OSC string left unterminated, line ends included, and record it once."""
+        for text, raw in (("a\x1b]0;x\nb\nc", "\x1b]0;xbc"), ("a\x1b]0;x\nb\x1b", "\x1b]0;xb")):
+            for one_line in (True, False):
+                with self.subTest(text=text, one_line=one_line):
+                    parser = AnsiParser(one_line=one_line)
+                    parser.feed(text)
+                    lines = parser.finalize()
+                    self.assertEqual(["a"], [line.text for line in lines])
+                    self.assertEqual([("unknown", raw)], [(op.kind, op.raw) for op in lines[0].skipped])
+
+    def test_overlong_osc_discard_ignores_line_end(self) -> None:
+        """Keep discarding an over-long OSC string over a line end inside it, up to its terminator."""
+        lines = parse_ansi_line("a\x1b]0;" + "A" * 5000 + "\nB\x07b\nc")
+        self.assertEqual(["ab", "c"], [line.text for line in lines])
+        self.assertEqual([None, None], [line.title for line in lines])
+        self.assertEqual([1, 0], [len(line.skipped) for line in lines])
+
+    def test_overlong_osc_discard_ends_at_escape(self) -> None:
+        """End the discarded remainder of an over-long OSC string at an ESC not followed by a backslash."""
+        red = sgi_params_to_attrspec([31], None, unset_color="inherit")
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                line = self._parse_chunked(["a\x1b]0;" + "A" * 5000 + "\x1b", "[31mb"], one_line)
+                self.assertEqual("ab", line.text)
+                self.assertEqual([(None, 1), (red, 1)], line.attrib)
+                self.assertIsNone(line.title)
+
+
+class ControlCharacterTest(unittest.TestCase):
+    """C0 control characters are executed as in a terminal, and an escape sequence around them continues."""
+
+    RED = AttrSpec("dark red", "inherit")
+
+    def test_escape_continues_on_the_next_line(self) -> None:
+        """Apply an escape sequence split by a line end to the next line in one_line mode, also across chunks."""
+        cases = (
+            ("a\x1b[3\n1mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b[3\x0b1mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b\r\n[31mR", [[(None, 1)], [(self.RED, 1)]], ["a", "R"]),
+            ("a\x1b(\nBb", [[(None, 1)], [(None, 1)]], ["a", "b"]),
+        )
+        for text, attribs, texts in cases:
+            for split in range(len(text) + 1):
+                with self.subTest(text=text, split=split):
+                    parser = AnsiParser(one_line=True)
+                    parser.feed(text[:split])
+                    parser.feed(text[split:])
+                    lines = parser.finalize()
+                    self.assertEqual(texts, [line.text for line in lines])
+                    self.assertEqual(attribs, [line.attrib for line in lines])
+                    self.assertEqual([None, self.RED if "R" in texts else None], [line.last_attr for line in lines])
+
+    def test_osc_title_after_escape_and_line_end(self) -> None:
+        """End an OSC string at ESC, line end, backslash, setting the title on the next line in one_line mode."""
+        lines = parse_ansi_line("a\x1b]0;t\x1b\n\\b")
+        self.assertEqual(["a", "b"], [line.text for line in lines])
+        self.assertEqual([None, "t"], [line.title for line in lines])
+
+    def test_vertical_tab_and_form_feed_are_line_feeds(self) -> None:
+        """Move one row down in the same column, or complete the line in one_line mode, also inside an escape."""
+        for control in ("\v", "\f"):
+            with self.subTest(control=control):
+                self.assertEqual("ab\n  c", parse_ansi_text(f"ab{control}c").text)
+                self.assertEqual(["ab", "c"], [line.text for line in parse_ansi_line(f"ab{control}c")])
+                line = parse_ansi_text(f"a\x1b{control}[31mR")
+                self.assertEqual("a\n R", line.text)
+                self.assertEqual([(None, 3), (self.RED, 1)], line.attrib)
+                self.assertEqual([], line.skipped)
+
+    def test_other_controls_are_ignored(self) -> None:
+        """Ignore other C0 control characters in text and inside an escape sequence, which continues."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                parser = AnsiParser(one_line=one_line)
+                parser.feed("a\x01b\x1b[3\x0e1mR\x1b\x0f[0mc")
+                (line,) = parser.finalize()
+                self.assertEqual("abRc", line.text)
+                self.assertEqual([(None, 2), (self.RED, 1), (None, 1)], line.attrib)
+                self.assertEqual([], line.skipped)
+
+    def test_c1_characters_in_osc_are_kept(self) -> None:
+        """Keep U+0080 to U+009F inside an OSC string as part of it, as tmux does with UTF-8 input."""
+        for one_line in (True, False):
+            with self.subTest(one_line=one_line):
+                parser = AnsiParser(one_line=one_line)
+                parser.feed("a\x1b]0;t\x9c\x9b\x80le\x07b")
+                (line,) = parser.finalize()
+                self.assertEqual("ab", line.text)
+                self.assertEqual("t\x9c\x9b\x80le", line.title)
+
+
+class RawDisplayRoundTripTest(unittest.TestCase):
+    """Parse back what the raw display writes for each attribute and character set it draws."""
+
+    def _screen(
+        self,
+        *,
+        colors: typing.Literal[16, 88, 256, 16777216],
+        bright_is_bold: bool = False,
+        term: str = "xterm",
+    ) -> urwid.display.raw.Screen:
+        # the properties detected from TERM follow term, rather than the TERM of the host running the test
+        with mock.patch.dict(os.environ, {"TERM": term}):
+            screen = urwid.display.raw.Screen()
+        screen.set_terminal_properties(colors=colors, bright_is_bold=bright_is_bold, hyperlinks=True)
+        return screen
+
+    def _drawn(self, screen: urwid.display.raw.Screen, attr: AttrSpec) -> str:
+        """Return the text the raw display writes for "x" drawn with *attr*."""
+        # the escape draw_screen() writes for an attribute, without the cursor and line-erase sequences around it
+        return f"{screen._attr_to_escape(attr)}x"  # pylint: disable=protected-access
+
+    def _round_trip(self, screen: urwid.display.raw.Screen, fg: str, bg: str) -> AttrSpec | None:
+        line = parse_ansi_text(self._drawn(screen, screen.AttrSpec(fg, bg)))
+        self.assertEqual("x", line.text)
+        self.assertEqual([], line.skipped)
+        return line.last_attr
+
+    def test_attributes(self) -> None:
+        """Parse each color and setting back as drawn, with the terminal default colors left to the enclosing widget."""
+        basic = (
+            ("dark red", "dark blue"),
+            ("light red", "dark blue"),
+            ("dark red,bold", "default"),
+            ("yellow", "light gray"),
+            ("black", "light blue"),
+            *(
+                (f"default,{setting}", "default")
+                for setting in ("bold", "faint", "italics", "underline", "blink", "standout", "strikethrough")
+            ),
+        )
+        for screen, cases in (
+            (self._screen(colors=16), basic),
+            (self._screen(colors=256), (*basic, ("#f80", "#008"), ("h123", "h45"))),
+            (self._screen(colors=16777216), (*basic, ("#123456", "#abcdef"))),
+        ):
+            for fg, bg in cases:
+                with self.subTest(colors=screen.colors, fg=fg, bg=bg):
+                    expected = AttrSpec(
+                        fg.replace("default", "inherit"),
+                        bg.replace("default", "inherit"),
+                        screen.colors,
+                    )
+                    attr = self._round_trip(screen, fg, bg)
+                    self.assertEqual(expected.foreground, attr.foreground if attr else "inherit")
+                    self.assertEqual(expected.background, attr.background if attr else "inherit")
+
+    def test_hyperlink(self) -> None:
+        """Parse an OSC 8 hyperlink back with the colors drawn before it."""
+        screen = self._screen(colors=256)
+        link = Hyperlink("https://urwid.org", id="home")
+        line = parse_ansi_text(self._drawn(screen, screen.AttrSpec("dark red", "default", hyperlink=link)))
+        self.assertEqual(AttrSpec("dark red", "inherit", hyperlink=link), line.last_attr)
+
+    def test_fbterm_colors(self) -> None:
+        """Parse fbterm's colors back as the 256-color palette entries drawn."""
+        screen = self._screen(colors=256, term="fbterm")
+        for fg, bg in (("dark red", "dark blue"), ("yellow", "light gray"), ("#f80", "#008")):
+            with self.subTest(fg=fg, bg=bg):
+                drawn = screen.AttrSpec(fg, bg)
+                attr = self._round_trip(screen, fg, bg)
+                self.assertEqual(AttrSpec(f"h{drawn.foreground_number}", f"h{drawn.background_number}", 256), attr)
+
+    def test_ambiguous_attributes(self) -> None:
+        """Parse an escape that two attributes share as the one it most commonly means elsewhere."""
+        # a terminal that draws bold text in bright colors gets bright colors as bold
+        screen = self._screen(colors=16, bright_is_bold=True)
+        self.assertEqual(AttrSpec("dark red,bold", "inherit"), self._round_trip(screen, "light red", "default"))
+        # the Linux console draws blink as a bright background
+        screen = self._screen(colors=16)
+        screen.bg_bright_is_blink = True
+        self.assertEqual(AttrSpec("dark red,blink", "dark blue"), self._round_trip(screen, "dark red", "light blue"))
+        # an 88-color index is read as the 256-color index of the same number
+        screen = self._screen(colors=88)
+        self.assertEqual(AttrSpec("h68", "h17", 256), self._round_trip(screen, "#f80", "#008"))
+
+    def test_dec_special_graphics(self) -> None:
+        """Draw the characters the raw display shifts in as DEC Special Graphics, as the terminal shows them."""
+        drawn = escape.DEC_SPECIAL_CHARS.translate(escape.DEC_SPECIAL_CHARMAP)
+        for designation in ("", escape.DESIGNATE_G1_SPECIAL):
+            with self.subTest(designation=designation):
+                line = parse_ansi_text(f"{designation}a{drawn}b")
+                self.assertEqual(f"a{escape.DEC_SPECIAL_CHARS}b", line.text)
+                self.assertEqual([], line.skipped)
+
+    def test_charset_designation(self) -> None:
+        """Draw ASCII again once G1 is designated ASCII, and DEC Special Graphics once G0 is designated it."""
+        for text, expected in (
+            ("\x1b)B\x0eq\x0f-q", "q-q"),
+            ("q\x1b(0q\x1b(Bq", "q\u2500q"),
+        ):
+            with self.subTest(text=text):
+                line = parse_ansi_text(text)
+                self.assertEqual(expected, line.text)
+                self.assertEqual([], line.skipped)
+
+    def test_unsupported_charset_designation(self) -> None:
+        """Draw an unsupported character set as ASCII and record its designation as skipped."""
+        for designation in ("\x1b(A", "\x1b)U", "\x1b(["):
+            with self.subTest(designation=designation):
+                # the designated slot is selected with SI for G0 and SO for G1, both set to DEC Special Graphics first
+                shift = "\x0e" if designation.startswith("\x1b)") else "\x0f"
+                line = parse_ansi_text(f"\x1b(0\x1b)0{designation}{shift}q")
+                self.assertEqual("q", line.text)
+                self.assertEqual(
+                    [
+                        SkippedOp(
+                            "terminal-setting", designation, "unsupported character set designation, drawn as ASCII"
+                        )
+                    ],
+                    line.skipped,
+                )
+
+    def test_charset_state_within_one_parser(self) -> None:
+        """Keep the selected character set across lines and feed() calls, and drop a designation CAN aborts."""
+        lines = parse_ansi_line("\x0eq\nq\x0f\nq")
+        self.assertEqual(["\u2500", "\u2500", "q"], [line.text for line in lines])
+
+        for chunks in (("\x1b(0", "q"), ("\x0e", "q"), ("\x1b(", "0q")):
+            with self.subTest(chunks=chunks):
+                parser = AnsiParser()
+                for chunk in chunks:
+                    parser.feed(chunk)
+                self.assertEqual("\u2500", parser.finalize()[0].text)
+
+        line = parse_ansi_text("\x1b(\x180q")
+        self.assertEqual("0q", line.text)
+
+    def test_terminal_reset_selects_ascii(self) -> None:
+        """Designate US ASCII to G0 and G1 and select G0 on a terminal reset, keeping the SGR state."""
+        # G1 is designated DEC Special Graphics again after the reset, so the text stays ASCII only with G0 selected
+        line = parse_ansi_text("\x1b(0\x1b)0\x0e\x1b[31mq\x1bcq\x1b)0q")
+        self.assertEqual("\u2500qq", line.text)
+        self.assertEqual([(AttrSpec("dark red", "inherit"), 3)], line.attrib)
+        self.assertEqual(["terminal-setting"], [op.kind for op in line.skipped])
+        self.assertEqual("\u2500q", parse_ansi_text("\x1b)0\x0eq\x1bc\x0eq").text)
+
+    def test_fbterm_color_keeps_other_attributes(self) -> None:
+        """Keep the settings and the hyperlink in effect when an fbterm color is set, and read an empty index as 0."""
+        link = Hyperlink("https://urwid.org")
+        line = parse_ansi_text("\x1b]8;;https://urwid.org\x1b\\\x1b[1;31m\x1b[2;4}x\x1b[1;}y")
+        self.assertEqual(
+            [
+                (AttrSpec("h1,bold", "h4", 256, hyperlink=link), 1),
+                (AttrSpec("h0,bold", "h4", 256, hyperlink=link), 1),
+            ],
+            line.attrib,
+        )
+        self.assertEqual("terminal-setting", parse_ansi_line("\x1b[;3}")[0].skipped[0].kind)
 
 
 if __name__ == "__main__":

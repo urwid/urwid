@@ -22,6 +22,11 @@ Deque-like List Walkers
 
 .. autoclass:: SimpleDequeWalker
 
+Filtering List Walkers
+----------------------
+
+.. autoclass:: FilteredListWalker
+
 TreeWalker and Nodes
 --------------------
 

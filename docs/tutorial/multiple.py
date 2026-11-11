@@ -3,11 +3,11 @@ from __future__ import annotations
 import urwid
 
 
-def question():
+def question() -> urwid.Pile:
     return urwid.Pile([urwid.Edit(("I say", "What is your name?\n"))])
 
 
-def answer(name):
+def answer(name: str) -> urwid.Text:
     return urwid.Text(("I say", f"Nice to meet you, {name}\n"))
 
 
@@ -22,7 +22,7 @@ class ConversationListBox(urwid.ListBox):
             return key
         name = self.focus[0].edit_text
         if not name:
-            raise urwid.ExitMainLoop()
+            raise urwid.ExitMainLoop
         # replace or add response
         self.focus.contents[1:] = [(answer(name), self.focus.options())]
         pos = self.focus_position

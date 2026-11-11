@@ -14,6 +14,7 @@ Urwid Reference
    global_settings
    attrspec
    canvas
+   testing
    text_layout
    command_map
    constants

@@ -16,17 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - name: Set up Python
-        uses: actions/setup-python@v7
-        with:
-          python-version: '3.x'
       - name: Install uv
-        uses: astral-sh/setup-uv@v10.0.1
+        uses: astral-sh/setup-uv@v10.3.3
       - name: Create virtual environment
-        run: uv venv --python-preference only-system
+        run: uv venv --python 3.14
       - name: Install package with all extras
         run: uv pip install -e ".[curses,serial,tornado,trio,twisted,zmq]"
       - name: Install dependencies
         run: uv pip install --upgrade -r mypy-requirements.txt
+      # tests other than tests/type_checks are not checked, see [tool.ruff] extend-exclude in pyproject.toml
       - name: Type check with mypy
-        run: uv run --no-project mypy urwid
+        run: uv run --no-project mypy urwid examples tests/type_checks

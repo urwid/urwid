@@ -18,6 +18,8 @@
 # Urwid web site: https://urwid.org/
 
 
+"""Fonts for the BigText widget, and the registry they are looked up in."""
+
 from __future__ import annotations
 
 import typing
@@ -35,7 +37,7 @@ if typing.TYPE_CHECKING:
 
 
 def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[str]]], bool]:
-    """return (dictionary of glyphs, utf8 required)
+    """Return (dictionary of glyphs, utf8 required).
 
     :raises ValueError: *gdata* contains tabs, does not have *height* plus one lines per glyph, or has a glyph whose
         columns do not line up.
@@ -98,28 +100,6 @@ def separate_glyphs(gdata: str, height: int) -> tuple[dict[str, tuple[int, list[
     return result, utf8_required
 
 
-def add_font(name: str, cls: FontRegistry) -> None:
-    """
-    Register a font class under the given name.
-
-    :param name: name to register the font class under
-    :param cls: the font class to register
-
-    .. deprecated:: 2.2.0
-        Set the ``name`` attribute on the font class, pass the ``font_name`` metaclass keyword argument,
-        or call ``Font.register(<name>)`` instead. This API will be removed in version 5.0.
-    """
-    warnings.warn(
-        "`add_font` is deprecated, please set 'name' attribute to the font class,"
-        " use metaclass keyword argument 'font_name'"
-        " or use `Font.register(<name>)`"
-        "API will be removed in version 5.0.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    cls.register(name)
-
-
 class FontRegistryWarning(UserWarning):
     """FontRegistry warning."""
 
@@ -143,7 +123,7 @@ class FontRegistry(type):
         return cls.__registered.get(item)
 
     def __class_getitem__(mcs, item: str) -> FontRegistry | None:
-        """Get font by name if registered.
+        r"""Get font by name if registered.
 
         This method is needed to get access to font from registry class.
         >>> from urwid.util import set_temporary_encoding
@@ -154,8 +134,8 @@ class FontRegistry(type):
         3
         >>> with set_temporary_encoding("utf-8"):
         ...     canvas: TextCanvas = font.render("+")
-        >>> b"\\n".join(canvas.text).decode("utf-8")
-        '  \\n ┼\\n  '
+        >>> b"\n".join(canvas.text).decode("utf-8")
+        '  \n ┼\n  '
         """
         return mcs.__registered.get(item)
 
@@ -176,6 +156,10 @@ class FontRegistry(type):
         namespace: dict[str, typing.Any],
         **kwds: typing.Any,
     ) -> FontRegistry:
+        """Create the new font class and register it under its ``name``, if any.
+
+        :warns FontRegistryWarning: another font class is already registered under the same name.
+        """
         font_name: str = namespace.setdefault("name", kwds.get("font_name", ""))
         font_class = super().__new__(mcs, name, bases, namespace)
         if font_name:
@@ -234,6 +218,7 @@ class Font(metaclass=FontRegistry):
                 self.add_glyphs(gdata)
 
     def __repr__(self) -> str:
+        """Return the class name as a no-argument constructor call."""
         return f"{self.__class__.__name__}()"
 
     def __str__(self) -> str:
@@ -241,19 +226,23 @@ class Font(metaclass=FontRegistry):
         return f"{self.__class__.__name__}():\n  {self.height!r}\n  {pformat(self.data, indent=4)}"
 
     def add_glyphs(self, gdata: str) -> None:
+        """Parse *gdata* into glyphs and add them to this font's character set."""
         d, utf8_required = separate_glyphs(gdata, self.height)
         self.char.update(d)
         self.utf8_required |= utf8_required
 
     def characters(self) -> str:
+        """Return the characters this font has glyphs for, in sorted order."""
         return "".join(sorted(self.char))
 
     def char_width(self, character: str) -> int:
+        """Return the glyph width of *character*, or 0 if this font has no glyph for it."""
         if character in self.char:
             return self.char[character][0]
         return 0
 
     def char_data(self, character: str) -> list[str]:
+        """Return the raw glyph data rows for *character*."""
         return self.char[character][1]
 
     def render(self, character: str) -> TextCanvas:
@@ -289,6 +278,8 @@ class Font(metaclass=FontRegistry):
 
 
 class Thin3x3Font(Font):
+    """3x3 glyph font drawn with thin box-drawing lines, registered as ``"Thin 3x3"``."""
+
     name = "Thin 3x3"
     height = 3
     data = (
@@ -298,16 +289,36 @@ class Thin3x3Font(Font):
 │ │ │ ┌─┘ ─┤└─┼└─┐├─┐  ┼├─┤└─┤  │
 └─┘ ┴ └─ └─┘  ┴ ─┘└─┘  ┴└─┘ ─┘  .
 """,
+        """
+AAABBBCCCDDDEEEFFF
+┌─┐┬─┐┌─ ┬─┐┌─ ┌─
+├─┤├─┤│  │ │├─ ├─
+┴ ┴┴─┘└─ ┴─┘└─ ┴
+""",
+        r"""
+((())){{{|||}}}~~~
+ ╭  ╮  ┌  │  ┐
+ │  │ ─┤  │  ├─/\/
+ ╰  ╯  └  │  ┘
+""",
         r"""
 "###$$$%%%'*++,--.///:;==???[[\\\]]^__`
 " ┼┼┌┼┐O /'         /.. _┌─┐┌ \   ┐^  `
   ┼┼└┼┐ /  * ┼  ─  / ., _ ┌┘│  \  │
     └┼┘/ O    ,  ./       . └   \ ┘ ──
 """,
+        r"""
+−−−×××
+   \ /
+─── X
+   / \
+""",  # noqa: RUF001
     )
 
 
 class Thin4x3Font(Font):
+    """4x3 glyph font drawn with thin box-drawing lines, registered as ``"Thin 4x3"``."""
+
     name = "Thin 4x3"
     height = 3
     data = (
@@ -318,10 +329,89 @@ class Thin4x3Font(Font):
 │  │  │ ┌──┘  ─┤└──┼└──┐├──┐   ┼├──┤└──┤   ┼─┼└┼┼┐
 └──┘  ┴ └── └──┘   ┴ ──┘└──┘   ┴└──┘ ──┘      └┼┼┘
 """,
+        r"""
+AAAABBBBCCCCDDDDEEEEFFFFGGGGHHHHIJJJJKKKKLLLLMMMMNNNNOOOOPPPPQQQQRRRRSSSSTTTUUUUVVVVWWWWXXXXYYYYZZZZ
+┌──┐┬──┐┌──┐┬──┐┌───┌───┌── ┬  ┬┬   ┐┬ ┌─┬   ┌┐┌┐┬  ┬╭──╮┌──┐┌──┐┌──┐┌──┐───┬  ┬┬  ┬┬  ┬\  /\  /────
+├──┤├──┤│   │  │├── ├── │ ─┐├──┤│   │├─┘ │   │└┘││\ ││  │├──┘│  │├──┘└──┐ │ │  │ \/ │┌┐│ \/  \/  /
+┴  ┴┴──┘└──┘┴──┘└───┴   └──┘┴  ┴┴└──┘┴ └─└───┴  ┴┴  ┴╰──╯┴   └─\┘┴ └─└──┘ ┴ └──┘  ┴ └┘└┘ /\   ┴ ────
+""",
+        r"""
+&&&&(())<<<>>@@@@{{||}}~~~~
+┌┐  ╭ ╮      ┌─┐ ┌ │ ┐
+┼┼┘ │ │  / \ │└┤ ┤ │ ├ /\/
+└┘└ ╰ ╯  \ / └── └ │ ┘
+""",
+    )
+
+
+class Thin5x4Font(Font):
+    """5x4 glyph font drawn with thin box-drawing lines, registered as ``"Thin 5x4"``."""
+
+    name = "Thin 5x4"
+    height = 4
+    data = (
+        """
+  000001112222233333444445555566666777778888899999
+  ┌──┐  ┐ ┌──┐ ┌──┐ ┐  ┐ ┌─── ┌─── ───┐ ┌──┐ ┌──┐
+  │  │  │    │  ──┤ │  │ └──┐ ├──┐    │ ├──┤ │  │
+  │  │  │ ┌──┘    │ └──┼    │ │  │    │ │  │ └──┤
+  └──┘  ┴ └─── └──┘    ┴ ───┘ └──┘    ┴ └──┘ ───┘
+""",
+        r'''
+!!"""######$$$$$%%%%%&&&&&''(())****++++,,----../////
+│ ││  ┼ ┼  ┌┼┼┐ O  / ┌─┐  │ ┌ ┐                    /
+│    ─┼─┼─ └┼┼┐   /  ├┼┘    │ │ \|/  │            /
+│    ─┼─┼─ ┌┼┼┘  /   │└┼┐   │ │ /|\ ─┼─   ───    /
+.     ┼ ┼  └┼┼┘ /  O └─┘└   └ ┘      │  ,     . /
+''',
+        r"""
+::;;<<<====>>>?????@@@@@[[[\\\\\]]]^^^_____``{{{||}}}~~~~~~
+     /     \  ┌──┐ ┌──┐ ┌─ \    ─┐ /\      \  ┌ │ ┐
+. . /  ───  \  ┌─┘ │┌─┤ │   \    │            │ │ │  ╭─╮
+    \  ───  /  │   │└─┘ │    \   │           ─┤ │ ├─   ╰─╯
+. ,  \     /   .   └─── └─    \ ─┘    ────    └ │ ┘
+""",
+        """
+AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKKLLLLLMMMMM
+┌──┐ ┬──┐ ┌──┐ ┬──┐ ┬─── ┬─── ┌──┐ ┬  ┬ ┬    ┬ ┬  ┌ ┬    ┌┐┌┐
+├──┤ ├──┤ │    │  │ ├──  ├──  │    ├──┤ │    │ │┌─┘ │    │└┘│
+│  │ │  │ │    │  │ │    │    │ ─┐ │  │ │ ┬  │ ├┴┐  │    │  │
+┴  ┴ ┴──┘ └──┘ ┴──┘ ┴─── ┴    └──┘ ┴  ┴ ┴ └──┘ ┴ └─ └─── ┴  ┴
+""",
+        r"""
+NNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTUUUUUVVVVVWWWWWXXXXXYYYYZZZZZ
+┬  ┬ ╭──╮ ┬──┐ ┌──┐ ┬──┐ ┌──┐ ─┬─ ┬  ┬ ┬  ┬ ┬  ┬ ┐  ┌ ┬ ┬ ───┐
+│\ │ │  │ ├──┘ │  │ ├─┬┘ └──┐  │  │  │ │  │ │  │ └┐┌┘ └┬┘  ┌─┘
+│ \│ │  │ │    │ ┐│ │ └┐    │  │  │  │ └┐┌┘ │┌┐│ ┌┘└┐  │  ┌┘
+┴  ┴ ╰──╯ ┴    └─┼┘ ┴  ┴ └──┘  ┴  └──┘  └┘  └┘└┘ ┘  └  ┴  └───
+""",
+        """
+aaaaabbbbbcccccdddddeeeeefffggggghhhhhiijjjjkkkkllmmmmmm
+     │            │      ┌─      │    .   . │   │
+┌──┐ ├──┐ ┌──┐ ┌──┤ ┌──┐ ┼─ ┌──┐ ├──┐ ┐   ┐ │┌─ │ ┬─┬─┐
+┌──┤ │  │ │    │  │ ├──┘ │  └──┤ │  │ │   │ ├┴┐ │ │ │ │
+└──┴ └──┘ └──┘ └──┘ └──┘ ┴  └──┘ ┴  ┴ ┴ ──┘ ┴ └ └ ┴ ┴ ┴
+""",
+        """
+nnnnnooooopppppqqqqqrrrrsssssttttuuuuuvvvvvwwwwwwxxxxxyyyyyzzzzz
+                              │
+┬──┐ ┌──┐ ┬──┐ ┌──┬ ┬─┐ ┌──┐ ─┼─ ┬  ┬ ┬  ┬ ┬ ┬ ┬ ─┐┌─ ┬  ┬ ───┐
+│  │ │  │ ├──┘ └──┤ │   └──┐  │  │  │ └┐┌┘ │ │ │  ├┤  └──┤ ┌──┘
+┴  ┴ └──┘ ┴       ┴ ┴   └──┘  └─ └──┴  └┘  └─┴─┘ ─┘└─ └──┘ └───
+""",
+        r"""
+−−−−−×××××
+
+      \ /
+────   X
+      / \
+""",  # noqa: RUF001
     )
 
 
 class Sextant3x3Font(Font):
+    """3x3 glyph font drawn with Unicode sextant block characters, registered as ``"Sextant 3x3"``."""
+
     name = "Sextant 3x3"
     height = 3
     data = (
@@ -367,28 +457,56 @@ RRRSSSTTTUUUVVVWWWXXXYYYZZZ[[[]]]^^^___```
  🬁🬢
 
 """,
+        """
+{{{|||}}}~~~
+ 🬔🬀 ▌ 🬁🬧
+🬁🬓  ▌  🬦🬀🬅🬈🬅
+ 🬁🬀 ▌ 🬁🬀
+""",
+        """
+−−−×××
+   🬏 🬞
+🬋🬋🬋🬠🬋🬐
+   🬀 🬁
+""",  # noqa: RUF001
     )
 
 
 class Sextant2x2Font(Font):
+    """2x2 glyph font drawn with Unicode sextant block characters, registered as ``"Sextant 2x2"``."""
+
     name = "Sextant 2x2"
     height = 2
-    data = """
+    data = (
+        """
 ..,,%%00112233445566778899
     🬁🬖▐🬨🬇▌🬁🬗🬠🬸🬦▐▐🬒▐🬭🬁🬙▐🬸▐🬸
 🬇 🬇🬀🬁🬇🬉🬍 🬄🬉🬋🬇🬍🬁🬊🬇🬅🬉🬍 🬄🬉🬍 🬉
-"""
+""",
+        """
+--++**//==−−××
+🬞🬏🬞🬱🬇🬖 🬔🬇🬋🬞🬭🬢🬖
+   🬀🬁🬁🬉 🬁🬂  🬀🬁
+""",  # noqa: RUF001
+        """
+AABBCCDDEEFF
+▐🬸▐🬗▐🬂▐🬧▐🬒▐🬒
+🬉🬉🬉🬅🬉🬋🬉🬅🬉🬋🬉
+""",
+    )
 
 
 class HalfBlock5x4Font(Font):
+    """5x4 glyph font drawn with half-block characters, registered as ``"Half Block 5x4"``."""
+
     name = "Half Block 5x4"
     height = 4
     data = (
         """
 00000111112222233333444445555566666777778888899999  !!
 ▄▀▀▄  ▄█  ▄▀▀▄ ▄▀▀▄ ▄  █ █▀▀▀ ▄▀▀  ▀▀▀█ ▄▀▀▄ ▄▀▀▄   █
-█  █   █    ▄▀   ▄▀ █▄▄█ █▄▄  █▄▄    ▐▌ ▀▄▄▀ ▀▄▄█   █
-█  █   █  ▄▀   ▄  █    █    █ █  █   █  █  █    █   ▀
+█ ▄█   █    ▄▀   ▄▀ █▄▄█ █▄▄  █▄▄    ▐▌ ▀▄▄▀ ▀▄▄█   █
+█▀ █   █  ▄▀   ▄  █    █    █ █  █   █  █  █    █   ▀
  ▀▀   ▀▀▀ ▀▀▀▀  ▀▀     ▀ ▀▀▀   ▀▀    ▀   ▀▀   ▀▀    ▀
 """,
         '''
@@ -399,18 +517,18 @@ class HalfBlock5x4Font(Font):
     ▀ ▀   ▀▀▀   ▀ ▀  ▀▀   ▀ ▀              ▄▀      ▀ ▀
 ''',
         r"""
-<<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''```
-  ▄▀      ▀▄   ▄▀▀▄ ▄▀▀▀▄ █▀▀ ▐▌  ▀▀█ ▄▀▄     ▀▄  ▄▀ █ ▀▄   ▄  █ ▄▀
+<<<<<=====>>>>>?????@@@@@@[[[[\\\\]]]]^^^^____```{{{{||}}}}~~~~''
+  ▄▀      ▀▄   ▄▀▀▄ ▄▀▀▀▄ █▀▀ ▐▌  ▀▀█ ▄▀▄     ▀▄  ▄▀ █ ▀▄   ▄  █
 ▄▀   ▀▀▀▀   ▀▄   ▄▀ █ █▀█ █    █    █            ▄▀  █  ▀▄ ▐▐▌▌
  ▀▄  ▀▀▀▀  ▄▀    ▀  █ ▀▀▀ █    ▐▌   █             █  █  █    ▀
-   ▀      ▀      ▀   ▀▀▀  ▀▀▀   ▀ ▀▀▀     ▀▀▀▀     ▀ ▀ ▀
+   ▀      ▀      ▀   ▀▀▀  ▀▀▀   ▀ ▀▀▀     ▀▀▀▀     ▀ █ ▀
 """,
         """
-AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIJJJJJKKKKK
-▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ █    █ █  █
-█▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█ █    █ █▄▀
-█  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █ █ ▄  █ █ ▀▄
-▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀  ▀▀  ▀  ▀
+AAAAABBBBBCCCCCDDDDDEEEEEFFFFFGGGGGHHHHHIIIIJJJJJKKKKK
+▄▀▀▄ █▀▀▄ ▄▀▀▄ █▀▀▄ █▀▀▀ █▀▀▀ ▄▀▀▄ █  █ ▀█▀    █ █  █
+█▄▄█ █▄▄▀ █    █  █ █▄▄  █▄▄  █    █▄▄█  █     █ █▄▀
+█  █ █  █ █  ▄ █  █ █    █    █ ▀█ █  █  █  ▄  █ █ ▀▄
+▀  ▀ ▀▀▀   ▀▀  ▀▀▀  ▀▀▀▀ ▀     ▀▀  ▀  ▀ ▀▀▀  ▀▀  ▀  ▀
 """,
         """
 LLLLLMMMMMMNNNNNOOOOOPPPPPQQQQQRRRRRSSSSSTTTTT
@@ -447,36 +565,173 @@ uuuuuvvvvvwwwwwwxxxxxxyyyyyzzzzz
 █  █ ▐▌▐▌ ▐▌█▐▌  ▄▀▄  ▀▄▄█ ▄▀
  ▀▀   ▀▀   ▀ ▀  ▀   ▀  ▄▄▀ ▀▀▀▀
 """,
+        """
+−−−−−−××××××
+
+▄▄▄▄▄ ▄   ▄
+       ▀▄▀
+      ▄▀ ▀▄
+""",  # noqa: RUF001
     )
 
 
 class HalfBlock6x5Font(Font):
+    """6x5 glyph font drawn with half-block characters, registered as ``"Half Block 6x5"``."""
+
     name = "Half Block 6x5"
     height = 5
-    data = """
+    data = (
+        """
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄▀▀▀▄  ▄█   ▄▀▀▀▄ ▄▀▀▀▄ ▄  █  █▀▀▀▀ ▄▀▀▀  ▀▀▀▀█ ▄▀▀▀▄ ▄▀▀▀▄         █
-█   █   █       █     █ █  █  █     █        ▐▌ █   █ █   █     ▀  ▐▌
-█   █   █     ▄▀    ▀▀▄ ▀▀▀█▀ ▀▀▀▀▄ █▀▀▀▄    █  ▄▀▀▀▄  ▀▀▀█     ▄  █
-█   █   █   ▄▀    ▄   █    █      █ █   █   ▐▌  █   █     █       ▐▌
+█  ▄█   █       █     █ █  █  █     █        ▐▌ █   █ █   █     ▀  ▐▌
+█ █ █   █     ▄▀    ▀▀▄ ▀▀▀█▀ ▀▀▀▀▄ █▀▀▀▄    █  ▄▀▀▀▄  ▀▀▀█     ▄  █
+█▀  █   █   ▄▀    ▄   █    █      █ █   █   ▐▌  █   █     █       ▐▌
  ▀▀▀   ▀▀▀  ▀▀▀▀▀  ▀▀▀     ▀  ▀▀▀▀   ▀▀▀    ▀    ▀▀▀   ▀▀▀    ▀   ▀
-"""
+""",
+        """
+AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIIIJJJJJJKKKKKKLLLLLLMMMMMM
+▄▀▀▀▄ █▀▀▀▄ ▄▀▀▀▄ █▀▀▀▄ █▀▀▀▀ █▀▀▀▀ ▄▀▀▀▄ █   █ ▀█▀     █ █   ▄ █     █▄ ▄█
+█   █ █   █ █     █   █ █     █     █     █   █  █      █ █ ▄▀  █     █ ▀ █
+█▀▀▀█ █▀▀▀▄ █     █   █ █▀▀▀  █▀▀▀  █  ▀█ █▀▀▀█  █      █ █▀▄   █     █   █
+█   █ █   █ █   ▄ █   █ █     █     █   █ █   █  █  ▄   █ █  ▀▄ █     █   █
+▀   ▀ ▀▀▀▀   ▀▀▀  ▀▀▀▀  ▀▀▀▀▀ ▀      ▀▀▀  ▀   ▀ ▀▀▀  ▀▀▀  ▀   ▀ ▀▀▀▀▀ ▀   ▀
+""",
+        """
+NNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSSTTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
+█▄  █ ▄▀▀▀▄ █▀▀▀▄ ▄▀▀▀▄ █▀▀▀▄ ▄▀▀▀▄ ▀▀█▀▀ █   █ █   █ █   █ █   █ █   █ ▀▀▀▀█
+█▐▌ █ █   █ █   █ █   █ █   █ █       █   █   █ █   █ █   █ ▀▄ ▄▀ ▀▄ ▄▀    ▄▀
+█ █ █ █   █ █▀▀▀  █   █ █▀▀▀   ▀▀▀▄   █   █   █ ▐▌ ▐▌ █ █ █   █     █     █
+█ ▐▌█ █   █ █     █ ▀▄█ █  ▀▄ ▄   █   █   █   █  █ █  █ █ █ ▄▀ ▀▄   █   ▄▀
+▀  ▀▀  ▀▀▀  ▀      ▀▀ ▀ ▀   ▀  ▀▀▀    ▀    ▀▀▀    ▀    ▀ ▀  ▀   ▀   ▀   ▀▀▀▀▀
+""",
+        """
+aaaaaabbbbbbccccccddddddeeeeeefffffgggggghhhhhhiijjjjkkkkkllmmmmmm
+      █               █        ▄▀▀       █           █    █
+      █               █        █   ▄▀▀▀▄ █     ▀   ▀ █    █
+ ▀▀▀▄ █▀▀▀▄ ▄▀▀▀▄ ▄▀▀▀█ ▄▀▀▀▄ ▀█▀▀ ▀▄▄▄█ █▀▀▀▄ █   █ █ ▄▀ █ █▀▄▀▄
+▄▀▀▀█ █   █ █   ▄ █   █ █▀▀▀▀  █       █ █   █ █   █ █▀▄  █ █ █ █
+ ▀▀▀▀ ▀▀▀▀   ▀▀▀   ▀▀▀▀  ▀▀▀   ▀    ▀▀▀  ▀   ▀ ▀ ▀▀  ▀  ▀ ▀ ▀ ▀ ▀
+""",
+        """
+nnnnnnooooooppppppqqqqqqrrrrrsssssstttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
+                                    ▄
+            █▀▀▀▄ ▄▀▀▀█             █                           █   █
+█▀▀▀▄ ▄▀▀▀▄ █▄▄▄▀ ▀▄▄▄█ █▄▀▀ ▄▀▀▀▀ ▀█▀▀ █   █ █   █ █   █ ▀▄ ▄▀ ▀▄▄▄█ ▀▀▀▀█
+█   █ █   █ █         █ █     ▀▀▀▄  █   █   █ ▀▄ ▄▀ █ █ █  ▄▀▄      █   ▄▀
+▀   ▀  ▀▀▀  ▀         ▀ ▀    ▀▀▀▀    ▀▀  ▀▀▀▀   ▀    ▀ ▀  ▀   ▀  ▀▀▀  ▀▀▀▀▀
+""",
+        '''
+!!""""######$$$$$$%%%%%&&&&&&
+█ █ █  ▄ ▄   ▄█▄▄ ▀  █  ▄▀▄
+█ ▀ ▀ ▀█▀█▀ █ █     ▐▌  ▀▄▀
+█      █ █   ▀█▀▄   █  ▄▀▄ ▄
+      ▀█▀█▀   █ █  ▐▌  █  ▀▄
+▀      ▀ ▀  ▀▀█▀   ▀ ▀  ▀▀ ▀
+''',
+        r"""
+''(((())))******++++++,,,-----;;;<<<<<=====>>>>>??????@@@@@@[[[[\\\\]]]]^^^^^^______```{{{{||}}}}~~~~~~~
+█  ▄▀ ▀▄                                        ▄▀▀▀▄ ▄▀▀▀▄ █▀▀ █   ▀▀█  ▄▀▄        ▀▄  █▀ █ ▀█
+▀ ▐▌   ▐▌ ▀▄█▄▀   ▄            ▀   ▄▀ ▄▄▄▄ ▀▄      ▄▀ █ ▄▄█ █   ▐▌    █ ▀   ▀           █  █  █
+  ▐▌   ▐▌ ▄▀█▀▄ ▀▀█▀▀    ▀▀▀▀    ▄▀   ▄▄▄▄   ▀▄   █   █ █▄█ █    █    █                ▀▄  █  ▄▀ ▄▀▀▄▄▀
+  ▐▌   ▐▌         ▀            ▄  ▀▄        ▄▀        █ ▀▀▀ █    ▐▌   █                 █  █  █
+   ▀▄ ▄▀              ▄▀      ▄▀    ▀      ▀      ▀    ▀▀▀  ▀▀▀   ▀ ▀▀▀       ▄▄▄▄▄     ▀▄ █ ▄▀
+""",
+        """
+−−−−−−××××××
+
+      ▄   ▄
+▀▀▀▀▀  ▀▄▀
+      ▄▀ ▀▄
+
+""",  # noqa: RUF001
+    )
 
 
 class HalfBlockHeavy6x5Font(Font):
+    """6x5 glyph font drawn with heavy half-block characters, registered as ``"Half Block Heavy 6x5"``."""
+
     name = "Half Block Heavy 6x5"
     height = 5
-    data = """
+    data = (
+        """
 000000111111222222333333444444555555666666777777888888999999  ..::////
 ▄███▄  ▐█▌  ▄███▄ ▄███▄    █▌ █████ ▄███▄ █████ ▄███▄ ▄███▄         █▌
 █▌ ▐█  ▀█▌  ▀  ▐█ ▀  ▐█ █▌ █▌ █▌    █▌       █▌ █▌ ▐█ █▌ ▐█     █▌ ▐█
-█▌ ▐█   █▌    ▄█▀   ██▌ █████ ████▄ ████▄   ▐█  ▐███▌ ▀████        █▌
+█▌█▐█   █▌    ▄█▀   ██▌ █████ ████▄ ████▄   ▐█  ▐███▌ ▀████        █▌
 █▌ ▐█   █▌  ▄█▀   ▄  ▐█    █▌    ▐█ █▌ ▐█   █▌  █▌ ▐█    ▐█     █▌▐█
 ▀███▀  ███▌ █████ ▀███▀    █▌ ████▀ ▀███▀  ▐█   ▀███▀ ▀███▀   █▌  █▌
-"""
+""",
+        """
+AAAAAABBBBBBCCCCCCDDDDDDEEEEEEFFFFFFGGGGGGHHHHHHIIIIJJJJJJKKKKKKLLLLLLMMMMMM
+▄███▄ ████▄ ▄███▄ ████▄ █████ █████ ▄███▄ █▌ ▐█ ███    ▐█ █▌ ▄█ █▌    █▄ ▄█
+█▌ ▐█ █▌ ▐█ █▌  ▀ █▌ ▐█ █▌    █▌    █▌  ▀ █▌ ▐█ ▐█▌    ▐█ █▌▄█▀ █▌    █████
+█████ ████▄ █▌    █▌ ▐█ ████  ████  █▌ ██ █████ ▐█▌    ▐█ ███▌  █▌    █▌▀▐█
+█▌ ▐█ █▌ ▐█ █▌  ▄ █▌ ▐█ █▌    █▌    █▌ ▐█ █▌ ▐█ ▐█▌ ▄  ▐█ █▌▀█▄ █▌    █▌ ▐█
+█▌ ▐█ ████▀ ▀███▀ ████▀ █████ █▌    ▀███▀ █▌ ▐█ ███ ▀███▀ █▌ ▐█ █████ █▌ ▐█
+""",
+        """
+NNNNNNOOOOOOPPPPPPQQQQQQRRRRRRSSSSSSTTTTTTUUUUUUVVVVVVWWWWWWXXXXXXYYYYYYZZZZZZ
+█▄ ▐█ ▄███▄ ████▄ ▄███▄ ████▄ ▄███▄ █████ █▌ ▐█ █▌ ▐█ █▌ ▐█ █▌ ▐█ █▌ ▐█ █████
+██▄▐█ █▌ ▐█ █▌ ▐█ █▌ ▐█ █▌ ▐█ █▌  ▀  ▐█▌  █▌ ▐█ █▌ ▐█ █▌ ▐█ ▀█▄█▀ ▀█▄█▀   ▄█▀
+█▌▀██ █▌ ▐█ ████▀ █▌ ▐█ ████▀ ▀███▄  ▐█▌  █▌ ▐█ ▐█ █▌ █▌█▐█  ▐█▌   ▐█▌   ▄█▀
+█▌ ▐█ █▌ ▐█ █▌    █▌▀██ █▌▀█▄ ▄  ▐█  ▐█▌  █▌ ▐█  ███  █████ ▄█▀█▄  ▐█▌  ▄█▀
+█▌ ▐█ ▀███▀ █▌    ▀██▀█ █▌ ▐█ ▀███▀  ▐█▌  ▀███▀  ▐█▌  █▀ ▀█ █▌ ▐█  ▐█▌  █████
+""",
+        """
+aaaaaabbbbbbccccccddddddeeeeeefffffgggggghhhhhhiiijjjjkkkkkklllmmmmmm
+      █▌             ▐█        ▄██       █▌           █▌    ██
+      █▌             ▐█        █▌  ▄████ █▌    ▀▀  ▀▀ █▌    ██
+▀▀▀█▄ ████▄ ▄███▄ ▄████ ▄█▀█▄ ████ ▀▄▄▐█ ████▄ ██  ██ █▌▄█▀ ██ █▀█▀▄
+▄▀▀▐█ █▌ ▐█ █▌  ▄ █▌ ▐█ ██▀▀▀  █▌     ▐█ █▌ ▐█ ██  ██ ███▄  ██ █ █ █
+▀████ ████▀ ▀███▀ ▀████ ▀███▀  █▌  ▀███▀ █▌ ▐█ ██ ██▀ █▌ ▀█ ██ █ █ █
+""",
+        """
+nnnnnnooooooppppppqqqqqqrrrrrsssssstttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
+                                    █▌
+            ████▄ ▄████             █▌                          █▌ ▐█
+████▄ ▄███▄ █▌ ▐█ █▌ ▐█ █▄██ ▄█▀▀▀ ████ █▌ ▐█ █▌ ▐█ █ █ █ ▀█▄█▀ ▀████ ▀▀▀█▀
+█▌ ▐█ █▌ ▐█ ████▀ ▀████ █▌   ▀▀▀█▄  █▌  █▌ ▐█ ▐█▄█▌ █ █ █  ▐█▌     ▐█  ▄█▀
+█▌ ▐█ ▀███▀ █▌       ▐█ █▌   ▀▀▀▀▀  ▀██ ▀████  ▀█▀  ▀█▀█▀ ▄█▀█▄ ▀███▀ █████
+""",
+        '''
+!!!"""""######$$$$$$%%%%%%%&&&&&&
+█▌ █▌█▌  █ █  ▄▄█▄▄ █▌  █▌ ▄██▄
+█▌      █████ █▌█      ▐█  █▌▐█
+█▌       █ █  ▀███▄   ▐█   ▄██▀▄
+        █████   █▐█  ▐█    █▌▀█▀
+█▌       █ █  ▀▀█▀▀ ▐█  █▌ ▀██▀█
+''',
+        r"""
+'''(((())))******++++++,,,-----;;;<<<<<<=====>>>>>>??????@@@@@@[[[[\\\\\]]]]^^^^^^______```{{{{{|||}}}}}
+█▌  ▄█ █▄                                          ▄███▄ ▄███▄ ███ ▐█   ███  ▄█▄        █▄  ▄██ █▌ ██▄
+   ▐█   █▌ █▄█▄█  ▐█▌          ▐█   ▄█▀ ████ ▀█▄   ▀  ▐█ █▌▄▄█ █▌   █▌   ▐█ █▀ ▀█           █▌  █▌  ▐█
+   ▐█   █▌  ███  █████    ████    ▄█▀          ▀█▄  ▄█▀  █▌█▄█ █▌   ▐█   ▐█                ██   █▌   ██
+   ▐█   █▌ █▀█▀█  ▐█▌  ▐█      ▐█ ▀█▄   ████   ▄█▀       █▌▀▀▀ █▌    █▌  ▐█                 █▌  █▌  ▐█
+    ▀█ █▀              █▀      █▀   ▀█▄      ▄█▀    █▌   ▀███▀ ███   ▐█ ███       █████     ▀██ █▌ ██▀
+""",
+        """
+~~~~~~~~
+
+▄██▄  ▄
+▀  ▀██▀
+
+
+""",
+        """
+−−−−−−××××××
+
+      ▄█ █▄
+█████  ▐█▌
+      ▀█ █▀
+
+""",  # noqa: RUF001
+    )
 
 
 class Thin6x6Font(Font):
+    """6x6 glyph font drawn with thin box-drawing lines, registered as ``"Thin 6x6"``."""
+
     name = "Thin 6x6"
     height = 6
     data = (
@@ -570,10 +825,21 @@ ttttuuuuuuvvvvvvwwwwwwxxxxxxyyyyyyzzzzzz
  └─ └───┴  └─┘  └─┴─┘ ─┘ └─ └───┤ ┴────
                             └───┘
 """,
+        r"""
+−−−−−−××××××
+
+       \  /
+─────   \/
+        /\
+       /  \
+
+""",  # noqa: RUF001
     )
 
 
 class HalfBlock7x7Font(Font):
+    """7x7 glyph font drawn with half-block characters, registered as ``"Half Block 7x7"``."""
+
     name = "Half Block 7x7"
     height = 7
     data = (
@@ -677,6 +943,16 @@ tttttuuuuuuuvvvvvvvwwwwwwwwxxxxxxxyyyyyyyzzzzzzz
   █▌  ▀███▀   ▐█▌   ▀█▌▐█▀ ▐█   █▌  ▀▀▀█▌▐█████▌
                                    ▀███▀
 """,
+        """
+−−−−−−−×××××××
+
+       ▐▌   ▐▌
+▐█████▌ ▀█▄█▀
+         ▐█▌
+        ▄█▀█▄
+       ▐▌   ▐▌
+
+""",  # noqa: RUF001
     )
 
 

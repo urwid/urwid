@@ -8,9 +8,9 @@
 
 .. currentmodule:: urwid
 
-All input from the user is parsed by a display module, and returned from either
-the :meth:`get_input() <raw_display.Screen.get_input>` or
-:meth:`get_input_nonblocking() <raw_display.Screen.get_input_nonblocking>` methods as a list.
+All input from the user is parsed by a display module, and returned as a list,
+either from the :meth:`get_input() <display.raw.Screen.get_input>` method or to the callback registered with
+:meth:`hook_event_loop() <display.raw.Screen.hook_event_loop>`, which :class:`MainLoop` uses.
 Window resize events are also included in the user input.
 
 The :class:`MainLoop` class will take this input and pass each
@@ -49,31 +49,120 @@ CTRL+SHIFT+F5 ``'shift ctrl f5'``
 ALT+J         ``'meta j'``
 ============= =================
 
-With Unicode :ref:`text encoding <text-encodings>` you will also receive
-Unicode strings for any non-ASCII characters:
+A control sequence that Urwid does not recognise is returned as a single key
+holding the characters after ``ESC [``, so that its characters are not received
+as typed text: ``ESC [ 1;2X`` returns ``'<csi 1;2X>'``.
+
+Non-ASCII characters are returned as strings, whatever the
+:ref:`text encoding <text-encodings>`: input in a non-UTF-8 encoding is
+decoded with that encoding. A byte that is not a character of a non-UTF-8
+encoding is returned as the Latin-1 character with the same value. A byte that
+is not valid UTF-8 is returned as its value in angle brackets, such as
+``'<255>'``.
 
 =========== ==============
 Key pressed Input returned
 =========== ==============
-é           ``u'é'``
-Ж           ``u'Ж'``
-カ          ``u'カ'``
-=========== ==============
-
-With non-Unicode :ref:`text encoding <text-encodings>` characters will be sent
-as-is in the original encoding.
-
-=========== =========================================
-Key pressed Input returned (each in its own encoding)
-=========== =========================================
 é           ``'é'``
 Ж           ``'Ж'``
-カ          ``'カ'`` (two bytes)
-=========== =========================================
+カ          ``'カ'``
+=========== ==============
 
-Urwid does not try to convert this text to Unicode to avoid losing any
-information. If you want the input converted to Unicode in all cases you may
-create an input filter to do so.
+
+.. _extended-keys:
+
+Extended Keys
+-------------
+
+In the legacy encodings several keys send the same bytes: CTRL+I is TAB,
+CTRL+M and CTRL+ENTER are ENTER, CTRL+[ is ESC. Terminals that implement the
+`kitty keyboard protocol <https://sw.kovidgoyal.net/kitty/keyboard-protocol/>`_
+or xterm's *modifyOtherKeys* can report these keys apart. The raw display turns
+this on when it is created with ``extended_keys=True``::
+
+    screen = urwid.display.raw.Screen(extended_keys=True)
+
+The screen then asks the terminal for both protocols and turns on the one the
+terminal answers for, preferring the kitty keyboard protocol. It does not wait
+for the answer: keys typed before it arrives are reported as before. The state
+the terminal had is restored when the screen stops. Which protocols the terminal
+supports is kept in ``screen.modes.kitty_keyboard`` and
+``screen.modes.modify_other_keys``.
+
+=============== ====================== ===================
+Key pressed     Legacy input           Extended input
+=============== ====================== ===================
+CTRL+I          ``'tab'``              ``'ctrl i'``
+CTRL+M          ``'enter'``            ``'ctrl m'``
+CTRL+ENTER      ``'enter'``            ``'ctrl enter'``
+SHIFT+ENTER     ``'enter'``            ``'shift enter'``
+CTRL+SHIFT+TAB  ``'shift tab'``        ``'shift ctrl tab'``
+CTRL+/          ``'ctrl _'``           ``'ctrl /'``
+CTRL+SHIFT+A    ``'ctrl a'``           ``'ctrl A'``
+ALT+SHIFT+A     ``'meta A'``           ``'meta A'``
+=============== ====================== ===================
+
+A shifted letter or symbol is named by the character it types, as the legacy
+encodings name it. The kitty keyboard protocol also reports the *super* and
+*hyper* modifiers, as the ``'super '`` and ``'hyper '`` prefixes, and its ESC key
+arrives without the short wait an escape sequence needs.
+
+.. note::
+
+   With either protocol on, the terminal sends CTRL+C, CTRL+Z and CTRL+\\ as
+   ``'ctrl c'``, ``'ctrl z'`` and ``'ctrl \'`` keys, so they no longer raise
+   ``SIGINT``, suspend the program or raise ``SIGQUIT``. An application that
+   turns on extended keys handles these keys itself.
+
+A :class:`Terminal` widget implements the kitty keyboard protocol for its child.
+The child can query, push, pop and set the protocol's flags, and the main and
+the alternate screen each keep their own stack of them. While the child has
+*disambiguate escape codes* or *report all keys as escape codes* set, the
+Terminal sends keys as the protocol reports them, so ``'ctrl enter'`` and
+``'super a'`` reach the child as they were pressed. With *report alternate keys*
+an upper case letter carries its shifted key, and with *report associated text*
+a key that types text carries that text. urwid reports key presses only, so the
+child gets no repeat or release events even with *report event types* set. The
+keypad keys are sent as the main keys, which urwid names them as, and pasted
+text is sent as text.
+
+Without these flags, the Terminal passes ENTER, TAB, BACKSPACE and ESC with
+modifiers, and CTRL with SPACE, /, ? or ~, to its child as a legacy terminal
+sends them under the ``linux`` terminal type, so ``'ctrl enter'`` arrives as
+ENTER. It returns the other new keys, such as ``'super a'``.
+
+
+.. _flow-control-keys:
+
+Flow Control Keys
+-----------------
+
+By default the tty treats CTRL+S and CTRL+Q as XOFF and XON: CTRL+S stops the
+terminal output until CTRL+Q resumes it, and the application never receives
+either key. To receive them as ``'ctrl s'`` and ``'ctrl q'``, unmap them from
+flow control with the screen's ``tty_signal_keys()`` method before the
+main loop starts, and put the old settings back once it ends::
+
+    screen = urwid.display.raw.Screen()
+    loop = urwid.MainLoop(widget, screen=screen)
+    old_keys = screen.tty_signal_keys(start="undefined", stop="undefined")
+    try:
+        loop.run()
+    finally:
+        if old_keys:
+            screen.tty_signal_keys(*old_keys)
+
+CTRL+V, CTRL+O and CTRL+Y need no such call: the raw and curses displays
+turn the ``IEXTEN`` line discipline extensions off themselves, as the
+:class:`~urwid.display.raw.Screen` documentation describes.
+
+The screen does not undo the change when it stops, which is what the
+``finally`` block is for. A shell such as bash puts its own tty settings back
+when CTRL+Z suspends the program, so after a resume CTRL+S and CTRL+Q are flow
+control again.
+``tty_signal_keys()`` returns ``None`` when the input is not a tty. Passing
+``intr``, ``quit`` and ``susp`` as ``"undefined"`` too stops CTRL+C, CTRL+\\
+and CTRL+Z from raising signals, as ``examples/input_test.py`` does.
 
 
 .. _mouse-input:
@@ -84,35 +173,91 @@ Mouse Input
 Mouse input is sent as a (*event*, *button*, *x*, *y*) tuple. *event* is a string
 describing the event. If the *SHIFT*, *ALT* or *CTRL* keys are held when a mouse
 event is sent then *event* may be prefixed by ``'shift '``, ``'meta '`` or
-``'ctrl'``. *button* is a number from 1 to 5. *x* and *y* are character
-coordinates starting from ``(0, 0)`` at the top-left of the screen.
+``'ctrl '``. *button* is a number, named by :class:`MouseButton`. *x* and *y*
+are character coordinates starting from ``(0, 0)`` at the top-left of the
+screen.
 
 Support for the right-mouse button and use of modifier keys is poor in many
 terminals and some users don't have a middle mouse button, so these shouldn't
 be relied on.
+
+The side buttons (8 and 9) reach the application only in some terminals:
+VTE-based terminals such as GNOME Terminal report them, Konsole does not, and
+the terminal of an IDE such as PyCharm uses them for its own navigation and
+does not pass them on. Offer another way to do what they do.
 
 ``'mouse press'`` Events
 ------------------------
 
 A mouse button was pressed.
 
-=============== ======================
-`button` number Mouse button
-=============== ======================
-1               Left button
-2               Middle button
-3               Right button
-4               Scroll wheel up [#first]_
-5               Scroll wheel down [#first]_
-=============== ======================
+=============== =========================== ===========================================
+`button` number :class:`MouseButton` member Mouse button
+=============== =========================== ===========================================
+1               ``LEFT``                    Left button
+2               ``MIDDLE``                  Middle button
+3               ``RIGHT``                   Right button
+4               ``WHEEL_UP``                Scroll wheel up [#wheel]_
+5               ``WHEEL_DOWN``              Scroll wheel down [#wheel]_
+6               ``WHEEL_LEFT``              Scroll wheel left [#wheel]_
+7               ``WHEEL_RIGHT``             Scroll wheel right [#wheel]_
+8               ``BACK``                    Back, the first side button [#side]_
+9               ``FORWARD``                 Forward, the second side button [#side]_
+=============== =========================== ===========================================
 
-.. [#first] typically no corresponding release event is sent
+Buttons 10 and 11 have no name: ``MouseButton(10)`` returns a member named
+``BUTTON_10``.
+
+Which buttons arrive depends on the screen:
+
+* the raw screen (:mod:`urwid.display.raw`) decodes 1 to 11 from the
+  terminal's mouse reports;
+* the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
+  defines;
+* GPM, the Linux console mouse, delivers 1 to 3;
+* the FreeBSD console, with ``moused`` running (FreeBSD has no GPM):
+
+  * ``vt(4)``:
+
+    * in a graphics mode it sends X10 reports of 1 to 3 to both screens;
+    * in VGA text mode it sends no mouse input;
+    * a wheel step arrives as ``'mouse release'`` events of button 0;
+    * a middle click also pastes the console's selection as typed input;
+    * a column or row past 94 is left out of the report, so both screens
+      drop a click there, except:
+
+      * a middle click while the console has a selection, whose pasted text
+        follows the report at once: both screens read its first bytes as the
+        missing coordinate and report a ``'mouse press'`` of 2 at a wrong
+        position, and the rest of the paste arrives as typed input;
+
+  * ``syscons(4)`` sends X10 reports of 1 to 5 to the raw screen, and follows
+    each press of 4 or 5 with ``'mouse release'`` events of button 0;
+  * for the curses screen on ``syscons(4)``, ncurses takes 1 to 3 from the
+    ``sysmouse(4)`` interface, with the released button in each release;
+* the WebSocket screen (:mod:`urwid.display.websocket`) delivers 1 to 9: the
+  three main buttons, the four wheel directions and the two side buttons the
+  browser reports.
+
+A terminal reports buttons 4 to 7 by adding 64 to the code of buttons 1 to 4,
+and buttons 8 to 11 by adding 128, as described in the "Mouse Tracking"
+section of `XTerm Control Sequences
+<https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>`_.
+
+.. [#wheel] A terminal sends no release event for the wheel. The curses screen
+   may send a release of 4 or 5, and the FreeBSD console sends releases of
+   button 0.
+.. [#side] The conventional meaning of buttons 8 and 9 under X11 and libinput,
+   which a user's device mapping can change.
 
 ``'mouse release'`` Events
 --------------------------
 
-Mouse release events will often not have information about which button was
-released. In this case *button* will be set to 0.
+A mouse button was released. *button* names the released button in an SGR
+mouse report (``ESC [ < ... m``), on the curses screen, from GPM and on the
+WebSocket screen.
+A terminal that sends X10 mouse reports (``ESC [ M ...``) does not say which
+button was released, and *button* is then 0, :attr:`MouseButton.UNKNOWN`.
 
 ``'mouse drag'`` Events
 -----------------------

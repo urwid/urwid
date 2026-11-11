@@ -17,19 +17,20 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""List walkers: the objects that supply widgets to a ListBox."""
+
 from __future__ import annotations
 
 import typing
 from collections.abc import Iterable
 
-from urwid import signals
+from urwid import _deprecation, signals
 
 from .monitored_list import MonitoredFocusList, MonitoredList
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
-
-    from typing_extensions import Self
+    from typing import Self
 
     from .widget import AbstractWidget
 
@@ -39,11 +40,17 @@ if typing.TYPE_CHECKING:
     _V_co = typing.TypeVar("_V_co", covariant=True)
 
     class ListWalkerContainer(typing.Protocol[_K, _V_co]):
+        """Protocol for a positionable container a :class:`ListWalker` can page through."""
+
         def __getitem__(self, key: _K) -> _V_co: ...
 
-        def next_position(self, position: _K) -> _K: ...
+        def next_position(self, position: _K) -> _K:
+            """Return the position following `position`."""
+            ...
 
-        def prev_position(self, position: _K) -> _K: ...
+        def prev_position(self, position: _K) -> _K:
+            """Return the position preceding `position`."""
+            ...
 
     class ListBoxContentsProto(typing.Protocol[_K_contra]):
         """Read-only `(widget, options)` view over the :class:`ListBox` body."""
@@ -52,10 +59,17 @@ if typing.TYPE_CHECKING:
 
         def __len__(self) -> int: ...
 
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
 else:
+    from urwid._deprecation import deprecated
+
     _T = typing.TypeVar("_T")
     _K = typing.TypeVar("_K")
     _V_co = typing.TypeVar("_V_co", covariant=True)
+
+# Default of the ``reverse`` keyword of ``positions()``, which tells an omitted keyword from an explicit ``None``.
+_REVERSE_NOT_GIVEN: typing.Final = object()
 
 __all__ = (
     "EstimatedSized",
@@ -68,20 +82,27 @@ __all__ = (
 
 
 class ListWalkerError(Exception):
-    pass
+    """ListWalker related errors."""
 
 
 @typing.runtime_checkable
-class ScrollSupportingBody(typing.Protocol):
+class ScrollSupportingBody(typing.Protocol[_K]):
     """Protocol for ListWalkers."""
 
-    def get_focus(self) -> tuple[AbstractWidget, _K]: ...
+    def get_focus(self) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` currently in focus, or ``(None, None)`` if the body is empty."""
+        ...
 
-    def set_focus(self, position: _K) -> None: ...
+    def set_focus(self, position: _K, /) -> None:
+        """Set the focus to *position*."""
 
-    def get_next(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
+    def get_next(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` after *position*, or ``(None, None)`` if there is none."""
+        ...
 
-    def get_prev(self, position: _K) -> tuple[AbstractWidget, _K] | tuple[None, None]: ...
+    def get_prev(self, position: _K, /) -> tuple[AbstractWidget, _K] | tuple[None, None]:
+        """Return the ``(widget, position)`` before *position*, or ``(None, None)`` if there is none."""
+        ...
 
 
 @typing.runtime_checkable
@@ -93,13 +114,17 @@ class EstimatedSized(typing.Protocol):
     The main use-case is lazy-load, where real length calculation is expensive.
     """
 
-    def __length_hint__(self) -> int: ...
+    def __length_hint__(self) -> int:
+        """Return an estimate of the number of items, per PEP 424."""
+        ...
 
 
 class ListWalker(
     typing.Generic[_K, _V_co],
     metaclass=signals.MetaSignals,
 ):
+    """Base class for objects that supply widgets to a :class:`ListBox` on demand, by position."""
+
     # mixin not named as mixin
     signals: typing.ClassVar[list[str]] = ["modified"]
 
@@ -170,9 +195,10 @@ class SimpleListWalker(
     MonitoredList[_T],
     ListWalker[int, _T],
 ):
+    """ListWalker that presents a plain list of widgets, addressed by integer position."""
+
     def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
-        """
-        This class inherits :class:`MonitoredList` which means it can be treated as a list.
+        """Initialize a list walker, which can be treated as a list since it inherits :class:`MonitoredList`.
 
         Changes made to this object (when it is treated as a list) are detected automatically
         and will cause ListBox objects using this list walker to be updated.
@@ -198,10 +224,10 @@ class SimpleListWalker(
     def _modified(self) -> None:
         if self.focus >= len(self):
             self.focus = max(0, len(self) - 1)
-        ListWalker._modified(self)  # pylint: disable=protected-access
+        ListWalker._modified(self)
 
     def set_modified_callback(self, callback: Callable[[], typing.Any]) -> typing.NoReturn:
-        """This function inherited from MonitoredList is not implemented in SimpleListWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -245,23 +271,40 @@ class SimpleListWalker(
             raise IndexError
         return position - 1
 
-    def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+    @typing.overload
+    def positions(self, *, reverse: bool = False) -> Iterable[int]: ...
 
+    @typing.overload
+    @deprecated(
+        "Passing reverse to positions() positionally is deprecated. Pass it by keyword instead. "
+        "Deprecated since urwid 5.0.0, will be removed in version 8.0.",
+        category=None,
+    )
+    def positions(self, reverse: bool, /) -> Iterable[int]: ...
+
+    def positions(self, *args: bool, reverse: object = _REVERSE_NOT_GIVEN) -> Iterable[int]:
+        """Return an iterable of positions. Optional method.
+
+        :param args: *reverse* passed positionally, the deprecated form
         :param reverse: if true, return positions in reverse order
+        :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+
+        .. deprecated:: 5.0.0
+            Passing *reverse* positionally is deprecated. Pass it by keyword.
         """
-        if reverse:
+        if _positions_reverse(args, reverse=reverse):
             return range(len(self) - 1, -1, -1)
         return range(len(self))
 
 
 class SimpleFocusListWalker(
     MonitoredFocusList[_T],
-    ListWalker[typing.SupportsIndex, _T],
+    ListWalker[int, _T],
 ):
-    def __init__(self, contents: Iterable[_T], wrap_around: bool = False) -> None:
-        """
-        This class inherits :class:`MonitoredList` which means it can be treated as a list.
+    """ListWalker like :class:`SimpleListWalker` that also keeps focus tracking items across edits."""
+
+    def __init__(self, contents: Iterable[_T], wrap_around: bool = False, *, follow_end: bool = False) -> None:
+        """Initialize a list walker, which can be treated as a list since it inherits :class:`MonitoredList`.
 
         Changes made to this object (when it is treated as a list) are detected automatically
         and will cause ListBox objects using this list walker to be updated.
@@ -271,19 +314,22 @@ class SimpleFocusListWalker(
 
         :param contents: list to copy into this object
         :param wrap_around: if true, jumps to beginning/end of list on move
+        :param follow_end: if true, items added after a focused last item take the focus, so a :class:`ListBox`
+            showing a growing log keeps showing its newest line until the user moves the focus up;
+            see :attr:`MonitoredFocusList.follow_end`
         :raises ListWalkerError: *contents* is not iterable.
         """
         if not isinstance(contents, Iterable):
             raise ListWalkerError(f"SimpleFocusListWalker expecting iterable object, got: {contents!r}")
-        super().__init__(contents)
+        super().__init__(contents, follow_end=follow_end)
         self.wrap_around = wrap_around
 
     def _modified(self) -> None:
         # Prefer ListWalker's signal emission over MonitoredList's callback hook.
-        ListWalker._modified(self)  # pylint: disable=protected-access
+        ListWalker._modified(self)
 
     def set_modified_callback(self, callback: typing.Any) -> typing.NoReturn:
-        """This function inherited from MonitoredList is not implemented in SimpleFocusListWalker.
+        """Raise :exc:`NotImplementedError`: this function inherited from MonitoredList is not implemented here.
 
         Use ``connect_signal(list_walker, "modified", ...)`` instead.
 
@@ -325,11 +371,51 @@ class SimpleFocusListWalker(
             raise IndexError
         return pos - 1
 
-    def positions(self, reverse: bool = False) -> Iterable[int]:
-        """Optional method for returning an iterable of positions.
+    @typing.overload
+    def positions(self, *, reverse: bool = False) -> Iterable[int]: ...
 
+    @typing.overload
+    @deprecated(
+        "Passing reverse to positions() positionally is deprecated. Pass it by keyword instead. "
+        "Deprecated since urwid 5.0.0, will be removed in version 8.0.",
+        category=None,
+    )
+    def positions(self, reverse: bool, /) -> Iterable[int]: ...
+
+    def positions(self, *args: bool, reverse: object = _REVERSE_NOT_GIVEN) -> Iterable[int]:
+        """Return an iterable of positions. Optional method.
+
+        :param args: *reverse* passed positionally, the deprecated form
         :param reverse: if true, return positions in reverse order
+        :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+
+        .. deprecated:: 5.0.0
+            Passing *reverse* positionally is deprecated. Pass it by keyword.
         """
-        if reverse:
+        if _positions_reverse(args, reverse=reverse):
             return range(len(self) - 1, -1, -1)
         return range(len(self))
+
+
+def _positions_reverse(args: tuple[bool, ...], *, reverse: object) -> bool:
+    """Return the *reverse* argument of a ``positions()`` call that may still pass it positionally.
+
+    :param args: the positional arguments of the call
+    :param reverse: the keyword argument of the call, ``_REVERSE_NOT_GIVEN`` when it is not given
+    :raises TypeError: more than one positional argument is given, or *reverse* is given both ways.
+    :warns DeprecationWarning: *reverse* is passed positionally.
+    """
+    if not args:
+        return reverse is not _REVERSE_NOT_GIVEN and bool(reverse)
+    if len(args) > 1:
+        msg = f"positions() takes at most 1 positional argument ({len(args)} given)"
+        raise TypeError(msg)
+    if reverse is not _REVERSE_NOT_GIVEN:
+        msg = "positions() got multiple values for argument 'reverse'"
+        raise TypeError(msg)
+    _deprecation.warn(
+        "Passing reverse to positions() positionally is deprecated. Pass it by keyword instead.",
+        since="5.0.0",
+        removed_in="8.0",
+    )
+    return args[0]

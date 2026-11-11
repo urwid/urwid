@@ -14,12 +14,12 @@ It includes many features useful for text console application developers includi
 - Automatic, programmable text alignment and wrapping
 - Simple markup for setting text attributes within blocks of text
 - Powerful list box with programmable content for scrolling all widget types
-- Your choice of event loops: Twisted, Glib, Tornado, asyncio, trio, ZeroMQ or select-based loop
+- Your choice of event loops: Twisted, Glib (deprecated), Tornado, asyncio, trio, ZeroMQ or select-based loop
 - Pre-built widgets include edit boxes, buttons, check boxes and radio buttons
-- Display modules include raw, curses, and experimental LCD and web displays
+- Display modules include raw, curses, and experimental LCD (deprecated) and web displays
 - Support for UTF-8, simple 8-bit and CJK encodings
 - 24-bit (true color), 256 color, and 88 color mode support
-- Compatible with Python 3.9+ and PyPy
+- Compatible with Python 3.11+ and PyPy
 
 Home Page:
   http://urwid.org/
@@ -34,11 +34,11 @@ To install using pip
    pip install urwid
 
 For advanced functionality extra requirements need to be installed.
-Example for ZeroMQ event loop and LCD display:
+Example for the ZeroMQ event loop:
 
 .. code:: bash
 
-    pip install urwid[serial,zmq]
+    pip install urwid[zmq]
 
 Alternatively if you are on Debian or Ubuntu
 
@@ -73,27 +73,113 @@ Testing
 =======
 
 To run tests locally, install & run `tox`. You must have
-appropriate Python versions installed to run `tox` for
-each of them.
+appropriate Python versions installed to run `tox` for each of them.
 
 To test code in all Python versions:
 
 .. code:: bash
 
-    tox                     # Test all versions specified in tox.ini:
-    tox -e py39             # Test Python 3.9 only
-    tox -e py39,py10,pypy3  # Test Python 3.9, Python 3.10 & pypy3
+    tox                           # Test all versions specified in tox.ini
+    tox -e py311                  # Test Python 3.11 only
+    tox -e py313t                 # Test Python 3.13 with free-threading
+    tox -e pypy311                # Test PyPy 3.11
+    tox -e py311,py312,pypy311    # Test specific versions
+
+Testing different Python implementations
+----------------------------------------
+
+**CPython standard (default)**
+
+Tests all optional extras including C extensions (glib, zmq, twisted).
+
+.. code:: bash
+
+    tox -e py313
+
+**Free-threaded CPython (3.13+)**
+
+Tests with compatible extras (tornado, trio, twisted, serial). Excludes C extensions without free-threading wheel support.
+
+.. code:: bash
+
+    tox -e py313t        # Python 3.13 free-threaded (PEP 703)
+    tox -e py314t        # Python 3.14 free-threaded
+    tox -e py315t        # Python 3.15 free-threaded
+
+**PyPy**
+
+Tests with compatible extras (tornado, trio, serial). Excludes problematic C extensions.
+
+.. code:: bash
+
+    tox -e pypy311       # PyPy 3.11
+    tox -e pypy312       # PyPy 3.12
+
+**GraalPy**
+
+Tests with compatible extras (tornado, serial). Excludes extras that need C extensions GraalPy
+doesn't support (glib, zmq) or that have known compatibility issues (trio, twisted). GraalPy also
+ships no ``_curses`` module, so curses-dependent tests are expected to fail, and the Terminal
+widget (``urwid.vterm``) is unsupported since its ``fcntl``/``pty`` usage doesn't work on GraalPy,
+so its tests are skipped rather than run.
+
+.. code:: bash
+
+    tox -e graalpy312      # GraalPy 3.12
+    tox -e graalpy313      # GraalPy 3.13
 
 Supported Python versions
 =========================
 
-- 3.9
-- 3.10
-- 3.11
-- 3.12
-- 3.13
-- 3.14
-- pypy3
+Urwid supports:
+
+- CPython 3.11, 3.12, 3.13, 3.14, 3.15
+- CPython 3.13+ with free-threading (PEP 703 ``--disable-gil``)
+- PyPy 3.11
+- GraalPy 3.12, 3.13 (experimental)
+
+Python implementation notes
+===========================
+
+**CPython (standard Python)**
+
+Full support for all optional features. All extras (``curses``, ``glib``, ``serial``, ``tornado``, ``trio``, ``twisted``, ``zmq``) can be installed.
+On Windows, the ``curses`` extra cannot be installed on Python 3.15 yet: ``windows-curses`` publishes no 3.15 wheel.
+
+**CPython with Free-Threading (3.13, 3.14, 3.15+)**
+
+Urwid core and pure-Python event loops are fully supported. Some extras require C extensions that may not have free-threading wheels available:
+
+- ✅ Supported: core, tornado, trio, twisted, serial, lcd
+- ❌ Unsupported: glib, zmq (require C extensions with free-threading wheel support)
+
+For free-threading Python, install with compatible extras:
+
+.. code:: bash
+
+    python3.13 -m pip install 'urwid[tornado,trio,serial]'
+
+**PyPy**
+
+Urwid core is fully supported. Some extras may have compatibility issues:
+
+- ✅ Supported: core, tornado, trio, serial, lcd
+- ⚠️ Limited: twisted (may have issues, test before using)
+- ❌ Unsupported: glib, zmq (C extensions with limited PyPy support)
+- ❌ Unsupported: curses on Windows (PyPy for Windows ships no ``_curses`` module and ``windows-curses`` publishes
+  no PyPy wheels)
+
+**GraalPy (experimental)**
+
+Urwid core and the ``select``/``asyncio`` event loops are supported. Some extras, display
+modules, and the Terminal widget are not:
+
+- ✅ Supported: core, tornado, serial, lcd
+- ❌ Unsupported: curses (GraalPy ships no ``_curses`` module), glib, zmq, twisted, trio (no C
+  extension support, or known compatibility issues), Terminal widget/``urwid.vterm`` (like on
+  Windows, ``fcntl``/``pty`` usage doesn't work on GraalPy)
+- ❌ Unsupported: GraalPy 3.11 (GraalPy 24), whose ``os`` module has no ``O_NOFOLLOW`` and whose ASCII and Latin-1
+  codecs ignore registered error handlers
 
 Authors
 =======

@@ -1,0 +1,7 @@
+/* Added to _web.css for the WebSocket page, which has no inline styles. */
+
+.measure { position: absolute; visibility: hidden; }
+
+/* The pointer on the screen goes to the application, not to scrolling or zooming the page. */
+/* It also cannot start a text selection, which a drag inside the application would otherwise do. */
+#text { touch-action: none; user-select: none; }

@@ -33,8 +33,7 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
     from types import FrameType
-
-    from typing_extensions import ParamSpec
+    from typing import ParamSpec
 
     _T = typing.TypeVar("_T")
     _Spec = ParamSpec("_Spec")
@@ -46,24 +45,22 @@ __all__ = ("EventLoop", "ExitMainLoop", "SupportsFileno")
 class SupportsFileno(typing.Protocol):
     """Object that can provide an OS-level file descriptor."""
 
-    def fileno(self) -> int: ...
+    def fileno(self) -> int:
+        """Return the OS-level file descriptor for this object."""
+        ...
 
 
 class ExitMainLoop(Exception):
-    """
-    When this exception is raised within a main loop the main loop
-    will exit cleanly.
-    """
+    """When this exception is raised within a main loop, the main loop will exit cleanly."""
 
 
 class EventLoop(abc.ABC):
-    """
-    Abstract class representing an event loop to be used by :class:`MainLoop`.
-    """
+    """Abstract class representing an event loop to be used by :class:`MainLoop`."""
 
     __slots__ = ("logger",)
 
     def __init__(self) -> None:
+        """Initialize a logger scoped to the concrete event loop subclass."""
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
 
     def run_in_executor(
@@ -76,42 +73,34 @@ class EventLoop(abc.ABC):
         """Run callable in executor if supported.
 
         :param executor: Executor to use for running the function
-        :type executor: concurrent.futures.Executor
         :param func: function to call
-        :type func: Callable
         :param args: arguments to function (positional only)
-        :type args: object
         :param kwargs: keyword arguments to function (keyword only)
-        :type kwargs: object
-        :return: future object for the function call outcome.
+        :returns: future object for the function call outcome.
                  (exact future type depends on the event loop type)
-        :rtype: concurrent.futures.Future | asyncio.Future
         :raises NotImplementedError: this event loop cannot run callables in an executor.
         """
         raise NotImplementedError
 
     @abc.abstractmethod
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> typing.Any:
-        """
-        Call callback() a given time from now.  No parameters are
-        passed to callback.
+        """Call callback() a given time from now.
 
-        This method has no default implementation.
-
-        Returns a handle that may be passed to remove_alarm()
+        No parameters are passed to callback. This method has no default implementation.
 
         :param seconds: floating point time to wait before calling callback
         :param callback: function to call from event loop
+        :returns: a handle that may be passed to remove_alarm().
         """
 
     @abc.abstractmethod
-    def enter_idle(self, callback: typing.Any) -> typing.Any:
+    def enter_idle(self, callback: Callable[[], typing.Any]) -> typing.Any:
         """
         Add a callback for entering idle.
 
         This method has no default implementation.
 
-        Returns a handle that may be passed to remove_idle()
+        :returns: a handle that may be passed to remove_enter_idle()
         """
 
     @abc.abstractmethod
@@ -121,7 +110,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the alarm exists, False otherwise
+        :returns: True if the alarm exists, False otherwise
         """
 
     @abc.abstractmethod
@@ -131,7 +120,7 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the handle was removed.
+        :returns: True if the handle was removed.
         """
 
     @abc.abstractmethod
@@ -141,30 +130,26 @@ class EventLoop(abc.ABC):
 
         This method has no default implementation.
 
-        Returns True if the input file exists, False otherwise
+        :returns: True if the input file exists, False otherwise
         """
 
     @abc.abstractmethod
     def run(self) -> None:
-        """
-        Start the event loop.  Exit the loop when any callback raises
-        an exception.  If ExitMainLoop is raised, exit cleanly.
+        """Start the event loop.
 
+        Exit the loop when any callback raises an exception. If ExitMainLoop is raised, exit cleanly.
         This method has no default implementation.
         """
 
     @abc.abstractmethod
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
-        """
-        Call callback() when fd has some data to read.  No parameters
-        are passed to callback.
+        """Call callback() when fd has some data to read.
 
-        This method has no default implementation.
-
-        Returns a handle that may be passed to remove_watch_file()
+        No parameters are passed to callback. This method has no default implementation.
 
         :param fd: file descriptor to watch for input
         :param callback: function to call when input is available
+        :returns: a handle that may be passed to remove_watch_file().
         """
 
     def set_signal_handler(
@@ -172,15 +157,14 @@ class EventLoop(abc.ABC):
         signum: int,
         handler: Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers,
     ) -> Callable[[int, FrameType | None], typing.Any] | int | signal.Handlers | None:
-        """
-        Sets the signal handler for signal signum.
+        """Set the signal handler for signal signum.
 
         The default implementation of :meth:`set_signal_handler`
         is simply a proxy function that calls :func:`signal.signal()`
         and returns the resulting value.
 
         :param signum: signal number
-        :param handler: function (taking signum as its single argument),
+        :param handler: function taking the signal number and the current stack frame,
             or `signal.SIG_IGN`, or `signal.SIG_DFL`
         """
         return signal.signal(signum, handler)

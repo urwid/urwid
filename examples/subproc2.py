@@ -1,5 +1,7 @@
-# this is part of the subproc.py example
+"""Print the factors of the number given as the argument.
 
+The subprocess run by the subproc.py example.
+"""
 
 from __future__ import annotations
 

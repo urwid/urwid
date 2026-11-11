@@ -2,24 +2,105 @@ from __future__ import annotations
 
 import io
 import os
+import stat
 import sys
+import tempfile
 import unittest
 from unittest import mock
 
+import urwid
 from urwid.display import web
+from urwid.display.common import AttrSpec, ScreenError
 
 IS_WINDOWS = sys.platform == "win32"
+IS_GRAALPY = sys.implementation.name == "graalpy"
+
+
+def _use_temporary_pipe_dir(test: unittest.TestCase) -> str:
+    """Point the web display at a fresh temporary pipe_dir until `test` ends, and return its path."""
+    tmp = tempfile.TemporaryDirectory()
+    test.addCleanup(tmp.cleanup)
+    patcher = mock.patch.object(web._prefs, "pipe_dir", tmp.name)
+    patcher.start()
+    test.addCleanup(patcher.stop)
+    return tmp.name
+
+
+@unittest.skipIf(IS_WINDOWS, "The session directory check needs POSIX file ownership (os.geteuid)")
+class SessionDirTest(unittest.TestCase):
+    """Tests for the private per-user directory that holds the session files."""
+
+    def setUp(self) -> None:
+        """Use a temporary pipe_dir and compute the session directory expected in it."""
+        self.pipe_dir = _use_temporary_pipe_dir(self)
+        self.expected = os.path.join(self.pipe_dir, f"urwid-web-{os.geteuid()}")
+
+    def test_creates_private_directory(self) -> None:
+        """A missing session directory is created without group or other access."""
+        self.assertEqual(self.expected, web._session_dir())
+        st = os.lstat(self.expected)
+        self.assertTrue(stat.S_ISDIR(st.st_mode))
+        self.assertEqual(0, stat.S_IMODE(st.st_mode) & 0o077)
+
+    def test_reuses_existing_private_directory(self) -> None:
+        """An existing private session directory is accepted."""
+        os.mkdir(self.expected, 0o700)
+        self.assertEqual(self.expected, web._session_dir())
+
+    def test_refuses_directory_open_to_other_users(self) -> None:
+        """A session directory that the group can read is refused."""
+        os.mkdir(self.expected, 0o700)
+        os.chmod(self.expected, 0o740)
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_symlink(self) -> None:
+        """A symbolic link planted at the session directory path is refused, not followed."""
+        target = os.path.join(self.pipe_dir, "elsewhere")
+        os.mkdir(target, 0o700)
+        os.symlink(target, self.expected)
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_regular_file(self) -> None:
+        """A regular file planted at the session directory path is refused."""
+        with open(self.expected, "w", encoding="ascii"):
+            pass
+        with self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_refuses_directory_of_another_user(self) -> None:
+        """A session directory owned by another user is refused."""
+        other_uid = os.geteuid() + 1
+        other = os.path.join(self.pipe_dir, f"urwid-web-{other_uid}")
+        # a directory created by this process stands in for one another user planted at that user's path
+        os.mkdir(other, 0o700)
+        with mock.patch.object(web.os, "geteuid", return_value=other_uid), self.assertRaises(PermissionError):
+            web._session_dir()
+
+    def test_session_path_does_not_contain_the_session_id(self) -> None:
+        """Session file names are a stable hash of the id, inside the session directory."""
+        urwid_id = "8Hq3_secret-token-value"
+        path = web._session_path(urwid_id)
+        self.assertEqual(self.expected, os.path.dirname(path))
+        self.assertNotIn(urwid_id, path)
+        self.assertEqual(path, web._session_path(urwid_id))
 
 
 class HandleShortRequestTest(unittest.TestCase):
     def setUp(self) -> None:
+        # the session directory checks have their own tests and need POSIX ownership, which Windows does not have
+        patcher = mock.patch.object(web, "_session_dir", return_value=_use_temporary_pipe_dir(self))
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.environ = {
             "REQUEST_METHOD": "POST",
             "HTTP_X_URWID_ID": "valid-id",
         }
 
     def test_keyboard_input_uses_request_charset(self) -> None:
-        stdin = io.StringIO("é\n")
+        """The request body is decoded with its own charset and written to the pipe as UTF-8."""
+        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
         environ = {**self.environ, "CONTENT_TYPE": 'text/plain; charset="iso-8859-1"'}
 
@@ -27,18 +108,19 @@ class HandleShortRequestTest(unittest.TestCase):
             mock.patch.dict(os.environ, environ, clear=True),
             mock.patch.object(web.sys, "stdin", stdin),
             mock.patch.object(web.sys, "stdout", stdout),
-            mock.patch.object(web.os, "open", return_value=42),
+            mock.patch.object(web.os, "open", return_value=42) as pipe_open,
             mock.patch.object(web.os, "write") as write,
             mock.patch.object(web.os, "close") as close,
         ):
             self.assertTrue(web.handle_short_request())
+            pipe_open.assert_called_once_with(f"{web._session_path('valid-id')}.in", os.O_WRONLY)
 
-        write.assert_called_once_with(42, b"\xe9\n")
+        write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
 
     def test_keyboard_encoding_error_closes_pipe(self) -> None:
-        stdin = io.StringIO("é\n")
+        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
         environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=ascii"}
 
@@ -71,6 +153,7 @@ class HandleShortRequestTest(unittest.TestCase):
         ):
             self.assertTrue(web.handle_short_request())
 
+        sock.connect.assert_called_once_with(f"{web._session_path('valid-id')}.update")
         sock.__exit__.assert_called_once()
         self.assertEqual("Content-type: text/plain; charset=utf-8\r\n\r\né", stdout.getvalue())
 
@@ -102,7 +185,6 @@ class ScreenGetInputTest(unittest.TestCase):
         self.screen.input_fd = 10
         self.screen.pipe_name = "/tmp/test_pipe"
         self.screen.update_method = "multipart"
-        self.screen.input_tail = ""  # Initialize input_tail attribute
 
     def _make_selector_mock(self, has_input: bool):
         """Create a mock selector that optionally returns file descriptor events."""
@@ -293,11 +375,31 @@ class ScreenGetInputTest(unittest.TestCase):
         self.assertEqual(result, ["key1"])
         self.assertEqual(self.screen.input_tail, "incompl")
 
+    def test_get_input_decodes_the_pipe_as_utf8_across_reads(self) -> None:
+        """The pipe carries UTF-8 whatever the screen's encoding, and a character may be split between two reads."""
+        old_encoding = urwid.util.get_encoding()
+        self.addCleanup(urwid.set_encoding, old_encoding)
+        urwid.set_encoding("iso-8859-1")
+        selector_mock = self._make_selector_mock(has_input=True)
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", side_effect=[b"a\n\xc3", b"\xa9\n"]),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            first = self.screen.get_input(raw_keys=False)
+            second = self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(["a"], first)
+        self.assertEqual(["é"], second)
+
 
 class ScreenStartTest(unittest.TestCase):
     """Tests for the request validation in Screen.start."""
 
     def setUp(self) -> None:
+        self.pipe_dir = _use_temporary_pipe_dir(self)
         self.screen = web.Screen()
 
     def test_start_rejects_invalid_resize_request(self) -> None:
@@ -359,12 +461,12 @@ class ScreenStartTest(unittest.TestCase):
             self.assertEqual(0, stdin.tell())
 
     @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
+    @unittest.skipIf(IS_GRAALPY, "os.mkfifo is missing on GraalPy")
     def test_start_accepts_valid_resize_request(self) -> None:
         with (
             mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),
             mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
-            mock.patch.object(web.glob, "glob", return_value=[]),
-            mock.patch.object(web.os, "mkfifo"),
+            mock.patch.object(web.os, "mkfifo") as mkfifo,
             mock.patch.object(web.os, "open", return_value=42),
             mock.patch.object(web.signal, "signal"),
             mock.patch.object(web.signal, "alarm"),
@@ -372,6 +474,161 @@ class ScreenStartTest(unittest.TestCase):
             self.screen.start()
 
         self.assertTrue(self.screen.started)
+        # the pipe lives in the private session directory and its name does not reveal the session id
+        urwid_id = self.screen.content_head.split("X-Urwid-ID: ", 1)[1].split("\r\n", 1)[0]
+        self.assertNotIn(urwid_id, self.screen.pipe_name)
+        self.assertEqual(web._session_path(urwid_id), self.screen.pipe_name)
+        mkfifo.assert_called_once_with(f"{self.screen.pipe_name}.in", 0o600)
         self.assertEqual(self.screen.screen_size, (80, 24))
         self.assertEqual(self.screen.last_screen, {})
         self.assertEqual(self.screen.last_screen_width, 0)
+
+
+class SpanStyleTest(unittest.TestCase):
+    """Tests for web.code_span, which wraps common.attr_spec_to_css's inline CSS into the wire
+    format sent to the browser. The colour/attribute-to-CSS logic itself is covered by
+    tests/display/test_common.py, since web and html_fragment now share it.
+    """
+
+    def test_code_span_wraps_style_and_text(self) -> None:
+        span = web.code_span("hi", AttrSpec("white", "black"))
+
+        self.assertEqual("color:#ffffff;background-color:#000000\x01hi\n", span)
+
+    def test_code_span_sends_the_hyperlink_as_a_third_field(self) -> None:
+        for uri, expected in (
+            ("https://urwid.org", "color:#ffffff;background-color:#000000\x01https://urwid.org\x01hi\n"),
+            (" javascript:alert(1)", "color:#ffffff;background-color:#000000\x01hi\n"),
+        ):
+            with self.subTest(uri):
+                self.assertEqual(expected, web.code_span("hi", AttrSpec("white", "black", hyperlink=uri)))
+
+    def test_code_span_cursor_splits_into_three_pieces_with_swapped_colours(self) -> None:
+        span = web.code_span("abc", AttrSpec("white", "black"), cursor=1)
+
+        self.assertEqual(
+            "color:#ffffff;background-color:#000000\x01a\n"
+            "color:#000000;background-color:#ffffff\x01b\n"
+            "color:#ffffff;background-color:#000000\x01c\n",
+            span,
+        )
+
+
+class ScreenPollingChildDrawTest(unittest.TestCase):
+    """The polling child answers the browser over its update socket, which takes bytes."""
+
+    def test_draw_screen_sends_utf8_update_and_closes_the_connection(self) -> None:
+        self.addCleanup(urwid.set_encoding, urwid.util.get_encoding())
+        # the canvas is in the configured encoding, the transport is always UTF-8
+        for encoding in ("utf-8", "latin-1"):
+            with self.subTest(encoding=encoding):
+                urwid.set_encoding(encoding)
+                screen = web.Screen()
+                screen.update_method = "polling child"
+                client = mock.Mock()
+                # a real socket rejects str the same way
+                client.sendall.side_effect = memoryview
+                screen.server_socket = mock.Mock(accept=mock.Mock(return_value=(client, None)))
+                canvas = urwid.Text("h\u00e9").render((5,))
+
+                with mock.patch.object(web.signal, "alarm", create=True):
+                    screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+
+                client.sendall.assert_called_once()
+                (data,) = client.sendall.call_args.args
+                self.assertIsInstance(data, bytes)
+                self.assertIn("h\u00e9".encode("utf-8"), data)
+                client.close.assert_called_once_with()
+
+
+class ScreenPaletteTest(unittest.TestCase):
+    """Tests for Screen palette registration and draw_screen's attribute/colour resolution,
+    which must honour the full AttrSpec feature set the way raw_display does.
+    """
+
+    def setUp(self) -> None:
+        self.screen = web.Screen()
+        self.screen.update_method = "multipart"
+
+    def _draw(self, canvas: urwid.Canvas) -> str:
+        stdout = io.StringIO()
+        with (
+            mock.patch.object(web.sys, "stdout", stdout),
+            # signal.alarm() doesn't exist on Windows; create=True lets draw_screen's
+            # unconditional signal.alarm(...) calls hit the mock there too
+            mock.patch.object(web.signal, "alarm", create=True),
+        ):
+            self.screen.draw_screen((canvas.cols(), canvas.rows()), canvas)
+        return stdout.getvalue()
+
+    def test_default_palette_entry_is_registered_on_construction(self) -> None:
+        self.assertIn(None, self.screen._palette)
+
+    def test_named_palette_entry_renders_registered_attributes(self) -> None:
+        self.screen.register_palette_entry("focus", "light red,bold,underline,standout", "dark blue")
+        canvas = urwid.AttrMap(urwid.Text("hi"), "focus").render((5,))
+
+        output = self._draw(canvas)
+
+        # standout swaps light red (#ff0000) and dark blue (#0000ee)
+        self.assertIn("color:#0000ee;background-color:#ff0000;text-decoration:underline;font-weight:bold\x01hi", output)
+
+    def test_attrspec_on_canvas_bypasses_the_palette(self) -> None:
+        canvas = urwid.AttrMap(urwid.Text("hi"), AttrSpec("white", "black")).render((5,))
+
+        output = self._draw(canvas)
+
+        self.assertIn("color:#ffffff;background-color:#000000\x01hi", output)
+
+    def test_fg_only_attribute_inherits_the_container_background(self) -> None:
+        self.screen.register_palette([("red_fg", "dark red", "inherit"), ("blue_bg", "inherit", "dark blue")])
+        canvas = urwid.AttrMap(urwid.Text(("red_fg", "a")), "blue_bg").render((2,))
+
+        output = self._draw(canvas)
+
+        for label, span in (
+            ("fg-only run", "color:#cd0000;background-color:#0000ee\x01a"),
+            ("padding", "color:#000000;background-color:#0000ee\x01 "),
+        ):
+            with self.subTest(label):
+                self.assertIn(span, output)
+
+    def test_palette_change_resends_only_changed_lines(self) -> None:
+        self.screen.register_palette_entry("focus", "white", "black")
+        canvas = urwid.Pile([urwid.AttrMap(urwid.Text("hi"), "focus"), urwid.Text("other")]).render((5,))
+        self._draw(canvas)
+        self.assertNotIn("hi", self._draw(canvas))
+
+        self.screen.register_palette_entry("focus", "white", "dark blue")
+        output = self._draw(canvas)
+        self.assertIn("hi", output)
+        self.assertNotIn("other", output)
+
+        self.screen.register_palette([], replace=True)
+        output = self._draw(canvas)
+        self.assertIn("color:#000000;background-color:#e5e5e5\x01hi", output)
+        self.assertNotIn("other", output)
+
+    def test_register_palette_copies_an_existing_entry(self) -> None:
+        self.screen.register_palette_entry("focus", "white", "black")
+        self.screen.register_palette([("alias", "focus")])
+
+        self.assertEqual(self.screen._palette["focus"], self.screen._palette["alias"])
+
+    def test_register_palette_rejects_unknown_alias_target(self) -> None:
+        with self.assertRaises(ScreenError):
+            self.screen.register_palette([("alias", "missing")])
+
+    def test_set_terminal_properties_switches_to_mono_rendering(self) -> None:
+        self.screen.register_palette_entry("focus", "white,bold", "black", mono="underline")
+        self.screen.set_terminal_properties(colors=1)
+        canvas = urwid.AttrMap(urwid.Text("hi"), "focus").render((5,))
+
+        output = self._draw(canvas)
+
+        # mono mode drops the colour choice (falls back to the page default) but keeps 'underline'
+        self.assertIn("color:#000000;background-color:#e5e5e5;text-decoration:underline\x01hi", output)
+
+    def test_set_terminal_properties_rejects_unsupported_colour_count(self) -> None:
+        with self.assertRaises(KeyError):
+            self.screen.set_terminal_properties(colors=42)

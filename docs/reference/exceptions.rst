@@ -7,6 +7,9 @@ Exceptions
 
 .. autoexception:: WidgetError
 
+.. autoexception:: WidgetSizingError
+    :members: widget, size
+
 .. autoexception:: ListBoxError
 
 .. autoexception:: ColumnsError
@@ -14,6 +17,10 @@ Exceptions
 .. autoexception:: PileError
 
 .. autoexception:: GridFlowError
+
+.. autoexception:: TableError
+
+.. autoexception:: TabsError
 
 .. autoexception:: BoxAdapterError
 
@@ -24,3 +31,5 @@ Exceptions
 .. autoexception:: EditError
 
 .. autoexception:: CanvasError
+
+.. autoexception:: InputClosedError

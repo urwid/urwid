@@ -19,6 +19,8 @@
 #
 # Urwid web site: https://urwid.org/
 
+"""Example: a terminal emulator widget running a shell inside an Urwid application."""
+
 from __future__ import annotations
 
 import typing
@@ -28,6 +30,7 @@ import urwid
 
 
 def main() -> None:
+    """Run the terminal emulation widget demo."""
     urwid.set_encoding("utf8")
     term = urwid.Terminal(None, encoding="utf-8")
 
@@ -45,9 +48,11 @@ def main() -> None:
 
     def set_title(widget: urwid.Terminal, title: str) -> None:
         mainframe.set_title(title)
+        # the program in the terminal chooses the title, and set_title() removes the control characters from it
+        bpm_screen.set_title(title)
 
     def execute_quit(*args: typing.Any, **kwargs: typing.Any) -> typing.NoReturn:
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
     def handle_key(key: str | tuple[str, int, int, int]) -> None:
         if key in {"q", "Q"}:
@@ -72,9 +77,12 @@ def main() -> None:
         # bracketed paste mode, do without it.
         bpm_screen = urwid.display.raw.Screen()
 
-    loop = urwid.MainLoop(mainframe, handle_mouse=False, screen=bpm_screen, unhandled_input=handle_key)
+    loop = urwid.MainLoop(
+        mainframe,
+        screen=bpm_screen,
+        unhandled_input=handle_key,
+    )
 
-    term.main_loop = loop
     loop.run()
 
 

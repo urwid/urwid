@@ -1,3 +1,5 @@
+"""Constants and enumerations for widget sizing, alignment, wrapping and validation."""
+
 from __future__ import annotations
 
 import dataclasses
@@ -5,14 +7,14 @@ import enum
 import typing
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
 
 # define some names for these constants to avoid misspellings in the source
 # and to document the constant strings we are using
 
 
-class Sizing(str, enum.Enum):
+class Sizing(enum.StrEnum):
     """Widget sizing methods."""
 
     FLOW = "flow"
@@ -20,24 +22,24 @@ class Sizing(str, enum.Enum):
     FIXED = "fixed"
 
 
-class Align(str, enum.Enum):
-    """Text alignment modes"""
+class Align(enum.StrEnum):
+    """Text alignment modes."""
 
     LEFT = "left"
     RIGHT = "right"
     CENTER = "center"
 
 
-class VAlign(str, enum.Enum):
-    """Filler alignment"""
+class VAlign(enum.StrEnum):
+    """Filler alignment."""
 
     TOP = "top"
     MIDDLE = "middle"
     BOTTOM = "bottom"
 
 
-class WrapMode(str, enum.Enum):
-    """Text wrapping modes"""
+class WrapMode(enum.StrEnum):
+    """Text wrapping modes."""
 
     SPACE = "space"
     ANY = "any"
@@ -45,8 +47,8 @@ class WrapMode(str, enum.Enum):
     ELLIPSIS = "ellipsis"
 
 
-class WHSettings(str, enum.Enum):
-    """Width and Height settings"""
+class WHSettings(enum.StrEnum):
+    """Width and Height settings."""
 
     PACK = "pack"
     GIVEN = "given"
@@ -54,6 +56,65 @@ class WHSettings(str, enum.Enum):
     WEIGHT = "weight"
     CLIP = "clip"  # Used as "given" for widgets with fixed width (with clipping part of it)
     FLOW = "flow"  # Used as pack for flow widgets
+
+
+class Severity(enum.IntEnum):
+    """How serious a :class:`ValidationMessage` or a message of :class:`Notifications` is.
+
+    The members are ordered, so :func:`max` gives the worst of several.
+    """
+
+    INFO = 1
+    WARNING = 2
+    ERROR = 3
+
+
+class MouseButton(enum.IntEnum):
+    """The *button* of a mouse event, as :meth:`Widget.mouse_event` receives it.
+
+    The values are the numbers the screens pass as plain :class:`int`, and a member compares equal to them.
+    A number above :attr:`FORWARD` has no name.
+    ``MouseButton(n)`` returns a member named ``BUTTON_<n>`` for it instead of raising,
+    since a terminal may report buttons urwid does not name.
+    :ref:`mouse-input` lists which buttons each screen delivers and when a release does not name its button.
+
+    >>> MouseButton.LEFT == 1
+    True
+    >>> MouseButton(10).name
+    'BUTTON_10'
+    """
+
+    UNKNOWN = 0  # an X10 release, which does not say which button was released
+    LEFT = 1
+    MIDDLE = 2
+    RIGHT = 3
+    WHEEL_UP = 4
+    WHEEL_DOWN = 5
+    WHEEL_LEFT = 6
+    WHEEL_RIGHT = 7
+    BACK = 8  # the first side button
+    FORWARD = 9  # the second side button
+
+    @classmethod
+    def _missing_(cls, value: object) -> MouseButton | None:
+        """Return a pseudo-member named ``BUTTON_<n>`` for a number above the named buttons.
+
+        It is built per call and not stored, so a stream of distinct numbers cannot grow the member map.
+        """
+        if isinstance(value, int) and value > max(cls):
+            member = int.__new__(cls, value)
+            member._name_ = f"BUTTON_{value}"
+            # pyrefly: ignore[bad-assignment]  # a pseudo-member's value is none of the named ones
+            member._value_ = value
+            return member
+        return None
+
+
+class ValidationMessage(typing.NamedTuple):
+    """One finding of a validator about a whole value, such as the text of an :class:`Edit`."""
+
+    severity: Severity
+    message: str
 
 
 RELATIVE_100: tuple[Literal[WHSettings.RELATIVE], int] = (WHSettings.RELATIVE, 100)
@@ -77,9 +138,9 @@ def normalize_align(
     align: Literal["left", "center", "right"] | Align | tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
 ) -> tuple[Align, None] | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Split align into (align_type, align_amount).  Raise exception err
-    if align doesn't match a valid alignment.
+    """Split align into (align_type, align_amount).
+
+    Raise exception err if align doesn't match a valid alignment.
 
     :raises err: *align* is not a valid alignment; the class to raise is supplied by the caller.
     """
@@ -120,8 +181,8 @@ def simplify_align(
     align_type: Literal["left", "center", "right", "relative", WHSettings.RELATIVE] | Align,
     align_amount: int | None,
 ) -> Align | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Recombine (align_type, align_amount) into an align value.
+    """Recombine (align_type, align_amount) into an align value.
+
     Inverse of normalize_align.
 
     :raises TypeError: *align_amount* is not an integer.
@@ -152,9 +213,9 @@ def normalize_valign(
     valign: Literal["top", "middle", "bottom"] | VAlign | tuple[Literal["relative", WHSettings.RELATIVE], int],
     err: type[BaseException],
 ) -> tuple[VAlign, None] | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Split align into (valign_type, valign_amount).  Raise exception err
-    if align doesn't match a valid alignment.
+    """Split align into (valign_type, valign_amount).
+
+    Raise exception err if align doesn't match a valid alignment.
 
     :raises err: *valign* is not a valid vertical alignment; the class to raise is supplied by the caller.
     """
@@ -195,8 +256,8 @@ def simplify_valign(
     valign_type: Literal["top", "middle", "bottom", "relative", WHSettings.RELATIVE] | VAlign,
     valign_amount: int | None,
 ) -> VAlign | tuple[Literal[WHSettings.RELATIVE], int]:
-    """
-    Recombine (valign_type, valign_amount) into an valign value.
+    """Recombine (valign_type, valign_amount) into an valign value.
+
     Inverse of normalize_valign.
 
     :raises TypeError: *valign_amount* is not an integer.
@@ -249,9 +310,9 @@ def normalize_width(
     | tuple[Literal[WHSettings.GIVEN, WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Split width into (width_type, width_amount).  Raise exception err
-    if width doesn't match a valid alignment.
+    """Split width into (width_type, width_amount).
+
+    Raise exception err if width doesn't match a valid alignment.
 
     :raises err: *width* is not a valid width; the class to raise is supplied by the caller.
     """
@@ -318,8 +379,8 @@ def simplify_width(
     | tuple[Literal[WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Recombine (width_type, width_amount) into an width value.
+    """Recombine (width_type, width_amount) into an width value.
+
     Inverse of normalize_width.
 
     :raises TypeError: *width_amount* is not an integer.
@@ -348,9 +409,16 @@ def normalize_height(
 
 @typing.overload
 def normalize_height(
-    height: Literal["flow", "pack", WHSettings.FLOW, WHSettings.PACK],
+    height: Literal["flow", WHSettings.FLOW],
     err: type[BaseException],
-) -> tuple[Literal[WHSettings.FLOW, WHSettings.PACK], None]: ...
+) -> tuple[Literal[WHSettings.FLOW], None]: ...
+
+
+@typing.overload
+def normalize_height(
+    height: Literal["pack", WHSettings.PACK],
+    err: type[BaseException],
+) -> tuple[Literal[WHSettings.PACK], None]: ...
 
 
 @typing.overload
@@ -380,9 +448,9 @@ def normalize_height(
     | tuple[Literal[WHSettings.RELATIVE, WHSettings.GIVEN], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Split height into (height_type, height_amount).  Raise exception err
-    if height isn't valid.
+    """Split height into (height_type, height_amount).
+
+    Raise exception err if height isn't valid.
 
     :raises err: *height* is not a valid height; the class to raise is supplied by the caller.
     """
@@ -462,8 +530,8 @@ def simplify_height(
     | tuple[Literal[WHSettings.RELATIVE], int]
     | tuple[Literal[WHSettings.WEIGHT], int | float]
 ):
-    """
-    Recombine (height_type, height_amount) into a height value.
+    """Recombine (height_type, height_amount) into a height value.
+
     Inverse of normalize_height.
 
     :raises TypeError: *height_amount* is not an integer.
@@ -483,7 +551,7 @@ def simplify_height(
     )
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _BoxSymbols:
     """Box symbols for drawing."""
 
@@ -501,7 +569,7 @@ class _BoxSymbols:
     CROSS: str
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _BoxSymbolsWithDashes(_BoxSymbols):
     """Box symbols for drawing.
 
@@ -516,7 +584,7 @@ class _BoxSymbolsWithDashes(_BoxSymbols):
     VERTICAL_4_DASH: str
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _LightBoxSymbols(_BoxSymbolsWithDashes):
     """Box symbols for drawing.
 
@@ -536,6 +604,24 @@ class _BoxSymbolsCollection(typing.NamedTuple):
     .. note::
         Transitions are not included: depends on line types, different kinds of transitions are available.
         Please check Unicode table for transitions symbols if required.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ===================================  ======  ======  ======  ====  =======
+        Symbols                              Sample  Ubuntu  Fedora  Arch  Windows
+        ===================================  ======  ======  ======  ====  =======
+        :attr:`LIGHT` lines and joints       ─│┌┼    yes     yes     yes   yes
+        :attr:`LIGHT` dashes                 ┈╎      yes     no      no    no
+        :attr:`LIGHT` rounded corners        ╭╯      yes     no      no    no
+        :attr:`HEAVY` lines and joints       ━┃┏╋    yes     yes     no    no
+        :attr:`HEAVY` dashes                 ┉╏      yes     no      no    no
+        :attr:`DOUBLE`                       ═║╔╬    yes     yes     yes   yes
+        ===================================  ======  ======  ======  ====  =======
+
+        A symbol marked ``no`` needs a console font with wider coverage.
     """
 
     # fmt: off
@@ -554,13 +640,19 @@ class _BoxSymbolsCollection(typing.NamedTuple):
 BOX_SYMBOLS = _BoxSymbolsCollection()
 
 
-class BAR_SYMBOLS(str, enum.Enum):
+class BAR_SYMBOLS(enum.StrEnum):
     """Standard Unicode bar symbols excluding empty space.
 
     Start from space (0), then 1/8 till full block (1/1).
     Typically used only 8 from this symbol collection depends on use-case:
     * empty - 7/8 and styles for BG different on both sides (like standard `ProgressBar` and `BarGraph`)
     * 1/8 - full block and single style for BG on the right side
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show only the full block,
+        so the partial blocks need a console font with wider coverage there.
     """
 
     # fmt: off
@@ -570,7 +662,24 @@ class BAR_SYMBOLS(str, enum.Enum):
 
 
 class _SHADE_SYMBOLS(typing.NamedTuple):
-    """Standard shade symbols excluding empty space."""
+    """Standard shade symbols excluding empty space.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every symbol.
+        The default fonts of the Linux virtual console and of the classic Windows console show these:
+
+        ================  ======  ======  ======  ====  =======
+        Member            Symbol  Ubuntu  Fedora  Arch  Windows
+        ================  ======  ======  ======  ====  =======
+        ``FULL_BLOCK``    █       yes     yes     yes   yes
+        ``DARK_SHADE``    ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``  ▒       yes     yes     yes   yes
+        ``LITE_SHADE``    ░       yes     yes     yes   yes
+        ================  ======  ======  ======  ====  =======
+
+        A symbol marked ``no`` needs a console font with wider coverage.
+    """
 
     # fmt: off
 

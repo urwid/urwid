@@ -6,11 +6,43 @@ from __future__ import annotations
 
 import unittest
 
+import urwid
+from urwid import util
 from urwid.display import escape
+
+
+class EscapeModifierTest(unittest.TestCase):
+    def test_all_combinations(self):
+        expected = {
+            "1": "",
+            "2": "shift ",
+            "3": "meta ",
+            "4": "shift meta ",
+            "5": "ctrl ",
+            "6": "shift ctrl ",
+            "7": "meta ctrl ",
+            "8": "shift meta ctrl ",
+        }
+        for digit, prefix in expected.items():
+            self.assertEqual(prefix, escape.escape_modifier(digit))
 
 
 class InputEscapeSequenceParserTest(unittest.TestCase):
     """Tests for parser of input escape sequences"""
+
+    def test_st_editing_keys(self):
+        for sequence, key in ((b"\x1b[4h", "insert"), (b"\x1b[P", "delete")):
+            with self.subTest(key=key):
+                actual, rest = escape.process_keyqueue(list(sequence) + [ord("x")], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_st_editing_keys_wait_for_complete_sequence(self):
+        for sequence in (b"\x1b[4h", b"\x1b[P"):
+            for length in range(1, len(sequence)):
+                with self.subTest(sequence=sequence, length=length):
+                    with self.assertRaises(escape.MoreInputRequired):
+                        escape.process_keyqueue(list(sequence[:length]), more_available=True)
 
     def test_bare_escape(self):
         codes = [27]
@@ -57,6 +89,40 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         actual, rest = escape.process_keyqueue(codes, more_available=False)
         self.assertListEqual(["meta ["], actual)
         self.assertListEqual([ord("1")], rest)
+
+    def test_unrecognised_control_sequence(self):
+        """An unrecognised control sequence is consumed whole instead of being decoded as meta [ and characters."""
+        for sequence, key in (
+            (b"\x1b[1;2X", "<csi 1;2X>"),
+            (b"\x1b[?1;2z", "<csi ?1;2z>"),
+            (b"\x1b[1;5I", "<csi 1;5I>"),
+            (b"\x1b[99~", "<csi 99~>"),
+            (b"\x1b[>1 q", "<csi >1 q>"),
+            (b"\x1b[" + b">" * 64 + b"q", f"<csi {'>' * 64}q>"),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([*sequence, ord("x")], more_available=False)
+                self.assertListEqual([key], actual)
+                self.assertListEqual([ord("x")], rest)
+                for length in range(3, len(sequence)):
+                    with self.assertRaises(escape.MoreInputRequired):
+                        escape.process_keyqueue(list(sequence[:length]), more_available=True)
+
+    def test_unrecognised_control_sequence_after_escape(self):
+        """ESC before an unrecognised control sequence stays a key of its own, as the sequence may be a report."""
+        self.assertListEqual(["esc", "<csi 99~>"], self._decode_all([27, *b"\x1b[99~"]))
+        self.assertListEqual(["esc", "esc", "<csi 99~>"], self._decode_all([27, 27, *b"\x1b[99~"]))
+
+    def test_not_a_control_sequence(self):
+        """Codes after ESC [ that do not form a control sequence keep decoding as meta [ and separate keys."""
+        for codes, expected in (
+            ([*b"\x1b[1 2x"], ["meta [", "1", " ", "2", "x"]),
+            ([*b"\x1b[1", 0xC3, 0xA9], ["meta [", "1", "\xe9"]),
+            ([*b"\x1b[x"], ["meta [", "x"]),
+            ([*b"\x1b[", *b"1" * 65, *b"~"], ["meta [", *"1" * 65, "~"]),
+        ):
+            with self.subTest(codes=codes), util.set_temporary_encoding("utf-8"):
+                self.assertListEqual(expected, self._decode_all(codes))
 
     def test_mouse_press(self):
         codes = [27, 91, 77, 32, 41, 48]
@@ -140,6 +206,36 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     f"Codes {codes!r} ({[chr(code) for code in codes]}) was not decoded to {expected!r}",
                 )
 
+    def test_editing_keys_mods(self):
+        """Test for modifiers handling for editing keys in the [X;#~ form."""
+        for number, key in ((2, "insert"), (3, "delete"), (5, "page up"), (6, "page down")):
+            for mask in "12345678":
+                sequence = f"\x1b[{number};{mask}~".encode()
+                expected = escape.escape_modifier(mask) + key
+                with self.subTest(sequence=sequence):
+                    actual, rest = escape.process_keyqueue(list(sequence), more_available=False)
+                    self.assertEqual([expected], actual)
+                    self.assertEqual([], rest)
+
+    def test_application_keypad_keys(self):
+        """Test for keypad keys sent in application keypad mode (SS3 form)."""
+        for sequence, key in (
+            (b"\x1bOM", "enter"),
+            (b"\x1bOE", "5"),
+            (b"\x1bOl", ","),
+            (b"\x1bOX", "="),
+            (b"\x1bOo", "/"),
+            (b"\x1bOj", "*"),
+            (b"\x1bOm", "-"),
+            (b"\x1bOk", "+"),
+            (b"\x1bOn", "."),
+            *((f"\x1bO{ord('p') + n:c}".encode(), str(n)) for n in range(10)),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue(list(sequence), more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([], rest)
+
     def test_sgrmouse(self):
         prefix = (27, ord("["), ord("<"))
         x = 4
@@ -158,3 +254,751 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
                     actual,
                     f"Codes {codes!r} ({[chr(code) for code in codes]}) was not decoded to {expected!r}",
                 )
+
+    def test_sgrmouse_shift_modifier(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0 | 4))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("shift mouse press", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_drag(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0 | escape.MouseBit.DRAG))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse drag", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_release(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        key_code = tuple(ord(element) for element in str(0))
+        codes = [*prefix, *key_code, ord(";"), *coord, ord("m")]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse release", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_sgrmouse_truncated(self):
+        codes = [27, ord("["), ord("<")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue(codes, more_available=True)
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertListEqual(["meta ["], actual)
+        self.assertListEqual([ord("<")], rest)
+
+    def test_sgrmouse_missing_terminator(self):
+        codes = [ord("0"), ord(";"), ord("5"), ord(";"), ord("8")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info(codes, more_available=False))
+
+    def test_sgrmouse_empty_keys(self):
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info([], more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info([], more_available=False))
+
+    def test_sgrmouse_malformed_is_not_a_report(self):
+        """Input after ``ESC [ <`` that is not ``Pb;Px;Py`` decodes as keys instead of raising."""
+        for body, key, remaining in (
+            (b"hello M", "<csi <h>", b"ello M"),
+            (b"1;2M", "<csi <1;2M>", b""),
+            (b";;M", "<csi <;;M>", b""),
+            (b"1;2;3;4M", "<csi <1;2;3;4M>", b""),
+            (b"1;x;3M", "<csi <1;x>", b";3M"),
+        ):
+            with self.subTest(body=body):
+                self.assertIsNone(escape.input_trie.read_sgrmouse_info(list(body), more_available=True))
+                actual, rest = escape.process_keyqueue([27, *b"[<", *body], more_available=False)
+                self.assertListEqual([key], actual)
+                self.assertListEqual(list(remaining), rest)
+
+    def test_sgrmouse_overlong_body_is_not_buffered(self):
+        """A digit run far longer than any report is rejected rather than held waiting for a terminator."""
+        codes = [ord("1")] * 100
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info(codes, more_available=True))
+
+    def test_sgrmouse_body_length_limit(self):
+        """A body up to the length limit is still awaited, one past it is not a report."""
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_sgrmouse_info([ord("1")] * 32, more_available=True)
+        self.assertIsNone(escape.input_trie.read_sgrmouse_info([ord("1")] * 33, more_available=True))
+
+    def test_report_after_escape(self):
+        """A terminal report following ESC keeps the ESC as a separate key instead of raising."""
+        actual, rest = escape.process_keyqueue([27, 27, *b"[?1000;1$y"], more_available=False)
+        self.assertListEqual(["esc", ("private mode report", "1000", 1)], actual)
+        self.assertListEqual([], rest)
+
+    def test_escape_run_awaiting_more_input(self):
+        """The first of three ESCs is decoded at once while the rest wait for more input."""
+        actual, rest = escape.process_keyqueue([27, 27, 27], more_available=True)
+        self.assertListEqual(["esc"], actual)
+        self.assertListEqual([27, 27], rest)
+
+    @staticmethod
+    def _decode_all(codes: list[int]) -> list[str]:
+        """Decode every code, as parse_input does once no more input is expected."""
+        decoded = []
+        while codes:
+            run, codes = escape.process_keyqueue(codes, more_available=False)
+            decoded.extend(run)
+        return decoded
+
+    def test_long_escape_run(self):
+        """A long run of ESC bytes decodes without exhausting the recursion limit."""
+        self.assertListEqual(["esc"] * 5000, self._decode_all([27] * 5000))
+
+    def test_escape_run_before_meta_key(self):
+        """Only the ESC directly before a key sequence turns it into a meta key."""
+        self.assertListEqual(["esc", "esc", "meta up"], self._decode_all([27, 27, 27, 27, ord("["), ord("A")]))
+
+    def test_sgrmouse_wheel(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        # code 64-67 (0b1000000-0b1000011) sets the "high button" bit, reporting wheel buttons 4-7
+        for code, expected_button in (
+            (0b1000000, urwid.MouseButton.WHEEL_UP),
+            (0b1000001, urwid.MouseButton.WHEEL_DOWN),
+            (0b1000010, urwid.MouseButton.WHEEL_LEFT),
+            (0b1000011, urwid.MouseButton.WHEEL_RIGHT),
+        ):
+            with self.subTest(button=expected_button.name):
+                key_code = tuple(ord(element) for element in str(code))
+                codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+                actual, rest = escape.process_keyqueue(codes, more_available=False)
+                self.assertEqual([("mouse press", expected_button, x, y)], actual)
+                self.assertIs(type(actual[0][1]), int)
+                self.assertListEqual([], rest)
+
+    def test_sgrmouse_extra_buttons(self):
+        prefix = (27, ord("["), ord("<"))
+        x = 4
+        y = 8
+        coord = (ord(f"{x + 1}"), ord(";"), ord(f"{y + 1}"))
+        # code 128-131 (0b10000000-0b10000011) sets the "extra button" bit, reporting buttons 8-11
+        for code, expected_button in (
+            (0b10000000, urwid.MouseButton.BACK),
+            (0b10000001, urwid.MouseButton.FORWARD),
+            (0b10000010, urwid.MouseButton(10)),
+            (0b10000011, urwid.MouseButton(11)),
+        ):
+            key_code = tuple(ord(element) for element in str(code))
+            codes = [*prefix, *key_code, ord(";"), *coord, ord("M")]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([("mouse press", expected_button, x, y)], actual)
+            self.assertListEqual([], rest)
+
+    def test_mouse_x10_modifiers(self):
+        x, y = 8, 15
+        coord = (x + 33, y + 33)
+        for bit, prefix in ((4, "shift "), (8, "meta "), (16, "ctrl "), (4 | 8 | 16, "shift meta ctrl ")):
+            codes = [27, 91, 77, 32 + bit, *coord]
+            actual, rest = escape.process_keyqueue(codes, more_available=False)
+            self.assertEqual([(f"{prefix}mouse press", 1, x, y)], actual)
+            self.assertListEqual([], rest)
+
+    def test_mouse_x10_drag(self):
+        x, y = 8, 15
+        codes = [27, 91, 77, 32 + escape.MouseBit.DRAG, x + 33, y + 33]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("mouse drag", 1, x, y)], actual)
+        self.assertListEqual([], rest)
+
+    def test_mouse_x10_truncated(self):
+        codes = [27, 91, 77, 32]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue(codes, more_available=True)
+        self.assertEqual((None, []), escape.input_trie.read_mouse_info([32], more_available=False))
+        self.assertIsNone(escape.input_trie.read_mouse_info([], more_available=False))
+
+    def test_mouse_x10_cut_short_is_dropped(self):
+        """Drop an X10 report missing a byte and decode the input after it.
+
+        The FreeBSD vt console leaves out a column or row past 94.
+        """
+        press_cut = list(bytes.fromhex("1b5b4d2021"))  # the column byte left out
+        release_cut = list(bytes.fromhex("1b5b4d2321"))
+        press = list(bytes.fromhex("1b5b4d202121"))
+        for name, codes, expected in (
+            ("cut press at the end", press_cut, []),
+            ("cut press before a cut release", press_cut + release_cut, []),
+            ("cut press before a whole one", press_cut + press, [("mouse press", 1, 0, 0)]),
+            ("ESC before a cut press", [27, *press_cut], ["esc"]),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, self._decode_all(codes))
+
+    def test_mouse_x10_wrapped_coordinate(self):
+        """Decode a coordinate byte wrapped past 255.
+
+        The Linux console wraps a column or row past 222 this way.
+        """
+        for name, codes, expected in (
+            ("column 236", [27, *b"[M", 32, 13, 33], [("mouse press", 1, 236, 0)]),
+            ("row 230", [27, *b"[M", 32, 33, 7], [("mouse press", 1, 0, 230)]),
+            ("row 250 at the end", [27, *b"[M", 32, 33, 27], [("mouse press", 1, 0, 250)]),
+            (
+                "row 250 before a report",
+                [27, *b"[M", 32, 33, 27, *b"\x1b[M !!"],
+                [("mouse press", 1, 0, 250), ("mouse press", 1, 0, 0)],
+            ),
+            ("column 250 of row 58", [27, *b"[M", 32, 27, *b"[x"], [("mouse press", 1, 250, 58), "x"]),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, self._decode_all(codes))
+        for codes in ([27, *b"[M", 32, 33, 27], [27, *b"[M", 32, 27, *b"["]):
+            with self.subTest(codes=codes), self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue(codes, more_available=True)
+
+    def test_mouse_x10_release(self):
+        x, y = 8, 15
+        # button bits 0b11 (3) always mean "release", regardless of the MOUSE_RELEASE_FLAG bit
+        keys = [32 + 3, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse release", urwid.MouseButton.UNKNOWN, x, y), []), result)
+
+    def test_mouse_x10_extra_buttons(self):
+        x, y = 8, 15
+        # code 128-131 sets the "extra button" bit, reporting buttons 8-11; bits 0b11 (button 11)
+        # does not mean "release" here, unlike the plain 0b11 case in test_mouse_x10_release
+        for code, expected_button in (
+            (128, urwid.MouseButton.BACK),
+            (129, urwid.MouseButton.FORWARD),
+            (130, urwid.MouseButton(10)),
+            (131, urwid.MouseButton(11)),
+        ):
+            keys = [32 + code, x + 33, y + 33]
+            result = escape.input_trie.read_mouse_info(keys, more_available=False)
+            self.assertEqual((("mouse press", expected_button, x, y), []), result)
+
+    def test_mouse_x10_wheel_button_7_is_not_release(self):
+        x, y = 8, 15
+        # bits 0b11 combined with the "high button" flag (0b1000011 = 64 + 3) is wheel button 7, not a release
+        keys = [32 + 0b1000011, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse press", urwid.MouseButton.WHEEL_RIGHT, x, y), []), result)
+
+    def test_mouse_x10_double_click(self):
+        for x, y in ((8, 15), (300, 1000)):  # the curses display passes a coordinate past a byte unencoded
+            with self.subTest(x=x, y=y):
+                keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG, x + 33, y + 33]
+                result = escape.input_trie.read_mouse_info(keys, more_available=False)
+                self.assertEqual((("double mouse click", 1, x, y), []), result)
+
+    def test_mouse_x10_triple_click(self):
+        x, y = 8, 15
+        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG * 2, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("triple mouse click", 1, x, y), []), result)
+
+    def test_mouse_x10_double_click_release(self):
+        x, y = 8, 15
+        keys = [32 + escape.MOUSE_MULTIPLE_CLICK_FLAG + escape.MOUSE_RELEASE_FLAG, x + 33, y + 33]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("double mouse release", 1, x, y), []), result)
+
+    def test_mouse_x10_leftover_keys_after_report(self):
+        x, y = 8, 15
+        keys = [32, x + 33, y + 33, ord("z")]
+        result = escape.input_trie.read_mouse_info(keys, more_available=False)
+        self.assertEqual((("mouse press", 1, x, y), [ord("z")]), result)
+
+    def test_utf8_multibyte_decoding(self):
+        old_encoding = util.get_encoding()
+        try:
+            urwid.set_encoding("utf-8")
+
+            for text, codes in (
+                ("\xe9", list(b"\xc3\xa9")),  # 2-byte
+                ("€", list(b"\xe2\x82\xac")),  # 3-byte
+                ("\U0001f600", list(b"\xf0\x9f\x98\x80")),  # 4-byte
+            ):
+                with self.subTest(text=text):
+                    actual, rest = escape.process_keyqueue(codes, more_available=False)
+                    self.assertEqual([text], actual)
+                    self.assertListEqual([], rest)
+
+            # invalid continuation byte falls back to a placeholder
+            actual, rest = escape.process_keyqueue([0xC3, ord("A")], more_available=False)
+            self.assertEqual(["<195>"], actual)
+            self.assertListEqual([ord("A")], rest)
+
+            # a standalone byte that is not a valid utf-8 lead byte (a bare continuation byte)
+            actual, rest = escape.process_keyqueue([0x80], more_available=False)
+            self.assertEqual(["<128>"], actual)
+            self.assertListEqual([], rest)
+
+            # overlong 2-byte encoding of NUL is structurally valid but fails to decode
+            actual, rest = escape.process_keyqueue([0xC0, 0x80], more_available=False)
+            self.assertEqual(["<192>"], actual)
+            self.assertListEqual([0x80], rest)
+
+            # truncated multi-byte sequence
+            with self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue([0xC3], more_available=True)
+            actual, rest = escape.process_keyqueue([0xC3], more_available=False)
+            self.assertEqual(["<195>"], actual)
+            self.assertListEqual([], rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
+    def test_narrow_and_wide_encoding_decoding(self):
+        old_encoding = util.get_encoding()
+        try:
+            for encoding, codes, expected, expected_rest in (
+                ("koi8-r", [0xC1], ["а"], []),  # single byte of a narrow encoding
+                ("iso-8859-1", [0xE9], ["é"], []),
+                ("gbk", [0xD6, 0xD0, ord("A")], ["中"], [ord("A")]),  # double byte of a wide encoding
+                ("gbk", [0x81, 0xFF], ["\x81"], [0xFF]),  # lead byte with an invalid trail: decoded one by one
+                ("ascii", [0xE9], ["é"], []),  # not a character of the encoding: read as Latin-1
+            ):
+                with self.subTest(encoding=encoding, codes=codes):
+                    urwid.set_encoding(encoding)
+                    actual, rest = escape.process_keyqueue(codes, more_available=False)
+                    self.assertEqual(expected, actual)
+                    self.assertListEqual(expected_rest, rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
+    def test_nul_byte_fallback(self):
+        old_encoding = util.get_encoding()
+        try:
+            urwid.set_encoding("utf-8")
+            actual, rest = escape.process_keyqueue([0], more_available=False)
+            self.assertEqual(["<0>"], actual)
+            self.assertListEqual([], rest)
+        finally:
+            urwid.set_encoding(old_encoding)
+
+    def test_ctrl_lowercase_range(self):
+        # codes 8, 9, 10, 13 are intercepted earlier by _keyconv (backspace/tab/enter)
+        for code in set(range(1, 27)) - {8, 9, 10, 13}:
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([f"ctrl {chr(ord('a') + code - 1)}"], actual)
+                self.assertListEqual([], rest)
+
+    def test_ctrl_uppercase_range(self):
+        for code in range(28, 32):
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([f"ctrl {chr(ord('A') + code - 1)}"], actual)
+                self.assertListEqual([], rest)
+
+    def test_keyconv_lookup(self):
+        for code, key in ((8, "backspace"), (9, "tab"), (10, "enter"), (13, "enter"), (127, "backspace")):
+            with self.subTest(code=code):
+                actual, rest = escape.process_keyqueue([code], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertListEqual([], rest)
+
+
+class KeyqueueTrieTest(unittest.TestCase):
+    def test_init_rejects_dict_result(self):
+        self.assertRaises(TypeError, escape.KeyqueueTrie, [("a", {})])
+
+    def test_add_rejects_empty_sequence(self):
+        trie = escape.KeyqueueTrie([])
+        self.assertRaises(RuntimeError, trie.add, trie.data, "", "x")
+
+    def test_add_prefix_of_existing_sequence_conflicts(self):
+        # "ab" is added first, so "a" collides with the branch node it created
+        trie = escape.KeyqueueTrie([("ab", "X")])
+        self.assertRaises(RuntimeError, trie.add, trie.data, "a", "Y")
+
+    def test_add_extension_of_existing_sequence_conflicts(self):
+        # "a" is added first as a leaf, so "ab" collides with that leaf
+        trie = escape.KeyqueueTrie([("a", "X")])
+        self.assertRaises(ValueError, trie.add, trie.data, "ab", "Y")
+
+    def test_read_cursor_position_empty_keys(self):
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position([], more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position([], more_available=False))
+
+    def test_read_cursor_position_wrong_prefix(self):
+        self.assertIsNone(escape.input_trie.read_cursor_position([ord("x")], more_available=False))
+
+    def test_read_cursor_position_missing_y(self):
+        # semicolon before any digit
+        codes = [ord("["), ord(";"), ord("5"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_non_digit_y(self):
+        codes = [ord("["), ord("x")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_leading_zero_y(self):
+        codes = [ord("["), ord("0"), ord("1"), ord(";"), ord("5"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_truncated_after_y(self):
+        codes = [ord("["), ord("5"), ord(";")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_non_digit_x(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("y")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_leading_zero_x(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("0"), ord("1"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_missing_x(self):
+        # 'R' immediately after the semicolon, with no digit for x
+        codes = [ord("["), ord("5"), ord(";"), ord("R")]
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_truncated_after_x_digits(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("3")]
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.input_trie.read_cursor_position(codes, more_available=True)
+        self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=False))
+
+    def test_read_cursor_position_success(self):
+        codes = [ord("["), ord("5"), ord(";"), ord("3"), ord("R"), ord("z")]
+        result = escape.input_trie.read_cursor_position(codes, more_available=False)
+        self.assertEqual((("cursor position", 2, 4), [ord("z")]), result)
+
+    def test_read_cursor_position_length_limit(self):
+        """A report body is accepted up to 64 bytes, and a longer digit run is not held waiting for more input."""
+        report = [*b"[", *b"1" * 31, *b";", *b"2" * 32, *b"R"]
+        result = escape.input_trie.read_cursor_position(report, more_available=True)
+        self.assertEqual((("cursor position", int("2" * 32) - 1, int("1" * 31) - 1), []), result)
+        for codes in ([*b"[", *b"1" * 65], [*b"[1;", *b"2" * 63]):
+            with self.subTest(length=len(codes)):
+                self.assertIsNone(escape.input_trie.read_cursor_position(codes, more_available=True))
+        actual, rest = escape.process_keyqueue([27, *b"[", *b"1" * 200], more_available=True)
+        self.assertListEqual(["meta ["], actual)
+        self.assertEqual(200, len(rest))
+
+
+class MouseBitTest(unittest.TestCase):
+    def test_operators_return_int(self) -> None:
+        """Combine and test the bits with int's own operators, which return a plain int."""
+        for value in (
+            escape.MouseBit.SHIFT | escape.MouseBit.CTRL,
+            52 | escape.MouseBit.DRAG,
+            52 & escape.MouseBit.SHIFT,
+            escape.MouseBit.DRAG & 63,
+        ):
+            with self.subTest(value=value):
+                self.assertIs(type(value), int)
+
+    def test_renamed_private_names_warn(self) -> None:
+        """Resolve the names the bits had before MouseBit to their values, with a deprecation warning."""
+        for name, value in (
+            ("_MOUSE_SHIFT_FLAG", 4),
+            ("_MOUSE_META_FLAG", 8),
+            ("_MOUSE_CTRL_FLAG", 16),
+            ("_MOUSE_HIGH_BUTTON_FLAG", 64),
+            ("_MOUSE_EXTRA_BUTTON_FLAG", 128),
+            ("_MOUSE_BUTTON_MASK", 3),
+        ):
+            with self.subTest(name=name), self.assertWarns(DeprecationWarning):
+                self.assertEqual(getattr(escape, name), value)
+        with self.assertRaises(AttributeError):
+            getattr(escape, "_MOUSE_NO_SUCH_FLAG")
+
+
+class MouseButtonTest(unittest.TestCase):
+    def test_values_are_the_button_numbers(self) -> None:
+        """Give each named button the number the screens report for it."""
+        self.assertEqual(
+            {
+                "UNKNOWN": 0,
+                "LEFT": 1,
+                "MIDDLE": 2,
+                "RIGHT": 3,
+                "WHEEL_UP": 4,
+                "WHEEL_DOWN": 5,
+                "WHEEL_LEFT": 6,
+                "WHEEL_RIGHT": 7,
+                "BACK": 8,
+                "FORWARD": 9,
+            },
+            {member.name: member for member in urwid.MouseButton},
+        )
+        self.assertIs(urwid.MouseButton(0), urwid.MouseButton.UNKNOWN)
+
+    def test_unnamed_button(self) -> None:
+        """Convert a number above the named buttons to a member named after it."""
+        button = urwid.MouseButton(10)
+        self.assertEqual(10, button)
+        self.assertEqual("BUTTON_10", button.name)
+        self.assertIsInstance(button, urwid.MouseButton)
+        self.assertEqual("found", {10: "found"}[button])
+
+    def test_unnamed_buttons_are_not_stored(self) -> None:
+        """Leave the members unchanged after converting many unnamed numbers."""
+        for number in range(10, 1010):
+            urwid.MouseButton(number)
+        self.assertEqual(10, len(urwid.MouseButton._value2member_map_))
+        self.assertEqual(10, len(urwid.MouseButton))
+
+    def test_invalid_value_raises(self) -> None:
+        """Reject a negative number and a value that is not an int."""
+        for value in (-1, "1", 1.5):
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                urwid.MouseButton(value)
+
+
+class OutputSequenceTest(unittest.TestCase):
+    def test_set_cursor_position(self):
+        self.assertEqual(f"{escape.ESC}[6;11H", escape.set_cursor_position(10, 5))
+        self.assertRaises(TypeError, escape.set_cursor_position, "10", 5)
+        self.assertRaises(TypeError, escape.set_cursor_position, 10, "5")
+
+    def test_move_cursor_right(self):
+        self.assertEqual("", escape.move_cursor_right(0))
+        self.assertEqual(f"{escape.ESC}[3C", escape.move_cursor_right(3))
+
+    def test_move_cursor_up(self):
+        self.assertEqual("", escape.move_cursor_up(0))
+        self.assertEqual(f"{escape.ESC}[3A", escape.move_cursor_up(3))
+
+    def test_move_cursor_down(self):
+        self.assertEqual("", escape.move_cursor_down(0))
+        self.assertEqual(f"{escape.ESC}[3B", escape.move_cursor_down(3))
+
+
+class PrivateModeTest(unittest.TestCase):
+    def test_members_are_plain_strings(self):
+        # str(member) has to render the bare mode number (not "PrivateMode.BRACKETED_PASTE"),
+        # since query_private_mode() interpolates it directly into an escape sequence.
+        self.assertEqual("1004", str(escape.PrivateMode.FOCUS_REPORTING))
+        self.assertEqual("2004", str(escape.PrivateMode.BRACKETED_PASTE))
+        self.assertEqual("2026", str(escape.PrivateMode.SYNCHRONIZED_OUTPUT))
+        self.assertEqual("2027", str(escape.PrivateMode.GRAPHEME_CLUSTERING))
+
+
+class QueryPrivateModeTest(unittest.TestCase):
+    def test_query_private_mode(self):
+        self.assertEqual(f"{escape.ESC}[?1004$p", escape.PrivateMode.FOCUS_REPORTING.query)
+        self.assertEqual(f"{escape.ESC}[?2004$p", escape.PrivateMode.BRACKETED_PASTE.query)
+        self.assertEqual(f"{escape.ESC}[?2026$p", escape.PrivateMode.SYNCHRONIZED_OUTPUT.query)
+
+
+class ReadPrivateModeReportTest(unittest.TestCase):
+    def test_recognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2004;1$y"), False)
+        self.assertEqual((("private mode report", "2004", 1), []), result)
+
+    def test_unrecognized_reply(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;0$y"), False)
+        self.assertEqual((("private mode report", "2026", 0), []), result)
+
+    def test_trailing_bytes_are_left_unconsumed(self):
+        result = escape.input_trie.read_private_mode_report(list(b"[?2026;1$yab"), False)
+        self.assertEqual((("private mode report", "2026", 1), [ord("a"), ord("b")]), result)
+
+    def test_not_a_private_mode_report_returns_none(self):
+        self.assertIsNone(escape.input_trie.read_private_mode_report(list(b"[6;5R"), False))
+        self.assertIsNone(escape.input_trie.read_private_mode_report([], False))
+
+    def test_incomplete_reply_raises_more_input_required_when_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix), self.assertRaises(escape.MoreInputRequired):
+                escape.input_trie.read_private_mode_report(list(prefix), True)
+
+    def test_incomplete_reply_returns_none_when_no_more_available(self):
+        for prefix in (b"[", b"[?", b"[?2004", b"[?2004;", b"[?2004;1", b"[?2004;1$"):
+            with self.subTest(prefix=prefix):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(prefix), False))
+
+    def test_parameters_longer_than_the_limit_are_not_a_report(self):
+        """Stop waiting for more input once the parameters exceed the limit.
+
+        A sequence with no terminator is then not buffered forever.
+        """
+        too_long = b"1" * (escape._CSI_PARAMETERS_MAX_LEN + 3)
+        for codes in (b"[?" + too_long, b"[?1;" + too_long, b"[?1;" + too_long + b"$y"):
+            with self.subTest(codes=codes):
+                self.assertIsNone(escape.input_trie.read_private_mode_report(list(codes), True))
+        longest = b"[?1;" + b"1" * (escape._CSI_PARAMETERS_MAX_LEN - 2) + b"$y"
+        self.assertEqual("private mode report", escape.input_trie.read_private_mode_report(list(longest), False)[0][0])
+
+    def test_recognized_through_process_keyqueue(self):
+        codes = [27, *b"[?2004;1$y"]
+        actual, rest = escape.process_keyqueue(codes, more_available=False)
+        self.assertEqual([("private mode report", "2004", 1)], actual)
+        self.assertEqual([], rest)
+
+    def test_decrqm_recognized_values(self):
+        for value in (1, 2, 3, 4):
+            self.assertIn(value, escape.DECRQM_RECOGNIZED_VALUES)
+        self.assertNotIn(0, escape.DECRQM_RECOGNIZED_VALUES)
+
+
+class KeyReportTest(unittest.TestCase):
+    """Key reports of the kitty keyboard protocol and xterm's modifyOtherKeys, and modifiers the trie has no entry for."""
+
+    def test_reports_decode_to_key_names(self):
+        for sequence, key in (
+            # kitty keyboard protocol: CSI code[:shifted] ; modifiers u
+            (b"[97;5u", "ctrl a"),
+            (b"[105;5u", "ctrl i"),
+            (b"[109;5u", "ctrl m"),
+            (b"[47;5u", "ctrl /"),
+            (b"[32;5u", "ctrl  "),
+            (b"[32;6u", "ctrl  "),
+            (b"[32;4u", "meta  "),
+            (b"[97;3u", "meta a"),
+            (b"[97:65;4u", "meta A"),
+            (b"[97;6u", "ctrl A"),
+            (b"[49:33;6u", "ctrl !"),
+            (b"[49;6u", "shift ctrl 1"),
+            (b"[97;9u", "super a"),
+            (b"[97;17u", "hyper a"),
+            (b"[97;33u", "meta a"),
+            (b"[97;69u", "ctrl a"),
+            (b"[13;5u", "ctrl enter"),
+            (b"[13;2u", "shift enter"),
+            (b"[9;5u", "ctrl tab"),
+            (b"[9;6u", "shift ctrl tab"),
+            (b"[127;3u", "meta backspace"),
+            (b"[27u", "esc"),
+            (b"[27;3u", "meta esc"),
+            (b"[57376u", "f13"),
+            (b"[57398;5u", "ctrl f35"),
+            (b"[57399u", "0"),
+            (b"[57414;5u", "ctrl enter"),
+            (b"[57427u", "5"),
+            (b"[57441u", "left shift"),
+            (b"[57440u", "mute volume"),
+            (b"[1078;5u", "ctrl ж"),
+            (b"[1078;6u", "ctrl Ж"),
+            # xterm modifyOtherKeys: CSI 27 ; modifiers ; code ~, where code is the character after shift
+            (b"[27;5;13~", "ctrl enter"),
+            (b"[27;6;9~", "shift ctrl tab"),
+            (b"[27;5;97~", "ctrl a"),
+            (b"[27;6;65~", "ctrl A"),
+            (b"[27;6;33~", "ctrl !"),
+            (b"[27;3;97~", "meta a"),
+            (b"[27;5;32~", "ctrl  "),
+            (b"[27;6;32~", "ctrl  "),
+            (b"[27;4;32~", "meta  "),
+            # legacy forms with super, hyper or a lock modifier, which the trie has no entry for
+            (b"[1;9A", "super up"),
+            (b"[1;129A", "up"),
+            (b"[1;133D", "ctrl left"),
+            (b"[3;133~", "ctrl delete"),
+            (b"[15;9~", "super f5"),
+            (b"[1;9P", "super f1"),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
+                self.assertEqual([key], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_sequences_that_name_no_key_are_not_key_reports(self):
+        for sequence in (
+            b"[0;5u",  # a text event without a key, only sent with the associated text enhancement
+            b"[1114112;5u",  # past the last code point
+            b"[1;5u",  # a C0 control code is never a key's code
+            b"[97;0u",  # the modifiers parameter is one more than the bits, so it is never 0
+            b"[;5u",
+            b"[99;5~",
+            b"[2;5A",
+            b"[27;5~",
+            b"[27;5;~",
+            b"[97;5:x",
+        ):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_key_report(list(sequence), more_available=False))
+
+    def test_truncated_report_waits_for_more_input(self):
+        sequence = b"[27;6;65~"
+        for length in range(1, len(sequence)):
+            with self.subTest(length=length), self.assertRaises(escape.MoreInputRequired):
+                escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+
+    def test_overlong_parameters_are_not_buffered(self):
+        codes = [ord("["), *b"1" * 65]
+        self.assertIsNone(escape.input_trie.read_key_report(codes, more_available=True))
+
+    def test_csi_p_is_f1_only_with_the_kitty_keyboard_protocol(self):
+        for keyboard_protocol, key in ((None, "delete"), ("modify other keys", "delete"), ("kitty", "f1")):
+            with self.subTest(keyboard_protocol=keyboard_protocol):
+                actual, rest = escape.process_keyqueue(
+                    [27, *b"[P"], more_available=False, keyboard_protocol=keyboard_protocol
+                )
+                self.assertEqual([key], actual)
+                self.assertEqual([], rest)
+
+    def test_meta_prefixed_csi_p_keeps_the_kitty_keyboard_reading(self):
+        actual, _rest = escape.process_keyqueue([27, 27, *b"[P"], more_available=False, keyboard_protocol="kitty")
+        self.assertEqual(["meta f1"], actual)
+
+    def test_csi_u_carries_the_shifted_character_with_modify_other_keys(self):
+        """xterm's formatOtherKeys sends modifyOtherKeys reports as CSI u, with the character typed with shift."""
+        for keyboard_protocol, key in ((None, "shift ctrl !"), ("kitty", "shift ctrl !"), ("modify other keys", "ctrl !")):
+            with self.subTest(keyboard_protocol=keyboard_protocol):
+                actual, _rest = escape.process_keyqueue(
+                    [27, *b"[33;6u"], more_available=False, keyboard_protocol=keyboard_protocol
+                )
+                self.assertEqual([key], actual)
+
+    def test_shift_space_with_modify_other_keys_is_a_space(self):
+        self.assertEqual(([" "], []), escape.process_keyqueue([27, *b"[27;2;32~"], more_available=False))
+
+    def test_csi_q_and_csi_s_are_f2_and_f4(self):
+        for sequence, key in ((b"[Q", "f2"), (b"[S", "f4")):
+            with self.subTest(sequence=sequence):
+                self.assertEqual(([key], []), escape.process_keyqueue([27, *sequence], more_available=False))
+
+
+class ReadKeyboardQueryReplyTest(unittest.TestCase):
+    def test_replies_through_process_keyqueue(self):
+        for sequence, report in (
+            (b"[?5u", ("keyboard protocol report", 5)),
+            (b"[?0u", ("keyboard protocol report", 0)),
+            (b"[?62;22c", ("device attributes", (62, 22))),
+            (b"[?6c", ("device attributes", (6,))),
+            (b"[>4;2m", ("modify keys report", 4, 2)),
+            (b"[>4m", ("modify keys report", 4, None)),
+        ):
+            with self.subTest(sequence=sequence):
+                actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
+                self.assertEqual([report], actual)
+                self.assertEqual([ord("x")], rest)
+
+    def test_malformed_replies_are_not_reports(self):
+        for sequence in (b"[?u", b"[?1;2u", b"[?1:2u", b"[?;c"):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_private_report(list(sequence), more_available=False))
+        for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):
+            with self.subTest(sequence=sequence):
+                self.assertIsNone(escape.input_trie.read_modify_keys_report(list(sequence), more_available=False))
+
+    def test_truncated_replies_wait_for_more_input(self):
+        for sequence in (b"[?62;22c", b"[>4;2m"):
+            for length in range(1, len(sequence)):
+                with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
+                    escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+
+
+class KeyboardProtocolOutputTest(unittest.TestCase):
+    def test_sequences(self):
+        self.assertEqual(f"{escape.ESC}[?u", escape.KITTY_KEYBOARD_QUERY)
+        self.assertEqual(f"{escape.ESC}[>5u", escape.KITTY_KEYBOARD_PUSH)
+        self.assertEqual(f"{escape.ESC}[<u", escape.KITTY_KEYBOARD_POP)
+        self.assertEqual(f"{escape.ESC}[?4m", escape.MODIFY_OTHER_KEYS_QUERY)
+        self.assertEqual(f"{escape.ESC}[>4;2m", escape.MODIFY_OTHER_KEYS_ON)
+        self.assertEqual(f"{escape.ESC}[>4;1m", escape.set_modify_other_keys(1))
+        self.assertEqual(f"{escape.ESC}[>4m", escape.set_modify_other_keys(None))
+        self.assertEqual(f"{escape.ESC}[c", escape.REPORT_DEVICE_ATTRIBUTES)

@@ -24,24 +24,25 @@
 
 from __future__ import annotations
 
-import contextlib
+import asyncio
 import errno
 import heapq
+import inspect
 import logging
-import os
+import math
 import time
 import typing
 from itertools import count
 
 import zmq
+import zmq.asyncio
 
 from .abstract_loop import EventLoop, ExitMainLoop, SupportsFileno
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from concurrent.futures import Executor, Future
-
-    from typing_extensions import ParamSpec
+    from typing import ParamSpec
 
     ZMQAlarmHandle = tuple[float, int, Callable[[], typing.Any]]
     _T = typing.TypeVar("_T")
@@ -49,27 +50,66 @@ if typing.TYPE_CHECKING:
 
 
 class ZMQEventLoop(EventLoop):
-    """
-    This class is an urwid event loop for `ZeroMQ`_ applications. It is very
-    similar to :class:`SelectEventLoop`, supporting the usual :meth:`alarm`
-    events and file watching (:meth:`watch_file`) capabilities, but also
-    incorporates the ability to watch zmq queues for events
-    (:meth:`watch_queue`).
+    """This class is an urwid event loop for `ZeroMQ`_ applications.
+
+    It is very similar to :class:`SelectEventLoop`, supporting the usual :meth:`alarm`
+    events and file watching (:meth:`watch_file`) capabilities, but also incorporates
+    the ability to watch zmq queues for events (:meth:`watch_queue`).
 
     .. _ZeroMQ: https://zeromq.org/
+
+    .. note::
+        :meth:`alarm`, :meth:`watch_file`, :meth:`watch_queue` and :meth:`enter_idle` accept an
+        ``async def`` callback in addition to a plain callable. :class:`ZMQEventLoop` runs on top
+        of an :mod:`asyncio` loop (via :class:`zmq.asyncio.Poller`), so a coroutine function is
+        scheduled as a background task there instead of being called directly, the same way it
+        would be on any other :mod:`asyncio`-backed event loop.
     """
 
     _alarm_break = count()
 
     def __init__(self) -> None:
+        """Initialize with a fresh zmq poller and no alarms or watched queues yet."""
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._did_something = True
         self._alarms: list[tuple[float, int, Callable[[], typing.Any]]] = []
-        self._poller = zmq.Poller()
+        self._poller = zmq.asyncio.Poller()
         self._queue_callbacks: dict[int | zmq.Socket[typing.Any], Callable[[], typing.Any]] = {}
         self._idle_handle = 0
         self._idle_callbacks: dict[int, Callable[[], typing.Any]] = {}
+        self._background_tasks: set[asyncio.Task[typing.Any]] = set()
+        self._main_task: asyncio.Task[None] | None = None
+        self._exc: BaseException | None = None
+
+    def _run_callback(self, callback: Callable[_Spec, _T], *args: _Spec.args, **kwargs: _Spec.kwargs) -> _T | None:
+        """Call callback, scheduling it as a background task instead if it is a coroutine function.
+
+        :param callback: function or coroutine function to call
+        :param args: positional arguments to pass to callback
+        :param kwargs: keyword arguments to pass to callback
+        :returns: callback return value, or None if it was scheduled as a background task
+        """
+        if inspect.iscoroutinefunction(callback):
+            task = asyncio.get_running_loop().create_task(callback(*args, **kwargs))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
+            task.add_done_callback(self._background_task_done)
+            return None
+        return callback(*args, **kwargs)
+
+    def _background_task_done(self, task: asyncio.Task[typing.Any]) -> None:
+        """Pass a background task's exception to :meth:`_exception_handler` as soon as the task finishes.
+
+        Without this, asyncio reports the exception only from ``Task.__del__``,
+        which a tracing garbage collector (PyPy, GraalPy) runs at an unpredictable time.
+
+        :param task: finished background task scheduled by :meth:`_run_callback`
+        """
+        if task.cancelled():
+            return
+        if exc := task.exception():
+            self._exception_handler(task.get_loop(), {"exception": exc})
 
     def run_in_executor(
         self,
@@ -81,22 +121,17 @@ class ZMQEventLoop(EventLoop):
         """Run callable in executor.
 
         :param executor: Executor to use for running the function
-        :type executor: concurrent.futures.Executor
         :param func: function to call
-        :type func: Callable
         :param args: positional arguments to function
-        :type args: object
         :param kwargs: keyword arguments to function
-        :type kwargs: object
-        :return: future object for the function call outcome.
-        :rtype: concurrent.futures.Future
+        :returns: future object for the function call outcome.
         """
         return executor.submit(func, *args, **kwargs)
 
     def alarm(self, seconds: float, callback: Callable[[], typing.Any]) -> ZMQAlarmHandle:
-        """
-        Call *callback* a given time from now. No parameters are passed to
-        callback. Returns a handle that may be passed to :meth:`remove_alarm`.
+        """Call *callback* a given time from now.
+
+        No parameters are passed to callback. Returns a handle that may be passed to :meth:`remove_alarm`.
 
         :param float seconds:
             floating point time to wait before calling callback.
@@ -104,14 +139,14 @@ class ZMQEventLoop(EventLoop):
         :param callback:
             function to call from event loop.
         """
-        handle = (time.time() + seconds, next(self._alarm_break), callback)
+        handle = (time.monotonic() + seconds, next(self._alarm_break), callback)
         heapq.heappush(self._alarms, handle)
         return handle
 
     def remove_alarm(self, handle: ZMQAlarmHandle) -> bool:
-        """
-        Remove an alarm. Returns ``True`` if the alarm exists, ``False``
-        otherwise.
+        """Remove an alarm.
+
+        :returns: ``True`` if the alarm exists, ``False`` otherwise.
         """
         try:
             self._alarms.remove(handle)
@@ -128,11 +163,11 @@ class ZMQEventLoop(EventLoop):
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
     ) -> zmq.Socket[typing.Any]:
-        """
-        Call *callback* when zmq *queue* has something to read (when *flags* is
-        set to ``POLLIN``, the default) or is available to write (when *flags*
-        is set to ``POLLOUT``). No parameters are passed to the callback.
-        Returns a handle that may be passed to :meth:`remove_watch_queue`.
+        """Call *callback* when zmq *queue* becomes ready to read or write.
+
+        *flags* controls the condition: ``POLLIN`` (the default) watches for data to read, ``POLLOUT`` watches for
+        availability to write. No parameters are passed to the callback. Returns a handle that may be passed to
+        :meth:`remove_watch_queue`.
 
         :param queue:
             The zmq queue to poll.
@@ -142,7 +177,7 @@ class ZMQEventLoop(EventLoop):
 
         :param int flags:
             The condition to monitor on the queue (defaults to ``POLLIN``).
-        :raises ValueError: *queue* is already being watched.
+        :raises ValueError: *queue* is already being watched, by this method or by :meth:`watch_file`.
         """
         if queue in self._queue_callbacks:
             raise ValueError(f"already watching {queue!r}")
@@ -155,31 +190,39 @@ class ZMQEventLoop(EventLoop):
         fd: int | SupportsFileno,
         callback: Callable[[], typing.Any],
         flags: int = zmq.POLLIN,
-    ) -> SupportsFileno:
-        """
-        Call *callback* when *fd* has some data to read. No parameters are
-        passed to the callback. The *flags* are as for :meth:`watch_queue`.
-        Returns a handle that may be passed to :meth:`remove_watch_file`.
+    ) -> int | SupportsFileno:
+        """Call *callback* when *fd* has some data to read.
+
+        No parameters are passed to the callback. The *flags* are as for :meth:`watch_queue`.
+
+        .. note::
+            For a zmq socket, this method and :meth:`watch_queue` set the same watch.
+            Calling this method on a watched socket replaces its callback and flags,
+            while :meth:`watch_queue` refuses a watched socket.
+            Either :meth:`remove_watch_file` or :meth:`remove_watch_queue` removes it.
 
         :param fd:
             The file-like object, or fileno to monitor.
+            A zmq socket is watched for its 0MQ events, as by :meth:`watch_queue`.
+            Its ``fileno()`` is the socket's notification descriptor and does not name the same watch.
 
         :param callback:
             The function to call when the file has data available.
 
         :param int flags:
             The condition to monitor on the file (defaults to ``POLLIN``).
+        :returns: a handle that may be passed to :meth:`remove_watch_file`.
         """
-        if isinstance(fd, int):
-            fd = os.fdopen(fd)
-        self._poller.register(fd, flags)
-        self._queue_callbacks[fd.fileno()] = callback
+        # The key the poller reports a ready entry by: the socket for a zmq socket, the descriptor number otherwise.
+        key = fd if isinstance(fd, (int, zmq.Socket)) else fd.fileno()
+        self._poller.register(key, flags)
+        self._queue_callbacks[key] = callback
         return fd
 
     def remove_watch_queue(self, handle: zmq.Socket[typing.Any]) -> bool:
-        """
-        Remove a queue from background polling. Returns ``True`` if the queue
-        was being monitored, ``False`` otherwise.
+        """Remove a queue from background polling.
+
+        :returns: ``True`` if the queue was being monitored, ``False`` otherwise.
         """
         try:
             try:
@@ -192,16 +235,20 @@ class ZMQEventLoop(EventLoop):
 
         return True
 
-    def remove_watch_file(self, handle: SupportsFileno) -> bool:
+    def remove_watch_file(self, handle: int | SupportsFileno) -> bool:
+        """Remove a file from background polling.
+
+        *handle* may be the object given to :meth:`watch_file` or, for an ordinary file, its descriptor number.
+        A zmq socket is named by the socket object itself.
+
+        :returns: ``True`` if the file was being monitored, ``False`` otherwise.
         """
-        Remove a file from background polling. Returns ``True`` if the file was
-        being monitored, ``False`` otherwise.
-        """
+        key = handle if isinstance(handle, (int, zmq.Socket)) else handle.fileno()
         try:
             try:
-                self._poller.unregister(handle)
+                self._poller.unregister(key)
             finally:
-                self._queue_callbacks.pop(handle.fileno(), None)
+                self._queue_callbacks.pop(key, None)
 
         except KeyError:
             return False
@@ -209,18 +256,18 @@ class ZMQEventLoop(EventLoop):
         return True
 
     def enter_idle(self, callback: Callable[[], typing.Any]) -> int:
-        """
-        Add a *callback* to be executed when the event loop detects it is idle.
-        Returns a handle that may be passed to :meth:`remove_enter_idle`.
+        """Add a *callback* to be executed when the event loop detects it is idle.
+
+        :returns: a handle that may be passed to :meth:`remove_enter_idle`.
         """
         self._idle_handle += 1
         self._idle_callbacks[self._idle_handle] = callback
         return self._idle_handle
 
     def remove_enter_idle(self, handle: int) -> bool:
-        """
-        Remove an idle callback. Returns ``True`` if *handle* was removed,
-        ``False`` otherwise.
+        """Remove an idle callback.
+
+        :returns: ``True`` if *handle* was removed, ``False`` otherwise.
         """
         try:
             del self._idle_callbacks[handle]
@@ -231,47 +278,89 @@ class ZMQEventLoop(EventLoop):
 
     def _entering_idle(self) -> None:
         for callback in list(self._idle_callbacks.values()):
-            callback()
+            self._run_callback(callback)
+
+    def _exception_handler(self, loop: asyncio.AbstractEventLoop, context: dict[str, typing.Any]) -> None:
+        """Stop the loop on an exception from a background task scheduled by :meth:`_run_callback`.
+
+        The exception is stored to be raised from :meth:`run`, unless it is :exc:`ExitMainLoop`,
+        and :attr:`_main_task` is cancelled to stop the loop.
+
+        :param loop: the loop the exception occurred on
+        :param context: exception context, as passed by :mod:`asyncio` to an exception handler
+        """
+        if exc := context.get("exception"):
+            if not isinstance(exc, ExitMainLoop):
+                self._exc = exc
+            if self._main_task is not None:
+                self._main_task.cancel()
+        else:
+            loop.default_exception_handler(context)
 
     def run(self) -> None:
+        """Start the event loop.
+
+        Exit the loop when any callback raises an exception. If :exc:`ExitMainLoop` is raised, exit cleanly.
+
+        :raises BaseException: the exception that stopped the loop, once the loop has been left.
         """
-        Start the event loop. Exit the loop when any callback raises an
-        exception. If :exc:`ExitMainLoop` is raised, exit cleanly.
-        """
-        with contextlib.suppress(ExitMainLoop):
+        asyncio.run(self._run_async())
+        if self._exc:
+            exc, self._exc = self._exc, None
+            raise exc.with_traceback(exc.__traceback__)
+
+    async def _run_async(self) -> None:
+        """Drive :meth:`_loop` until :exc:`ExitMainLoop` is raised, directly or from a background task."""
+        asyncio.get_running_loop().set_exception_handler(self._exception_handler)
+        self._main_task = typing.cast("asyncio.Task[None]", asyncio.current_task())
+        try:
             while True:
                 try:
-                    self._loop()
-                except zmq.error.ZMQError as exc:  # noqa: PERF203
+                    await self._loop()
+                except zmq.error.ZMQError as exc:
                     if exc.errno != errno.EINTR:
                         raise
+        except (ExitMainLoop, asyncio.CancelledError):
+            pass
+        finally:
+            self._main_task = None
 
-    def _loop(self) -> None:
-        """
-        A single iteration of the event loop.
-        """
-        state = "wait"  # default state not expecting any action
+    async def _loop(self) -> None:
+        """Run a single iteration of the event loop."""
+        entering_idle = False
+        polled_callbacks = self._queue_callbacks.copy()
         if self._alarms or self._did_something:
             timeout = 0.0
             if self._alarms:
-                state = "alarm"
-                timeout = max(0.0, self._alarms[0][0] - time.time())
+                timeout = max(0.0, self._alarms[0][0] - time.monotonic())
             if self._did_something and (not self._alarms or (self._alarms and timeout > 0)):
-                state = "idle"
+                entering_idle = True
                 timeout = 0
-            ready = dict(self._poller.poll(int(timeout * 1000)))
+            ready = dict(await self._poller.poll(math.ceil(timeout * 1000)))
         else:
-            ready = dict(self._poller.poll())
+            ready = dict(await self._poller.poll())
 
-        if not ready:
-            if state == "idle":
-                self._entering_idle()
-                self._did_something = False
-            elif state == "alarm":
-                _due, _tie_break, callback = heapq.heappop(self._alarms)
-                callback()
-                self._did_something = True
+        if not ready and entering_idle:
+            self._entering_idle()
+            self._did_something = False
 
         for queue in ready:
-            self._queue_callbacks[queue]()
+            # A callback earlier in this pass, or another task during the poll, may have removed or replaced the
+            # watch and closed its descriptor.
+            if queue in polled_callbacks and self._queue_callbacks.get(queue) is not polled_callbacks[queue]:
+                continue
+            self._run_callback(self._queue_callbacks[queue])
             self._did_something = True
+
+        # A continuously ready queue or descriptor must not prevent expired alarms from running.
+        if self._alarms and self._alarms[0][0] <= time.monotonic():
+            _due, _tie_break, callback = heapq.heappop(self._alarms)
+            self._run_callback(callback)
+            self._did_something = True
+
+        # zmq.asyncio.Poller.poll() resolves synchronously (no checkpoint) whenever
+        # something is already ready, so a busy queue or alarm would otherwise never
+        # let any other task on this loop - including a background task just scheduled
+        # by _run_callback() above - get a turn to run. Yield once per iteration to
+        # guarantee one.
+        await asyncio.sleep(0)

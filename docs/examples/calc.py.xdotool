@@ -1,0 +1,6 @@
+windowsize --usehints $TERMWINDOWID 80 26
+key --window $TERMWINDOWID 3 5 5 slash 1 1 3
+key --window $TERMWINDOWID Return
+key --window $TERMWINDOWID alt+Right 4 8 8 7 9 Up Right Right Right space
+key --window $TERMWINDOWID Up Up Right space Down space
+key --window $TERMWINDOWID Down space Left space

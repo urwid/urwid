@@ -1,37 +1,72 @@
+"""Edit: a text editing widget, and IntEdit for integers."""
+
 from __future__ import annotations
 
+import contextlib
 import string
+import sys
 import typing
+import unicodedata
+from collections import deque
+from collections.abc import Iterable
 
 from urwid import text_layout
 from urwid.canvas import CompositeCanvas, apply_text_layout
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
-from urwid.str_util import is_wide_char, move_next_char, move_prev_char
+from urwid.str_util import _grapheme_boundary, calc_width, is_wide_char, move_next_char, move_prev_char
 from urwid.util import decompose_tagmarkup
 
-from .constants import Align, Sizing, WrapMode
+from .attr_map import _attr_map_dicts
+from .constants import Align, MouseButton, Severity, Sizing, ValidationMessage, WrapMode
 from .text import Text, TextError
 from .widget import WidgetWrap
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Hashable
-
-    from typing_extensions import Literal
+    from collections.abc import Callable, Hashable, Iterator, Mapping, MutableSequence, Sequence
+    from typing import Literal
 
     from urwid.canvas import TextCanvas
     from urwid.util import _TagMarkup
 
+    from .attr_map import _AttrMapLike
+
 
 class EditError(TextError):
-    pass
+    """Edit related errors."""
+
+
+def _validation_messages(
+    result: ValidationMessage | str | Iterable[ValidationMessage] | None,
+) -> tuple[ValidationMessage, ...]:
+    """Return what a validator returned as a tuple of messages.
+
+    :raises TypeError: *result* is not ``None``, a :class:`str`, a :class:`ValidationMessage`,
+        or an iterable of :class:`ValidationMessage`.
+        A message's severity is not a :class:`Severity` member.
+    """
+    if result is None:
+        return ()
+    if isinstance(result, str):
+        return (ValidationMessage(Severity.ERROR, result),)
+    if isinstance(result, ValidationMessage):
+        messages: tuple[object, ...] = (result,)
+    elif isinstance(result, (bytes, bytearray)) or not isinstance(result, Iterable):
+        detail = f"a validator returned {result!r}, not a message, messages or None"
+        raise TypeError(detail)
+    else:
+        messages = tuple(result)
+    for message in messages:
+        if not isinstance(message, ValidationMessage) or not isinstance(message.severity, Severity):
+            detail = f"a validator returned {message!r}, not a ValidationMessage with a Severity"
+            raise TypeError(detail)
+    return typing.cast("tuple[ValidationMessage, ...]", messages)
 
 
 class Edit(WidgetWrap[Text]):
-    """
-    Text editing widget implements cursor movement, text insertion and
-    deletion.  A caption may prefix the editing area.  Uses text class
-    for text layout.
+    """Text editing widget implements cursor movement, text insertion and deletion.
+
+    A caption may prefix the editing area.  Uses text class for text layout.
 
     Users of this class may listen for ``"change"`` or ``"postchange"``
     events.  See :func:``connect_signal``.
@@ -46,24 +81,40 @@ class Edit(WidgetWrap[Text]):
       called when the event is re-emitted.  It is up to the event
       handler to guard against this case (for instance, by not changing the
       text if it is signaled for text that it has already changed once).
+    * ``"submit"`` is sent when :kbd:`enter`, mapped to ``'activate'``, reaches an Edit with ``multiline=False``.
+      It receives the edit text as an argument. :meth:`keypress` still returns the key.
+    * ``"cancel"`` is sent when a key mapped to ``'menu'``, :kbd:`esc` by default, reaches an Edit.
+      It receives the edit text as an argument. :meth:`keypress` still returns the key.
+    * ``"validation"`` is sent when :attr:`validation` changes.
+      It receives the old and the new value as arguments.
+    * ``"completion_cycle"`` is sent when a completion cycle starts, moves or ends, see :attr:`text_completer`.
+      It receives the new value of :attr:`completion_cycle` as an argument.
     """
 
     _sizing = frozenset([Sizing.FLOW])
     _selectable = True
     ignore_focus = False
     # (this variable is picked up by the MetaSignals metaclass)
-    signals: typing.ClassVar[list[str]] = ["change", "postchange"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange", "submit", "cancel", "validation", "completion_cycle"]
 
     def valid_char(self, ch: str) -> bool:
         """
-        Filter for text that may be entered into this widget by the user
+        Filter for text that may be entered into this widget by the user.
 
         :param ch: character to be inserted
-        :type ch: str
 
-        This implementation returns True for all printable characters.
+        This implementation returns True for a wide character and for any single character that is not a control
+        character (Unicode category ``Cc``): the displays print a control character as ``?`` while the width
+        calculation counts it as zero columns. A single byte is accepted unless it is a C0 control or DEL, because
+        0x80-0xff are printable characters in a single-byte encoding.
         """
-        return is_wide_char(ch, 0) or (len(ch) == 1 and ord(ch) >= 32)
+        if is_wide_char(ch, 0):
+            return True
+        if len(ch) != 1:
+            return False
+        if isinstance(ch, str):
+            return unicodedata.category(ch) != "Cc"
+        return 32 <= ord(ch) != 0x7F
 
     def __init__(
         self,
@@ -76,26 +127,51 @@ class Edit(WidgetWrap[Text]):
         edit_pos: int | None = None,
         layout: text_layout.TextLayout | None = None,
         mask: str | None = None,
+        *,
+        expand_tabs: bool = True,
+        max_length: int | None = None,
+        placeholder: _TagMarkup | None = None,
+        placeholder_grow: bool | None = None,
+        validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None = None,
+        validation_attr: Mapping[Severity, _AttrMapLike] | None = None,
+        validation_focus_attr: Mapping[Severity, _AttrMapLike] | None = None,
+        text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None = None,
+        undo_limit: int = 0,
+        kill_buffer: MutableSequence[str | bytes] | None = None,
     ) -> None:
-        """
+        """Create the Edit widget.
+
         :param caption: markup for caption preceding edit_text, see :class:`Text` for description of text markup.
-        :type caption: text markup
         :param edit_text: initial text for editing, type (bytes or str) must match the text in the caption
-        :type edit_text: bytes or str
         :param multiline: ``True``: :kbd:`enter` inserts a newline, ``False``: return it
-        :type multiline: bool
         :param align: typically 'left', 'center' or 'right'
-        :type align: text alignment mode
         :param wrap: typically 'space', 'any' or 'clip'
-        :type wrap: text wrapping mode
-        :param allow_tab: ``True``: :kbd:`tab` inserts 1-8 spaces, ``False``: return it
-        :type allow_tab: bool
+        :param allow_tab: ``True``: :kbd:`tab` is inserted, ``False``: return it
         :param edit_pos: initial position for cursor, None:end of edit_text
-        :type edit_pos: int
         :param layout: defaults to a shared :class:`StandardTextLayout` instance
-        :type layout: text layout instance
         :param mask: hide text entered with this character, None:disable mask
-        :type mask: bytes or str
+        :param expand_tabs: ``True``: an inserted tab is spaces up to the next tab stop of the line,
+            ``False``: a tab character
+        :param max_length: the longest :attr:`edit_text` allowed, see :attr:`max_length`
+        :param placeholder: markup drawn after the caption while :attr:`edit_text` is empty, see :attr:`placeholder`
+        :param placeholder_grow: whether a placeholder taller than the empty edit adds rows,
+            see :attr:`placeholder_grow`
+        :param validator: called with :attr:`edit_text` to check it, see :attr:`validator`
+        :param validation_attr: attribute map applied for each :class:`Severity`, see :attr:`validation_attr`
+        :param validation_focus_attr: attribute map applied for each :class:`Severity` while focused,
+            see :attr:`validation_focus_attr`
+        :param text_completer: called with :attr:`edit_text` and :attr:`edit_pos` for completions,
+            see :attr:`text_completer`
+        :param undo_limit: the number of changes :meth:`undo` can take back, see :attr:`undo_limit`
+        :param kill_buffer: list that the word and line delete commands put the deleted text into,
+            see :attr:`kill_buffer`
+        :raises ValueError: *max_length* is negative, or *edit_text* is longer than it.
+            *undo_limit* is negative.
+        :raises TagMarkupException: *placeholder* is not valid text markup.
+        :raises UnicodeError: the text of *placeholder* cannot be converted to the type of *caption*.
+        :raises TypeError: *validator* returned something else than its documented return types for *edit_text*.
+        :raises AttrMapError: a key or value of an attribute map of *validation_attr* or *validation_focus_attr*
+            is not hashable.
 
         >>> Edit()
         <Edit selectable flow widget '' edit_pos=0>
@@ -105,25 +181,620 @@ class Edit(WidgetWrap[Text]):
         <Edit selectable flow widget 'Smith' caption='Name ' edit_pos=1>
         >>> Edit("", "3.14", align="right")
         <Edit selectable flow widget '3.14' align='right' edit_pos=4>
+        >>> pin = Edit("PIN: ", "123", max_length=4)
+        >>> pin.keypress((20,), "4")
+        >>> pin.keypress((20,), "5")
+        '5'
+        >>> print(pin.edit_text)
+        1234
+        >>> Edit("Address: ", placeholder="10.0.0.1").render((20,)).text
+        [b'Address: 10.0.0.1   ']
         """
         super().__init__(Text("", align, wrap, layout))
+        self._placeholder_grow: bool | None = placeholder_grow
         self.multiline = multiline
         self.allow_tab = allow_tab
+        self.expand_tabs = expand_tabs
         self._edit_pos = 0
         self._caption, self._attrib = decompose_tagmarkup(caption)
+        self._placeholder: _TagMarkup | None = None
+        # text and attributes of the placeholder markup, or None for no placeholder
+        self._placeholder_ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None
+        self.placeholder = placeholder
         self._edit_text = ""
+        self._max_length: int | None = None
+        self.max_length = max_length
         self.highlight: tuple[int, int] | None = None
         self._mask: str | None = None
         self._shift_view_to_cursor = False
         self.pref_col_maxcol: tuple[None, None] | tuple[int | Literal[Align.LEFT, Align.RIGHT], int] = (None, None)
+        # cursor position the next set_edit_text() call applies before "postchange", see _set_edit_text_and_pos()
+        self._pending_edit_pos: int | None = None
+        # cursor position set_edit_text() left after "postchange" when a pending one was given
+        self._applied_edit_pos: int | None = None
+        self._validator = validator
+        self._validation: tuple[ValidationMessage, ...] = ()
+        self._validation_attr = _attr_map_dicts(validation_attr)
+        self._validation_focus_attr = _attr_map_dicts(validation_focus_attr)
+        self._text_completer = text_completer
+        # (candidates, index) of the completion cycle, where candidate 0 is the text and position it started from
+        self._completion_cycle: tuple[tuple[tuple[str | bytes, int], ...], int] | None = None
+        # text and position the last completion step left, which a change from elsewhere no longer matches
+        self._completion_applied: tuple[str | bytes, int] | None = None
+        # True while a text or cursor change does not end the completion cycle: during a completion step,
+        # and inside set_edit_text(), which ends it itself once its signals are sent
+        self._completion_hold = False
+        self._undo_stack: deque[tuple[str | bytes, int]] = deque(maxlen=0)
+        self._redo_stack: deque[tuple[str | bytes, int]] = deque(maxlen=0)
+        # depth of the editing transaction: a key, or undo() and redo(); set_edit_text() outside it clears the history
+        self._edit_depth = 0
+        # text and cursor position when the transaction started, None when it records no undo step
+        self._undo_before: tuple[str | bytes, int] | None = None
+        # kind of the change the key in the transaction made, when a run of such keys is one undo step
+        self._undo_kind: Literal["insert", "backspace", "delete"] | None = None
+        # (kind, text, position) after the last undo step, which a key of the same kind from there continues
+        self._undo_run: tuple[str, str | bytes, int] | None = None
+        self.undo_limit = undo_limit
+        self._kill_buffer = kill_buffer
+        # (length of the kill buffer, entry) after the last kill, while the next kill joins that entry
+        self._kill_last: tuple[int, str | bytes] | None = None
+        # True when the key in the editing transaction killed text, so that the chain of kills goes on
+        self._kill_now = False
         self.set_edit_text(edit_text)
         if edit_pos is None:
             edit_pos = len(edit_text)
         self.set_edit_pos(edit_pos)
         self.set_mask(mask)
 
+    @property
+    def max_length(self) -> int | None:
+        """The longest :attr:`edit_text` allowed, or ``None`` for no limit.
+
+        It is counted like :attr:`edit_pos`: in code points, or in bytes when the caption is bytes.
+        A key that would go over it is refused, see :meth:`keypress`; :meth:`set_edit_text` and :meth:`insert_text`
+        raise :exc:`ValueError` instead. Setting it negative or below the length of :attr:`edit_text` raises
+        :exc:`ValueError` too.
+        """
+        return self._max_length
+
+    @max_length.setter
+    def max_length(self, max_length: int | None) -> None:
+        if max_length is not None and max_length < 0:
+            raise ValueError(f"max_length must not be negative, got {max_length}")
+        if max_length is not None and len(self._edit_text) > max_length:
+            raise ValueError(f"max_length {max_length} is shorter than the text of length {len(self._edit_text)}")
+        self._max_length = max_length
+
+    @property
+    def kill_buffer(self) -> MutableSequence[str | bytes] | None:
+        """The list that the readline word and line delete commands put the deleted text into, or ``None`` for none.
+
+        The application creates the list, and several edits may share it.
+        Deleted text joins the newest entry while the deletes follow one another in this edit, as in readline:
+        text deleted forward is appended to it, text deleted backward is put before it.
+        Any other key, a mouse event, a change from elsewhere, or a change of the list made by someone else
+        starts a new entry.
+        A masked edit puts nothing into the list.
+        :kbd:`backspace`, :kbd:`delete` and ``'delete char right'`` delete without putting the text into the list.
+
+        The ``'yank'`` command, which no key is mapped to by default, inserts the newest entry at the cursor.
+        The entry is not inserted, and the key is returned, when the keys of this edit could not type the result:
+        a newline in an edit without :attr:`multiline`, a letter in an :class:`IntEdit`, text that makes
+        :attr:`edit_text` longer than :attr:`max_length`.
+
+        >>> from urwid import CommandMap
+        >>> class ReadlineEdit(Edit):
+        ...     _command_map = CommandMap()
+        ...     _command_map.bind_readline()
+        >>> kills = []
+        >>> e = ReadlineEdit("", "one two three", kill_buffer=kills)
+        >>> e.keypress((20,), "ctrl w")
+        >>> e.keypress((20,), "ctrl w")
+        >>> kills
+        ['two three']
+        >>> e.keypress((20,), "ctrl y")
+        >>> print(e.edit_text)
+        one two three
+        """
+        return self._kill_buffer
+
+    @kill_buffer.setter
+    def kill_buffer(self, kill_buffer: MutableSequence[str | bytes] | None) -> None:
+        self._kill_buffer = kill_buffer
+        self._kill_last = None
+
+    def _kill(self, text: str | bytes, *, forward: bool) -> None:
+        """Put *text*, which a delete command removed, into :attr:`kill_buffer`.
+
+        It joins the entry of the previous kill when that entry is still the newest one this edit put in.
+        """
+        buffer = self._kill_buffer
+        if buffer is None or self._mask is not None:
+            return
+        last = self._kill_last
+        if last is not None and len(buffer) == last[0] and buffer[-1] is last[1]:
+            entry = last[1] + text if forward else text + last[1]  # type: ignore[operator]  # one edit, one type
+            buffer[-1] = entry
+        else:
+            entry = text
+            buffer.append(entry)
+        self._kill_last = (len(buffer), entry)
+        self._kill_now = True
+
+    def _yank(self) -> bool:
+        """Insert the newest entry of :attr:`kill_buffer` at the cursor, unless the keys could not type the result.
+
+        :returns: whether the entry was inserted.
+        """
+        if not self._kill_buffer:
+            return False
+        try:
+            text = self._normalize_to_caption(self._kill_buffer[-1])
+        except UnicodeError:
+            return False
+        result_text, _result_pos = self.insert_text_result(text)  # type: ignore[arg-type]  # normalised to the caption
+        if self._max_length is not None and len(result_text) > self._max_length:
+            return False
+        if not self._valid_insert(text, result_text):
+            return False
+        self.insert_text(text)  # type: ignore[arg-type]  # normalised to the caption
+        return True
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether keys could have typed *text*, which leaves *result_text*.
+
+        Each character of *text* passes :meth:`valid_char`, or is a newline with :attr:`multiline`,
+        or a tab with :attr:`allow_tab`.
+        A multibyte character of a byte string passes.
+        A subclass whose keys refuse some texts as a whole judges *result_text* as well.
+        """
+        pos = 0
+        while pos < len(text):
+            next_pos = pos + 1 if isinstance(text, str) else move_next_char(text, pos, len(text))
+            char = text[pos:next_pos]
+            if not (
+                (len(char) > 1 and isinstance(char, bytes))
+                or self.valid_char(char)  # type: ignore[arg-type]  # valid_char() takes bytes too
+                or (char in {"\n", b"\n"} and self.multiline)
+                or (char in {"\t", b"\t"} and self.allow_tab)
+            ):
+                return False
+            pos = next_pos
+        return True
+
+    @property
+    def undo_limit(self) -> int:
+        """The number of changes :meth:`undo` can take back, 0 for no undo history.
+
+        A change is what a key does to the text, through :meth:`keypress`.
+        Consecutive typed characters are one change, and so is a run of :kbd:`backspace` or of :kbd:`delete`.
+        A change from elsewhere, through :meth:`set_edit_text` or :meth:`insert_text`, clears the history,
+        so that a reused edit does not bring back an earlier value.
+        Lowering the limit drops the oldest changes, and 0 clears the history.
+        The ``'undo'`` and ``'redo'`` commands, which no key is mapped to by default, call :meth:`undo` and
+        :meth:`redo`.
+
+        >>> e = Edit(undo_limit=10)
+        >>> for key in "one two":
+        ...     e.keypress((20,), key)
+        >>> e.keypress((20,), "backspace")
+        >>> e.undo()
+        True
+        >>> print(e.edit_text)
+        one two
+        >>> e.undo()
+        True
+        >>> print(e.edit_text)
+        <BLANKLINE>
+        >>> e.redo()
+        True
+        >>> print(e.edit_text)
+        one two
+
+        :raises ValueError: on assignment, the limit is negative.
+        """
+        return typing.cast("int", self._undo_stack.maxlen)
+
+    @undo_limit.setter
+    def undo_limit(self, undo_limit: int) -> None:
+        if undo_limit < 0:
+            raise ValueError(f"undo_limit must not be negative, got {undo_limit}")
+        self._undo_stack = deque(self._undo_stack, maxlen=undo_limit)
+        self._redo_stack = deque(self._redo_stack, maxlen=undo_limit)
+        self._undo_run = None  # a run typed while the limit was 0 has no step to continue
+
+    def undo(self) -> bool:
+        """Take back the last change, restoring the text and the cursor position from before it.
+
+        See :attr:`undo_limit`.
+        The text goes through :meth:`set_edit_text`, so signals and :attr:`validator` run as for any change.
+
+        :returns: whether the text changed; ``False`` when there is nothing to undo, or the text to restore is
+            longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for the restored text.
+            When it raises before changing the text, the history is left as it was.
+        """
+        return self._undo_step(self._undo_stack, self._redo_stack)
+
+    def redo(self) -> bool:
+        """Make the last change :meth:`undo` took back again.
+
+        Any new change clears what there is to redo.
+
+        :returns: whether the text changed; ``False`` when there is nothing to redo, or the text to restore is
+            longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for the restored text.
+            When it raises before changing the text, the history is left as it was.
+        """
+        return self._undo_step(self._redo_stack, self._undo_stack)
+
+    def _undo_step(
+        self,
+        source: deque[tuple[str | bytes, int]],
+        target: deque[tuple[str | bytes, int]],
+    ) -> bool:
+        """Restore the newest state of *source*, and keep the current state on *target*.
+
+        A restored state is one the edit showed before, so it is restored as it is, with no further normalisation.
+        The step is moved once the text has changed, also when a ``"postchange"`` handler or the validator raises.
+        """
+        if not source:
+            return False
+        text, pos = source[-1]
+        if self._max_length is not None and len(text) > self._max_length:
+            return False
+        current = (self._edit_text, self._edit_pos)
+        self._edit_depth += 1
+        try:
+            self._set_edit_text_and_pos(text, pos)
+        finally:
+            self._edit_depth -= 1
+            self._undo_before = None  # a key that undoes records no step of its own
+            self._undo_run = self._kill_last = None
+            if self._edit_text != current[0]:
+                source.pop()
+                target.append(current)
+        return self._edit_text != current[0]
+
+    @contextlib.contextmanager
+    def _editing(self) -> Iterator[None]:
+        """Run the body as one editing transaction, which records one undo step when it changed the text.
+
+        Transactions nest, and the outermost one records the step.
+        A subclass whose :meth:`keypress` changes the text after calling this class's method holds it around its
+        whole body, so that its change belongs to the step of the key.
+        """
+        if not self._edit_depth:
+            self._undo_before = (self._edit_text, self._edit_pos)
+            self._undo_kind = None
+            self._kill_now = False
+        self._edit_depth += 1
+        try:
+            yield
+        finally:
+            self._edit_depth -= 1
+            if not self._edit_depth:
+                if not self._kill_now:
+                    self._kill_last = None  # any other key ends the chain of kills
+                before, self._undo_before = self._undo_before, None
+                kind, self._undo_kind = self._undo_kind, None
+                if before is None or before[0] == self._edit_text:
+                    self._undo_run = None
+                else:
+                    if kind is None or self._undo_run != (kind, *before):
+                        self._undo_stack.append(before)
+                    self._redo_stack.clear()
+                    self._undo_run = None if kind is None else (kind, self._edit_text, self._edit_pos)
+
+    @property
+    def placeholder(self) -> _TagMarkup | None:
+        """Markup drawn after the caption while :attr:`edit_text` is empty, or ``None`` for none.
+
+        It is drawn focused or not, and it is never masked.
+        It is not part of the text: :meth:`get_text`, :attr:`edit_text`, :attr:`max_length` and :meth:`pack`
+        ignore it.
+        It is drawn after :attr:`caption` and its attributes, not after the caption part of :meth:`get_text`.
+        The cursor stays where it is without a placeholder, so with ``align="left"`` it is on its first column.
+        With ``align="center"`` or ``align="right"`` the placeholder moves the caption left, and the cursor is
+        inside the placeholder or after it.
+        The placeholder is not drawn when the caption alone does not leave the cursor a column to show in.
+
+        :raises TagMarkupException: on assignment, the markup is not valid text markup.
+        :raises UnicodeError: on assignment, the text cannot be converted to the type of the caption.
+        """
+        return self._placeholder
+
+    @placeholder.setter
+    def placeholder(self, placeholder: _TagMarkup | None) -> None:
+        if placeholder is None:
+            self._placeholder_ta = None
+        else:
+            text, attrib = decompose_tagmarkup(placeholder)
+            self._placeholder_ta = self._normalize_to_caption(text), attrib
+        self._placeholder = placeholder
+        self._invalidate()
+
+    @property
+    def placeholder_grow(self) -> bool | None:
+        """Whether a :attr:`placeholder` laid out on more rows than the empty edit adds rows.
+
+        ``False`` cuts the placeholder to the rows of the empty edit, so the height does not change on the first key.
+        ``True`` adds rows while the edit is empty.
+        ``None`` grows a :attr:`multiline` edit and cuts a single-line one.
+        """
+        return self._placeholder_grow
+
+    @placeholder_grow.setter
+    def placeholder_grow(self, placeholder_grow: bool | None) -> None:
+        self._placeholder_grow = placeholder_grow
+        self._invalidate()
+
+    @property
+    def validator(self) -> Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None:
+        """Callable that checks the whole :attr:`edit_text`, or ``None`` for no check.
+
+        It is called with the edit text and returns its findings:
+
+        - ``None`` or an empty iterable when the text is valid;
+        - a :class:`str`, which is an error message;
+        - a :class:`ValidationMessage`;
+        - an iterable of :class:`ValidationMessage`.
+
+        It is called once by each :meth:`set_edit_text` call, after ``"postchange"``,
+        when it is assigned, and by :meth:`validate`, never while rendering.
+        A subclass whose :meth:`set_edit_text` does not call this class's method calls ``Edit.validate(self)`` itself,
+        which a :meth:`validate` of its own does not replace.
+        The result is :attr:`validation`.
+        Keys, focus, ``"submit"`` and ``"cancel"`` do not depend on it.
+        An application reads :attr:`validation` to refuse a value.
+
+        >>> e = Edit("Port: ", validator=lambda text: None if text.isdecimal() else "not a number")
+        >>> e.validation
+        (ValidationMessage(severity=<Severity.ERROR: 3>, message='not a number'),)
+        >>> e.keypress((20,), "8")
+        >>> e.validation
+        ()
+        >>> e.validator = lambda text: ValidationMessage(Severity.WARNING, "privileged") if int(text) < 1024 else None
+        >>> e.severity
+        <Severity.WARNING: 2>
+
+        :raises TypeError: on assignment, the validator returned something else than the types above;
+            the previous validator is kept.
+        """
+        return self._validator
+
+    @validator.setter
+    def validator(
+        self,
+        validator: Callable[[str], ValidationMessage | str | Iterable[ValidationMessage] | None] | None,
+    ) -> None:
+        previous, self._validator = self._validator, validator
+        try:
+            self._run_validator()
+        except TypeError:
+            self._validator = previous
+            raise
+
+    @property
+    def validation(self) -> tuple[ValidationMessage, ...]:
+        """Findings of :attr:`validator` for the current :attr:`edit_text`; empty when valid or without a validator."""
+        return self._validation
+
+    @property
+    def severity(self) -> Severity | None:
+        """The worst :class:`Severity` in :attr:`validation`, or ``None`` when it is empty."""
+        return max(message.severity for message in self._validation) if self._validation else None
+
+    def validate(self) -> tuple[ValidationMessage, ...]:
+        """Run :attr:`validator` on :attr:`edit_text` now and return the new :attr:`validation`.
+
+        This is for a check that depends on something else than the text, which has changed.
+        ``"validation"`` is sent when the result differs from the previous one.
+        This class never calls it, so a subclass may define its own :meth:`validate` for something else.
+
+        :raises TypeError: the validator returned something else than the types :attr:`validator` lists;
+            :attr:`validation` is left as it was.
+        """
+        return self._run_validator()
+
+    def _run_validator(self) -> tuple[ValidationMessage, ...]:
+        """Store and return the result of :attr:`validator` as :attr:`validation`.
+
+        This is what :meth:`validate` runs.
+        """
+        validation = () if self._validator is None else _validation_messages(self._validator(self._edit_text))
+        if validation != self._validation:
+            old_validation, self._validation = self._validation, validation
+            self._invalidate()
+            self._emit("validation", old_validation, validation)
+        return self._validation  # a "validation" handler may have changed the text, and validated it again
+
+    @property
+    def validation_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
+        """Attribute map applied to the rendered edit for each :attr:`severity`.
+
+        It is set from a mapping of :class:`Severity` to what :class:`AttrMap` takes as its attribute map, or ``None``.
+        A single attribute is stored as ``{None: attribute}``, so the caption's own attributes are placed over it.
+        A severity with no entry is not coloured.
+        A copy is returned.
+
+        >>> e = Edit(validator=lambda text: "empty" if not text else None, validation_attr={Severity.ERROR: "error"})
+        >>> next(iter(e.render((4,)).content()))
+        [('error', None, b'    ')]
+        """
+        return {severity: attr_map.copy() for severity, attr_map in self._validation_attr.items()}
+
+    @validation_attr.setter
+    def validation_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
+        self._validation_attr = _attr_map_dicts(attr_maps)
+        self._invalidate()
+
+    @property
+    def validation_focus_attr(self) -> dict[Severity, dict[Hashable, Hashable]]:
+        """Attribute map applied to the rendered edit for each :attr:`severity` while it is focused.
+
+        It is set as :attr:`validation_attr`.
+        A severity with no entry here uses its :attr:`validation_attr` entry when focused.
+        A copy is returned.
+        """
+        return {severity: attr_map.copy() for severity, attr_map in self._validation_focus_attr.items()}
+
+    @validation_focus_attr.setter
+    def validation_focus_attr(self, attr_maps: Mapping[Severity, _AttrMapLike] | None) -> None:
+        self._validation_focus_attr = _attr_map_dicts(attr_maps)
+        self._invalidate()
+
+    @property
+    def text_completer(self) -> Callable[[str, int], Sequence[tuple[str, int]]] | None:
+        """Callable that returns the completions of :attr:`edit_text`, or ``None`` for no completion.
+
+        It is called with the edit text and the cursor position.
+        It returns whole replacements, each a ``(text, position)`` pair, and decides itself what is completed.
+        A replacement equal to the current text and position is left out.
+
+        Keys that complete:
+
+        - :kbd:`tab` and :kbd:`shift tab`, unless :attr:`allow_tab` is set;
+        - the ``'complete next'`` and ``'complete previous'`` commands, which no key is mapped to by default.
+
+        A completion key with no cycle running calls the completer:
+
+        - when it returns nothing, the key is returned, so that focus navigation still works;
+        - when it returns one replacement, that replacement is applied and no cycle starts,
+          so the next completion key calls the completer again from the new text;
+        - when it returns several, a cycle starts with the first replacement, or the last one for
+          ``'complete previous'``.
+
+        A completer that returns the common prefix of several matches as its one replacement, and the matches once
+        the prefix is complete, inserts the prefix first and then cycles through the matches.
+        Further completion keys step through the replacements and back to the text the cycle started from.
+        Any other key ends the cycle, and so does a change of the text or the cursor made from elsewhere.
+        Each step sets the text, so :attr:`validator` runs once per step.
+        Setting the completer ends the cycle.
+
+        A step applies a replacement through :meth:`set_edit_text`.
+        An override may raise there for a replacement it does not accept, before it changes the text.
+        The exception then leaves :meth:`keypress`.
+        The cycle stays where it was.
+        The next completion key tries the same replacement again.
+        A completer for such a subclass returns only replacements the subclass accepts.
+
+        >>> words = ["alpha", "alpine", "beta"]
+        >>> def complete(text, pos):
+        ...     return [(w, len(w)) for w in words if w.startswith(text[:pos])]
+        >>> e = Edit("", "al", text_completer=complete)
+        >>> e.keypress((20,), "tab")
+        >>> print(e.edit_text)
+        alpha
+        >>> e.keypress((20,), "tab")
+        >>> e.keypress((20,), "tab")
+        >>> print(e.edit_text)
+        al
+        >>> Edit("", "x", text_completer=complete).keypress((20,), "tab")
+        'tab'
+        >>> e = Edit("", "b", text_completer=complete)
+        >>> e.keypress((20,), "tab")
+        >>> print(e.edit_text)
+        beta
+        >>> e.keypress((20,), "tab")
+        'tab'
+        """
+        return self._text_completer
+
+    @text_completer.setter
+    def text_completer(self, text_completer: Callable[[str, int], Sequence[tuple[str, int]]] | None) -> None:
+        self._text_completer = text_completer
+        self._end_completion()
+
+    @property
+    def completion_cycle(self) -> tuple[tuple[tuple[str | bytes, int], ...], int] | None:
+        """``(candidates, index)`` while a completion cycle runs, ``None`` otherwise.
+
+        A completer result with one replacement starts no cycle.
+
+        *candidates* holds ``(text, position)`` pairs.
+        The first one is the text and cursor position the cycle started from, the others are what :attr:`text_completer`
+        returned, converted to the type of the caption.
+        *index* is the candidate the edit shows now.
+        """
+        return self._completion_cycle
+
+    def _end_completion(self) -> None:
+        """End the completion cycle, sending ``"completion_cycle"`` when one was running."""
+        if self._completion_cycle is None:
+            return
+        self._completion_cycle = None
+        self._completion_applied = None
+        self._emit("completion_cycle", None)
+
+    def _completion_direction(self, key: str) -> int:
+        """Return 1 when *key* completes forward, -1 when it completes backward, 0 otherwise."""
+        if self._text_completer is None:
+            return 0
+        command = self._command_map[key]
+        if command == Command.COMPLETE_NEXT or (key == "tab" and not self.allow_tab):
+            return 1
+        if command == Command.COMPLETE_PREVIOUS or (key == "shift tab" and not self.allow_tab):
+            return -1
+        return 0
+
+    def _step_completion(self, step: int) -> bool:
+        """Apply the next completion candidate in the direction of *step*, calling the completer when no cycle runs.
+
+        :returns: whether a candidate was applied; ``False`` when the completer returned nothing but the current text
+            and position.
+        :raises ValueError: a candidate is longer than :attr:`max_length`; the text and the cycle are left as they
+            were.
+        :raises Exception: what :meth:`set_edit_text` raises for the candidate.
+            When it raises before changing the text, the cycle is left as it was.
+        """
+        if self._completion_cycle is not None and (self._edit_text, self._edit_pos) != self._completion_applied:
+            self._end_completion()  # changed without set_edit_pos(), by a subclass
+        if self._completion_cycle is None:
+            completer = typing.cast("Callable[[str, int], Sequence[tuple[str, int]]]", self._text_completer)
+            current = self._completion_candidate(self._edit_text, self._edit_pos)  # the text a step back leaves
+            results = [
+                candidate
+                for text, pos in completer(self._edit_text, self._edit_pos)
+                if (candidate := self._completion_candidate(text, pos)) != current
+            ]
+            if not results:
+                return False
+            for result_text, _pos in results:
+                if self._max_length is not None and len(result_text) > self._max_length:
+                    detail = f"completion of length {len(result_text)} is longer than max_length {self._max_length}"
+                    raise ValueError(detail)
+            if len(results) == 1:
+                self._set_edit_text_and_pos(*results[0])
+                return True
+            candidates: tuple[tuple[str | bytes, int], ...] = (current, *results)
+            index = 0
+        else:
+            candidates, index = self._completion_cycle
+        index = (index + step) % len(candidates)
+        self._completion_hold = True
+        try:
+            self._set_edit_text_and_pos(*candidates[index])
+        finally:
+            self._completion_hold = False
+        # read back: an override or a "postchange" handler may have changed what was applied
+        self._completion_cycle = (candidates, index)
+        self._completion_applied = (self._edit_text, self._edit_pos)
+        self._emit("completion_cycle", self._completion_cycle)
+        return True
+
+    def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return a completer's replacement as the edit would hold it once applied.
+
+        The text takes the type of the caption, and the position is clipped as :meth:`set_edit_pos` clips it.
+        A candidate equal to the current text and cursor is then recognised and left out,
+        and a step leaves exactly the candidate the cycle recorded.
+        """
+        text = self._normalize_to_caption(text)
+        return text, _grapheme_boundary(text, min(max(pos, 0), len(text)), forward=False)
+
     def selectable(self) -> bool:
-        """Selectable mark.
+        """Return True: this widget is always selectable.
 
         Wrapped Text widget is not selectable while the edit widget has to be selectable.
         """
@@ -139,9 +810,9 @@ class Edit(WidgetWrap[Text]):
     def _repr_words(self) -> list[str]:
         return [
             *super()._repr_words(),
-            repr(self._edit_text),
+            repr(self._edit_text if self._mask is None else self._mask * len(self._edit_text)),
             *([f"caption={self._caption!r}"] if self._caption else []),
-            *(["multiline"] if self.multiline is True else []),
+            *(["multiline"] if self.multiline else []),
         ]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
@@ -150,6 +821,8 @@ class Edit(WidgetWrap[Text]):
             "align": self._w.align,
             "wrap": self._w.wrap,
             "edit_pos": self._edit_pos,
+            "mask": self._mask,
+            "placeholder": self._placeholder,
         }
         return remove_defaults(attrs, Edit.__init__)
 
@@ -161,9 +834,9 @@ class Edit(WidgetWrap[Text]):
         self._w._invalidate()
 
     def get_text(self) -> tuple[str | bytes, list[tuple[Hashable, int]]]:
-        """
-        Returns ``(text, display attributes)``. See :meth:`Text.get_text`
-        for details.
+        """Return ``(text, display attributes)``.
+
+        See :meth:`Text.get_text` for details.
 
         Text returned includes the caption and edit_text, possibly masked.
 
@@ -174,7 +847,6 @@ class Edit(WidgetWrap[Text]):
         >>> Edit("password:", "seekrit", mask="*").get_text()
         ('password:*******', [])
         """
-
         if self._mask is None:
             return self._caption + self._edit_text, self._attrib  # type: ignore[operator]  # type normalised
 
@@ -182,31 +854,24 @@ class Edit(WidgetWrap[Text]):
 
     @property
     def text(self) -> str | bytes:
-        """
-        Read-only property returning the complete bytes/unicode content
-        of this widget (caption plus edit_text, possibly masked).
+        """Read-only property returning the complete bytes/unicode content of this widget.
+
+        Includes caption plus edit_text, possibly masked.
         """
         return self.get_text()[0]
 
     @property
     def attrib(self) -> list[tuple[Hashable, int]]:
-        """
-        Read-only property returning the run-length encoded display
-        attributes of this widget.
-        """
+        """Read-only property returning the run-length encoded display attributes of this widget."""
         return self.get_text()[1]
 
     def set_align_mode(self, mode: Literal["left", "center", "right"] | Align) -> None:
-        """
-        Set text alignment mode. See :meth:`Text.set_align_mode` for details.
-        """
+        """Set text alignment mode. See :meth:`Text.set_align_mode` for details."""
         self._w.set_align_mode(mode)
         self._invalidate()
 
     def set_wrap_mode(self, mode: Literal["space", "any", "clip", "ellipsis"] | WrapMode) -> None:
-        """
-        Set text wrapping mode. See :meth:`Text.set_wrap_mode` for details.
-        """
+        """Set text wrapping mode. See :meth:`Text.set_wrap_mode` for details."""
         self._w.set_wrap_mode(mode)
         self._invalidate()
 
@@ -216,8 +881,8 @@ class Edit(WidgetWrap[Text]):
         wrap: Literal["space", "any", "clip", "ellipsis"] | WrapMode,
         layout: text_layout.TextLayout | None = None,
     ) -> None:
-        """
-        Set the text layout object, alignment and wrapping modes at the same time.
+        """Set the text layout object, alignment and wrapping modes at the same time.
+
         See :meth:`Text.set_layout` for details.
         """
         self._w.set_layout(align, wrap, layout)
@@ -228,13 +893,13 @@ class Edit(WidgetWrap[Text]):
 
     @property
     def layout(self) -> text_layout.TextLayout:
+        """Return the :class:`TextLayout` instance used to lay out and wrap this widget's text."""
         return self._w.layout
 
     def get_pref_col(self, size: tuple[int]) -> int:
-        """
-        Return the preferred column for the cursor, or the
-        current cursor x value.  May also return ``'left'`` or ``'right'``
-        to indicate the leftmost or rightmost column available.
+        r"""Return the preferred column for the cursor, or the current cursor x value.
+
+        May also return ``'left'`` or ``'right'`` to indicate the leftmost or rightmost column available.
 
         This method is used internally and by other widgets when
         moving the cursor up or down between widgets so that the
@@ -252,7 +917,7 @@ class Edit(WidgetWrap[Text]):
         >>> e.keypress(size, "end")
         >>> e.get_pref_col(size)
         <Align.RIGHT: 'right'>
-        >>> e = Edit("", "2\\nwords")
+        >>> e = Edit("", "2\nwords")
         >>> e.keypress(size, "left")
         >>> e.keypress(size, "up")
         >>> e.get_pref_col(size)
@@ -264,7 +929,8 @@ class Edit(WidgetWrap[Text]):
         (maxcol,) = size
         pref_col, then_maxcol = self.pref_col_maxcol
         if then_maxcol != maxcol:
-            return self.get_cursor_coords((maxcol,))[0]
+            coords = self.get_cursor_coords((maxcol,))
+            return coords[0] if coords is not None else 0
 
         return typing.cast("int", pref_col)
 
@@ -294,18 +960,16 @@ class Edit(WidgetWrap[Text]):
 
     @property
     def caption(self) -> str | bytes:
-        """
-        Read-only property returning the caption for this widget.
-        """
+        """Read-only property returning the caption for this widget."""
         return self._caption
 
     def set_edit_pos(self, pos: int) -> None:
-        """
-        Set the cursor position with a self.edit_text offset.
-        Clips pos to [0, len(edit_text)].
+        """Set the cursor position with a self.edit_text offset.
+
+        Clips pos to [0, len(edit_text)], then moves a position inside a grapheme cluster back to
+        the cluster start, so that the cursor never splits what is drawn as one character.
 
         :param pos: cursor position
-        :type pos: int
 
         >>> e = Edit("", "word")
         >>> e.edit_pos
@@ -319,12 +983,18 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_pos = 20
         >>> e.edit_pos
         4
+        >>> e = Edit("", "e" + chr(0x301) + "x")  # "e" followed by a combining acute accent
+        >>> e.set_edit_pos(1)
+        >>> e.edit_pos
+        0
         """
-        pos = min(max(pos, 0), len(self._edit_text))
+        pos = _grapheme_boundary(self._edit_text, min(max(pos, 0), len(self._edit_text)), forward=False)
         self.highlight = None
         self.pref_col_maxcol = None, None
         self._edit_pos = pos
         self._invalidate()
+        if not self._completion_hold and (self._edit_text, pos) != self._completion_applied:
+            self._end_completion()
 
     edit_pos = property(
         lambda self: self._edit_pos,
@@ -339,20 +1009,27 @@ class Edit(WidgetWrap[Text]):
         Set the character for masking text away.
 
         :param mask: hide text entered with this character, None:disable mask
-        :type mask: bytes or unicode
         """
-
         self._mask = mask
         self._sync_wrapped()
         self._invalidate()
 
-    def set_edit_text(self, text: str) -> None:
+    def set_edit_text(self, text: str, *, edit_pos: int | None = None) -> None:
         """
         Set the edit text for this widget.
 
         :param text: text for editing, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
+        :param edit_pos: cursor position to set before ``"postchange"`` is sent, clipped as by
+            :meth:`set_edit_pos`; ``None`` keeps the current position, clipped to the new text.
+            An override passes ``None`` on unchanged: an editing key gives its position to this method by another
+            route, which an explicit position replaces.
+        :raises ValueError: *text* is longer than :attr:`max_length`; the text is left as it was.
+        :raises TypeError: :attr:`validator` returned something else than the types it lists;
+            the text is changed already.
+
+        Called from elsewhere than a key, :meth:`undo` or :meth:`redo`, it clears the undo history,
+        see :attr:`undo_limit`.
 
         >>> e = Edit()
         >>> e.set_edit_text("yes")
@@ -363,17 +1040,60 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_text = "no"  # Urwid 0.9.9 or later
         >>> print(e.edit_text)
         no
+        >>> e.set_edit_text("maybe", edit_pos=5)
+        >>> e.edit_pos
+        5
         """
+        pending_edit_pos, self._pending_edit_pos = self._pending_edit_pos, None
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
+        if self._max_length is not None and len(text) > self._max_length:
+            raise ValueError(f"text of length {len(text)} is longer than max_length {self._max_length}")
+        if not self._edit_depth:
+            self._undo_stack.clear()
+            self._redo_stack.clear()
+            self._undo_before = self._undo_run = None
+            self._kill_last = None
         self.highlight = None
         self._emit("change", text)
         old_text = self._edit_text
-        self._edit_text = text
-        self._sync_wrapped()
-        self.edit_pos = min(self.edit_pos, len(text))
+        hold, self._completion_hold = self._completion_hold, True
+        try:
+            self._edit_text = text
+            self._sync_wrapped()
+            self.edit_pos = min(self.edit_pos, len(text)) if edit_pos is None else edit_pos
+            if edit_pos is None and pending_edit_pos is not None:
+                # an editing key moves the cursor through set_edit_pos(), so that an override sees every move
+                self.set_edit_pos(pending_edit_pos)
 
-        self._emit("postchange", old_text)
+            self._emit("postchange", old_text)
+            self._run_validator()
+        finally:
+            self._completion_hold = hold
+        if pending_edit_pos is not None:
+            self._applied_edit_pos = self.edit_pos
+        if not hold and (self._edit_text, self._edit_pos) != self._completion_applied:
+            self._end_completion()
         self._invalidate()
+
+    def _set_edit_text_and_pos(self, text: str | bytes, pos: int) -> None:
+        """Replace the edit text and move the cursor to *pos*, so that "postchange" handlers already see *pos*.
+
+        The position reaches :meth:`set_edit_text` through an attribute instead of its ``edit_pos`` argument,
+        so that a subclass overriding it as ``set_edit_text(text)`` keeps working.
+        The position is set again afterwards when the override never calls the base method, or moves the cursor
+        after it returns, as editing keys did before "postchange" saw the new position.
+        A cursor move made by a "postchange" handler is kept otherwise.
+        """
+        self._pending_edit_pos = pos
+        self._applied_edit_pos = None
+        try:
+            self.set_edit_text(text)  # type: ignore[arg-type]  # normalisation happen
+            applied = self._applied_edit_pos
+        finally:
+            self._pending_edit_pos = None
+            self._applied_edit_pos = None
+        if applied is None or self.edit_pos != applied:
+            self.set_edit_pos(pos)
 
     def get_edit_text(self) -> str:
         """
@@ -396,14 +1116,14 @@ class Edit(WidgetWrap[Text]):
     )
 
     def insert_text(self, text: str) -> None:
-        """
-        Insert text at the cursor position and update cursor.
+        """Insert text at the cursor position and update cursor.
+
         This method is used by the keypress() method when inserting
         one or more characters into edit_text.
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
+        :raises ValueError: the result is longer than :attr:`max_length`; the text is left as it was.
 
         >>> e = Edit("", "42")
         >>> e.insert_text(".5")
@@ -416,12 +1136,11 @@ class Edit(WidgetWrap[Text]):
         """
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         result_text, result_pos = self.insert_text_result(text)
-        self.set_edit_text(result_text)  # type: ignore[arg-type]  # normalisation happen
-        self.set_edit_pos(result_pos)
+        self._set_edit_text_and_pos(result_text, result_pos)
         self.highlight = None
 
     def _normalize_to_caption(self, text: str | bytes) -> str | bytes:
-        """Return text converted to the same type as self.caption (bytes or unicode)"""
+        """Return text converted to the same type as self.caption (bytes or unicode)."""
         tu = isinstance(text, str)
         cu = isinstance(self._caption, str)
         if tu == cu:
@@ -431,16 +1150,16 @@ class Edit(WidgetWrap[Text]):
         return text.decode("ascii")  # type: ignore[union-attr]
 
     def insert_text_result(self, text: str) -> tuple[str | bytes, int]:
-        """
-        Return result of insert_text(text) without actually performing the
-        insertion.  Handy for pre-validation.
+        """Return result of insert_text(text) without actually performing the insertion.
+
+        Handy for pre-validation.
+        When the inserted text joins the grapheme cluster after it, the returned position is the end of that cluster.
 
         :param text: text for inserting, type (bytes or unicode)
                      must match the text in the caption
-        :type text: bytes or unicode
-        :raises ValueError: *text* cannot be inserted at the current edit position.
+        :raises ValueError: *text* cannot be inserted at the current edit position. The message carries the texts
+            involved unless a mask is set.
         """
-
         # if there's highlighted text, it'll get replaced by the new text
         text = self._normalize_to_caption(text)  # type: ignore[assignment]
         if self.highlight:
@@ -455,18 +1174,45 @@ class Edit(WidgetWrap[Text]):
         try:
             result_text = result_text[:result_pos] + text + result_text[result_pos:]
         except (IndexError, TypeError) as exc:
-            raise ValueError(repr((self.edit_text, result_text, text))).with_traceback(exc.__traceback__) from exc
+            detail = repr((self.edit_text, result_text, text)) if self._mask is None else "masked text"
+            raise ValueError(detail).with_traceback(exc.__traceback__) from exc
 
-        result_pos += len(text)
+        result_pos = _grapheme_boundary(result_text, result_pos + len(text), forward=True)
         return (result_text, result_pos)
+
+    def _insert_typed_text(self, text: str | bytes) -> bool:
+        """Insert the text a key produced, unless it would make :attr:`edit_text` longer than :attr:`max_length`.
+
+        :returns: whether the text was inserted.
+        """
+        text = self._normalize_to_caption(text)
+        result_text, _result_pos = self.insert_text_result(text)  # type: ignore[arg-type]  # normalised to the caption
+        if self.max_length is not None and len(result_text) > self.max_length:
+            return False
+        self.insert_text(text)  # type: ignore[arg-type]  # normalised to the caption
+        return True
 
     def keypress(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """
         Handle editing keystrokes, return others.
+
+        A key whose text would make :attr:`edit_text` longer than :attr:`max_length` inserts nothing and is
+        returned, as :class:`IntEdit` returns a digit past its limit. A tab is inserted whole or not at all.
+
+        The readline delete commands described in :class:`~urwid.CommandMap` and ``'yank'`` go through
+        :meth:`set_edit_text`.
+        A subclass whose :meth:`set_edit_text` raises for some text has to handle those commands itself
+        once an application binds them, or the exception leaves :meth:`keypress`.
+
+        A key that completes steps the completion cycle, and any other key ends it, see :attr:`text_completer`.
+
+        A key that changes the text is one step of the undo history, see :attr:`undo_limit`.
+        A subclass that changes the text after this method returns makes a change from elsewhere, which clears the
+        history; it makes the change in an override of :meth:`set_edit_text` or :meth:`insert_text` instead.
 
         >>> e, size = Edit(), (20,)
         >>> e.keypress(size, "x")
@@ -483,22 +1229,102 @@ class Edit(WidgetWrap[Text]):
         'shift f1'
 
         :raises ValueError: the preferred cursor column could not be determined.
+            A completion is longer than :attr:`max_length`.
+        :raises Exception: what :meth:`set_edit_text` raises for a completion, see :attr:`text_completer`.
+            What it raises for the text of ``'undo'``, ``'redo'`` or ``'yank'``, see :meth:`undo`.
         """
+        with self._editing():
+            return self.__keypress(size, key)
+
+    def __keypress(self, size: tuple[int], key: str) -> str | None:
+        """Handle a key for :meth:`keypress`, inside its editing transaction."""
+        if not (complete_step := self._completion_direction(key)):
+            self._end_completion()
+
         pos = self.edit_pos
         if self.valid_char(key):
-            if isinstance(key, str) and not isinstance(self._caption, str):
-                key = key.encode("utf-8")  # type: ignore[assignment]
-            self.insert_text(key)
-            return None
+            self._undo_kind = "insert"
+            typed = key.encode("utf-8") if isinstance(key, str) and not isinstance(self._caption, str) else key
+            return None if self._insert_typed_text(typed) else key
 
         if key == "tab" and self.allow_tab:
-            key = " " * (8 - (self.edit_pos % 8))
-            self.insert_text(key)
+            if not self.expand_tabs:
+                return None if self._insert_typed_text("\t") else key
+            layout = self._w.layout
+            if not isinstance(layout, text_layout.StandardTextLayout):
+                layout = text_layout.default_layout  # a custom layout has no tab stops
+            text = self._edit_text
+            tab, nl = ("\t", "\n") if isinstance(text, str) else (b"\t", b"\n")
+            column = 0
+            # pyrefly: ignore[bad-argument-type, no-matching-overload]  # isinstance() does not narrow nl and tab
+            for idx, chunk in enumerate(text[text.rfind(nl, 0, pos) + 1 : pos].split(tab)):
+                if idx:
+                    column = layout.next_tab_stop(column)
+                column += calc_width(chunk, 0, len(chunk))
+            spaces = layout.next_tab_stop(column) - column
+            if spaces and not self._insert_typed_text(" " * spaces):
+                return key
             return None
 
         if key == "enter" and self.multiline:
-            key = "\n"
-            self.insert_text(key)
+            return None if self._insert_typed_text("\n") else key
+
+        if complete_step:
+            return None if self._step_completion(complete_step) else key
+
+        command = self._command_map[key]
+        if command == Command.MENU or (key == "enter" and command == Command.ACTIVATE):
+            # a handler that sets the text makes a change from elsewhere, which clears the undo history
+            depth, self._edit_depth = self._edit_depth, 0
+            try:
+                self._emit("cancel" if command == Command.MENU else "submit", self._edit_text)
+            finally:
+                self._edit_depth = depth
+            return key
+
+        if command == Command.UNDO:
+            return None if self.undo() else key
+
+        if command == Command.REDO:
+            return None if self.redo() else key
+
+        if command == Command.YANK:
+            return None if self._yank() else key
+
+        if command in {Command.WORD_LEFT, Command.WORD_RIGHT, Command.LINE_START, Command.LINE_END}:
+            if command == Command.LINE_START:
+                new_pos = self._line_bounds(pos)[0]
+            elif command == Command.LINE_END:
+                new_pos = self._line_bounds(pos)[1]
+            else:
+                new_pos = self._word_boundary(pos, forward=command == Command.WORD_RIGHT)
+            if new_pos == pos:
+                return key
+            self.set_edit_pos(new_pos)
+            return None
+
+        if command in {
+            Command.DELETE_WORD_LEFT,
+            Command.DELETE_WORD_RIGHT,
+            Command.DELETE_SPACE_WORD_LEFT,
+            Command.DELETE_TO_LINE_START,
+            Command.DELETE_TO_LINE_END,
+        }:
+            text = self._edit_text
+            if command == Command.DELETE_WORD_LEFT:
+                start, end = self._word_boundary(pos, forward=False), pos
+            elif command == Command.DELETE_SPACE_WORD_LEFT:
+                start, end = self._word_boundary(pos, forward=False, space_separated=True), pos
+            elif command == Command.DELETE_WORD_RIGHT:
+                start, end = pos, self._word_boundary(pos, forward=True)
+            elif command == Command.DELETE_TO_LINE_START:
+                start, end = self._line_bounds(pos)[0], pos
+            else:
+                start, end = pos, self._line_bounds(pos)[1]
+            if start == end:
+                return key
+            self._set_edit_text_and_pos(text[:start] + text[end:], start)
+            self._kill(text[start:end], forward=command in {Command.DELETE_WORD_RIGHT, Command.DELETE_TO_LINE_END})
             return None
 
         if self._command_map[key] == Command.LEFT:
@@ -518,7 +1344,8 @@ class Edit(WidgetWrap[Text]):
         if self._command_map[key] in {Command.UP, Command.DOWN}:
             self.highlight = None
 
-            _x, y = self.get_cursor_coords(size)
+            if (y := self._cursor_row(size)) is None:
+                return key
             pref_col = self.get_pref_col(size)
             if pref_col is None:
                 raise ValueError(pref_col)
@@ -533,17 +1360,18 @@ class Edit(WidgetWrap[Text]):
             return None
 
         if key == "backspace":
+            self._undo_kind = "backspace"
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
                 if pos == 0:
                     return key
                 pos = move_prev_char(self.edit_text, 0, pos)
-                self.set_edit_text(self.edit_text[:pos] + self.edit_text[self.edit_pos :])
-                self.set_edit_pos(pos)
+                self._set_edit_text_and_pos(self.edit_text[:pos] + self.edit_text[self.edit_pos :], pos)
                 return None
             return None
 
-        if key == "delete":
+        if key == "delete" or command == Command.DELETE_RIGHT:
+            self._undo_kind = "delete"
             self.pref_col_maxcol = None, None
             if not self._delete_highlighted():
                 if pos >= len(self.edit_text):
@@ -557,7 +1385,8 @@ class Edit(WidgetWrap[Text]):
             self.highlight = None
             self.pref_col_maxcol = None, None
 
-            _x, y = self.get_cursor_coords(size)
+            if (y := self._cursor_row(size)) is None:
+                return key
 
             if self._command_map[key] == Command.MAX_LEFT:
                 self.move_cursor_to_coords(size, Align.LEFT, y)
@@ -568,18 +1397,54 @@ class Edit(WidgetWrap[Text]):
         # key wasn't handled
         return key
 
+    def _line_bounds(self, pos: int) -> tuple[int, int]:
+        """Return the start and the end of the line *pos* is on, where a line ends at a newline."""
+        text = self._edit_text
+        nl = "\n" if isinstance(text, str) else b"\n"
+        eol = text.find(nl, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+        bol = text.rfind(nl, 0, pos)  # pyrefly: ignore[bad-argument-type]  # isinstance() does not narrow nl
+        return bol + 1, len(text) if eol < 0 else eol
+
+    def _word_boundary(self, pos: int, *, forward: bool, space_separated: bool = False) -> int:
+        """Return the edit position after the next word, or at the start of the previous word.
+
+        A word is a run of characters whose first code point is a letter, a digit or an underscore.
+        With *space_separated*, a word is a run of characters whose first code point is not whitespace.
+        A multibyte character of a byte string counts as a letter.
+        A masked text is one word, so that the cursor does not show where the hidden text has spaces.
+        """
+        text = self._edit_text
+        end = len(text)
+        if self._mask is not None:
+            return end if forward else 0
+
+        def in_word(char: str | bytes) -> bool:
+            if space_separated:
+                return not char[:1].isspace()
+            if isinstance(char, bytes):
+                return char[:1].isalnum() or char[:1] == b"_" or len(char) > 1
+            return char[:1].isalnum() or char[:1] == "_"
+
+        for skip_word in (False, True):  # skip the separators before the word, then the word
+            while pos != (end if forward else 0):
+                other = move_next_char(text, pos, end) if forward else move_prev_char(text, 0, pos)
+                if in_word(text[min(pos, other) : max(pos, other)]) != skip_word:
+                    break
+                pos = other
+        return pos
+
     def move_cursor_to_coords(
         self,
         size: tuple[int],
         x: int | Literal[Align.LEFT, Align.RIGHT],
         y: int,
     ) -> bool:
-        """
-        Set the cursor position with (x,y) coordinates.
-        Returns True if move succeeded, False otherwise.
+        r"""Set the cursor position with (x,y) coordinates.
+
+        :returns: True if move succeeded, False otherwise.
 
         >>> size = (10,)
-        >>> e = Edit("", "edit\\ntext")
+        >>> e = Edit("", "edit\ntext")
         >>> e.move_cursor_to_coords(size, 5, 0)
         True
         >>> e.edit_pos
@@ -599,14 +1464,14 @@ class Edit(WidgetWrap[Text]):
 
         pos = text_layout.calc_pos(self.get_text()[0], trans, x, y)
         e_pos = min(max(pos - len(self.caption), 0), len(self.edit_text))
-        self.edit_pos = e_pos
+        self.set_edit_pos(e_pos)
         self.pref_col_maxcol = x, maxcol
         self._invalidate()
         return True
 
     def mouse_event(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
@@ -623,32 +1488,29 @@ class Edit(WidgetWrap[Text]):
         >>> e.edit_pos
         2
         """
-        if button == 1:
+        self._kill_last = None  # a click may have moved the focus away and back
+        if button == MouseButton.LEFT:
             return self.move_cursor_to_coords(size, col, row)
         return False
 
     def _delete_highlighted(self) -> bool:
-        """
-        Delete all highlighted text and update cursor position, if any
-        text is highlighted.
-        """
+        """Delete all highlighted text and update cursor position, if any text is highlighted."""
         if not self.highlight:
             return False
         start, stop = self.highlight
         btext, etext = self.edit_text[:start], self.edit_text[stop:]
-        self.set_edit_text(btext + etext)
-        self.edit_pos = start
+        self._set_edit_text_and_pos(btext + etext, start)
         self.highlight = None
         return True
 
     def render(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         focus: bool = False,
     ) -> TextCanvas | CompositeCanvas:
-        """
-        Render edit widget and return canvas.  Include cursor when in
-        focus.
+        """Render edit widget and return canvas.
+
+        Include cursor when in focus.
 
         >>> edit = Edit("? ", "yes")
         >>> c = edit.render((10,), focus=True)
@@ -657,16 +1519,30 @@ class Edit(WidgetWrap[Text]):
         >>> c.cursor
         (5, 0)
         """
-        self._shift_view_to_cursor = bool(focus)
+        self._shift_view_to_cursor = focus
 
         (maxcol,) = size
-        text, attr = self.get_text()
-        trans = self.get_line_translation(maxcol, (text, attr))
+        if (placeholder := self._placeholder_layout(maxcol)) is not None:
+            text, attr, trans = placeholder
+        else:
+            text, attr = self.get_text()
+            trans = self.get_line_translation(maxcol, (text, attr))
         canv: TextCanvas | CompositeCanvas = apply_text_layout(text, attr, trans, maxcol)
 
         if focus:
             canv = CompositeCanvas(canv)
             canv.cursor = self.get_cursor_coords(size)
+
+        if (severity := self.severity) is not None:
+            if focus and severity in self._validation_focus_attr:
+                attr_map = self._validation_focus_attr[severity]
+            elif severity in self._validation_attr:
+                attr_map = self._validation_attr[severity]
+            else:
+                attr_map = None
+            if attr_map is not None:
+                canv = CompositeCanvas(canv)
+                canv.fill_attr_apply(attr_map)
 
         # .. will need to FIXME if I want highlight to work again
         # if self.highlight:
@@ -674,16 +1550,82 @@ class Edit(WidgetWrap[Text]):
         #    d.coords['highlight'] = [ hstart, hstop ]
         return canv
 
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        r"""Return the number of rows the rendered edit requires, including a :attr:`placeholder` that grows it.
+
+        >>> Edit("", multiline=True, placeholder="line 1\nline 2").rows((20,))
+        2
+        """
+        if (placeholder := self._placeholder_layout(size[0])) is not None:
+            return len(placeholder[2])
+        return self._w.rows(size, focus)
+
+    def _placeholder_layout(
+        self,
+        maxcol: int,
+    ) -> (
+        tuple[
+            str | bytes,
+            list[tuple[Hashable, int]],
+            list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]],
+        ]
+        | None
+    ):
+        """Return the text, attributes and layout of the caption followed by the :attr:`placeholder`.
+
+        The layout has the rows :meth:`rows` reports.
+        It is laid out through the layout object, because the wrapped :class:`Text` caches the caption-only layout.
+
+        :returns: ``None`` when no placeholder is drawn: none is set, :attr:`edit_text` is not empty,
+            or the caption-only layout has to be shifted to show the cursor, which the placeholder layout would not be.
+        """
+        if self._placeholder_ta is None or self._edit_text:
+            return None
+        caption_trans = self._w.get_line_translation(maxcol)
+        shift_view_to_cursor, self._shift_view_to_cursor = self._shift_view_to_cursor, True
+        try:
+            # decided as if focused, so that rows() and an unfocused render() agree with a focused render()
+            shifted = self.get_line_translation(maxcol) != caption_trans
+        finally:
+            self._shift_view_to_cursor = shift_view_to_cursor
+        if shifted:
+            return None
+
+        placeholder_text, placeholder_attrib = self._placeholder_ta
+        text = self._caption + placeholder_text  # type: ignore[operator]  # type normalised
+        caption_attrib = self._attrib.copy()
+        if (uncovered := len(self._caption) - sum(run for _attr, run in caption_attrib)) > 0:
+            caption_attrib.append((None, uncovered))  # so that the placeholder's attributes start after the caption
+        attrib = [*caption_attrib, *placeholder_attrib]
+
+        trans = self._w.layout.layout(text, maxcol, self._w.align, self._w.wrap)
+        grow = self.multiline if self._placeholder_grow is None else self._placeholder_grow
+        rows = max(len(caption_trans), len(trans)) if grow else len(caption_trans)
+        return text, attrib, [*trans[:rows], *([] for _row in range(rows - len(trans)))]
+
     def get_line_translation(
         self,
         maxcol: int,
         ta: tuple[str | bytes, list[tuple[Hashable, int]]] | None = None,
     ) -> list[list[tuple[int, int, int | bytes] | tuple[int, int | None]]]:
+        """Return the line translation for `ta`, shifted to keep the cursor visible if needed."""
         trans = self._w.get_line_translation(maxcol, ta)
         if not self._shift_view_to_cursor:
             return trans
 
+        if self._w.wrap in (WrapMode.SPACE, WrapMode.ANY):
+            # Wrapping modes grow the number of rows instead of clipping a row's width,
+            # so there is never a partially hidden row to scroll horizontally into view.
+            return trans
+
         text, _ignore = self.get_text()
+        if self._w.wrap == WrapMode.ELLIPSIS and self._w.layout.supports_wrap_mode(WrapMode.CLIP):
+            # The ellipsis replaces the text past the cut, so no shift could bring a cursor there into view:
+            # the row with the cursor is clipped instead, and the other rows keep their ellipsis.
+            clipped = self._w.layout.layout(text, maxcol, self._w.align, WrapMode.CLIP)
+            if len(clipped) == len(trans):  # a different row count would disagree with rows()
+                cursor_row = text_layout.calc_coords(text, clipped, self.edit_pos + len(self.caption))[1]
+                trans = [*trans[:cursor_row], clipped[cursor_row], *trans[cursor_row + 1 :]]
         x, y = text_layout.calc_coords(text, trans, self.edit_pos + len(self.caption))
         if x < 0:
             return [
@@ -692,32 +1634,94 @@ class Edit(WidgetWrap[Text]):
                 *trans[y + 1 :],
             ]
 
-        if x >= maxcol:
+        pos = self.edit_pos + len(self.caption)
+        # the cursor after the last character of a row, or on bytes that are not valid UTF-8, needs one column
+        cursor_width = 1
+        if pos < len(text) and text[pos : pos + 1] not in {"\n", b"\n"}:
+            with contextlib.suppress(UnicodeDecodeError):
+                cursor_width = max(calc_width(text, pos, move_next_char(text, pos, len(text))), 1)
+        if x + cursor_width > maxcol:
+            if cursor_width > maxcol:
+                # the character under the cursor cannot be shown whole: start the row with it
+                shift = x
+            else:
+                try:
+                    shift = self._boundary_column(text, trans[y], x + cursor_width - maxcol)
+                except UnicodeDecodeError:
+                    shift = x + cursor_width - maxcol  # a row that is not valid UTF-8 has no characters to keep whole
             return [
                 *trans[:y],
-                *[text_layout.shift_line(trans[y], -(x - maxcol + 1))],
+                *[text_layout.shift_line(trans[y], -shift)],
                 *trans[y + 1 :],
             ]
 
         return trans
 
-    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int]:
+    @staticmethod
+    def _boundary_column(
+        text: str | bytes,
+        line: list[tuple[int, int, int | bytes] | tuple[int, int | None]],
+        min_col: int,
+    ) -> int:
+        """Return the first screen column of *line*, from *min_col* on, that does not split a character.
+
+        :param text: text that *line* is a layout row of
+        :param line: one row of a layout structure
+        :param min_col: the column to start looking from
+        :returns: *min_col* or the column after it where the next character starts;
+            the width of *line* when no character starts after *min_col*.
         """
-        Return the (*x*, *y*) coordinates of cursor within widget.
+        col = 0
+        for seg in line:
+            s = text_layout.LayoutSegment(seg)
+            if s.offs is None or s.end is None:
+                # a shift, inserted spaces or inserted text: no character spans its columns
+                if col + s.sc >= min_col:
+                    return max(col, min_col)
+                col += s.sc
+                continue
+            pos = s.offs
+            while col < min_col and pos < s.end:
+                next_pos = move_next_char(text, pos, s.end)
+                col += calc_width(text, pos, next_pos)
+                pos = next_pos
+            if col >= min_col:
+                return col
+        return col
+
+    def get_cursor_coords(self, size: tuple[int]) -> tuple[int, int] | None:
+        """
+        Return the (*x*, *y*) coordinates of cursor within widget, or ``None`` when it has no columns to show it in.
 
         >>> Edit("? ", "yes").get_cursor_coords((10,))
         (5, 0)
+        >>> Edit("? ", "yes").get_cursor_coords((0,)) is None
+        True
         """
         (maxcol,) = size
 
         self._shift_view_to_cursor = True
-        return self.position_coords(maxcol, self.edit_pos)
+        if maxcol == 0:
+            return None
+        x, y = self.position_coords(maxcol, self.edit_pos)
+        if self._w.wrap in (WrapMode.SPACE, WrapMode.ANY) and x >= maxcol:
+            # The cursor sits right after a row that is already full and entirely visible.
+            # Clamp onto its last column instead of scrolling that row out of view for a wrap
+            # that has not happened yet.
+            x = maxcol - 1
+        return x, y
+
+    def _cursor_row(self, size: tuple[int]) -> int | None:
+        if (coords := self.get_cursor_coords(size)) is not None:
+            return coords[1]
+        if size[0] == 0:
+            # No columns means no cursor, but the edit position still has a row.
+            return self.position_coords(0, self.edit_pos)[1]
+        # An override reports no cursor to move from.
+        return None
 
     def position_coords(self, maxcol: int, pos: int) -> tuple[int, int]:
-        """
-        Return (*x*, *y*) coordinates for an offset into self.edit_text.
-        """
-
+        """Return (*x*, *y*) coordinates for an offset into self.edit_text."""
         p = pos + len(self.caption)
         trans = self.get_line_translation(maxcol)
         x, y = text_layout.calc_coords(self.get_text()[0], trans, p)
@@ -725,16 +1729,15 @@ class Edit(WidgetWrap[Text]):
 
 
 class IntEdit(Edit):
-    """Edit widget for integer values"""
+    """Edit widget for integer values."""
 
     def valid_char(self, ch: str) -> bool:
-        """
-        Return true for decimal digits.
-        """
+        """Return true for decimal digits."""
         return len(ch) == 1 and ch in string.digits
 
     def __init__(self, caption: _TagMarkup = "", default: int | str | None = None) -> None:
-        """
+        """Create the IntEdit widget.
+
         :param caption: caption markup
         :param default: default edit value
 
@@ -749,11 +1752,14 @@ class IntEdit(Edit):
 
     def keypress(
         self,
-        size: tuple[int],
+        size: tuple[int],  # type: ignore[override]
         key: str,
     ) -> str | None:
         """
         Handle editing keystrokes.  Remove leading zeros.
+
+        A digit is refused when the resulting text would exceed :func:`sys.get_int_max_str_digits` digits, so that
+        :meth:`value` can convert whatever the user typed.
 
         >>> e, size = IntEdit("", 5002), (10,)
         >>> e.keypress(size, "home")
@@ -764,15 +1770,64 @@ class IntEdit(Edit):
         >>> print(e.edit_text)
         2
         """
-        if unhandled := super().keypress(size, key):
-            return unhandled
+        with self._editing():  # the strip belongs to the undo step of the key
+            max_digits = sys.get_int_max_str_digits()  # 0 means no limit
+            if max_digits and self.valid_char(key) and len(self.insert_text_result(key)[0]) > max_digits:
+                return key
 
-        # trim leading zeros
-        while self.edit_pos > 0 and self.edit_text[:1] == "0":
-            self.set_edit_pos(self.edit_pos - 1)
-            self.set_edit_text(self.edit_text[1:])
+            if unhandled := super().keypress(size, key):
+                return unhandled
+            if self._command_map[key] in {Command.UNDO, Command.REDO}:
+                return None  # a restored state is kept as it was shown
+
+            text, pos = self._strip_leading_zeros(self.edit_text, self.edit_pos)
+            if text != self.edit_text:
+                self._set_edit_text_and_pos(text, pos)
 
         return None
+
+    def insert_text(self, text: str) -> None:
+        """Insert text at the cursor position and update the cursor, removing the leading zeros before the cursor.
+
+        The result is set at once, so "change" and "postchange" are sent once, and not at all when the text stays
+        the same.
+
+        :param text: text for inserting, type (bytes or unicode) must match the text in the caption
+
+        >>> e = IntEdit("", 0)
+        >>> e.insert_text("7")
+        >>> e
+        <IntEdit selectable flow widget '7' edit_pos=1>
+        """
+        result_text, result_pos = self._strip_leading_zeros(*self.insert_text_result(text))
+        if result_text == self.edit_text:
+            self.set_edit_pos(result_pos)
+        else:
+            self._set_edit_text_and_pos(result_text, result_pos)
+
+    def _valid_insert(self, text: str | bytes, result_text: str | bytes) -> bool:
+        """Return whether *result_text* is decimal digits, no more than :func:`sys.get_int_max_str_digits` allows."""
+        if isinstance(result_text, bytes):
+            result_text = result_text.decode("ascii", "replace")  # a replaced byte is not a digit
+        max_digits = sys.get_int_max_str_digits()  # 0 means no limit
+        return all(char in string.digits for char in result_text) and not (max_digits and len(result_text) > max_digits)
+
+    def _completion_candidate(self, text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return a completer's replacement as the edit would hold it.
+
+        The leading zeros :meth:`keypress` removes are removed here already.
+        The cycle then records the text a completion key leaves, so the next key continues it.
+        """
+        return self._strip_leading_zeros(*super()._completion_candidate(text, pos))
+
+    @staticmethod
+    def _strip_leading_zeros(text: str | bytes, pos: int) -> tuple[str | bytes, int]:
+        """Return *text* without the leading zeros before *pos*, keeping a lone zero, and *pos* moved with it."""
+        zero = b"0" if isinstance(text, bytes) else "0"
+        zeros = 0
+        while zeros < pos and text[zeros : zeros + 1] == zero and text[zeros + 1 : zeros + 2].isdigit():
+            zeros += 1
+        return text[zeros:], pos - zeros
 
     def value(self) -> int:
         """
@@ -783,6 +1838,9 @@ class IntEdit(Edit):
         >>> e.keypress(size, "1")
         >>> e.value() == 51
         True
+
+        :raises ValueError: the text was set programmatically to something that is not a decimal integer,
+            or to more digits than :func:`sys.get_int_max_str_digits` allows.
         """
         if self.edit_text:
             return int(self.edit_text)

@@ -1,12 +1,24 @@
 from __future__ import annotations
 
+import typing
 import unittest
 
 import urwid
 from urwid.util import get_encoding
+from tests.util import assert_attribute_redraws
 
 
 class DividerTest(unittest.TestCase):
+    def test_layout_attributes_invalidate(self) -> None:
+        """Setting a layout attribute of a rendered ``Divider`` redraws it and updates its rows."""
+
+        def make(**kwargs: typing.Any) -> urwid.Divider:
+            return urwid.Divider(**{"div_char": "-", **kwargs})
+
+        for name, value in (("div_char", "="), ("top", 1), ("bottom", 2)):
+            with self.subTest(name):
+                assert_attribute_redraws(self, make, (3,), name, value)
+
     def setUp(self) -> None:
         self.old_encoding = get_encoding()
         urwid.set_encoding("utf-8")

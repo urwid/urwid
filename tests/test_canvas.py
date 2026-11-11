@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import gc
+import sys
+import traceback
 import unittest
+import weakref
+from unittest import mock
 
 import urwid
+from tests.util import collect_and_count_alive
 from urwid import canvas
 from urwid.util import get_encoding
 
@@ -62,6 +68,260 @@ class CanvasCacheTest(unittest.TestCase):
 
         self.assertEqual({dependent}, urwid.CanvasCache._deps[dependency])
 
+    def test_store_without_widget_info_raises(self):
+        """A canvas has to be finalized (carry widget_info) before it can be cached."""
+        unfinalized = urwid.TextCanvas()
+        with self.assertRaises(TypeError):
+            urwid.CanvasCache.store(urwid.Widget, unfinalized)
+
+    @unittest.skipUnless(
+        sys.implementation.name == "cpython",
+        "relies on reference counting freeing the canvas as soon as its last reference is dropped",
+    )
+    def test_fetch_of_a_dead_weakref_returns_none_without_counting_a_hit(self):
+        """A cache entry whose canvas is already gone is a miss, not a hit."""
+        widget = urwid.Text("")
+        key = (urwid.Widget, (10, 1), False)
+        # A weakref with no callback: unlike store()'s, it will not clean up
+        # after itself, so the dead entry stays in place for fetch() to find.
+        placeholder = urwid.TextCanvas()
+        urwid.CanvasCache._widgets[widget] = {key: weakref.ref(placeholder)}
+        del placeholder
+
+        hits_before = urwid.CanvasCache.hits
+        fetches_before = urwid.CanvasCache.fetches
+        result = urwid.CanvasCache.fetch(widget, urwid.Widget, (10, 1), False)
+
+        self.assertIsNone(result)
+        self.assertEqual(hits_before, urwid.CanvasCache.hits)
+        self.assertEqual(fetches_before + 1, urwid.CanvasCache.fetches)
+
+    def test_cleanup_ignores_a_ref_already_removed_by_invalidate(self):
+        """invalidate() can drop a ref before its canvas is actually collected; cleanup() must not raise."""
+        widget = urwid.Text("")
+        canv = urwid.TextCanvas()
+        canv.finalize(widget, (10, 1), False)
+        urwid.CanvasCache.store(urwid.Widget, canv)
+        ref = urwid.CanvasCache._widgets[widget][(urwid.Widget, (10, 1), False)]
+
+        urwid.CanvasCache.invalidate(widget)
+        self.assertNotIn(ref, urwid.CanvasCache._refs)
+
+        cleanups_before = urwid.CanvasCache.cleanups
+        urwid.CanvasCache.cleanup(ref)  # must be a no-op, not a KeyError
+
+        self.assertEqual(cleanups_before + 1, urwid.CanvasCache.cleanups)
+
+    def test_cleanup_ignores_a_ref_whose_widget_is_already_gone(self):
+        """A ref can outlive its widget's entry in _widgets; cleanup() must tolerate that too."""
+        widget = urwid.Text("")
+        canv = urwid.TextCanvas()
+        canv.finalize(widget, (10, 1), False)
+        ref = weakref.ref(canv, urwid.CanvasCache.cleanup)
+        urwid.CanvasCache._refs[ref] = (widget, urwid.Widget, (10, 1), False)
+        # deliberately not registering `widget` in _widgets
+
+        cleanups_before = urwid.CanvasCache.cleanups
+        urwid.CanvasCache.cleanup(ref)
+
+        self.assertEqual(cleanups_before + 1, urwid.CanvasCache.cleanups)
+        self.assertNotIn(ref, urwid.CanvasCache._refs)
+
+    def test_clear_empties_all_bookkeeping(self):
+        widget = urwid.Text("")
+        canv = urwid.TextCanvas()
+        canv.finalize(widget, (10, 1), False)
+        urwid.CanvasCache.store(urwid.Widget, canv)
+        self.assertTrue(urwid.CanvasCache._widgets)
+        self.assertTrue(urwid.CanvasCache._refs)
+
+        urwid.CanvasCache.clear()
+
+        self.assertEqual({}, urwid.CanvasCache._widgets)
+        self.assertEqual({}, urwid.CanvasCache._refs)
+        self.assertEqual({}, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
+
+
+class CanvasCacheDependencyLeakTest(unittest.TestCase):
+    """CanvasCache must not keep a dependent widget alive once none of its canvases is cached."""
+
+    def setUp(self):
+        """Start from an empty cache and leave one behind."""
+        urwid.CanvasCache.clear()
+        self.addCleanup(urwid.CanvasCache.clear)
+        self.alive = []  # canvases a screen would still hold; the cache only keeps weak references
+
+    def store(self, widget, size=(10, 1), depends_on=None):
+        """Cache a canvas for *widget* and keep it alive for the rest of the test."""
+        canv = urwid.TextCanvas()
+        self.alive.append(canv)
+        canv.finalize(widget, size, False)
+        if depends_on is not None:
+            canv.depends_on = depends_on
+        urwid.CanvasCache.store(urwid.Widget, canv)
+        return canv
+
+    def test_rebuilt_wrappers_around_a_persistent_child_are_released(self):
+        """Wrappers rebuilt on every refresh around one cached child must not pile up in its dependants."""
+        child = urwid.Text("static")
+        paddings = []
+        last_canvas = None  # the screen keeps only the last canvas it drew
+        for _ in range(200):
+            padding = urwid.Padding(child)
+            last_canvas = urwid.AttrMap(padding, None).render((20,))
+            paddings.append(weakref.ref(padding))
+        del padding
+
+        self.assertEqual(1, collect_and_count_alive(paddings))
+        self.assertEqual({paddings[-1]()}, urwid.CanvasCache._deps[child])
+        self.assertLessEqual(len(urwid.CanvasCache._children), 2)  # the last Padding and AttrMap
+        self.assertIsNotNone(last_canvas)
+
+    def test_gridflow_focus_changes_release_old_display_widgets(self):
+        """GridFlow rebuilds its display widgets on a focus change: the old ones must be released."""
+        grid = urwid.GridFlow([urwid.Button(str(i)) for i in range(9)], 8, 1, 0, "left")
+        size = (30,)
+        canv = grid.render(size, focus=True)
+        gc.collect()
+        links_after_first_render = sum(map(len, urwid.CanvasCache._deps.values()))
+        displays = []
+        for i in range(100):
+            grid.keypress(size, "right" if i % 2 == 0 else "left")
+            canv = grid.render(size, focus=True)
+            displays.append(weakref.ref(grid._w))
+
+        self.assertEqual(1, collect_and_count_alive(displays))
+        self.assertEqual(links_after_first_render, sum(map(len, urwid.CanvasCache._deps.values())))
+        self.assertIsNotNone(canv)
+
+    def test_invalidate_removes_the_widget_from_its_children_deps(self):
+        """An invalidated widget must not stay among the dependants of the widgets it depended on."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        child_canv = self.store(child)
+        self.store(parent, depends_on=[child])
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+
+        urwid.CanvasCache.invalidate(parent)
+
+        self.assertNotIn(child, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
+        self.assertIs(child_canv, urwid.CanvasCache.fetch(child, urwid.Widget, (10, 1), False))
+
+    def test_cleanup_of_a_replaced_ref_keeps_the_live_entry(self):
+        """A canvas stored again under the same key must stay cached when the canvas it replaced dies."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(parent, depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[parent][urwid.Widget, (10, 1), False]
+        new_canv = self.store(parent, depends_on=[child])
+
+        urwid.CanvasCache.cleanup(old_ref)
+
+        self.assertIs(new_canv, urwid.CanvasCache.fetch(parent, urwid.Widget, (10, 1), False))
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+
+    def test_cleanup_between_dependency_lookup_and_add_in_store(self):
+        """A cleanup that drops a now-empty dependants set while store() holds it must not lose the new link."""
+        child = urwid.Text("")
+        old_parent = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(old_parent, depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[old_parent][urwid.Widget, (10, 1), False]
+
+        class CleanupAfterSetdefault(dict):
+            """Run a cleanup right after every setdefault() lookup."""
+
+            def setdefault(self, key, default=None):
+                found = super().setdefault(key, default)
+                urwid.CanvasCache.cleanup(old_ref)  # as if the old parent's canvas died right here
+                return found
+
+        urwid.CanvasCache._deps = CleanupAfterSetdefault(urwid.CanvasCache._deps)
+        self.store(parent, depends_on=[child])
+
+        self.assertEqual({parent}, urwid.CanvasCache._deps[child])
+        urwid.CanvasCache.invalidate(child)
+        self.assertIsNone(urwid.CanvasCache.fetch(parent, urwid.Widget, (10, 1), False))
+
+    def test_cleanup_emptying_the_sizes_store_is_adding_to(self):
+        """A canvas that store() could not register must not leave its widget in the dependency indexes."""
+        child = urwid.Text("")
+        parent = urwid.Text("")
+        self.store(child)
+        self.store(parent, size=(5, 1), depends_on=[child])
+        old_ref = urwid.CanvasCache._widgets[parent][urwid.Widget, (5, 1), False]
+        lookups = []
+
+        class CleanupAfterFirstGet(dict):
+            """Run a cleanup right after the first get() lookup of the parent."""
+
+            def get(self, key, default=None):
+                found = super().get(key, default)
+                if key is parent and not lookups:
+                    lookups.append(key)
+                    urwid.CanvasCache.cleanup(old_ref)  # empties and drops the sizes just returned
+                return found
+
+        urwid.CanvasCache._widgets = CleanupAfterFirstGet(urwid.CanvasCache._widgets)
+        canv = self.store(parent, depends_on=[child])
+
+        self.assertNotIn(parent, urwid.CanvasCache._widgets)
+        self.assertNotIn(parent, urwid.CanvasCache._children)
+        self.assertNotIn(child, urwid.CanvasCache._deps)
+        self.assertIsNotNone(canv)
+
+    def test_collected_child_is_released_by_a_dependant_cached_under_another_size(self):
+        """A child whose last canvas is gone must not stay linked from a dependant that is still cached."""
+        parent = urwid.Text("")
+        kept_child = urwid.Text("")
+        self.store(kept_child)
+        self.store(parent, depends_on=[kept_child])  # the canvas the screen keeps
+        children = []
+        for _ in range(100):
+            child = urwid.Text("")
+            children.append(weakref.ref(child))
+            child_canv = urwid.TextCanvas()
+            child_canv.finalize(child, (20, 1), False)
+            urwid.CanvasCache.store(urwid.Widget, child_canv)
+            parent_canv = urwid.TextCanvas()
+            parent_canv.finalize(parent, (20, 1), False)
+            parent_canv.depends_on = [child]
+            urwid.CanvasCache.store(urwid.Widget, parent_canv)  # a measuring render, discarded right away
+            del child, child_canv, parent_canv
+
+        self.assertEqual(0, collect_and_count_alive(children))
+        self.assertEqual({kept_child}, urwid.CanvasCache._children[parent])
+
+    def test_cleanup_during_invalidate_recursion(self):
+        """A cleanup running while invalidate() walks the dependants must not change a set being iterated."""
+        child = urwid.Text("")
+        parents = [urwid.Text(str(i)) for i in range(5)]
+        self.store(child)
+        for parent in parents:
+            self.store(parent, depends_on=[child])
+        bystander = urwid.Text("")
+        self.store(bystander, depends_on=[child, parents[0]])
+        bystander_ref = urwid.CanvasCache._widgets[bystander][urwid.Widget, (10, 1), False]
+        invalidate = urwid.CanvasCache.invalidate.__func__
+        calls = []
+
+        def invalidate_with_cleanup(cls, widget):
+            calls.append(widget)
+            if len(calls) == 2:
+                cls.cleanup(bystander_ref)  # as if the bystander's canvas died mid-walk
+            invalidate(cls, widget)
+
+        with mock.patch.object(urwid.CanvasCache, "invalidate", classmethod(invalidate_with_cleanup)):
+            urwid.CanvasCache.invalidate(child)
+
+        self.assertEqual({}, urwid.CanvasCache._widgets)
+        self.assertEqual({}, urwid.CanvasCache._deps)
+        self.assertEqual({}, urwid.CanvasCache._children)
+
 
 class CanvasTest(unittest.TestCase):
     def test_basic_info(self):
@@ -96,12 +356,11 @@ class CanvasTest(unittest.TestCase):
         widget = urwid.SolidFill("*")
 
         for description, kwargs, message in (
-            ("negative left", {"left": -1, "top": 0}, "Pop-up position must not be negative"),
-            ("negative top", {"left": 0, "top": -1}, "Pop-up position must not be negative"),
             ("zero width", {"overlay_width": 0}, "Pop-up size must be positive"),
             ("zero height", {"overlay_height": 0}, "Pop-up size must be positive"),
             ("negative width", {"overlay_width": -3}, "Pop-up size must be positive"),
             ("negative height", {"overlay_height": -3}, "Pop-up size must be positive"),
+            ("negative anchor height", {"anchor_height": -1}, "Pop-up anchor height must not be negative"),
         ):
             with self.subTest(description):
                 params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
@@ -114,6 +373,76 @@ class CanvasTest(unittest.TestCase):
             canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
             canvas.set_pop_up(widget, 0, 0, 4, 2)
             self.assertEqual((0, 0, (widget, 4, 2)), canvas.get_pop_up())
+            self.assertIsNone(canvas.get_pop_up_anchor_height())
+
+        with self.subTest("a negative position opens the pop-up left of and above the canvas"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, -2, -3, 4, 2)
+            self.assertEqual((-2, -3, (widget, 4, 2)), canvas.get_pop_up())
+
+        with self.subTest("anchor height moves with the pop-up"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 1, 2, 4, 2, anchor_height=1)
+            self.assertEqual(1, canvas.get_pop_up_anchor_height())
+            canvas.coords = canvas.translate_coords(3, 4)
+            self.assertEqual((4, 6, (widget, 4, 2)), canvas.get_pop_up())
+            self.assertEqual(1, canvas.get_pop_up_anchor_height())
+
+        with self.subTest("a pop-up set without an anchor drops the previous anchor"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2, anchor_height=1)
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertIsNone(canvas.get_pop_up_anchor_height())
+
+        with self.subTest("an anchor left by another pop-up is ignored"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2, anchor_height=1)
+            canvas.coords["pop up"] = (2, 3, (widget, 4, 2))
+            self.assertIsNone(canvas.get_pop_up_anchor_height())
+
+        def on_unhandled_key(key: str) -> str | None:
+            return key
+
+        with self.subTest("unhandled key callback moves with the pop-up"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            self.assertIsNone(canvas.get_pop_up_unhandled_key())
+            canvas.set_pop_up(widget, 1, 2, 4, 2, on_unhandled_key=on_unhandled_key)
+            canvas.coords = canvas.translate_coords(3, 4)
+            self.assertIs(on_unhandled_key, canvas.get_pop_up_unhandled_key())
+
+        with self.subTest("a pop-up set without a callback drops the previous callback"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, 4, 2, on_unhandled_key=on_unhandled_key)
+            canvas.set_pop_up(widget, 0, 0, 4, 2)
+            self.assertIsNone(canvas.get_pop_up_unhandled_key())
+
+        with self.subTest("a callback left by another pop-up is ignored"):
+            for other_pop_up in ((2, 3, (widget, 4, 2)), (0, 0, (urwid.SolidFill("+"), 4, 2))):
+                canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+                canvas.set_pop_up(widget, 0, 0, 4, 2, on_unhandled_key=on_unhandled_key)
+                canvas.coords["pop up"] = other_pop_up
+                self.assertIsNone(canvas.get_pop_up_unhandled_key())
+
+    def test_finalize_twice_raises(self):
+        widget = urwid.Text("")
+        canv = urwid.TextCanvas()
+        canv.finalize(widget, (10, 1), False)
+        with self.assertRaises(urwid.CanvasError):
+            canv.finalize(widget, (10, 1), False)
+
+    def test_set_cursor_on_finalized_cacheable_canvas_raises(self):
+        widget = urwid.Text("")
+        canv = urwid.TextCanvas()
+        canv.finalize(widget, (10, 1), False)
+        with self.assertRaises(urwid.CanvasError):
+            canv.cursor = (0, 0)
+
+    def test_set_pop_up_on_finalized_cacheable_canvas_raises(self):
+        widget = urwid.SolidFill("*")
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+        canv.finalize(widget, (10, 5), False)
+        with self.assertRaises(urwid.CanvasError):
+            canv.set_pop_up(widget, 0, 0, 4, 2)
 
     def ct(self, text, attr, exp_content):
         with self.subTest(text=text, attr=attr, exp_content=exp_content):
@@ -130,6 +459,17 @@ class CanvasTest(unittest.TestCase):
         self.ct(["Hello world"], None, [[(None, None, b"Hello world")]])
         self.ct(["Hello world"], [[("a", 5)]], [[("a", None, b"Hello"), (None, None, b" world")]])
         self.ct(["Hi", "There"], None, [[(None, None, b"Hi   ")], [(None, None, b"There")]])
+        # a line with no list of runs gets the default attribute, rather than being left out of the content
+        self.ct(["Hi", "There"], [], [[(None, None, b"Hi   ")], [(None, None, b"There")]])
+        self.ct(["Hi", "There"], [[("a", 1)]], [[("a", None, b"H"), (None, None, b"i   ")], [(None, None, b"There")]])
+
+    def test_missing_character_set_lines_get_the_default_set(self):
+        """A line with no list of character set runs gets the default set, rather than being left out."""
+        canv = urwid.TextCanvas([b"Hi", b"There"], cs=[[("0", 1)]])
+        self.assertEqual(
+            [[(None, "0", b"H"), (None, None, b"i   ")], [(None, None, b"There")]],
+            list(canv.content()),
+        )
 
     def test2(self):
         self.ct2(
@@ -192,6 +532,106 @@ class CanvasTest(unittest.TestCase):
             None,
             [[(None, None, b"There")]],
         )
+
+
+class ZeroColumnTextCanvasTest(unittest.TestCase):
+    def test_empty_text_renders_without_size(self):
+        self.assertEqual([b""], urwid.Text("").render(()).text)
+
+    def test_content_of_zero_column_canvas(self):
+        canvas = urwid.Text("").render((0,))
+        self.assertEqual([[]], list(canvas.content()))
+        self.assertEqual([[]], list(urwid.CompositeCanvas(canvas).content()))
+
+    def test_trim_outside_zero_column_canvas_raises(self):
+        canvas = urwid.Text("").render((0,))
+        with self.assertRaises(ValueError):
+            list(canvas.content(trim_left=1))
+
+
+class FinalizedCanvasErrorTest(unittest.TestCase):
+    """Errors raised on misuse of a finalized canvas."""
+
+    def test_repeated_misuse_does_not_keep_the_canvas_alive(self):
+        """Each misuse of a finalized canvas raises its own error, so no traceback outlives its handler."""
+        canv = urwid.TextCanvas([b"hi"])
+        canv.finalize(urwid.Text("hi"), (2,), False)
+        tracebacks = []
+        for _ in range(5):
+            # Not assertRaises: it strips the traceback, which hides the accumulation.
+            try:
+                canv.finalize(urwid.Text("hi"), (2,), False)
+            except urwid.CanvasError as exc:
+                tracebacks.append(len(traceback.extract_tb(exc.__traceback__)))
+        canv_ref = weakref.ref(canv)
+        del canv
+        gc.collect()
+
+        self.assertEqual([tracebacks[0]] * 5, tracebacks)
+        self.assertIsNone(canv_ref())
+
+
+class TextCanvasErrorTest(unittest.TestCase):
+    def test_text_must_be_bytes(self):
+        with self.assertRaises(urwid.CanvasError):
+            urwid.TextCanvas(["not bytes"])
+
+    def test_check_width_false_requires_int_maxcol(self):
+        with self.assertRaises(TypeError):
+            urwid.TextCanvas([b"hi"], check_width=False, maxcol=None)
+
+    def test_text_wider_than_maxcol_raises(self):
+        with self.assertRaises(urwid.CanvasError):
+            urwid.TextCanvas([b"hello"], maxcol=3)
+
+    def test_attribute_extending_beyond_text_raises(self):
+        with self.assertRaises(urwid.CanvasError):
+            urwid.TextCanvas([b"hi"], attr=[[(None, 5)]])
+
+    def test_character_set_extending_beyond_text_raises(self):
+        with self.assertRaises(urwid.CanvasError):
+            urwid.TextCanvas([b"hi"], cs=[[(None, 5)]])
+
+    def test_translated_coords_with_and_without_cursor(self):
+        with_cursor = urwid.TextCanvas([b"hi"], cursor=(1, 0))
+        self.assertEqual((4, 3), with_cursor.translated_coords(3, 3))
+
+        without_cursor = urwid.TextCanvas([b"hi"])
+        self.assertIsNone(without_cursor.translated_coords(3, 3))
+
+    def test_content_trim_top_out_of_range_raises(self):
+        canv = urwid.TextCanvas([b"a", b"b"])
+        with self.assertRaises(ValueError):
+            list(canv.content(trim_top=5))
+
+
+class BlankCanvasTest(unittest.TestCase):
+    def test_cols_and_rows_are_unknown(self):
+        blank = urwid.BlankCanvas()
+        with self.assertRaises(NotImplementedError):
+            blank.cols()
+        with self.assertRaises(NotImplementedError):
+            blank.rows()
+
+    def test_content_uses_the_default_attribute_when_given(self):
+        blank = urwid.BlankCanvas()
+        self.assertEqual([[(None, None, b"   ")]], list(blank.content(cols=3, rows=1)))
+        self.assertEqual([[("a", None, b"   ")]], list(blank.content(cols=3, rows=1, attr={None: "a"})))
+
+    def test_content_with_zero_rows_yields_nothing(self):
+        blank = urwid.BlankCanvas()
+        self.assertEqual([], list(blank.content(cols=3, rows=0)))
+
+
+class SolidCanvasErrorTest(unittest.TestCase):
+    def test_fill_char_not_exactly_one_column_wide_raises(self):
+        with self.subTest("empty"):
+            with self.assertRaises(ValueError):
+                urwid.SolidCanvas("", 3, 1)
+
+        with self.subTest("double-width"):
+            with self.assertRaises(ValueError):
+                urwid.SolidCanvas("\N{HIRAGANA LETTER A}", 3, 1)
 
 
 class ShardBodyTest(unittest.TestCase):
@@ -298,6 +738,17 @@ class ShardBodyTest(unittest.TestCase):
             ["f", "b", "z"],
         )
 
+    def test_row_without_a_content_iterator_raises(self):
+        with self.assertRaises(ValueError):
+            list(canvas.shard_body_row([(0, None, (0, 0, 5, 5, None, "foo"))]))
+
+    def test_cviews_wider_than_the_shard_tail_gap_raises(self):
+        # the cview is 10 columns wide but the shard tail only leaves a 5 column gap for it
+        cviews = [(0, 0, 10, 5, None, "foo")]
+        shard_tail = [(5, 0, None, (0, 0, 5, 5, None, "bar"))]
+        with self.assertRaises(canvas.CanvasError):
+            canvas.shard_body(cviews, shard_tail, False)
+
 
 class ShardsTrimTest(unittest.TestCase):
     def sttop(self, shards, top, expected):
@@ -389,6 +840,52 @@ class ShardsTrimTest(unittest.TestCase):
         )
         self.stsides(shards, 10, 5, [(8, [(0, 0, 5, 8, None, "baz")])])
         self.stsides(shards, 11, 3, [(8, [(1, 0, 3, 8, None, "baz")])])
+
+    def test_argument_validation(self):
+        shards = [(5, [(0, 0, 10, 5, None, "foo")])]
+
+        with self.subTest("trim_top requires a positive amount"):
+            with self.assertRaises(ValueError):
+                canvas.shards_trim_top(shards, 0)
+
+        with self.subTest("trim_top cannot remove every shard"):
+            with self.assertRaises(canvas.CanvasError):
+                canvas.shards_trim_top(shards, 5)
+
+        with self.subTest("trim_rows rejects a negative row count"):
+            with self.assertRaises(ValueError):
+                canvas.shards_trim_rows(shards, -1)
+
+        with self.subTest("trim_sides rejects a negative left"):
+            with self.assertRaises(ValueError):
+                canvas.shards_trim_sides(shards, -1, 5)
+
+        with self.subTest("trim_sides rejects a non-positive width"):
+            with self.assertRaises(ValueError):
+                canvas.shards_trim_sides(shards, 0, 0)
+
+    def test_sides_after_a_shard_of_no_rows(self):
+        """A cview starting in a shard of no rows continues into the next shard and is kept once."""
+        shards = [
+            (0, [(0, 0, 4, 0, None, "empty"), (0, 0, 3, 3, None, "text")]),
+            (3, [(0, 0, 4, 3, None, "blank")]),
+        ]
+        self.stsides(shards, 4, 3, [(3, [(0, 0, 3, 3, None, "text")])])
+        self.stsides(
+            shards,
+            2,
+            4,
+            [(0, [(2, 0, 2, 0, None, "empty"), (0, 0, 2, 3, None, "text")]), (3, [(2, 0, 2, 3, None, "blank")])],
+        )
+
+        joined = urwid.CanvasJoin(
+            [
+                (urwid.SolidCanvas(" ", 4, 0), None, False, 4),
+                (urwid.TextCanvas([b"abc", b"def", b"ghi"], maxcol=3), None, False, 3),
+            ]
+        )
+        joined.pad_trim_left_right(-4, 0)
+        self.assertEqual([b"abc", b"def", b"ghi"], joined.text)
 
 
 class ShardsJoinTest(unittest.TestCase):
@@ -506,6 +1003,15 @@ class CanvasJoinTest(unittest.TestCase):
                 [(None, None, b"    "), (None, None, b"you")],
             ],
         )
+
+    def test_shortcuts_are_attributed_to_the_joined_canvas_position(self) -> None:
+        left = urwid.TextCanvas([b"hi"])
+        left.shortcuts["k"] = "original"
+        right = urwid.TextCanvas([b"there"])
+
+        joined = urwid.CanvasJoin([(left, "left-pos", False, 2), (right, None, False, 5)])
+
+        self.assertEqual({"k": "left-pos"}, joined.shortcuts)
 
 
 class CanvasOverlayTest(unittest.TestCase):
@@ -706,6 +1212,194 @@ class CompositeCanvasWrapTest(unittest.TestCase):
         self.assertEqual((20, 10), (wrapped.cols(), wrapped.rows()))
         self.assertEqual((5, 3, (popup, 8, 4)), wrapped.get_pop_up())
 
+    def test_wrap_inherits_shortcuts_as_wrap(self) -> None:
+        inner = urwid.SolidCanvas(" ", 3, 1)
+        inner.shortcuts["x"] = "original"
+        wrapped = urwid.CompositeCanvas(canv=inner)
+        self.assertEqual({"x": "wrap"}, wrapped.shortcuts)
+
+
+class CompositeCanvasDimensionsTest(unittest.TestCase):
+    def test_rows_rejects_a_non_integer_row_count(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 1))
+        canv.shards = [(1.5, canv.shards[0][1])]
+        with self.assertRaises(TypeError):
+            canv.rows()
+
+    def test_cols_rejects_a_non_integer_column_count(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 1))
+        num_rows, cviews = canv.shards[0]
+        (trim_left, trim_top, _cols, rows, attr_map, cv) = cviews[0]
+        canv.shards = [(num_rows, [(trim_left, trim_top, 1.5, rows, attr_map, cv)])]
+        with self.assertRaises(TypeError):
+            canv.cols()
+
+
+class CompositeCanvasTrimTest(unittest.TestCase):
+    def test_trim_argument_validation(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+
+        with self.subTest("negative top"):
+            with self.assertRaises(ValueError):
+                canv.trim(-1)
+
+        with self.subTest("top at or beyond the row count"):
+            with self.assertRaises(ValueError):
+                canv.trim(5)
+
+    def test_trim_end_argument_validation(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+
+        with self.subTest("non-positive end"):
+            with self.assertRaises(ValueError):
+                canv.trim_end(0)
+
+        with self.subTest("end beyond the row count"):
+            with self.assertRaises(ValueError):
+                canv.trim_end(6)
+
+    def test_trim_to_no_rows_keeps_the_width(self) -> None:
+        for description, trim in (
+            ("trim", lambda c: c.trim(0, 0)),
+            ("trim below a top cut", lambda c: c.trim(2, 0)),
+            ("trim_end", lambda c: c.trim_end(5)),
+        ):
+            with self.subTest(description):
+                canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+                trim(canv)
+                self.assertEqual((3, 0), (canv.cols(), canv.rows()))
+                self.assertEqual([], list(canv.content()))
+
+    def test_trim_drops_a_cursor_outside_the_kept_rows(self) -> None:
+        for description, cursor, trim, expected in (
+            ("above a top cut", (1, 0), lambda c: c.trim(2), None),
+            ("below the kept rows", (1, 4), lambda c: c.trim(0, 3), None),
+            ("trim to no rows", (1, 0), lambda c: c.trim(0, 0), None),
+            ("trim_end", (1, 4), lambda c: c.trim_end(1), None),
+            ("inside the kept rows", (1, 3), lambda c: c.trim(2), (1, 1)),
+        ):
+            with self.subTest(description):
+                canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+                canv.cursor = cursor
+                trim(canv)
+                self.assertEqual(expected, canv.cursor)
+
+    def test_mutation_on_finalized_canvas_raises(self) -> None:
+        widget = urwid.SolidFill(" ")
+        for description, mutate in (
+            ("trim", lambda c: c.trim(1)),
+            ("trim_end", lambda c: c.trim_end(1)),
+            ("pad_trim_left_right", lambda c: c.pad_trim_left_right(1, 0)),
+            ("pad_trim_top_bottom", lambda c: c.pad_trim_top_bottom(1, 0)),
+            ("overlay", lambda c: c.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 1, 1)), 0, 0)),
+            ("fill_attr_apply", lambda c: c.fill_attr_apply({})),
+            ("set_depends", lambda c: c.set_depends([])),
+        ):
+            with self.subTest(description):
+                canv = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 5))
+                canv.finalize(widget, (3, 5), False)
+                with self.assertRaises(urwid.CanvasError):
+                    mutate(canv)
+
+
+class CompositeCanvasOverlayValidationTest(unittest.TestCase):
+    def test_overlay_rejects_a_mismatched_size(self) -> None:
+        base = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 5, 5))
+
+        with self.subTest("too wide"):
+            with self.assertRaises(ValueError):
+                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 3, 2)), 3, 0)
+
+        with self.subTest("too tall"):
+            with self.assertRaises(ValueError):
+                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 3)), 0, 3)
+
+    def test_overlay_on_a_rowless_canvas_keeps_its_width(self) -> None:
+        base = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 5, 5))
+        base.trim(0, 0)  # no rows left to overlay onto
+        self.assertEqual((5, 0), (base.cols(), base.rows()))
+
+        base.overlay(urwid.CompositeCanvas(), 0, 0)  # empty, so it fits
+        self.assertEqual((5, 0), (base.cols(), base.rows()))
+        self.assertEqual([], list(base.content()))
+
+    def test_overlay_of_a_rowless_canvas_changes_nothing(self) -> None:
+        """A top canvas of no rows leaves the canvas as it is, wherever it is placed."""
+        for top in (0, 1, 3):
+            with self.subTest(top=top):
+                base = urwid.CompositeCanvas(urwid.SolidCanvas("#", 4, 3))
+                base.overlay(urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 0)), 1, top)
+                self.assertEqual([b"####"] * 3, base.text)
+
+
+class CompositeCanvasFillAttrTest(unittest.TestCase):
+    def test_fill_attr_sets_the_default_attribute(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.TextCanvas([b"hi"]))
+        canv.fill_attr("a")
+        self.assertEqual([[("a", None, b"hi")]], list(canv.content()))
+
+    def test_fill_attr_apply(self) -> None:
+        """Map the attribute of each run through every map applied, innermost first."""
+        layered = urwid.LayeredAttr
+        cases = (
+            (
+                # an outer map also maps what an inner map produced
+                "maps are combined",
+                b"hi",
+                [("a", 2)],
+                [{"a": "b"}, {"b": "c", "z": "z"}],
+                [("c", None, b"hi")],
+            ),
+            (
+                # an unnamed attribute is placed over the None attribute; one mapped to None shows it
+                "unmapped attributes over the default",
+                b"abcd",
+                [("fg", 1), (None, 1), ("old", 1), ("gone", 1)],
+                [{None: "bg", "old": "new", "gone": None}],
+                [
+                    (layered("fg", "bg"), None, b"a"),
+                    ("bg", None, b"b"),
+                    (layered("new", "bg"), None, b"c"),
+                    ("bg", None, b"d"),
+                ],
+            ),
+            (
+                # every layer goes through the outer map, then over the outer None attribute
+                "nested maps stack their defaults",
+                b"ab",
+                [("fg", 1)],
+                [{None: "inner"}, {None: "outer", "inner": "mapped"}],
+                [(layered("fg", "mapped", "outer"), None, b"a"), (layered("mapped", "outer"), None, b"b")],
+            ),
+            (
+                "layers mapped to None are dropped",
+                b"ab",
+                [(layered("x", "y"), 1), (layered("x", "x2"), 1)],
+                [{None: "bg", "x": None, "x2": None}],
+                [(layered("y", "bg"), None, b"a"), ("bg", None, b"b")],
+            ),
+            (
+                # a layer repeated next to itself is kept once, and a single remaining layer is unwrapped
+                "mapped layers are merged",
+                b"ab",
+                [(layered("a", "b"), 1), (layered("c", "b"), 1)],
+                [{"a": "x", "b": "x", "c": None}],
+                [("x", None, b"a"), ("x", None, b"b")],
+            ),
+        )
+        for name, text, runs, maps, expected in cases:
+            with self.subTest(name):
+                canv = urwid.CompositeCanvas(urwid.TextCanvas([text], [runs]))
+                for mapping in maps:
+                    canv.fill_attr_apply(mapping)
+                self.assertEqual([expected], list(canv.content()))
+
+    def test_solid_and_padding_take_the_default(self) -> None:
+        canv = urwid.CompositeCanvas(urwid.SolidCanvas("-", 2, 1))
+        canv.pad_trim_left_right(0, 1)
+        canv.fill_attr("bg")
+        self.assertEqual([[("bg", None, b"--"), ("bg", None, b" ")]], list(canv.content()))
+
 
 class CanvasPadTrimTopBottomTest(unittest.TestCase):
     def test_pad_top_and_bottom(self) -> None:
@@ -752,6 +1446,80 @@ class CanvasCombineTest(unittest.TestCase):
         self.assertEqual(3, combined.cols())
         self.assertEqual([b"top", b"mid", b"bot"], combined.text)
 
+    def test_shortcuts_are_attributed_to_the_stacked_canvas_position(self) -> None:
+        top = urwid.Text("top").render(())
+        top.shortcuts["k"] = "original"
+        bottom = urwid.Text("bot").render(())
+
+        combined = urwid.CanvasCombine([(top, "top-pos", False), (bottom, None, False)])
+
+        self.assertEqual({"k": "top-pos"}, combined.shortcuts)
+
+
+class CanvasOverlayFunctionTest(unittest.TestCase):
+    def test_text_canvases_can_be_overlaid(self) -> None:
+        top = urwid.TextCanvas([b"a"])
+        bottom = urwid.TextCanvas([b"xyz"])
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 0, 0)
+
+        self.assertEqual([b"ayz"], overlayed.text)
+        self.assertEqual([b"a"], top.text)
+        self.assertEqual([b"xyz"], bottom.text)
+
+    def test_finalized_text_canvas_preserves_cursor_and_attributes(self) -> None:
+        top = urwid.TextCanvas([b"ab"], [[("foreground", 1), (None, 1)]], cursor=(1, 0))
+        top.finalize(urwid.Text("ab"), (2,), True)
+        bottom = urwid.SolidCanvas(".", 5, 3)
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 1, 1)
+
+        self.assertEqual([b".....", b".ab..", b"....."], overlayed.text)
+        self.assertEqual((2, 1), overlayed.cursor)
+        self.assertEqual((1, 0), top.cursor)
+        self.assertEqual(
+            [(None, None, b"."), ("foreground", None, b"a"), (None, None, b"b"), (None, None, b"..")],
+            list(overlayed.content())[1],
+        )
+        self.assertIs(top, overlayed.children[0][2].children[0][2])
+
+    def test_plain_foreground_widget_invalidates_cached_overlay(self) -> None:
+        foreground = urwid.Text("a")
+        background = urwid.Text("xyz")
+        owner = urwid.Text("overlay")
+        overlayed = canvas.CanvasOverlay(foreground.render((1,)), background.render((3,)), 0, 0)
+        overlayed.finalize(owner, (3,), False)
+        urwid.CanvasCache.store(type(owner), overlayed)
+        self.assertIs(overlayed, urwid.CanvasCache.fetch(owner, type(owner), (3,), False))
+
+        foreground.set_text("b")
+
+        self.assertIsNone(urwid.CanvasCache.fetch(owner, type(owner), (3,), False))
+
+    def test_solid_foreground_canvas_at_an_offset(self) -> None:
+        top = urwid.SolidCanvas("#", 2, 2)
+        top.shortcuts["k"] = "original"
+        bottom = urwid.SolidCanvas(".", 5, 3)
+        bottom.shortcuts["b"] = "background"
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 1, 1)
+
+        self.assertEqual([b".....", b".##..", b".##.."], overlayed.text)
+        self.assertEqual({"k": "fg"}, overlayed.shortcuts)
+        self.assertEqual({"k": "original"}, top.shortcuts)
+        self.assertEqual({"b": "background"}, bottom.shortcuts)
+
+    def test_shortcuts_from_the_top_canvas_are_marked_fg(self) -> None:
+        top = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 2, 2))
+        top.shortcuts["k"] = "original"
+        bottom = urwid.SolidCanvas(" ", 5, 5)
+
+        overlayed = canvas.CanvasOverlay(top, bottom, 1, 1)
+
+        self.assertEqual({"k": "fg"}, overlayed.shortcuts)
+        self.assertEqual((5, 5), (overlayed.cols(), overlayed.rows()))
+        self.assertIs(top, overlayed.children[0][2])
+
 
 class CanvasPadTrimTest(unittest.TestCase):
     def cptest(self, desc, ct, ca, l, r, et):
@@ -770,3 +1538,61 @@ class CanvasPadTrimTest(unittest.TestCase):
     def test2(self):
         self.cptest("left trim", "asdf", [], -2, 0, [[(None, None, b"df")]])
         self.cptest("right trim", "asdf", [], 0, -2, [[(None, None, b"as")]])
+
+    def test_pad_covers_a_trailing_shard_of_no_rows(self):
+        """Padding reaches a shard of no rows after the last row, so canvases joined next to it still render."""
+        narrow = urwid.CompositeCanvas(urwid.SolidCanvas("d", 1, 0))
+        narrow.pad_trim_left_right(0, 1)
+        rowless = urwid.CompositeCanvas(
+            urwid.CanvasCombine(
+                [(urwid.CompositeCanvas(urwid.SolidCanvas("d", 2, 0)), None, False), (narrow, None, False)]
+            )
+        )
+        rowless.pad_trim_left_right(1, 0)
+        rowless.pad_trim_top_bottom(0, 3)
+        blank = urwid.CompositeCanvas(urwid.SolidCanvas("b", 4, 0))
+        blank.pad_trim_top_bottom(0, 3)
+        joined = urwid.CanvasJoin(
+            [
+                (rowless, None, False, 3),
+                (urwid.TextCanvas([b"h", b"g", b"q"], maxcol=1), None, False, 1),
+                (blank, None, False, 4),
+            ]
+        )
+        self.assertEqual([b"   h    ", b"   g    ", b"   q    "], joined.text)
+
+
+class ApplyTextLayoutTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.old_encoding = get_encoding()
+
+    def tearDown(self) -> None:
+        urwid.set_encoding(self.old_encoding)
+
+    def test_repeated_offsets_reset_the_attribute_walk(self) -> None:
+        # Two lines that both cover text offsets 0-4: the first line leaves
+        # the attribute walk sitting at offset 2 (the start of the "b" run),
+        # so the second line's request for offset 0 is behind it and arange()
+        # has to rewind instead of assuming offsets only increase.
+        text = b"abcdefgh"
+        attr = [("a", 2), ("b", 2), ("c", 4)]
+        ls = [[(4, 0, 4)], [(4, 0, 4)]]
+
+        result = list(canvas.apply_text_layout(text, attr, ls, 4).content())
+
+        expected_line = [("a", None, b"ab"), ("b", None, b"cd")]
+        self.assertEqual([expected_line, expected_line], result)
+
+    def test_attribute_change_within_a_double_width_segment(self) -> None:
+        # A single word-wrap segment can still contain more than one markup
+        # attribute; when the encoding also changes the segment's byte width
+        # (double-width euc-jp characters here), each attribute chunk has to
+        # be re-encoded on its own to work out how many columns it used.
+        urwid.set_encoding("euc-jp")
+        text = "ああ"  # two double-width hiragana characters
+        attr = [("a", 1), ("b", 1)]
+        ls = [[(4, 0, 2)]]
+
+        result = list(canvas.apply_text_layout(text, attr, ls, 4).content())
+
+        self.assertEqual([[("a", None, b"\xa4\xa2"), ("b", None, b"\xa4\xa2")]], result)

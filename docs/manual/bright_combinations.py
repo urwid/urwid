@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Display readable foreground colours on bright backgrounds, for the manual."""
+
 from __future__ import annotations
 
 import sys

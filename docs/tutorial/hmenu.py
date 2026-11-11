@@ -62,8 +62,8 @@ class Choice(urwid.WidgetWrap[MenuButton]):
         top.open_box(urwid.AttrMap(response_box, "options"))
 
 
-def exit_program(key):
-    raise urwid.ExitMainLoop()
+def exit_program(key: MenuButton) -> typing.NoReturn:
+    raise urwid.ExitMainLoop
 
 
 menu_top = SubMenu(

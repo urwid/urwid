@@ -1,4 +1,4 @@
-windowsize --usehints $RXVTWINDOWID 21 7
-windowsize --usehints $RXVTWINDOWID 10 9
-windowsize --usehints $RXVTWINDOWID 30 3
-windowsize --usehints $RXVTWINDOWID 15 2
+windowsize --usehints $TERMWINDOWID 21 7
+windowsize --usehints $TERMWINDOWID 10 9
+windowsize --usehints $TERMWINDOWID 30 3
+windowsize --usehints $TERMWINDOWID 15 2

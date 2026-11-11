@@ -1,9 +1,11 @@
+"""ctypes bindings for the Windows console API used by the Windows raw display."""
+
 from __future__ import annotations
 
 import enum
 import typing
 from ctypes import POINTER, Structure, Union, windll
-from ctypes.wintypes import BOOL, CHAR, DWORD, HANDLE, LPDWORD, SHORT, UINT, WCHAR, WORD
+from ctypes.wintypes import BOOL, CHAR, DWORD, HANDLE, LPCWSTR, LPDWORD, LPWSTR, SHORT, UINT, WCHAR, WORD
 
 # https://docs.microsoft.com/de-de/windows/console/getstdhandle
 STD_INPUT_HANDLE = -10
@@ -17,7 +19,7 @@ ENABLE_WINDOW_INPUT = 0x0008
 
 
 class COORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/coord-str"""
+    """https://docs.microsoft.com/en-us/windows/console/coord-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[SHORT]]]] = [
         ("X", SHORT),
@@ -26,7 +28,7 @@ class COORD(Structure):
 
 
 class SMALL_RECT(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/small-rect-str"""
+    """https://docs.microsoft.com/en-us/windows/console/small-rect-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[SHORT]]]] = [
         ("Left", SHORT),
@@ -37,7 +39,7 @@ class SMALL_RECT(Structure):
 
 
 class CONSOLE_SCREEN_BUFFER_INFO(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/console-screen-buffer-info-str"""
+    """https://docs.microsoft.com/en-us/windows/console/console-screen-buffer-info-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[COORD]] | tuple[str, type[WORD]] | tuple[str, type[SMALL_RECT]]]] = [
         ("dwSize", COORD),
@@ -49,7 +51,7 @@ class CONSOLE_SCREEN_BUFFER_INFO(Structure):
 
 
 class uChar(Union):
-    """https://docs.microsoft.com/en-us/windows/console/key-event-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/key-event-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[CHAR]] | tuple[str, type[WCHAR]]]] = [
         ("AsciiChar", CHAR),
@@ -58,7 +60,7 @@ class uChar(Union):
 
 
 class KEY_EVENT_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/key-event-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/key-event-record-str."""
 
     _fields_: typing.ClassVar[
         list[tuple[str, type[BOOL]] | tuple[str, type[WORD]] | tuple[str, type[uChar]] | tuple[str, type[DWORD]]]
@@ -73,7 +75,7 @@ class KEY_EVENT_RECORD(Structure):
 
 
 class MOUSE_EVENT_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[COORD]] | tuple[str, type[DWORD]]]] = [
         ("dwMousePosition", COORD),
@@ -84,7 +86,7 @@ class MOUSE_EVENT_RECORD(Structure):
 
 
 class MouseButtonState(enum.IntFlag):
-    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str"""
+    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str."""
 
     FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001
     RIGHTMOST_BUTTON_PRESSED = 0x0002
@@ -94,7 +96,7 @@ class MouseButtonState(enum.IntFlag):
 
 
 class MouseEventFlags(enum.IntFlag):
-    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str"""
+    """https://learn.microsoft.com/en-us/windows/console/mouse-event-record-str."""
 
     BUTTON_PRESSED = 0x0000  # Default action, used in examples, but not in official enum
     MOUSE_MOVED = 0x0001
@@ -104,25 +106,25 @@ class MouseEventFlags(enum.IntFlag):
 
 
 class WINDOW_BUFFER_SIZE_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/window-buffer-size-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/window-buffer-size-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[COORD]]]] = [("dwSize", COORD)]
 
 
 class MENU_EVENT_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/menu-event-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/menu-event-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[UINT]]]] = [("dwCommandId", UINT)]
 
 
 class FOCUS_EVENT_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/focus-event-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/focus-event-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[BOOL]]]] = [("bSetFocus", BOOL)]
 
 
 class Event(Union):
-    """https://docs.microsoft.com/en-us/windows/console/input-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/input-record-str."""
 
     _fields_: typing.ClassVar[
         list[
@@ -142,7 +144,7 @@ class Event(Union):
 
 
 class INPUT_RECORD(Structure):
-    """https://docs.microsoft.com/en-us/windows/console/input-record-str"""
+    """https://docs.microsoft.com/en-us/windows/console/input-record-str."""
 
     _fields_: typing.ClassVar[list[tuple[str, type[WORD]] | tuple[str, type[Event]]]] = [
         ("EventType", WORD),
@@ -151,6 +153,8 @@ class INPUT_RECORD(Structure):
 
 
 class EventType(enum.IntFlag):
+    """Windows console `INPUT_RECORD` event type flags."""
+
     KEY_EVENT = 0x0001
     MOUSE_EVENT = 0x0002
     WINDOW_BUFFER_SIZE_EVENT = 0x0004
@@ -175,10 +179,27 @@ SetConsoleMode.restype = BOOL
 
 # https://docs.microsoft.com/de-de/windows/console/readconsoleinput
 ReadConsoleInputW = windll.kernel32.ReadConsoleInputW
-# ReadConsoleInputW.argtypes = [HANDLE, POINTER(INPUT_RECORD), DWORD, LPDWORD]
+ReadConsoleInputW.argtypes = [HANDLE, POINTER(INPUT_RECORD), DWORD, LPDWORD]
 ReadConsoleInputW.restype = BOOL
+
+# https://learn.microsoft.com/en-us/windows/win32/api/synchapi/nf-synchapi-waitforsingleobject
+WAIT_OBJECT_0 = 0x00000000
+WAIT_TIMEOUT = 0x00000102
+WaitForSingleObject = windll.kernel32.WaitForSingleObject
+WaitForSingleObject.argtypes = [HANDLE, DWORD]
+WaitForSingleObject.restype = DWORD
 
 # https://docs.microsoft.com/en-us/windows/console/getconsolescreenbufferinfo
 GetConsoleScreenBufferInfo = windll.kernel32.GetConsoleScreenBufferInfo
 GetConsoleScreenBufferInfo.argtypes = [HANDLE, POINTER(CONSOLE_SCREEN_BUFFER_INFO)]
 GetConsoleScreenBufferInfo.restype = BOOL
+
+# https://learn.microsoft.com/en-us/windows/console/getconsoletitle
+GetConsoleTitleW = windll.kernel32.GetConsoleTitleW
+GetConsoleTitleW.argtypes = [LPWSTR, DWORD]
+GetConsoleTitleW.restype = DWORD
+
+# https://learn.microsoft.com/en-us/windows/console/setconsoletitle
+SetConsoleTitleW = windll.kernel32.SetConsoleTitleW
+SetConsoleTitleW.argtypes = [LPCWSTR]
+SetConsoleTitleW.restype = BOOL

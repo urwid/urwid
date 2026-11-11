@@ -29,6 +29,17 @@ WidgetContainerMixin
 
 .. autoclass:: WidgetContainerMixin
 
+SelectNavigationMixin
+~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationMixin
+   :private-members: _select_candidates, _select_enter_focus, _select_keypress_unhandled
+
+SelectNavigationListContentsMixin
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SelectNavigationListContentsMixin
+
 
 Basic Widget Classes
 --------------------
@@ -48,36 +59,13 @@ IntEdit
 
 .. autoclass:: IntEdit
 
-Button
-~~~~~~
-
-.. autoclass:: Button
-
-CheckBox
-~~~~~~~~
-
-.. autoclass:: CheckBox
-
-RadioButton
-~~~~~~~~~~~
-
-.. autoclass:: RadioButton
-
-   Signal Order
-~~~~~~~~~~~~
-
-When the state of a ``RadioButton`` changes, it emits two signals in the following order:
-
-1. ``"change"``: Emitted when the state has changed. The callback receives the new state value.
-2. ``"postchange"``: Emitted immediately after the ``"change"`` signal is fully processed.
-
-Use ``"change"`` to react to the new value (e.g., updating other widgets).
-Use ``"postchange"`` if you need to perform actions after the radio button group has fully settled.  
-
 TreeWidget
 ~~~~~~~~~~
 
 .. autoclass:: TreeWidget
+
+.. autoclass:: urwid.widget.treetools.TreeSymbols
+   :undoc-members:
 
 
 .. currentmodule:: urwid.numedit
@@ -94,6 +82,32 @@ FloatEdit
 ~~~~~~~~~~~
 
 .. autoclass:: FloatEdit
+
+
+Control Widget Classes
+----------------------
+
+.. currentmodule:: urwid
+
+Button
+~~~~~~
+
+.. autoclass:: Button
+
+CheckBox
+~~~~~~~~
+
+.. autoclass:: CheckBox
+
+RadioButton
+~~~~~~~~~~~
+
+.. autoclass:: RadioButton
+
+DropDown
+~~~~~~~~
+
+.. autoclass:: DropDown
 
 
 Special cases text widgets
@@ -145,6 +159,9 @@ SolidFill
 
 .. autoclass:: SolidFill
 
+Pop-up Widget Classes
+---------------------
+
 PopUpLauncher
 ~~~~~~~~~~~~~
 
@@ -155,15 +172,28 @@ PopUpTarget
 
 .. autoclass:: PopUpTarget
 
-WidgetPlaceholder
-~~~~~~~~~~~~~~~~~
+Special Widget Classes
+----------------------
 
-.. autoclass:: WidgetPlaceholder
+Notifications
+~~~~~~~~~~~~~
+
+.. autoclass:: Notifications
+
+Notification
+~~~~~~~~~~~~
+
+.. autoclass:: Notification
 
 WidgetDisable
 ~~~~~~~~~~~~~
 
 .. autoclass:: WidgetDisable
+
+WidgetPlaceholder
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: WidgetPlaceholder
 
 Container Widget Classes
 ------------------------
@@ -198,6 +228,33 @@ GridFlow
 
 .. autoclass:: GridFlow
 
+Table
+~~~~~
+
+.. autoclass:: Table
+
+TableRow
+~~~~~~~~
+
+.. autoclass:: TableRow
+
+TableColumn
+~~~~~~~~~~~
+
+.. autoclass:: TableColumn
+
+TableLayout
+~~~~~~~~~~~
+
+.. autoclass:: urwid.widget.TableLayout
+
+Tabs
+~~~~
+
+.. autoclass:: Tabs
+
+.. autoclass:: urwid.widget.tabs.TabsSymbols
+
 BoxAdapter
 ~~~~~~~~~~
 
@@ -207,6 +264,11 @@ Overlay
 ~~~~~~~
 
 .. autoclass:: Overlay
+
+OverlayStack
+~~~~~~~~~~~~
+
+.. autoclass:: OverlayStack
 
 Graphic Widget Classes
 ----------------------
@@ -225,6 +287,13 @@ ProgressBar
 ~~~~~~~~~~~
 
 .. autoclass:: ProgressBar
+
+Spinner
+~~~~~~~
+
+.. autoclass:: Spinner
+
+.. autoclass:: urwid.widget.spinner.SpinnerFrames
 
 BigText
 ~~~~~~~
@@ -251,5 +320,8 @@ ScrollBar
 ~~~~~~~~~
 
 .. autoclass:: ScrollBar
+
+.. autoclass:: urwid.widget.scrollable.ScrollbarSymbols
+   :undoc-members:
 
 .. currentmodule:: urwid

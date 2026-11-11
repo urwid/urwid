@@ -21,23 +21,44 @@
 from __future__ import annotations
 
 import errno
+import fcntl
+import gc
+import itertools
 import os
+import pty
+import selectors
+import signal
+import struct
 import sys
+import termios
 import typing
 import unittest
+import weakref
 from itertools import dropwhile
 from unittest import mock
 
 import urwid
+import urwid.ansi_parser
 import urwid.vterm
+from tests.util import NonExternalLoopScreen, external_loop, pipe_terminal
 from urwid.util import set_temporary_encoding
 
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
+
 IS_WINDOWS = sys.platform == "win32"
+IS_GRAALPY = sys.implementation.name == "graalpy"
+IS_CPYTHON = sys.implementation.name == "cpython"
 
 # Sentinel values for the mocked PTY.
 # They never collide with real fds/pids because every os.* call in vterm.py is intercepted while the test is running.
 _FAKE_MASTER_FD = 0xC0FFEE
 _FAKE_PID = 0xBEEF
+
+# The patches replace these process-wide, so calls for any other fd go to the originals.
+_REAL_OS_READ = os.read
+_REAL_OS_WRITE = os.write
+_REAL_OS_CLOSE = os.close
 
 
 def _pty_echo(data: bytes) -> bytes:
@@ -60,37 +81,187 @@ def _pty_echo(data: bytes) -> bytes:
 
 
 class _FakePTY:
-    """In-memory replacement for the spawned subprocess + PTY pair.
+    """In-memory replacement for the spawned subprocess + PTY pair, standing in for the ``os`` calls on both.
 
     ``to_widget`` is the byte stream the widget will read via ``os.read``
     - i.e. what a real subprocess would have written to its stdout.
     ``from_widget`` captures everything the widget writes to the PTY master.
+    The child exits on ``exit_signal`` or ``SIGKILL`` and stays a zombie until ``os.waitpid`` reaps it.
+    Closing the master hangs the child up, which counts as ``SIGHUP`` even when ``signals_allowed`` is off,
+    as for a setuid child.
+    With ``reaped_on_exit`` the child is reaped as soon as it exits, as when ``SIGCHLD`` is ignored.
     """
 
     def __init__(self) -> None:
+        self.reset()
+
+    def reset(self) -> None:
+        """Return to the state of a freshly spawned child with no output yet."""
         self.to_widget = bytearray()
         self.from_widget = bytearray()
         self.closed = False
+        self.exited = False
+        self.reaped = False
+        self.exit_signal = signal.SIGHUP
+        self.signals_allowed = True
+        self.reaped_on_exit = False
         self.signals_sent: list[int] = []
 
+    def is_readable(self) -> bool:
+        """Return whether ``os.read`` on the master would return without blocking."""
+        return bool(self.to_widget) or self.exited or self.closed
 
-class _FakeRealTerminal:
-    """Drop-in for ``urwid.display.RealTerminal`` that never touches a real tty."""
+    def read(self, fd: int, n: int) -> bytes:
+        """Stand in for ``os.read`` on a blocking master fd."""
+        if fd != _FAKE_MASTER_FD:
+            return _REAL_OS_READ(fd, n)
+        if self.closed or self.exited:
+            raise OSError(errno.EIO, os.strerror(errno.EIO))
+        if not self.to_widget:
+            msg = "os.read() on a PTY master with nothing to read would hang a real event loop"
+            raise AssertionError(msg)
+        chunk = bytes(self.to_widget[:n])
+        del self.to_widget[:n]
+        return chunk
 
-    def tty_signal_keys(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+    def write(self, fd: int, data: bytes) -> int:
+        """Stand in for ``os.write``, echoing what the master receives like a PTY in cooked mode."""
+        if fd != _FAKE_MASTER_FD:
+            return _REAL_OS_WRITE(fd, data)
+        self.from_widget.extend(data)
+        self.to_widget.extend(_pty_echo(data))
+        return len(data)
+
+    def close(self, fd: int) -> None:
+        """Stand in for ``os.close``."""
+        if fd == _FAKE_MASTER_FD:
+            self.closed = True
+            if self.exit_signal == signal.SIGHUP:
+                self.exited = True
+            return
+        _REAL_OS_CLOSE(fd)
+
+    def kill(self, pid: int, sig: int) -> None:
+        """Stand in for ``os.kill``, refusing any process other than the fake child."""
+        if pid != _FAKE_PID:
+            msg = f"os.kill({pid}, {sig}) outside the fake child"
+            raise AssertionError(msg)
+        if self.reaped:
+            raise ProcessLookupError(errno.ESRCH, os.strerror(errno.ESRCH))
+        if not self.signals_allowed:
+            raise PermissionError(errno.EPERM, os.strerror(errno.EPERM))
+        self.signals_sent.append(sig)
+        if sig in {self.exit_signal, signal.SIGKILL}:
+            self.exited = True
+            self.reaped = self.reaped_on_exit
+
+    def waitpid(self, pid: int, options: int) -> tuple[int, int]:
+        """Stand in for ``os.waitpid``, refusing a blocking wait that would never return."""
+        if pid != _FAKE_PID:
+            msg = f"os.waitpid({pid}) outside the fake child"
+            raise AssertionError(msg)
+        if self.reaped:
+            raise ChildProcessError(errno.ECHILD, os.strerror(errno.ECHILD))
+        if self.exited:
+            self.reaped = True
+            return _FAKE_PID, 0
+        if options & os.WNOHANG:
+            return 0, 0
+        msg = "blocking os.waitpid() on a child that is still running"
+        raise AssertionError(msg)
+
+
+class _FakeSelector:
+    """Stand-in for ``selectors.DefaultSelector`` that reports the fake master readable from the fake PTY state."""
+
+    def __init__(self, pty_state: _FakePTY) -> None:
+        self.pty_state = pty_state
+
+    def __enter__(self) -> typing.Self:
+        return self
+
+    def __exit__(self, *exc_info: object) -> None:
         return None
+
+    def register(self, fd: int, events: int) -> None:
+        """Accept the fake master fd only."""
+        if fd != _FAKE_MASTER_FD:
+            msg = f"selector registration of fd {fd} outside the fake PTY"
+            raise AssertionError(msg)
+
+    def select(self, timeout: float | None = None) -> list[tuple[None, int]]:
+        """Report the master readable when a read would not block, without waiting."""
+        return [(None, selectors.EVENT_READ)] if self.pty_state.is_readable() else []
+
+
+class _FakeTTY:
+    """Drop-in for ``urwid.display.RealTerminal`` keeping the tty signal keys in memory instead of on a real tty."""
+
+    def __init__(self) -> None:
+        self.signal_keys = (3, 28, 17, 19, 26)  # ^C, ^\, ^Q, ^S, ^Z
+
+    def tty_signal_keys(self, *keys: typing.Literal["undefined"] | int | None) -> tuple[int, ...]:
+        """Return the current signal keys and set the given ones, like the real method."""
+        old = self.signal_keys
+        if keys:
+            self.signal_keys = tuple(
+                0 if key == "undefined" else current if key is None else key
+                for key, current in zip(keys, old, strict=True)
+            )
+        return old
+
+
+class _FakeAtexit:
+    """Stand-in for :mod:`atexit` holding the registered hooks in a list instead of running them at exit."""
+
+    def __init__(self) -> None:
+        self.hooks: list[Callable[[], object]] = []
+
+    def register(self, func: Callable[[], object]) -> None:
+        """Record the hook."""
+        self.hooks.append(func)
+
+    def unregister(self, func: Callable[[], object]) -> None:
+        """Drop every hook equal to *func*."""
+        self.hooks = [hook for hook in self.hooks if hook != func]
+
+
+class _ChildExit(BaseException):
+    """Raised by the patched ``os._exit``, so the forked-child branch ends without ending the test process."""
+
+
+def _forbidden(name: str) -> Callable[..., typing.NoReturn]:
+    """Return a stand-in for a process-control call that no code under test may make while the child is mocked."""
+
+    def call(*args: object) -> typing.NoReturn:
+        msg = f"{name}{args} called while the child process is mocked"
+        raise AssertionError(msg)
+
+    return call
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
         self.pty = _FakePTY()
+        self.tty = _FakeTTY()
+        self.atexit = _FakeAtexit()
         self._install_patches()
 
+        # An event loop that never runs: the tests feed the pty themselves, so a render reads nothing.
+        self.event_loop = mock.Mock(spec=urwid.SelectEventLoop)
         # The command is never actually executed:
         # pty.fork is mocked to take the parent branch and os.execvpe is a no-op for safety.
-        self.term = urwid.Terminal(["/bin/false"])
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
+
+    def restart(self, width: int = 80, height: int = 24, soft: bool = False) -> None:
+        """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
+        self.term.terminate()
+        self.pty.reset()
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
+        self.resize(width, height, soft)
 
     def tearDown(self) -> None:
         if not self.term.terminated:
@@ -101,68 +272,21 @@ class TermTest(unittest.TestCase):
     # ------------------------------------------------------------------
 
     def _install_patches(self) -> None:
-        pty_state = self.pty
-        orig_os_read = os.read
-        orig_os_write = os.write
-        orig_os_close = os.close
-
-        def fake_os_read(fd: int, n: int) -> bytes:
-            if fd != _FAKE_MASTER_FD:
-                return orig_os_read(fd, n)
-            if pty_state.closed:
-                raise OSError(errno.EIO, os.strerror(errno.EIO))
-            if not pty_state.to_widget:
-                raise OSError(errno.EWOULDBLOCK, os.strerror(errno.EWOULDBLOCK))
-            chunk = bytes(pty_state.to_widget[:n])
-            del pty_state.to_widget[:n]
-            return chunk
-
-        def fake_os_write(fd: int, data: bytes) -> int:
-            if fd != _FAKE_MASTER_FD:
-                return orig_os_write(fd, data)
-            pty_state.from_widget.extend(data)
-            # Cooked-mode PTY echo:
-            # bytes written to the master come back on the read side so the canvas sees them as input.
-            pty_state.to_widget.extend(_pty_echo(data))
-            return len(data)
-
-        def fake_os_close(fd: int) -> None:
-            if fd == _FAKE_MASTER_FD:
-                pty_state.closed = True
-                return
-            orig_os_close(fd)
-
-        def fake_os_kill(pid: int, sig: int) -> None:
-            if pid == _FAKE_PID:
-                pty_state.signals_sent.append(sig)
-                pty_state.closed = True
-                return
-            os.kill(pid, sig)  # pragma: no cover - defensive only
-
-        def fake_os_waitpid(pid: int, options: int) -> tuple[int, int]:
-            # Pretend the child is already gone so terminate() exits the loop immediately
-            # instead of sleeping for every SIG* candidate.
-            if pid == _FAKE_PID:
-                return 0, 0
-            return os.waitpid(pid, options)  # pragma: no cover
-
-        def fake_wait_and_feed(self_: urwid.Terminal, timeout: float = 1.0) -> None:
-            # No real fd to select on - data is yet in pty_state.to_widget.
-            self_.feed()
-
         patches = [
             mock.patch("urwid.vterm.pty.fork", return_value=(_FAKE_PID, _FAKE_MASTER_FD)),
-            mock.patch("urwid.vterm.os.read", side_effect=fake_os_read),
-            mock.patch("urwid.vterm.os.write", side_effect=fake_os_write),
-            mock.patch("urwid.vterm.os.close", side_effect=fake_os_close),
-            mock.patch("urwid.vterm.os.kill", side_effect=fake_os_kill),
-            mock.patch("urwid.vterm.os.waitpid", side_effect=fake_os_waitpid),
+            mock.patch("urwid.vterm.os.read", side_effect=self.pty.read),
+            mock.patch("urwid.vterm.os.write", side_effect=self.pty.write),
+            mock.patch("urwid.vterm.os.close", side_effect=self.pty.close),
+            mock.patch("urwid.vterm.os.kill", side_effect=self.pty.kill),
+            mock.patch("urwid.vterm.os.waitpid", side_effect=self.pty.waitpid),
+            mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden("os.killpg")),
+            mock.patch("urwid.vterm.signal.pthread_kill", side_effect=_forbidden("signal.pthread_kill")),
             mock.patch("urwid.vterm.os.execvpe"),
             mock.patch("urwid.vterm.fcntl.fcntl", return_value=0),
             mock.patch("urwid.vterm.fcntl.ioctl", return_value=0),
-            mock.patch("urwid.vterm.atexit.register"),
-            mock.patch("urwid.vterm.RealTerminal", _FakeRealTerminal),
-            mock.patch.object(urwid.vterm.Terminal, "wait_and_feed", fake_wait_and_feed),
+            mock.patch("urwid.vterm.atexit", self.atexit),
+            mock.patch("urwid.vterm.RealTerminal", return_value=self.tty),
+            mock.patch("urwid.vterm.selectors.DefaultSelector", side_effect=lambda: _FakeSelector(self.pty)),
         ]
         for patch in patches:
             patch.start()
@@ -172,7 +296,7 @@ class TermTest(unittest.TestCase):
     # Signal helpers
     # ------------------------------------------------------------------
 
-    def connect_signal(self, signal: str):
+    def connect_signal(self, name: str):
         self._sig_response = None
 
         def _set_signal_response(widget: urwid.Widget, *args, **kwargs) -> None:
@@ -180,13 +304,13 @@ class TermTest(unittest.TestCase):
 
         self._set_signal_response = _set_signal_response
 
-        urwid.connect_signal(self.term, signal, self._set_signal_response)
+        urwid.connect_signal(self.term, name, self._set_signal_response)
 
     def expect_signal(self, *args, **kwargs):
         self.assertEqual(self._sig_response, (args, kwargs))
 
-    def disconnect_signal(self, signal: str) -> None:
-        urwid.disconnect_signal(self.term, signal, self._set_signal_response)
+    def disconnect_signal(self, name: str) -> None:
+        urwid.disconnect_signal(self.term, name, self._set_signal_response)
 
     def caught_beep(self, obj):
         self.beeped = True
@@ -210,6 +334,11 @@ class TermTest(unittest.TestCase):
         encoded = data.encode("iso8859-1").replace(rb"\e", b"\x1b")
         encoded = encoded.replace(b"\n", b"\r\n")
         self.pty.to_widget.extend(encoded)
+
+    def drain(self) -> None:
+        """Feed the widget until it has read everything written so far, one PTY read at a time."""
+        while self.pty.to_widget:
+            self.term.wait_and_feed()
 
     def flush(self) -> None:
         self.write(chr(0x7F))
@@ -345,6 +474,11 @@ class TermTest(unittest.TestCase):
         self.expect("12345a")
         self.write(r"98765\e[8D\e[1Jx")
         self.expect("   x5a98765")
+        # mode 1 erases through the cursor cell, also on a row below the first
+        self.write("\\ecabc\ndef\ngh\\e[2;2H\\e[1J")
+        self.expect("\n  f\ngh")
+        self.write("\\ecabc\ndef\\e[2;1H\\e[1J")
+        self.expect("\n ef")
 
     def test_scrolling_region_simple(self):
         # TODO(Aleksei): Issue #544
@@ -362,6 +496,17 @@ class TermTest(unittest.TestCase):
     def test_scrolling_twice(self):
         self.write(r"\e[?6h\e[10;20r\e[2;5rtest")
         self.expect("\ntest")
+
+    def test_wrap_below_scrolling_region(self) -> None:
+        """Wrapping on a row below the scrolling region moves down a row, or stays on the last one, without scrolling."""
+        for label, row, screen in (
+            ("below the region", 5, "1\n2\n3\n\n" + "a" * 80 + "\nb"),
+            ("on the last row", 24, "1\n2\n3" + "\n" * 21 + "b" + "a" * 79),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(f"1\n2\n3\\e[1;3r\\e[{row};1H" + "a" * 80 + "b")
+                self.expect(screen)
 
     def test_cursor_scrolling_region(self):
         # TODO(Aleksei): Issue #544
@@ -412,6 +557,22 @@ class TermTest(unittest.TestCase):
         self.write("\\e[?7h\\e[1;%dHt\b\b\t\ta" % self.term.width)
         self.expect(" " * (self.term.width - 1) + "a")
 
+    def test_cursor_motion_cancels_pending_wrap(self) -> None:
+        """A character written after moving the cursor off a pending wrap stays where the cursor was moved to."""
+        for label, move in (
+            ("CUP", r"\e[2;80H"),
+            ("CUD", r"\e[B"),
+            ("VPA", r"\e[2d"),
+            ("IND", r"\eD"),
+            ("VT", "\v"),
+            ("DECRC", r"\e8"),
+            ("SCORC", r"\e[u"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(r"\e[2;80H\e7\e[s\e[1;80HA" + move + "B")
+                self.expect(" " * 79 + "A\n" + " " * 79 + "B")
+
     def test_cursor_visibility(self):
         self.write(r"\e[?25linvisible")
         self.expect("invisible", focus=True)
@@ -438,6 +599,24 @@ class TermTest(unittest.TestCase):
             self.write("\\e%G\xe2\x80\x94")
             self.expect("?")
 
+    def test_encoding_unicode_ascii_dec_special(self):
+        """A DEC drawing character, or a fallback to one, from a UTF-8 child is one cell in the DEC character set."""
+        self.addCleanup(urwid.set_ascii_fallbacks, urwid.get_ascii_fallbacks())
+        urwid.set_ascii_fallbacks({"\N{EM DASH}": "-", "\N{FULL BLOCK}": "\N{BOX DRAWINGS LIGHT VERTICAL}"})
+        dec_q, dec_x = (None, "0", b"q"), (None, "0", b"x")
+        with set_temporary_encoding("ascii"):
+            # U+2500, U+2014 and U+2588 in UTF-8, then an ASCII "q" in the active character set
+            self.write("\\e%G\xe2\x94\x80\xe2\x80\x94\xe2\x96\x88q")
+            self.expect([[dec_q, (None, None, b"-"), dec_x, (None, None, b"q")]], raw=True)
+
+            # the IBM PC mapping does not remap a cell that is already in the DEC character set
+            self.write("\\ec\\e%G\\e[11m\xe2\x94\x80\\e[10m")
+            self.expect([[dec_q]], raw=True)
+
+            # insert mode stores the cell in the DEC character set as well
+            self.write("\\ec\\e%Ga\\e[4h\\e[D\xe2\x94\x80")
+            self.expect([[dec_q, (None, None, b"a")]], raw=True)
+
     def test_encoding_wrong_unicode(self):
         with set_temporary_encoding("utf-8"):
             self.write("\\e%G\xc0\x99")
@@ -453,7 +632,6 @@ class TermTest(unittest.TestCase):
 
     def test_ibmpc_mapping(self):
         with set_temporary_encoding("ascii"):
-
             self.write("\\e[11m\x18\\e[10m\x18")
             self.expect([[(None, "U", b"\x18")]], raw=True)
 
@@ -465,6 +643,11 @@ class TermTest(unittest.TestCase):
                 [[(None, "U", b"\xdb"), (None, "U", b"\x18"), (None, None, b"\xdb")]],
                 raw=True,
             )
+
+        with set_temporary_encoding("utf-8"):
+            # a display writes "U" cells unchanged, so the C0 CAN and the C1 OSC must not reach a UTF-8 host terminal
+            self.write("\\ec\\e%G\\e[11m\x18\xc2\x9d\xc3\xa9\\e[10m")
+            self.expect([[(None, "U", b"?"), (None, "U", b"?"), (None, "U", b"\xc3\xa9")]], raw=True)
 
     def test_set_title(self):
         self._the_title = None
@@ -479,6 +662,159 @@ class TermTest(unittest.TestCase):
         self.write("\\e];stupid title\\e\\\\e[0G\\e[2Ktest2")
         self.expect("test2")
         self.expect_signal("stupid title")
+        self._sig_response = None
+        self.write("\\e]0;bad \xff\007\\e[0G\\e[2Ktest3")
+        self.expect("test3")
+        self.assertIsNone(self._sig_response, "a title that is not valid UTF-8 is not set, as in tmux")
+        self.disconnect_signal("title")
+
+    def test_hyperlink(self):
+        """Link the text after an OSC 8 command through SGR changes, and end the link at an empty or invalid one."""
+        link = urwid.Hyperlink("https://urwid.org", id="a")
+        self.write(
+            "\\e]8;id=a;https://urwid.org\\e\\\\e[1mab\\e[0mc\\e]8;;\\e\\d"
+            "\\e]8;;https://b.org\007e\\e]8;;bad\x7fbad\x18f\\e]8;;https://b.org\007g\\e]8;;bad\xff\007h"
+        )
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"a"),
+                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"b"),
+                    (urwid.AttrSpec("default", "default", hyperlink=link), None, b"c"),
+                    (None, None, b"d"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"e"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"f"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"g"),
+                    (None, None, b"h"),
+                ]
+            ],
+            raw=True,
+        )
+
+    def test_hyperlink_not_in_blank_cells(self):
+        """Leave erased cells unlinked, and end the link at an over-long OSC 8 command."""
+        self.resize(4, 2)
+        self.write("\\e[31m\\e]8;;https://urwid.org\\e\\ab\\e[K\n\\e[2K")
+        self.write(f"\\e]8;;{'u' * urwid.vterm.MAX_OSC_LENGTH}\\e\\c")
+        self.drain()
+        blank = (urwid.AttrSpec("dark red", "default"), None, b" ")
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("dark red", "default", hyperlink="https://urwid.org"), None, b"a"),
+                    (urwid.AttrSpec("dark red", "default", hyperlink="https://urwid.org"), None, b"b"),
+                    *[blank] * 2,
+                ],
+                [(urwid.AttrSpec("dark red", "default"), None, b"c"), *[blank] * 3],
+            ],
+            raw=True,
+        )
+
+    def test_control_characters_in_osc_are_ignored(self):
+        """Neither execute a control character inside an OSC string nor take it into the body, as a terminal does."""
+        self.connect_signal("title")
+        self.write("a\\e]8;;https://ur\nwid.org\007L\\e]8;;\007\\e]0;t\r\x01i\b\ttle\007c")
+        self.expect(
+            [
+                [
+                    (None, None, b"a"),
+                    (urwid.AttrSpec("default", "default", hyperlink="https://urwid.org"), None, b"L"),
+                    (None, None, b"c"),
+                ]
+            ],
+            raw=True,
+        )
+        self.expect_signal("title")
+        self.disconnect_signal("title")
+
+    def test_osc_controls_after_escape_and_in_display_ctrl_mode(self):
+        """Execute a control after an ESC in an OSC string, keep DEL in it, and abort it at CAN with display_ctrl."""
+        self.connect_signal("title")
+        self.write("a\\e]0;t\\e\n\\b")
+        self.expect("a\nb")
+        self.expect_signal("t")
+        self.write("\\e]0;u\\e\t\\c")
+        self.expect("a\nb       c")
+        self.expect_signal("u")
+        self.write("\\e]0;v\\e\x01\\")
+        self.expect("a\nb       c")
+        self.expect_signal("v")
+        self.write("\\e]0;ti\x7ftle\007")
+        self.expect("a\nb       c")
+        self.expect_signal("ti\x7ftle")
+        self._sig_response = None
+        self.term.term.modes.display_ctrl = True
+        self.write("\\e]0;x\x18y\007")
+        self.read()
+        self.assertIsNone(self._sig_response)
+        self.disconnect_signal("title")
+
+    def test_other_controls_are_ignored(self):
+        """Ignore C0 control characters a terminal ignores, in text and inside an escape sequence, which continues."""
+        self.write("a\x01b\\e[3\x011mR\\e\x01[0mc")
+        red = urwid.AttrSpec("dark red", "default")
+        self.expect([[(None, None, b"a"), (None, None, b"b"), (red, None, b"R"), (None, None, b"c")]], raw=True)
+
+    def test_title_in_output_encoding(self):
+        """Decode a title from the encoding UTF-8 input is converted to, so it survives a non-UTF-8 locale."""
+        old_encoding = urwid.util.get_encoding()
+        urwid.set_encoding("latin-1")
+        self.addCleanup(urwid.set_encoding, old_encoding)
+        self.connect_signal("title")
+        self.write("\\e%G\\e]0;caf\xc3\xa9\007")
+        self.read()
+        self.expect_signal("caf\xe9")
+        self.disconnect_signal("title")
+
+    def test_c1_characters_in_title_are_kept(self):
+        """Keep U+0080 to U+009F inside an OSC string as part of the title, as tmux does with UTF-8 input."""
+        self.connect_signal("title")
+        self.write("\\e]0;t\xc2\x9c\xc2\x9ble\007")
+        self.read()
+        self.expect_signal("t\x9c\x9ble")
+        self.disconnect_signal("title")
+
+    def test_unterminated_osc_ends_at_escape(self):
+        """End an OSC string unapplied at an ESC not followed by a backslash, and parse what follows."""
+        self.connect_signal("title")
+        for chunks in (["a\\e]0;title\\e[31mred"], ["a\\e]0;title\\e", "[31mred"]):
+            with self.subTest(chunks=chunks):
+                for chunk in chunks:
+                    self.write(chunk)
+                    self.read()
+                self.expect(
+                    [
+                        [
+                            (None, None, b"a"),
+                            *[(urwid.AttrSpec("dark red", "default"), None, c) for c in (b"r", b"e", b"d")],
+                        ]
+                    ],
+                    raw=True,
+                )
+                self.assertIsNone(self._sig_response)
+                self.write("\\e[0m\\e[H\\e[2J")
+        self.disconnect_signal("title")
+
+    def test_osc_terminated_by_st_across_chunks(self):
+        """Apply an OSC title whose ESC backslash terminator is split across two reads."""
+        self.connect_signal("title")
+        self.write("\\e]0;title\\e")
+        self.read()
+        self.assertEqual(self.term.term.escbuf, b"0;title\x1b")
+        self.assertIsInstance(self.term.term.escbuf, bytes)
+        self.write("\\rest")
+        self.expect("rest")
+        self.expect_signal("title")
+        self.disconnect_signal("title")
+
+    def test_title_never_contains_escape(self):
+        """Take the title from the OSC string an ESC starts, not from the unterminated one before it."""
+        self.connect_signal("title")
+        self.write("\\e]0;ti\\e")
+        self.read()
+        self.write("]0;tle\007x")
+        self.expect("x")
+        self.expect_signal("tle")
         self.disconnect_signal("title")
 
     def test_set_leds(self):
@@ -512,6 +848,1113 @@ class TermTest(unittest.TestCase):
         self.term.keypress(None, "B")
         self.term.keypress(None, "end paste")
         self.expect(r"testB")
+
+    def test_synchronized_output_mode_on(self):
+        self.write(r"\e[?2026htest")
+        self.expect("test")
+        self.assertTrue(self.term.term_modes.synchronized_output)
+
+    def test_synchronized_output_mode_off(self):
+        self.write(r"\e[?2026ltest")
+        self.expect("test")
+        self.assertFalse(self.term.term_modes.synchronized_output)
+
+    def test_synchronized_output_block_spanning_chunks_drains_in_one_feed(self):
+        """A synchronized-output block bigger than one os.read() chunk (4096 bytes) is fully
+        drained within a single feed() call, so a render() in between never lands mid-block."""
+        self.write(r"\e[?2026h" + "a" * 5000 + r"\e[?2026l" + "B")
+
+        got = self.read()
+
+        self.assertFalse(self.term.term_modes.synchronized_output)
+        self.assertTrue(got.endswith(b"B"))
+
+    def test_control_sequences(self) -> None:
+        """Draw the screen each control sequence is specified to produce."""
+        for label, size, output, screen in (
+            ("ICH inserts blanks at the cursor", (80, 24), r"abcdef\e[1G\e[2@XY", "XYabcdef"),
+            ("DCH pulls the rest of the line left", (80, 24), r"abcdef\e[2G\e[2P", "adef"),
+            ("ECH blanks cells without moving the rest", (80, 24), r"abcdef\e[2G\e[3X", "a   ef"),
+            ("HTS sets a tabstop", (80, 24), "\\e[3g\\e[1;5H\\eH\\e[1G\ta", "    a"),
+            ("TBC 0 clears the tabstop at the cursor", (80, 24), "\\e[1;9H\\e[g\\e[1G\ta", " " * 16 + "a"),
+            ("TBC 3 clears every tabstop", (80, 24), "\\e[3g\\e[1G\ta", " " * 79 + "a"),
+            ("HT moves over cells without erasing them", (80, 24), "abc\r\tX", "abc     X"),
+            ("NEL and RI", (80, 24), r"a\eEb\eMc", "ac\nb"),
+            ("IND keeps the column", (80, 24), r"a\eDb", "a\n b"),
+            ("IRM inserts instead of replacing", (80, 24), r"abc\e[1G\e[4hX", "Xabc"),
+            ("LNM makes VT a newline", (80, 24), "\\e[20hab\x0bcd", "ab\ncd"),
+            ("DECALN fills the screen with E", (4, 2), r"\e#8", "EEEE\nEEEE"),
+            ("OSC palette set ends with its 7th hex digit", (80, 24), r"\e]Pabcdef0xy", "xy"),
+            ("OSC palette reset ends with its R", (80, 24), r"\e]Rxy", "xy"),
+            ("OSC palette set cut short by ST", (80, 24), r"\e]Pabcdef\e\xy", "xy"),
+            ("OSC palette set cut short by a CSI", (80, 24), r"ab\e]Pabcdef\e[1GX", "Xb"),
+            ("ESC inside a CSI sequence starts a new one", (80, 24), r"ab\e[3\e[1GX", "Xb"),
+            ("ESC inside a C1 CSI sequence starts a new one", (80, 24), "ab\x9b3\\e[1GX", "Xb"),
+            ("C1 CSI inside a CSI sequence starts a new one", (80, 24), "ab\\e[3\x9b1GX", "Xb"),
+            ("C1 CSI inside ESC ( starts a new sequence", (80, 24), "ab\\e(\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC starts a new sequence", (80, 24), "ab\\e\x9b1GX", "Xb"),
+            ("C1 CSI after an over-long CSI starts a new one", (80, 24), "ab\\e[" + "1;" * 300 + "\x9b1GX", "Xb"),
+            ("C1 CSI after an ESC inside an OSC string starts a CSI", (80, 24), "ab\\e]0;t\\e\x9b1GX", "Xb"),
+            ("C1 CSI is displayed in display control mode", (80, 24), "\\e[3hab\x9bc", "ab\x9bc"),
+            ("ESC after an ESC starts a new sequence", (80, 24), r"ab\e\e[1GX", "Xb"),
+            ("ESC inside ESC % starts a new sequence", (80, 24), r"ab\e%\e[1GX", "Xb"),
+            ("ESC inside ESC ( starts a new sequence", (4, 2), r"\e(\e#8", "EEEE\nEEEE"),
+            ("ESC inside ESC # starts a new sequence", (80, 24), r"ab\e#\ecd", "d"),
+            ("ESC # c is no terminal reset", (80, 24), r"ab\e#cd", "abd"),
+            ("ESC # M is no reverse line feed", (80, 24), "a\nb\\e#Mc", "a\nbc"),
+            ("DECSTBM with top below bottom is ignored", (80, 24), r"\e[5;2rtext", "text"),
+            ("CUU, CUF, CUD and CUB are relative", (80, 24), r"\e[3;3H\e[2A\e[2C\e[1B\e[3Dx", "\n x"),
+            ("CNL and CPL go to the first column", (80, 24), r"\e[2;5H\e[1Ea\e[2Fb", "b\n\na"),
+            ("VPA keeps the column", (80, 24), r"\e[3dx", "\n\nx"),
+            ("SCOSC and SCORC", (80, 24), r"ab\e[s\e[3;1Hcd\e[uXY", "abXY\n\ncd"),
+            ("UTF-8 and default charset selection", (80, 24), r"\e%G\e%@ab", "ab"),
+            ("IL pushes the bottom line off the region", (3, 3), "a\nb\nc\\e[H\\e[L", "\na\nb"),
+            ("IL below the scrolling region is ignored", (3, 4), "a\nb\nc\nd\\e[1;2r\\e[4;1H\\e[L", "a\nb\nc\nd"),
+            ("DL below the scrolling region is ignored", (3, 4), "a\nb\nc\nd\\e[1;2r\\e[4;1H\\e[M", "a\nb\nc\nd"),
+        ):
+            with self.subTest(label):
+                self.restart(*size)
+                self.write(output)
+                self.expect(screen)
+
+    def test_huge_counts_are_bounded_by_the_screen(self) -> None:
+        """Apply an ICH, DCH, IL or DL count larger than the screen at once instead of once per unit.
+
+        A count applied one unit at a time does not finish, and the project-wide pytest timeout fails the test.
+        """
+        count = 10**15
+        for label, size, output, screen in (
+            ("ICH", (80, 24), rf"abcdef\e[3G\e[{count}@x", "abx"),
+            ("DCH", (80, 24), rf"abcdef\e[3G\e[{count}Px", "abx"),
+            ("IL", (3, 3), f"a\nb\nc\\e[2;1H\\e[{count}Lx", "a\nx"),
+            ("DL", (3, 3), f"a\nb\nc\\e[2;1H\\e[{count}Mx", "a\nx"),
+        ):
+            with self.subTest(label):
+                self.restart(*size)
+                self.write(output)
+                self.expect(screen)
+
+    def test_overlong_sequences_are_bounded_and_skipped(self) -> None:
+        """Skip a CSI or OSC sequence over the shared length limit, without buffering more than the limit."""
+        csi_limit = urwid.ansi_parser.MAX_CSI_LENGTH
+        osc_limit = urwid.ansi_parser.MAX_OSC_LENGTH
+        for label, output in (
+            ("CSI over the limit is not applied", "a\\e[" + "1;" * csi_limit + "31mb"),
+            ("OSC over the limit ends at BEL", "a\\e]0;" + "A" * osc_limit + "\ab"),
+            ("OSC over the limit ends at ST", "a\\e]0;" + "A" * osc_limit + "\\e\\b"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.connect_signal("title")
+                self.write(output)
+                self.drain()
+                self.expect([[(None, None, b"a"), (None, None, b"b")]], raw=True)
+                self.assertIsNone(self._sig_response)
+                self.disconnect_signal("title")
+        for label, output, limit in (
+            ("unterminated CSI", "\\e[" + "1;" * 10 * csi_limit, csi_limit),
+            ("unterminated OSC", "\\e]0;" + "A" * 10 * osc_limit, osc_limit),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(output)
+                self.drain()
+                self.assertLessEqual(len(self.term.term.escbuf), limit)
+        # an ESC other than ST ends an over-long OSC and starts the next sequence
+        self.restart()
+        self.write("\\e]0;" + "A" * osc_limit + "\\e[31mx")
+        self.drain()
+        self.expect([[(urwid.AttrSpec("dark red", "default"), None, b"x")]], raw=True)
+
+    def test_insert_and_remove_lines_at_a_given_row(self) -> None:
+        """Insert or remove lines at the row passed in, not at the cursor or the top of the scrolling region."""
+        for label, edit, screen in (
+            ("insert", lambda canvas: canvas.insert_lines(row=1), "a\n\nb"),
+            ("remove", lambda canvas: canvas.remove_lines(row=1), "a\nc"),
+        ):
+            with self.subTest(label):
+                self.restart(3, 3)
+                self.write("a\nb\nc")
+                self.read()
+                edit(self.term.term)
+                self.expect(screen)
+
+    def test_responses(self) -> None:
+        """Answer each terminal query on the PTY."""
+        for label, query, answer in (
+            ("CPR reports the 1-based cursor position", r"\e[3;5H\e[6n", b"\x1b[3;5R"),
+            ("DSR reports the terminal OK", r"\e[5n", b"\x1b[0n"),
+            ("DA reports a VT102", r"\e[c", b"\x1b[?6c"),
+            ("DA with a private marker is not answered", r"\e[?c", b""),
+            ("DECID reports a VT102", r"\eZ", b"\x1b[?6c"),
+            ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
+            ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?6c"),
+        ):
+            with self.subTest(label):
+                self.restart()
+                self.write(query)
+                self.read()
+                self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_save_restore_cursor_esc_keeps_attributes(self) -> None:
+        """Restore the attributes saved by DECSC or mode 1048 together with the cursor position."""
+        red = urwid.AttrSpec("dark red", "default")
+        for save, restore in ((r"\e7", r"\e8"), (r"\e[?1048h", r"\e[?1048l")):
+            with self.subTest(save=save):
+                self.restart()
+                self.write(rf"\e[31mab{save}\e[0m\e[2;1Hcd{restore}e")
+                self.expect(
+                    [
+                        [(red, None, b"a"), (red, None, b"b"), (red, None, b"e")],
+                        [(None, None, b"c"), (None, None, b"d")],
+                    ],
+                    raw=True,
+                )
+
+    def test_charset_designation(self) -> None:
+        """Draw with the DEC special graphics set while it is designated as G0."""
+        self.write(r"\e(0q\e(Bq")
+        self.expect([[(None, "0", b"q"), (None, None, b"q")]], raw=True)
+
+    def test_scrollback(self) -> None:
+        """Scroll the view through the scrollback buffer within its bounds."""
+        self.resize(10, 3)
+        self.write("1\n2\n3\n4\n5")
+        self.expect("3\n4\n5")
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.expect("1\n2\n3")
+        self.term.term.scroll_buffer(up=False, lines=1)
+        self.expect("2\n3\n4")
+        self.term.term.scroll_buffer(up=True, lines=1000)
+        self.assertEqual(self.term.term.scrolling_up, len(self.term.term.scrollback_buffer))
+        self.term.term.scroll_buffer(up=False, lines=1000)
+        self.assertEqual(self.term.term.scrolling_up, 0)
+        self.expect("3\n4\n5")
+        self.term.term.scroll_buffer(up=True)
+        self.term.term.scroll_buffer(reset=True)
+        self.expect("3\n4\n5")
+        # lines pushed into the scrollback at the old width are shown at the current one
+        for width in (6, 14):
+            with self.subTest(width=width):
+                self.resize(width, 3)
+                self.term.term.scroll_buffer(up=True, lines=2)
+                self.assertEqual({len(line) for line in self.term.term.content()}, {width})
+                self.term.term.scroll_buffer(reset=True)
+        # the padding of those lines does not take the attributes in effect now
+        self.write(r"\e[41m")
+        self.read()
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.assertEqual({cell for line in self.term.term.content() for cell in line[10:]}, {(None, None, b" ")})
+        self.term.term.scroll_buffer(reset=True)
+        self.resize(14, 5)
+        self.assertEqual({cell for line in self.term.term.term[:2] for cell in line[10:]}, {(None, None, b" ")})
+
+    def test_sgr_colors(self) -> None:
+        """Set the attributes of 16-colour, 256-colour and true-colour SGR sequences, brightening bold colours.
+
+        A colour value of 0 is not a reset: the other attributes stay.
+        """
+        self.write(r"\e[1;4;7;31;42ma\e[0mb\e[38;5;100mc\e[0;38;2;1;2;3;48;2;4;5;6md\e[0;1;44m\e[38;5;0me")
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("light red,bold,underline,standout", "dark green"), None, b"a"),
+                    (None, None, b"b"),
+                    (urwid.AttrSpec("h100", "default", 256), None, b"c"),
+                    (urwid.AttrSpec("#010203", "#040506", 2**24), None, b"d"),
+                    (urwid.AttrSpec("h0,bold", "h4", 256), None, b"e"),
+                ]
+            ],
+            raw=True,
+        )
+
+    def test_sgr_italics_and_strikethrough(self) -> None:
+        self.write(r"\e[3;9ma\e[23mb\e[29mc")
+        self.expect(
+            [
+                [
+                    (urwid.AttrSpec("default,italics,strikethrough", "default"), None, b"a"),
+                    (urwid.AttrSpec("default,strikethrough", "default"), None, b"b"),
+                    (None, None, b"c"),
+                ]
+            ],
+            raw=True,
+        )
+
+    def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
+        """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[!pg\e[>ch")
+        self.expect("abcdefgh")
+        self.assertIsNone(self.term.term.attrspec)
+        self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_private_form_of_a_command_without_one_is_ignored(self) -> None:
+        """Ignore CSI ? 4 m (XTQMODKEYS), CSI ? s and CSI ? r (XTSAVE, XTRESTORE)."""
+        self.write(r"a\e[s\e[2;1Hbc\e[?4md\e[?1se\e[?1r\e[uf")
+        self.expect("af\nbcde")
+        self.assertIsNone(self.term.term.attrspec)
+        self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_cursor_coords_follow_resize(self) -> None:
+        """Report the cursor position constrained to the size being rendered."""
+        self.write("abc")
+        self.read()
+        self.assertEqual(self.term.get_cursor_coords((80, 24)), (3, 0))
+        self.assertEqual(self.term.get_cursor_coords((2, 24)), (1, 0))
+
+    def test_resize_keeps_the_cursor_on_its_line(self) -> None:
+        """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
+        self.write("a\nb\nc\\e[2;2H")
+        for size, char in (((70, 24), "X"), ((70, 23), "Y"), ((80, 24), "Z")):
+            self.read()
+            self.resize(*size)
+            self.write(char)
+        self.expect("a\nbXYZ\nc")
+        self.write(r"\e[2;2H\e7")
+        self.read()
+        self.resize(80, 23)
+        self.write(r"\e8W")
+        self.expect("bWYZ\nc")
+        self.write(r"\e[1;3H\e7")
+        self.read()
+        self.resize(80, 24)
+        self.write(r"\e8V")
+        self.expect("a\nbWVZ\nc")
+
+    def test_resize_adds_cells_without_attributes(self) -> None:
+        """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
+        self.write(r"\e[41m")
+        self.read()
+        self.resize(90, 26)
+        added = {cell for line in self.term.term.term[:24] for cell in line[80:]}
+        added |= {cell for line in self.term.term.term[24:] for cell in line}
+        self.assertEqual(added, {(None, None, b" ")})
+
+    def test_resize_sets_the_pty_size_and_emits_resize(self) -> None:
+        """Pass each new size to the pty and emit "resize" once per change."""
+        on_resize = mock.Mock()
+        urwid.connect_signal(self.term, "resize", on_resize)
+        with mock.patch("urwid.vterm.fcntl.ioctl", return_value=0) as ioctl:
+            for size in ((100, 30), (100, 30), (60, 10)):
+                self.resize(*size)
+        sizes = [(100, 30), (60, 10)]
+        self.assertEqual(on_resize.call_args_list, [mock.call(self.term, size) for size in sizes])
+        self.assertEqual(
+            ioctl.call_args_list,
+            [
+                mock.call(_FAKE_MASTER_FD, termios.TIOCSWINSZ, struct.pack("HHHH", height, width, 0, 0))
+                for width, height in sizes
+            ],
+        )
+
+    def test_alternate_screen(self) -> None:
+        """Show the alternate screen while modes 47, 1047 and 1049 are set, keeping the main screen and its scrollback.
+
+        The alternate screen keeps no scrollback. 1049 saves and restores the cursor, and clears the alternate screen
+        on entering it. 1047 clears it on leaving it. 47 keeps it.
+        """
+        for mode, main, alternate in (
+            ("47", "2   Z\n3\n4", "\n Y"),
+            ("1047", "2   Z\n3\n4", ""),
+            ("1049", "2\n3\n4Z", "\n Y"),
+        ):
+            with self.subTest(mode=mode):
+                self.restart(10, 3)
+                self.write("1\n2\n3\n4")
+                self.read()
+                # the alternate screen is shown from its first line on
+                self.term.term.scroll_buffer(up=True)
+                self.write(rf"\e[?{mode}hX")
+                self.expect("\n\n X")
+                self.assertTrue(self.term.term_modes.alternate_screen)
+                self.write("\\e[2J\\e[3;2HY\n")
+                self.expect("\n Y")
+                self.term.term.scroll_buffer(up=True)
+                self.expect("\n Y")
+                self.write(rf"\e[1;5H\e[?{mode}lZ")
+                self.expect(main)
+                self.assertFalse(self.term.term_modes.alternate_screen)
+                self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+                self.term.term.scroll_buffer(up=True)
+                self.expect("1\n" + main.rsplit("\n", 1)[0])
+                self.term.term.scroll_buffer(reset=True)
+                self.write(r"\e[?47h")
+                self.expect(alternate)
+
+    def test_new_canvas_starts_on_the_main_screen(self) -> None:
+        """Start a canvas on its main screen, with a scrollback, also for modes left on the alternate screen."""
+        self.write(r"\e[?1049h")
+        self.read()
+        canvas = urwid.TermCanvas(10, 3, self.term)
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        # the alternate screen keeps no scrollback
+        self.assertGreater(canvas.scrollback_buffer.maxlen, 0)
+
+    def test_reverse_video_covers_both_screens(self) -> None:
+        """Reverse the cells of the screen not shown as well, so DECSCNM shows on whichever screen is switched to."""
+        self.write(r"a\e[?47hb\e[?5h\e[?47l")
+        self.read()
+        self.assertIn("standout", self.term.term.term[0][0][0].foreground)
+        self.write(r"\e[?5l\e[?47h")
+        self.read()
+        self.assertNotIn("standout", self.term.term.term[0][1][0].foreground)
+
+    def test_alternate_screen_resize(self) -> None:
+        """Resize the main screen with the alternate one shown, restoring the cursor saved by 1049 to its line."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\\e[?1049hA")
+        self.read()
+        self.resize(12, 2)
+        self.expect("\n A")
+        self.write(r"\e[?1049lZ")
+        self.expect("2\n3Z")
+        self.assertEqual({len(line) for line in self.term.term.content()}, {12})
+        self.write(r"\e[?1049hB")
+        self.read()
+        self.resize(10, 3)
+        self.write(r"\e[?1049lY")
+        self.expect("1\n2\n3ZY")
+
+    def test_reset_shows_the_main_screen(self) -> None:
+        """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen and the flags."""
+        self.restart(10, 3)
+        self.write("1\n2\n3\n4\\e[>1u\\e[?1049h\\e[>8ualt\\ec")
+        self.expect("")
+        self.assertFalse(self.term.term_modes.alternate_screen)
+        self.assertEqual(self.term.term_modes.keyboard_flags, [])
+        self.assertEqual(len(self.term.term.scrollback_buffer), 1)
+        self.write(r"\e[?47h\e[?u")
+        self.expect("")
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?0u")
+
+    def test_keyboard_flags(self) -> None:
+        """Answer the kitty keyboard flags query after pushing, popping and setting the flags, on each screen."""
+        # none of these sequences is the restore of the cursor that CSI u is without a private marker
+        self.write(r"a\e[s\e[2;1Hb\e[>1u\e[=1u\e[<uc")
+        self.expect("a\nbc")
+        steps = (
+            ("", 0),
+            (r"\e[>1u", 1),
+            (r"\e[>5u", 5),
+            (r"\e[<u", 1),
+            (r"\e[=4;2u", 5),
+            (r"\e[=1;3u", 4),
+            (r"\e[=8u", 8),
+            (r"\e[=1;4u", 8),
+            (r"\e[>1:2u\e[>1;2:3u", 8),
+            (r"\e[<5u", 0),
+            (r"\e[=3u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>255u", 31),
+            (r"\e[>u", 0),
+            ("".join(rf"\e[>{flags}u" for flags in range(1, 11)) + r"\e[<7u", 3),
+            (r"\e[<u", 0),
+            (r"\e[>2u\e[?47h", 0),
+            (r"\e[>4u", 4),
+            (r"\e[?47l", 2),
+            (r"\e[?47h", 4),
+        )
+        for written, flags in steps:
+            with self.subTest(written=written):
+                self.pty.from_widget.clear()
+                self.write(rf"{written}\e[?u")
+                self.read()
+                self.assertEqual(bytes(self.pty.from_widget), f"\x1b[?{flags}u".encode())
+
+    def test_wait_and_feed_without_output_returns(self) -> None:
+        """Return after the timeout without reading when the child wrote nothing."""
+        self.term.wait_and_feed(0)
+        self.expect("")
+
+    def test_synchronized_output_block_left_open_returns(self) -> None:
+        """Return from feed() once the PTY is drained, even inside an unfinished synchronized-output block."""
+        self.write(r"\e[?2026hpartial")
+        self.expect("partial")
+        self.assertTrue(self.term.term_modes.synchronized_output)
+
+    def test_ctrl_keys_send_control_characters(self) -> None:
+        r"""Send the C0 control character for ctrl with a letter or one of @[\]^_."""
+        for key, sent in (
+            ("ctrl b", b"\x02"),
+            ("ctrl B", b"\x02"),
+            ("ctrl @", b"\x00"),
+            ("ctrl [", b"\x1b"),
+            ("ctrl _", b"\x1f"),
+        ):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_keypress_before_first_render(self) -> None:
+        """Start the child at the keypress size only for a key sent to it before the first render."""
+        for key, handled, sent in (
+            ("a", None, b"a"),
+            ("page up", None, None),
+            ("page down", None, None),
+            ("up", "up", None),
+            ("shift up", "shift up", None),
+        ):
+            with self.subTest(key=key):
+                self.restart(40, 10, soft=True)
+                self.assertEqual(self.term.keypress(self.termsize, key), handled)
+                if sent is None:
+                    self.assertIsNone(self.term.term)
+                    self.assertIsNone(self.term.pid)
+                else:
+                    self.assertEqual((self.term.term.width, self.term.term.height), self.termsize)
+                    self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_ctrl_keys_without_control_character_are_not_handled(self) -> None:
+        """Return a ctrl key that has no C0 control character unhandled, writing nothing to the child."""
+        for key in (
+            "ctrl f5",
+            "ctrl up",
+            "ctrl 5",
+            "ctrl \N{LATIN SMALL LETTER LONG S}",
+            "ctrl \N{LATIN SMALL LETTER DOTLESS I}",
+        ):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_meta_keys_send_escape_prefix(self) -> None:
+        """Send ESC before the key's character for a meta key, which urwid's own input parser reads back as that key."""
+        for key, sent in (
+            ("meta x", b"\x1bx"),
+            ("meta X", b"\x1bX"),
+            ("meta ctrl x", b"\x1b\x18"),
+            ("meta enter", b"\x1b\r"),
+            ("meta backspace", b"\x1b\x7f"),
+            ("meta tab", b"\x1b\t"),
+        ):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+                self.assertEqual(urwid.display.escape.process_keyqueue(list(sent), more_available=False), ([key], []))
+
+    def test_keyboard_protocol_keys_are_sent_as_a_legacy_terminal_sends_them(self) -> None:
+        """Send a key only the keyboard protocols report apart as the legacy key it collapses to."""
+        for key, sent in (
+            ("ctrl enter", b"\r"),
+            ("shift enter", b"\r"),
+            ("shift ctrl enter", b"\r"),
+            ("meta ctrl enter", b"\x1b\r"),
+            ("ctrl tab", b"\t"),
+            ("shift ctrl tab", b"\x1b\t"),
+            ("shift backspace", b"\x7f"),
+            ("ctrl backspace", b"\x08"),
+            ("ctrl esc", b"\x1b"),
+            ("ctrl  ", b"\x00"),
+            ("ctrl /", b"\x1f"),
+            ("ctrl ?", b"\x7f"),
+            ("ctrl ~", b"\x1e"),
+            ("shift ctrl /", b"\x1f"),
+        ):
+            with self.subTest(key=key):
+                self.pty.from_widget.clear()
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, key))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_meta_enter_in_lf_nl_mode(self) -> None:
+        """Send ESC CR LF for meta enter while LF/NL mode is set, as for enter."""
+        self.write(r"\e[20h")
+        self.drain()
+        self.assertTrue(self.term.term_modes.lfnl)
+        self.term.keygrab = True
+        self.assertIsNone(self.term.keypress(self.termsize, "meta enter"))
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b\r\n")
+
+    def test_meta_keys_without_single_character_are_not_handled(self) -> None:
+        """Return a meta key sent as an escape sequence, or without a control character, unhandled."""
+        for key in ("meta up", "meta f5", "meta ctrl up", "meta ctrl 5", "meta shift tab"):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_shift_tab_sends_linux_back_tab(self) -> None:
+        """Send shift tab as ESC TAB, the back-tab key of the linux terminal type the child is given."""
+        self.term.keygrab = True
+        self.assertIsNone(self.term.keypress(self.termsize, "shift tab"))
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b\t")
+
+    def test_key_names_without_byte_form_are_not_handled(self) -> None:
+        """Return a key name the linux terminal type has no byte form for unhandled instead of writing it as text."""
+        for key in (
+            "shift up",
+            "shift f1",
+            "shift meta ctrl f12",
+            "meta shift up",
+            "f21",
+            "focus in",
+            "<130>",
+            "super enter",
+            "super a",
+            "super \u0436",
+            "hyper \u00e9",
+        ):
+            with self.subTest(key=key):
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), key)
+                self.assertEqual(bytes(self.pty.from_widget), b"")
+
+    def test_unhandled_key_keeps_the_key_grab_state(self) -> None:
+        """A key the child has no byte form for neither starts nor ends a key grab."""
+        for grabbed in (False, True):
+            for key in ("focus in", "ctrl up", "meta up"):
+                with self.subTest(grabbed=grabbed, key=key):
+                    self.term.keygrab = grabbed
+                    self.assertEqual(self.term.keypress(self.termsize, key), key)
+                    self.assertEqual(self.term.keygrab, grabbed)
+
+    def test_unhandled_key_keeps_the_scrollback_view(self) -> None:
+        """A key the child has no byte form for leaves the view where it was scrolled to."""
+        self.resize(10, 3)
+        self.write("1\n2\n3\n4\n5")
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.term.keygrab = True
+        self.assertEqual(self.term.keypress(self.termsize, "shift up"), "shift up")
+        self.assertEqual(self.term.term.scrolling_up, 2)
+
+    def test_function_keys_above_f12_send_linux_sequences(self) -> None:
+        """Send F13-F20 as the linux terminal type defines them, which urwid's own input parser reads back."""
+        for sent in (
+            b"\x1b[25~",
+            b"\x1b[26~",
+            b"\x1b[28~",
+            b"\x1b[29~",
+            b"\x1b[31~",
+            b"\x1b[32~",
+            b"\x1b[33~",
+            b"\x1b[34~",
+        ):
+            with self.subTest(sent=sent):
+                self.pty.from_widget.clear()
+                keys, rest = urwid.display.escape.process_keyqueue(list(sent), more_available=False)
+                self.assertEqual(rest, [])
+                self.term.keygrab = True
+                self.assertIsNone(self.term.keypress(self.termsize, keys[0]))
+                self.assertEqual(bytes(self.pty.from_widget), sent)
+
+    def test_keys_in_the_kitty_keyboard_protocol(self) -> None:
+        """Send keys as the kitty keyboard protocol reports them under the flags the child set.
+
+        urwid's own input parser reads each report back as the same key.
+        """
+        for flags, key, sent in (
+            # disambiguate escape codes
+            (1, "a", b"a"),
+            (1, "A", b"A"),
+            (1, "ctrl b", b"\x1b[98;5u"),
+            (1, "ctrl A", b"\x1b[97;6u"),
+            (1, "ctrl c", b"\x1b[99;5u"),
+            (1, "meta a", b"\x1b[97;3u"),
+            (1, "meta ctrl super hyper x", b"\x1b[120;31u"),
+            (1, "ctrl  ", b"\x1b[32;5u"),
+            (1, "shift 1", b"\x1b[49;2u"),
+            (1, "ctrl 5", b"\x1b[53;5u"),
+            (1, "ctrl \u0436", b"\x1b[1078;5u"),
+            (1, "ctrl \u0416", b"\x1b[1078;6u"),
+            (1, "esc", b"\x1b[27u"),
+            (1, "enter", b"\r"),
+            (1, "tab", b"\t"),
+            (1, "backspace", b"\x7f"),
+            (1, "shift enter", b"\x1b[13;2u"),
+            (1, "shift tab", b"\x1b[9;2u"),
+            (1, "ctrl backspace", b"\x1b[127;5u"),
+            (1, "up", b"\x1b[A"),
+            (1, "ctrl up", b"\x1b[1;5A"),
+            (1, "f1", b"\x1b[P"),
+            (1, "shift f4", b"\x1b[1;2S"),
+            (1, "f3", b"\x1b[13~"),
+            (1, "shift f3", b"\x1b[13;2~"),
+            (1, "page up", b"\x1b[5~"),
+            (1, "f12", b"\x1b[24~"),
+            (1, "f13", b"\x1b[57376u"),
+            (1, "media play", b"\x1b[57428u"),
+            (1, "left shift", None),
+            (1, "caps lock", None),
+            (1, "focus in", None),
+            (1, "<130>", None),
+            # event types are accepted, and only presses are reported
+            (3, "ctrl b", b"\x1b[98;5u"),
+            # report alternate keys
+            (5, "ctrl A", b"\x1b[97:65;6u"),
+            (5, "meta A", b"\x1b[97:65;4u"),
+            (5, "ctrl b", b"\x1b[98;5u"),
+            (5, "A", b"A"),
+            # report all keys as escape codes
+            (8, "a", b"\x1b[97u"),
+            (8, "A", b"\x1b[97;2u"),
+            (8, "1", b"\x1b[49u"),
+            (8, "enter", b"\x1b[13u"),
+            (8, "left shift", b"\x1b[57441u"),
+            (8, "shift caps lock", b"\x1b[57358;2u"),
+            # and associated text
+            (28, "a", b"\x1b[97;;97u"),
+            (28, "A", b"\x1b[97:65;2;65u"),
+            (28, "ctrl b", b"\x1b[98;5u"),
+            # event types or alternate keys alone change no key press
+            (2, "ctrl b", b"\x02"),
+            (4, "f1", b"\x1b[[A"),
+            (20, "meta a", b"\x1ba"),
+        ):
+            with self.subTest(flags=flags, key=key):
+                self.restart()
+                self.write(rf"\e[={flags}u")
+                self.read()
+                self.term.keygrab = True
+                self.assertEqual(self.term.keypress(self.termsize, key), None if sent else key)
+                self.assertEqual(bytes(self.pty.from_widget), sent or b"")
+                if sent is not None:
+                    keys, rest = urwid.display.escape.process_keyqueue(
+                        list(sent), more_available=False, keyboard_protocol="kitty"
+                    )
+                    self.assertEqual((keys, rest), ([key], []))
+
+    def test_kitty_keyboard_protocol_keeps_cursor_key_and_lf_nl_modes_apart(self) -> None:
+        """Send the cursor keys in their CSI form also in cursor key mode, and enter as CR LF in LF/NL mode."""
+        self.write(r"\e[?1h\e[20h\e[=1u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("up", "enter"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[A\r\n")
+
+    def test_pasted_text_is_sent_as_text_under_the_kitty_keyboard_protocol(self) -> None:
+        """Send the keys between "begin paste" and "end paste" as typed, also when all keys are escape codes."""
+        self.write(r"\e[?2004h\e[=8u")
+        self.read()
+        self.term.keygrab = True
+        for key in ("begin paste", "a", "enter", "end paste", "a"):
+            self.term.keypress(self.termsize, key)
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[200~a\r\x1b[201~\x1b[97u")
+
+    def mouse(self, *events: tuple[str, int, int, int]) -> tuple[list[bool | None], bytes]:
+        """Send mouse *events* as ``(event, button, col, row)``, and return what each returned and what the child got."""
+        self.pty.from_widget.clear()
+        handled = [self.term.mouse_event(self.termsize, *event, focus=True) for event in events]
+        return handled, bytes(self.pty.from_widget)
+
+    def test_mouse_events_reported_as_xterm_does(self) -> None:
+        """Report mouse events to a child that tracks the mouse, in its tracking mode and encoding."""
+        for modes, events, sent in (
+            ("1000", [("mouse press", 1, 4, 2), ("mouse release", 0, 4, 2)], b"\x1b[M %#\x1b[M#%#"),
+            (
+                "1000",
+                [
+                    ("mouse press", 1, 0, 0),
+                    ("mouse press", 3, 0, 0),
+                    ("mouse release", 0, 0, 0),
+                    ("mouse release", 0, 0, 0),
+                ],
+                b'\x1b[M !!\x1b[M"!!\x1b[M#!!\x1b[M#!!',
+            ),
+            ("1000", [("mouse press", 1, 0, 0), ("shift mouse release", 0, 0, 0)], b"\x1b[M !!\x1b[M'!!"),
+            ("1000", [("shift ctrl mouse press", 3, 0, 0)], b"\x1b[M6!!"),
+            ("1002", [("mouse drag", 0, 0, 0)], b""),
+            (
+                "1002",
+                [("mouse press", 1, 0, 0), ("mouse press", 4, 0, 0), ("mouse drag", 0, 1, 0)],
+                b'\x1b[M !!\x1b[M`!!\x1b[M@"!',
+            ),
+            (
+                "1000;1006",
+                [("mouse press", 1, 0, 0), ("mouse release", 0, 0, 0), ("mouse release", 0, 0, 0)],
+                b"\x1b[<0;1;1M\x1b[<0;1;1m",
+            ),
+            ("1000;1006", [("mouse press", 9, 0, 0), ("mouse release", 9, 0, 0)], b"\x1b[<129;1;1M\x1b[<129;1;1m"),
+            ("1000", [("meta mouse press", 8, 0, 0)], b"\x1b[M\xa8!!"),
+            ("1000", [("mouse press", 5, 0, 0), ("mouse release", 5, 0, 0)], b"\x1b[Ma!!"),
+            ("1000", [("mouse press", 1, 0, 0), ("mouse drag", 1, 1, 0)], b"\x1b[M !!"),
+            ("1002", [("mouse press", 1, 0, 0), ("mouse drag", 1, 1, 0)], b'\x1b[M !!\x1b[M@"!'),
+            ("1003", [("mouse press", 2, 0, 0), ("mouse drag", 0, 1, 0)], b'\x1b[M!!!\x1b[MA"!'),
+            ("1000", [("mouse press", 1, 222, 300)], b"\x1b[M \xff\x00"),
+            ("1000;1005", [("mouse press", 1, 94, 300)], b"\x1b[M \x7f\xc5\x8d"),
+            ("1000;1005", [("mouse press", 1, 3000, 0)], b"\x1b[M \x00!"),
+            ("1000;1006", [("mouse press", 2, 4, 2), ("mouse release", 2, 4, 2)], b"\x1b[<1;5;3M\x1b[<1;5;3m"),
+            ("1000;1006", [("mouse press", 3, 4, 2), ("mouse release", 0, 4, 2)], b"\x1b[<2;5;3M\x1b[<2;5;3m"),
+            ("1000;1006", [("mouse release", 0, 0, 0)], b""),
+            ("1000;1006", [("mouse press", 4, 300, 0)], b"\x1b[<64;301;1M"),
+            ("1002;1006", [("ctrl mouse drag", 1, 0, 0)], b"\x1b[<48;1;1M"),
+            ("1000;1005;1006", [("mouse press", 1, 0, 0)], b"\x1b[<0;1;1M"),
+            ("9", [("shift ctrl mouse press", 1, 4, 2)], b"\x1b[M %#"),
+            (
+                "9",
+                [
+                    ("mouse press", 3, 0, 0),
+                    ("mouse drag", 3, 1, 0),
+                    ("mouse release", 0, 1, 0),
+                    ("mouse press", 4, 0, 0),
+                ],
+                b'\x1b[M"!!',
+            ),
+            ("9;1006", [("meta mouse press", 2, 4, 2), ("mouse release", 2, 4, 2)], b"\x1b[<1;5;3M"),
+        ):
+            with self.subTest(modes=modes, events=events):
+                self.restart()
+                self.write(f"\\e[?{modes}h")
+                self.drain()
+                self.assertEqual(self.mouse(*events), ([True] * len(events), sent))
+
+    def test_mouse_reports_read_back_as_the_same_event(self) -> None:
+        """Encode a mouse event so that urwid's own input parser reads the event back."""
+        for modes in ("1002", "1002;1006"):
+            for event in (
+                ("mouse press", 1, 4, 2),
+                ("shift meta ctrl mouse press", 3, 0, 0),
+                ("mouse press", 7, 0, 0),
+                ("mouse press", 11, 0, 0),
+                ("mouse drag", 2, 9, 9),
+            ):
+                with self.subTest(modes=modes, event=event):
+                    self.restart()
+                    self.write(f"\\e[?{modes}h")
+                    self.drain()
+                    _, sent = self.mouse(event)
+                    keys, rest = urwid.display.escape.process_keyqueue(list(sent), more_available=False)
+                    self.assertEqual((keys, rest), ([event], []))
+
+    def test_mouse_events_not_handled(self) -> None:
+        """Leave a mouse event to the parent when the child does not track the mouse or cannot receive it."""
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+        self.write("\\e[?1000h")
+        self.drain()
+        for event in ("double mouse click", "mouse click"):
+            with self.subTest(event=event):
+                self.assertEqual(self.mouse((event, 1, 0, 0)), ([False], b""))
+
+        # highlight tracking is not implemented, so its press would wait for a CSI T answer that never comes
+        self.write("\\e[?1001h")
+        self.drain()
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+        self.write("\\e[?1000h")
+        self.drain()
+
+        self.resize(10, 3)
+        self.write("1\n2\n3\n4\n5")
+        self.drain()
+        self.term.term.scroll_buffer(up=True, lines=1)
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+        self.term.term.scroll_buffer(reset=True)
+        self.term.terminate()
+        self.assertEqual(self.mouse(("mouse press", 1, 0, 0)), ([False], b""))
+
+    def test_mouse_modes_set_and_reset(self) -> None:
+        """Track the mouse modes as xterm does: one tracking mode and one encoding at a time."""
+        mode = urwid.display.escape.PrivateMode
+        for sequence, tracking, encoding in (
+            ("\\e[?1000h\\e[?1003h", mode.MOUSE_ANY_EVENT_TRACKING, None),
+            ("\\e[?1003h\\e[?1000l", None, None),
+            ("\\e[?1006h\\e[?1005h", None, mode.MOUSE_UTF8_MODE),
+            ("\\e[?1006h\\e[?1005l", None, mode.MOUSE_SGR_MODE),
+            ("\\e[?1006h\\e[?1006l", None, None),
+            ("\\e[?1002;1006h\\ec", None, None),
+            ("\\e[?1000h\\e[?1001h", mode.MOUSE_HIGHLIGHT_TRACKING, None),
+            ("\\e[?1003h\\e[?1001l", None, None),
+            ("\\e[?1006h\\e[?1015h", None, mode.MOUSE_SGR_MODE),
+            ("\\e[?1015h", None, None),
+            ("\\e[?9h", mode.MOUSE_X10, None),
+            ("\\e[?9h\\e[?9l", None, None),
+            ("\\e[?1000h\\e[?9h", mode.MOUSE_REPORTING, None),
+            ("\\e[?1003h\\e[?9h\\e[?9l", mode.MOUSE_ANY_EVENT_TRACKING, None),
+            ("\\e[?9h\\e[?1002h", mode.MOUSE_BUTTON_TRACKING, None),
+            ("\\e[?9h\\e[?1000l", None, None),
+            ("\\e[?1002;1006h\\e[?12;1036;1039h", mode.MOUSE_BUTTON_TRACKING, mode.MOUSE_SGR_MODE),
+        ):
+            with self.subTest(sequence=sequence):
+                self.restart()
+                self.write(sequence)
+                self.drain()
+                modes = self.term.term_modes
+                self.assertEqual((modes.mouse_tracking, modes.mouse_encoding), (tracking, encoding))
+
+    def test_focus_restores_tty_signal_keys(self) -> None:
+        """Restore the tty signal keys seen before the first focused render, on unfocus and on terminate."""
+        original = self.tty.signal_keys
+        self.read(focus=True)
+        self.read(focus=True)
+        self.assertEqual(self.tty.signal_keys, (0, 0, 0, 0, 0))
+        self.read(focus=False)
+        self.assertEqual(self.tty.signal_keys, original)
+        self.read(focus=True)
+        self.term.terminate()
+        self.assertEqual(self.tty.signal_keys, original)
+
+    def test_terminate_reaps_the_child(self) -> None:
+        """Send the next signal only while the child runs, and never wait for it without a timeout.
+
+        A child that may not be signalled gets only the hangup from closing the master.
+        """
+        for label, child, sent, reaped in (
+            (
+                "child exiting on SIGTERM",
+                {"exit_signal": signal.SIGTERM},
+                [signal.SIGHUP, signal.SIGCONT, signal.SIGINT, signal.SIGTERM],
+                True,
+            ),
+            ("child reaped by someone else already", {"reaped": True}, [], True),
+            ("child reaped as soon as it exits", {"reaped_on_exit": True}, [signal.SIGHUP], True),
+            ("setuid child exiting on the hangup", {"signals_allowed": False}, [], True),
+            (
+                "setuid child ignoring the hangup",
+                {"signals_allowed": False, "exit_signal": signal.SIGTERM},
+                [],
+                False,
+            ),
+        ):
+            with self.subTest(label):
+                self.restart()
+                for name, value in child.items():
+                    setattr(self.pty, name, value)
+                with (
+                    mock.patch("urwid.vterm.time.monotonic", side_effect=itertools.count(step=0.05)),
+                    mock.patch("urwid.vterm.time.sleep"),
+                ):
+                    self.term.terminate()
+                self.assertEqual(self.pty.signals_sent, sent)
+                self.assertEqual(self.pty.reaped, reaped)
+                self.assertTrue(self.pty.closed)
+
+    def test_terminate_removes_the_watch_by_its_handle(self) -> None:
+        """Remove the pty watch by the handle watch_file() returned, once.
+
+        On tornado and trio that handle is not the descriptor.
+        """
+        loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        loop.watch_file.return_value = handle = object()
+        term = urwid.Terminal(["/bin/false"], main_loop=loop)
+        term.render(self.termsize)
+        loop.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        term.terminate()
+        term.remove_watch()
+        loop.remove_watch_file.assert_called_once_with(handle)
+        self.assertTrue(self.pty.closed)
+
+    def _default_terminal(self) -> urwid.Terminal:
+        """Return a terminal built without ``main_loop=``, terminated at the end of the test."""
+        term = urwid.Terminal(["/bin/false"])
+        self.addCleanup(term.terminate)
+        return term
+
+    def _loop_on(self, widget: urwid.Widget | None = None) -> tuple[urwid.MainLoop, mock.Mock]:
+        """Return a main loop over a mock screen and a mock event loop, with that event loop.
+
+        The main loop's own watch, for :meth:`~urwid.MainLoop.call_from_thread`, gets a handle of its own,
+        so :meth:`_pty_watches` and :meth:`_pty_removals` can leave it out.
+        """
+        event_loop = mock.create_autospec(urwid.EventLoop, instance=True)
+        event_loop.watch_file.side_effect = lambda fd, _callback: mock.DEFAULT if fd == _FAKE_MASTER_FD else object()
+        return external_loop(widget, event_loop), event_loop
+
+    @staticmethod
+    def _pty_watches(event_loop: mock.Mock) -> list[mock._Call]:
+        """Return the calls of :meth:`_loop_on`'s *event_loop* that watched the pty."""
+        return [call for call in event_loop.watch_file.call_args_list if call.args[0] == _FAKE_MASTER_FD]
+
+    @staticmethod
+    def _pty_removals(event_loop: mock.Mock) -> list[mock._Call]:
+        """Return the calls of :meth:`_loop_on`'s *event_loop* that removed a watch of the pty."""
+        handle = event_loop.watch_file.return_value
+        return [call for call in event_loop.remove_watch_file.call_args_list if call.args[0] is handle]
+
+    def test_default_reads_the_pty_on_render_while_no_loop_runs(self) -> None:
+        """Without ``main_loop=`` and with no loop running, each render shows the child's output."""
+        term = self._default_terminal()
+        lines = []
+        for chunk in (b"one", b" two"):
+            self.pty.to_widget.extend(chunk)
+            lines.append(term.render(self.termsize).text[0].rstrip())
+
+        self.assertEqual([b"one", b"one two"], lines)
+        self.assertIsNone(term.main_loop)
+        self.assertIsNone(term._watch_loop)
+        typing.cast("mock.Mock", urwid.vterm.fcntl.fcntl).assert_not_called()
+
+    def test_default_watches_on_the_running_loop(self) -> None:
+        """Without ``main_loop=``, a render under a started loop watches the pty there, until terminate()."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on()
+        event_loop.watch_file.return_value = handle = object()
+        with loop.start():
+            term.render(self.termsize)
+            fd, callback = event_loop.watch_file.call_args.args
+            self.pty.to_widget.extend(b"x")
+            callback()
+            term.terminate()
+
+        self.assertEqual(_FAKE_MASTER_FD, fd)
+        self.assertEqual(b"x", term.term.text[0].rstrip())
+        self.assertEqual([mock.call(handle)], self._pty_removals(event_loop))
+
+    def test_default_follows_the_loop_it_is_rendered_under(self) -> None:
+        """Without ``main_loop=``, the watch moves to each loop rendered under, and is dropped outside them."""
+        term = self._default_terminal()
+        loop_a, event_loop_a = self._loop_on()
+        loop_b, event_loop_b = self._loop_on()
+        event_loop_a.watch_file.return_value = handle_a = object()
+
+        term.render(self.termsize)
+        event_loop_a.watch_file.assert_not_called()
+        with loop_a.start():
+            term.render(self.termsize)
+        self.assertEqual(1, len(self._pty_watches(event_loop_a)))
+        self.pty.to_widget.extend(b"read")
+        self.assertEqual(b"read", term.render(self.termsize).text[0].rstrip())
+        self.assertEqual([mock.call(handle_a)], self._pty_removals(event_loop_a))
+        with loop_b.start():
+            term.render(self.termsize)
+        self.assertEqual(1, len(self._pty_watches(event_loop_b)))
+        self.assertEqual(1, len(self._pty_watches(event_loop_a)))
+
+    def test_default_watches_again_on_each_start_of_one_loop(self) -> None:
+        """A loop started a second time gets a new watch, and the one of its first start is removed."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on()
+        for _ in range(2):
+            with loop.start():
+                term.render(self.termsize)
+                term.render(self.termsize)
+
+        self.assertEqual(2, len(self._pty_watches(event_loop)))
+        self.assertEqual(1, len(self._pty_removals(event_loop)))
+
+    def test_explicit_main_loop_never_moves_the_watch(self) -> None:
+        """With ``main_loop=``, the watch set at the spawn stays there, whichever loop the terminal is rendered under."""
+        explicit = mock.create_autospec(urwid.EventLoop, instance=True)
+        term = urwid.Terminal(["/bin/false"], main_loop=explicit)
+        self.addCleanup(term.terminate)
+        loop_a, event_loop_a = self._loop_on()
+
+        term.render(self.termsize)
+        with loop_a.start():
+            term.render(self.termsize)
+        term.render(self.termsize)
+
+        explicit.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        explicit.remove_watch_file.assert_not_called()
+        self.assertEqual([], self._pty_watches(event_loop_a))
+
+    def test_draw_by_hand_before_start_reads_the_pty(self) -> None:
+        """Draws of a loop that is not started read the pty on each render; starting it sets the watch once."""
+        term = self._default_terminal()
+        loop, event_loop = self._loop_on(term)
+        for chunk in (b"a", b"b", b"c"):
+            self.pty.to_widget.extend(chunk)
+            loop.draw_screen()
+            self.assertEqual(b"", bytes(self.pty.to_widget))
+        event_loop.watch_file.assert_not_called()
+
+        with loop.start():
+            loop.draw_screen()
+            loop.draw_screen()
+        self.assertEqual(1, len(self._pty_watches(event_loop)))
+
+    def test_explicit_main_loop_watches_from_a_key_before_any_render(self) -> None:
+        """With ``main_loop=``, a key pressed before the first render spawns the child and sets the watch once."""
+        explicit = mock.create_autospec(urwid.EventLoop, instance=True)
+        term = urwid.Terminal(["/bin/false"], main_loop=explicit)
+        self.addCleanup(term.terminate)
+
+        term.keypress(self.termsize, "x")
+        explicit.watch_file.assert_called_once_with(_FAKE_MASTER_FD, term.feed)
+        term.render(self.termsize)
+        explicit.watch_file.assert_called_once()
+
+    def test_terminate_before_spawn(self) -> None:
+        """Mark a terminal that never spawned its child as terminated without touching any process."""
+        term = urwid.Terminal(["/bin/false"])
+        term.terminate()
+        self.assertTrue(term.terminated)
+        self.assertEqual(self.pty.signals_sent, [])
+
+    @unittest.skipUnless(IS_CPYTHON, "relies on reference counting to free the terminal at once")
+    def test_terminated_terminal_is_freed(self) -> None:
+        """Drop the at-exit hook on terminate, so it no longer keeps the terminal alive."""
+        term = urwid.Terminal(["/bin/false"])
+        term.render(self.termsize)
+        self.assertIn(term.terminate, self.atexit.hooks)
+        term.terminate()
+        ref = weakref.ref(term)
+        del term
+        gc.collect()
+        self.assertIsNone(ref())
+
+    def test_failed_exec_exits_the_child(self) -> None:
+        """Exit the forked child with status 127 when the command cannot be run, instead of returning to the caller."""
+        term = urwid.Terminal(["/nonexistent"])
+        with (
+            mock.patch("urwid.vterm.pty.fork", return_value=(0, _FAKE_MASTER_FD)),
+            mock.patch("urwid.vterm.os.execvpe", side_effect=FileNotFoundError(errno.ENOENT, "No such file")),
+            mock.patch("urwid.vterm.os._exit", side_effect=_ChildExit) as exit_,
+            mock.patch("urwid.vterm.os.write") as write,
+            self.assertRaises(_ChildExit),
+        ):
+            term.spawn()
+        exit_.assert_called_once_with(127)
+        write.assert_called_once_with(2, b"/nonexistent: No such file\r\n")
+
+
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
+class TermWindowSizeTest(unittest.TestCase):
+    """Check the size on a real pty pair, with no child process started."""
+
+    def test_child_side_reads_the_rendered_size(self) -> None:
+        """Report each rendered size on the child's side of the pty.
+
+        A child process reads the size there after the kernel sends it SIGWINCH.
+        """
+        master, child_side = pty.openpty()
+        self.addCleanup(os.close, child_side)
+        self.addCleanup(os.close, master)
+        term = urwid.Terminal(["/bin/false"])
+        term.master = master
+        with (
+            mock.patch.object(term, "spawn"),
+            mock.patch("urwid.vterm.os.kill", side_effect=_forbidden("os.kill")),
+            mock.patch("urwid.vterm.os.killpg", side_effect=_forbidden("os.killpg")),
+        ):
+            for width, height in ((80, 24), (132, 43)):
+                term.render((width, height))
+                rows, cols, _xpixel, _ypixel = struct.unpack(
+                    "HHHH",
+                    fcntl.ioctl(child_side, termios.TIOCGWINSZ, bytes(8)),
+                )
+                self.assertEqual((cols, rows), (width, height))
+
+
+@unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
+@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
+class TermScreenEventLoopTest(unittest.TestCase):
+    """A terminal on the loop of a screen without event loop support, reading a real pipe."""
+
+    def test_pty_is_watched_by_the_screen_driven_loop(self) -> None:
+        """Child output reaches the canvas through the watch, and render() does not read the pty meanwhile."""
+        with pipe_terminal() as (term, child_out):
+
+            def check(loop: urwid.MainLoop, attempt: int) -> None:
+                if b"hi" in term.term.text[0] or attempt > 100:
+                    raise urwid.ExitMainLoop
+                loop.set_alarm_in(0.02, check, attempt + 1)
+
+            loop = urwid.MainLoop(term, screen=NonExternalLoopScreen((20, 3)), handle_mouse=False)
+            loop.set_alarm_in(0, lambda *_args: os.write(child_out, b"hi"))
+            loop.set_alarm_in(0, check, 0)
+            with mock.patch.object(term, "wait_and_feed", wraps=term.wait_and_feed) as wait_and_feed:
+                loop.run()
+
+        self.assertEqual(b"hi", term.term.text[0].rstrip())
+        wait_and_feed.assert_not_called()
 
 
 if __name__ == "__main__":

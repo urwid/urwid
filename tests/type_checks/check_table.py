@@ -1,0 +1,54 @@
+"""Type checker fixture for the Table widget and its layout.
+
+mypy and Pyrefly check this module; nothing in it runs.
+"""
+
+from __future__ import annotations
+
+import typing
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable, Hashable, Mapping
+    from typing import assert_type
+
+    import urwid
+    from urwid.widget import TableLayout
+
+    def table(edit: urwid.Edit) -> None:
+        """Accept widgets and text markup as cells, and type the rows as TableRow."""
+        columns = [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", width=6, align=urwid.RIGHT),
+            urwid.TableColumn(("bold", "Note"), width=(urwid.WEIGHT, 1), wrap=urwid.ELLIPSIS),
+            urwid.TableColumn("Kind", attr={None: "kind", "bold": "kind bold"}),
+        ]
+        widget = urwid.Table(columns, [["a", "1", edit], [("attr", "b")]], max_rows=4)
+        widget.body.append(["c", "2"])
+        widget.set_focus(1)
+        widget.set_focus(1, coming_from="above")
+
+        def by_row(row: urwid.TableRow) -> dict[str, str] | None:
+            return None if row.attr is None else {"a": "b"}
+
+        marked = urwid.Table(columns, unfocused_focus_attr_func=by_row)
+        marked.unfocused_focus_attr_func = by_row
+        marked.unfocused_focus_attr_func = None
+        assert_type(
+            urwid.Table(columns).unfocused_focus_attr_func,
+            Callable[[urwid.TableRow], Hashable | dict[typing.Any, typing.Any] | Mapping[typing.Any, Hashable] | None]
+            | None,
+        )
+        assert_type(widget.body[0], urwid.TableRow)
+        assert_type(widget.focus, urwid.TableRow | None)
+        assert_type(widget.body[0].data, typing.Any)
+        assert_type(widget.layout.widths(20), tuple[int, ...])
+        footed = urwid.Table(columns, footer=["total", "3"], footer_attr="foot", header_drop=2, footer_drop=1)
+        assert_type(footed.footer, urwid.TableRow | None)
+        footed.footer = footed.layout.row(["3 rows"], span=True)
+        footed.footer = None
+
+    def layout() -> None:
+        """Build rows without a table."""
+        shared = TableLayout([urwid.TableColumn(), urwid.TableColumn(align=urwid.RIGHT)])
+        assert_type(shared.row(["label", "value"], data=1), urwid.TableRow)
+        urwid.Pile([shared.row(["a", "b"])])

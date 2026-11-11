@@ -19,21 +19,26 @@
 # Re-licensed from gpl-3.0 with author permission.
 # Permission comment link: https://github.com/markqvist/NomadNet/pull/46#issuecomment-1892712616
 
+"""Scrollable and ScrollBar: decorations that scroll a box widget."""
+
 from __future__ import annotations
 
 import contextlib
 import dataclasses
 import enum
+import math
 import typing
 
-from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, Sizing
+from urwid.util import is_mouse_press
+
+from .constants import BOX_SYMBOLS, SHADE_SYMBOLS, MouseButton, Sizing
+from .listbox import ListBox
 from .widget import AbstractBoxWidget, AbstractWidget
 from .widget_decoration import WidgetDecoration, WidgetError
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Iterator
-
-    from typing_extensions import Literal
+    from collections.abc import Hashable, Iterator
+    from typing import Literal
 
     from urwid import Canvas, CompositeCanvas
 
@@ -51,7 +56,7 @@ __all__ = (
 )
 
 
-WrappedScrollableWidget = typing.TypeVar("WrappedScrollableWidget", bound="SupportsScroll")
+WrappedScrollableWidget = typing.TypeVar("WrappedScrollableWidget", bound="AbstractBoxWidget")
 WrappedScrollWidget = typing.TypeVar("WrappedScrollWidget", bound="AbstractFlowWidget | AbstractFixedWidget")
 
 
@@ -68,12 +73,77 @@ SCROLL_TO_TOP = "to top"
 SCROLL_TO_END = "to end"
 
 # Scrollbar positions
-SCROLLBAR_LEFT = "left"
-SCROLLBAR_RIGHT = "right"
+SCROLLBAR_LEFT: typing.Final = "left"
+SCROLLBAR_RIGHT: typing.Final = "right"
+
+# Mouse wheel buttons, vertical and horizontal: they send no release, so they never start or follow a drag.
+_WHEEL_BUTTONS: typing.Final = frozenset(
+    (
+        MouseButton.WHEEL_UP,
+        MouseButton.WHEEL_DOWN,
+        MouseButton.WHEEL_LEFT,
+        MouseButton.WHEEL_RIGHT,
+    )
+)
 
 
-class ScrollbarSymbols(str, enum.Enum):
-    """Common symbols suitable for scrollbar."""
+class ScrollbarSymbols(enum.StrEnum):
+    """Common symbols suitable for scrollbar.
+
+    The thumb and trough symbols come first, and the ``ARROW_*`` pairs for the end markers follow them.
+
+    Only these members are also drawn on terminals without UTF-8, where the others are drawn as ``?``:
+
+    - ASCII: :attr:`ARROW_ASCII_UP` and :attr:`ARROW_ASCII_DOWN`.
+    - DEC special graphics: :attr:`MEDIUM_SHADE`, :attr:`DRAWING_LIGHT`, :attr:`BLACK_VERTICAL_RECTANGLE`
+      and :attr:`MIDDLE_DOT`.
+
+    .. note::
+        The default terminal fonts of GNOME, KDE Plasma and Xfce on Ubuntu, Fedora and Arch,
+        and of Windows Terminal, show every member.
+        The default fonts of the Linux virtual console and of the classic Windows console
+        show these non-ASCII members:
+
+        =============================  ======  ======  ======  ====  =======
+        Member                         Symbol  Ubuntu  Fedora  Arch  Windows
+        =============================  ======  ======  ======  ====  =======
+        ``FULL_BLOCK``                 █       yes     yes     yes   yes
+        ``DARK_SHADE``                 ▓       no      yes     yes   yes
+        ``MEDIUM_SHADE``               ▒       yes     yes     yes   yes
+        ``LITE_SHADE``                 ░       yes     yes     yes   yes
+        ``DRAWING_LIGHT``              │       yes     yes     yes   yes
+        ``DRAWING_LIGHT_2_DASH``       ╎       yes     no      no    no
+        ``DRAWING_LIGHT_3_DASH``       ┆       yes     no      no    no
+        ``DRAWING_LIGHT_4_DASH``       ┊       yes     no      no    no
+        ``DRAWING_HEAVY``              ┃       yes     yes     no    no
+        ``DRAWING_HEAVY_2_DASH``       ╏       yes     no      no    no
+        ``DRAWING_HEAVY_3_DASH``       ┇       yes     no      no    no
+        ``DRAWING_HEAVY_4_DASH``       ┋       yes     no      no    no
+        ``DRAWING_DOUBLE``             ║       yes     yes     yes   yes
+        ``BLACK_VERTICAL_RECTANGLE``   ▮       yes     no      no    no
+        ``MIDDLE_DOT``                 ·       yes     yes     yes   yes
+        ``WHITE_VERTICAL_RECTANGLE``   ▯       no      no      no    no
+        ``BLACK_SQUARE``               ■       yes     yes     yes   yes
+        ``WHITE_SQUARE``               □       no      no      no    yes
+        ``BULLET``                     •       yes     yes     yes   yes
+        ``BLACK_CIRCLE``               ●       yes     yes     no    yes
+        ``WHITE_CIRCLE``               ○       no      no      yes   yes
+        ``ARROW_TRIANGLE_UP``          ▲       yes     no      yes   yes
+        ``ARROW_TRIANGLE_DOWN``        ▼       yes     no      yes   yes
+        ``ARROW_SMALL_TRIANGLE_UP``    ▴       yes     no      no    no
+        ``ARROW_SMALL_TRIANGLE_DOWN``  ▾       yes     no      no    no
+        ``ARROW_WHITE_TRIANGLE_UP``    △       no      no      no    no
+        ``ARROW_WHITE_TRIANGLE_DOWN``  ▽       no      no      no    no
+        ``ARROW_UP``                   ↑       yes     yes     yes   yes
+        ``ARROW_DOWN``                 ↓       yes     yes     yes   yes
+        ``ARROW_HEAVY_UP``             ⬆       no      no      no    no
+        ``ARROW_HEAVY_DOWN``           ⬇       no      no      no    no
+        ``ARROW_MODIFIER_UP``          U+02C4  no      no      no    no
+        ``ARROW_MODIFIER_DOWN``        U+02C5  no      no      no    no
+        =============================  ======  ======  ======  ====  =======
+
+        A member marked ``no`` needs a console font with wider coverage.
+    """
 
     FULL_BLOCK = SHADE_SYMBOLS.FULL_BLOCK
     DARK_SHADE = SHADE_SYMBOLS.DARK_SHADE
@@ -92,28 +162,63 @@ class ScrollbarSymbols(str, enum.Enum):
 
     DRAWING_DOUBLE = BOX_SYMBOLS.DOUBLE.VERTICAL
 
+    BLACK_VERTICAL_RECTANGLE = "▮"
+    MIDDLE_DOT = "·"
+    WHITE_VERTICAL_RECTANGLE = "▯"
+    BLACK_SQUARE = "■"
+    WHITE_SQUARE = "□"
+    BULLET = "•"
+    BLACK_CIRCLE = "●"
+    WHITE_CIRCLE = "○"
+
+    ARROW_TRIANGLE_UP = "▲"
+    ARROW_TRIANGLE_DOWN = "▼"
+    ARROW_SMALL_TRIANGLE_UP = "▴"
+    ARROW_SMALL_TRIANGLE_DOWN = "▾"
+    ARROW_WHITE_TRIANGLE_UP = "△"
+    ARROW_WHITE_TRIANGLE_DOWN = "▽"
+    ARROW_UP = "↑"
+    ARROW_DOWN = "↓"
+    ARROW_HEAVY_UP = "⬆"
+    ARROW_HEAVY_DOWN = "⬇"
+    ARROW_MODIFIER_UP = "˄"  # noqa: RUF001
+    ARROW_MODIFIER_DOWN = "˅"
+    ARROW_ASCII_UP = "^"
+    ARROW_ASCII_DOWN = "v"
+
 
 @typing.runtime_checkable
 class SupportsScroll(AbstractBoxWidget, typing.Protocol):
     """Scroll specific methods."""
 
-    def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_scrollpos(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the index of the first visible row."""
+        ...
 
-    def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int: ...
+    def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
+        """Return the total number of rows the widget can render."""
+        ...
 
 
 @typing.runtime_checkable
 class SupportsRelativeScroll(AbstractBoxWidget, typing.Protocol):
     """Relative scroll-specific methods."""
 
-    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool: ...
+    def require_relative_scroll(self, size: tuple[int, int], focus: bool = False) -> bool:
+        """Return whether the widget should be scrolled using relative position rather than absolute rows."""
+        ...
 
-    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_first_visible_pos(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the index of the first visible item."""
+        ...
 
-    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int: ...
+    def get_visible_amount(self, size: tuple[int, int], focus: bool = False) -> int:
+        """Return the number of items currently visible."""
+        ...
 
 
 def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
+    """Yield `w` and each of its `original_widget` ancestors, stopping at the first cycle."""
     visited = {w}
     yield w
     while (w := getattr(w, "original_widget", w)) not in visited:
@@ -122,14 +227,27 @@ def orig_iter(w: AbstractWidget) -> Iterator[AbstractWidget]:
 
 
 class Scrollable(WidgetDecoration[WrappedScrollWidget]):
+    """Box widget decoration that makes a fixed or flow widget vertically scrollable."""
+
     def sizing(self) -> frozenset[Sizing]:
+        """Return that this widget is always a box widget."""
         return frozenset((Sizing.BOX,))
 
     def selectable(self) -> bool:
-        return True
+        """Return whether the widget accepts the input focus.
 
-    def __init__(self, widget: WrappedScrollWidget, force_forward_keypress: bool = False) -> None:
-        """Box widget that makes a fixed or flow widget vertically scrollable
+        Always ``True``, unless :attr:`delegate_selectable` is set: then what the wrapped widget returns.
+        """
+        return not self.delegate_selectable or self._original_widget.selectable()
+
+    def __init__(
+        self,
+        widget: WrappedScrollWidget,
+        force_forward_keypress: bool = False,
+        *,
+        delegate_selectable: bool = False,
+    ) -> None:
+        """Box widget that makes a fixed or flow widget vertically scrollable.
 
         .. note::
             Focusable widgets are handled, including switching focus, but possibly not intuitively,
@@ -140,6 +258,11 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
 
             It would be better to scroll until the next focusable widget is in sight first.
             But for that to work we must somehow obtain a list of focusable rows in the original canvas.
+
+        :param widget: fixed or flow widget to scroll.
+        :param force_forward_keypress: pass every key to *widget* first, even when it shows no cursor.
+        :param delegate_selectable: take the input focus only when *widget* is selectable.
+            A widget that is not, such as a :class:`Text`, then cannot be scrolled by keys.
 
         :raises ValueError: *widget* is neither a FIXED nor a FLOW widget.
         """
@@ -152,6 +275,8 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         self._old_cursor_coords: tuple[int, int] | None = None
         self._rows_max_cached = 0
         self.force_forward_keypress = force_forward_keypress
+        # whether selectable() asks the wrapped widget instead of reporting True
+        self.delegate_selectable = delegate_selectable
         super().__init__(widget)
 
     def render(
@@ -159,6 +284,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> CompositeCanvas:
+        """Render the wrapped widget, trimmed to the current scroll position."""
         from urwid import canvas
 
         maxcol, maxrow = size
@@ -226,7 +352,9 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             canv.pad_trim_top_bottom(0, fill_height)
 
         if canv_cols <= maxcol and canv_rows <= maxrow:
-            # Canvas is small enough to fit without trimming
+            # Canvas is small enough to fit without trimming.
+            # A scroll key pressed meanwhile had nothing to scroll, so it must not move the view once the canvas grows.
+            self._scroll_action = None
             return canv
 
         self._adjust_trim_top(canv, size)
@@ -283,6 +411,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         size: tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
+        """Handle scrolling keys, forwarding everything else to the wrapped widget when appropriate."""
         from urwid.command_map import Command
 
         # Maybe offer key to original widget
@@ -331,6 +460,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
+        """Forward a mouse event to the wrapped widget, adjusting the row for the current scroll position."""
         ow = self._original_widget
         if hasattr(ow, "mouse_event"):
             ow_size = self._get_original_widget_size(size)
@@ -347,7 +477,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return False
 
     def _adjust_trim_top(self, canv: Canvas, size: tuple[int, int]) -> None:
-        """Adjust self._trim_top according to self._scroll_action"""
+        """Adjust self._trim_top according to self._scroll_action."""
         action = self._scroll_action
         self._scroll_action = None
 
@@ -363,18 +493,15 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             self._trim_top = 0  # Reset scroll position
             return
 
-        def ensure_bounds(new_trim_top: int) -> int:
-            return max(0, min(canv_rows - maxrow, new_trim_top))
-
         if action == SCROLL_LINE_UP:
-            self._trim_top = ensure_bounds(trim_top - 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top - 1))
         elif action == SCROLL_LINE_DOWN:
-            self._trim_top = ensure_bounds(trim_top + 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top + 1))
 
         elif action == SCROLL_PAGE_UP:
-            self._trim_top = ensure_bounds(trim_top - maxrow + 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top - maxrow + 1))
         elif action == SCROLL_PAGE_DOWN:
-            self._trim_top = ensure_bounds(trim_top + maxrow - 1)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top + maxrow - 1))
 
         elif action == SCROLL_TO_TOP:
             self._trim_top = 0
@@ -382,7 +509,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
             self._trim_top = canv_rows - maxrow
 
         else:
-            self._trim_top = ensure_bounds(trim_top)
+            self._trim_top = max(0, min(canv_rows - maxrow, trim_top))
 
         # If the cursor was moved by the most recent keypress, adjust trim_top
         # so that the new cursor position is within the displayed canvas part.
@@ -413,7 +540,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         raise ScrollableError(f"{ow!r} sizing is not supported")
 
     def get_scrollpos(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Current scrolling position.
+        """Return the current scrolling position.
 
         Lower limit is 0, upper limit is the maximum number of rows with the given maxcol minus maxrow.
 
@@ -424,7 +551,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return self._trim_top
 
     def set_scrollpos(self, position: typing.SupportsInt) -> None:
-        """Set scrolling position
+        """Set scrolling position.
 
         If `position` is positive it is interpreted as lines from the top.
         If `position` is negative it is interpreted as lines from the bottom.
@@ -435,7 +562,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         self._invalidate()
 
     def rows_max(self, size: tuple[int, int] | None = None, focus: bool = False) -> int:
-        """Return the number of rows for `size`
+        """Return the number of rows for `size`.
 
         If `size` is not given, the currently rendered number of rows is returned.
 
@@ -457,7 +584,7 @@ class Scrollable(WidgetDecoration[WrappedScrollWidget]):
         return self._rows_max_cached
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True, weakref_slot=True)
 class _ScrollbarLayout:
     """Geometry of a scrollbar rendered next to its wrapped widget.
 
@@ -472,38 +599,164 @@ class _ScrollbarLayout:
     thumb_height: int
     top_height: int
     bottom_height: int
+    relative: bool  # pos and posmax count items rather than rows
+    markers: bool  # the first and the last row hold the end markers instead of the trough
+    start_visible: bool  # the first row of the content is on screen
+    end_visible: bool  # the last row of the content is on screen
+
+    @property
+    def trough_top(self) -> int:
+        """Row at which the trough starts."""
+        return int(self.markers)
+
+    @property
+    def trough_height(self) -> int:
+        """Rows the thumb and the trough share."""
+        return self.ow_size[1] - 2 * self.markers
+
+    def marker_step(self, row: int) -> int:
+        """Return -1 for the up marker row, 1 for the down marker row, and 0 for any other row."""
+        if self.markers:
+            if row == 0:
+                return -1
+            if row == self.ow_size[1] - 1:
+                return 1
+        return 0
+
+
+def _thumb_top(pos: int, posmax: int, thumb_travel: int) -> int:
+    """Return the trough rows above the thumb for scroll position *pos*."""
+    top_weight = float(pos) / max(1, posmax)
+    top_height = int(thumb_travel * top_weight)
+    # Thumb may only touch top/bottom if the first/last row is visible
+    if top_height == 0 and top_weight > 0:
+        top_height = min(1, thumb_travel)
+    return top_height
+
+
+def _pos_at_thumb_top(row: int, posmax: int, thumb_travel: int) -> int:
+    """Return the scroll position whose thumb is drawn nearest to *row*, inverting :func:`_thumb_top`."""
+    if thumb_travel <= 0 or posmax <= 0:
+        return 0
+    exact = row * posmax / thumb_travel
+    # _thumb_top truncates a float product, so the position drawn at row can be one above ceil(exact).
+    candidates = [max(0, min(posmax, math.floor(exact) + step)) for step in (0, 1, 2)]
+    return min(candidates, key=lambda pos: (abs(_thumb_top(pos, posmax, thumb_travel) - row), abs(pos - exact)))
 
 
 class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
-    Symbols = ScrollbarSymbols
+    """Widget decoration that adds a scrollbar alongside a scrollable wrapped widget."""
+
+    Symbols: typing.ClassVar[type[ScrollbarSymbols]] = ScrollbarSymbols
 
     def sizing(self) -> frozenset[Sizing]:
+        """Return BOX, and FLOW as well for a wrapped :class:`ListBox` with :attr:`ListBox.flow` set.
+
+        The ListBox may be wrapped in decorations such as :class:`AttrMap`, as long as they report FLOW too.
+        """
+        # Only the opt-in of the ListBox counts: a wrapped widget that reports FLOW on its own is laid out as BOX.
+        # The flag is tested by truth, as ListBox.sizing() tests it.
+        # Containers call sizing() on every layout, so a box-only wrapped widget is answered before any walk,
+        # and the walk tests a class rather than the SupportsScroll protocol, which is slow for a widget it misses.
+        ow = self._original_widget
+        if Sizing.FLOW not in ow.sizing():
+            return frozenset((Sizing.BOX,))
+
+        lbox = next((w for w in orig_iter(ow) if isinstance(w, ListBox)), None)
+        if lbox is not None and lbox.flow:
+            return frozenset((Sizing.BOX, Sizing.FLOW))
         return frozenset((Sizing.BOX,))
 
+    def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the rows of the wrapped widget at the width it is rendered at.
+
+        With :attr:`visible` ``True`` the scrollbar always takes its columns, so the wrapped widget gets the rest.
+
+        :raises AttributeError: the wrapped widget has no ``rows()``, as a :class:`Scrollable` has none.
+        """
+        (maxcol,) = size
+        bar_width = self._scrollbar_width if self._visible is True else 0
+        return typing.cast("AbstractFlowWidget", self._original_widget).rows((max(0, maxcol - bar_width),), focus)
+
+    def _flow_without_bar(self, size: tuple[int] | tuple[int, int]) -> bool:
+        """Return whether *size* is a flow size that draws no scrollbar.
+
+        A flow size gives the wrapped widget all its rows, so with :attr:`visible` ``None`` it needs no scrollbar,
+        whatever the scrolling protocol of the wrapped widget estimates.
+        """
+        return len(size) == 1 and self._visible is None
+
+    def _box_size(self, size: tuple[int] | tuple[int, int], focus: bool) -> tuple[int, int]:
+        """Return *size* as a box size, measuring the wrapped widget for a flow size."""
+        if len(size) == 1:
+            return (size[0], self.rows((size[0],), focus))
+        return size
+
     def selectable(self) -> bool:
-        return True
+        """Return whether the widget accepts the input focus.
+
+        Always ``True``, unless :attr:`delegate_selectable` is set: then what the wrapped widget returns.
+        """
+        return not self.delegate_selectable or self._original_widget.selectable()
 
     def __init__(
         self,
         widget: WrappedScrollableWidget,
         thumb_char: str = ScrollbarSymbols.FULL_BLOCK,
         trough_char: str = " ",
-        side: Literal["left", "right"] = SCROLLBAR_RIGHT,  # type: ignore[assignment]  # constant
+        side: Literal["left", "right"] = SCROLLBAR_RIGHT,
         width: int = 1,
+        *,
+        visible: bool | None = None,
+        scroll_by_focus: bool = False,
+        delegate_selectable: bool = False,
+        end_markers: tuple[str, str] | None = None,
+        attr: Hashable = None,
+        focus_attr: Hashable = None,
+        thumb_attr: Hashable = None,
+        thumb_focus_attr: Hashable = None,
+        marker_dim_attr: Hashable = None,
     ) -> None:
-        """Box widget that adds a scrollbar to `widget`
+        """Create a widget that adds a scrollbar to `widget`.
 
-        `widget` must be a box widget with the following methods:
-          - `get_scrollpos` takes the arguments `size` and `focus` and returns the index of the first visible row.
-          - `set_scrollpos` (optional; needed for mouse click support) takes the index of the first visible row.
-          - `rows_max` takes `size` and `focus` and returns the total number of rows `widget` can render.
+        :param widget: box widget that has, or wraps a widget that has, the following methods:
 
-        `thumb_char` is the character used for the scrollbar handle.
-        `trough_char` is used for the space above and below the handle.
-        `side` must be 'left' or 'right'.
-        `width` specifies the number of columns the scrollbar uses.
+            - `get_scrollpos` takes the arguments `size` and `focus` and returns the index of the first visible row.
+            - `set_scrollpos` (optional, on the same widget as `get_scrollpos`; needed for mouse click and drag
+              support on the scrollbar) takes the index of the first visible row.
+              The scrollbar does not use :meth:`ListBox.set_scrollpos`; see *scroll_by_focus* instead.
+            - `rows_max` takes `size` and `focus` and returns the total number of rows `widget` can render.
+        :param thumb_char: character used for the scrollbar handle.
+        :param trough_char: character used for the space above and below the handle.
+        :param side: side the scrollbar is drawn on, ``'left'`` or ``'right'``.
+        :param width: number of columns the scrollbar uses, at least 1.
+        :param visible: when the scrollbar is drawn: ``None`` draws it only when `widget` needs scrolling,
+            ``True`` always, so the wrapped widget always gets the same width,
+            and ``False`` never, so the wrapped widget gets the full width and is still scrolled by keys and wheel.
+        :param scroll_by_focus: let a click or drag on the scrollbar scroll a :class:`ListBox`
+            by moving its focus to the widget at the top of the new view.
+            The focus then changes without passing through the ListBox ``keypress`` or ``mouse_event``,
+            so this is off by default for code that tracks the focus there.
+        :param delegate_selectable: take the input focus only when `widget` is selectable;
+            a :class:`ListBox` created with ``focus_when_empty=False`` is not while it is empty.
+            Off by default, so a wrapped widget that is not selectable can still be scrolled by keys.
+        :param end_markers: characters drawn in the first and the last scrollbar row, or ``None`` for no markers,
+            such as ``(ScrollBar.Symbols.ARROW_TRIANGLE_UP, ScrollBar.Symbols.ARROW_TRIANGLE_DOWN)``.
+            They are drawn only when the scrollbar has at least 4 rows, so the thumb has 2 trough rows to move in,
+            and a click on one scrolls one step towards its end, as the mouse wheel does.
+        :param attr: display attribute of the trough and the end markers.
+        :param focus_attr: display attribute of the trough and the end markers when rendered in focus;
+            ``None`` uses *attr*.
+        :param thumb_attr: display attribute of the thumb; ``None`` uses *attr*.
+        :param thumb_focus_attr: display attribute of the thumb when rendered in focus;
+            ``None`` uses *thumb_attr* when it is set, and *focus_attr* otherwise.
+        :param marker_dim_attr: display attribute of an end marker whose end of the content is visible;
+            ``None`` draws it like the other marker.
+            An end counts as visible only when the first or last row of the content is on screen.
+            A custom widget scrolled by items rather than rows, through ``SupportsRelativeScroll``,
+            cannot report cut-off rows, so for it an end counts once its first or last item is on screen.
 
-        :raises ValueError: *widget* is not a BOX widget.
+        :raises ValueError: *widget* is not a BOX widget, or *end_markers* is not a pair.
         :raises TypeError: *widget* does not wrap anything that supports the scrolling protocol.
         """
         if Sizing.BOX not in widget.sizing():
@@ -512,12 +765,30 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         if not any(isinstance(w, SupportsScroll) for w in orig_iter(widget)):
             raise TypeError(f"Not a scrollable widget: {widget!r}")
 
+        if end_markers is not None and len(end_markers) != 2:
+            raise ValueError(f"end_markers must be a pair of characters, not {end_markers!r}")
+
         super().__init__(widget)
         self._thumb_char = thumb_char
         self._trough_char = trough_char
         self.scrollbar_side = side
         self.scrollbar_width = max(1, width)
+        self.visible = visible
+        self.scroll_by_focus = scroll_by_focus
+        # whether selectable() asks the wrapped widget instead of reporting True
+        self.delegate_selectable = delegate_selectable
+        self._end_markers = end_markers
+        self._attr = attr
+        self._focus_attr = attr if focus_attr is None else focus_attr
+        self._thumb_attr = attr if thumb_attr is None else thumb_attr
+        if thumb_focus_attr is None:
+            thumb_focus_attr = self._focus_attr if thumb_attr is None else thumb_attr
+        self._thumb_focus_attr = thumb_focus_attr
+        self._marker_dim_attr = marker_dim_attr
+        self._press_on_scrollbar: bool | None = None  # where the last unreleased press here went
+        self._press_on_marker = False  # the last unreleased press here went to an end marker
         self._original_widget_size = (0, 0)
+        self._rendered_size: tuple[int, int] | None = None  # size of the last render, which set the size above
 
     def _render_original(
         self,
@@ -531,19 +802,30 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self,
         size: tuple[int, int],
         focus: bool = False,
+        *,
+        shows_all: bool = False,
     ) -> _ScrollbarLayout | None:
         """Compute the scrollbar geometry for ``size``.
 
-        :returns: ``None`` is returned as a "not shown" flag when the wrapped widget fits without scrolling
-            and therefore no scrollbar is drawn.
+        With *shows_all*, the wrapped widget is known to show all its rows, as at a flow size,
+        so the geometry is measured in rows rather than estimated from item counts.
+
+        :returns: ``None`` is returned as a "not shown" flag when no scrollbar is drawn:
+            :attr:`visible` is ``False``, or it is ``None`` and the wrapped widget fits without scrolling.
             Otherwise, the thumb and trough placement is returned,
             so :meth:`render` and :meth:`mouse_event` can share the same geometry without duplicating the maths.
         :raises TypeError: the wrapped widget does not support the scrolling protocol.
         """
+        if self._visible is False:
+            return None
+
         maxcol, maxrow = size
 
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         sb_width = maxcol - ow_size[0]
+        markers = self._end_markers is not None and maxrow >= 4
+        trough_height = maxrow - 2 * markers
+        ends_visible: tuple[bool, bool] | None = None  # set where the item counts cannot tell
 
         ow_base = self.scrolling_base_widget
 
@@ -552,7 +834,8 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         require_absolute = True
 
         if (
-            isinstance(ow_base, SupportsRelativeScroll)
+            not shows_all
+            and isinstance(ow_base, SupportsRelativeScroll)
             and callable(len_getter := getattr(ow_base, "__len__", getattr(ow_base, "__length_hint__", None)))
             and ow_base.require_relative_scroll(size, focus)
         ):
@@ -571,32 +854,34 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             if ow_len != visible_amount:
                 require_absolute = False
 
-        if require_absolute:
-            if isinstance(ow_base, SupportsScroll):
-                if ow_base.rows_max(size, focus) > maxrow:
-                    # re-calculate using wrapped size
-                    ow_rows_max = ow_base.rows_max(ow_size, focus)
-                    pos = ow_base.get_scrollpos(ow_size, focus)
-                    posmax = ow_rows_max - maxrow
-                    thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+                if markers and isinstance(ow_base, ListBox):
+                    ends_visible = _listbox_ends_visible(ow_base, ow_size, focus)
 
-                else:
-                    # Canvas fits without scrolling - no scrollbar needed
-                    return None
-            else:
+        if require_absolute:
+            if not isinstance(ow_base, SupportsScroll):
                 raise TypeError(f"Not a scrollable widget: {ow_base!r}")
 
-        # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>
-        thumb_height = max(1, round(thumb_weight * maxrow))  # pylint: disable=possibly-used-before-assignment
+            # The full-width check is skipped when the scrollbar is drawn anyway
+            if self._visible is None and ow_base.rows_max(size, focus) <= maxrow:
+                # Canvas fits without scrolling - no scrollbar needed
+                return None
 
-        # Thumb may only touch top/bottom if the first/last row is visible
-        top_weight = float(pos) / max(1, posmax)  # pylint: disable=possibly-used-before-assignment
-        top_height = int((maxrow - thumb_height) * top_weight)
-        if top_height == 0 and top_weight > 0:
-            top_height = min(1, maxrow - thumb_height)
+            # re-calculate using wrapped size
+            ow_rows_max = ow_base.rows_max(ow_size, focus)
+            pos = ow_base.get_scrollpos(ow_size, focus)
+            posmax = max(0, ow_rows_max - maxrow)
+            thumb_weight = min(1.0, maxrow / max(1, ow_rows_max))
+
+        # Thumb shrinks/grows according to the ratio of <number of visible lines> / <number of total lines>,
+        # keeping at least one row unless there are no rows at all.
+        # pylint: disable-next=possibly-used-before-assignment
+        thumb_height = min(trough_height, max(1, round(thumb_weight * trough_height)))
+
+        # pylint: disable-next=possibly-used-before-assignment
+        top_height = _thumb_top(pos, posmax, trough_height - thumb_height)
 
         # Bottom part is remaining space
-        bottom_height = maxrow - thumb_height - top_height
+        bottom_height = trough_height - thumb_height - top_height
 
         return _ScrollbarLayout(
             ow_size=ow_size,
@@ -606,14 +891,29 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
             thumb_height=thumb_height,
             top_height=top_height,
             bottom_height=bottom_height,
+            relative=not require_absolute,
+            markers=markers,
+            start_visible=pos <= 0 if ends_visible is None else ends_visible[0],
+            end_visible=pos >= posmax if ends_visible is None else ends_visible[1],
         )
 
     def render(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> Canvas:
+        """Render the wrapped widget together with the scrollbar, when scrolling is needed.
+
+        A flow *size* renders the wrapped widget at its flow rows, so it never needs scrolling.
+        """
         from urwid import canvas
+
+        flow = len(size) == 1
+        no_bar = self._visible is False or self._flow_without_bar(size)
+        size = self._box_size(size, focus)
+        self._rendered_size = size
+        if no_bar:
+            return self._render_original(size, focus)
 
         maxcol, maxrow = size
 
@@ -622,26 +922,41 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         ow_size = (max(0, maxcol - self._scrollbar_width), maxrow)
         ow_canv = self._render_original(ow_size, focus)
 
-        layout = self._scrollbar_layout(size, focus)
+        layout = self._scrollbar_layout(size, focus, shows_all=flow)
         if layout is None:
             # Canvas fits without scrolling - no scrollbar needed
             return self._render_original(size, focus)
+
+        def row_canvas(char: str, attr: Hashable) -> CompositeCanvas:
+            canv = canvas.CompositeCanvas(canvas.SolidCanvas(char, layout.sb_width, 1))
+            canv.fill_attr(attr)
+            return canv
+
+        bar_attr = self._focus_attr if focus else self._attr
+        thumb_attr = self._thumb_focus_attr if focus else self._thumb_attr
 
         # Create scrollbar canvas
         # Creating SolidCanvases of correct height may result in
         # "cviews do not fill gaps in shard_tail!" or "cviews overflow gaps in shard_tail!" exceptions.
         # Stacking the same SolidCanvas is a workaround.
         # https://github.com/urwid/urwid/issues/226#issuecomment-437176837
-        top = canvas.SolidCanvas(self._trough_char, layout.sb_width, 1)
-        thumb = canvas.SolidCanvas(self._thumb_char, layout.sb_width, 1)
-        bottom = canvas.SolidCanvas(self._trough_char, layout.sb_width, 1)
-        sb_canv = canvas.CanvasCombine(
-            (
-                *((top, None, False) for _ in range(layout.top_height)),
-                *((thumb, None, False) for _ in range(layout.thumb_height)),
-                *((bottom, None, False) for _ in range(layout.bottom_height)),
-            ),
-        )
+        trough = row_canvas(self._trough_char, bar_attr)
+        thumb = row_canvas(self._thumb_char, thumb_attr)
+        rows: list[Canvas] = [
+            *(trough for _ in range(layout.top_height)),
+            *(thumb for _ in range(layout.thumb_height)),
+            *(trough for _ in range(layout.bottom_height)),
+        ]
+        if layout.markers and self._end_markers is not None:
+            dim_attr = bar_attr if self._marker_dim_attr is None else self._marker_dim_attr
+            up_char, down_char = self._end_markers
+            rows.insert(0, row_canvas(up_char, dim_attr if layout.start_visible else bar_attr))
+            rows.append(row_canvas(down_char, dim_attr if layout.end_visible else bar_attr))
+        if rows:
+            sb_canv = canvas.CanvasCombine([(row, None, False) for row in rows])
+        else:
+            # No rows: an empty combination would lose the width.
+            sb_canv = canvas.CompositeCanvas(canvas.SolidCanvas(self._trough_char, layout.sb_width, 0))
 
         combinelist = [
             (ow_canv, None, True, layout.ow_size[0]),
@@ -655,7 +970,7 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
 
     @property
     def scrollbar_width(self) -> int:
-        """Columns the scrollbar uses"""
+        """Columns the scrollbar uses."""
         return max(1, self._scrollbar_width)
 
     @scrollbar_width.setter
@@ -664,8 +979,27 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         self._invalidate()
 
     @property
+    def visible(self) -> bool | None:
+        """When the scrollbar is drawn: ``None`` when scrolling is needed, ``True`` always, ``False`` never."""
+        return self._visible
+
+    @visible.setter
+    def visible(self, visible: bool | None) -> None:
+        self._visible = visible
+        self._invalidate()
+
+    @property
+    def scroll_by_focus(self) -> bool:
+        """Whether a click or drag on the scrollbar scrolls a :class:`ListBox` by moving its focus."""
+        return self._scroll_by_focus
+
+    @scroll_by_focus.setter
+    def scroll_by_focus(self, scroll_by_focus: bool) -> None:
+        self._scroll_by_focus = scroll_by_focus
+
+    @property
     def scrollbar_side(self) -> Literal["left", "right"]:
-        """Where to display the scrollbar; must be 'left' or 'right'"""
+        """Where to display the scrollbar; must be 'left' or 'right'."""
         return self._scrollbar_side
 
     @scrollbar_side.setter
@@ -677,82 +1011,259 @@ class ScrollBar(WidgetDecoration[WrappedScrollableWidget]):
         """
         if side not in {SCROLLBAR_LEFT, SCROLLBAR_RIGHT}:
             raise ValueError(f'scrollbar_side must be "left" or "right", not {side!r}')
-        self._scrollbar_side = side
+        self._scrollbar_side: Literal["left", "right"] = side
         self._invalidate()
 
     @property
-    def scrolling_base_widget(self) -> SupportsScroll | SupportsRelativeScroll:
-        """Nearest `original_widget` that is compatible with the scrolling API
+    def scrolling_base_widget(self) -> SupportsScroll:
+        """Nearest `original_widget` that is compatible with the scrolling API.
 
         :raises ScrollableError: no wrapped widget supports the scrolling protocol.
         """
+        if (base := self._find_scrolling_base()) is not None:
+            return base
 
-        w = self
-
-        for w in orig_iter(self):  # type: ignore[assignment]
-            if isinstance(w, SupportsScroll):
-                return w
-
+        *_, w = orig_iter(self)
         raise ScrollableError(f"Not compatible to be wrapped by ScrollBar: {w!r}")
+
+    def _find_scrolling_base(self) -> SupportsScroll | None:
+        """Return `scrolling_base_widget`, or ``None`` when the wrapped widget was replaced by one without it."""
+        return next((w for w in orig_iter(self) if isinstance(w, SupportsScroll)), None)
+
+    def _focused_original_geometry(self, size: tuple[int] | tuple[int, int]) -> tuple[tuple[int, int], int]:
+        """Return the size the wrapped widget is rendered at in focus within *size*, and the column it starts at."""
+        ow_size = self._original_widget_size
+        box_size = self._box_size(size, True)
+        if box_size != self._rendered_size:
+            # Not rendered at this size yet: before the first render, or after a resize.
+            layout = None if self._flow_without_bar(size) else self._scrollbar_layout(box_size, True)
+            ow_size = box_size if layout is None else layout.ow_size
+        if self._scrollbar_side == SCROLLBAR_LEFT:
+            return ow_size, box_size[0] - ow_size[0]
+        return ow_size, 0
 
     def keypress(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         key: str,
     ) -> str | None:
-        return self._original_widget.keypress(self._original_widget_size, key)
+        """Forward a keypress to the wrapped widget, at the size it is rendered at within ``size``."""
+        ow_size, _ = self._focused_original_geometry(size)
+        return self._original_widget.keypress(ow_size, key)
+
+    def get_cursor_coords(self, size: tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
+        """Return the cursor of the wrapped widget, moved past the scrollbar columns when they are on the left.
+
+        :returns: ``None`` when the wrapped widget has no ``get_cursor_coords`` or no cursor.
+        """
+        if not hasattr(self._original_widget, "get_cursor_coords"):
+            return None
+        ow_size, col_offset = self._focused_original_geometry(size)
+        if (coords := self._original_widget.get_cursor_coords(ow_size)) is None:
+            return None
+        col, row = coords
+        return col + col_offset, row
 
     def mouse_event(
         self,
-        size: tuple[int, int],  # type: ignore[override]
+        size: tuple[int] | tuple[int, int],  # type: ignore[override]
         event: str,
         button: int,
         col: int,
         row: int,
         focus: bool,
     ) -> bool | None:
+        """Handle a mouse event, dispatching it to the scrollbar thumb/trough or to the wrapped widget.
+
+        A press of button 1 on the scrollbar, and the drag that follows it, move the thumb top to the pointer row.
+        So does its release on displays that report the button of a release, such as curses, which send no drags.
+        A press of button 1 on an end marker scrolls one step towards that end, as the mouse wheel does,
+        and the drag and release that follow it do nothing.
+        Events in the wrapped widget's columns go to it.
+        On the scrollbar, the vertical mouse wheel of a widget the scrollbar does not scroll through `set_scrollpos`
+        (such as :class:`ListBox`) is passed on, together with the drags and releases described below;
+        other events there are not.
+
+        A drag or release goes where its press went: a drag started on the scrollbar keeps moving the thumb
+        over the wrapped widget's columns, and a drag started on the wrapped widget stays with it over the scrollbar.
+        A drag or release whose press was not seen here, such as the end of a drag and drop started in another
+        widget, goes to the wrapped widget.
+        Events outside this widget never reach it, so a release there is not seen; the next press here starts over.
+        """
+        flow = len(size) == 1
+        no_bar = self._flow_without_bar(size)
+        size = self._box_size(size, focus)
         ow = self._original_widget
+        ow_base = self._find_scrolling_base()
         ow_size = self._original_widget_size
-        supports_scroll = hasattr(ow, "set_scrollpos")
+        supports_scroll = _scrolls_by_scrollpos(ow_base)
         on_scrollbar = False
         ow_col = col
 
-        if supports_scroll:
-            # The geometry is needed before the event is passed on: the wrapped widget cannot tell
-            # that a column belongs to the scrollbar, and would answer a click that is not its own.
-            layout = self._scrollbar_layout(size, focus)
-            if layout is not None:
-                if self._scrollbar_side == SCROLLBAR_LEFT:
-                    on_scrollbar = col < layout.sb_width
-                    # The wrapped widget is drawn after the scrollbar, so its own column 0 sits at
-                    # screen column sb_width and the offset has to be taken back out.
-                    ow_col = col - layout.sb_width
-                else:
-                    on_scrollbar = col >= layout.ow_size[0]
+        # The geometry is needed before the event is passed on: the wrapped widget cannot tell
+        # that a column belongs to the scrollbar, and would answer a click that is not its own.
+        layout = None if no_bar else self._scrollbar_layout(size, focus, shows_all=flow)
+        if layout is not None:
+            if self._scrollbar_side == SCROLLBAR_LEFT:
+                on_scrollbar = col < layout.sb_width
+                # The wrapped widget is drawn after the scrollbar, so its own column 0 sits at
+                # screen column sb_width and the offset has to be taken back out.
+                ow_col = col - layout.sb_width
+            else:
+                on_scrollbar = col >= layout.ow_size[0]
 
-                if on_scrollbar and button == 1:
-                    # Move the thumb top to the clicked row, inverting the placement done during render.
-                    thumb_travel = size[1] - layout.thumb_height
-                    if thumb_travel > 0:
-                        newpos = round(row * layout.posmax / thumb_travel)
-                    else:
-                        newpos = 0
-                    ow.set_scrollpos(max(0, min(layout.posmax, newpos)))  # type: ignore[attr-defined]  # gated
-                    return True
+        on_marker = False
+        if button not in _WHEEL_BUTTONS:
+            if is_mouse_press(event):
+                self._press_on_scrollbar = on_scrollbar
+                on_marker = self._press_on_marker = on_scrollbar and layout is not None and layout.marker_step(row) != 0
+            elif "drag" in event or "release" in event:
+                on_scrollbar = bool(self._press_on_scrollbar)
+                on_marker = self._press_on_marker
+                if layout is not None and not on_scrollbar:
+                    # A drag can leave the wrapped widget's columns; it still gets a column it owns.
+                    ow_col = min(max(0, ow_col), max(0, layout.ow_size[0] - 1))
+            if "release" in event:
+                self._press_on_scrollbar = None
+                self._press_on_marker = False
+
+        if layout is not None:
+            if on_scrollbar and button == MouseButton.LEFT:
+                if not on_marker:
+                    return self._move_thumb(layout, row, focus)
+                step = layout.marker_step(row)
+                if not is_mouse_press(event) or not step:
+                    return True  # the drag or release of a marker press
+                # A marker press scrolls one step, as the wheel does.
+                button = (MouseButton.WHEEL_UP if step < 0 else MouseButton.WHEEL_DOWN).value
+
+            if on_scrollbar and not supports_scroll and button in {MouseButton.WHEEL_UP, MouseButton.WHEEL_DOWN}:
+                # A widget not scrolled through set_scrollpos (such as ListBox) scrolls itself on the wheel.
+                # A column past its right edge reaches no child, so the list scrolls even when the
+                # child on that row would handle the wheel itself.
+                on_scrollbar = False
+                ow_col = max(0, ow_col)
 
         handled: bool | None = False
         if not on_scrollbar and hasattr(ow, "mouse_event"):
             handled = ow.mouse_event(ow_size, event, button, ow_col, row, focus)
 
-        if not handled and supports_scroll:
-            if button == 4:  # scroll wheel up
-                pos = ow.get_scrollpos(ow_size)
-                newpos = max(pos - 1, 0)
-                ow.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
-                return True
-            if button == 5:  # scroll wheel down
-                pos = ow.get_scrollpos(ow_size)
-                ow.set_scrollpos(pos + 1)  # type: ignore[attr-defined]  # gated
-                return True
+        if (
+            not handled
+            and ow_base is not None
+            and supports_scroll
+            and button in {MouseButton.WHEEL_UP, MouseButton.WHEEL_DOWN}
+        ):
+            pos = ow_base.get_scrollpos(ow_size)
+            posmax = ow_base.rows_max(ow_size) - ow_size[1]
+            # Content that fits keeps its position, as with the scroll keys, and the wheel stops at the last row.
+            if posmax > 0:
+                newpos = max(pos - 1, 0) if button == MouseButton.WHEEL_UP else min(pos + 1, posmax)
+                ow_base.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
+            return True
 
         return handled
+
+    def _move_thumb(self, layout: _ScrollbarLayout, row: int, focus: bool) -> bool:
+        """Scroll so the thumb top is at *row*, and return whether the wrapped widget could be scrolled."""
+        newpos = _pos_at_thumb_top(row - layout.trough_top, layout.posmax, layout.trough_height - layout.thumb_height)
+
+        ow_base = self.scrolling_base_widget
+        if _scrolls_by_scrollpos(ow_base):
+            ow_base.set_scrollpos(newpos)  # type: ignore[attr-defined]  # gated
+            return True
+
+        if self._scroll_by_focus and isinstance(ow_base, ListBox):
+            _scroll_listbox_to(ow_base, layout, newpos, focus)
+            return True
+
+        return False
+
+
+def _scrolls_by_scrollpos(widget: SupportsScroll | None) -> bool:
+    """Return whether the scrollbar scrolls *widget* through its `set_scrollpos`.
+
+    :meth:`ListBox.set_scrollpos` is left out, so the scrollbar keeps scrolling a :class:`ListBox` by its focus.
+    A subclass that defines its own `set_scrollpos` is scrolled through it.
+    """
+    return (
+        hasattr(widget, "set_scrollpos") and getattr(type(widget), "set_scrollpos", None) is not ListBox.set_scrollpos
+    )
+
+
+def _listbox_ends_visible(listbox: ListBox[typing.Any], size: tuple[int, int], focus: bool) -> tuple[bool, bool]:
+    """Return whether the first and the last row of *listbox* content are on screen at *size*.
+
+    An end is on screen when the outermost visible item on that side is not cut off
+    and every item beyond it renders no rows, since :meth:`ListBox.calculate_visible` leaves such items out.
+    """
+    middle, top, bottom = listbox.calculate_visible(size, focus)
+    if middle is None or top is None or bottom is None:
+        return True, True  # empty body
+
+    body = listbox.body
+    maxcol = size[0]
+
+    def only_empty_beyond(position: typing.Any, forward: bool) -> bool:
+        while True:
+            widget, position = body.get_next(position) if forward else body.get_prev(position)
+            if widget is None:
+                return True
+            if widget.rows((maxcol,)) > 0:
+                return False
+
+    first_pos = top.fill[-1].position if top.fill else middle.focus_pos
+    last_pos = bottom.fill[-1].position if bottom.fill else middle.focus_pos
+    return (
+        top.trim == 0 and only_empty_beyond(first_pos, forward=False),
+        bottom.trim == 0 and only_empty_beyond(last_pos, forward=True),
+    )
+
+
+def _scroll_listbox_to(listbox: ListBox[typing.Any], layout: _ScrollbarLayout, newpos: int, focus: bool) -> None:
+    """Scroll *listbox* so *newpos*, in the units of *layout*, is at its top.
+
+    A ListBox view always contains its focus, so the focus moves to the widget that ends up at the top.
+    """
+    if newpos == layout.pos:
+        return  # the view stays, so the focus it already contains stays too
+
+    middle, top, _bottom = listbox.calculate_visible(layout.ow_size, focus)
+    if middle is None or top is None:
+        return  # empty body
+
+    if top.fill:
+        widget, position = top.fill[-1].widget, top.fill[-1].position
+    else:
+        widget, position = middle.focus_widget, middle.focus_pos
+
+    body = listbox.body
+    maxcol = layout.ow_size[0]
+
+    if layout.relative:
+        step = newpos - layout.pos
+        while step:
+            candidate, candidate_pos = body.get_next(position) if step > 0 else body.get_prev(position)
+            if candidate is None:
+                break
+            position = candidate_pos
+            step += -1 if step > 0 else 1
+        listbox.change_focus(layout.ow_size, position, 0)
+        return
+
+    # Find the widget that holds row newpos, starting from the row at which the top widget begins.
+    start = layout.pos - top.trim
+    rows = widget.rows((maxcol,))
+    while start + rows <= newpos:
+        candidate, candidate_pos = body.get_next(position)
+        if candidate is None:
+            break
+        start += rows
+        widget, position, rows = candidate, candidate_pos, candidate.rows((maxcol,))
+    while start > newpos:
+        candidate, candidate_pos = body.get_prev(position)
+        if candidate is None:
+            break
+        widget, position, rows = candidate, candidate_pos, candidate.rows((maxcol,))
+        start -= rows
+    listbox.change_focus(layout.ow_size, position, min(0, start - newpos))

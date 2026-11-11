@@ -1,3 +1,5 @@
+"""AttrMap: a decoration widget that maps display attributes of its child."""
+
 from __future__ import annotations
 
 import typing
@@ -9,22 +11,58 @@ from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
-    from .widget import AbstractWidget
+    from .widget import AbstractWidget, _DelegateToWidgetMixin
+
+    # An attribute map in any form AttrMap takes; _attr_map_dict checks the keys and values are hashable at run time.
+    # dict is listed apart from Mapping because a type checker may fold Mapping into Hashable, and a dict is not
+    # Hashable. dict and Mapping take Any where they are invariant, so a dict[str, str] is accepted.
+    _AttrMapLike: typing.TypeAlias = Hashable | dict[typing.Any, typing.Any] | Mapping[typing.Any, Hashable]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
+_KeyT = typing.TypeVar("_KeyT", bound=Hashable)
 
 
 class AttrMapError(WidgetError):
-    pass
+    """AttrMap related errors."""
+
+
+def _attr_map_dict(attr_map: _AttrMapLike) -> dict[Hashable, Hashable]:
+    """Return *attr_map* as an attribute mapping dictionary.
+
+    A single attribute is returned as ``{None: attribute}``.
+
+    :raises AttrMapError: a key or value of the mapping is not hashable.
+    """
+    mapping = dict(attr_map) if isinstance(attr_map, Mapping) else {None: attr_map}
+    for from_attr, to_attr in mapping.items():
+        if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
+            raise AttrMapError(f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable")
+    return mapping
+
+
+def _attr_map_dicts(attr_maps: Mapping[_KeyT, _AttrMapLike] | None) -> dict[_KeyT, dict[Hashable, Hashable]]:
+    """Return *attr_maps* with each value as an attribute mapping dictionary.
+
+    ``None`` gives an empty dictionary.
+
+    :raises AttrMapError: a key or value of an attribute map is not hashable.
+    """
+    return {} if attr_maps is None else {key: _attr_map_dict(attr_map) for key, attr_map in attr_maps.items()}
+
+
+if typing.TYPE_CHECKING:
+    _AttrMapDelegate = _DelegateToWidgetMixin
+else:
+    _AttrMapDelegate = delegate_to_widget_mixin("_original_widget")
 
 
 class AttrMap(
-    delegate_to_widget_mixin("_original_widget"),  # type: ignore[misc]
+    _AttrMapDelegate,
     WidgetDecoration[WrappedWidget],
 ):
-    """
-    AttrMap is a decoration that maps one set of attributes to another.
+    """A decoration that maps one set of display attributes to another.
+
     This object will pass all function calls and variable references to the
     wrapped widget.
     """
@@ -32,21 +70,21 @@ class AttrMap(
     def __init__(
         self,
         w: WrappedWidget,
-        attr_map: Hashable | Mapping[Hashable, Hashable],
-        focus_map: Hashable | Mapping[Hashable, Hashable] = None,
+        attr_map: _AttrMapLike,
+        focus_map: _AttrMapLike = None,
     ) -> None:
         """
         :param w: widget to wrap (stored as self.original_widget)
-        :type w: widget
 
         :param attr_map: attribute to apply to *w*, or dict of old display
-            attribute: new display attribute mappings
-        :type attr_map: display attribute or dict
+            attribute: new display attribute mappings;
+            the other attributes of *w* are placed over the attribute of ``None``,
+            so their 'inherit' colors are taken from it (see :class:`LayeredAttr`),
+            and an attribute mapped to ``None`` shows the attribute of ``None``
 
         :param focus_map: attribute to apply when in focus or dict of
             old display attribute: new display attribute mappings;
             if ``None`` use *attr*
-        :type focus_map: display attribute or dict
 
         >>> from urwid import Divider, Edit, Text
         >>> AttrMap(Divider("!"), "bright")
@@ -65,21 +103,13 @@ class AttrMap(
         >>> am2
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'word': 'greeting', None: 'bg'}>
         >>> next(am2.render(size).content())
-        [('greeting', None, ...'hi'), ('bg', None, ...'   ')]
+        [(LayeredAttr('greeting', 'bg'), None, ...'hi'), ('bg', None, ...'   ')]
         """
         super().__init__(w)
-
-        if isinstance(attr_map, Mapping):
-            self.attr_map = dict(attr_map)
-        else:
-            self.attr_map = {None: attr_map}
-
-        if isinstance(focus_map, Mapping):
-            self.focus_map = dict(focus_map)
-        elif focus_map is None:
-            self.focus_map = focus_map
-        else:
-            self.focus_map = {None: focus_map}
+        self._attr_map: dict[Hashable, Hashable] = {}
+        self._focus_map: dict[Hashable, Hashable] | None = None
+        self.set_attr_map(attr_map)
+        self.set_focus_map(focus_map)
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
         # only include the focus_attr when it takes effect (not None)
@@ -89,72 +119,64 @@ class AttrMap(
         return d
 
     def get_attr_map(self) -> dict[Hashable, Hashable]:
+        """Return a copy of the attribute mapping dictionary."""
         # make a copy so ours is not accidentally modified
         # FIXME: a dictionary that detects modifications would be better
-        return dict(self._attr_map)
+        return self._attr_map.copy()
 
-    def set_attr_map(self, attr_map: dict[Hashable, Hashable]) -> None:
+    def set_attr_map(self, attr_map: _AttrMapLike) -> None:
         """
-        Set the attribute mapping dictionary {from_attr: to_attr, ...}
+        Set the attribute mapping dictionary {from_attr: to_attr, ...}.
 
-        Note this function does not accept a single attribute the way the
-        constructor does.  You must specify {None: attribute} instead.
+        A single attribute is stored as ``{None: attribute}``, the way the constructor does.
 
         >>> from urwid import Text
         >>> w = AttrMap(Text("hi"), None)
         >>> w.set_attr_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={'a': 'b'}>
+        >>> w.set_attr_map("c")
+        >>> w
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={None: 'c'}>
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        for from_attr, to_attr in attr_map.items():
-            if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
-                raise AttrMapError(
-                    f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
-                )
-
-        self._attr_map = attr_map
+        self._attr_map = _attr_map_dict(attr_map)
         self._invalidate()
 
     attr_map = property(get_attr_map, set_attr_map)
 
     def get_focus_map(self) -> dict[Hashable, Hashable] | None:
+        """Return a copy of the focus attribute mapping dictionary, or None if unset."""
         # make a copy so ours is not accidentally modified
         # FIXME: a dictionary that detects modifications would be better
         if self._focus_map:
             return dict(self._focus_map)
         return None
 
-    def set_focus_map(self, focus_map: dict[Hashable, Hashable] | None) -> None:
-        """
-        Set the focus attribute mapping dictionary
-        {from_attr: to_attr, ...}
+    def set_focus_map(self, focus_map: _AttrMapLike | None) -> None:
+        """Set the focus attribute mapping dictionary {from_attr: to_attr, ...}.
 
         If None this widget will use the attr mapping instead (no change
         when in focus).
 
-        Note this function does not accept a single attribute the way the
-        constructor does.  You must specify {None: attribute} instead.
+        A single attribute is stored as ``{None: attribute}``, the way the constructor does.
 
         >>> from urwid import Text
         >>> w = AttrMap(Text("hi"), {})
         >>> w.set_focus_map({"a": "b"})
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={'a': 'b'}>
+        >>> w.set_focus_map("c")
+        >>> w
+        <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={} focus_map={None: 'c'}>
         >>> w.set_focus_map(None)
         >>> w
         <AttrMap fixed/flow widget <Text fixed/flow widget 'hi'> attr_map={}>
 
         :raises AttrMapError: a key or value of the mapping is not hashable.
         """
-        if focus_map is not None:
-            for from_attr, to_attr in focus_map.items():
-                if not isinstance(from_attr, Hashable) or not isinstance(to_attr, Hashable):
-                    raise AttrMapError(
-                        f"{from_attr!r}:{to_attr!r} attribute mapping is invalid. Attributes must be hashable"
-                    )
-        self._focus_map = focus_map
+        self._focus_map = None if focus_map is None else _attr_map_dict(focus_map)
         self._invalidate()
 
     focus_map = property(get_focus_map, set_focus_map)
@@ -164,9 +186,7 @@ class AttrMap(
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> CompositeCanvas:
-        """
-        Render wrapped widget and apply attribute. Return canvas.
-        """
+        """Render wrapped widget and apply attribute. Return canvas."""
         attr_map = self._attr_map
         if focus and self._focus_map is not None:
             attr_map = self._focus_map

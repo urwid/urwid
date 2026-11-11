@@ -18,42 +18,46 @@
 # Urwid web site: https://urwid.org/
 
 
-"""
-HTML PRE-based UI implementation
-"""
+"""HTML PRE-based UI implementation."""
 
 from __future__ import annotations
 
 import html
 import typing
 
-from urwid import str_util
+from urwid import _deprecation, str_util
 from urwid.event_loop import ExitMainLoop
 from urwid.util import get_encoding
 
-from .common import AttrSpec, BaseScreen
+from .common import AttrSpec, BaseScreen, _browser_href, attr_spec_to_css
 
 if typing.TYPE_CHECKING:
-    from typing_extensions import Literal
+    from typing import Literal
 
     from urwid import Canvas
 
     _MouseInput = tuple[str, int, int, int]
     _CursorPosition = tuple[typing.Literal["cursor position"], int, int]
-    _DecodedInput = list[typing.Union[str, _MouseInput, _CursorPosition]]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+else:
+    from urwid._deprecation import deprecated
 
 # replace control characters with ?'s
-_trans_table = "?" * 32 + "".join(chr(x) for x in range(32, 256))
+_trans_table = str.maketrans(dict.fromkeys(range(32), "?"))
 
 _default_foreground = "black"
 _default_background = "light gray"
 
 
 class HtmlGeneratorSimulationError(Exception):
-    pass
+    """Raised when :class:`HtmlGenerator` is used in a way its simulated screen does not support."""
 
 
 class HtmlGenerator(BaseScreen):
+    """Screen backend that renders each displayed frame as an HTML fragment instead of a real terminal."""
+
     # class variables
     fragments: typing.ClassVar[list[str]] = []
     sizes: typing.ClassVar[list[tuple[int, int]]] = []
@@ -61,6 +65,7 @@ class HtmlGenerator(BaseScreen):
     started = True
 
     def __init__(self) -> None:
+        """Initialize the simulated screen with a 16-color palette."""
         super().__init__()
         self.colors = 16
         self.bright_is_bold = False  # ignored
@@ -73,6 +78,7 @@ class HtmlGenerator(BaseScreen):
         bright_is_bold: bool | None = None,
         has_underline: bool | None = None,
     ) -> None:
+        """Store the given terminal capabilities, keeping each one unchanged where it is left as ``None``."""
         if colors is None:
             colors = self.colors
         if bright_is_bold is None:
@@ -85,13 +91,14 @@ class HtmlGenerator(BaseScreen):
         self.has_underline = has_underline
 
     def set_input_timeouts(self, *args: typing.Any) -> None:
-        pass
+        """Do nothing; this simulated screen has no real input source to configure timeouts on."""
 
     def reset_default_terminal_palette(self, *args: typing.Any) -> None:
-        pass
+        """Do nothing; this simulated screen has no real terminal palette to reset."""
 
     def draw_screen(self, size: tuple[int, int], canvas: Canvas) -> None:
         """Create an html fragment from the render object.
+
         Append it to HtmlGenerator.fragments list.
 
         :raises ValueError: *canvas* does not have the number of rows given by *size*.
@@ -107,17 +114,14 @@ class HtmlGenerator(BaseScreen):
         if canvas.cursor is not None:
             cx, cy = canvas.cursor
         else:
-            cx = cy = None
+            cx = cy = -1  # no cursor: matches no row
 
         for y, row in enumerate(canvas.content()):
             col = 0
 
             for a, _cs, run in row:
-                t_run = run.decode(get_encoding()).translate(_trans_table)
-                if isinstance(a, AttrSpec):
-                    aspec = a
-                else:
-                    aspec = self._palette[a][{1: 1, 16: 0, 88: 2, 256: 3}[self.colors]]
+                t_run = run.decode(get_encoding(), "replace").translate(_trans_table)
+                aspec = self.resolve_attr(a, {1: 1, 16: 0, 88: 2, 256: 3, 2**24: 4}[self.colors])
 
                 if y == cy and col <= cx:
                     run_width = str_util.calc_width(t_run, 0, len(t_run))
@@ -155,35 +159,28 @@ class HtmlGenerator(BaseScreen):
         :raises ExitMainLoop: the list of simulated key presses is exhausted.
         """
         if not self.keys:
-            raise ExitMainLoop()
+            raise ExitMainLoop
         if raw_keys:
             return (self.keys.pop(0), [])
         return self.keys.pop(0)
 
 
-_default_aspec = AttrSpec(_default_foreground, _default_background)
-(_d_fg_r, _d_fg_g, _d_fg_b, _d_bg_r, _d_bg_g, _d_bg_b) = _default_aspec.get_rgb_values()
-
-
 def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
-    fg_r, fg_g, fg_b, bg_r, bg_g, bg_b = aspec.get_rgb_values()
-    # use real colours instead of default fg/bg
-    if fg_r is None:
-        fg_r, fg_g, fg_b = _d_fg_r, _d_fg_g, _d_fg_b
-    if bg_r is None:
-        bg_r, bg_g, bg_b = _d_bg_r, _d_bg_g, _d_bg_b
-    html_fg = f"#{fg_r:02x}{fg_g:02x}{fg_b:02x}"
-    html_bg = f"#{bg_r:02x}{bg_g:02x}{bg_b:02x}"
-    if aspec.standout:
-        html_fg, html_bg = html_bg, html_fg
-    extra = (
-        ";text-decoration:underline" * aspec.underline + ";font-weight:bold" * aspec.bold + ";opacity:0.5" * aspec.faint
-    )
+    """Wrap *s* in an HTML ``<span>`` styled from *aspec*, splitting it around *cursor* when given a valid index.
+
+    Each non-empty piece is also wrapped in an ``<a>`` element when *aspec* has a hyperlink
+    with a scheme a browser may follow (see :ref:`hyperlinks`).
+    """
+    html_fg, html_bg, extra = attr_spec_to_css(aspec)
+    href = _browser_href(aspec.hyperlink) if aspec.hyperlink is not None else None
 
     def _span(fg: str, bg: str, string: str) -> str:
         if not s:
             return ""
-        return f'<span style="color:{fg};background:{bg}{extra}">{html.escape(string)}</span>'
+        span = f'<span style="color:{fg};background:{bg}{extra}">{html.escape(string)}</span>'
+        if href is None or not string:
+            return span
+        return f'<a href="{html.escape(href, quote=True)}">{span}</a>'
 
     if cursor >= 0:
         c_off, _ign = str_util.calc_text_pos(s, 0, len(s), cursor)
@@ -197,16 +194,20 @@ def html_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:
     return _span(html_fg, html_bg, s)
 
 
+@deprecated(
+    "screenshot_init patches curses.Screen and raw.Screen in place. "
+    "Assign HtmlGenerator to your application's screen manually instead. "
+    "Deprecated since urwid 4.1.8, will be removed in version 6.0.",
+    category=None,
+)
 def screenshot_init(
     sizes: list[tuple[int, int]],
     keys: list[_DecodedInput],
 ) -> None:
-    """
-    Replace curses_display.Screen and raw_display.Screen class with
-    HtmlGenerator.
+    """Replace display.curses.Screen and display.raw.Screen class with HtmlGenerator.
 
     Call this function before executing an application that uses
-    curses_display.Screen to have that code use HtmlGenerator instead.
+    display.curses.Screen to have that code use HtmlGenerator instead.
 
     :param sizes: list of ( columns, rows ) tuples to be returned by each call to HtmlGenerator.get_cols_rows()
     :param keys: list of lists of keys to be returned by each call to HtmlGenerator.get_input()
@@ -228,7 +229,17 @@ def screenshot_init(
 
     screenshot_init( [ (80,25), (20,10) ],
         [ ["down"]*5, ["a","b","c","window resize"], ["Q"] ] )
+
+    .. deprecated:: 4.1.8
+        Patching ``display.curses.Screen``/``display.raw.Screen`` in place is deprecated and will stop working in
+        version 6.0. Assign :class:`HtmlGenerator` to your application's screen manually instead.
     """
+    _deprecation.warn(
+        "screenshot_init patches curses.Screen and raw.Screen in place. "
+        "Assign HtmlGenerator to your application's screen manually instead.",
+        since="4.1.8",
+        removed_in="6.0",
+    )
     for row, col in sizes:
         if not isinstance(row, int):
             raise TypeError(f"sizes must be list[tuple[int, int]], with values >0 : {row!r}")
@@ -246,9 +257,15 @@ def screenshot_init(
             if not isinstance(k, str):
                 raise TypeError(f"keys must be list[list[str]]: {k!r}")
 
-    from . import curses, raw
+    from . import raw
 
-    curses.Screen = HtmlGenerator  # type: ignore[assignment,misc]
+    try:
+        from . import curses
+    except (ImportError, AttributeError):
+        pass  # the stdlib "curses" module is not available on this platform (e.g. Windows)
+    else:
+        curses.Screen = HtmlGenerator  # type: ignore[assignment,misc]
+
     raw.Screen = HtmlGenerator  # type: ignore[assignment,misc]
 
     HtmlGenerator.sizes = sizes
@@ -257,5 +274,6 @@ def screenshot_init(
 
 def screenshot_collect() -> list[str]:
     """Return screenshots as a list of HTML fragments."""
-    fragments, HtmlGenerator.fragments = HtmlGenerator.fragments, []
+    fragments = HtmlGenerator.fragments
+    HtmlGenerator.fragments = []
     return fragments

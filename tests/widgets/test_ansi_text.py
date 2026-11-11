@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 import urwid
+import urwid.testing
 from urwid.ansi_parser import AnsiParser
 from urwid.util import get_encoding, rle_len
 
@@ -20,6 +21,40 @@ class ANSITextTest(unittest.TestCase):
     def test_sizing(self) -> None:
         widget = urwid.ANSIText("hello")
         self.assertEqual(frozenset((urwid.FIXED, urwid.FLOW)), widget.sizing())
+
+    def test_reset_turns_off_inherited_italics_and_strikethrough(self) -> None:
+        palette = [("panel", "inherit,italics,strikethrough", "inherit")]
+        for sgr, name in (("23", "italics"), ("29", "strikethrough")):
+            with self.subTest(name):
+                widget = urwid.AttrMap(urwid.ANSIText(f"\x1b[{sgr}mx"), "panel")
+                ((attr, _cs, _text),) = next(widget.render((1,)).content())
+
+                self.assertFalse(getattr(urwid.testing.resolve_attr(attr, palette), name))
+
+    def test_unset_colors_inherit_from_the_container(self) -> None:
+        widget = urwid.AttrMap(urwid.ANSIText("\x1b[31ma\x1b[39;44mb\x1b[0mc"), "panel")
+
+        self.assertEqual(
+            [
+                (urwid.LayeredAttr(urwid.AttrSpec("dark red", "inherit"), "panel"), None, b"a"),
+                (urwid.LayeredAttr(urwid.AttrSpec("inherit", "dark blue"), "panel"), None, b"b"),
+                ("panel", None, b"c"),
+            ],
+            next(widget.render((3,)).content()),
+        )
+
+    def test_hyperlink_reaches_the_screen(self) -> None:
+        """Draw OSC 8 linked text with the link, over the colors of the container."""
+        palette = [("panel", "light green", "dark blue")]
+        widget = urwid.AttrMap(urwid.ANSIText("\x1b]8;;https://urwid.org\x07a\x1b]8;;\x07b"), "panel")
+        (linked, _cs, text), (plain, _cs2, _text2) = next(widget.render((2,)).content())
+
+        self.assertEqual(b"a", text)
+        self.assertEqual(
+            urwid.AttrSpec("light green", "dark blue", hyperlink="https://urwid.org"),
+            urwid.testing.resolve_attr(linked, palette),
+        )
+        self.assertEqual(urwid.AttrSpec("light green", "dark blue"), urwid.testing.resolve_attr(plain, palette))
 
     def test_pack_and_render_fixed(self) -> None:
         ansi = urwid.ANSIText("\x1b[31mhello\nworld\x1b[0m")
@@ -74,6 +109,32 @@ class ANSITextTest(unittest.TestCase):
         self.assertIsNotNone(widget.last_attr)
         continued = urwid.ANSIText("more red", previous_attr=widget.last_attr)
         self.assertEqual(widget.last_attr, continued.attrib[0][0])
+
+    def test_continuation_from_previous_widget(self) -> None:
+        """Continue the colour and the character sets of a previous widget passed as previous_attr."""
+        first = urwid.ANSIText("\x1b[31m\x0eq")
+        red = urwid.AttrSpec("dark red", "inherit")
+        continued = urwid.ANSIText("q\x0fq", previous_attr=first)
+        self.assertEqual("\u2500q", continued.text)
+        self.assertEqual([(red, 2)], continued.attrib)
+
+        continued.set_ansi_text("qq", previous_attr=first)
+        self.assertEqual("\u2500\u2500", continued.text)
+
+        from_lines = list(urwid.ANSIText.from_lines(["q", "q"], previous_attr=first))
+        self.assertEqual(["\u2500\u2500"], [widget.text for widget in from_lines])
+
+        # the attribute alone starts with the default character sets
+        self.assertEqual("qq", urwid.ANSIText("qq", previous_attr=first.last_attr).text)
+
+        # a widget restricted to one line continues from the end of that line
+        one_line = urwid.ANSIText("\x0eq\nq\x0f", one_line=True)
+        self.assertEqual("\u2500", urwid.ANSIText("q", previous_attr=one_line).text)
+        lines = list(urwid.ANSIText.from_lines(["q\nq\x0f", "\nq"], previous_attr=one_line, one_line=True))
+        self.assertEqual(["\u2500", "\u2500", "q"], [widget.text for widget in lines])
+
+        # a reset before the end leaves nothing to carry
+        self.assertEqual("q", urwid.ANSIText("q", previous_attr=urwid.ANSIText("\x0e\x1bc")).text)
 
     def test_attrib_rle_contract(self) -> None:
         widget = urwid.ANSIText("\x1b[31mred\x1b[0m and \n\x1b[32mgreen\x1b[0m")

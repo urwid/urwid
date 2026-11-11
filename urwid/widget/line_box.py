@@ -1,9 +1,13 @@
+"""LineBox: a decoration that draws a line border and title around a widget."""
+
 from __future__ import annotations
 
 import typing
 
+from urwid.util import decompose_tagmarkup
+
 from .columns import Columns
-from .constants import BOX_SYMBOLS, Align, WHSettings
+from .constants import BOX_SYMBOLS, Align, Sizing, WHSettings, WrapMode
 from .divider import Divider
 from .pile import Pile
 from .solid_fill import SolidFill
@@ -12,24 +16,33 @@ from .widget_decoration import WidgetDecoration, delegate_to_widget_mixin
 
 if typing.TYPE_CHECKING:
     from collections.abc import Hashable
+    from typing import Literal
 
-    from typing_extensions import Literal
+    from urwid.util import _TagMarkup
 
-    from .widget import AbstractWidget, Widget
+    from .widget import AbstractWidget, Widget, _DelegateToWidgetAfterDecorationMixin
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
 
+if typing.TYPE_CHECKING:
+    _LineBoxDelegate = _DelegateToWidgetAfterDecorationMixin
+else:
+    _LineBoxDelegate = delegate_to_widget_mixin("_wrapped_widget")
+
+
 class LineBox(
     WidgetDecoration[WrappedWidget],
-    delegate_to_widget_mixin("_wrapped_widget"),  # type: ignore[misc]
+    _LineBoxDelegate,
 ):
+    """Box widget decoration that draws a line border, with an optional title, around another widget."""
+
     Symbols = BOX_SYMBOLS
 
     def __init__(
         self,
         original_widget: WrappedWidget,
-        title: str = "",
+        title: _TagMarkup = "",
         title_align: Literal["left", "center", "right"] | Align = Align.CENTER,
         title_attr: Hashable = None,
         tlcorner: str = BOX_SYMBOLS.LIGHT.TOP_LEFT,
@@ -45,7 +58,8 @@ class LineBox(
         Draw a line around original_widget.
 
         Use 'title' to set an initial title text with will be centered
-        on top of the box.
+        on top of the box. It may be any text markup accepted by :class:`Text`.
+        A title wider than the top line is cut with an ellipsis.
 
         Use `title_attr` to apply a specific attribute to the title text.
 
@@ -104,22 +118,23 @@ class LineBox(
         To make Table constructions, some lineboxes need to be drawn without sides
         and T or CROSS symbols used for corners of cells.
 
-        :raises ValueError: a *title* is given while *tline* is empty, or *title_align* is not a supported alignment.
+        :raises ValueError: a *title* with text is given while *tline* is empty,
+            or *title_align* is not a supported alignment.
         """
-
         w_lline = SolidFill(lline)
         w_rline = SolidFill(rline)
 
         w_tlcorner, w_tline, w_trcorner = Text(tlcorner), Divider(tline), Text(trcorner)
         w_blcorner, w_bline, w_brcorner = Text(blcorner), Divider(bline), Text(brcorner)
 
-        if not tline and title:
+        formatted_title = self.format_title(title)
+        if not tline and title and formatted_title:
             raise ValueError("Cannot have a title when tline is empty string")
 
         if title_attr:
-            self.title_widget = Text((title_attr, self.format_title(title)))
+            self.title_widget = Text((title_attr, formatted_title), wrap=WrapMode.ELLIPSIS)
         else:
-            self.title_widget = Text(self.format_title(title))
+            self.title_widget = Text(formatted_title, wrap=WrapMode.ELLIPSIS)
 
         if tline:
             if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
@@ -134,7 +149,8 @@ class LineBox(
                 if title_align == Align.CENTER:
                     tline_widgets.append(w_tline)
 
-            self.tline_widget: Columns | None = Columns(tline_widgets)
+            # The lines beside the title may shrink to nothing, so a long title is cut rather than dropped.
+            self.tline_widget: Columns | None = Columns(tline_widgets, min_width=0)
             top = Columns(
                 (
                     (int(bool(tlcorner and lline)), w_tlcorner),
@@ -148,9 +164,18 @@ class LineBox(
             top = None
 
         # Note: We need to define a fixed first widget (even if it's 0 width) so that the other
-        # widgets have something to anchor onto
+        # widgets have something to anchor onto.
+        # A fixed-only widget cannot take a width from a weight column, so its column packs to the widget's width.
         middle = Columns(
-            ((int(bool(lline)), w_lline), original_widget, (int(bool(rline)), w_rline)),
+            (
+                (int(bool(lline)), w_lline),
+                (
+                    original_widget
+                    if original_widget.sizing() & {Sizing.BOX, Sizing.FLOW}
+                    else (WHSettings.PACK, original_widget)
+                ),
+                (int(bool(rline)), w_rline),
+            ),
             box_columns=[0, 2],
             focus_column=original_widget,
         )
@@ -179,6 +204,7 @@ class LineBox(
 
     @property
     def original_widget(self) -> WrappedWidget:
+        """Return the widget wrapped by the line box."""
         return super().original_widget
 
     @original_widget.setter
@@ -186,21 +212,34 @@ class LineBox(
         v_index = int(bool(self.tline_widget))  # we care only about top
         h_index = 1  # constant
         middle: Columns = typing.cast("Columns", self._wrapped_widget[v_index])
-        _old_widget, options = middle.contents[h_index]
+        options = (
+            middle.options()
+            if original_widget.sizing() & {Sizing.BOX, Sizing.FLOW}
+            else middle.options(WHSettings.PACK)
+        )
         middle.contents[h_index] = (original_widget, options)  # type: ignore[assignment]
-        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]  # pylint: disable=no-member
+        WidgetDecoration.original_widget.fset(self, original_widget)  # type: ignore[attr-defined]
 
     @property
     def _w(self) -> Pile:
         return self._wrapped_widget
 
-    def format_title(self, text: str) -> str:
-        if text:
+    def format_title(self, text: _TagMarkup) -> _TagMarkup:
+        """
+        Return ``text`` padded with spaces for display in the box's top border, or an empty string if unset.
+
+        A string stays a string; other text markup is returned as the list ``[" ", text, " "]``.
+        Markup with no text, such as ``("attr", "")``, counts as unset.
+        """
+        if not text:
+            return ""
+        if isinstance(text, str):
             return f" {text} "
+        if not decompose_tagmarkup(text)[0]:
+            return ""
+        return [" ", text, " "]
 
-        return ""
-
-    def set_title(self, text: str) -> None:
+    def set_title(self, text: _TagMarkup) -> None:
         """
         Set the title shown in the top line of the box.
 

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+"""Example: monitor and display the output of a subprocess while accepting input."""
+
 from __future__ import annotations
 
 import os
@@ -22,14 +24,24 @@ frame_widget = urwid.Frame[urwid.Filler[urwid.Text], urwid.Edit, None](
 
 
 def exit_on_enter(key: str | tuple[str, int, int, int]) -> None:
+    """Handle keys not consumed by the widgets: :kbd:`enter` to exit.
+
+    :param key: unhandled key or mouse event
+    :raises urwid.ExitMainLoop: when the user presses :kbd:`enter`
+    """
     if key == "enter":
-        raise urwid.ExitMainLoop()
+        raise urwid.ExitMainLoop
 
 
 loop = urwid.MainLoop(frame_widget, unhandled_input=exit_on_enter)
 
 
 def received_output(data: bytes) -> bool:
+    """Append data received from the subprocess to the output widget.
+
+    :param data: bytes read from the subprocess's standard output
+    :returns: ``True`` to keep the pipe watch registered
+    """
     output_widget.set_text(typing.cast("str", output_widget.text) + data.decode("utf8"))
     return True
 

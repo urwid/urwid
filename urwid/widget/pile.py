@@ -1,20 +1,30 @@
+"""Pile: a container that stacks widgets vertically."""
+
 from __future__ import annotations
 
 import itertools
+import math
+import sys
 import typing
 import warnings
-from itertools import chain, repeat
+from typing import Literal
 
-from typing_extensions import Literal
-
-from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
+from urwid import _deprecation
+from urwid.canvas import Canvas, CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 from urwid.split_repr import remove_defaults
 from urwid.util import is_mouse_press
 
-from .constants import Sizing, WHSettings
-from .container import WidgetContainerListContentsMixin, WidgetContainerMixin, _ContainerElementSizingFlag
-from .monitored_list import MonitoredFocusList, MonitoredList
+from .constants import Align, MouseButton, Sizing, WHSettings
+from .container import (
+    _SELECT_COMMANDS,
+    SelectNavigationListContentsMixin,
+    _ContainerElementSizingFlag,
+    _invalidate_on_focus_change,
+    _UnfocusedFocusAttrMixin,
+    _WeakCallback,
+)
+from .monitored_list import MonitoredFocusList
 from .widget import (
     AbstractBoxWidget,
     AbstractFixedWidget,
@@ -27,6 +37,14 @@ from .widget import (
 
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable, Iterator, Sequence
+
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+
+    from .attr_map import _AttrMapLike
+    from .container import _UnfocusedFocusAttrFunc
+else:
+    from urwid._deprecation import deprecated
 
 
 # Flag combinations tested on every element of every ``Pile.sizing()`` call, hoisted out of the loop
@@ -46,33 +64,35 @@ class PileWarning(WidgetWarning):
 
 class Pile(
     Widget,
-    WidgetContainerMixin[int],
-    WidgetContainerListContentsMixin[
-        typing.Union[
-            tuple[
-                typing.Union[AbstractFlowWidget, AbstractFixedWidget],
-                tuple[Literal[WHSettings.PACK], None],
-            ],
-            tuple[
-                AbstractBoxWidget,
-                tuple[Literal[WHSettings.GIVEN], int],
-            ],
-            tuple[
-                typing.Union[AbstractBoxWidget, AbstractFlowWidget],
-                tuple[Literal[WHSettings.WEIGHT], typing.Union[int, float]],
-            ],
+    SelectNavigationListContentsMixin[
+        tuple[
+            AbstractFlowWidget | AbstractFixedWidget,
+            tuple[Literal[WHSettings.PACK], None],
+        ]
+        | tuple[
+            AbstractBoxWidget,
+            tuple[Literal[WHSettings.GIVEN], int],
+        ]
+        | tuple[
+            AbstractBoxWidget | AbstractFlowWidget,
+            tuple[Literal[WHSettings.WEIGHT], int | float],
         ]
     ],
+    _UnfocusedFocusAttrMixin,
 ):
+    """A pile of widgets stacked vertically from top to bottom.
+
+    Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
+    Its handlers receive the container, the old and the new focus position, which is ``None`` while it is empty.
     """
-    A pile of widgets stacked vertically from top to bottom
-    """
+
+    signals: typing.ClassVar[list[str]] = ["focus changed"]
 
     def sizing(self) -> frozenset[Sizing]:
         """Sizing supported by widget.
 
-        :return: Calculated widget sizing
-        :rtype: frozenset[Sizing]
+        :returns: Calculated widget sizing
+        :warns PileWarning: an item's height type does not suit its widget's sizing.
 
         Due to the nature of container with mutable contents, this method cannot be cached.
 
@@ -200,19 +220,33 @@ class Pile(
             | tuple[Literal["weight", WHSettings.WEIGHT], int | float, AbstractBoxWidget | AbstractFlowWidget]
         ],
         focus_item: AbstractWidget | int | None = None,
+        *,
+        select_navigation: bool = False,
+        unfocused_focus_attr: _AttrMapLike | None = None,
+        unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
     ) -> None:
-        """
+        """Build the pile from a list of child widgets.
+
         :param widget_list: child widgets
-        :type widget_list: iterable
         :param focus_item: child widget that gets the focus initially.
-            Chooses the first selectable widget if unset.
-        :type focus_item: Widget or int
+            Chooses the first selectable widget if unset, skipping rows of height or weight 0
+            unless no other row is selectable.
+        :param select_navigation: handle the ``'next selectable'`` and ``'prev selectable'`` commands,
+            see :ref:`select-navigation`.
+        :param unfocused_focus_attr: attribute map applied to the focus child while the pile renders without
+            focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
+        :param unfocused_focus_attr_func: function that gives the map applied to the focus child while the pile
+            renders without focus, instead of *unfocused_focus_attr*; see :attr:`unfocused_focus_attr_func`.
         :raises PileError: an item of *widget_list* is not a widget or a valid ``(height, widget)`` pair.
+        :warns PileWarning: an item of *widget_list* is not a widget.
 
         *widget_list* may also contain tuples such as:
 
         (*given_height*, *widget*)
             always treat *widget* as a box widget and give it *given_height* rows, where given_height is an int
+        (``'given'``, *given_height*, *widget*)
+            the same as (*given_height*, *widget*), in the expanded form that repeats the :attr:`contents` options.
+            ``'fixed'`` is accepted as an older name for ``'given'``.
         (``'pack'``, *widget*)
             allow *widget* to calculate its own height by calling its :meth:`rows` method,
             i.e. treat it as a flow widget.
@@ -223,9 +257,10 @@ class Pile(
         Widgets not in a tuple are the same as (``'weight'``, ``1``, *widget*)`
 
         .. note:: If the Pile is treated as a box widget there must be at least
-            one ``'weight'`` tuple in :attr:`widget_list`.
+            one ``'weight'`` tuple in *widget_list*.
         """
-        self._selectable = False
+        self._cache_hidden_packs: frozenset[int] = frozenset()
+        self._cache_hidden_weights: frozenset[int] = frozenset()
         super().__init__()
         self._contents: MonitoredFocusList[
             tuple[
@@ -241,10 +276,11 @@ class Pile(
                 tuple[Literal[WHSettings.WEIGHT], int | float],
             ]
         ] = MonitoredFocusList()
-        self._contents.set_modified_callback(self._contents_modified)
-        self._contents.set_focus_changed_callback(lambda f: self._invalidate())
-        self._contents.set_validate_contents_modified(self._validate_contents_modified)
+        self._contents.set_modified_callback(_WeakCallback(self, type(self)._contents_modified))
+        self._contents.set_focus_changed_callback(_WeakCallback(self, _invalidate_on_focus_change))
+        self._contents.set_validate_contents_modified(_WeakCallback(self, type(self)._validate_contents_modified))
 
+        hidden_focus: int | None = None
         for i, original in enumerate(widget_list):
             if not isinstance(original, tuple):
                 w = original
@@ -270,14 +306,16 @@ class Pile(
                         )
                     )
             elif len(original) == 3:
-                settings, height, w = original  # type: ignore[assignment]
-                if settings in {Sizing.FIXED, WHSettings.GIVEN}:  # backwards compatibility
+                settings, amount, w = original
+                # Not deprecated: the expanded form of (height, widget) repeating the internal storage (GIVEN, height).
+                # "fixed" is its older name, kept for backward compatibility.
+                if settings in {Sizing.FIXED, WHSettings.GIVEN}:
                     self.contents.append(
                         (
                             typing.cast("AbstractBoxWidget", w),
                             (
                                 WHSettings.GIVEN,
-                                typing.cast("int", height),
+                                typing.cast("int", amount),
                             ),
                         )
                     )
@@ -287,7 +325,7 @@ class Pile(
                             w,
                             (
                                 WHSettings.WEIGHT,
-                                typing.cast("int | float", height),
+                                amount,
                             ),
                         )
                     )
@@ -296,17 +334,30 @@ class Pile(
             else:
                 raise PileError(f"initial widget list item invalid {original!r}")
             if focus_item is None and w.selectable():
-                focus_item = i
+                options = self.contents[i][1]
+                # a box Pile draws a row of height or weight 0 with no rows
+                if options[0] == WHSettings.PACK or options[1]:
+                    focus_item = i
+                elif hidden_focus is None:
+                    hidden_focus = i
 
             if not isinstance(w, AbstractWidget):
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
 
+        if focus_item is None:
+            focus_item = hidden_focus
         if self.contents and focus_item is not None:
             self.focus = focus_item
 
-        self.pref_col = 0
+        self.pref_col: int | Literal["left", "right", Align.LEFT, Align.RIGHT] = 0
+        self.select_navigation = select_navigation
+        self._set_unfocused_focus_attr(unfocused_focus_attr)
+        self._unfocused_focus_attr_func = unfocused_focus_attr_func
+        # connected last, so that filling the contents during construction sends no signal
+        self._contents.set_focus_moved_callback(_WeakCallback(self, type(self)._emit, "focus changed"))
 
     def _repr_words(self) -> list[str]:
+        """Return the base repr words followed by the number of items in the contents."""
         if len(self.contents) > 1:
             contents_string = f"({len(self.contents)} items)"
         elif self.contents:
@@ -316,37 +367,71 @@ class Pile(
         return [*super()._repr_words(), contents_string]
 
     def _repr_attrs(self) -> dict[str, typing.Any]:
-        attrs = {**super()._repr_attrs(), "focus_item": self.focus_position if len(self._contents) > 1 else None}
+        """Return the constructor arguments that differ from their defaults, for the repr.
+
+        The focus position is included only when there is more than one item.
+        """
+        attrs = {
+            **super()._repr_attrs(),
+            "focus_item": self.focus_position if len(self._contents) > 1 else None,
+            "select_navigation": self.select_navigation,
+            "unfocused_focus_attr": self._unfocused_focus_attr,
+            "unfocused_focus_attr_func": self._unfocused_focus_attr_func,
+        }
         return remove_defaults(attrs, Pile.__init__)
 
     def __rich_repr__(self) -> Iterator[tuple[str | None, typing.Any] | typing.Any]:
+        """Yield this widget's constructor arguments as `(name, value)` pairs, for `rich`'s repr protocol."""
         widget_list: list[
             AbstractWidget
             | tuple[Literal[WHSettings.PACK] | int, AbstractWidget]
             | tuple[Literal[WHSettings.WEIGHT], int | float, AbstractWidget]
         ] = []
 
-        for w_instance, (sizing, amount) in self._contents:
-            if sizing == WHSettings.GIVEN:
-                widget_list.append((typing.cast("int", amount), w_instance))
-            elif sizing == WHSettings.PACK:
+        for w_instance, options in self._contents:
+            if options[0] == WHSettings.GIVEN:
+                widget_list.append((options[1], w_instance))
+            elif options[0] == WHSettings.PACK:
                 widget_list.append((WHSettings.PACK, w_instance))
-            elif sizing == WHSettings.WEIGHT:
-                if amount == 1:
+            elif options[0] == WHSettings.WEIGHT:
+                if options[1] == 1:
                     widget_list.append(w_instance)
                 else:
-                    widget_list.append((WHSettings.WEIGHT, typing.cast("int | float", amount), w_instance))
+                    widget_list.append((WHSettings.WEIGHT, options[1], w_instance))
 
         yield "widget_list", widget_list
         yield "focus_item", self.focus_position if self._contents else None
+        yield "select_navigation", self.select_navigation, False
+        yield "unfocused_focus_attr", self._unfocused_focus_attr, None
+        yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
 
     def __len__(self) -> int:
+        """Return the number of widgets in the pile."""
         return len(self._contents)
 
     def _contents_modified(self) -> None:
-        """Recalculate whether this widget should be selectable whenever the contents has been changed."""
-        self._selectable = any(w.selectable() for w, o in self.contents)
+        """Invalidate this widget whenever the contents has been changed."""
+        # the hidden rows of the last layout are kept by position, which a change of the contents moves
+        self._cache_hidden_packs = frozenset()
+        self._cache_hidden_weights = frozenset()
         self._invalidate()
+
+    def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
+        """Yield the selectable positions as the base class does.
+
+        Rows the last layout hid are skipped, as recorded by :meth:`get_rows_sizes`.
+        """
+        for position in super()._select_candidates(reverse=reverse, from_edge=from_edge):
+            if position not in self._cache_hidden_packs and position not in self._cache_hidden_weights:
+                yield position
+
+    def selectable(self) -> bool:
+        """Return whether any child widget is selectable.
+
+        Asked on every call rather than cached,
+        since a child such as :class:`~urwid.WidgetPlaceholder` may change its selectability after it was added.
+        """
+        return any(w.selectable() for w, _ in self.contents)
 
     def _validate_contents_modified(
         self,
@@ -372,131 +457,18 @@ class Pile(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0)),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(float(n)))),
+                        t == WHSettings.GIVEN and not isinstance(n, int),
                     )
                 ):
                     invalid_items.append(item)
 
-        except (TypeError, ValueError) as exc:
+        # OverflowError: float() of an int too large for a float
+        except (TypeError, ValueError, OverflowError) as exc:
             raise PileError(f"added content invalid: {exc}").with_traceback(exc.__traceback__) from exc
 
         if invalid_items:
             raise PileError(f"added content invalid: {invalid_items!r}")
-
-    @property
-    def widget_list(self) -> MonitoredList[AbstractWidget]:
-        """
-        A list of the widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(w for w, t in self.contents)
-
-        def user_modified() -> None:
-            self.widget_list = ml
-
-        ml.set_modified_callback(user_modified)
-        return ml
-
-    @widget_list.setter
-    def widget_list(self, widgets: MonitoredList[AbstractWidget]) -> None:
-        focus_position = self.focus_position
-        self.contents = [
-            (new, options)  # type: ignore[misc]  # deprecated API, historic code lack support of FIXED
-            for (new, (w, options)) in zip(
-                widgets,
-                # need to grow contents list if widgets is longer
-                chain(self.contents, repeat((None, (WHSettings.WEIGHT, 1)))),
-            )
-        ]
-        if focus_position < len(widgets):
-            self.focus_position = focus_position
-
-    @property
-    def item_types(
-        self,
-    ) -> MonitoredList[
-        tuple[Literal[Sizing.FIXED], int]
-        | tuple[Literal[Sizing.FLOW], None]
-        | tuple[Literal[WHSettings.WEIGHT], int | float]
-    ]:
-        """
-        A list of the options values for widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        ml = MonitoredList(
-            # return the old item type names
-            (
-                {
-                    WHSettings.GIVEN: Sizing.FIXED,
-                    WHSettings.PACK: Sizing.FLOW,
-                }.get(f, f),
-                height,
-            )
-            for w, (f, height) in self.contents
-        )
-
-        def user_modified() -> None:
-            self.item_types = ml  # type: ignore[assignment]
-
-        ml.set_modified_callback(user_modified)
-        return ml  # type: ignore[return-value]
-
-    @item_types.setter
-    def item_types(
-        self,
-        item_types: MonitoredList[
-            tuple[Literal[Sizing.FIXED, WHSettings.GIVEN], int]
-            | tuple[Literal[Sizing.FLOW, WHSettings.PACK], None]
-            | tuple[Literal[WHSettings.WEIGHT], int | float]
-        ],
-    ) -> None:
-        """
-        Replace the height settings of the widgets in this Pile.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`contents` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "only for backwards compatibility. You should use the new standard container property `contents`."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        focus_position = self.focus_position
-        self.contents = [
-            (  # type: ignore[misc]
-                w,
-                (
-                    {
-                        Sizing.FIXED: WHSettings.GIVEN,
-                        Sizing.FLOW: WHSettings.PACK,
-                    }.get(new_t, new_t),  # type: ignore[arg-type]  # normalisation from legacy
-                    new_height,
-                ),
-            )
-            for ((new_t, new_height), (w, options)) in zip(item_types, self.contents)
-        ]
-        if focus_position < len(item_types):
-            self.focus_position = focus_position
 
     @property
     def contents(
@@ -546,7 +518,7 @@ class Pile(
     @contents.setter
     def contents(
         self,
-        c: Sequence[
+        new_contents: Sequence[
             tuple[
                 AbstractFlowWidget | AbstractFixedWidget,
                 tuple[Literal[WHSettings.PACK], None],
@@ -561,7 +533,44 @@ class Pile(
             ]
         ],
     ) -> None:
-        self._contents[:] = c
+        """Replace the contents with *new_contents*.
+
+        :param new_contents: `(widget, options)` tuples, with options made by the :meth:`options` method
+        :raises PileError: an item is not a valid ``(widget, options)`` pair.
+        """
+        self._contents[:] = new_contents
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["pack", WHSettings.PACK],
+        height_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> tuple[Literal[WHSettings.PACK], None]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["given", WHSettings.GIVEN],
+        height_amount: int = ...,
+    ) -> tuple[Literal[WHSettings.GIVEN], int]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["weight", WHSettings.WEIGHT] = ...,
+        height_amount: int | float = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> tuple[Literal[WHSettings.WEIGHT], int | float]: ...
+
+    @typing.overload
+    @staticmethod
+    def options(
+        height_type: Literal["pack", "given", "weight"] | WHSettings = ...,
+        height_amount: int | float | None = ...,  # noqa: PYI041  # provide explicit for IDEs
+    ) -> (
+        tuple[Literal[WHSettings.PACK], None]
+        | tuple[Literal[WHSettings.GIVEN], int]
+        | tuple[Literal[WHSettings.WEIGHT], int | float]
+    ): ...
 
     @staticmethod
     def options(
@@ -577,19 +586,20 @@ class Pile(
 
         :param height_type: ``'pack'``, ``'given'`` or ``'weight'``
         :param height_amount: ``None`` for ``'pack'``, a number of rows for
-            ``'fixed'`` or a weight value (number) for ``'weight'``
+            ``'given'`` or a weight value (number) for ``'weight'``
         :raises PileError: *height_type* and *height_amount* are not a valid combination.
         """
-
         if height_type == WHSettings.PACK:
             return (WHSettings.PACK, None)
-        if height_type in {WHSettings.GIVEN, WHSettings.WEIGHT} and height_amount is not None:
-            return (height_type, height_amount)  # type: ignore[return-value]
+        if height_type == WHSettings.GIVEN and isinstance(height_amount, int):
+            return (WHSettings.GIVEN, height_amount)
+        if height_type == WHSettings.WEIGHT and height_amount is not None:
+            return (WHSettings.WEIGHT, height_amount)
         raise PileError(f"invalid combination: height_type={height_type!r}, height_amount={height_amount!r}")
 
     @property
     def focus(self) -> AbstractWidget | None:
-        """the child widget in focus or None when Pile is empty"""
+        """The child widget in focus or None when Pile is empty."""
         if not self.contents:
             return None
         return self.contents[self.focus_position][0]
@@ -604,55 +614,8 @@ class Pile(
             to set the position by integer index instead.
 
         :param item: element to focus
-        :type item: Widget or int
         :raises ValueError: *item* is a widget that is not in the contents.
         """
-        if isinstance(item, int):
-            self.focus_position = item
-            return
-        for i, (w, _options) in enumerate(self.contents):
-            if item == w:
-                self.focus_position = i
-                return
-        raise ValueError(f"Widget not found in Pile contents: {item!r}")
-
-    def get_focus(self) -> AbstractWidget | None:
-        """
-        Return the widget in focus.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if not self.contents:
-            return None
-        return self.contents[self.focus_position][0]
-
-    def set_focus(self, item: AbstractWidget | int) -> None:
-        """
-        Set the child widget in focus.
-
-        :param item: widget or integer index
-        :raises ValueError: *item* is a widget that is not in the contents.
-
-        .. deprecated:: 1.1.0
-            Use the standard container property :attr:`focus_position` instead.
-            This API will be removed in version 5.0.
-        """
-        warnings.warn(
-            "for backwards compatibility."
-            "You may also use the new standard container property .focus to get the child widget in focus."
-            "API will be removed in version 5.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         if isinstance(item, int):
             self.focus_position = item
             return
@@ -664,8 +627,8 @@ class Pile(
 
     @property
     def focus_position(self) -> int:
-        """
-        index of child widget in focus.
+        """Index of child widget in focus.
+
         Raises :exc:`IndexError` if read when Pile is empty, or when set to an invalid index.
 
         :raises IndexError: the Pile is empty.
@@ -690,8 +653,14 @@ class Pile(
             raise IndexError(f"No Pile child widget at position {position}").with_traceback(exc.__traceback__) from exc
         self.contents.focus = position
 
-    def get_pref_col(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> int | None:
-        """Return the preferred column for the cursor, or None."""
+    def get_pref_col(
+        self,
+        size: tuple[()] | tuple[int] | tuple[int, int],
+    ) -> int | Literal["left", "right", Align.LEFT, Align.RIGHT] | None:
+        """Return the preferred column for the cursor, or None.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not self.selectable():
             return None
 
@@ -702,6 +671,11 @@ class Pile(
         self._update_pref_col_from_focus(size_args[self.focus_position])
         return self.pref_col
 
+    @deprecated(
+        "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose. "
+        "Deprecated since urwid 4.1.4, will be removed in version 7.0.",
+        category=None,
+    )
     def get_item_size(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
@@ -710,18 +684,22 @@ class Pile(
         item_rows: list[int] | None = None,
     ) -> tuple[()] | tuple[int] | tuple[int, int]:
         """
-        Return a size appropriate for passing to self.contents[i][0].render
+        Return a size appropriate for passing to self.contents[i][0].render.
 
         :raises PileError: the item uses a height rule that needs size information the caller did not provide, or a
             height rule that is not supported.
+
+        .. deprecated:: 4.1.4
+            Not used by the urwid code base. Use :meth:`get_rows_sizes` instead.
+            This API will be removed in version 7.0.
         """
-        warnings.warn(
-            "get_item_size is going to be deprecated and can be removed soon."
-            "This method is not used by the urwid codebase and `get_rows_sizes` is used for the similar purposes.",
-            PendingDeprecationWarning,
-            stacklevel=2,
+        _deprecation.warn(
+            "get_item_size is not used by the urwid code base and `get_rows_sizes` serves the same purpose.",
+            since="4.1.4",
+            removed_in="7.0",
         )
-        _w, (f, height) = self.contents[i]
+        _w, options = self.contents[i]
+        f = options[0]
         if f == WHSettings.PACK:
             if not size:
                 return ()
@@ -732,8 +710,8 @@ class Pile(
 
         maxcol = size[0]
 
-        if f == WHSettings.GIVEN:
-            return (maxcol, typing.cast("int", height))
+        if options[0] == WHSettings.GIVEN:
+            return (maxcol, options[1])
 
         if f == WHSettings.WEIGHT:
             if len(size) == 2:
@@ -749,12 +727,12 @@ class Pile(
         self,
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get rows widths, heights and render size parameters
+        """Get rows widths, heights and render size parameters.
 
         Fixed case expect widget sizes calculation with several cycles for unknown height cases.
 
-        :raises PileError: a child widget does not support a sizing mode this Pile needs, or no child can provide a
-            width.
+        :raises PileError: a child widget does not support a sizing mode this Pile needs, no child can provide a
+            width, or the weights are too far apart to keep their ratio at a fixed size.
         """
         if not self.contents:
             return (), (), ()
@@ -768,11 +746,13 @@ class Pile(
         weighted: dict[int | float, list[int]] = {}
         weights: list[int | float] = []
         weight_max_sizes: dict[int | float, int] = {}
+        focus_widget = self.focus
 
-        for idx, (widget, (size_kind, size_weight)) in enumerate(self.contents):
+        for idx, (widget, options) in enumerate(self.contents):
+            size_kind = options[0]
             w_sizing = widget.sizing()
-            focused = focus and self.focus == widget
-            if size_kind == WHSettings.PACK:
+            focused = focus and focus_widget == widget
+            if options[0] == WHSettings.PACK:
                 if Sizing.FIXED in w_sizing:
                     widths[idx], heights[idx] = typing.cast("AbstractFixedWidget", widget).pack((), focused)
                     w_h_args[idx] = ()
@@ -782,14 +762,14 @@ class Pile(
                 if not w_sizing & {Sizing.FIXED, Sizing.FLOW}:
                     raise PileError(f"Unsupported sizing {w_sizing} for {size_kind.upper()}")
 
-            elif size_kind == WHSettings.GIVEN:
-                heights[idx] = typing.cast("int", size_weight)
+            elif options[0] == WHSettings.GIVEN:
+                heights[idx] = options[1]
                 if Sizing.BOX in w_sizing:
                     box.append(idx)
                 else:
                     raise PileError(f"Unsupported sizing {w_sizing} for {size_kind.upper()}")
 
-            elif typing.cast("int | float", size_weight) <= 0:
+            elif options[1] <= 0:
                 widths[idx] = 0
                 heights[idx] = 0
                 if Sizing.FLOW in w_sizing:
@@ -802,7 +782,7 @@ class Pile(
                 widths[idx] = width  # We're fitting everything in case of FIXED
 
                 if Sizing.BOX in w_sizing:
-                    size_weight = typing.cast("int | float", size_weight)
+                    size_weight = options[1]
                     weighted.setdefault(size_weight, []).append(idx)
                     weights.append(size_weight)
 
@@ -833,7 +813,12 @@ class Pile(
             max_weighted_coefficient = max(height / weight for weight, height in weight_max_sizes.items())
 
             for weight in weight_max_sizes:
-                height = max(int(max_weighted_coefficient * weight + 0.5), 1)
+                try:
+                    height = max(int(max_weighted_coefficient * weight + 0.5), 1)
+                except OverflowError as exc:
+                    raise PileError(
+                        f"Weights of {self!r} are too far apart to keep their ratio at a fixed size"
+                    ) from exc
                 for idx in weighted[weight]:
                     heights[idx] = height
                     w_h_args[idx] = (max_width, height)
@@ -853,22 +838,29 @@ class Pile(
         size: tuple[int],
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get rows widths, heights and render size parameters
+        """Get rows widths, heights and render size parameters.
 
         Flow case is the simplest one: minimum cycles in the logic and no widgets manipulation.
         Here we can make some shortcuts
+
+        :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
         """
         maxcol = size[0]
-        if not self.contents:
+        contents = self.contents
+        if not contents:
             return (maxcol,), (0,), ()
 
-        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
+        widths: tuple[int, ...] = (maxcol,) * len(contents)
         heights: list[int] = []
         w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = []
         focus_position = self.focus_position
+        flow_arg = (maxcol,)
+        flow = Sizing.FLOW
 
-        for i, (w, (f, height)) in enumerate(self.contents):
-            if isinstance(w, AbstractWidget):
+        for i, (w, options) in enumerate(contents):
+            f = options[0]
+            # the MRO lookup answers for every Widget subclass without the much slower Protocol check
+            if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -876,13 +868,13 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == WHSettings.GIVEN:
-                height = typing.cast("int", height)
+            if options[0] == WHSettings.GIVEN:
+                height = options[1]
                 heights.append(height)
                 w_h_args.append((maxcol, height))
-            elif Sizing.FLOW in w_sizing:
-                heights.append(typing.cast("AbstractFlowWidget", w).rows((maxcol,), focus=focused))
-                w_h_args.append((maxcol,))
+            elif flow in w_sizing:
+                heights.append(typing.cast("AbstractFlowWidget", w).rows(flow_arg, focus=focused))
+                w_h_args.append(flow_arg)
             elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
                 heights.append(typing.cast("AbstractFixedWidget", w).pack((), focused)[1])
                 w_h_args.append(())
@@ -903,26 +895,85 @@ class Pile(
         size: tuple[int, int] | tuple[int] | tuple[()],
         focus: bool = False,
     ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
-        """Get rows widths, heights and render size parameters"""
-        if not size:
-            return self._get_fixed_rows_sizes(focus=focus)
-        if len(size) == 1:
-            return self._get_flow_rows_sizes(size, focus=focus)
+        """Get rows widths, heights and render size parameters.
 
+        Records the rows this layout hides, which the focus moves skip.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        :warns PileWarning: an item is not a widget, or its widget does not support the sizing its height type needs.
+        """
+        contents = self.contents
+        if not size:
+            sizes = self._get_fixed_rows_sizes(focus=focus) if contents else ((), (), ())
+        elif len(size) == 1:
+            sizes = self._get_flow_rows_sizes(size, focus=focus) if contents else ((size[0],), (0,), ())
+        else:
+            sizes = self._get_box_rows_sizes(size, focus=focus)
+
+        if not contents:
+            # an empty Pile hides no rows
+            self._cache_hidden_packs = self._cache_hidden_weights = frozenset()
+            return sizes
+
+        _widths, heights, size_args = sizes
+        if 0 not in heights:
+            self._cache_hidden_packs = self._cache_hidden_weights = frozenset()
+            return sizes
+
+        # A row 0 high is hidden when focusing it would not show it:
+        # a row of weight 0, which a box or fixed Pile gives no rows,
+        # or a row sized as a flow or fixed widget, with a size argument of 1 or 0 items, that is 0 rows focused too.
+        # A weighted row 0 high for lack of room is not hidden: the focus row still gets a row.
+        size_len = len(size)
+        hidden_weights: list[int] = []
+        pack_candidates: list[tuple[int, AbstractWidget]] = []
+        for i, (height, (w, (height_type, amount))) in enumerate(zip(heights, contents, strict=False)):
+            if height:
+                continue
+            if size_len != 1 and height_type == WHSettings.WEIGHT and not amount:
+                hidden_weights.append(i)
+            elif len(size_args[i]) < 2:
+                pack_candidates.append((i, w))
+        self._cache_hidden_weights = frozenset(hidden_weights)
+
+        hidden_packs: list[int] = []
+        for i, w in pack_candidates:
+            size_arg = size_args[i]
+            # sized with the call its layout path used: rows() in a flow or fixed Pile, pack() otherwise
+            if size_len != 2 and size_arg:
+                rows = w.rows(size_arg, True)  # type: ignore[arg-type,union-attr]
+            else:
+                rows = w.pack(size_arg, True)[1]  # type: ignore[arg-type]
+            if rows == 0:
+                hidden_packs.append(i)
+        self._cache_hidden_packs = frozenset(hidden_packs)
+        return sizes
+
+    def _get_box_rows_sizes(
+        self,
+        size: tuple[int, int],
+        focus: bool,
+    ) -> tuple[tuple[int, ...], tuple[int, ...], tuple[tuple[int, int] | tuple[int] | tuple[()], ...]]:
+        """Get rows widths, heights and render size parameters for a box Pile."""
         maxcol, maxrow = size
-        if not self.contents:
+        contents = self.contents
+        if not contents:
             return (maxcol,), (maxrow,), ()
 
         remaining: int = maxrow
 
-        widths: tuple[int, ...] = (maxcol,) * len(self.contents)
-        heights: dict[int, int] = {}
+        # Weighted rows stay 0 until their share is known.
+        count = len(contents)
+        widths: tuple[int, ...] = (maxcol,) * count
+        heights: list[int] = [0] * count
         weighted: dict[int, int | float] = {}
-        w_h_args: dict[int, tuple[int, int] | tuple[int] | tuple[()]] = {}
+        w_h_args: list[tuple[int, int] | tuple[int] | tuple[()]] = [()] * count
         focus_position = self.focus_position
+        pack = WHSettings.PACK
 
-        for i, (w, (f, height)) in enumerate(self.contents):
-            if isinstance(w, AbstractWidget):
+        for i, (w, options) in enumerate(contents):
+            f = options[0]
+            if Widget in type(w).__mro__ or isinstance(w, AbstractWidget):
                 w_sizing = w.sizing()
             else:
                 warnings.warn(f"{w!r} is not a Widget", PileWarning, stacklevel=3)
@@ -930,12 +981,12 @@ class Pile(
 
             focused = focus and i == focus_position
 
-            if f == WHSettings.GIVEN:
-                height = typing.cast("int", height)
+            if options[0] == WHSettings.GIVEN:
+                height = options[1]
                 heights[i] = height
                 w_h_args[i] = (maxcol, height)
                 remaining -= height
-            elif f == WHSettings.PACK or len(size) == 1:
+            elif f == pack:
                 if Sizing.FLOW in w_sizing:
                     w_h_arg: tuple[int] | tuple[()] = (maxcol,)
                 elif Sizing.FIXED in w_sizing and f == WHSettings.PACK:
@@ -954,19 +1005,18 @@ class Pile(
                 heights[i] = item_height
                 w_h_args[i] = w_h_arg
                 remaining -= item_height
-            elif height:
-                weighted[i] = height
+            elif options[1]:
+                weighted[i] = options[1]
             else:
                 heights[i] = 0
                 w_h_args[i] = (maxcol, 0)  # zero-weighted items treated as ('given', 0)
 
-        sum_weight = sum(weighted.values())
         if remaining <= 0 and focus_position in weighted:
             # We need to hide some widgets: focused part will be not displayed by default
             # At this place we have to operate also negative "remaining" to be sure that widget really fit
             before = []
             after = []
-            for idx, height in heights.items():
+            for idx, height in enumerate(heights):
                 if height:
                     if idx < focus_position:
                         before.append(idx)
@@ -976,16 +1026,16 @@ class Pile(
             # Try to move to the center
             offset = len(before) - len(after)
             if not offset:
-                indexes: Iterable[int] = itertools.chain.from_iterable(zip(after[::-1], before))
+                indexes: Iterable[int] = itertools.chain.from_iterable(zip(after[::-1], before, strict=True))
             elif offset > 0:
                 indexes = (
                     *before[:offset],
-                    *itertools.chain.from_iterable(zip(after[::-1], before[offset:])),
+                    *itertools.chain.from_iterable(zip(after[::-1], before[offset:], strict=True)),
                 )
             else:
                 indexes = (
                     *after[-1 : offset - 1 : -1],
-                    *itertools.chain.from_iterable(zip(after[offset - 1 :: -1], before)),
+                    *itertools.chain.from_iterable(zip(after[offset - 1 :: -1], before, strict=True)),
                 )
 
             for idx in indexes:
@@ -996,38 +1046,51 @@ class Pile(
 
         remaining = max(remaining, 0)
 
-        for idx in sorted(weighted, key=lambda idx: (idx != focus_position, idx)):
-            # We have to sort weighted items way that focused widget will gain render priority
-            if remaining == 0:
-                rows = 0
-            else:
-                rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5)
-                if not rows and idx == focus_position:
-                    # Special case: we have to force as minimum 1 row for focused widget to prevent broken behaviour
-                    rows = 1
-                remaining -= rows
-                sum_weight -= weighted[idx]
+        if weighted and (max_weight := max(weighted.values())) > sys.float_info.max / (
+            len(weighted) * max(remaining, 1)
+        ):
+            # remaining * sum_weight could overflow a float: scale weights to at most 1, keeping their ratios
+            weighted = {idx: weight / max_weight for idx, weight in weighted.items()}
 
+        sum_weight = sum(weighted.values())
+
+        # in index order, so the heights do not depend on which row has the focus
+        for idx in weighted:
+            rows = int(float(remaining) * weighted[idx] / sum_weight + 0.5) if remaining else 0
             heights[idx] = rows
-            w_h_args[idx] = (maxcol, rows)
+            remaining -= rows
+            sum_weight -= weighted[idx]
 
-        return (
-            widths,
-            tuple(heights[idx] for idx in range(len(heights))),
-            tuple(w_h_args[idx] for idx in range(len(w_h_args))),
-        )
+        # the focus row needs a row to be seen: take it from the nearest weighted row that has one,
+        # the row above when two are equally near
+        if (
+            focus_position in weighted
+            and not heights[focus_position]
+            and (donors := [idx for idx in weighted if heights[idx]])
+        ):
+            donor = min(donors, key=lambda idx: abs(idx - focus_position))
+            heights[donor] -= 1
+            heights[focus_position] = 1
+
+        for idx in weighted:
+            w_h_args[idx] = (maxcol, heights[idx])
+
+        return widths, tuple(heights), tuple(w_h_args)
 
     def pack(self, size: tuple[()] | tuple[int] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
-        """Get packed sized for widget."""
+        """Get packed size for widget.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if size:
             return super().pack(size, focus)
         widths, heights, _ = self.get_rows_sizes(size, focus)
         return (max(widths), sum(heights))
 
     def get_item_rows(self, size: tuple[int] | tuple[int, int], focus: bool) -> list[int]:
-        """A list of the number of rows used by each widget in self.contents.
+        """Return the number of rows used by each widget in self.contents.
 
-        This method is a normally used only by `get_item_size` for the BOX case..
+        The result is the heights part of :meth:`get_rows_sizes`.
         """
         return list(self.get_rows_sizes(size, focus)[1])
 
@@ -1040,16 +1103,27 @@ class Pile(
         Render the Pile and return the resulting canvas.
 
         :raises ValueError: the Pile is empty and no *size* was given.
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         _widths, heights, size_args = self.get_rows_sizes(size, focus)
 
         combinelist = []
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):
-            item_focus = self.focus == w
+        # Rows not drawn whose own size decided the layout.
+        # They are listed in the canvas children, so the canvas cache drops this canvas when one of them changes.
+        undrawn: list[tuple[int, int, Canvas, int]] = []
+        focus_widget = self.focus
+        for i, (height, w_size, (w, (height_type, amount))) in enumerate(
+            zip(heights, size_args, self.contents, strict=False)
+        ):
+            item_focus = focus_widget == w
             canv = None
             if height > 0:
                 # widget kind and size arguments matched separately
                 canv = w.render(w_size, focus=focus and item_focus)  # type: ignore[arg-type]
+                if item_focus and not focus:
+                    canv = self._mark_unfocused_focus(canv, self._unfocused_focus_map_for(w))
+            elif height_type == WHSettings.PACK or (height_type == WHSettings.WEIGHT and amount and len(size) != 2):
+                undrawn.append((0, 0, w.render(w_size), i))  # type: ignore[arg-type]
 
             if canv:
                 combinelist.append((canv, i, item_focus))
@@ -1058,23 +1132,33 @@ class Pile(
             if not size:
                 raise ValueError("size must be provided when no contents are present")
 
-            return SolidCanvas(" ", size[0], (*size[1:], 0)[0])
-
-        out = CanvasCombine(combinelist)
-        if len(size) == 2 and size[1] != out.rows():
-            # flow/fixed widgets rendered too large/small
-            out = CompositeCanvas(out)
-            out.pad_trim_top_bottom(0, size[1] - out.rows())
+            empty = SolidCanvas(" ", size[0], (*size[1:], 0)[0])
+            if not undrawn:
+                return empty
+            out = CompositeCanvas(empty)
+        else:
+            out = CanvasCombine(combinelist)
+            if len(size) == 2 and size[1] != out.rows():
+                # flow/fixed widgets rendered too large/small
+                out = CompositeCanvas(out)
+                out.pad_trim_top_bottom(0, size[1] - out.rows())
+        out.children.extend(undrawn)
         return out
 
     def get_cursor_coords(self, size: tuple[()] | tuple[int] | tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates of the focus widget."""
+        """Return the cursor coordinates of the focus widget.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         if not self.selectable():
             return None
 
         if (get_cursor_coords := getattr(self.focus, "get_cursor_coords", None)) is not None:
             i = self.focus_position
             _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
+
+            if heights[i] == 0:
+                return None
 
             if (coords := get_cursor_coords(size_args[i])) is not None:  # pylint: disable=not-callable
                 x, y = coords
@@ -1086,12 +1170,17 @@ class Pile(
         return None
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:
+        """Return the total number of rows occupied by all of the pile's widgets."""
         return sum(self.get_rows_sizes(size, focus)[1])
 
     def keypress(self, size: tuple[()] | tuple[int] | tuple[int, int], key: str) -> str | None:
         """Pass the keypress to the widget in focus.
 
+        A hidden focus row, one with a height of 0, gets no keys.
         Unhandled :kbd:`up` and :kbd:`down` keys may cause a focus change.
+        With :attr:`select_navigation`, so do unhandled ``'next selectable'`` and ``'prev selectable'`` commands.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
         """
         if not self.contents:
             return key
@@ -1099,25 +1188,26 @@ class Pile(
         i = self.focus_position
         _widths, heights, size_args = self.get_rows_sizes(size, focus=self.selectable())
         if self.selectable():
-            if (processed := self.focus.keypress(size_args[i], key)) is not None:  # type: ignore[union-attr]
-                key = processed
-            else:
-                return None
-            if self._command_map[key] not in {Command.UP, Command.DOWN}:
+            if heights[i] > 0:
+                if (processed := self.focus.keypress(size_args[i], key)) is not None:  # type: ignore[union-attr]
+                    key = processed
+                else:
+                    return None
+            select = self.select_navigation and self._command_map[key] in _SELECT_COMMANDS
+            if not select and (self._command_map[key] not in {Command.UP, Command.DOWN} or not self.contents):
                 return key
+            if self.contents:
+                # The child may have changed this Pile's contents or focus while handling the key,
+                # so the sizes and the hidden rows are recalculated and the candidates are taken from the current focus.
+                _widths, heights, size_args = self.get_rows_sizes(size, focus=True)
+            if select:
+                return self._select_keypress_unhandled(key)
 
-        if self._command_map[key] == Command.UP:
-            candidates = tuple(range(i - 1, -1, -1))  # count backwards to 0
-        else:  # self._command_map[key] == 'cursor down'
-            candidates = tuple(range(i + 1, len(self.contents)))
-
-        for j in candidates:
-            if not self.contents[j][0].selectable():
-                continue
-
+        for j in self._select_candidates(reverse=self._command_map[key] == Command.UP, from_edge=False):
+            w = self.contents[j][0]
             self._update_pref_col_from_focus(size_args[self.focus_position])
             self.focus_position = j
-            if not hasattr(self.focus, "move_cursor_to_coords"):
+            if not hasattr(w, "move_cursor_to_coords"):
                 return None
 
             rows = heights[j]
@@ -1126,11 +1216,7 @@ class Pile(
             else:  # self._command_map[key] == 'cursor down'
                 rowlist = tuple(range(rows))
             for row in rowlist:
-                if self.focus.move_cursor_to_coords(  # type: ignore[union-attr]
-                    size_args[self.focus_position],
-                    self.pref_col,
-                    row,
-                ):
+                if w.move_cursor_to_coords(size_args[j], self.pref_col, row):
                     break
             return None
 
@@ -1139,7 +1225,6 @@ class Pile(
 
     def _update_pref_col_from_focus(self, w_size: tuple[()] | tuple[int] | tuple[int, int]) -> None:
         """Update self.pref_col from the focus widget."""
-
         if (get_pref_col := getattr(self.focus, "get_pref_col", None)) is not None:  # noqa: SIM102
             if (pref_col := get_pref_col(w_size)) is not None:  # pylint: disable=not-callable
                 self.pref_col = pref_col
@@ -1147,17 +1232,20 @@ class Pile(
     def move_cursor_to_coords(
         self,
         size: tuple[()] | tuple[int] | tuple[int, int],
-        col: int,
+        col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
         row: int,
     ) -> bool:
-        """Capture pref col and set new focus."""
+        """Capture pref col and set new focus.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+        """
         self.pref_col = col
 
         # FIXME guessing focus==True
         focus = True
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)
-        for i, (r, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):  # noqa: B007
+        for i, (r, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):  # noqa: B007
             if wrow + r > row:
                 break
             wrow += r
@@ -1168,6 +1256,10 @@ class Pile(
             return False
 
         if hasattr(w, "move_cursor_to_coords") and w.move_cursor_to_coords(w_size, col, row - wrow) is False:
+            return False
+
+        # The child may have changed this Pile's contents while moving its cursor.
+        if i >= len(self.contents) or self.contents[i][0] is not w:
             return False
 
         self.focus_position = i
@@ -1185,11 +1277,17 @@ class Pile(
         """Pass the event to the contained widget.
 
         May change focus on button 1 press.
+
+        :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
+
+        .. deprecated:: 2.4.0
+            Support for a child that does not implement ``mouse_event`` is deprecated.
+            Support will be removed in version 7.0.
         """
         wrow = 0
         _widths, heights, size_args = self.get_rows_sizes(size, focus=focus)
 
-        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents)):  # noqa: B007
+        for i, (height, w_size, (w, _)) in enumerate(zip(heights, size_args, self.contents, strict=False)):  # noqa: B007
             if wrow + height > row:
                 target_row = row - wrow
                 break
@@ -1197,14 +1295,14 @@ class Pile(
         else:
             return False
 
-        if is_mouse_press(event) and button == 1 and w.selectable():
+        if is_mouse_press(event) and button == MouseButton.LEFT and w.selectable():
             self.focus_position = i
 
         if not hasattr(w, "mouse_event"):
-            warnings.warn(
-                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API",
-                DeprecationWarning,
-                stacklevel=2,
+            _deprecation.warn(
+                f"{w.__class__.__module__}.{w.__class__.__name__} is not implementing Widget API.",
+                since="2.4.0",
+                removed_in="7.0",
             )
             return False
 

@@ -1,3 +1,5 @@
+"""Pytest configuration: skip collecting modules that cannot be imported on this platform."""
+
 from __future__ import annotations
 
 import importlib.util
@@ -35,13 +37,21 @@ _OPTIONAL_BACKEND: typing.Final[dict[str, str]] = {
 
 
 def _backend_available(name: str) -> bool:
+    """Return whether the module *name* can be imported.
+
+    Importing is the only reliable probe.
+    GraalPy and PyPy for Windows ship an ``_curses`` stub that ``find_spec`` resolves,
+    but the stub raises ``ModuleNotFoundError`` on import.
+    """
     try:
-        return importlib.util.find_spec(name) is not None
-    except (ImportError, ValueError):
+        importlib.import_module(name)
+    except ImportError:
         return False
+    return True
 
 
 def pytest_ignore_collect(collection_path: Path) -> bool | None:
+    """Skip collecting a platform-only or optional-backend test module that cannot run here."""
     name = collection_path.name
 
     if not _PLATFORM_ONLY.get(name, True):
