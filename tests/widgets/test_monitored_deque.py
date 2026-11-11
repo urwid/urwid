@@ -3,14 +3,19 @@ from __future__ import annotations
 import collections
 import decimal
 import fractions
+import functools
 import math
 import operator
 import sys
+import typing
 import unittest
 import warnings
 
 import urwid
 from tests.util import CountingIndex, Index
+
+if typing.TYPE_CHECKING:
+    from collections.abc import Callable
 
 IS_PYPY = sys.implementation.name == "pypy"
 
@@ -210,6 +215,123 @@ class MonitoredFocusDequeModifiedCallbackTest(unittest.TestCase):
         md.popleft()
         self.assertEqual(["x", "b", "c", "d"], list(md))
         self.assertEqual("c", md[md.focus])
+
+
+class MonitoredFocusDequeFocusMovedCallbackTest(unittest.TestCase):
+    """The focus moved callback runs after the focus changed, once per operation, as on a focus list."""
+
+    @staticmethod
+    def record_with_state(
+        md: urwid.MonitoredFocusDeque[int],
+        seen: list[tuple[int | None, int | None, list[int], int | None]],
+        old: int | None,
+        new: int | None,
+    ) -> None:
+        """Record a focus move with the contents and the focus the deque has when it is reported."""
+        seen.append((old, new, list(md), md.focus))
+
+    def test_operations_report_once_with_final_state(self) -> None:
+        """A change of the contents reports the old and the final focus once, with the contents already final."""
+        operations: dict[str, tuple[Callable[[urwid.MonitoredFocusDeque[int]], object], int | None, int | None]] = {
+            "del before focus": (lambda md: md.__delitem__(0), None, 1),
+            "del after focus": (lambda md: md.__delitem__(4), None, 2),
+            "set item": (lambda md: md.__setitem__(2, 7), None, 2),
+            "insert before focus": (lambda md: md.insert(0, -1), None, 3),
+            "append": (lambda md: md.append(6), None, 2),
+            "append evicting the head": (lambda md: md.append(6), 6, 1),
+            "appendleft": (lambda md: md.appendleft(-1), None, 3),
+            "extend": (lambda md: md.extend([6, 7]), None, 2),
+            "iadd": (lambda md: md.__iadd__([6, 7]), None, 2),
+            "extendleft": (lambda md: md.extendleft([-1, -2]), None, 4),
+            "pop": (lambda md: md.pop(), None, 2),
+            "popleft": (lambda md: md.popleft(), None, 1),
+            "remove": (lambda md: md.remove(0), None, 1),
+            "reverse": (lambda md: md.reverse(), None, 3),
+            "rotate": (lambda md: md.rotate(2), None, 4),
+            "rotate a whole turn": (lambda md: md.rotate(6), None, 2),
+            "clear": (lambda md: md.clear(), None, None),
+            "focus": (lambda md: setattr(md, "focus", 4), None, 4),
+            "same focus": (lambda md: setattr(md, "focus", 2), None, 2),
+        }
+        for name, (operation, maxlen, new_focus) in operations.items():
+            with self.subTest(name):
+                md: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque(range(6), maxlen, focus=2)
+                seen: list[tuple[int | None, int | None, list[int], int | None]] = []
+                md.set_focus_moved_callback(functools.partial(self.record_with_state, md, seen))
+                operation(md)
+                self.assertEqual(new_focus, md.focus)
+                self.assertEqual([] if new_focus == 2 else [(2, new_focus, list(md), new_focus)], seen)
+
+    def test_empty_deque(self) -> None:
+        """Emptying the deque reports ``None`` as the new focus, and filling it reports ``None`` as the old one."""
+        md = urwid.MonitoredFocusDeque([1, 2], focus=1)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        md.clear()
+        md.extend([3, 4, 5])
+        self.assertEqual([(1, None), (None, md.focus)], seen)
+
+    def test_focus_set_by_modified_callback(self) -> None:
+        """A focus the modified callback sets is reported once, together with the change."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        md.set_modified_callback(lambda: setattr(md, "focus", 5) if md.focus != 5 else None)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        md.appendleft(-1)
+        self.assertEqual([(2, 5)], seen)
+
+    def test_independent_of_focus_changed_callback(self) -> None:
+        """Replacing the focus changed callback keeps the focus moved callback, which runs after it."""
+        md = urwid.MonitoredFocusDeque(range(3), focus=0)
+        order: list[str] = []
+        md.set_focus_moved_callback(lambda old, new: order.append(f"moved {old} {new} {md.focus}"))
+        md.set_focus_changed_callback(lambda new: order.append(f"changed {new} {md.focus}"))
+        md.focus = 1
+        self.assertEqual(["changed 1 0", "moved 0 1 1"], order)
+
+    def test_applied_change_reported_when_a_callback_raises(self) -> None:
+        """A change whose modified callback raises is still reported, once."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=3)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+
+        def fail() -> None:
+            raise RuntimeError
+
+        md.set_modified_callback(fail)
+        with self.assertRaises(RuntimeError):
+            md.popleft()
+        self.assertEqual([(3, 2)], seen)
+
+    def test_callback_set_during_a_change_is_kept(self) -> None:
+        """A focus moved callback set by the modified callback replaces the one in use, and reports the change."""
+        md = urwid.MonitoredFocusDeque(range(3), focus=1)
+        first: list[tuple[int | None, int | None]] = []
+        second: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: first.append((old, new)))
+        md.set_modified_callback(lambda: md.set_focus_moved_callback(lambda old, new: second.append((old, new))))
+        md.appendleft(-1)
+        self.assertEqual(([], [(1, 2)]), (first, second))
+
+    def test_failed_change_reports_nothing(self) -> None:
+        """A change that raises reports nothing, and the next change is reported again."""
+        md = urwid.MonitoredFocusDeque(range(6), focus=2)
+        seen: list[tuple[int | None, int | None]] = []
+        md.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        with self.assertRaises(ValueError):
+            md.remove(99)
+        self.assertEqual([], seen)
+        md.focus = 3
+        self.assertEqual([(2, 3)], seen)
+
+    def test_walker(self) -> None:
+        """A focus deque walker reports through the same callback, for set_focus() and for a change."""
+        walker = urwid.SimpleFocusDequeWalker([urwid.Text(str(idx)) for idx in range(4)])
+        seen: list[tuple[int | None, int | None]] = []
+        walker.set_focus_moved_callback(lambda old, new: seen.append((old, new)))
+        walker.set_focus(2)
+        walker.appendleft(urwid.Text("-1"))
+        self.assertEqual([(0, 2), (2, 3)], seen)
 
 
 class MonitoredFocusDequeFocusAdjustmentTest(unittest.TestCase):
