@@ -435,14 +435,16 @@ class KeyqueueTrie:
         more_available: bool,
         *,
         csi_u_shift_applied: bool = False,
-    ) -> tuple[str | _MouseInput | _CursorPosition | _TerminalReport, list[int]] | None:
+    ) -> tuple[str | _MouseInput | _CursorPosition | _TerminalReport | None, list[int]] | None:
         """Decode the longest key sequence matching the start of ``keys``, trying the trie then the special reports.
 
         :param keys: the codes after the ESC that starts the sequence.
         :param more_available: raise MoreInputRequired when the codes end in the middle of a sequence.
         :param csi_u_shift_applied: see `read_key_report`.
+        :returns: the input and the codes left after it, with ``None`` as the input of a mouse report cut short;
+            ``None`` when no sequence matches.
         """
-        result: tuple[str | _MouseInput | _CursorPosition | _TerminalReport, list[int]] | None
+        result: tuple[str | _MouseInput | _CursorPosition | _TerminalReport | None, list[int]] | None
         if result := self.get_recurse(self.data, keys, more_available):
             return result
 
@@ -465,7 +467,7 @@ class KeyqueueTrie:
         root: (_KeyQueueData | str),
         keys: list[int],
         more_available: bool,
-    ) -> tuple[str | _MouseInput, list[int]] | None:
+    ) -> tuple[str | _MouseInput | None, list[int]] | None:
         """
         Walk the trie for the next key, consuming codes as it goes.
 
@@ -495,14 +497,32 @@ class KeyqueueTrie:
         self,
         keys: list[int],
         more_available: bool,
-    ) -> tuple[_MouseInput, list[int]] | None:
+    ) -> tuple[_MouseInput | None, list[int]] | None:
         """Read an X10 mouse report from the codes and return the resulting input.
 
+        A report cut short is consumed and gives ``None`` as its input.
+        It is cut short when the next ``ESC [`` sequence starts in place of one of its three bytes,
+        or when the codes end after one or two of them.
+        The FreeBSD ``vt(4)`` console sends such reports, since it leaves out a column or row past 94.
+
+        :returns: the mouse event, or ``None`` for a report cut short, and the codes left after the report;
+            ``None`` when the codes end right after ``ESC [ M``.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        # Any other byte below the offset is a coordinate the terminal wrapped past 255, as the Linux console does;
+        # 27 is one too (column or row 250), so only ESC followed by "[" marks the next sequence.
+        # That leaves a wrapped click at column 250 of row 58 read as a report cut short.
+        for i, k in enumerate(keys[:3]):
+            if k == 27:
+                if keys[i + 1 : i + 2] == [ord("[")]:
+                    return None, keys[i:]
+                if i + 1 == len(keys) and more_available:
+                    raise MoreInputRequired
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired
+            if keys:
+                return None, []
             return None
 
         b = keys[0] - _MOUSE_BYTE_OFFSET
@@ -1052,6 +1072,7 @@ def process_keyqueue(
         rather than the Delete key st sends it for; with xterm's modifyOtherKeys, a CSI u report carries the character
         typed with shift.
     :returns: a ``(list of input, list of remaining key codes)`` tuple.
+        The list of input is empty when the codes consumed are a mouse report cut short.
     :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
     """
     code = codes[0]
@@ -1129,7 +1150,7 @@ def process_keyqueue(
     shift_applied = keyboard_protocol == "modify other keys"
     if (result := input_trie.get(codes[1:], more_available, csi_u_shift_applied=shift_applied)) is not None:
         decoded, remaining_codes = result
-        return [decoded], remaining_codes
+        return ([] if decoded is None else [decoded]), remaining_codes
 
     # An unrecognised control sequence is one key: decoding it byte by byte would type its body as text.
     if codes[1:2] == [ord("[")] and (length := _control_sequence_length(codes[2:], more_available)) is not None:
@@ -1145,7 +1166,7 @@ def process_keyqueue(
         run, remaining_codes = process_keyqueue(codes[1:], more_available, keyboard_protocol=keyboard_protocol)
         # A mouse event or a terminal report (cursor position, DECRPM, a query reply) cannot take a meta prefix,
         # and an unrecognised control sequence may be such a report.
-        if not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0] or run[0].startswith("<csi "):
+        if not run or not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0] or run[0].startswith("<csi "):
             return ["esc", *run], remaining_codes
         return [f"meta {run[0]}", *run[1:]], remaining_codes
 

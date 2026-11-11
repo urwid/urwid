@@ -420,7 +420,46 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         codes = [27, 91, 77, 32]
         with self.assertRaises(escape.MoreInputRequired):
             escape.process_keyqueue(codes, more_available=True)
-        self.assertIsNone(escape.input_trie.read_mouse_info([32], more_available=False))
+        self.assertEqual((None, []), escape.input_trie.read_mouse_info([32], more_available=False))
+        self.assertIsNone(escape.input_trie.read_mouse_info([], more_available=False))
+
+    def test_mouse_x10_cut_short_is_dropped(self):
+        """Drop an X10 report missing a byte and decode the input after it.
+
+        The FreeBSD vt console leaves out a column or row past 94.
+        """
+        press_cut = list(bytes.fromhex("1b5b4d2021"))  # the column byte left out
+        release_cut = list(bytes.fromhex("1b5b4d2321"))
+        press = list(bytes.fromhex("1b5b4d202121"))
+        for name, codes, expected in (
+            ("cut press at the end", press_cut, []),
+            ("cut press before a cut release", press_cut + release_cut, []),
+            ("cut press before a whole one", press_cut + press, [("mouse press", 1, 0, 0)]),
+            ("cut press before a key", [*press_cut, *b"\x1b[A"], ["up"]),
+            ("ESC before a cut press", [27, *press_cut], ["esc"]),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, self._decode_all(codes))
+
+    def test_mouse_x10_wrapped_coordinate(self):
+        """Decode a coordinate byte wrapped past 255.
+
+        The Linux console wraps a column or row past 222 this way.
+        """
+        for name, codes, expected in (
+            ("column 236", [27, *b"[M", 32, 13, 33], [("mouse press", 1, 236, 0)]),
+            ("row 230", [27, *b"[M", 32, 33, 7], [("mouse press", 1, 0, 230)]),
+            ("row 250 at the end", [27, *b"[M", 32, 33, 27], [("mouse press", 1, 0, 250)]),
+            (
+                "row 250 before a report",
+                [27, *b"[M", 32, 33, 27, *b"\x1b[M !!"],
+                [("mouse press", 1, 0, 250), ("mouse press", 1, 0, 0)],
+            ),
+        ):
+            with self.subTest(name):
+                self.assertEqual(expected, self._decode_all(codes))
+        with self.assertRaises(escape.MoreInputRequired):
+            escape.process_keyqueue([27, *b"[M", 32, 33, 27], more_available=True)
 
     def test_mouse_x10_release(self):
         x, y = 8, 15
