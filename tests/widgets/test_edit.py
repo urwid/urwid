@@ -1256,6 +1256,38 @@ class EditValidatorTest(unittest.TestCase):
         e.set_edit_text("12")
         self.assertEqual(seen, [((self.ERROR,), ())])
 
+    def test_validated_after_every_run(self) -> None:
+        """ "validated" follows every validator run with the current result, changed or not."""
+        e = urwid.Edit(validator=lambda text: None if text.isdigit() else "bad")
+        seen = []
+        urwid.connect_signal(e, "validation", lambda _w, _old, new: seen.append(("validation", new)))
+        urwid.connect_signal(e, "validated", lambda w, current: seen.append(("validated", current, w.validation)))
+        e.set_edit_text("x")  # invalid -> invalid
+        e.set_edit_text("1")  # invalid -> valid
+        e.set_edit_text("12")  # valid -> valid
+        e.validate()
+        e.validator = None
+        self.assertEqual(
+            seen,
+            [
+                ("validated", (self.ERROR,), (self.ERROR,)),
+                ("validation", ()),
+                ("validated", (), ()),
+                ("validated", (), ()),
+                ("validated", (), ()),
+                ("validated", (), ()),
+            ],
+        )
+
+    def test_validated_without_validator(self) -> None:
+        """Without a validator, "validated" still follows every text change, with no messages."""
+        e = urwid.Edit()
+        seen = []
+        urwid.connect_signal(e, "validated", lambda _w, current: seen.append(current))
+        e.set_edit_text("a")
+        e.keypress((10,), "b")
+        self.assertEqual(seen, [(), ()])
+
     def test_validate_reruns(self) -> None:
         limit = [10]
         e = urwid.Edit("", "5", validator=lambda text: None if int(text) < limit[0] else "too big")
