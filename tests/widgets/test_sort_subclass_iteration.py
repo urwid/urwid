@@ -27,7 +27,7 @@ class SortSubclassIterationTest(unittest.TestCase):
                 seen = []
                 items.set_modified_callback(lambda: seen.append(True))
                 items.sort()
-                self.assertEqual([1, 2, 3], list(list.__iter__(items)))
+                self.assertEqual([1, 2, 3], [item for item in list.__iter__(items)])
                 self.assertEqual([True], seen)
 
     def test_partial_failure_uses_storage_for_detection_and_focus(self):
@@ -43,7 +43,7 @@ class SortSubclassIterationTest(unittest.TestCase):
                     with self.assertRaises(SortFailure) as caught:
                         items.sort()
                     self.assertIs(caught.exception, failure)
-                    actual = list(list.__iter__(items))
+                    actual = [item for item in list.__iter__(items)]
                     self.assertTrue(any(item is not old for item, old in zip(actual, original)))
                     self.assertEqual([True], seen)
                     if base is urwid.MonitoredFocusList:
@@ -64,7 +64,7 @@ class SortSubclassIterationTest(unittest.TestCase):
                     with self.assertRaises(SortFailure) as caught:
                         items.sort(key=key)
                     self.assertIs(caught.exception, failure)
-                    self.assertEqual([3, 1, 2], list(list.__iter__(items)))
+                    self.assertEqual([3, 1, 2], [item for item in list.__iter__(items)])
                     self.assertEqual([], seen)
 
 
@@ -91,7 +91,7 @@ class SortSubclassLengthTest(unittest.TestCase):
                     with self.assertRaises(SortFailure) as caught:
                         items.sort()
                     self.assertIs(caught.exception, failure)
-                    actual = list(list.__iter__(items))
+                    actual = [item for item in list.__iter__(items)]
                     changed = any(item is not old for item, old in zip(actual, original))
                     self.assertEqual([True] if changed else [], seen)
 
@@ -102,5 +102,5 @@ class SortSubclassLengthTest(unittest.TestCase):
                 seen = []
                 items.set_modified_callback(lambda: seen.append(True))
                 items.sort()
-                self.assertEqual([1, 2, 3], list(list.__iter__(items)))
+                self.assertEqual([1, 2, 3], [item for item in list.__iter__(items)])
                 self.assertEqual([True], seen)

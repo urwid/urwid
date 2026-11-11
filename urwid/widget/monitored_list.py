@@ -228,7 +228,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
 
         A notification callback failure does not replace an existing sort failure.
         """
-        original = tuple(list.__iter__(self))
+        original = tuple(item for item in list.__iter__(self))
         try:
             # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
             super().sort(key=key, reverse=reverse)
@@ -774,7 +774,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if not self:
             return
         value = self[self._focus]
-        original = tuple(list.__iter__(self))
+        original = tuple(item for item in list.__iter__(self))
         sort_failure: BaseException | None = None
 
         def change() -> None:

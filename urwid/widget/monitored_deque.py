@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import collections
+import contextlib
 import functools
 import operator
 import typing
@@ -200,7 +201,10 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         self._extend(super().extendleft, __iterable)
 
     def _extend(self, extend: Callable[[Iterable[_T]], None], items: Iterable[_T]) -> None:
-        """Notify after a partial extension, even when a bounded deque's length stays unchanged."""
+        """Notify after a partial extension, even when a bounded deque's length stays unchanged.
+
+        A notification callback failure does not replace the existing input failure.
+        """
         if items is self:
             items = tuple(self)
         consumed = False
@@ -215,7 +219,9 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
             extend(incoming())
         except BaseException:
             if consumed and self.maxlen != 0:
-                self._modified()
+                # The input failure remains the cause of the failed extension.
+                with contextlib.suppress(BaseException):
+                    self._modified()
             raise
 
     @_call_modified
@@ -266,8 +272,8 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
 class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
     """Trigger a callback any time its contents are modified, and any time the focus index is changed.
 
-    Reuses the ``focus``/``_focus_changed``/``set_focus_changed_callback``
-    machinery verbatim from :class:`MonitoredFocusList`.
+    Reuses the ``focus``/``_focus_changed``/``set_focus_changed_callback`` and the
+    ``_focus_moved``/``set_focus_moved_callback`` machinery verbatim from :class:`MonitoredFocusList`.
 
     Deliberately **not** provided (an intentional simplification, unlike
     :class:`MonitoredFocusList`): ``_validate_contents_modified_callback``/
@@ -319,6 +325,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
     """
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
+    _focus_moved_callback: Callable[[int | None, int | None], typing.Any] | None = None
     follow_end: bool = False
     """Move the focus from the last item to the new last item when items are added after it."""
 
@@ -425,6 +432,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         ...
         IndexError: focus index is out of range: -2
         """
+        old_focus = self.focus
         if not self:
             self._focus = 0
             return
@@ -436,10 +444,15 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         if index != self._focus:
             self._focus_changed(index)
         self._focus = index
+        self._focus_moved(old_focus)
 
     def _focus_changed(self, new_focus: int) -> None:
         if self._focus_changed_callback is not None:
             self._focus_changed_callback(new_focus)
+
+    def _focus_moved(self, old_focus: int | None) -> None:
+        if self._focus_moved_callback is not None and (new_focus := self.focus) != old_focus:
+            self._focus_moved_callback(old_focus, new_focus)
 
     def set_focus_changed_callback(self, callback: Callable[[int], typing.Any]) -> None:
         r"""Assign a callback to be called when the focus index changes for any reason.
@@ -461,6 +474,32 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         focus: 0
         """
         self._focus_changed_callback = callback
+
+    def set_focus_moved_callback(self, callback: Callable[[int | None, int | None], typing.Any]) -> None:
+        r"""Assign a callback to be called after the focus index changed for any reason.
+
+        It is independent of :meth:`set_focus_changed_callback`, whose callback is called before the change.
+        A change of the contents is reported once, after its modified callback, also when that callback raised.
+        Only the index is compared.
+        Replacing the item in focus in place is not reported,
+        and neither is a bounded add that evicts the item in focus without moving its index.
+
+        :param callback: a callable in the form ``callback(old_focus, new_focus)``; a focus is ``None`` when the deque
+            is empty.
+
+        >>> import sys
+        >>> mfd = MonitoredFocusDeque([1, 2, 3], maxlen=3, focus=1)
+        >>> mfd.set_focus_moved_callback(lambda old, new: sys.stdout.write(f"focus: {old} -> {new}\n"))
+        >>> mfd.focus = 2
+        focus: 1 -> 2
+        >>> mfd.append(4)
+        focus: 2 -> 1
+        >>> mfd.clear()
+        focus: 1 -> None
+        >>> mfd.extend([5, 6])
+        focus: None -> 0
+        """
+        self._focus_moved_callback = callback
 
     def _adjust_focus_on_single_change(self, index: int, num_removed: int, num_inserted: int) -> int:
         """Compute the focus position for after a change applied at ``index``.
@@ -512,15 +551,26 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         :param kwargs: keyword arguments for *change*
         :returns: what ``change`` returns
         :raises Exception: whatever ``change`` raises, leaving the focus as it was and notifying nothing;
-            or whatever the focus-changed or the modified callback raises.
+            or whatever the focus-changed or the modified callback raises, after the focus moved callback ran.
         :raises TypeError: the new focus is not an integer; the change is applied and notified.
         :raises IndexError: the new focus is out of range; the change is applied and notified.
         """
-        rval = change(*args, **kwargs)
+        old_focus = self.focus
+        # the focus moved callback is called once, below, with the focus the whole change ends with
+        focus_moved_callback = self._focus_moved_callback
+        if focus_moved_callback is not None:
+            self._focus_moved_callback = None
         try:
-            self.focus = focus() if callable(focus) else focus
+            rval = change(*args, **kwargs)
+            try:
+                self.focus = focus() if callable(focus) else focus
+            finally:
+                self._modified()
         finally:
-            self._modified()
+            # a callback set during the change is kept; the report is also made when a callback raised
+            if focus_moved_callback is not None and self._focus_moved_callback is None:
+                self._focus_moved_callback = focus_moved_callback
+            self._focus_moved(old_focus)
         return rval
 
     # override all the deque methods that modify the deque, except __setitem__: replacing an item at a given
