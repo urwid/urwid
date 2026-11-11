@@ -224,7 +224,12 @@ Which buttons arrive depends on the screen:
     * a wheel step arrives as ``'mouse release'`` events of button 0;
     * a middle click also pastes the console's selection as typed input;
     * a column or row past 94 is left out of the report, so both screens
-      drop a click there;
+      drop a click there, except:
+
+      * a middle click while the console has a selection, whose pasted text
+        follows the report at once: both screens read its first bytes as the
+        missing coordinate and report a ``'mouse press'`` of 2 at a wrong
+        position, and the rest of the paste arrives as typed input;
 
   * ``syscons(4)`` sends X10 reports of 1 to 5 to the raw screen, and follows
     each press of 4 or 5 with ``'mouse release'`` events of button 0;
