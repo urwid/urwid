@@ -215,6 +215,21 @@ Which buttons arrive depends on the screen:
 * the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
   defines;
 * GPM, the Linux console mouse, delivers 1 to 3;
+* the FreeBSD console, with ``moused`` running (FreeBSD has no GPM):
+
+  * ``vt(4)``:
+
+    * in a graphics mode it sends X10 reports of 1 to 3 to both screens;
+    * in VGA text mode it sends no mouse input;
+    * a wheel step arrives as ``'mouse release'`` events of button 0;
+    * a middle click also pastes the console's selection as typed input;
+    * a column or row past 94 is left out of the report, so both screens
+      drop a click there;
+
+  * ``syscons(4)`` sends X10 reports of 1 to 5 to the raw screen, and follows
+    each press of 4 or 5 with ``'mouse release'`` events of button 0;
+  * for the curses screen on ``syscons(4)``, ncurses takes 1 to 3 from the
+    ``sysmouse(4)`` interface, with the released button in each release;
 * the WebSocket screen (:mod:`urwid.display.websocket`) delivers 1 to 9: the
   three main buttons, the four wheel directions and the two side buttons the
   browser reports.
@@ -225,7 +240,8 @@ section of `XTerm Control Sequences
 <https://invisible-island.net/xterm/ctlseqs/ctlseqs.html>`_.
 
 .. [#wheel] A terminal sends no release event for the wheel. The curses screen
-   may send a release of 4 or 5.
+   may send a release of 4 or 5, and the FreeBSD console sends releases of
+   button 0.
 .. [#side] The conventional meaning of buttons 8 and 9 under X11 and libinput,
    which a user's device mapping can change.
 
