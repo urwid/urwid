@@ -95,8 +95,12 @@ class DropDown(PopUpLauncher[Columns]):
         DropDown requires ``MainLoop(..., pop_ups=True)``, or another :class:`PopUpTarget <urwid.PopUpTarget>`
         above it. The list is a pop-up, and without a target activating the widget shows nothing.
 
-    Signals supported: ``'change'``, sent as ``callback(drop_down, new_index)`` before :attr:`selected` changes,
-    so the callback still reads the previous value there.
+    Signals supported:
+
+    - ``'change'``, sent as ``callback(drop_down, new_index)`` before :attr:`selected` changes,
+      so the callback still reads the previous value there.
+    - ``'postchange'``, sent as ``callback(drop_down, previous_index)`` after :attr:`selected` and the label changed,
+      so the callback reads the new value there.
 
     >>> drop_down = DropDown(["red", "green", "blue"], selected=1)
     >>> drop_down.render(()).text
@@ -109,7 +113,7 @@ class DropDown(PopUpLauncher[Columns]):
     #: Widget drawn after the selected option; a subclass replaces it to change the indicator.
     drop_down_indicator: typing.ClassVar[Text] = Text("v")
 
-    signals: typing.ClassVar[list[str]] = ["change"]
+    signals: typing.ClassVar[list[str]] = ["change", "postchange"]
 
     def __init__(
         self,
@@ -167,7 +171,10 @@ class DropDown(PopUpLauncher[Columns]):
     def selected(self) -> int:
         """Index of the selected option.
 
-        Setting it sends the ``'change'`` signal when the index differs from the current one.
+        Setting it to an index that differs from the current one sends two signals:
+
+        - ``'change'``, with the new index, before the selection changes;
+        - ``'postchange'``, with the previous index, once :attr:`selected` and the label show the new option.
 
         :raises IndexError: the new value is not an index of :attr:`options`.
         """
@@ -180,8 +187,9 @@ class DropDown(PopUpLauncher[Columns]):
         if index == self._selected:
             return
         self._emit("change", index)
-        self._selected = index
+        previous, self._selected = self._selected, index
         self._label.set_text(self._options[index])
+        self._emit("postchange", previous)
 
     def _choose(self, index: int) -> None:
         self.close_pop_up()
