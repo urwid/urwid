@@ -306,6 +306,13 @@ class CheckBox(WidgetWrap[Columns]):
 
         Signals supported: ``'change'``, ``"postchange"``
 
+        - ``"change"`` is sent before the state changes.
+          The callback gets the new state.
+          :attr:`state` still holds the old one.
+        - ``"postchange"`` is sent after the state changes.
+          The callback gets the old state.
+          :attr:`state` holds the new one.
+
         Register signal handler with::
 
           urwid.connect_signal(check_box, "change", callback, user_data)
@@ -634,7 +641,12 @@ class RadioButton(CheckBox):
         "first True" will set to True if group is empty.
         A button created with state True clears the other buttons of the group, as :meth:`set_state` does.
 
-        Signals supported: ``'change'``, ``"postchange"``
+        Signals supported: ``'change'``, ``"postchange"``, sent as described for :class:`CheckBox`.
+
+        Selecting a button with :meth:`set_state` sends its own signals first.
+        Then the previously selected button of the group is cleared and sends its signals.
+        So in the handlers of the newly selected button the previously selected button is still True.
+        In the ``"postchange"`` handler of the cleared button, :attr:`selected_button` is the new selection.
 
         Register signal handler with::
 
@@ -656,6 +668,18 @@ class RadioButton(CheckBox):
         <RadioButton selectable fixed/flow widget 'Disagree' state=False>
         >>> b2.render((15,), focus=True).text  # ... = b in Python 3
         [...'( ) Disagree   ']
+
+        Signal order when the selection moves from b1 to b2,
+        printed as the button, the signal argument and then the states of b1 and b2:
+
+        >>> def report(button, state):
+        ...     print(button.label, state, b1.state, b2.state)
+        >>> keys = [connect_signal(b, name, report) for b in bgroup for name in ("change", "postchange")]
+        >>> b2.set_state(True)
+        Disagree True True False
+        Disagree False True True
+        Agree False True True
+        Agree True False True
         """
         if state == "first True":
             state = not group
