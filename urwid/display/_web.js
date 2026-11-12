@@ -310,7 +310,8 @@ async function flush_send_queue() {
 }
 
 function body_resize() {
-    const [x_size, y_size] = measure_screen();
+    // the measured size is a quotient of floats, and the server takes whole numbers only
+    const [x_size, y_size] = measure_screen().map(Math.floor);
     if (screen_x !== x_size || screen_y !== y_size) {
         send_key("window resize " + x_size + " " + y_size);
     }
