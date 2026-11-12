@@ -25,6 +25,7 @@ What the module protects:
   - A client-supplied id is checked against `_URWID_ID_MAX_LEN` and `_URWID_ID_CHARS` before any file lookup.
 - Resource limits
   - A keystroke request is read up to `MAX_READ` bytes.
+  - A keyboard input line longer than `MAX_LINE_LENGTH` characters is dropped, up to and including its newline.
   - The screen size is capped at `MAX_COLS` and `MAX_ROWS`.
   - The number of concurrent sessions of one user and `pipe_dir` is limited to about `max_clients`
     (`set_preferences()`): two sessions starting at once can both pass the check, and stale pipes count towards it.

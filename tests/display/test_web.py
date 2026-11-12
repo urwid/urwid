@@ -394,6 +394,72 @@ class ScreenGetInputTest(unittest.TestCase):
         self.assertEqual(["a"], first)
         self.assertEqual(["é"], second)
 
+    def _read_each(self, *chunks: str) -> list[list[str]]:
+        """Return the keys of one get_input call per chunk, with each chunk the data of one read of the pipe."""
+        selector_mock = self._make_selector_mock(has_input=True)
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", side_effect=[chunk.encode("utf-8") for chunk in chunks]),
+            mock.patch("urwid.display.web.os.close"),
+            mock.patch("urwid.display.web.os.open", return_value=10),
+        ):
+            return [self.screen.get_input(raw_keys=False) for _ in chunks]
+
+    def test_get_input_drops_a_complete_line_over_the_limit(self) -> None:
+        """A line of the limit is a key, a longer one is dropped, and the lines around it are kept."""
+        for length, expected in (
+            (web.MAX_LINE_LENGTH, ["a", "x" * web.MAX_LINE_LENGTH, "b"]),
+            (web.MAX_LINE_LENGTH + 1, ["a", "b"]),
+        ):
+            with self.subTest(length=length):
+                self.assertEqual([expected], self._read_each(f"a\n{'x' * length}\nb\n"))
+                self.assertEqual("", self.screen.input_tail)
+
+    def test_get_input_logs_the_length_of_a_dropped_line_not_its_content(self) -> None:
+        """The debug log names how long a dropped line was, and never carries the untrusted text."""
+        complete = "x" * (web.MAX_LINE_LENGTH + 1)
+        unfinished = "y" * (web.MAX_LINE_LENGTH + 1)
+
+        with self.assertLogs(self.screen.logger, "DEBUG") as logs:
+            self._read_each(f"{complete}\n{unfinished}")
+
+        output = "\n".join(logs.output)
+        self.assertIn(str(web.MAX_LINE_LENGTH + 1), output)
+        self.assertNotIn("x" * 10, output)
+        self.assertNotIn("y" * 10, output)
+
+    def test_get_input_joins_a_line_of_the_limit_split_between_reads(self) -> None:
+        """The limit applies to the joined line, not to each read."""
+        half = web.MAX_LINE_LENGTH // 2
+
+        self.assertEqual(
+            [[], ["x" * web.MAX_LINE_LENGTH]],
+            self._read_each("x" * half, "x" * (web.MAX_LINE_LENGTH - half) + "\n"),
+        )
+
+    def test_get_input_drops_an_unfinished_line_over_the_limit_up_to_its_newline(self) -> None:
+        """The rest of an over-long line arriving in later reads is dropped, and the next line is a key."""
+        results = self._read_each("a\n" + "x" * (web.MAX_LINE_LENGTH + 1), "x" * 10, "x\nb\n")
+
+        self.assertEqual([["a"], [], ["b"]], results)
+        self.assertEqual("", self.screen.input_tail)
+
+    def test_get_input_keeps_no_more_than_the_limit_of_a_line_without_newline(self) -> None:
+        """Input that never ends its line does not accumulate."""
+        for _ in range(8):
+            self.assertEqual([[]], self._read_each("x" * web.MAX_READ))
+            self.assertLessEqual(len(self.screen.input_tail), web.MAX_LINE_LENGTH)
+
+        self.assertEqual([["b"]], self._read_each("x\nb\n"))
+
+    def test_get_input_drops_an_over_long_window_resize(self) -> None:
+        """The length check comes before the resize request is applied."""
+        request = "window resize " + "0" * web.MAX_LINE_LENGTH + "80 24"
+
+        self.assertEqual([[]], self._read_each(f"{request}\n"))
+        self.assertIsNone(self.screen.screen_size)
+
 
 class ScreenStartTest(unittest.TestCase):
     """Tests for the request validation in Screen.start."""
@@ -463,6 +529,10 @@ class ScreenStartTest(unittest.TestCase):
     @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
     @unittest.skipIf(IS_GRAALPY, "os.mkfifo is missing on GraalPy")
     def test_start_accepts_valid_resize_request(self) -> None:
+        # left over from an earlier session of the same screen
+        self.screen.input_tail = "page "
+        self.screen._dropping_line = True
+
         with (
             mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),
             mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
@@ -482,6 +552,8 @@ class ScreenStartTest(unittest.TestCase):
         self.assertEqual(self.screen.screen_size, (80, 24))
         self.assertEqual(self.screen.last_screen, {})
         self.assertEqual(self.screen.last_screen_width, 0)
+        self.assertEqual("", self.screen.input_tail)
+        self.assertFalse(self.screen._dropping_line)
 
 
 class SpanStyleTest(unittest.TestCase):
