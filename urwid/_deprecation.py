@@ -46,8 +46,14 @@ __all__ = ("deprecated", "warn")
 _PACKAGE_PREFIX: typing.Final[str] = f"{pathlib.Path(__file__).absolute().parent}{os.sep}"
 
 
-def warn(message: str, *, since: str, removed_in: str | None) -> None:
-    """Emit a :exc:`DeprecationWarning` attributed to the first frame outside urwid.
+def warn(
+    message: str,
+    *,
+    since: str,
+    removed_in: str | None,
+    category: type[DeprecationWarning | PendingDeprecationWarning] = DeprecationWarning,
+) -> None:
+    """Emit a deprecation warning attributed to the first frame outside urwid.
 
     The warning points at the application line that used the deprecated API,
     also when the check runs several urwid frames deep (a ``Padding`` passing its argument to ``WidgetDecoration``).
@@ -56,6 +62,8 @@ def warn(message: str, *, since: str, removed_in: str | None) -> None:
     :param message: what is deprecated and what to use instead, as complete sentences
     :param since: the release that deprecated it
     :param removed_in: the release that removes it, or ``None`` when no removal release is decided
+    :param category: :exc:`PendingDeprecationWarning` for the quiet first stage of a deprecation,
+        which Python hides by default
     """
     if removed_in is None:
         full_message = f"{message} Deprecated since urwid {since}."
@@ -63,7 +71,7 @@ def warn(message: str, *, since: str, removed_in: str | None) -> None:
         full_message = f"{message} Deprecated since urwid {since}, will be removed in version {removed_in}."
 
     if sys.version_info >= (3, 12):
-        warnings.warn(full_message, DeprecationWarning, skip_file_prefixes=(_PACKAGE_PREFIX,))
+        warnings.warn(full_message, category, skip_file_prefixes=(_PACKAGE_PREFIX,))
     else:
         # The frame calling warnings.warn() is stack level 1.
         frame = inspect.currentframe()
@@ -71,4 +79,4 @@ def warn(message: str, *, since: str, removed_in: str | None) -> None:
         while frame is not None and frame.f_code.co_filename.startswith(_PACKAGE_PREFIX):
             frame = frame.f_back
             stacklevel += 1
-        warnings.warn(full_message, DeprecationWarning, stacklevel=stacklevel)
+        warnings.warn(full_message, category, stacklevel=stacklevel)

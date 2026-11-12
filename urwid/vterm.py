@@ -41,7 +41,7 @@ from collections import deque
 from contextlib import suppress
 from dataclasses import dataclass, field
 
-from urwid import event_loop, util
+from urwid import _deprecation, event_loop, util
 from urwid.ansi_parser import (
     MAX_CSI_LENGTH,
     MAX_OSC_LENGTH,
@@ -75,6 +75,9 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable, Hashable, Iterable, Iterator, Mapping, Sequence
     from typing import Literal
 
+    # Imported by name for type checkers, see urwid._deprecation.
+    from typing_extensions import deprecated
+
     class _WatchLoop(typing.Protocol):
         """Loop the pty is watched on: an event loop or a :class:`urwid.MainLoop`."""
 
@@ -84,6 +87,8 @@ if typing.TYPE_CHECKING:
         def remove_watch_file(self, handle: typing.Any) -> object:
             """Stop the watch :meth:`watch_file` returned *handle* for."""
 
+else:
+    from urwid._deprecation import deprecated
 
 EOF = b""
 ESC = chr(27)
@@ -1457,12 +1462,7 @@ class TermCanvas(Canvas):
                 self.charset.set_sgr_ibmpc()
                 self.modes.display_ctrl = True
 
-        attrspec = sgi_params_to_attrspec(attrs, self.attrspec)
-
-        if self.modes.reverse_video:
-            self.attrspec = self.reverse_attrspec(attrspec)
-        else:
-            self.attrspec = attrspec
+        self.attrspec = sgi_params_to_attrspec(attrs, self.attrspec)
 
     def reverse_attrspec(self, attrspec: AttrSpec | None, undo: bool = False) -> AttrSpec:
         """Put standout mode to the 'attrspec' given and remove it if 'undo' is True."""
@@ -1477,12 +1477,25 @@ class TermCanvas(Canvas):
             attrspec = attrspec.copy_modified(fg=",".join(attrs))
         return attrspec
 
+    @deprecated(
+        "TermCanvas.reverse_video() is deprecated, set TermCanvas.modes.reverse_video instead. "
+        "Deprecated since urwid 5.1.3, will be removed in version 8.0.",
+        category=None,
+    )
     def reverse_video(self, undo: bool = False) -> None:
-        """Reverse video/scanmode (DECSCNM) on both screens by swapping fg and bg colors."""
-        for lines in (self.term, self._hidden_screen.term):
-            for line in lines:
-                for x, char in enumerate(line):
-                    line[x] = (self.reverse_attrspec(char[0], undo=undo), *char[1:])
+        """Turn the reverse video mode (DECSCNM) on, or off if *undo* is True.
+
+        .. deprecated:: 5.1.3
+            Set :attr:`TermCanvas.modes.reverse_video <TermModes.reverse_video>` instead.
+            This method will be removed in version 8.0.
+        """
+        _deprecation.warn(
+            "TermCanvas.reverse_video() is deprecated, set TermCanvas.modes.reverse_video instead.",
+            since="5.1.3",
+            removed_in="8.0",
+            category=PendingDeprecationWarning,
+        )
+        self.modes.reverse_video = not undo
 
     def set_mode(
         self,
@@ -1502,8 +1515,7 @@ class TermCanvas(Canvas):
                 # deccolm just clears the screen
                 self.clear()
             elif private_mode == PrivateMode.REVERSE_VIDEO:
-                if self.modes.reverse_video != flag:
-                    self.reverse_video(undo=not flag)
+                # content() applies the mode, so a change touches no cell
                 self.modes.reverse_video = flag
             elif private_mode == PrivateMode.ORIGIN_MODE:
                 self.modes.constrain_scrolling = flag
@@ -1731,14 +1743,34 @@ class TermCanvas(Canvas):
     ) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
         """Canvas content.
 
+        The cells store the attributes the child set.
+        While the reverse video mode (DECSCNM) is on, every line is yielded with its attributes in standout.
+
         All parameters are ignored.
         """
+        lines: Iterable[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
         if self.scrolling_up == 0:
-            yield from self.term
+            lines = self.term
         else:
             viewport_range = slice(-(self.height + self.scrolling_up), -self.scrolling_up)
-            for line in (*self.scrollback_buffer, *self.term)[viewport_range]:
-                yield line[: self.width] + [_BLANK_CELL] * (self.width - len(line))
+            lines = (
+                line[: self.width] + [_BLANK_CELL] * (self.width - len(line))
+                for line in (*self.scrollback_buffer, *self.term)[viewport_range]
+            )
+
+        if not self.modes.reverse_video:
+            yield from lines
+            return
+
+        # a screen holds few distinct attributes, so each one is reversed once per call
+        reversed_attrs: dict[AttrSpec | None, AttrSpec] = {}
+        for line in lines:
+            reversed_line: list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]] = []
+            for cell_attr, charset, text in line:
+                if cell_attr not in reversed_attrs:
+                    reversed_attrs[cell_attr] = self.reverse_attrspec(cell_attr)
+                reversed_line.append((reversed_attrs[cell_attr], charset, text))
+            yield reversed_line
 
 
 def _mouse_report(code: int, col: int, row: int, release: bool, encoding: PrivateMode | None) -> bytes:
