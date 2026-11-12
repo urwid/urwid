@@ -68,6 +68,8 @@ class Screen(_raw_display_base.Screen):
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
         extended_keys: bool = False,
+        *,
+        in_band_resize: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -83,7 +85,10 @@ class Screen(_raw_display_base.Screen):
         :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
             and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
             Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
+        :param in_band_resize: accepted for the same arguments as on POSIX, with no effect:
+            the console reports every resize in order with the keys itself; see :ref:`in-band-resize`.
         """
+        del in_band_resize  # the console implements no mode 2048 to turn on
         if input is None:
             input, self._send_input = socket.socketpair()  # noqa: A001
 
@@ -98,6 +103,8 @@ class Screen(_raw_display_base.Screen):
         self._saved_title: str | None = None
         # The console reader writes a resize into the input socket it owns; a caller's own socket carries none.
         self._in_band_resize = self._send_input is not None
+        # The console implements no mode 2048, so it is not queried: the console reader is what sends the reports.
+        self.modes.in_band_resize = False
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
@@ -324,7 +331,6 @@ class Screen(_raw_display_base.Screen):
         self._current_event_loop_handles = handles
 
     _input_thread: ReadInputThread | None = None
-    _last_cols_rows: tuple[int, int] | None = None  # the size get_cols_rows() last returned
 
     def _start_input_thread(self) -> None:
         """Start the background console reader, if it isn't already running."""
@@ -403,6 +409,13 @@ class Screen(_raw_display_base.Screen):
         # The visible window, not the buffer, which on the classic console also holds the scrollback.
         window = info.srWindow
         return window.Right - window.Left + 1, window.Bottom - window.Top + 1
+
+    def _cols_rows_before_report(self) -> None:
+        """Return None, so every report is a resize.
+
+        The console reader writes one only for a console size event,
+        and no SIGWINCH reports a resize this comparison would drop.
+        """
 
     def get_cols_rows(self) -> tuple[int, int]:
         """Return the terminal dimensions (num columns, num rows)."""

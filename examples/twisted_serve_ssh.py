@@ -156,7 +156,14 @@ class UnhandledKeyHandler:
         return f(key)  # type: ignore[no-any-return]
 
     def key_ctrl_c(self, key: str) -> None:
-        """Close the connection when the operator presses Ctrl-C."""
+        """Close the connection when the operator presses Ctrl-C.
+
+        :raises RuntimeError: the UI is not built yet, because ``set_terminalProtocol()`` has not run.
+        """
+        if self.mind.ui is None:
+            msg = "the UI is only available after set_terminalProtocol() has run"
+            raise RuntimeError(msg)
+        self.mind.ui.screen.end_session()
         self.mind.terminal.loseConnection()
 
 
@@ -241,11 +248,35 @@ class TwistedScreen(Screen):
         # Don't need to wait for anything to start
         self._started = True
 
+    def start_session(self) -> None:
+        """Turn on the terminal modes this screen uses, once the connection is open.
+
+        The client's terminal then reports each resize in the input, in order with the keys, where it supports
+        mode 2048; any other terminal ignores the request, and the SSH window-change request still reports it.
+        """
+        self._set_in_band_resize(True)
+
+    def end_session(self) -> None:
+        """Turn off the terminal modes this screen turned on, before the connection closes."""
+        self._set_in_band_resize(False)
+
+    def window_changed(self) -> None:
+        """Take the size from the SSH window-change request, which is newer than the size reported in the input."""
+        self._reported_cols_rows = None
+
     # Urwid Screen API
 
     def get_cols_rows(self) -> tuple[int, int]:
-        """Get the size of the terminal as (cols, rows)."""
-        return self.terminalProtocol.width, self.terminalProtocol.height
+        """Get the size of the terminal as (cols, rows).
+
+        The size the terminal last reported in the input is returned until the next SSH window-change request.
+        """
+        if self._reported_cols_rows is not None:
+            size = self._reported_cols_rows
+        else:
+            size = self.terminalProtocol.width, self.terminalProtocol.height
+        self._last_cols_rows = size
+        return size
 
     def draw_screen(self, size: tuple[int, int], canvas: urwid.Canvas) -> None:
         """Render a canvas to the terminal.
@@ -393,6 +424,10 @@ class UrwidTerminalProtocol(TerminalProtocol):
     def connectionMade(self) -> None:
         """Attach this protocol to its mind and size the terminal once the connection opens."""
         self.urwid_mind.set_terminalProtocol(self)
+        if self.urwid_mind.ui is None:
+            msg = "set_terminalProtocol() did not build the UI"
+            raise RuntimeError(msg)
+        self.urwid_mind.ui.screen.start_session()
         self.terminalSize(self.width, self.height)
 
     def terminalSize(self, width: int, height: int) -> None:
@@ -405,6 +440,7 @@ class UrwidTerminalProtocol(TerminalProtocol):
         if self.urwid_mind.ui is None:
             msg = "the UI is only available after set_terminalProtocol() has run"
             raise RuntimeError(msg)
+        self.urwid_mind.ui.screen.window_changed()
         self.urwid_mind.ui.loop.screen_size = None
         self.terminal.eraseDisplay()
         self.urwid_mind.draw()

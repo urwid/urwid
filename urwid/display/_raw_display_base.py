@@ -188,6 +188,7 @@ class TermModes:
     bracketed_paste: bool | None = None
     synchronized_output: bool | None = None
     grapheme_clustering: bool | None = None
+    in_band_resize: bool | None = None
     # Resolved by the replies to the keyboard protocol queries, which are sent only for Screen(extended_keys=True).
     kitty_keyboard: bool | None = None
     modify_other_keys: bool | None = None
@@ -201,6 +202,7 @@ class TermModes:
         escape.PrivateMode.BRACKETED_PASTE: "bracketed_paste",
         escape.PrivateMode.SYNCHRONIZED_OUTPUT: "synchronized_output",
         escape.PrivateMode.GRAPHEME_CLUSTERING: "grapheme_clustering",
+        escape.PrivateMode.IN_BAND_RESIZE: "in_band_resize",
     }
 
     def set_from_codes(self, *response: tuple[str, int]) -> frozenset[str]:
@@ -216,6 +218,23 @@ class TermModes:
             if was_unresolved and supported:
                 newly_supported.add(field)
         return frozenset(newly_supported)
+
+
+# iTerm2 3.5.6 to 3.5.10 send a window size report without its final "t",
+# so the key typed after it is read as the final byte of an unknown sequence.
+_ITERM2_COMPLETE_WINDOW_SIZE_REPORT: typing.Final = (3, 5, 11)
+
+
+def sends_incomplete_window_size_reports(environ: Mapping[str, str]) -> bool:
+    """Return whether *environ* names an iTerm2 release that sends a window size report without its final byte.
+
+    iTerm2 sets ``LC_TERMINAL`` and ``LC_TERMINAL_VERSION``, and SSH passes them on with the locale.
+    An iTerm2 version that cannot be read counts as such a release.
+    """
+    if environ.get("LC_TERMINAL") != "iTerm2":
+        return False
+    version = re.match(r"(\d+)\.(\d+)\.(\d+)", environ.get("LC_TERMINAL_VERSION", ""))
+    return version is None or tuple(int(part) for part in version.groups()) < _ITERM2_COMPLETE_WINDOW_SIZE_REPORT
 
 
 def _term_families(term: str) -> frozenset[str]:
@@ -567,6 +586,8 @@ class Screen(BaseScreen, RealTerminal):
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
         extended_keys: bool = False,
+        *,
+        in_band_resize: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -581,11 +602,19 @@ class Screen(BaseScreen, RealTerminal):
         :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
             and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
             Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
+        :param in_band_resize: take the terminal size from the resize notifications the terminal sends in the input
+            (DEC private mode 2048), as well as from ``SIGWINCH``; see :ref:`in-band-resize`.
+            None (default) auto-detects via DECRQM and enables it once confirmed supported;
+            pass True/False to force it without probing.
         """
         super().__init__()
 
         self._partial_codes: list[int] = []
-        self.modes = TermModes(bracketed_paste=bracketed_paste_mode, focus_reporting=focus_reporting)
+        self.modes = TermModes(
+            bracketed_paste=bracketed_paste_mode,
+            focus_reporting=focus_reporting,
+            in_band_resize=in_band_resize,
+        )
         self.extended_keys = extended_keys
         # the keyboard protocol queries were sent and the Primary DA reply that ends their answers has not arrived
         self._keyboard_query_pending = False
@@ -623,8 +652,13 @@ class Screen(BaseScreen, RealTerminal):
         self._resized = False
         # set by the last read of terminal input: a resize may have input typed before it still waiting
         self._hold_resize = False
-        # the input carries window size reports that this screen put there itself, in order with the keys
+        # the input carries window size reports in order with the keys:
+        # the terminal sends them while this screen has mode 2048 on, or this screen puts them there itself
         self._in_band_resize = False
+        # the size the last window size report carried, until a SIGWINCH tells the system's size is newer
+        self._reported_cols_rows: tuple[int, int] | None = None
+        # the size get_cols_rows() last returned, which the application lays out at
+        self._last_cols_rows: tuple[int, int] | None = None
         self._resize_held_passes = 0
         self.maxrow: int | None = None
         self._alternate_buffer = False
@@ -776,6 +810,8 @@ class Screen(BaseScreen, RealTerminal):
             modes.append(escape.PrivateMode.BRACKETED_PASTE)
         if self.modes.focus_reporting is None:
             modes.append(escape.PrivateMode.FOCUS_REPORTING)
+        if self.modes.in_band_resize is None:
+            modes.append(escape.PrivateMode.IN_BAND_RESIZE)
 
         # a late reply to a query of an earlier start describes the same terminal, so it may answer the new query
         self._mode_queries_pending = set(modes)
@@ -788,21 +824,55 @@ class Screen(BaseScreen, RealTerminal):
         self.write(queries)
         self.flush()
 
+    def _set_in_band_resize(self, enable: bool) -> None:
+        """Switch the terminal's in-band resize notifications (DEC private mode 2048) on or off.
+
+        `_in_band_resize` follows the mode, so the reports count exactly while this screen has it on.
+        The caller flushes the output.
+        """
+        mode = escape.PrivateMode.IN_BAND_RESIZE
+        # before the write, which can fail on a terminal that hung up, so a stop still counts no report after it
+        self._in_band_resize = enable
+        self.write(mode.enable_seq if enable else mode.disable_seq)
+
+    def _cols_rows_before_report(self) -> tuple[int, int] | None:
+        """Return the size a window size report is compared with, to tell whether it changes the size.
+
+        It is the size the application last read, rather than the system's,
+        which the terminal set before it sent the report.
+
+        :returns: the size, or None when none is known yet, so that any report changes it.
+        """
+        return self._last_cols_rows
+
     def _apply_window_size_reports(
         self,
         decoded_codes: list[str | _MouseInput | _CursorPosition | _WindowSizeReport],
     ) -> _DecodedInput:
         """Replace the window size reports among *decoded_codes* with ``"window resize"`` at their place among the keys.
 
-        Adjacent reports become one resize.
-        A report counts only on a screen that puts such reports into its own input.
+        A report counts only on a screen whose input carries such reports, see `_in_band_resize`.
         Elsewhere it is dropped, so input that only looks like one cannot cause a redraw.
+        A report that counts:
+
+        - becomes the size `get_cols_rows()` returns;
+        - is a resize only when its size differs from the one the application last read,
+          so the report a terminal sends when the mode is turned on, or after a ``SIGWINCH`` already reported,
+          does not redraw the screen again;
+        - is merged with an adjacent resize.
+
+        A ``SIGWINCH`` still pending is reported on its own:
+        it can come from a later change that sends no report, such as a session attached to another terminal.
         """
         logger = self.logger.getChild("terminal_reports")
         filtered: _DecodedInput = []
         for item in decoded_codes:
             match item:
-                case ("window size report", _cols, _rows) if self._in_band_resize:
+                case ("window size report", int() as cols, int() as rows) if self._in_band_resize:
+                    resized = self._cols_rows_before_report() != (cols, rows)
+                    self._reported_cols_rows = cols, rows
+                    if not resized:
+                        continue
                     self.screen_buf = None
                     # adjacent resizes are one, as the resize flag merges them, so get_input can throttle them
                     if filtered[-1:] != ["window resize"]:
@@ -857,13 +927,15 @@ class Screen(BaseScreen, RealTerminal):
                     filtered.append(item)
 
         if reports:
-            enable = [
-                code
-                for field in self.modes.set_from_codes(*reports)
-                if (code := self._PRIVATE_MODE_ENABLE_SEQUENCE.get(field, ""))
-            ]
+            newly_supported = self.modes.set_from_codes(*reports)
+            enable = [code for field in newly_supported if (code := self._PRIVATE_MODE_ENABLE_SEQUENCE.get(field, ""))]
+            # a stopped screen turns the mode on at its next start, from self.modes
+            enable_in_band_resize = "in_band_resize" in newly_supported and self._started
             if enable:
                 self.write("".join(enable))
+            if enable_in_band_resize:
+                self._set_in_band_resize(True)
+            if enable or enable_in_band_resize:
                 self.flush()
 
         return filtered
@@ -1363,8 +1435,12 @@ class Screen(BaseScreen, RealTerminal):
         elif resized:
             self._resize_held_passes = 0
             self._resized = False
+            # The system's size is the newer one now: a terminal without mode 2048, such as one a multiplexer session
+            # was attached to, reports its size this way only.
+            self._reported_cols_rows = None
             self.screen_buf = None
-            output_codes.append("window resize")
+            if output_codes[-1:] != ["window resize"]:
+                output_codes.append("window resize")
             logger.debug('Added "window resize" to the codes')
 
         if callback:

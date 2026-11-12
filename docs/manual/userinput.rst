@@ -165,6 +165,50 @@ control again.
 and CTRL+Z from raising signals, as ``examples/input_test.py`` does.
 
 
+.. _in-band-resize:
+
+Window Resize
+=============
+
+A resize of the terminal is reported as a ``'window resize'`` item in the input,
+after the keys typed before it. The application reads the new size with the
+screen's ``get_cols_rows()`` method, which :class:`MainLoop` does for it.
+
+The raw display learns about a resize from the ``SIGWINCH`` signal,
+and also from the resize notifications of DEC private mode 2048, on terminals
+that implement it, such as kitty, foot, ghostty, iTerm2 and contour. Such a
+terminal sends the new size in the input stream itself, so the resize keeps its
+exact place among the keys. The notifications also arrive over a connection that
+carries no ``SIGWINCH`` and no size of the terminal device: a serial console,
+telnet, or a raw socket. On Windows the console reports every resize in its
+place among the keys without the mode.
+
+The screen asks the terminal whether it supports the mode, and turns the mode on
+when the terminal answers that it does. It does not wait for the answer. The raw
+display keeps the answer in ``screen.modes.in_band_resize``. To skip the
+question and force the mode on or off, pass ``in_band_resize``::
+
+    screen = urwid.display.raw.Screen(in_band_resize=False)
+
+``'window resize'`` and ``get_cols_rows()`` are the same for the application in
+either case. A notification of the size the screen already has is not reported
+again. After a notification, ``get_cols_rows()`` returns the size it carried
+until the next ``SIGWINCH``, which makes the size of the terminal device current
+again. The mode is turned off when the screen stops.
+
+The curses display turns the mode on only when it is created with
+``in_band_resize=True``, without asking the terminal. Use it only with a
+terminal that supports the mode: the mode stays on while ncurses suspends the
+program with CTRL+Z, so a terminal resized then sends the notifications to the
+shell.
+
+.. note::
+
+   A program that writes its own sequence to reset the terminal after a crash
+   adds ``ESC [ ? 2048 l`` to it, so the terminal stops sending the
+   notifications to the shell.
+
+
 .. _mouse-input:
 
 Mouse Input

@@ -85,8 +85,10 @@ _SGR_MOUSE_MAX_LEN: typing.Final = 32
 # longest body of a control sequence accepted before its final byte:
 # the parameters of a key report or a terminal reply, or the parameter and intermediate bytes of an unrecognised one
 _CSI_PARAMETERS_MAX_LEN: typing.Final = 64
-# the rows, columns, height and width of an in-band resize notification
-_WINDOW_SIZE_REPORT_VALUES: typing.Final = 4
+# an in-band resize notification carries the rows and columns, optionally followed by the height and width in pixels
+_WINDOW_SIZE_REPORT_LENGTHS: typing.Final = frozenset({2, 4})
+# the largest row or column count a notification may carry: the range of TIOCGWINSZ's unsigned short fields
+_WINDOW_SIZE_MAX: typing.Final = 0xFFFF
 
 ###################
 # Input sequences
@@ -1004,7 +1006,10 @@ class KeyqueueTrie:
     ) -> tuple[_WindowSizeReport, int] | None:
         """Interpret an in-band resize notification (CSI 48 ; rows ; columns ; height ; width t) at *start*.
 
-        The height and width in pixels are read but not returned.
+        The height and width in pixels may be left out; when present, they are skipped without being read.
+        Each value may carry sub-parameters after a colon, which are ignored, as mode 2048 asks of a client.
+        A row or column count of 0 or above 65535 makes the notification invalid,
+        so a forged one cannot make the layout allocate a canvas of that size.
 
         :returns: ``('window size report', columns, rows)`` and the position after the report,
             or None when the codes at *start* are not such a report.
@@ -1013,9 +1018,11 @@ class KeyqueueTrie:
         if (split := self._split_csi_at(codes, start, more_available, b"[48;", (ord("t"),))) is None:
             return None
         fields, _final, end = split
-        if len(fields) != _WINDOW_SIZE_REPORT_VALUES or any(len(field) != 1 or not field[0] for field in fields):
+        if len(fields) not in _WINDOW_SIZE_REPORT_LENGTHS or not (fields[0][0] and fields[1][0]):
             return None
         rows, cols = int(fields[0][0]), int(fields[1][0])
+        if not (0 < rows <= _WINDOW_SIZE_MAX and 0 < cols <= _WINDOW_SIZE_MAX):
+            return None
         return ("window size report", cols, rows), end
 
     def read_key_report(
@@ -1504,6 +1511,8 @@ class PrivateMode(enum.StrEnum):
     META_SENDS_ESCAPE = "1036"
     ALT_SENDS_ESCAPE = "1039"
     BRACKETED_PASTE = "2004"
+    # In-band resize notifications: the terminal reports each size change in the input, as CSI 48 ; rows ; cols t.
+    IN_BAND_RESIZE = "2048"
     SYNCHRONIZED_OUTPUT = "2026"
     GRAPHEME_CLUSTERING = "2027"
     # Colour scheme change notifications; not queried or turned on yet.

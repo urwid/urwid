@@ -154,6 +154,10 @@ class CursesStartTerminalModeTest(unittest.TestCase):
         self.calls.attach_mock(curses_mock.def_prog_mode, "def_prog_mode")
         self.calls.attach_mock(curses_mock.endwin, "endwin")
         self.enterContext(mock.patch.object(curses_display.sys, "stdin", **{"fileno.return_value": 7}))
+        self.written: list[str] = []
+        self.enterContext(
+            mock.patch.object(curses_display.Screen, "_write_terminal", side_effect=self.written.append),
+        )
         self.isatty = self.enterContext(mock.patch("os.isatty", return_value=True))
         self.tcgetattr = self.enterContext(mock.patch("termios.tcgetattr"))
         self.calls.attach_mock(self.enterContext(mock.patch("termios.tcsetattr")), "tcsetattr")
@@ -230,6 +234,51 @@ class CursesStartTerminalModeTest(unittest.TestCase):
 
         self.assertEqual(mock.call(1, 2), keys.call_args)
 
+    def test_in_band_resize_is_turned_on_at_start_and_off_at_stop_only_when_asked_for(self) -> None:
+        """Turn the mode on at start and off at stop for in_band_resize=True; by default the terminal is not asked."""
+        mode = urwid.display.escape.PrivateMode.IN_BAND_RESIZE
+        for in_band_resize, at_start, at_stop in (
+            (True, [mode.enable_seq], [mode.disable_seq]),
+            (False, [], []),
+        ):
+            with self.subTest(in_band_resize=in_band_resize):
+                self.tcgetattr.side_effect = None
+                self.tcgetattr.return_value = self.mode(termios.ISIG)
+                self.written.clear()
+                screen = curses_display.Screen(in_band_resize=in_band_resize)
+
+                screen.start()
+                self.assertEqual(at_start, self.written)
+                self.written.clear()
+                screen.stop()
+
+                self.assertEqual(at_stop, self.written)
+                self.assertFalse(screen._in_band_resize)
+
+    def test_stop_leaves_curses_mode_when_turning_the_mode_off_fails(self) -> None:
+        """Leave curses mode after a failed write of the disable, raising only what is not a hung-up terminal."""
+        self.tcgetattr.side_effect = None
+        self.tcgetattr.return_value = self.mode(termios.ISIG)
+        for error, raised in ((errno.EIO, False), (errno.EAGAIN, True)):
+            with self.subTest(errno=errno.errorcode[error]):
+                screen = curses_display.Screen(in_band_resize=True)
+                screen.start()
+                self.calls.reset_mock()
+
+                with mock.patch.object(
+                    curses_display.Screen,
+                    "_write_terminal",
+                    side_effect=OSError(error, "write"),
+                ):
+                    if raised:
+                        with self.assertRaises(OSError):
+                            screen.stop()
+                    else:
+                        screen.stop()
+
+                self.assertIn(mock.call.endwin(), self.calls.mock_calls)
+                self.assertFalse(screen._in_band_resize)
+
     def test_start_leaves_a_non_terminal_input_alone(self) -> None:
         """Change no termios setting and save no program mode when the input is not a terminal."""
         self.isatty.return_value = False
@@ -239,6 +288,7 @@ class CursesStartTerminalModeTest(unittest.TestCase):
         screen.stop()
 
         self.assertEqual([mock.call.endwin()], self.calls.mock_calls)
+        self.assertEqual([], self.written)  # the terminal's reply would arrive where nothing reads it
 
 
 @unittest.skipIf(curses_display is None, "the curses module is not available")
@@ -265,7 +315,7 @@ class CursesGetInputTest(unittest.TestCase):
 
 
     def test_window_size_report_is_dropped(self) -> None:
-        """Drop a report a terminal sends while a program left mode 2048 on, which the application cannot handle."""
+        """Drop a report while this screen has mode 2048 off, as one a program that left the mode on gets."""
         screen = curses_display.Screen()
         report = list(escape.window_size_report(80, 24).encode())
         with (
@@ -276,6 +326,57 @@ class CursesGetInputTest(unittest.TestCase):
             processed, _raw = screen._get_input(None)
 
         self.assertEqual(["a", "b"], processed)
+
+    def _get_input_with(self, screen: curses_display.Screen, codes: bytes | list[int]) -> list[object]:
+        """Return what ``_get_input`` makes of *codes*, with curses reporting a size of 80 by 24."""
+        screen.s = mock.Mock(**{"getmaxyx.return_value": (24, 80)})
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[codes[0], -1]),
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[*codes[1:], -1]),
+        ):
+            processed, _raw = screen._get_input(None)
+        return processed
+
+    def test_window_size_report_resizes_curses_where_the_mode_is_on(self) -> None:
+        """Give curses a new reported size and report a resize at its place.
+
+        A report of the same size, or of a size curses cannot apply, is dropped.
+        """
+        for size, failure, expected, resized in (
+            ((100, 30), None, ["a", "window resize", "b"], True),
+            ((80, 24), None, ["a", "b"], False),
+            ((100, 30), curses_display.curses.error("resize_term() returned ERR"), ["a", "b"], True),
+        ):
+            with self.subTest(size=size, failure=failure):
+                screen = curses_display.Screen()
+                screen._in_band_resize = True
+
+                with mock.patch("curses.resize_term", side_effect=failure) as resize_term:
+                    processed = self._get_input_with(
+                        screen,
+                        b"a" + escape.window_size_report(*size).encode() + b"b",
+                    )
+
+                self.assertEqual(expected, processed)
+                self.assertEqual([mock.call(size[1], size[0])] if resized else [], resize_term.mock_calls)
+
+    def test_window_size_report_takes_the_place_of_a_resize_curses_read(self) -> None:
+        """Report a resize curses read with a report once, at the report's place.
+
+        The terminal sets the size before it sends the report, so curses can have the reported size already.
+        """
+        for size, resized in (((80, 24), False), ((100, 30), True)):
+            with self.subTest(size=size):
+                screen = curses_display.Screen()
+                screen._in_band_resize = True
+                codes = [ord("a"), curses_display.KEY_RESIZE, *escape.window_size_report(*size).encode(), ord("b")]
+
+                with mock.patch("curses.resize_term") as resize_term:
+                    processed = self._get_input_with(screen, codes)
+
+                self.assertEqual(["a", "window resize", "b"], processed)
+                self.assertEqual([mock.call(size[1], size[0])] if resized else [], resize_term.mock_calls)
 
 
 @unittest.skipIf(curses_display is None, "the curses module is not available")

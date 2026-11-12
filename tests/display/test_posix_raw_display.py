@@ -239,6 +239,42 @@ class TestStartStop(unittest.TestCase):
                     "".join(written),
                 )
 
+    def test_in_band_resize_is_on_while_started(self):
+        """A supported mode is turned on at each start and off at each stop, with the reported size forgotten."""
+        s = _make_screen()
+        s.modes.in_band_resize = True
+        written: list[str] = []
+        s.write = written.append
+        s.flush = lambda: None
+
+        for _ in range(2):
+            written.clear()
+            s.start()
+            self.assertIn(escape.PrivateMode.IN_BAND_RESIZE.enable_seq, "".join(written))
+            self.assertTrue(s._in_band_resize)
+            s._reported_cols_rows = (100, 30)
+
+            written.clear()
+            s.stop()
+            self.assertIn(escape.PrivateMode.IN_BAND_RESIZE.disable_seq, "".join(written))
+            self.assertFalse(s._in_band_resize)
+            self.assertIsNone(s._reported_cols_rows)
+
+    def test_in_band_resize_is_left_alone_unless_supported(self):
+        """A mode not yet confirmed, or reported unsupported, is neither turned on nor off."""
+        for in_band_resize in (None, False):
+            with self.subTest(in_band_resize=in_band_resize):
+                s = _make_screen()
+                s.modes.in_band_resize = in_band_resize
+                written: list[str] = []
+                s.write = written.append
+                s.flush = lambda: None
+
+                s.start()
+                s.stop()
+
+                self.assertNotIn("?2048", "".join(written))
+
     def test_restart_after_no_alternate_screen_reported_skips_only_the_switch(self):
         """The frames are still drawn on the whole screen, as on the first start."""
         s = _make_screen()
@@ -902,7 +938,14 @@ class TestReadRawInput(unittest.TestCase):
 class TestDetectTerminalModes(unittest.TestCase):
     """_detect_terminal_modes() only writes the DECRQM queries; it does not wait for a reply."""
 
-    def _screen_over_pipe(self, *, bracketed_paste_mode=None, focus_reporting=None, extended_keys=False):
+    def _screen_over_pipe(
+        self,
+        *,
+        bracketed_paste_mode=None,
+        focus_reporting=None,
+        extended_keys=False,
+        in_band_resize=None,
+    ):
         read_fd, write_fd = os.pipe()
         self.addCleanup(os.close, write_fd)
         s = Screen(
@@ -911,6 +954,7 @@ class TestDetectTerminalModes(unittest.TestCase):
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
+            in_band_resize=in_band_resize,
         )
         written: list[str] = []
         s.write = written.append
@@ -931,10 +975,11 @@ class TestDetectTerminalModes(unittest.TestCase):
         self.assertIn(escape.PrivateMode.MOUSE_SGR_MODE.query, output)
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
         self.assertIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
+        self.assertIn(escape.PrivateMode.IN_BAND_RESIZE.query, output)
 
     @mock.patch("os.isatty", return_value=True)
     def test_skips_modes_given_an_explicit_preference(self, mock_isatty):
-        s, written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=False)
+        s, written = self._screen_over_pipe(bracketed_paste_mode=True, focus_reporting=False, in_band_resize=True)
 
         s._detect_terminal_modes()
 
@@ -944,6 +989,28 @@ class TestDetectTerminalModes(unittest.TestCase):
         self.assertIn(escape.PrivateMode.GRAPHEME_CLUSTERING.query, output)
         self.assertNotIn(escape.PrivateMode.BRACKETED_PASTE.query, output)
         self.assertNotIn(escape.PrivateMode.FOCUS_REPORTING.query, output)
+        self.assertNotIn(escape.PrivateMode.IN_BAND_RESIZE.query, output)
+
+    @mock.patch("os.isatty", return_value=True)
+    def test_in_band_resize_is_not_queried_on_iterm2_with_incomplete_reports(self, mock_isatty):
+        """iTerm2 3.5.6 to 3.5.10 leave the final byte off a report; a forced preference is kept."""
+        for environ, in_band_resize, expected in (
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.10"}, None, False),
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.6beta2"}, None, False),
+            ({"LC_TERMINAL": "iTerm2"}, None, False),
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.10"}, True, True),
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.5.11"}, None, None),
+            ({"LC_TERMINAL": "iTerm2", "LC_TERMINAL_VERSION": "3.6.0"}, None, None),
+            ({}, None, None),
+        ):
+            with self.subTest(environ=environ, in_band_resize=in_band_resize):
+                with mock.patch.dict(os.environ, environ, clear=True):
+                    s, written = self._screen_over_pipe(in_band_resize=in_band_resize)
+
+                s._detect_terminal_modes()
+
+                self.assertIs(expected, s.modes.in_band_resize)
+                self.assertEqual(expected is None, escape.PrivateMode.IN_BAND_RESIZE.query in "".join(written))
 
     def test_not_a_tty_writes_nothing(self):
         # os.isatty is left unmocked here: a plain pipe is never a tty.
@@ -1025,6 +1092,38 @@ class TestApplyPrivateModeReports(unittest.TestCase):
 
         self.assertTrue(s.modes.bracketed_paste)
         self.assertIn(escape.PrivateMode.BRACKETED_PASTE.enable_seq, "".join(written))
+
+    def test_in_band_resize_confirmed_on_a_started_screen_is_enabled_immediately(self):
+        """A settable mode is turned on at once, and its reports count from then on."""
+        for value in (1, 2):
+            with self.subTest(value=value):
+                s, written = self._screen()
+                s._started = True
+
+                s.parse_input(None, None, list(f"\x1b[?2048;{value}$y".encode()))
+
+                self.assertTrue(s.modes.in_band_resize)
+                self.assertTrue(s._in_band_resize)
+                self.assertEqual([escape.PrivateMode.IN_BAND_RESIZE.enable_seq], written)
+
+    def test_in_band_resize_is_not_enabled_unconfirmed_or_while_stopped(self):
+        """An unsupported mode, a reply to no query, or a reply read while stopped writes nothing."""
+        for reply, started, queried in (
+            (b"\x1b[?2048;0$y", True, True),
+            (b"\x1b[?2048;4$y", True, True),
+            (b"\x1b[?2048;1$y", True, False),
+            (b"\x1b[?2048;1$y", False, True),
+        ):
+            with self.subTest(reply=reply, started=started, queried=queried):
+                s, written = self._screen()
+                if not queried:
+                    s._mode_queries_pending.clear()
+                s._started = started
+
+                s.parse_input(None, None, list(reply))
+
+                self.assertFalse(s._in_band_resize)
+                self.assertEqual([], written)
 
     def test_unrecognized_reply_resolves_the_sentinel_to_false_without_enabling(self):
         s, written = self._screen(bracketed_paste=None)
@@ -1365,6 +1464,42 @@ class TestGetColsRows(unittest.TestCase):
         cols, rows = s.get_cols_rows()
 
         self.assertEqual((80, 24), (cols, rows))
+
+    @mock.patch("fcntl.ioctl")
+    def test_reported_size_is_used_until_the_next_sigwinch(self, mock_ioctl):
+        """A window size report sets the size, even where the system's size never changes; SIGWINCH reads it again."""
+        mock_ioctl.return_value = struct.pack("hhhh", 24, 80, 0, 0)
+        s = _make_screen()
+        s._in_band_resize = True
+
+        keys, _raw = s.parse_input(None, None, list(escape.window_size_report(100, 30).encode()))
+
+        self.assertEqual(["window resize"], keys)
+        self.assertEqual((100, 30), s.get_cols_rows())
+        self.assertEqual(30, s.maxrow)
+
+        s._sigwinch_handler()
+        keys, _raw = s.parse_input(None, None, [])
+
+        self.assertEqual(["window resize"], keys)
+        self.assertEqual((80, 24), s.get_cols_rows())
+
+    @mock.patch("fcntl.ioctl")
+    def test_report_is_a_resize_before_its_sigwinch_is_handled(self, mock_ioctl):
+        """Report a resize at the report's place while the device has the new size and SIGWINCH is not handled yet.
+
+        The terminal sets the size before it sends the report, and an event loop can read the input first.
+        """
+        mock_ioctl.return_value = struct.pack("hhhh", 24, 80, 0, 0)
+        s = _make_screen()
+        s._in_band_resize = True
+        self.assertEqual((80, 24), s.get_cols_rows())
+        mock_ioctl.return_value = struct.pack("hhhh", 30, 100, 0, 0)
+
+        keys, _raw = s.parse_input(None, None, [*escape.window_size_report(100, 30).encode(), ord("x")])
+
+        self.assertEqual(["window resize", "x"], keys)
+        self.assertEqual((100, 30), s.get_cols_rows())
 
     @mock.patch("fcntl.ioctl", side_effect=OSError)
     def test_falls_back_to_80x24_when_ioctl_fails(self, mock_ioctl):

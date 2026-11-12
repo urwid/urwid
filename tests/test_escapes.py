@@ -991,6 +991,12 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             (b"[>4m", ("modify keys report", 4, None)),
             (b"[48;24;80;0;0t", ("window size report", 80, 24)),
             (b"[48;30;100;600;1000t", ("window size report", 100, 30)),
+            # the pixel size is optional, may exceed 16 bits, and sub-parameters are ignored
+            (b"[48;24;80t", ("window size report", 80, 24)),
+            (b"[48;24;80;;t", ("window size report", 80, 24)),
+            (b"[48;24;80;1234567;7654321t", ("window size report", 80, 24)),
+            (b"[48;24:1;80:2:3;0:4;0t", ("window size report", 80, 24)),
+            (b"[48;65535;65535;0;0t", ("window size report", 65535, 65535)),
         ):
             with self.subTest(sequence=sequence):
                 actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
@@ -1004,14 +1010,25 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
         for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):
             with self.subTest(sequence=sequence):
                 self.assertIsNone(escape.input_trie.read_modify_keys_report(list(sequence), more_available=False))
-        # a window size report has exactly four values
-        for sequence in (b"[48;24;80t", b"[48;24;80;0;0;0t", b"[48;;80;0;0t", b"[48;24:1;80;0;0t"):
+        # a window size report has two or four values, and a row and a column count from 1 to 65535
+        for sequence in (
+            b"[48;24t",
+            b"[48;24;80;0t",
+            b"[48;24;80;0;0;0t",
+            b"[48;;80;0;0t",
+            b"[48;24;;0;0t",
+            b"[48;:1;80t",
+            b"[48;0;80;0;0t",
+            b"[48;24;0;0;0t",
+            b"[48;65536;80;0;0t",
+            b"[48;24;65536t",
+        ):
             with self.subTest(sequence=sequence):
                 actual, _rest = escape.process_keyqueue([27, *sequence], more_available=False)
                 self.assertEqual([f"<csi {sequence[1:].decode()}>"], actual)
 
     def test_truncated_replies_wait_for_more_input(self):
-        for sequence in (b"[?62;22c", b"[>4;2m", b"[48;24;80;0;0t"):
+        for sequence in (b"[?62;22c", b"[>4;2m", b"[48;24;80;0;0t", b"[48;24:1;80;1234567;7654321t"):
             for length in range(1, len(sequence)):
                 with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
                     escape.process_keyqueue([27, *sequence[:length]], more_available=True)
