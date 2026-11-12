@@ -1,6 +1,6 @@
 Urwid
 =====
-|pypi| |docs| |gitter| |ci| |pre-commit| |coveralls|
+|pypi| |docs| |ci| |pre-commit| |coveralls|
 
 About
 =====
