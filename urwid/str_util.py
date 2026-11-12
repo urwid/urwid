@@ -295,20 +295,13 @@ def calc_string_text_pos(text: str, start_offs: int, end_offs: int, pref_col: in
         raise ValueError((start_offs, end_offs))
 
     window = max(pref_col, 0) + 16
-    if (
-        type(text) is str
-        and type(start_offs) is int
-        and type(end_offs) is int
-        and type(pref_col) is int
-        and 0 <= start_offs <= end_offs <= len(text)
-        and pref_col >= 0
-    ):
+    if start_offs >= 0 and end_offs <= len(text) and isinstance(pref_col, int) and pref_col >= 0:
         stop = min(end_offs, start_offs + window)
         segment = text[start_offs:stop]
         if SAFE_ASCII_RE.fullmatch(segment) and (stop == end_offs or pref_col < len(segment) - 1):
             # Keep a character beyond the target so a following combining mark
             # cannot change the boundary at the returned position.
-            cols = min(pref_col, len(segment))
+            cols = int(min(pref_col, len(segment)))
             return start_offs + cols, cols
 
     cols = 0
