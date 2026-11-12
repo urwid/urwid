@@ -313,19 +313,30 @@ class CursesGetInputTest(unittest.TestCase):
                 self.assertEqual(expected, processed)
                 self.assertEqual([ord("a"), 27, ord("["), *([later] if later >= 0 else [])], raw)
 
+    def test_report_this_screen_did_not_ask_for_is_dropped(self) -> None:
+        """Drop a report or a query reply that answers another program.
 
-    def test_window_size_report_is_dropped(self) -> None:
-        """Drop a report while this screen has mode 2048 off, as one a program that left the mode on gets."""
-        screen = curses_display.Screen()
-        report = list(escape.window_size_report(80, 24).encode())
-        with (
-            mock.patch("curses.doupdate"),
-            mock.patch.object(screen, "_getch", side_effect=[ord("a"), -1]),
-            mock.patch.object(screen, "_getch_nodelay", side_effect=[*report, ord("b"), -1]),
+        No tuple then reaches the main loop.
+        A window size report counts only while this screen has mode 2048 on.
+        This screen sends no query, so every query reply answers another program's query.
+        """
+        for label, report in (
+            ("window size report", escape.window_size_report(80, 24)),
+            ("private mode report", "\x1b[?2004;1$y"),
+            ("keyboard protocol report", "\x1b[?1u"),
+            ("modify keys report", "\x1b[>4;2m"),
+            ("device attributes", "\x1b[?62;22c"),
         ):
-            processed, _raw = screen._get_input(None)
+            with self.subTest(label):
+                screen = curses_display.Screen()
+                with (
+                    mock.patch("curses.doupdate"),
+                    mock.patch.object(screen, "_getch", side_effect=[ord("a"), -1]),
+                    mock.patch.object(screen, "_getch_nodelay", side_effect=[*report.encode(), ord("b"), -1]),
+                ):
+                    processed, _raw = screen._get_input(None)
 
-        self.assertEqual(["a", "b"], processed)
+                self.assertEqual(["a", "b"], processed)
 
     def _get_input_with(self, screen: curses_display.Screen, codes: bytes | list[int]) -> list[object]:
         """Return what ``_get_input`` makes of *codes*, with curses reporting a size of 80 by 24."""

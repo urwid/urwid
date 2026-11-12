@@ -25,6 +25,12 @@ the screen.
 There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.
 
+A terminal's reply to a cursor position query (``CSI 6 n``) is returned as a
+``("cursor position", x, y)`` item, where ``(0, 0)`` is the top left of the
+screen. Urwid does not send this query itself.
+An application that sends it takes the reply in its input filter:
+:class:`MainLoop` passes the item to no widget and skips it.
+
 .. _keyboard-input:
 
 Keyboard Input
