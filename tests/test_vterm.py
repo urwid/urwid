@@ -1191,14 +1191,61 @@ class TermTest(unittest.TestCase):
         # the alternate screen keeps no scrollback
         self.assertGreater(canvas.scrollback_buffer.maxlen, 0)
 
+    def rendered_standout(self) -> list[list[bool]]:
+        """Read the pending output and return, per rendered cell, whether it is shown in standout."""
+        self.read()
+        rendered = self.term.render(self.termsize)
+        return [[attr is not None and attr.standout for attr, _, _ in line] for line in rendered.content()]
+
     def test_reverse_video_covers_both_screens(self) -> None:
-        """Reverse the cells of the screen not shown as well, so DECSCNM shows on whichever screen is switched to."""
+        """Show DECSCNM on whichever screen is switched to."""
         self.write(r"a\e[?47hb\e[?5h\e[?47l")
-        self.read()
-        self.assertIn("standout", self.term.term.term[0][0][0].foreground)
+        self.assertTrue(self.rendered_standout()[0][0])
         self.write(r"\e[?5l\e[?47h")
+        self.assertFalse(self.rendered_standout()[0][1])
+
+    def test_reverse_video_is_applied_when_rendered(self) -> None:
+        """Show every cell in standout while DECSCNM is on, and keep the stored cells as the child wrote them."""
+        self.write(r"a\e[31mb\e[?5h")
+        self.assertTrue(all(all(line) for line in self.rendered_standout()))
+        self.assertFalse(any(attr is not None and attr.standout for attr, _, _ in self.term.term.term[0]))
+        self.write(r"\e[?5l")
         self.read()
-        self.assertNotIn("standout", self.term.term.term[0][1][0].foreground)
+        self.assertEqual(list(self.term.render(self.termsize).content()), self.term.term.term)
+
+    def test_reverse_video_shows_the_text_written_after_the_change(self) -> None:
+        """Show text written after DECSCNM is set, with no SGR sequence in between, in standout."""
+        self.write(r"\e[31ma\e[?5hb")
+        self.assertEqual(self.rendered_standout()[0][:2], [True, True])
+
+    def test_reverse_video_off_keeps_the_reverse_attribute(self) -> None:
+        """Keep the standout of text written with SGR 7 when DECSCNM is set and reset."""
+        self.write(r"\e[7ma\e[mb\e[?5h\e[?5l")
+        self.assertEqual(self.rendered_standout()[0][:2], [True, False])
+
+    def test_reverse_video_covers_the_scrollback_view(self) -> None:
+        """Show the lines scrolled back into view in standout while DECSCNM is on, and normal once it is off."""
+        self.write("\n".join(str(number) for number in range(30)) + r"\e[?5h")
+        self.read()
+        self.term.term.scroll_buffer(up=True, lines=3)
+        self.assertTrue(all(all(line) for line in self.rendered_standout()))
+        self.write(r"\e[?5l")
+        self.assertFalse(any(any(line) for line in self.rendered_standout()))
+
+    def test_reset_turns_reverse_video_off(self) -> None:
+        """Show the screen normally again after ESC c clears DECSCNM."""
+        self.write(r"\e[?5h\ectext")
+        self.assertFalse(any(any(line) for line in self.rendered_standout()))
+
+    def test_reverse_video_change_touches_no_cell(self) -> None:
+        """Change DECSCNM without reversing any attribute, so its cost does not grow with the screen area."""
+        self.write("text")
+        self.read()
+        canvas = self.term.term
+        with mock.patch.object(canvas, "reverse_attrspec", wraps=canvas.reverse_attrspec) as reverse_attrspec:
+            self.write(r"\e[?5h\e[?5l" * 50)
+            self.drain()
+        self.assertEqual(reverse_attrspec.call_count, 0)
 
     def test_alternate_screen_resize(self) -> None:
         """Resize the main screen with the alternate one shown, restoring the cursor saved by 1049 to its line."""

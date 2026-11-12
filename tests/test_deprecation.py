@@ -25,9 +25,10 @@ class WarnTest(unittest.TestCase):
         self.assertEqual("Old is deprecated. Deprecated since urwid 1.0.", str(ctx.warning))
 
     def test_attributed_to_the_caller(self) -> None:
-        with self.assertWarns(DeprecationWarning) as ctx:
-            _deprecation.warn("Old is deprecated.", since="1.0", removed_in=None)
-        self.assertEqual(__file__, ctx.filename)
+        for category in (DeprecationWarning, PendingDeprecationWarning):
+            with self.subTest(category=category.__name__), self.assertWarns(category) as ctx:
+                _deprecation.warn("Old is deprecated.", since="1.0", removed_in=None, category=category)
+            self.assertEqual(__file__, ctx.filename)
 
     def test_attributed_past_nested_urwid_frames(self) -> None:
         # Padding.__init__ passes the object to WidgetDecoration.__init__, which warns two urwid frames deep.
