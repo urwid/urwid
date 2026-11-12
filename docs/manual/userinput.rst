@@ -258,8 +258,15 @@ Which buttons arrive depends on the screen:
   terminal's mouse reports;
 * the curses screen delivers 1 to 5, the buttons Python's :mod:`curses`
   defines;
-* GPM, the Linux console mouse, delivers 1 to 3 to the raw screen, when the
-  screen reads from a Linux virtual console and ``TERM`` names it;
+* GPM, the Linux console mouse, delivers 1 to 3 to the raw screen when the
+  screen reads from a Linux virtual console and ``TERM`` names it:
+
+  * input opened through ``/dev/tty`` or ``/dev/console`` counts as the
+    console behind it;
+  * input through a pseudo-terminal gets no GPM events, even when the session
+    runs on a console, as under ``sudo`` with ``use_pty`` or under
+    ``script``;
+
 * the FreeBSD console, with ``moused`` running (FreeBSD has no GPM):
 
   * ``vt(4)``:
