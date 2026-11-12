@@ -28,11 +28,10 @@ import pathlib
 import string
 import types
 import typing
-import unicodedata
 
 from urwid.event_loop.abstract_loop import ExitMainLoop
 
-from ._web_common import BrowserScreen
+from ._web_common import _MODIFIERS, BrowserScreen, is_key_name
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable, Mapping
@@ -64,28 +63,6 @@ MAX_PENDING_INPUT: typing.Final = 64
 
 _ASSET_DIR: typing.Final = pathlib.Path(__file__).parent
 
-# the names urwid uses for the keys the page script sends by name, without modifiers
-_KEY_NAMES: typing.Final = frozenset(
-    {
-        "backspace",
-        "tab",
-        "enter",
-        "esc",
-        "page up",
-        "page down",
-        "end",
-        "home",
-        "left",
-        "up",
-        "right",
-        "down",
-        "insert",
-        "delete",
-        *(f"f{number}" for number in range(1, 13)),
-    }
-)
-# the modifier prefixes of a key name or a mouse event, in the order the page script writes them
-_MODIFIERS: typing.Final = ("shift ", "meta ", "ctrl ")
 # the mouse events the page script sends, without modifiers
 _MOUSE_EVENTS: typing.Final = frozenset({"mouse press", "mouse release", "mouse drag"})
 # the button numbers the page script sends: left, middle, right, the four wheel directions and the two side buttons
@@ -352,11 +329,7 @@ class Screen(BrowserScreen):
 
         match data:
             case {"type": "key", "key": str() as key} if len(data) == 2:
-                name = key
-                for modifier in _MODIFIERS:
-                    name = name.removeprefix(modifier)
-                # the page sends any single character; Cc and Cs do not change between Unicode versions
-                if name not in _KEY_NAMES and not (len(name) == 1 and unicodedata.category(name) not in {"Cc", "Cs"}):
+                if not is_key_name(key):
                     raise InvalidMessageError("unknown key name")
                 self._queue(key)
             case {"type": "resize", "cols": int() as cols, "rows": int() as rows} if len(data) == 3:

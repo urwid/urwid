@@ -25,6 +25,7 @@ The page script that reads the row format lives in ``_web_common.js`` next to th
 from __future__ import annotations
 
 import typing
+import unicodedata
 
 from urwid.str_util import calc_text_pos, calc_width, move_next_char
 from urwid.util import get_encoding
@@ -54,6 +55,47 @@ _default_background = "light gray"
 
 # a row of a canvas with its attributes resolved, plus the cursor column when the cursor is on that row
 _RowSignature: typing.TypeAlias = tuple[tuple[AttrSpec, str] | int | None, ...]
+
+# the names urwid uses for the keys the page script sends by name, without modifiers
+_KEY_NAMES: typing.Final = frozenset(
+    {
+        "backspace",
+        "tab",
+        "enter",
+        "esc",
+        "page up",
+        "page down",
+        "end",
+        "home",
+        "left",
+        "up",
+        "right",
+        "down",
+        "insert",
+        "delete",
+        *(f"f{number}" for number in range(1, 13)),
+    }
+)
+# the modifier prefixes of a key name or a mouse event, in the order the page script writes them
+_MODIFIERS: typing.Final = ("shift ", "meta ", "ctrl ")
+
+
+def is_key_name(key: str) -> bool:
+    """Return whether `key` is a key name the page script sends.
+
+    The name is any single character or one of the named keys, after the modifier prefixes in the script's order.
+    A control character and a lone surrogate are not key names.
+
+    >>> is_key_name("shift meta page up")
+    True
+    >>> is_key_name("ctrl shift a")
+    False
+    """
+    name = key
+    for modifier in _MODIFIERS:
+        name = name.removeprefix(modifier)
+    # Cc and Cs do not change between Unicode versions
+    return name in _KEY_NAMES or (len(name) == 1 and unicodedata.category(name) not in {"Cc", "Cs"})
 
 
 def code_span(s: str, aspec: AttrSpec, cursor: int = -1) -> str:

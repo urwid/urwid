@@ -48,6 +48,7 @@ from ._web_common import (  # pylint: disable=unused-import  # code_span is a pu
     MAX_ROWS,
     BrowserScreen,
     code_span,  # noqa: F401  # a public name of this module
+    is_key_name,
 )
 
 if typing.TYPE_CHECKING:
@@ -67,6 +68,8 @@ _js_code = CURRENT_DIR.joinpath("_web_common.js").read_text("utf-8") + CURRENT_D
 ALARM_DELAY = 60
 POLL_CONNECT = 3
 MAX_READ = 4096
+#: the longest keyboard input line, in characters
+MAX_LINE_LENGTH: typing.Final = 256
 # encoding of the keyboard input pipe, written by handle_short_request() and read by Screen.get_input()
 _PIPE_ENCODING: typing.Final = "utf-8"
 BUF_SZ = 16384
@@ -126,6 +129,8 @@ class Screen(BrowserScreen):
         self.pipe_name = ""
         self.input_fd: int | None = None
         self.input_tail = ""
+        # the rest of an over-long input line is still to be dropped, up to and including its newline
+        self._dropping_line = False
         # keeps a character split between two reads of the input pipe until its last byte arrives
         self._input_decoder = codecs.getincrementaldecoder(_PIPE_ENCODING)("replace")
         self.content_head = ""
@@ -148,12 +153,10 @@ class Screen(BrowserScreen):
 
         input_resize = request.removeprefix("window resize ").split(" ")
         if len(input_resize) != 2:
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         x, y = input_resize
         if not x.isdecimal() or not y.isdecimal():
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         self._set_screen_size(int(x), int(y))
@@ -181,7 +184,7 @@ class Screen(BrowserScreen):
             raise RuntimeError("'HTTP_X_URWID_METHOD' environment vairable is not set")
 
         if self.update_method not in {"multipart", "polling"}:
-            self.logger.debug("Unsupported update method requested: %r", self.update_method)
+            self.logger.debug("Unsupported update method requested, %d characters long", len(self.update_method))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
@@ -191,7 +194,7 @@ class Screen(BrowserScreen):
 
         client_init = sys.stdin.read(50)
         if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
-            self.logger.debug("Invalid initial client request: %r", client_init)
+            self.logger.debug("Invalid initial client request, %d characters long", len(client_init))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
@@ -211,6 +214,7 @@ class Screen(BrowserScreen):
 
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
         self.input_tail = ""
+        self._dropping_line = False
         self._input_decoder.reset()
         self.content_head = (
             f"Content-type: multipart/x-mixed-replace;boundary=ZZ\r\nX-Urwid-ID: {urwid_id}\r\n\r\n\r\n--ZZ\r\n"
@@ -355,7 +359,11 @@ class Screen(BrowserScreen):
     def get_input(self, raw_keys: Literal[True]) -> tuple[list[str], list[int]]: ...
 
     def get_input(self, raw_keys: bool = False) -> list[str] | tuple[list[str], list[int]]:
-        """Return pending input as a list."""
+        """Return pending input as a list.
+
+        An input line longer than :data:`MAX_LINE_LENGTH` is dropped whole, up to and including its newline.
+        A line that is neither a key name the page script sends nor a valid resize request is dropped too.
+        """
         pending_input = []
         resized = False
         input_fd = typing.cast("int", self.input_fd)
@@ -372,16 +380,29 @@ class Screen(BrowserScreen):
         keydata = self._input_decoder.decode(os.read(input_fd, MAX_READ))
         os.close(input_fd)
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
-        # sys.stderr.write( repr((keydata,self.input_tail))+"\n" )
-        keys = keydata.split("\n")
-        keys[0] = self.input_tail + keys[0]
-        self.input_tail = keys[-1]
+        lines = (self.input_tail + keydata).split("\n")
+        if self._dropping_line:
+            # input_tail is empty here, so the first piece is the rest of the over-long line
+            del lines[0]
+            self._dropping_line = not lines
+        self.input_tail = lines.pop() if lines else ""
+        if len(self.input_tail) > MAX_LINE_LENGTH:
+            self.logger.debug("Dropped an input line longer than %d characters", MAX_LINE_LENGTH)
+            self.input_tail = ""
+            self._dropping_line = True
 
-        for k in keys[:-1]:
-            if self._handle_resize_request(k):
+        not_keys = 0
+        for k in lines:
+            if len(k) > MAX_LINE_LENGTH:
+                self.logger.debug("Dropped an input line of %d characters", len(k))
+            elif self._handle_resize_request(k):
                 resized = True
-            else:
+            elif is_key_name(k):
                 pending_input.append(k)
+            else:
+                not_keys += 1
+        if not_keys:
+            self.logger.debug("Dropped %d input lines that are not key names", not_keys)
         if resized:
             pending_input.append("window resize")
 

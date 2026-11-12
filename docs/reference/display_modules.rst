@@ -28,6 +28,8 @@ WEB display
 
 .. autoclass:: Screen
 
+.. autodata:: MAX_LINE_LENGTH
+
 WebSocket display
 -----------------
 
