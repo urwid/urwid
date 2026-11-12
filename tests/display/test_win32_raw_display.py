@@ -308,6 +308,21 @@ class TestScreenInput(unittest.TestCase):
         with mock.patch.object(s, "_started", True):
             self.assertEqual(["a", "window resize", "b"], s.get_input())
 
+    def test_every_console_reader_report_is_a_resize(self):
+        """Report a resize for each report, also of the size already read: the reader writes one per change.
+
+        The console has the new size before the report is read, and the application may have read it already.
+        """
+        for in_band_resize in (None, False):
+            with self.subTest(in_band_resize=in_band_resize):
+                s = _win32_raw_display.Screen(in_band_resize=in_band_resize)
+                self.assertIs(False, s.modes.in_band_resize)  # the console is not queried for mode 2048
+                s._last_cols_rows = (100, 30)
+                s._send_input.sendall(b"a" + _win32_raw_display.escape.window_size_report(100, 30).encode() + b"b")
+
+                with mock.patch.object(s, "_started", True):
+                    self.assertEqual(["a", "window resize", "b"], s.get_input())
+
     def test_closed_input_socket_raises(self):
         """Input from a caller's socket whose other end closed raises instead of spinning."""
         input_socket, peer = socket.socketpair()

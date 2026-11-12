@@ -973,6 +973,20 @@ class TestMainLoop(unittest.TestCase):
                 evl.process_input(["a", "window resize", "b"])
         self.assertEqual([(80, 24), (100, 30)], widget.keypress_sizes)
 
+    @unittest.skipIf(IS_WINDOWS, "the Windows screen reads its size from the console, which carries the report")
+    def test_keys_after_a_window_size_report_get_the_reported_size(self) -> None:
+        """Lay out the keys after an in-band resize at the size the report carried, not at the device's size."""
+        widget = RecordingWidget(selectable=True, keypress_return=None)
+        with dummy_raw_main_loop(typing.cast("urwid.Widget", widget)) as evl:
+            evl.screen_size = (80, 24)  # the size the screen was last drawn at
+            evl.screen._in_band_resize = True
+            report = urwid.display.escape.window_size_report(100, 30).encode()
+            keys, _raw = evl.screen.parse_input(None, None, [ord("a"), *report, ord("b")])
+
+            evl.process_input(keys)
+
+        self.assertEqual([(80, 24), (100, 30)], widget.keypress_sizes)
+
     def test_update_reads_the_screen_size_once_per_resize(self) -> None:
         """Read the screen size once for a resize followed by input, as a screen that scripts its sizes expects."""
         widget = RecordingWidget(selectable=True, keypress_return=None)

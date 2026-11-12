@@ -1511,6 +1511,8 @@ class PrivateMode(enum.StrEnum):
     META_SENDS_ESCAPE = "1036"
     ALT_SENDS_ESCAPE = "1039"
     BRACKETED_PASTE = "2004"
+    # In-band resize notifications: the terminal reports each size change in the input, as CSI 48 ; rows ; cols t.
+    IN_BAND_RESIZE = "2048"
     SYNCHRONIZED_OUTPUT = "2026"
     GRAPHEME_CLUSTERING = "2027"
     # Colour scheme change notifications; not queried or turned on yet.

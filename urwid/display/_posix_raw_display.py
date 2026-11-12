@@ -99,6 +99,8 @@ class Screen(_raw_display_base.Screen):
         bracketed_paste_mode: bool | None = None,
         focus_reporting: bool | None = None,
         extended_keys: bool = False,
+        *,
+        in_band_resize: bool | None = None,
     ) -> None:
         """Initialize a screen that directly prints escape codes to an output terminal.
 
@@ -113,6 +115,11 @@ class Screen(_raw_display_base.Screen):
         :param extended_keys: report the keys the legacy encodings cannot tell apart, such as ``'ctrl enter'``
             and ``'ctrl i'`` apart from ``'tab'``, through the keyboard protocol the terminal supports.
             Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see :ref:`extended-keys`.
+        :param in_band_resize: take the terminal size from the resize notifications the terminal sends in the input
+            (DEC private mode 2048), as well as from ``SIGWINCH``; see :ref:`in-band-resize`.
+            None (default) auto-detects via DECRQM and enables it once confirmed supported,
+            except on the iTerm2 releases that send the notifications without their final byte;
+            pass True/False to force it without probing.
 
         .. note::
             on terminal-generated signals: putting the terminal into cbreak mode (see `start()`)
@@ -138,12 +145,15 @@ class Screen(_raw_display_base.Screen):
             and without ``IEXTEN`` no Ctrl+O can turn it off.
             `stop()` restores both flags.
         """
+        if in_band_resize is None and _raw_display_base.sends_incomplete_window_size_reports(os.environ):
+            in_band_resize = False
         super().__init__(
             input,
             output,
             bracketed_paste_mode=bracketed_paste_mode,
             focus_reporting=focus_reporting,
             extended_keys=extended_keys,
+            in_band_resize=in_band_resize,
         )
         self.gpm_mev: Popen[str] | None = None
         self.gpm_event_pending: bool = False
@@ -161,7 +171,8 @@ class Screen(_raw_display_base.Screen):
             f"input={self._term_input_file}, "
             f"output={self._term_output_file}, "
             f"bracketed_paste_mode={self.modes.bracketed_paste}, "
-            f"focus_reporting={self.modes.focus_reporting})>"
+            f"focus_reporting={self.modes.focus_reporting}, "
+            f"in_band_resize={self.modes.in_band_resize})>"
         )
 
     def _sigwinch_handler(self, signum: int = signal.SIGWINCH, frame: FrameType | None = None) -> None:
@@ -302,6 +313,9 @@ class Screen(_raw_display_base.Screen):
         if self.modes.focus_reporting:
             self.write(escape.PrivateMode.FOCUS_REPORTING.enable_seq)
 
+        if self.modes.in_band_resize:
+            self._set_in_band_resize(True)
+
         self._enable_keyboard_protocol()
         self._show_title()
 
@@ -321,6 +335,8 @@ class Screen(_raw_display_base.Screen):
         """Restore the screen."""
         self.clear()
         self.signal_restore()
+        # the terminal may be resized while stopped, and SIGWINCH is what reports that then
+        self._reported_cols_rows = None
 
         try:
             try:
@@ -329,6 +345,9 @@ class Screen(_raw_display_base.Screen):
 
                 if self.modes.focus_reporting:
                     self.write(escape.PrivateMode.FOCUS_REPORTING.disable_seq)
+
+                if self._in_band_resize:
+                    self._set_in_band_resize(False)
 
                 # before the alternate screen is left: the kitty keyboard flags are kept per screen
                 self._disable_keyboard_protocol()
@@ -564,7 +583,15 @@ class Screen(_raw_display_base.Screen):
         return result
 
     def get_cols_rows(self) -> tuple[int, int]:
-        """Return the terminal dimensions (num columns, num rows)."""
+        """Return the terminal dimensions (num columns, num rows).
+
+        The size the terminal last reported in the input is returned while it is newer than the last ``SIGWINCH``,
+        see :ref:`in-band-resize`; otherwise the size is read from the terminal device.
+        """
+        if self._reported_cols_rows is not None:
+            x, y = self._last_cols_rows = self._reported_cols_rows
+            self.maxrow = y
+            return x, y
         x, y = super().get_cols_rows()
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
@@ -576,6 +603,7 @@ class Screen(_raw_display_base.Screen):
         if (x <= 0 or y <= 0) and self.term in {"ansi", "vt100"}:
             y, x = 24, 80
         self.maxrow = y
+        self._last_cols_rows = x, y
         return x, y
 
 

@@ -1533,19 +1533,59 @@ class TestParseInput(unittest.TestCase):
 
         On any other screen it is dropped, so input that only looks like one cannot cause a redraw.
         """
-        report = list(escape.window_size_report(80, 24).encode())
         # Adjacent reports are one resize, as the resize flag merges them, also with a dropped query reply between.
-        codes = [ord("a"), *report, *b"\x1b[?2004;1$y", *report, ord("b")]
+        codes = [
+            ord("a"),
+            *escape.window_size_report(100, 30).encode(),
+            *b"\x1b[?2004;1$y",
+            *escape.window_size_report(120, 40).encode(),
+            ord("b"),
+        ]
         for in_band_resize, expected in ((True, ["a", "window resize", "b"]), (False, ["a", "b"])):
             with self.subTest(in_band_resize=in_band_resize):
                 s = urwid.display.raw.Screen()
                 s._in_band_resize = in_band_resize
                 s.screen_buf = []
 
-                keys, _raw = s.parse_input(None, None, codes)
+                with mock.patch.object(s, "_cols_rows_before_report", return_value=(80, 24)):
+                    keys, _raw = s.parse_input(None, None, codes)
 
                 self.assertEqual(expected, keys)
                 self.assertEqual(None if in_band_resize else [], s.screen_buf)
+
+    def test_window_size_report_of_the_current_size_is_not_a_resize(self) -> None:
+        """Drop a report of the size the screen already has, such as the one sent when the mode is turned on."""
+        s = urwid.display.raw.Screen()
+        s._in_band_resize = True
+        s.screen_buf = []
+
+        with mock.patch.object(s, "_cols_rows_before_report", return_value=(80, 24)):
+            keys, _raw = s.parse_input(None, None, [ord("a"), *escape.window_size_report(80, 24).encode()])
+
+        self.assertEqual(["a"], keys)
+        self.assertEqual([], s.screen_buf)
+
+    def test_window_size_report_leaves_a_pending_sigwinch_alone(self) -> None:
+        """Report a resize at the place of a report that changes the size, and leave a pending SIGWINCH pending.
+
+        The SIGWINCH can come from a later change that sends no report.
+        """
+        for size, expected in (((100, 30), ["a", "window resize", "b"]), ((80, 24), ["a", "b"])):
+            with self.subTest(size=size):
+                s = urwid.display.raw.Screen()
+                s._in_band_resize = True
+                s._resized = True
+                s._hold_resize = True
+
+                with mock.patch.object(s, "_cols_rows_before_report", return_value=(80, 24)):
+                    keys, _raw = s.parse_input(
+                        None,
+                        None,
+                        [ord("a"), *escape.window_size_report(*size).encode(), ord("b")],
+                    )
+
+                self.assertEqual(expected, keys)
+                self.assertTrue(s._resized)
 
     def test_resize_is_held_for_a_limited_number_of_passes(self) -> None:
         """Report a resize after a bounded number of passes, however long input keeps arriving."""
