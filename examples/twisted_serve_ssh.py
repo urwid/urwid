@@ -323,9 +323,13 @@ class TwistedScreen(Screen):
 
         1. filter the input data against urwid's input filter.
         2. Calculate escapes and other clever things using urwid's
-        `escape.process_keyqueue`.
+        `escape.decode_input`.
         3. Pass the calculated keys as a list to the Urwid main loop.
         4. Redraw the screen
+
+        .. note::
+            *data* is as large as the peer sends.
+            It is decoded in time linear in its size, but the transport should still bound how much one read returns.
         """
         self._data = list(data)
         self.parse_input(self._evl, self._urwid_callback, self.get_available_raw_input())

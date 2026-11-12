@@ -28,6 +28,7 @@ import contextlib
 import dataclasses
 import errno
 import functools
+import logging
 import operator
 import os
 import pathlib
@@ -1288,37 +1289,29 @@ class Screen(BaseScreen, RealTerminal):
             event_loop.remove_alarm(self._input_timeout)
             self._input_timeout = None
 
-        original_codes = codes
-        decoded_codes: _DecodedInputWithReports = []
-        try:
-            while codes:
-                run, remaining_codes = escape.process_keyqueue(
-                    codes, wait_for_more, keyboard_protocol=self._keyboard_protocol_enabled
-                )
-                codes = remaining_codes.copy()
-                decoded_codes.extend(run)
-        except escape.MoreInputRequired:
+        decoded_codes, consumed = escape.decode_input(
+            codes,
+            wait_for_more,
+            keyboard_protocol=self._keyboard_protocol_enabled,
+        )
+        raw_codes = codes[:consumed]
+        partial_codes = self._partial_codes = codes[consumed:]
+        if partial_codes:
             # Set a timer to wait for the rest of the input; if it goes off
             # without any new input having come in, use the partial input
-            k = len(original_codes) - len(codes)
-            raw_codes = original_codes[:k]
-            self._partial_codes = codes
-
             def _parse_incomplete_input() -> None:
                 self._input_timeout = None
                 self._partial_codes = []
-                self.parse_input(event_loop, callback, codes, wait_for_more=False)
+                self.parse_input(event_loop, callback, partial_codes, wait_for_more=False)
 
             if event_loop:
                 self._input_timeout = event_loop.alarm(self.complete_wait, _parse_incomplete_input)
 
-        else:
-            raw_codes = original_codes
-            self._partial_codes = []
-
         output_codes = self._drop_past_end_mouse_events(self._apply_terminal_reports(decoded_codes))
 
-        logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
+        # formats the whole input burst, so it is skipped unless the record is emitted
+        if logger.isEnabledFor(logging.DEBUG):
+            logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
         if self._resized:
             self._resized = False

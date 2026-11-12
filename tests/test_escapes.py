@@ -4,11 +4,33 @@
 
 from __future__ import annotations
 
+import itertools
+import typing
 import unittest
 
 import urwid
 from urwid import util
 from urwid.display import escape
+
+
+def decode_by_key(
+    codes: list[int],
+    *,
+    more_available: bool = False,
+    keyboard_protocol: typing.Literal["kitty", "modify other keys"] | None = None,
+) -> tuple[list[typing.Any], list[int]]:
+    """Call ``process_keyqueue`` once per input event, on the codes it left, until they run out or are incomplete.
+
+    :returns: the decoded input and the codes left undecoded.
+    """
+    decoded = []
+    try:
+        while codes:
+            run, codes = escape.process_keyqueue(codes, more_available, keyboard_protocol=keyboard_protocol)
+            decoded.extend(run)
+    except escape.MoreInputRequired:
+        pass
+    return decoded, codes
 
 
 class EscapeModifierTest(unittest.TestCase):
@@ -110,8 +132,8 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
 
     def test_unrecognised_control_sequence_after_escape(self):
         """ESC before an unrecognised control sequence stays a key of its own, as the sequence may be a report."""
-        self.assertListEqual(["esc", "<csi 99~>"], self._decode_all([27, *b"\x1b[99~"]))
-        self.assertListEqual(["esc", "esc", "<csi 99~>"], self._decode_all([27, 27, *b"\x1b[99~"]))
+        self.assertListEqual(["esc", "<csi 99~>"], decode_by_key([27, *b"\x1b[99~"])[0])
+        self.assertListEqual(["esc", "esc", "<csi 99~>"], decode_by_key([27, 27, *b"\x1b[99~"])[0])
 
     def test_not_a_control_sequence(self):
         """Codes after ESC [ that do not form a control sequence keep decoding as meta [ and separate keys."""
@@ -122,7 +144,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ([*b"\x1b[", *b"1" * 65, *b"~"], ["meta [", *"1" * 65, "~"]),
         ):
             with self.subTest(codes=codes), util.set_temporary_encoding("utf-8"):
-                self.assertListEqual(expected, self._decode_all(codes))
+                self.assertListEqual(expected, decode_by_key(codes)[0])
 
     def test_mouse_press(self):
         codes = [27, 91, 77, 32, 41, 48]
@@ -345,22 +367,13 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
         self.assertListEqual(["esc"], actual)
         self.assertListEqual([27, 27], rest)
 
-    @staticmethod
-    def _decode_all(codes: list[int]) -> list[str]:
-        """Decode every code, as parse_input does once no more input is expected."""
-        decoded = []
-        while codes:
-            run, codes = escape.process_keyqueue(codes, more_available=False)
-            decoded.extend(run)
-        return decoded
-
     def test_long_escape_run(self):
         """A long run of ESC bytes decodes without exhausting the recursion limit."""
-        self.assertListEqual(["esc"] * 5000, self._decode_all([27] * 5000))
+        self.assertListEqual(["esc"] * 5000, decode_by_key([27] * 5000)[0])
 
     def test_escape_run_before_meta_key(self):
         """Only the ESC directly before a key sequence turns it into a meta key."""
-        self.assertListEqual(["esc", "esc", "meta up"], self._decode_all([27, 27, 27, 27, ord("["), ord("A")]))
+        self.assertListEqual(["esc", "esc", "meta up"], decode_by_key([27, 27, 27, 27, ord("["), ord("A")])[0])
 
     def test_sgrmouse_wheel(self):
         prefix = (27, ord("["), ord("<"))
@@ -438,7 +451,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ("ESC before a cut press", [27, *press_cut], ["esc"]),
         ):
             with self.subTest(name):
-                self.assertEqual(expected, self._decode_all(codes))
+                self.assertEqual(expected, decode_by_key(codes)[0])
 
     def test_mouse_x10_wrapped_coordinate(self):
         """Decode a coordinate byte wrapped past 255.
@@ -457,7 +470,7 @@ class InputEscapeSequenceParserTest(unittest.TestCase):
             ("column 250 of row 58", [27, *b"[M", 32, 27, *b"[x"], [("mouse press", 1, 250, 58), "x"]),
         ):
             with self.subTest(name):
-                self.assertEqual(expected, self._decode_all(codes))
+                self.assertEqual(expected, decode_by_key(codes)[0])
         for codes in ([27, *b"[M", 32, 33, 27], [27, *b"[M", 32, 27, *b"["]):
             with self.subTest(codes=codes), self.assertRaises(escape.MoreInputRequired):
                 escape.process_keyqueue(codes, more_available=True)
@@ -990,6 +1003,73 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             for length in range(1, len(sequence)):
                 with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
                     escape.process_keyqueue([27, *sequence[:length]], more_available=True)
+
+
+class DecodeInputTest(unittest.TestCase):
+    """Tests for ``decode_input``, checked against a loop over ``process_keyqueue``."""
+
+    # whole sequences, their parts, bytes of UTF-8 characters and curses key codes, so pairs of them
+    # also hold sequences cut short and sequences broken by other input
+    UNITS = (
+        *([code] for code in b"\x1b[M<?>;:019muR$ycOAPa !\x00\xff\xc3\xa9\xe2\x94\x80\xf0\x9f"),
+        *(
+            list(sequence)
+            for sequence in (
+                b"\x1b[B",
+                b"\x1b[<0;10;10M",
+                b"\x1b[M !!",
+                b"\x1b[M !",
+                b"\x1b[M ",
+                b"\x1b[1;2;3x",
+                b"\x1b[10;10R",
+                b"\x1b[97;5u",
+                b"\x1b[?2026;2$y",
+                b"\x1b[?1;2c",
+                b"\x1b[>4;2m",
+                b"\x1b[27;5;97~",
+                b"\x1b[P",
+                b"1" * 70,
+                b";" * 40,
+                b"\x1b" * 5,
+                b"\x1b[" + b"1" * 63,
+                b"\x1b[<" + b"1" * 31,
+            )
+        ),
+        [258],
+        [300],
+        [409],
+        [1000],
+    )
+
+    def test_matches_a_loop_over_process_keyqueue(self):
+        """Decode every ordered pair of units as a loop decoding one input event at a time does."""
+        cases = [[*first, *second] for first, second in itertools.product(self.UNITS, repeat=2)]
+        for encoding in ("utf-8", "ascii", "euc-jp", "iso-8859-1"):
+            for keyboard_protocol in (None, "kitty", "modify other keys"):
+                for more_available in (True, False):
+                    with (
+                        self.subTest(
+                            encoding=encoding,
+                            keyboard_protocol=keyboard_protocol,
+                            more_available=more_available,
+                        ),
+                        util.set_temporary_encoding(encoding),
+                    ):
+                        for codes in cases:
+                            decoded, consumed = escape.decode_input(
+                                codes,
+                                more_available,
+                                keyboard_protocol=keyboard_protocol,
+                            )
+                            self.assertEqual(
+                                decode_by_key(
+                                    codes,
+                                    more_available=more_available,
+                                    keyboard_protocol=keyboard_protocol,
+                                ),
+                                (decoded, codes[consumed:]),
+                                codes,
+                            )
 
 
 class KeyboardProtocolOutputTest(unittest.TestCase):

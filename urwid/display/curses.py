@@ -450,13 +450,10 @@ class Screen(BaseScreen, RealTerminal):
                 keys.append(key)
             key = self._getch_nodelay()
 
-        processed = []
+        processed, consumed = escape.decode_input(keys, more_available=True)
 
-        try:
-            while keys:
-                run, keys = escape.process_keyqueue(keys, True)
-                processed += run
-        except escape.MoreInputRequired:
+        if consumed < len(keys):
+            keys = keys[consumed:]
             key = self._getch(self.complete_tenths)
             while key >= 0:
                 raw.append(key)
@@ -467,9 +464,7 @@ class Screen(BaseScreen, RealTerminal):
                 else:
                     keys.append(key)
                 key = self._getch_nodelay()
-            while keys:
-                run, keys = escape.process_keyqueue(keys, False)
-                processed += run
+            processed += escape.decode_input(keys, more_available=False)[0]
 
         if resize:
             processed.append("window resize")

@@ -1248,6 +1248,9 @@ def process_keyqueue(
 ) -> tuple[list[str | _MouseInput | _CursorPosition | _TerminalReport], list[int]]:
     """Decode `codes` into input events, consuming as much of the queue as is currently decodable.
 
+    Each call copies the codes it leaves, so a loop calling it until the codes run out takes time quadratic in their
+    number; :func:`decode_input` decodes them all in linear time.
+
     :param codes: list of key codes
     :param more_available: if True then raise MoreInputRequired when in the middle of a character sequence
         (escape/utf8/wide) and caller will attempt to send more key codes on the next call.
@@ -1260,6 +1263,38 @@ def process_keyqueue(
     """
     run, end = _process_keyqueue_at(codes, 0, more_available, keyboard_protocol=keyboard_protocol)
     return run, codes[end:]
+
+
+def decode_input(
+    codes: list[int],
+    more_available: bool,
+    *,
+    keyboard_protocol: _KeyboardProtocol | None = None,
+) -> tuple[list[str | _MouseInput | _CursorPosition | _TerminalReport], int]:
+    """Decode every input event in *codes*.
+
+    The time taken is linear in the number of codes.
+
+    >>> decode_input([ord("a"), 27, ord("["), ord("B"), 27, ord("[")], more_available=True)
+    (['a', 'down'], 4)
+    >>> decode_input([ord("a"), 27, ord("["), ord("B"), 27, ord("[")], more_available=False)
+    (['a', 'down', 'meta ['], 6)
+
+    :param codes: list of key codes
+    :param more_available: if True then stop at a sequence the codes end in the middle of,
+        since the caller will pass it again together with the codes that follow.
+        If False then decode such a sequence as well as it can be decoded.
+    :param keyboard_protocol: see :func:`process_keyqueue`.
+    :returns: the decoded input and the number of codes it was decoded from.
+        The codes from that number on are the start of an incomplete sequence, which only *more_available* leaves.
+    """
+    decoded: list[str | _MouseInput | _CursorPosition | _TerminalReport] = []
+    pos = 0
+    with contextlib.suppress(MoreInputRequired):
+        while pos < len(codes):
+            run, pos = _process_keyqueue_at(codes, pos, more_available, keyboard_protocol=keyboard_protocol)
+            decoded.extend(run)
+    return decoded, pos
 
 
 def _process_keyqueue_at(
