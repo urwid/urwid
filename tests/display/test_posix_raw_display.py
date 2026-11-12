@@ -791,7 +791,7 @@ class TestReadRawInput(unittest.TestCase):
 
         self.assertEqual(bytearray(b"abcdef"), result)
 
-    @mock.patch("urwid.display._posix_raw_display._INPUT_READ_LIMIT", 4)
+    @mock.patch("urwid.display._raw_display_base._INPUT_READ_LIMIT", 4)
     def test_input_beyond_the_read_limit_is_left_for_the_next_pass(self):
         """One call reads at most the limit, so a producer that keeps writing cannot keep it reading."""
         read_fd, write_fd = os.pipe()
@@ -806,6 +806,68 @@ class TestReadRawInput(unittest.TestCase):
 
         self.assertEqual(list(b"abcd"), s.get_available_raw_input())
         self.assertEqual(list(b"ef"), s.get_available_raw_input())
+
+    @mock.patch("urwid.display._raw_display_base._INPUT_READ_LIMIT", 4)
+    def test_resize_is_reported_after_the_input_read_before_it(self):
+        """Report a resize only once the input that was waiting when it came is read, so keys keep their layout."""
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = _make_screen(read_fd)
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        s.start()
+        self.addCleanup(s.stop)
+
+        os.write(write_fd, b"abcdef")
+        s._sigwinch_handler()
+
+        self.assertEqual(list("abcd"), s.get_input())
+        self.assertEqual([*"ef", "window resize"], s.get_input())
+
+    def test_resize_after_the_read_waits_for_the_next_pass(self):
+        """Hold a resize that comes after the read, since input typed before it can have arrived after the read."""
+        read_fd, write_fd = os.pipe()
+        self.addCleanup(os.close, write_fd)
+        s = _make_screen(read_fd)
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        s.start()
+        self.addCleanup(s.stop)
+
+        os.write(write_fd, b"a")
+        codes = s.get_available_raw_input()
+        os.write(write_fd, b"b")
+        s._sigwinch_handler()
+
+        self.assertEqual(["a"], s.parse_input(None, None, codes)[0])
+        self.assertEqual(["b", "window resize"], s.get_input())
+
+    def test_resize_comes_after_a_burst_waiting_on_a_terminal(self):
+        """Report a resize after all input typed before it, though a terminal returns it over several short reads."""
+        try:
+            master, slave = pty.openpty()
+        except OSError as exc:
+            self.skipTest(f"no pseudo-terminal available: {exc}")
+        self.addCleanup(os.close, master)
+        s = _make_screen(slave)
+        s.write = lambda *_a: None
+        s.flush = lambda: None
+        # a finite wait, so a resize that is never reported fails the test instead of hanging it
+        s.set_input_timeouts(max_wait=0.1)
+        s.start()
+        self.addCleanup(s.stop)
+        # More than one read of the Linux line discipline buffer.
+        # A system with a smaller pseudo-terminal queue takes what fits, since a blocking write would wait forever.
+        os.set_blocking(master, False)
+        data = b"a" * os.write(master, b"a" * 10000)
+        s._sigwinch_handler()
+        keys: list[str] = []
+        for _ in range(100):
+            keys += s.get_input()
+            if "window resize" in keys:
+                break
+
+        self.assertEqual([*data.decode(), "window resize"], keys)
 
     def test_returns_empty_on_timeout_with_nothing_available(self):
         read_fd, write_fd = os.pipe()

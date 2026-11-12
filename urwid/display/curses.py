@@ -45,7 +45,10 @@ if typing.TYPE_CHECKING:
     _KeyboardProtocolReport = tuple[typing.Literal["keyboard protocol report"], int]
     _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
-    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
+    _TerminalReport = (
+        _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport | _WindowSizeReport
+    )
     _DecodedInput = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
@@ -450,13 +453,10 @@ class Screen(BaseScreen, RealTerminal):
                 keys.append(key)
             key = self._getch_nodelay()
 
-        processed = []
+        processed, consumed = escape.decode_input(keys, more_available=True)
 
-        try:
-            while keys:
-                run, keys = escape.process_keyqueue(keys, True)
-                processed += run
-        except escape.MoreInputRequired:
+        if consumed < len(keys):
+            keys = keys[consumed:]
             key = self._getch(self.complete_tenths)
             while key >= 0:
                 raw.append(key)
@@ -467,9 +467,13 @@ class Screen(BaseScreen, RealTerminal):
                 else:
                     keys.append(key)
                 key = self._getch_nodelay()
-            while keys:
-                run, keys = escape.process_keyqueue(keys, False)
-                processed += run
+            processed += escape.decode_input(keys, more_available=False)[0]
+
+        # A terminal sends window size reports while a program left in-band resize notification (mode 2048) on;
+        # curses reports a resize itself, and the application could not handle the report.
+        if dropped := [key for key in processed if isinstance(key, tuple) and key[0] == "window size report"]:
+            self.logger.getChild("get_input").debug(f"Dropped window size reports: {dropped!r}")
+            processed = [key for key in processed if key not in dropped]
 
         if resize:
             processed.append("window resize")

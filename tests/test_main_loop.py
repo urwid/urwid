@@ -964,6 +964,25 @@ class TestMainLoop(unittest.TestCase):
             evl.screen_size = (10, 5)
             self.assertFalse(evl.process_input(["window resize"]))
 
+    def test_process_input_gives_the_new_size_to_keys_after_a_resize(self) -> None:
+        """A key after a window resize in the same batch is given the size read after the resize."""
+        widget = RecordingWidget(selectable=True, keypress_return=None)
+        with dummy_raw_main_loop(typing.cast("urwid.Widget", widget)) as evl:
+            evl.screen_size = (80, 24)
+            with unittest.mock.patch.object(evl.screen, "get_cols_rows", return_value=(100, 30)):
+                evl.process_input(["a", "window resize", "b"])
+        self.assertEqual([(80, 24), (100, 30)], widget.keypress_sizes)
+
+    def test_update_reads_the_screen_size_once_per_resize(self) -> None:
+        """Read the screen size once for a resize followed by input, as a screen that scripts its sizes expects."""
+        widget = RecordingWidget(selectable=True, keypress_return=None)
+        with dummy_raw_main_loop(typing.cast("urwid.Widget", widget)) as evl:
+            evl.screen_size = (80, 24)
+            with unittest.mock.patch.object(evl.screen, "get_cols_rows", return_value=(100, 30)) as get_cols_rows:
+                evl._update(["window resize", "a"], [])
+        get_cols_rows.assert_called_once_with()
+        self.assertEqual((100, 30), evl.screen_size)
+
     def test_process_input_keypress_handled_by_widget(self):
         """A key fully consumed by the widget's keypress marks input as handled."""
         widget = RecordingWidget(selectable=True, keypress_return=None)

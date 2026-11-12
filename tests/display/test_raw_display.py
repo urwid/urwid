@@ -1439,3 +1439,121 @@ class TestInheritedColors(unittest.TestCase):
         for attr in ("opaque", urwid.LayeredAttr("opaque", "panel_bg")):
             with self.subTest(attr=attr):
                 self.assertEqual(expected, self.screen._attr_to_escape(attr))
+
+
+class CopyCountingList(list[int]):
+    """A list that counts the items copied by slicing it and by ``copy()``, and keeps counting in the copies."""
+
+    def __init__(self, items: typing.Iterable[int], *, counter: list[int] | None = None) -> None:
+        """Hold *items*, adding the copies to *counter*, a one-item list shared with the copies."""
+        super().__init__(items)
+        self.counter = [0] if counter is None else counter
+
+    @typing.overload
+    def __getitem__(self, index: typing.SupportsIndex) -> int: ...
+
+    @typing.overload
+    def __getitem__(self, index: slice) -> CopyCountingList: ...
+
+    def __getitem__(self, index: typing.SupportsIndex | slice) -> int | CopyCountingList:
+        """Return the item at *index*, or a counted copy of the slice *index*."""
+        if isinstance(index, slice):
+            copied = CopyCountingList(super().__getitem__(index), counter=self.counter)
+            self.counter[0] += len(copied)
+            return copied
+        return super().__getitem__(index)
+
+    def copy(self) -> CopyCountingList:
+        """Return a counted copy."""
+        self.counter[0] += len(self)
+        return CopyCountingList(self, counter=self.counter)
+
+
+class TestParseInput(unittest.TestCase):
+    """Tests for ``parse_input``, which decodes the codes read from the terminal."""
+
+    def test_burst_is_decoded_with_a_linear_number_of_copied_codes(self) -> None:
+        """Decode a burst of input without copying the codes left after each key, which takes quadratic time."""
+        s = urwid.display.raw.Screen()
+        codes = CopyCountingList(b"a\x1b[B\xc3\xa9\x1b[<0;10;10M" * 300)
+
+        keys, raw = s.parse_input(None, None, codes, wait_for_more=False)
+
+        self.assertEqual(["a", "down", "é", ("mouse press", 1, 9, 9)] * 300, keys)
+        self.assertEqual(codes, raw)
+        self.assertLess(codes.counter[0], 10 * len(codes))
+
+    def test_incomplete_sequence_waits_for_more_input(self) -> None:
+        """Keep a sequence the codes end in the middle of for the next read, decoding it alone if none comes."""
+        s = urwid.display.raw.Screen()
+        event_loop = mock.Mock()
+        callback = mock.Mock()
+
+        s.parse_input(event_loop, callback, [ord("a"), *b"\x1b[B", 27, ord("[")])
+
+        callback.assert_called_once_with(["a", "down"], [ord("a"), *b"\x1b[B"])
+        self.assertEqual([27, ord("[")], s._partial_codes)
+        event_loop.alarm.assert_called_once()
+        delay, parse_incomplete_input = event_loop.alarm.call_args.args
+        self.assertEqual(s.complete_wait, delay)
+
+        # the next read starts with the codes still waiting
+        with mock.patch.object(s, "_get_input_codes", return_value=[ord("A")]):
+            self.assertEqual([27, ord("["), ord("A")], s.get_available_raw_input())
+
+        # with no more input before the alarm, the codes waiting are decoded as they are
+        callback.reset_mock()
+        s._partial_codes = [27, ord("[")]
+        parse_incomplete_input()
+
+        callback.assert_called_once_with(["meta ["], [27, ord("[")])
+        self.assertEqual([], s._partial_codes)
+        self.assertIsNone(s._input_timeout)
+
+    def test_resize_waits_for_the_input_typed_before_it(self) -> None:
+        """Hold a resize back while input typed before it can still wait, and wake the input loop to read it."""
+        s = urwid.display.raw.Screen()
+        s._resized = True
+        s._hold_resize = True
+
+        keys, _raw = s.parse_input(None, None, [ord("a")])
+
+        self.assertEqual(["a"], keys)
+        self.assertTrue(s._resized)
+        self.assertEqual(b"R", s._resize_pipe_rd.recv(16))
+
+        s._hold_resize = False
+        keys, _raw = s.parse_input(None, None, [ord("b")])
+
+        self.assertEqual(["b", "window resize"], keys)
+        self.assertFalse(s._resized)
+
+    def test_window_size_report_is_a_resize_where_the_screen_sends_it(self) -> None:
+        """Report a window size report as a resize in its place among the keys, on a screen that sends it.
+
+        On any other screen it is dropped, so input that only looks like one cannot cause a redraw.
+        """
+        report = list(escape.window_size_report(80, 24).encode())
+        # Adjacent reports are one resize, as the resize flag merges them, also with a dropped query reply between.
+        codes = [ord("a"), *report, *b"\x1b[?2004;1$y", *report, ord("b")]
+        for in_band_resize, expected in ((True, ["a", "window resize", "b"]), (False, ["a", "b"])):
+            with self.subTest(in_band_resize=in_band_resize):
+                s = urwid.display.raw.Screen()
+                s._in_band_resize = in_band_resize
+                s.screen_buf = []
+
+                keys, _raw = s.parse_input(None, None, codes)
+
+                self.assertEqual(expected, keys)
+                self.assertEqual(None if in_band_resize else [], s.screen_buf)
+
+    def test_resize_is_held_for_a_limited_number_of_passes(self) -> None:
+        """Report a resize after a bounded number of passes, however long input keeps arriving."""
+        s = urwid.display.raw.Screen()
+        s._resized = True
+        s._hold_resize = True
+
+        passes = [s.parse_input(None, None, [ord("a")])[0] for _ in range(_raw_display_base._RESIZE_HOLD_PASSES + 1)]
+
+        self.assertEqual([["a"]] * _raw_display_base._RESIZE_HOLD_PASSES + [["a", "window resize"]], passes)
+        self.assertEqual(0, s._resize_held_passes)

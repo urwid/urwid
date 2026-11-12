@@ -96,6 +96,8 @@ class Screen(_raw_display_base.Screen):
         )
         # the console title before set_title() changed it, read through the console API
         self._saved_title: str | None = None
+        # The console reader writes a resize into the input socket it owns; a caller's own socket carries none.
+        self._in_band_resize = self._send_input is not None
 
     _dwOriginalOutMode: DWORD | None = None
     _dwOriginalInMode: DWORD | None = None
@@ -353,6 +355,17 @@ class Screen(_raw_display_base.Screen):
         self._input_thread = None
 
     def _read_raw_input(self, timeout: float) -> bytearray:
+        """Read the raw input available, waiting at most *timeout* seconds.
+
+        A read stops once `_INPUT_READ_LIMIT` bytes are in, exceeding it by less than one chunk.
+        The rest stays in the input socket for the next pass.
+        `_hold_resize` is set when a resize can have input typed before it still waiting:
+        the resize was not pending when the read started, or input is still readable after it.
+
+        :raises InputClosedError: the input socket has been closed.
+        """
+        resize_pending = self._resized
+        self._hold_resize = not resize_pending
         ready = self._wait_for_input_ready(timeout)
 
         fd = self._input_fileno()
@@ -364,12 +377,14 @@ class Screen(_raw_display_base.Screen):
         with selectors.DefaultSelector() as selector:
             selector.register(fd, selectors.EVENT_READ)
 
-            while selector.select(0):
+            limit = _raw_display_base._INPUT_READ_LIMIT  # pylint: disable=protected-access  # same package
+            while len(chars) < limit and selector.select(0):
                 chunk = self._term_input_file.recv(1024)
                 if not chunk:
                     raise InputClosedError("stdin has been closed")
                 chars.extend(chunk)
 
+            self._hold_resize = not resize_pending or bool(selector.select(0))
             return chars
 
     def _console_window_size(self) -> tuple[int, int] | None:
@@ -411,10 +426,13 @@ class ReadInputThread(threading.Thread):
         window_size: Callable[[], tuple[int, int] | None] = lambda: None,
         start_window_size: tuple[int, int] | None = None,
     ) -> None:
-        """Forward console input to *input_socket* and call *resize* when the console window changes size.
+        """Forward console input to *input_socket*, with a resize of the console window in its place among the keys.
+
+        A resize is written as an in-band resize notification (mode 2048), so the input loop sees it after the keys
+        typed before it. *resize* is called instead when the window size cannot be read.
 
         :param input_socket: the socket the console input is written to.
-        :param resize: called when the console window changes size.
+        :param resize: called when the console window changes size to a size that cannot be read.
         :param window_size: returns the visible window size, checked on every wake-up of the thread:
             the console reports a change of its buffer size, which a change of the window alone does not cause.
         :param start_window_size: the window size read before the thread started, to compare later sizes with;
@@ -445,11 +463,27 @@ class ReadInputThread(threading.Thread):
         high_surrogate = ""
         window = self._start_window_size or window_size()
 
+        def send_resize(size: tuple[int, int] | None) -> None:
+            """Write the resize to the input, after the keys already sent, or report it out of band without a size."""
+            if size is None:
+                resize()
+            else:
+                send_input(escape.window_size_report(*size).encode("ascii"))
+
+        def send_text(chars: list[str]) -> None:
+            """Send the characters of *chars*, keeping a first half of a UTF-16 pair at their end for the next ones."""
+            nonlocal high_surrogate
+            # On Windows atomic press/release of modifier keys produce phantom input with code NULL.
+            text = (high_surrogate + "".join(chars)).replace("\x00", "")
+            high_surrogate = text[-1:] if "\ud800" <= text[-1:] <= "\udbff" else ""
+            if high_surrogate:
+                text = text[:-1]
+            if text:
+                send_input(text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace").encode("utf-8"))
+
         while not self.should_exit:
             # The timeout keeps should_exit and the window size checked while no input arrives.
             wait_result = _win32.WaitForSingleObject(hIn, _INPUT_POLL_MS)
-            resized = False
-            text = ""
 
             if wait_result != _win32.WAIT_TIMEOUT:
                 if wait_result != _win32.WAIT_OBJECT_0 or not _win32.ReadConsoleInputW(
@@ -458,31 +492,29 @@ class ReadInputThread(threading.Thread):
                     self.logger.warning("Reading console input failed, no further input is received")
                     return
 
-                chars = [high_surrogate]
+                chars: list[str] = []
                 for inp in input_records[: read.value]:
                     if inp.EventType == key_event:
                         if inp.Event.KeyEvent.bKeyDown:
                             chars.append(inp.Event.KeyEvent.uChar.UnicodeChar)
                     elif inp.EventType == resize_event:
-                        resized = True
+                        # The keys typed before the resize are sent first, so the input loop sees them before it.
+                        send_text(chars)
+                        chars = []
+                        # The size this resize reports, so the poll below catches a later change of the window alone.
+                        if (current_window := window_size()) is not None:
+                            window = current_window
+                        send_resize(current_window)
                     else:
                         pass  # TODO: handle mouse events
-
-                # On Windows atomic press/release of modifier keys produce phantom input with code NULL.
-                text = "".join(chars).replace("\x00", "")
-                high_surrogate = text[-1:] if "\ud800" <= text[-1:] <= "\udbff" else ""
-                if high_surrogate:
-                    text = text[:-1]
+                send_text(chars)
 
             # A size that cannot be read is no change: only a size read from the console replaces the last one.
+            # A change seen only here has no place among the keys, so it is reported after all of them.
             if (current_window := window_size()) is not None:
-                resized |= window is not None and current_window != window
+                if window is not None and current_window != window:
+                    send_resize(current_window)
                 window = current_window
-            if resized:
-                resize()
-
-            if text:
-                send_input(text.encode("utf-16-le", "surrogatepass").decode("utf-16-le", "replace").encode("utf-8"))
 
 
 def _test() -> None:
