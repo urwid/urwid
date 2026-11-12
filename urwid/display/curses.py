@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import curses
+import errno
 import os
 import sys
 import typing
@@ -52,6 +53,8 @@ if typing.TYPE_CHECKING:
     _DecodedInput = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
+# the C standard output, which initscr() draws on whatever sys.stdout is
+_CURSES_OUTPUT_FD: typing.Final = 1
 
 # PyPy's curses has no constants for button 5 (wheel down): there its events are neither asked for nor reported
 _BUTTON5_PRESSED: typing.Final[int] = getattr(curses, "BUTTON5_PRESSED", 0)
@@ -128,9 +131,20 @@ class Screen(BaseScreen, RealTerminal):
     as :class:`urwid.display.raw.Screen` does, and `stop()` restores them.
     """
 
-    def __init__(self) -> None:
-        """Initialize an unstarted curses screen with no color pairs allocated yet."""
+    def __init__(self, *, in_band_resize: bool = False) -> None:
+        """Initialize an unstarted curses screen with no color pairs allocated yet.
+
+        :param in_band_resize: turn on the resize notifications the terminal sends in the input
+            (DEC private mode 2048), and take the terminal size from them as well as from the resize curses reports;
+            see :ref:`in-band-resize`.
+            Only for a terminal known to support the mode, since it is not asked.
+            The mode stays on while ncurses suspends the program,
+            so a terminal resized then sends the notifications to the shell.
+        """
         super().__init__()
+        self._in_band_resize_requested = in_band_resize
+        # this screen has mode 2048 on, so the window size reports in the input count
+        self._in_band_resize = False
         self.curses_pairs = [(None, None)]  # Can't be sure what pair 0 will default to
         self.has_color = False
         self.has_default_colors = False
@@ -232,6 +246,15 @@ class Screen(BaseScreen, RealTerminal):
                 with suppress(curses.error):
                     curses.def_prog_mode()
 
+            # the reports arrive in the input, so both ends have to be the terminal
+            if (
+                self._in_band_resize_requested
+                and not IS_WINDOWS
+                and os.isatty(sys.stdin.fileno())
+                and os.isatty(_CURSES_OUTPUT_FD)
+            ):
+                self._set_in_band_resize(True)
+
             if not self._signal_keys_set:
                 self._old_signal_keys = self.tty_signal_keys()
 
@@ -249,6 +272,19 @@ class Screen(BaseScreen, RealTerminal):
 
     def _stop(self) -> None:
         """Restore the screen."""
+        try:
+            if self._in_band_resize:
+                self._set_in_band_resize(False)
+        except OSError as exc:
+            # A hung-up terminal (EIO, or ENXIO on FreeBSD) or a closed output pipe (EPIPE) has nothing to restore,
+            # and raising here would hide the error that ended the run.
+            if exc.errno not in {errno.EIO, errno.ENXIO, errno.EPIPE}:
+                raise
+        finally:
+            self._stop_curses()
+
+    def _stop_curses(self) -> None:
+        """Leave curses mode and restore the terminal settings and signal keys start() changed."""
         curses.echo()
         self._curs_set(1)
         with suppress(curses.error):
@@ -269,6 +305,57 @@ class Screen(BaseScreen, RealTerminal):
             if self._old_signal_keys:
                 self.tty_signal_keys(*self._old_signal_keys)
             super()._stop()
+
+    @staticmethod
+    def _write_terminal(data: str) -> None:
+        """Write a control sequence curses has no call for to the terminal curses draws on."""
+        encoded = data.encode("ascii")
+        while encoded:
+            encoded = encoded[os.write(_CURSES_OUTPUT_FD, encoded) :]
+
+    def _set_in_band_resize(self, enable: bool) -> None:
+        """Switch the terminal's in-band resize notifications (DEC private mode 2048) on or off."""
+        mode = escape.PrivateMode.IN_BAND_RESIZE
+        # before the write, which can fail on a terminal that hung up, so a stop still counts no report after it
+        self._in_band_resize = enable
+        self._write_terminal(mode.enable_seq if enable else mode.disable_seq)
+
+    def _apply_in_band_resize(self, processed: _DecodedInput, resize: bool) -> tuple[_DecodedInput, bool]:
+        """Apply the window size reports among *processed*, and strip them out.
+
+        A report counts while this screen has mode 2048 on.
+        When its size differs from the one curses has, curses takes it.
+        The report becomes a ``"window resize"`` at its place among the keys
+        when it changed the size, or when *resize* says curses reported a resize in the same read,
+        which the terminal raised when it set the size it then sent.
+        Any other report is dropped, so input that only looks like one cannot change the screen.
+
+        :param resize: curses reported a resize in the keys *processed* was decoded from.
+        :returns: the input left, and whether the resize curses reported is still to be added.
+        """
+        logger = self.logger.getChild("get_input")
+        result: _DecodedInput = []
+        for item in processed:
+            match item:
+                case ("window size report", int() as cols, int() as rows) if self._in_band_resize:
+                    if self.get_cols_rows() != (cols, rows):
+                        try:
+                            # resize_term(), unlike resizeterm(), queues no KEY_RESIZE of its own
+                            curses.resize_term(rows, cols)
+                        except curses.error:
+                            # a size too large to allocate, which only a forged report carries
+                            logger.debug(f"Dropped a window size report curses could not apply: {item!r}")
+                            continue
+                    elif not resize:
+                        continue
+                    resize = False
+                    if result[-1:] != ["window resize"]:
+                        result.append("window resize")
+                case ("window size report", *_):
+                    logger.debug(f"Dropped a window size report this screen did not ask for: {item!r}")
+                case _:
+                    result.append(item)
+        return result, resize
 
     def _setup_colour_pairs(self) -> None:
         """Initialize all 63 color pairs based on the term: bg * 8 + 7 - fg.
@@ -469,11 +556,7 @@ class Screen(BaseScreen, RealTerminal):
                 key = self._getch_nodelay()
             processed += escape.decode_input(keys, more_available=False)[0]
 
-        # A terminal sends window size reports while a program left in-band resize notification (mode 2048) on;
-        # curses reports a resize itself, and the application could not handle the report.
-        if dropped := [key for key in processed if isinstance(key, tuple) and key[0] == "window size report"]:
-            self.logger.getChild("get_input").debug(f"Dropped window size reports: {dropped!r}")
-            processed = [key for key in processed if key not in dropped]
+        processed, resize = self._apply_in_band_resize(processed, resize)
 
         if resize:
             processed.append("window resize")

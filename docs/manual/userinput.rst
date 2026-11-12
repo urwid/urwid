@@ -196,6 +196,12 @@ again. After a notification, ``get_cols_rows()`` returns the size it carried
 until the next ``SIGWINCH``, which makes the size of the terminal device current
 again. The mode is turned off when the screen stops.
 
+The curses display turns the mode on only when it is created with
+``in_band_resize=True``, without asking the terminal. Use it only with a
+terminal that supports the mode: the mode stays on while ncurses suspends the
+program with CTRL+Z, so a terminal resized then sends the notifications to the
+shell.
+
 .. note::
 
    A program that writes its own sequence to reset the terminal after a crash

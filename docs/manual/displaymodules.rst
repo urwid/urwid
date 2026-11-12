@@ -63,7 +63,7 @@ external event loop support    YES         no
 OSC 8 hyperlinks               YES [4]_    no
 window title                   YES [5]_    no
 clipboard copy (OSC 52)        YES [6]_    no
-in-band resize (mode 2048)     YES [7]_    no
+in-band resize (mode 2048)     YES [7]_    YES [8]_
 ============================== =========== ==============
 
 .. [1] if the termcap entry exists and TERM environment variable is set
@@ -75,6 +75,7 @@ in-band resize (mode 2048)     YES [7]_    no
        when the screen stops, on terminals with a title stack and on the Windows console
 .. [6] with :meth:`display.raw.Screen.copy_to_clipboard`, on terminals that support OSC 52
 .. [7] on terminals that support it, see :ref:`in-band-resize`
+.. [8] with ``in_band_resize=True``, see :ref:`in-band-resize`
 
 
 .. _screens-without-event-loop-support:
