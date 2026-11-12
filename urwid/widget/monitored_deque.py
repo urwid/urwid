@@ -22,7 +22,6 @@
 from __future__ import annotations
 
 import collections
-import contextlib
 import functools
 import operator
 import typing
@@ -203,8 +202,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
     def _extend(self, extend: Callable[[Iterable[_T]], None], items: Iterable[_T]) -> None:
         """Notify after a partial extension, even when a bounded deque's length stays unchanged.
 
-        An ordinary notification callback exception does not replace the existing input failure.
-        Callback shutdown and interruption exceptions still propagate.
+        If a notification callback raises, its exception propagates with the input failure chained.
         """
         if items is self:
             items = tuple(self)
@@ -220,9 +218,7 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
             extend(incoming())
         except BaseException:
             if consumed and self.maxlen != 0:
-                # Preserve the input failure, but allow callback shutdown requests to propagate.
-                with contextlib.suppress(Exception):
-                    self._modified()
+                self._modified()
             raise
 
     @_call_modified

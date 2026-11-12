@@ -6,7 +6,7 @@ import urwid
 
 
 class DequePartialFailureTest(unittest.TestCase):
-    def test_partial_extension_preserves_input_failure_when_notification_raises(self):
+    def test_partial_extension_propagates_notification_with_input_chained(self):
         for cls in [urwid.MonitoredDeque, urwid.SimpleDequeWalker]:
             for operation in ["extend", "extendleft", "__iadd__"]:
                 for maxlen in [None, 2]:
@@ -16,9 +16,11 @@ class DequePartialFailureTest(unittest.TestCase):
                             failure = failure_type("input failed")
                             seen = []
 
+                            callback_error = RuntimeError("notification failed")
+
                             def changed():
                                 seen.append(list(items))
-                                raise RuntimeError("notification failed")
+                                raise callback_error
 
                             if cls is urwid.MonitoredDeque:
                                 items.set_modified_callback(changed)
@@ -29,21 +31,22 @@ class DequePartialFailureTest(unittest.TestCase):
                                 yield 3
                                 raise failure
 
-                            with self.assertRaises(failure_type) as caught:
+                            with self.assertRaises(BaseException) as caught:
                                 getattr(items, operation)(incoming())
-                            self.assertIs(failure, caught.exception)
+                            self.assertIs(callback_error, caught.exception)
+                            self.assertIs(callback_error.__context__, failure)
                             expected = [3, 1, 2] if operation == "extendleft" else [1, 2, 3]
                             if maxlen is not None:
                                 expected = expected[:maxlen] if operation == "extendleft" else expected[-maxlen:]
                             self.assertEqual(expected, list(items))
                             self.assertEqual([expected], seen)
 
-    def test_callback_shutdown_is_not_suppressed_after_input_failure(self):
+    def test_callback_failures_propagate_with_input_failure_chained(self):
         for cls in [urwid.MonitoredDeque, urwid.SimpleDequeWalker]:
             for operation in ["extend", "extendleft", "__iadd__"]:
                 for maxlen in [None, 2]:
                     for failure_type in [ValueError, KeyboardInterrupt, SystemExit, GeneratorExit]:
-                        for shutdown_type in [KeyboardInterrupt, SystemExit, GeneratorExit]:
+                        for shutdown_type in [RuntimeError, KeyboardInterrupt, SystemExit, GeneratorExit]:
                             with self.subTest(cls=cls, operation=operation, maxlen=maxlen,
                                               failure=failure_type, shutdown=shutdown_type):
                                 items = cls([1, 2], maxlen=maxlen)
@@ -134,9 +137,11 @@ class DequePartialFailureTest(unittest.TestCase):
                     failure = ValueError("input failed")
                     seen = []
 
+                    callback_error = RuntimeError("notification failed")
+
                     def changed():
                         seen.append(True)
-                        raise RuntimeError("notification failed")
+                        raise callback_error
 
                     urwid.connect_signal(walker, "modified", changed)
 
@@ -144,9 +149,10 @@ class DequePartialFailureTest(unittest.TestCase):
                         yield urwid.Text("new")
                         raise failure
 
-                    with self.assertRaises(ValueError) as caught:
+                    with self.assertRaises(BaseException) as caught:
                         getattr(walker, operation)(incoming())
-                    self.assertIs(failure, caught.exception)
+                    self.assertIs(callback_error, caught.exception)
+                    self.assertIs(callback_error.__context__, failure)
                     after = box.render((6, 3))
                     self.assertIsNot(before, after)
                     self.assertEqual(urwid.ListBox(walker).render((6, 3)).text, after.text)

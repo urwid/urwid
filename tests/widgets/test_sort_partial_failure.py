@@ -91,7 +91,7 @@ class PartialSortTest(unittest.TestCase):
                 if cls is urwid.SimpleFocusListWalker:
                     self.assertIs(walker[walker.focus], original[0])
 
-    def test_partial_failure_preserves_original_when_callbacks_raise(self):
+    def test_partial_failure_propagates_callback_with_original_chained(self):
         for cls in [urwid.MonitoredList, urwid.MonitoredFocusList]:
             callbacks = ["modified"] if cls is urwid.MonitoredList else ["modified", "focus_changed", "focus_moved"]
             for callback in callbacks:
@@ -99,22 +99,28 @@ class PartialSortTest(unittest.TestCase):
                     items, _, failure = self.make_items(cls)
                     seen = []
 
+                    callback_error = RuntimeError("callback failed")
+
                     def fail(*args):
                         seen.append(callback)
-                        raise RuntimeError("callback failed")
+                        raise callback_error
 
                     getattr(items, f"set_{callback}_callback")(fail)
-                    with self.assertRaises(SortFailure) as caught:
+                    with self.assertRaises(BaseException) as caught:
                         items.sort()
-                    self.assertIs(caught.exception, failure)
+                    self.assertIs(caught.exception, callback_error)
+                    if cls is urwid.MonitoredList:
+                        self.assertIs(callback_error.__context__, failure)
+                    else:
+                        self.assertIs(callback_error.__cause__, failure)
                     self.assertEqual([callback], seen)
 
-    def test_callback_shutdown_is_not_suppressed_after_sort_failure(self):
+    def test_callback_failures_propagate_with_sort_failure_chained(self):
         for cls in [urwid.MonitoredList, urwid.MonitoredFocusList]:
             callbacks = ["modified"] if cls is urwid.MonitoredList else ["modified", "focus_changed", "focus_moved"]
             for callback in callbacks:
                 for failure_type in [SortFailure, KeyboardInterrupt, SystemExit, GeneratorExit]:
-                    for shutdown_type in [KeyboardInterrupt, SystemExit, GeneratorExit]:
+                    for shutdown_type in [RuntimeError, KeyboardInterrupt, SystemExit, GeneratorExit]:
                         with self.subTest(cls=cls, callback=callback, failure=failure_type, shutdown=shutdown_type):
                             failure = failure_type("sort failed")
                             counter = [0]
@@ -132,8 +138,29 @@ class PartialSortTest(unittest.TestCase):
                             self.assertIs(caught.exception, shutdown)
                             if cls is urwid.MonitoredList:
                                 self.assertIs(shutdown.__context__, failure)
+                            else:
+                                self.assertIs(shutdown.__cause__, failure)
                             self.assertEqual([callback], seen)
                             self.assertEqual([1, 5, 4, 2, 3, 0], [item.rank for item in items])
+
+    def test_multiple_focus_callback_errors_keep_their_chain(self):
+        items, _, failure = self.make_items(urwid.MonitoredFocusList)
+        focus_error = RuntimeError("focus callback failed")
+        modified_error = ValueError("modified callback failed")
+
+        def fail_focus(index):
+            raise focus_error
+
+        def fail_modified():
+            raise modified_error
+
+        items.set_focus_changed_callback(fail_focus)
+        items.set_modified_callback(fail_modified)
+        with self.assertRaises(ValueError) as caught:
+            items.sort()
+        self.assertIs(caught.exception, modified_error)
+        self.assertIs(modified_error.__cause__, failure)
+        self.assertIs(modified_error.__context__, focus_error)
 
     def test_interruption_notifies_partial_order(self):
         for cls in [urwid.MonitoredList, urwid.MonitoredFocusList]:
@@ -173,13 +200,16 @@ class PartialSortTest(unittest.TestCase):
         box = urwid.ListBox(walker)
         before = box.render((8, 6), True)
 
+        callback_error = RuntimeError("focus callback veto")
+
         def fail(index):
-            raise RuntimeError("focus callback veto")
+            raise callback_error
 
         walker.set_focus_changed_callback(fail)
-        with self.assertRaises(SortFailure) as caught:
+        with self.assertRaises(BaseException) as caught:
             walker.sort()
-        self.assertIs(caught.exception, failure)
+        self.assertIs(caught.exception, callback_error)
+        self.assertIs(callback_error.__cause__, failure)
         self.assertEqual(0, walker.focus)
         self.assertIsNot(walker[walker.focus], original[0])
         self.assertIsNot(before, box.render((8, 6), True))

@@ -21,7 +21,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import functools
 import operator
 import typing
@@ -226,10 +225,9 @@ class MonitoredList(list[_T], typing.Generic[_T]):
     def sort(self, *, key: Callable[[_T], SupportsRichComparison] | None = None, reverse: bool = False) -> None:
         """Sort in place, notifying if a failed sort leaves the items reordered.
 
-        An ordinary notification callback exception does not replace an existing sort failure.
-        Callback shutdown and interruption exceptions still propagate.
+        If a notification callback raises, its exception propagates with the sort failure chained.
         """
-        original = tuple(item for item in list.__iter__(self))
+        original = list.copy(self)
         try:
             # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
             super().sort(key=key, reverse=reverse)
@@ -237,9 +235,7 @@ class MonitoredList(list[_T], typing.Generic[_T]):
             if list.__len__(self) != len(original) or any(
                 item is not old for item, old in zip(list.__iter__(self), original, strict=True)
             ):
-                # Preserve the sort failure, but allow callback shutdown requests to propagate.
-                with contextlib.suppress(Exception):
-                    self._modified()
+                self._modified()
             raise
         self._modified()
 
@@ -763,8 +759,8 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         """Sort the list in place, keeping focus on the same object rather than an equal item.
 
         If a failed sort leaves a partial reordering, update focus and notify before re-raising
-        the sort failure. An ordinary callback exception does not replace that original exception.
-        Callback shutdown and interruption exceptions still propagate.
+        the sort failure. If a callback raises, its exception propagates with the sort failure
+        attached as its explicit cause.
         A rejecting focus-change callback can prevent focus reconciliation, leaving the
         focused index attached to a different object; modification is still reported.
 
@@ -776,7 +772,7 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         if not self:
             return
         value = self[self._focus]
-        original = tuple(item for item in list.__iter__(self))
+        original = list.copy(self)
         sort_failure: BaseException | None = None
 
         def change() -> None:
@@ -794,9 +790,10 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
 
         try:
             self._modify(lambda: next(index for index, item in enumerate(list.__iter__(self)) if item is value), change)
-        except Exception:
-            if sort_failure is None:
-                raise
+        except BaseException as callback_error:
+            if sort_failure is not None:
+                raise callback_error from sort_failure
+            raise
         if sort_failure is not None:
             raise sort_failure
 
