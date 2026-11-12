@@ -48,6 +48,7 @@ from ._web_common import (  # pylint: disable=unused-import  # code_span is a pu
     MAX_ROWS,
     BrowserScreen,
     code_span,  # noqa: F401  # a public name of this module
+    is_key_name,
 )
 
 if typing.TYPE_CHECKING:
@@ -363,6 +364,7 @@ class Screen(BrowserScreen):
         """Return pending input as a list.
 
         An input line longer than :data:`MAX_LINE_LENGTH` is dropped whole, up to and including its newline.
+        A line that is neither a key name the page script sends nor a valid resize request is dropped too.
         """
         pending_input = []
         resized = False
@@ -391,13 +393,18 @@ class Screen(BrowserScreen):
             self.input_tail = ""
             self._dropping_line = True
 
+        not_keys = 0
         for k in lines:
             if len(k) > MAX_LINE_LENGTH:
                 self.logger.debug("Dropped an input line of %d characters", len(k))
             elif self._handle_resize_request(k):
                 resized = True
-            else:
+            elif is_key_name(k):
                 pending_input.append(k)
+            else:
+                not_keys += 1
+        if not_keys:
+            self.logger.debug("Dropped %d input lines that are not key names", not_keys)
         if resized:
             pending_input.append("window resize")
 

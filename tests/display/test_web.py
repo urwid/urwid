@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import io
+import itertools
 import os
+import pathlib
+import re
 import stat
 import sys
 import tempfile
@@ -9,7 +12,7 @@ import unittest
 from unittest import mock
 
 import urwid
-from urwid.display import web
+from urwid.display import _web_common, web
 from urwid.display.common import AttrSpec, ScreenError
 
 IS_WINDOWS = sys.platform == "win32"
@@ -253,7 +256,7 @@ class ScreenGetInputTest(unittest.TestCase):
     def test_get_input_window_resize_with_regular_keys(self) -> None:
         """Handles window resize mixed with regular input."""
         selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "key1\nwindow resize 120 40\nkey2\n"
+        keydata = "a\nwindow resize 120 40\nb\n"
 
         with (
             mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
@@ -263,90 +266,50 @@ class ScreenGetInputTest(unittest.TestCase):
         ):
             result = self.screen.get_input(raw_keys=False)
 
-        self.assertEqual(result, ["key1", "key2", "window resize"])
+        self.assertEqual(result, ["a", "b", "window resize"])
         self.assertEqual(self.screen.screen_size, (120, 40))
 
-    def test_get_input_invalid_resize_wrong_param_count_too_few(self) -> None:
-        """Rejects window resize with too few parameters."""
-        selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "window resize 80\n"
-
-        with (
-            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
-            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
-            mock.patch("urwid.display.web.os.close"),
-            mock.patch("urwid.display.web.os.open", return_value=10),
+    def test_get_input_drops_lines_that_are_not_key_names(self) -> None:
+        """A line the page script never sends is neither a key nor a resize."""
+        for line in (
+            "",
+            "a\r",
+            "ab",
+            "f0",
+            "ctrl shift a",
+            "\x01",
+            "window resize",
+            "window resize 80",
+            "window resize 80 24 extra",
+            "window resize -80 24",
+            "window resize 80.5 24",
+            "window resize abc 24",
         ):
-            result = self.screen.get_input(raw_keys=False)
+            with self.subTest(line=line):
+                self.assertEqual([["b"]], self._read_each(f"{line}\nb\n"))
+                self.assertIsNone(self.screen.screen_size)
 
-        # Invalid resize should be treated as regular input, not as resize command
-        self.assertEqual(result, ["window resize 80"])
+    def test_get_input_passes_every_key_name_the_page_script_sends(self) -> None:
+        """Each named key and a sample of characters, alone and with each modifier combination, is a key."""
+        script = pathlib.Path(_web_common.__file__).with_name("_web_common.js").read_text("utf-8")
+        table = re.search(r"const key_names = \{(.*?)\};", script, re.DOTALL)
+        self.assertIsNotNone(table)
+        named = re.findall(r'"[^"]+": "([^"]+)"', table.group(1))
+        names = [*named, *(f"f{number}" for number in range(1, 13)), "a", " ", "\u00e9", "\u4e2d", "\U0001f600"]
+        modifiers = [
+            "".join(combination)
+            for count in range(len(_web_common._MODIFIERS) + 1)
+            for combination in itertools.combinations(_web_common._MODIFIERS, count)
+        ]
+        keys = [prefix + name for prefix in modifiers for name in names]
 
-    def test_get_input_invalid_resize_wrong_param_count_too_many(self) -> None:
-        """Rejects window resize with too many parameters."""
-        selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "window resize 80 24 extra\n"
-
-        with (
-            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
-            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
-            mock.patch("urwid.display.web.os.close"),
-            mock.patch("urwid.display.web.os.open", return_value=10),
-        ):
-            result = self.screen.get_input(raw_keys=False)
-
-        self.assertEqual(result, ["window resize 80 24 extra"])
-
-    def test_get_input_invalid_resize_non_decimal_negative(self) -> None:
-        """Rejects window resize with negative dimensions."""
-        selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "window resize -80 24\n"
-
-        with (
-            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
-            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
-            mock.patch("urwid.display.web.os.close"),
-            mock.patch("urwid.display.web.os.open", return_value=10),
-        ):
-            result = self.screen.get_input(raw_keys=False)
-
-        self.assertEqual(result, ["window resize -80 24"])
-
-    def test_get_input_invalid_resize_non_decimal_float(self) -> None:
-        """Rejects window resize with floating point dimensions."""
-        selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "window resize 80.5 24\n"
-
-        with (
-            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
-            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
-            mock.patch("urwid.display.web.os.close"),
-            mock.patch("urwid.display.web.os.open", return_value=10),
-        ):
-            result = self.screen.get_input(raw_keys=False)
-
-        self.assertEqual(result, ["window resize 80.5 24"])
-
-    def test_get_input_invalid_resize_non_decimal_alpha(self) -> None:
-        """Rejects window resize with non-numeric dimensions."""
-        selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "window resize abc 24\n"
-
-        with (
-            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
-            mock.patch("urwid.display.web.os.read", return_value=keydata.encode("utf-8")),
-            mock.patch("urwid.display.web.os.close"),
-            mock.patch("urwid.display.web.os.open", return_value=10),
-        ):
-            result = self.screen.get_input(raw_keys=False)
-
-        self.assertEqual(result, ["window resize abc 24"])
+        self.assertEqual([keys], self._read_each("".join(f"{key}\n" for key in keys)))
 
     def test_get_input_input_tail_buffering(self) -> None:
         """Properly buffers incomplete lines at the end of input."""
         selector_mock = self._make_selector_mock(has_input=True)
-        self.screen.input_tail = "incom"
-        keydata = "plete\nkey2\n"
+        self.screen.input_tail = "page "
+        keydata = "up\nb\n"
 
         with (
             mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
@@ -356,13 +319,13 @@ class ScreenGetInputTest(unittest.TestCase):
         ):
             result = self.screen.get_input(raw_keys=False)
 
-        self.assertEqual(result, ["incomplete", "key2"])
+        self.assertEqual(result, ["page up", "b"])
         self.assertEqual(self.screen.input_tail, "")
 
     def test_get_input_input_tail_carried_forward(self) -> None:
         """Incomplete last line is carried to next read."""
         selector_mock = self._make_selector_mock(has_input=True)
-        keydata = "key1\nincompl"
+        keydata = "a\npage d"
 
         with (
             mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
@@ -372,8 +335,8 @@ class ScreenGetInputTest(unittest.TestCase):
         ):
             result = self.screen.get_input(raw_keys=False)
 
-        self.assertEqual(result, ["key1"])
-        self.assertEqual(self.screen.input_tail, "incompl")
+        self.assertEqual(result, ["a"])
+        self.assertEqual(self.screen.input_tail, "page d")
 
     def test_get_input_decodes_the_pipe_as_utf8_across_reads(self) -> None:
         """The pipe carries UTF-8 whatever the screen's encoding, and a character may be split between two reads."""
@@ -406,14 +369,22 @@ class ScreenGetInputTest(unittest.TestCase):
         ):
             return [self.screen.get_input(raw_keys=False) for _ in chunks]
 
+    @staticmethod
+    def _resize_request(length: int) -> str:
+        """Return a valid request to resize to 80x24, zero-padded to `length` characters."""
+        return "window resize " + "80".zfill(length - len("window resize  24")) + " 24"
+
     def test_get_input_drops_a_complete_line_over_the_limit(self) -> None:
-        """A line of the limit is a key, a longer one is dropped, and the lines around it are kept."""
-        for length, expected in (
-            (web.MAX_LINE_LENGTH, ["a", "x" * web.MAX_LINE_LENGTH, "b"]),
-            (web.MAX_LINE_LENGTH + 1, ["a", "b"]),
+        """A line of the limit is applied, a longer one is dropped, and the lines around it are kept."""
+        for length, expected, size in (
+            (web.MAX_LINE_LENGTH, ["a", "b", "window resize"], (80, 24)),
+            (web.MAX_LINE_LENGTH + 1, ["a", "b"], None),
         ):
             with self.subTest(length=length):
-                self.assertEqual([expected], self._read_each(f"a\n{'x' * length}\nb\n"))
+                self.screen.screen_size = None
+
+                self.assertEqual([expected], self._read_each(f"a\n{self._resize_request(length)}\nb\n"))
+                self.assertEqual(size, self.screen.screen_size)
                 self.assertEqual("", self.screen.input_tail)
 
     def test_get_input_logs_the_length_of_a_dropped_line_not_its_content(self) -> None:
@@ -422,21 +393,22 @@ class ScreenGetInputTest(unittest.TestCase):
         unfinished = "y" * (web.MAX_LINE_LENGTH + 1)
 
         with self.assertLogs(self.screen.logger, "DEBUG") as logs:
-            self._read_each(f"{complete}\n{unfinished}")
+            self._read_each(f"{complete}\nzzzz\n{unfinished}")
 
         output = "\n".join(logs.output)
         self.assertIn(str(web.MAX_LINE_LENGTH + 1), output)
         self.assertNotIn("x" * 10, output)
         self.assertNotIn("y" * 10, output)
+        self.assertNotIn("zzzz", output)
+        self.assertIn("Dropped 1 input lines that are not key names", output)
 
     def test_get_input_joins_a_line_of_the_limit_split_between_reads(self) -> None:
         """The limit applies to the joined line, not to each read."""
+        request = self._resize_request(web.MAX_LINE_LENGTH)
         half = web.MAX_LINE_LENGTH // 2
 
-        self.assertEqual(
-            [[], ["x" * web.MAX_LINE_LENGTH]],
-            self._read_each("x" * half, "x" * (web.MAX_LINE_LENGTH - half) + "\n"),
-        )
+        self.assertEqual([[], ["window resize"]], self._read_each(request[:half], f"{request[half:]}\n"))
+        self.assertEqual((80, 24), self.screen.screen_size)
 
     def test_get_input_drops_an_unfinished_line_over_the_limit_up_to_its_newline(self) -> None:
         """The rest of an over-long line arriving in later reads is dropped, and the next line is a key."""
@@ -452,13 +424,6 @@ class ScreenGetInputTest(unittest.TestCase):
             self.assertLessEqual(len(self.screen.input_tail), web.MAX_LINE_LENGTH)
 
         self.assertEqual([["b"]], self._read_each("x\nb\n"))
-
-    def test_get_input_drops_an_over_long_window_resize(self) -> None:
-        """The length check comes before the resize request is applied."""
-        request = "window resize " + "0" * web.MAX_LINE_LENGTH + "80 24"
-
-        self.assertEqual([[]], self._read_each(f"{request}\n"))
-        self.assertIsNone(self.screen.screen_size)
 
 
 class ScreenStartTest(unittest.TestCase):
