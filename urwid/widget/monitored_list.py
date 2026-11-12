@@ -223,9 +223,20 @@ class MonitoredList(list[_T], typing.Generic[_T]):
     def sort(self, *, key: Callable[[_T], SupportsRichComparison], reverse: bool = False) -> None: ...
 
     def sort(self, *, key: Callable[[_T], SupportsRichComparison] | None = None, reverse: bool = False) -> None:
-        """Sort the list in place."""
-        # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
-        super().sort(key=key, reverse=reverse)
+        """Sort in place, notifying if a failed sort leaves the items reordered.
+
+        If a notification callback raises, its exception propagates with the sort failure chained.
+        """
+        original = list.copy(self)
+        try:
+            # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
+            super().sort(key=key, reverse=reverse)
+        except BaseException:
+            if list.__len__(self) != len(original) or any(
+                item is not old for item, old in zip(list.__iter__(self), original, strict=True)
+            ):
+                self._modified()
+            raise
         self._modified()
 
     @_call_modified
@@ -747,19 +758,44 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
     ) -> None:
         """Sort the list in place, keeping focus on the same object rather than an equal item.
 
+        If a failed sort leaves a partial reordering, update focus and notify before re-raising
+        the sort failure. If a callback raises, its exception propagates with the sort failure
+        attached as its explicit cause.
+        A rejecting focus-change callback can prevent focus reconciliation, leaving the
+        focused index attached to a different object; modification is still reported.
+
         >>> ml = MonitoredFocusList([-2, 0, 1, -3, 2, -1, 3], focus=4)
         >>> ml.sort()
         >>> ml
         MonitoredFocusList([-3, -2, -1, 0, 1, 2, 3], focus=5)
         """
         if not self:
-            return None
+            return
         value = self[self._focus]
-        return self._modify(
-            lambda: next(index for index, item in enumerate(self) if item is value),
-            # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
-            lambda: super(MonitoredList, self).sort(key=key, reverse=reverse),
-        )
+        original = list.copy(self)
+        sort_failure: BaseException | None = None
+
+        def change() -> None:
+            nonlocal sort_failure
+            try:
+                # pyrefly: ignore[no-matching-overload]  # an optional key is forwarded as is
+                super(MonitoredList, self).sort(key=key, reverse=reverse)
+            except BaseException as error:
+                if list.__len__(self) == len(original) and all(
+                    item is old for item, old in zip(list.__iter__(self), original, strict=True)
+                ):
+                    raise
+                # Let _modify reconcile the retained partial order before reporting the failure.
+                sort_failure = error
+
+        try:
+            self._modify(lambda: next(index for index, item in enumerate(list.__iter__(self)) if item is value), change)
+        except BaseException as callback_error:
+            if sort_failure is not None:
+                raise callback_error from sort_failure
+            raise
+        if sort_failure is not None:
+            raise sort_failure
 
     def clear(self) -> None:
         """Remove all items and reset focus to ``None``."""

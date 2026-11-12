@@ -200,7 +200,10 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
         self._extend(super().extendleft, __iterable)
 
     def _extend(self, extend: Callable[[Iterable[_T]], None], items: Iterable[_T]) -> None:
-        """Notify after a partial extension, even when a bounded deque's length stays unchanged."""
+        """Notify after a partial extension, even when a bounded deque's length stays unchanged.
+
+        If a notification callback raises, its exception propagates with the input failure chained.
+        """
         if items is self:
             items = tuple(self)
         consumed = False
