@@ -50,7 +50,7 @@ if typing.TYPE_CHECKING:
     _TerminalReport = (
         _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport | _WindowSizeReport
     )
-    _DecodedInput = list[str | _MouseInput | _CursorPosition | _TerminalReport]
+    _DecodedInput = list[str | _MouseInput | _CursorPosition]
 
 IS_WINDOWS = sys.platform == "win32"
 # the C standard output, which initscr() draws on whatever sys.stdout is
@@ -320,10 +320,16 @@ class Screen(BaseScreen, RealTerminal):
         self._in_band_resize = enable
         self._write_terminal(mode.enable_seq if enable else mode.disable_seq)
 
-    def _apply_in_band_resize(self, processed: _DecodedInput, resize: bool) -> tuple[_DecodedInput, bool]:
-        """Apply the window size reports among *processed*, and strip them out.
+    def _apply_terminal_reports(
+        self,
+        processed: list[str | _MouseInput | _CursorPosition | _TerminalReport],
+        resize: bool,
+    ) -> tuple[_DecodedInput, bool]:
+        """Apply the window size reports among *processed* and strip out every terminal report.
 
-        A report counts while this screen has mode 2048 on.
+        This screen sends no query.
+        A query reply in the input therefore answers another program's query and is dropped.
+        A window size report counts while this screen has mode 2048 on.
         When its size differs from the one curses has, curses takes it.
         The report becomes a ``"window resize"`` at its place among the keys
         when it changed the size, or when *resize* says curses reported a resize in the same read,
@@ -353,6 +359,11 @@ class Screen(BaseScreen, RealTerminal):
                         result.append("window resize")
                 case ("window size report", *_):
                     logger.debug(f"Dropped a window size report this screen did not ask for: {item!r}")
+                case (
+                    "private mode report" | "keyboard protocol report" | "modify keys report" | "device attributes",
+                    *_,
+                ):
+                    logger.debug(f"Dropped a reply to a query this screen did not send: {item!r}")
                 case _:
                     result.append(item)
         return result, resize
@@ -556,12 +567,12 @@ class Screen(BaseScreen, RealTerminal):
                 key = self._getch_nodelay()
             processed += escape.decode_input(keys, more_available=False)[0]
 
-        processed, resize = self._apply_in_band_resize(processed, resize)
+        result, resize = self._apply_terminal_reports(processed, resize)
 
         if resize:
-            processed.append("window resize")
+            result.append("window resize")
 
-        return processed, raw
+        return result, raw
 
     def _encode_mouse_event(self) -> list[int]:
         """Encode the pending curses mouse event as X10 mouse reports.
