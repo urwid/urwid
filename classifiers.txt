@@ -18,6 +18,5 @@ Programming Language :: Python :: 3.15
 Programming Language :: Python :: 3 :: Only
 Programming Language :: Python :: Implementation :: CPython
 Programming Language :: Python :: Implementation :: PyPy
-Programming Language :: Python :: Implementation :: GraalPy
 Programming Language :: Python :: Free Threading :: 2 - Beta
 Typing :: Typed
