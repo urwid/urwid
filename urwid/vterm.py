@@ -68,6 +68,7 @@ from urwid.display.escape import (
     KittyKeyboardFlag,
     MouseBit,
     PrivateMode,
+    window_size_report,
 )
 from urwid.widget import MouseButton, Sizing, Widget
 
@@ -321,6 +322,8 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
     b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0])),
+    # DECRQM (CSI ? Ps $ p) is answered in parse_csi; the other forms, such as DECSTR (CSI ! p), are not implemented
+    b"p": CSICommand(0, 0, lambda s, none, q: None),
     b"q": CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
     b"r": CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
     b"s": CSICommand(0, 0, lambda s, none, q: s.save_cursor()),
@@ -357,6 +360,8 @@ class TermModes:
     visible_cursor: bool = True
     bracketed_paste: bool = False
     synchronized_output: bool = False
+    # the child is sent each new size in its input, as a window size report
+    in_band_resize: bool = False
     # the mode of the mouse events the child asked for, or None when it asked for none
     mouse_tracking: PrivateMode | None = None
     # the mode of the mouse report encoding the child asked for, or None for the X10 encoding
@@ -383,6 +388,7 @@ class TermModes:
         self.constrain_scrolling = False
         self.autowrap = True
         self.visible_cursor = True
+        self.in_band_resize = False
         self.mouse_tracking = None
         self.mouse_encoding = None
         self.alternate_screen = False
@@ -807,6 +813,12 @@ class TermCanvas(Canvas):
             params = self._escbuf[1:]
             if not params.strip(b"0123456789;"):
                 self.csi_keyboard_flags(marker, [int(param) if param else None for param in params.split(b";")])
+            return
+
+        if char == b"p" and self._escbuf.startswith(b"?") and self._escbuf.endswith(b"$"):
+            # DECRQM for a DEC private mode: CSI ? Ps $ p
+            if (mode := self._escbuf[1:-1]).isdigit():
+                self.csi_report_private_mode(int(mode))
             return
 
         qmark = self._escbuf.startswith(b"?")
@@ -1553,6 +1565,11 @@ class TermCanvas(Canvas):
                     self.restore_cursor(with_attrs=True)
             elif private_mode == PrivateMode.BRACKETED_PASTE:
                 self.modes.bracketed_paste = flag
+            elif private_mode == PrivateMode.IN_BAND_RESIZE:
+                self.modes.in_band_resize = flag
+                # the mode asks for a report of the current size on each set, also when it was already set
+                if flag:
+                    self.widget.respond(window_size_report(self.width, self.height))
             elif private_mode == PrivateMode.SYNCHRONIZED_OUTPUT:
                 # Synchronized output (https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036):
                 # the child program is asking that its writes not be displayed until it closes the
@@ -1568,6 +1585,47 @@ class TermCanvas(Canvas):
                 self.modes.insert = flag
             elif mode == 20:
                 self.modes.lfnl = flag
+
+    def private_mode_state(self, mode: str) -> bool | None:
+        """Return whether DEC private *mode* is set.
+
+        :returns: the state, or None for a mode this canvas keeps no state for.
+        """
+        modes = self.modes
+        match mode:
+            case PrivateMode.APPLICATION_CURSOR_KEYS:
+                return modes.keys_decckm
+            case PrivateMode.REVERSE_VIDEO:
+                return modes.reverse_video
+            case PrivateMode.ORIGIN_MODE:
+                return modes.constrain_scrolling
+            case PrivateMode.AUTO_WRAP:
+                return modes.autowrap
+            case PrivateMode.CURSOR_VISIBLE:
+                return modes.visible_cursor
+            case PrivateMode.BRACKETED_PASTE:
+                return modes.bracketed_paste
+            case PrivateMode.SYNCHRONIZED_OUTPUT:
+                return modes.synchronized_output
+            case PrivateMode.IN_BAND_RESIZE:
+                return modes.in_band_resize
+            case _ if mode == PrivateMode.MOUSE_X10 or mode in _MOUSE_TRACKING_MODES:
+                return modes.mouse_tracking == mode
+            case _ if mode in _MOUSE_ENCODING_MODES:
+                return modes.mouse_encoding == mode
+            case _ if mode in _ALTERNATE_SCREEN_MODES:
+                return modes.alternate_screen
+            case _:
+                return None
+
+    def csi_report_private_mode(self, mode: int) -> None:
+        """Answer a DECRQM query for DEC private *mode* with a DECRPM reply (CSI ? mode ; state $ y).
+
+        The state is 1 for a set mode, 2 for a reset one, and 0 for a mode this canvas keeps no state for.
+        """
+        state = self.private_mode_state(str(mode))
+        value = 0 if state is None else 1 if state else 2
+        self.widget.respond(f"{ESC}[?{mode:d};{value:d}$y")
 
     def csi_set_modes(
         self,
@@ -2036,6 +2094,16 @@ class Terminal(Widget):
             self.term = TermCanvas(width, height, self)
         else:
             self.term.resize(width, height)
+            if self.term.modes.in_band_resize:
+                # Sent after the size the child reads on SIGWINCH is set, as a terminal sends it, and only when the pty
+                # can take it now: this runs in render(), which a child that stopped reading must not block.
+                # A dropped report loses nothing the child cannot read with TIOCGWINSZ.
+                master = typing.cast("int", self.master)
+                with selectors.DefaultSelector() as selector:
+                    selector.register(master, selectors.EVENT_WRITE)
+                    writable = bool(selector.select(0))
+                if writable:
+                    os.write(master, window_size_report(width, height).encode("ascii"))
 
         self.width = width
         self.height = height

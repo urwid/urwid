@@ -90,6 +90,7 @@ class _FakePTY:
     Closing the master hangs the child up, which counts as ``SIGHUP`` even when ``signals_allowed`` is off,
     as for a setuid child.
     With ``reaped_on_exit`` the child is reaped as soon as it exits, as when ``SIGCHLD`` is ignored.
+    Without ``child_reads`` the child reads no input, so the master does not take more.
     """
 
     def __init__(self) -> None:
@@ -105,6 +106,7 @@ class _FakePTY:
         self.exit_signal = signal.SIGHUP
         self.signals_allowed = True
         self.reaped_on_exit = False
+        self.child_reads = True
         self.signals_sent: list[int] = []
 
     def is_readable(self) -> bool:
@@ -176,6 +178,7 @@ class _FakeSelector:
 
     def __init__(self, pty_state: _FakePTY) -> None:
         self.pty_state = pty_state
+        self.events = 0
 
     def __enter__(self) -> typing.Self:
         return self
@@ -188,10 +191,19 @@ class _FakeSelector:
         if fd != _FAKE_MASTER_FD:
             msg = f"selector registration of fd {fd} outside the fake PTY"
             raise AssertionError(msg)
+        self.events |= events
 
     def select(self, timeout: float | None = None) -> list[tuple[None, int]]:
-        """Report the master readable when a read would not block, without waiting."""
-        return [(None, selectors.EVENT_READ)] if self.pty_state.is_readable() else []
+        """Report the master readable when a read would not block, and writable while the child reads.
+
+        It never waits.
+        """
+        ready = 0
+        if self.events & selectors.EVENT_READ and self.pty_state.is_readable():
+            ready |= selectors.EVENT_READ
+        if self.events & selectors.EVENT_WRITE and self.pty_state.child_reads:
+            ready |= selectors.EVENT_WRITE
+        return [(None, ready)] if ready else []
 
 
 class _FakeTTY:
@@ -990,12 +1002,53 @@ class TermTest(unittest.TestCase):
             ("DECID after an unfinished ESC # reports a VT102", r"\e#\eZ", b"\x1b[?6c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
             ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?6c"),
+            ("DECRQM reports a mode reset", r"\e[?2048$p", b"\x1b[?2048;2$y"),
+            ("DECRQM reports a mode set", r"\e[?2004h\e[?2004$p", b"\x1b[?2004;1$y"),
+            (
+                "DECRQM reports the mouse tracking mode set",
+                r"\e[?1002h\e[?1002$p\e[?1000$p",
+                b"\x1b[?1002;1$y\x1b[?1000;2$y",
+            ),
+            ("DECRQM reports a mode with no state as unknown", r"\e[?3$p\e[?9999$p", b"\x1b[?3;0$y\x1b[?9999;0$y"),
+            ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
+            ("other sequences ending in p are not answered", r"\e[5p\e[!p\e[61;1\"p\e[4$p", b""),
+            ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
+            ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
         ):
             with self.subTest(label):
                 self.restart()
                 self.write(query)
                 self.read()
                 self.assertEqual(bytes(self.pty.from_widget), answer)
+
+    def test_in_band_resize_reports_each_new_size(self) -> None:
+        """Send the child a report after its new size is set, while mode 2048 is set and the pty takes input."""
+        for mode, child_reads, answer in (
+            (r"\e[?2048h", True, b"\x1b[48;30;100;0;0t"),
+            (r"\e[?2048h\e[?2048l", True, b""),
+            (r"\e[?2048h", False, b""),
+        ):
+            with self.subTest(mode=mode, child_reads=child_reads):
+                self.restart()
+                self.write(mode)
+                self.read()
+                self.pty.from_widget.clear()
+                self.pty.child_reads = child_reads
+                order: list[str] = []
+                ioctl = mock.Mock(side_effect=lambda *_args, order=order: order.append("size") or 0)
+                write = urwid.vterm.os.write
+
+                with (
+                    mock.patch("urwid.vterm.fcntl.ioctl", ioctl),
+                    mock.patch(
+                        "urwid.vterm.os.write",
+                        side_effect=lambda *args, order=order, write=write: order.append("report") or write(*args),
+                    ),
+                ):
+                    self.resize(100, 30)
+
+                self.assertEqual(bytes(self.pty.from_widget), answer)
+                self.assertEqual(["size", "report"] if answer else ["size"], order)
 
     def test_save_restore_cursor_esc_keeps_attributes(self) -> None:
         """Restore the attributes saved by DECSC or mode 1048 together with the cursor position."""
