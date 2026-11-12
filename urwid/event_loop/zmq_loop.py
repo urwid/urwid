@@ -102,7 +102,7 @@ class ZMQEventLoop(EventLoop):
         """Pass a background task's exception to :meth:`_exception_handler` as soon as the task finishes.
 
         Without this, asyncio reports the exception only from ``Task.__del__``,
-        which a tracing garbage collector (PyPy, GraalPy) runs at an unpredictable time.
+        which a tracing garbage collector (PyPy) runs at an unpredictable time.
 
         :param task: finished background task scheduled by :meth:`_run_callback`
         """

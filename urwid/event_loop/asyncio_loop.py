@@ -139,11 +139,12 @@ class AsyncioEventLoop(EventLoop):
         """Report a background task's exception directly rather than relying on GC.
 
         A background task's exception would otherwise only surface through asyncio's
-        "Task exception was never retrieved" mechanism, which CPython triggers from
-        ``Task.__del__`` as soon as the task is refcounted to zero. PyPy and GraalPy use
-        tracing garbage collectors instead, so that finalizer runs at an unpredictable
-        time (if at all before the process exits), leaving :meth:`run` blocked forever
-        on an exception - including a plain :exc:`ExitMainLoop` - that already happened.
+        "Task exception was never retrieved" mechanism,
+        which CPython triggers from ``Task.__del__`` as soon as the task is refcounted to zero.
+        PyPy uses a tracing garbage collector instead,
+        so that finalizer runs at an unpredictable time (if at all before the process exits),
+        leaving :meth:`run` blocked forever on an exception that already happened,
+        including a plain :exc:`ExitMainLoop`.
         """
         if task.cancelled():
             return
