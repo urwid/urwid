@@ -192,9 +192,15 @@ class Screen(BrowserScreen):
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
 
-        client_init = sys.stdin.read(50)
-        if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
-            self.logger.debug("Invalid initial client request, %d characters long", len(client_init))
+        # only the first line is the request: the rest of the read may end inside a multi-byte character.
+        # Splitting the bytes assumes an ASCII-compatible charset; the page sends UTF-8.
+        client_init = sys.stdin.buffer.read(50).split(b"\n", 1)[0]
+        try:
+            request = client_init.decode(_request_charset()).strip()
+        except (LookupError, UnicodeError):
+            request = ""
+        if not self._handle_resize_request(request):
+            self.logger.debug("Invalid initial client request, %d bytes long", len(client_init))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 

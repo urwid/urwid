@@ -436,21 +436,25 @@ class ScreenStartTest(unittest.TestCase):
 
     def test_start_rejects_invalid_resize_request(self) -> None:
         for client_init in (
-            "",
-            "hello\n",
-            "window resize\n",
-            "window resize 80\n",
-            "window resize 80 24 extra\n",
-            "window resize -80 24\n",
-            "window resize 80.5 24\n",
-            "window resize abc 24\n",
+            b"",
+            b"hello\n",
+            b"window resize\n",
+            b"window resize 80\n",
+            b"window resize 80 24 extra\n",
+            b"window resize -80 24\n",
+            b"window resize 80.5 24\n",
+            b"window resize abc 24\n",
+            b"\x80",
+            b"window resize 80 24\xff\n",
         ):
             stdout = io.StringIO()
+            # a text stdin decoding strictly, as in a UTF-8 locale without the UTF-8 mode
+            stdin = io.TextIOWrapper(io.BytesIO(client_init), encoding="utf-8")
 
             with (
                 self.subTest(client_init=client_init),
                 mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
-                mock.patch.object(web.sys, "stdin", io.StringIO(client_init)),
+                mock.patch.object(web.sys, "stdin", stdin),
                 mock.patch.object(web.sys, "stdout", stdout),
             ):
                 with self.assertRaises(SystemExit) as ctx, self.assertLogs(self.screen.logger, "DEBUG") as logs:
@@ -461,11 +465,11 @@ class ScreenStartTest(unittest.TestCase):
                 self.assertFalse(self.screen.started)
                 # the request body is untrusted, so only its length is logged
                 if client_init:
-                    self.assertNotIn(client_init.strip(), "\n".join(logs.output))
+                    self.assertNotIn(client_init.strip().decode(errors="replace"), "\n".join(logs.output))
 
     def test_start_rejects_not_set_update_method(self) -> None:
         stdout = io.StringIO()
-        stdin = io.StringIO("window resize 80 24\n")
+        stdin = io.TextIOWrapper(io.BytesIO(b"window resize 80 24\n"), encoding="utf-8")
 
         with (
             mock.patch.dict(os.environ, {}, clear=True),
@@ -480,7 +484,7 @@ class ScreenStartTest(unittest.TestCase):
     def test_start_rejects_unsupported_update_method(self) -> None:
         environ = {"HTTP_X_URWID_METHOD": "polling child"}
         stdout = io.StringIO()
-        stdin = io.StringIO("window resize 80 24\n")
+        stdin = io.TextIOWrapper(io.BytesIO(b"window resize 80 24\n"), encoding="utf-8")
 
         with (
             mock.patch.dict(os.environ, environ, clear=True),
@@ -499,31 +503,59 @@ class ScreenStartTest(unittest.TestCase):
     @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
     @unittest.skipIf(IS_GRAALPY, "os.mkfifo is missing on GraalPy")
     def test_start_accepts_valid_resize_request(self) -> None:
-        # left over from an earlier session of the same screen
-        self.screen.input_tail = "page "
-        self.screen._dropping_line = True
+        # only the first line is decoded, so what follows it in the read does not matter
+        for client_init in (
+            b"window resize 80 24\n",
+            b"window resize 80 24\n\xff\xfe",
+            # 51 bytes: the read of 50 ends inside the last two-byte character
+            b"window resize 80 24\n-" + "é".encode() * 15,
+        ):
+            with self.subTest(client_init=client_init):
+                screen = web.Screen()
+                # left over from an earlier session of the same screen
+                screen.input_tail = "page "
+                screen._dropping_line = True
+
+                with (
+                    mock.patch.object(web.sys, "stdin", io.TextIOWrapper(io.BytesIO(client_init), encoding="utf-8")),
+                    mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
+                    mock.patch.object(web.os, "mkfifo") as mkfifo,
+                    mock.patch.object(web.os, "open", return_value=42),
+                    mock.patch.object(web.signal, "signal"),
+                    mock.patch.object(web.signal, "alarm"),
+                ):
+                    screen.start()
+
+                self.assertTrue(screen.started)
+                # the pipe lives in the private session directory and its name does not reveal the session id
+                urwid_id = screen.content_head.split("X-Urwid-ID: ", 1)[1].split("\r\n", 1)[0]
+                self.assertNotIn(urwid_id, screen.pipe_name)
+                self.assertEqual(web._session_path(urwid_id), screen.pipe_name)
+                mkfifo.assert_called_once_with(f"{screen.pipe_name}.in", 0o600)
+                self.assertEqual(screen.screen_size, (80, 24))
+                self.assertEqual(screen.last_screen, {})
+                self.assertEqual(screen.last_screen_width, 0)
+                self.assertEqual("", screen.input_tail)
+                self.assertFalse(screen._dropping_line)
+
+    def test_start_rejects_unknown_request_charset(self) -> None:
+        """Answer 400 when the request names a charset Python does not know."""
+        environ = {"HTTP_X_URWID_METHOD": "multipart", "CONTENT_TYPE": "text/plain; charset=no-such-charset"}
+        stdout = io.StringIO()
 
         with (
-            mock.patch.object(web.sys, "stdin", io.StringIO("window resize 80 24\n")),
-            mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
-            mock.patch.object(web.os, "mkfifo") as mkfifo,
-            mock.patch.object(web.os, "open", return_value=42),
-            mock.patch.object(web.signal, "signal"),
-            mock.patch.object(web.signal, "alarm"),
+            mock.patch.dict(os.environ, environ, clear=True),
+            mock.patch.object(
+                web.sys, "stdin", io.TextIOWrapper(io.BytesIO(b"window resize 80 24\n"), encoding="utf-8")
+            ),
+            mock.patch.object(web.sys, "stdout", stdout),
+            self.assertRaises(SystemExit) as ctx,
         ):
             self.screen.start()
 
-        self.assertTrue(self.screen.started)
-        # the pipe lives in the private session directory and its name does not reveal the session id
-        urwid_id = self.screen.content_head.split("X-Urwid-ID: ", 1)[1].split("\r\n", 1)[0]
-        self.assertNotIn(urwid_id, self.screen.pipe_name)
-        self.assertEqual(web._session_path(urwid_id), self.screen.pipe_name)
-        mkfifo.assert_called_once_with(f"{self.screen.pipe_name}.in", 0o600)
-        self.assertEqual(self.screen.screen_size, (80, 24))
-        self.assertEqual(self.screen.last_screen, {})
-        self.assertEqual(self.screen.last_screen_width, 0)
-        self.assertEqual("", self.screen.input_tail)
-        self.assertFalse(self.screen._dropping_line)
+        self.assertEqual(ctx.exception.code, 0)
+        self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+        self.assertFalse(self.screen.started)
 
 
 class SpanStyleTest(unittest.TestCase):
