@@ -393,14 +393,15 @@ class ScreenGetInputTest(unittest.TestCase):
         unfinished = "y" * (web.MAX_LINE_LENGTH + 1)
 
         with self.assertLogs(self.screen.logger, "DEBUG") as logs:
-            self._read_each(f"{complete}\nzzzz\n{unfinished}")
+            self._read_each(f"{complete}\nzzzz\nwindow resize qqqq 24\n{unfinished}")
 
         output = "\n".join(logs.output)
         self.assertIn(str(web.MAX_LINE_LENGTH + 1), output)
         self.assertNotIn("x" * 10, output)
         self.assertNotIn("y" * 10, output)
         self.assertNotIn("zzzz", output)
-        self.assertIn("Dropped 1 input lines that are not key names", output)
+        self.assertNotIn("qqqq", output)
+        self.assertIn("Dropped 2 input lines that are not key names", output)
 
     def test_get_input_joins_a_line_of_the_limit_split_between_reads(self) -> None:
         """The limit applies to the joined line, not to each read."""
@@ -452,12 +453,15 @@ class ScreenStartTest(unittest.TestCase):
                 mock.patch.object(web.sys, "stdin", io.StringIO(client_init)),
                 mock.patch.object(web.sys, "stdout", stdout),
             ):
-                with self.assertRaises(SystemExit) as ctx:
+                with self.assertRaises(SystemExit) as ctx, self.assertLogs(self.screen.logger, "DEBUG") as logs:
                     self.screen.start()
 
                 self.assertEqual(ctx.exception.code, 0)
                 self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
                 self.assertFalse(self.screen.started)
+                # the request body is untrusted, so only its length is logged
+                if client_init:
+                    self.assertNotIn(client_init.strip(), "\n".join(logs.output))
 
     def test_start_rejects_not_set_update_method(self) -> None:
         stdout = io.StringIO()
@@ -483,11 +487,12 @@ class ScreenStartTest(unittest.TestCase):
             mock.patch.object(web.sys, "stdin", stdin),
             mock.patch.object(web.sys, "stdout", stdout),
         ):
-            with self.assertRaises(SystemExit) as ctx:
+            with self.assertRaises(SystemExit) as ctx, self.assertLogs(self.screen.logger, "DEBUG") as logs:
                 self.screen.start()
 
             self.assertEqual(ctx.exception.code, 0)
             self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+            self.assertNotIn("polling child", "\n".join(logs.output))
             # the request body is left untouched: validation happens before reading it
             self.assertEqual(0, stdin.tell())
 

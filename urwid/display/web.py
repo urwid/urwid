@@ -153,12 +153,10 @@ class Screen(BrowserScreen):
 
         input_resize = request.removeprefix("window resize ").split(" ")
         if len(input_resize) != 2:
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         x, y = input_resize
         if not x.isdecimal() or not y.isdecimal():
-            self.logger.debug("Invalid resize input format: %r", request)
             return False
 
         self._set_screen_size(int(x), int(y))
@@ -186,7 +184,7 @@ class Screen(BrowserScreen):
             raise RuntimeError("'HTTP_X_URWID_METHOD' environment vairable is not set")
 
         if self.update_method not in {"multipart", "polling"}:
-            self.logger.debug("Unsupported update method requested: %r", self.update_method)
+            self.logger.debug("Unsupported update method requested, %d characters long", len(self.update_method))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
@@ -196,7 +194,7 @@ class Screen(BrowserScreen):
 
         client_init = sys.stdin.read(50)
         if not self._handle_resize_request(client_init.split("\n", 1)[0].strip()):
-            self.logger.debug("Invalid initial client request: %r", client_init)
+            self.logger.debug("Invalid initial client request, %d characters long", len(client_init))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
 
