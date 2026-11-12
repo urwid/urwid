@@ -8,7 +8,6 @@ import weakref
 
 import urwid
 from tests.util import (
-    XFAIL_GRAALPY_LIST_KEEPS_REMOVED,
     SelectableText,
     assert_redraws_after_child_change,
     collect_and_count_alive,
@@ -892,7 +891,6 @@ class TabsSignalTest(unittest.TestCase):
 class TabsLifetimeTest(unittest.TestCase):
     """References held by ``Tabs``."""
 
-    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_widget_and_bodies_are_freed(self) -> None:
         """Removed bodies and a dropped widget are freed."""
         bodies = [urwid.Edit(), urwid.Text("t")]

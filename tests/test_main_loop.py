@@ -22,7 +22,7 @@ import weakref
 
 import urwid
 import urwid.testing
-from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, NonExternalLoopScreen, external_loop
+from tests.util import NonExternalLoopScreen, external_loop
 from urwid.display.common import INPUT_DESCRIPTORS_CHANGED
 from urwid.event_loop import main_loop as main_loop_module
 
@@ -31,7 +31,6 @@ if typing.TYPE_CHECKING:
     from types import TracebackType
 
 IS_WINDOWS = sys.platform == "win32"
-IS_GRAALPY = sys.implementation.name == "graalpy"
 IS_CPYTHON = sys.implementation.name == "cpython"
 
 
@@ -163,7 +162,6 @@ class TestMainLoop(unittest.TestCase):
         event_loop.run.assert_not_called()
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe_removed_at_end_of_file(self):
         """Once every write end is closed, the callback gets b"" once and the watch is gone."""
         loop = urwid.MainLoop(
@@ -193,7 +191,6 @@ class TestMainLoop(unittest.TestCase):
         self.assertFalse(loop.remove_watch_pipe(pipe_wr))
 
     @unittest.skipIf(IS_WINDOWS, "AsyncioEventLoop is not supported on Windows here")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe_async_callback_reads_each_write_once(self):
         """Wake-ups queued before the first task read the pipe do not fail on the drained descriptor."""
         asyncio_loop = asyncio.new_event_loop()
@@ -228,7 +225,6 @@ class TestMainLoop(unittest.TestCase):
         self.assertFalse(loop.remove_watch_pipe(pipe_wr))
 
     @unittest.skipIf(IS_WINDOWS, "AsyncioEventLoop is not supported on Windows here")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe_async_callback_gets_end_of_file_once(self):
         """An async callback still running at the end of the pipe does not get b"" again on later passes."""
         asyncio_loop = asyncio.new_event_loop()
@@ -257,7 +253,6 @@ class TestMainLoop(unittest.TestCase):
         self.assertFalse(loop.remove_watch_pipe(pipe_wr))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe(self):
         """Test watching pipe is stopped on explicit False only."""
         evt = threading.Event()  # We need thread synchronization
@@ -522,7 +517,6 @@ class TestMainLoop(unittest.TestCase):
         self.assertEqual(["at"], seen)
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_watch_pipe_async_callback(self):
         """An async def watch_pipe callback is awaited, and its return value still controls removal."""
         outcome: list[bytes] = []
@@ -542,14 +536,12 @@ class TestMainLoop(unittest.TestCase):
         self.assertFalse(evl.remove_watch_pipe(pipe_fd))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_remove_watch_pipe_missing_fd(self):
         """Removing a watch pipe that was never created returns False."""
         with dummy_raw_main_loop() as evl:
             self.assertFalse(evl.remove_watch_pipe(999999))
 
     @unittest.skipIf(IS_WINDOWS, "selectors for pipe are not supported on Windows")
-    @unittest.skipIf(IS_GRAALPY, "fcntl.fcntl is missing on GraalPy")
     def test_remove_watch_pipe_active(self):
         """Removing a still-active watch pipe succeeds once and fails on a second attempt."""
         with dummy_raw_main_loop() as evl:
@@ -1611,7 +1603,6 @@ class TestCallFromThread(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             loop.call_from_thread(print)
 
-    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_descriptors_are_released_when_the_run_ends(self) -> None:
         """Both ends of the wake-up socket pair are closed once the run ended and nothing holds its state."""
         states: list[main_loop_module._ThreadCalls | None] = []
@@ -1660,9 +1651,6 @@ class TestCallFromThread(unittest.TestCase):
 
         self.assertEqual(["call"], seen)
 
-    @unittest.skipIf(
-        IS_GRAALPY, "socketpair() is TCP loopback on GraalPy, which delivers the wake-ups over several reads"
-    )
     def test_pass_is_bounded_and_wakes_the_loop_for_the_rest(self) -> None:
         """One pass runs a bounded number of calls, wakes the loop for the rest, and passes in a row draw between."""
         per_pass = main_loop_module._THREAD_CALLS_PER_PASS

@@ -40,7 +40,7 @@ def _backend_available(name: str) -> bool:
     """Return whether the module *name* can be imported.
 
     Importing is the only reliable probe.
-    GraalPy and PyPy for Windows ship an ``_curses`` stub that ``find_spec`` resolves,
+    PyPy for Windows ships an ``_curses`` stub that ``find_spec`` resolves,
     but the stub raises ``ModuleNotFoundError`` on import.
     """
     try:

@@ -16,7 +16,6 @@ from urwid.display import _web_common, web
 from urwid.display.common import AttrSpec, ScreenError
 
 IS_WINDOWS = sys.platform == "win32"
-IS_GRAALPY = sys.implementation.name == "graalpy"
 
 
 def _use_temporary_pipe_dir(test: unittest.TestCase) -> str:
@@ -531,7 +530,6 @@ class ScreenStartTest(unittest.TestCase):
             self.assertEqual(0, stdin.tell())
 
     @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
-    @unittest.skipIf(IS_GRAALPY, "os.mkfifo is missing on GraalPy")
     def test_start_accepts_valid_resize_request(self) -> None:
         for client_init, content_type, content_length in (
             (b"window resize 80 24\n", "text/plain; charset=utf-8", "20"),

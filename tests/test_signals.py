@@ -69,9 +69,9 @@ class SiglnalsTest(unittest.TestCase):
         emit_signal(emitter, "test")
         self.assertEqual(calls, ["first", "second", "second", "third"])
 
-    @unittest.skipIf(
-        sys.implementation.name in {"pypy", "graalpy"},
-        "WeakRef works differently on PyPy/GraalPy's tracing GC",
+    @unittest.skipUnless(
+        sys.implementation.name == "cpython",
+        "relies on reference counting to free the weakly referenced handlers at once",
     )
     def test_weak_del(self):
         emitter = SiglnalsTest.EmClass()
@@ -120,7 +120,6 @@ class RegistryLeakTest(unittest.TestCase):
     )
     def test_runtime_classes_are_collected(self) -> None:
         """Classes created at run time are freed once nothing else refers to them."""
-        # Not a Widget subclass: GraalPy itself can keep a runtime Widget subclass alive.
         refs = [weakref.ref(MetaSignals("Runtime", (), {"signals": ["ping"]})) for _ in range(20)]
         gc.collect()
         self.assertEqual([], [ref for ref in refs if ref() is not None])

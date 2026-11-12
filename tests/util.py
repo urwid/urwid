@@ -5,26 +5,14 @@ import errno
 import gc
 import os
 import selectors
-import sys
 import typing
 import unittest.mock
-
-import pytest
 
 import urwid
 
 if typing.TYPE_CHECKING:
     import weakref
     from collections.abc import Callable, Collection, Iterator
-
-
-# GraalPy keeps an item removed from a list with del, pop() or remove() alive until the list itself is freed;
-# only clear() releases it. A test that frees an item removed from a list is expected to fail there.
-XFAIL_GRAALPY_LIST_KEEPS_REMOVED = pytest.mark.xfail(
-    sys.implementation.name == "graalpy",
-    reason="GraalPy keeps items removed from a list alive while the list lives",
-    strict=False,
-)
 
 
 class SelectableText(urwid.Text):
@@ -87,8 +75,8 @@ class FocusHeightWidget(urwid.Widget):
 def collect_and_count_alive(refs: Collection[weakref.ReferenceType[typing.Any]]) -> int:
     """Collect garbage until a pass frees none of the objects behind *refs*, and return how many are alive.
 
-    A tracing collector (PyPy, GraalPy) frees an object released by a weakref callback only in a pass after the one
-    that ran the callback, and GraalPy, once a thread has been started, can defer a pass's callbacks to the next one.
+    A tracing collector (PyPy) frees an object released by a weakref callback
+    only in a pass after the one that ran the callback.
     Stopping after an unchanged pass takes at least two passes, so the callbacks of the last freeing pass have run.
     """
     before = None
