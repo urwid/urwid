@@ -630,23 +630,45 @@ class TestGpmTracking(unittest.TestCase):
     @mock.patch("urwid.display._posix_raw_display.Popen")
     @mock.patch("os.path.isfile", return_value=True)
     def test_start_gpm_tracking_follows_the_input_device(self, mock_isfile, mock_popen_cls, mock_set_blocking):
-        """The helper starts only for a virtual console as input, and is attached to it by its number in hex."""
-        for name, input_stat, console in (
-            ("/dev/tty1", _device_stat(4, 1), "1"),
-            ("/dev/tty12", _device_stat(4, 12), "c"),
-            ("/dev/tty63", _device_stat(4, 63), "3f"),
-            ("/dev/tty0, the foreground console", _device_stat(4, 0), None),
-            ("/dev/ttyS0, a serial port", _device_stat(4, 64), None),
-            ("/dev/pts/0, a pseudo-terminal", _device_stat(136, 0), None),
-            ("a block device with the console's number", _device_stat(4, 1, file_type=stat.S_IFBLK), None),
+        """The helper starts only for a virtual console as input, and is attached to it by its number in hex.
+
+        Input through /dev/tty or /dev/console is judged by the terminal TIOCGDEV names behind it.
+        """
+        enotty = OSError(errno.ENOTTY, "Inappropriate ioctl for device")
+        for name, input_stat, behind_alias, console in (
+            ("/dev/tty1", _device_stat(4, 1), None, "1"),
+            ("/dev/tty12", _device_stat(4, 12), None, "c"),
+            ("/dev/tty63", _device_stat(4, 63), None, "3f"),
+            ("/dev/tty0, the foreground console", _device_stat(4, 0), None, None),
+            ("/dev/ttyS0, a serial port", _device_stat(4, 64), None, None),
+            ("/dev/pts/0, a pseudo-terminal", _device_stat(136, 0), None, None),
+            ("a block device with the console's number", _device_stat(4, 1, file_type=stat.S_IFBLK), None, None),
+            ("/dev/tty on /dev/tty3", _device_stat(5, 0), os.makedev(4, 3), "3"),
+            ("/dev/console on /dev/tty1", _device_stat(5, 1), os.makedev(4, 1), "1"),
+            ("/dev/tty on /dev/pts/2", _device_stat(5, 0), os.makedev(136, 2), None),
+            ("/dev/console on /dev/ttyS0", _device_stat(5, 1), os.makedev(4, 64), None),
+            ("/dev/tty without TIOCGDEV", _device_stat(5, 0), enotty, None),
         ):
             with self.subTest(name):
                 mock_popen_cls.reset_mock()
                 s = _make_screen()
 
-                with mock.patch("os.fstat", return_value=input_stat):
+                with (
+                    mock.patch("os.fstat", return_value=input_stat),
+                    mock.patch("fcntl.ioctl") as mock_ioctl,
+                    # the real request number depends on the architecture
+                    mock.patch("urwid.display._posix_raw_display._TIOCGDEV", 0x5432),
+                ):
+                    if isinstance(behind_alias, OSError):
+                        mock_ioctl.side_effect = behind_alias
+                    elif behind_alias is not None:
+                        mock_ioctl.return_value = struct.pack("I", behind_alias)
                     s._start_gpm_tracking()
 
+                if behind_alias is None:
+                    mock_ioctl.assert_not_called()
+                else:
+                    mock_ioctl.assert_called_once_with(s._input_fileno(), 0x5432, mock.ANY)
                 if console is None:
                     mock_popen_cls.assert_not_called()
                     self.assertIsNone(s.gpm_mev)
