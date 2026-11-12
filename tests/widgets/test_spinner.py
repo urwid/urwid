@@ -396,11 +396,13 @@ class SpinnerRunningLoopTest(unittest.TestCase):
                 raise urwid.ExitMainLoop
 
         def count_ticks(seconds: float, callback: typing.Any, user_data: typing.Any = None) -> typing.Any:
+            is_tick = getattr(callback, "__self__", None) is spinner
+            if is_tick and len(tick_handles) == 1:
+                # Finish is set first with no delay: it is due no later than the second tick, and runs first on a tie.
+                original_set_alarm_in(0, finish)
             handle = original_set_alarm_in(seconds, callback, user_data)
-            if getattr(callback, "__self__", None) is spinner:
+            if is_tick:
                 tick_handles.append(handle)
-                if len(tick_handles) == 2:
-                    original_set_alarm_in(0, finish)
             return handle
 
         def begin(_loop: urwid.MainLoop, _data: object) -> None:
