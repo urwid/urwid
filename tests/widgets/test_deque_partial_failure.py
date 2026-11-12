@@ -38,6 +38,42 @@ class DequePartialFailureTest(unittest.TestCase):
                             self.assertEqual(expected, list(items))
                             self.assertEqual([expected], seen)
 
+    def test_callback_shutdown_is_not_suppressed_after_input_failure(self):
+        for cls in [urwid.MonitoredDeque, urwid.SimpleDequeWalker]:
+            for operation in ["extend", "extendleft", "__iadd__"]:
+                for maxlen in [None, 2]:
+                    for failure_type in [ValueError, KeyboardInterrupt, SystemExit, GeneratorExit]:
+                        for shutdown_type in [KeyboardInterrupt, SystemExit, GeneratorExit]:
+                            with self.subTest(cls=cls, operation=operation, maxlen=maxlen,
+                                              failure=failure_type, shutdown=shutdown_type):
+                                items = cls([1, 2], maxlen=maxlen)
+                                failure = failure_type("input failed")
+                                shutdown = shutdown_type("callback requested shutdown")
+                                seen = []
+
+                                def changed():
+                                    seen.append(list(items))
+                                    raise shutdown
+
+                                if cls is urwid.MonitoredDeque:
+                                    items.set_modified_callback(changed)
+                                else:
+                                    urwid.connect_signal(items, "modified", changed)
+
+                                def incoming():
+                                    yield 3
+                                    raise failure
+
+                                with self.assertRaises(BaseException) as caught:
+                                    getattr(items, operation)(incoming())
+                                self.assertIs(caught.exception, shutdown)
+                                self.assertIs(shutdown.__context__, failure)
+                                expected = [3, 1, 2] if operation == "extendleft" else [1, 2, 3]
+                                if maxlen is not None:
+                                    expected = expected[:maxlen] if operation == "extendleft" else expected[-maxlen:]
+                                self.assertEqual(expected, list(items))
+                                self.assertEqual([expected], seen)
+
     def test_no_committed_change_does_not_notify(self):
         for cls in [urwid.MonitoredDeque, urwid.MonitoredFocusDeque,
                     urwid.SimpleDequeWalker, urwid.SimpleFocusDequeWalker]:

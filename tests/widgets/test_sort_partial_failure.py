@@ -109,6 +109,32 @@ class PartialSortTest(unittest.TestCase):
                     self.assertIs(caught.exception, failure)
                     self.assertEqual([callback], seen)
 
+    def test_callback_shutdown_is_not_suppressed_after_sort_failure(self):
+        for cls in [urwid.MonitoredList, urwid.MonitoredFocusList]:
+            callbacks = ["modified"] if cls is urwid.MonitoredList else ["modified", "focus_changed", "focus_moved"]
+            for callback in callbacks:
+                for failure_type in [SortFailure, KeyboardInterrupt, SystemExit, GeneratorExit]:
+                    for shutdown_type in [KeyboardInterrupt, SystemExit, GeneratorExit]:
+                        with self.subTest(cls=cls, callback=callback, failure=failure_type, shutdown=shutdown_type):
+                            failure = failure_type("sort failed")
+                            counter = [0]
+                            items = cls(SortItem(n, counter, failure) for n in [5, 1, 4, 2, 3, 0])
+                            shutdown = shutdown_type("callback requested shutdown")
+                            seen = []
+
+                            def fail(*args):
+                                seen.append(callback)
+                                raise shutdown
+
+                            getattr(items, f"set_{callback}_callback")(fail)
+                            with self.assertRaises(BaseException) as caught:
+                                items.sort()
+                            self.assertIs(caught.exception, shutdown)
+                            if cls is urwid.MonitoredList:
+                                self.assertIs(shutdown.__context__, failure)
+                            self.assertEqual([callback], seen)
+                            self.assertEqual([1, 5, 4, 2, 3, 0], [item.rank for item in items])
+
     def test_interruption_notifies_partial_order(self):
         for cls in [urwid.MonitoredList, urwid.MonitoredFocusList]:
             for failure_type in [KeyboardInterrupt, SystemExit, GeneratorExit]:
