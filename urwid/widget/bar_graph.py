@@ -762,8 +762,7 @@ def scale_bar_values(
     A *top* that is zero, not a number, infinite or too large for a float gives ``maxrow + 1`` for every value.
     """
     try:
-        # float() raises OverflowError for an int too large for a float; GraalPy's math.isfinite() accepts one.
-        valid_top = math.isfinite(top) and math.isfinite(float(top)) and top != 0  # noqa: FURB123
+        valid_top = math.isfinite(top) and top != 0
     except OverflowError:
         valid_top = False
     if not valid_top:

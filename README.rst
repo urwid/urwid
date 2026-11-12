@@ -115,19 +115,6 @@ Tests with compatible extras (tornado, trio, serial). Excludes problematic C ext
     tox -e pypy311       # PyPy 3.11
     tox -e pypy312       # PyPy 3.12
 
-**GraalPy**
-
-Tests with compatible extras (tornado, serial). Excludes extras that need C extensions GraalPy
-doesn't support (glib, zmq) or that have known compatibility issues (trio, twisted). GraalPy also
-ships no ``_curses`` module, so curses-dependent tests are expected to fail, and the Terminal
-widget (``urwid.vterm``) is unsupported since its ``fcntl``/``pty`` usage doesn't work on GraalPy,
-so its tests are skipped rather than run.
-
-.. code:: bash
-
-    tox -e graalpy312      # GraalPy 3.12
-    tox -e graalpy313      # GraalPy 3.13
-
 Supported Python versions
 =========================
 
@@ -136,7 +123,6 @@ Urwid supports:
 - CPython 3.11, 3.12, 3.13, 3.14, 3.15
 - CPython 3.13+ with free-threading (PEP 703 ``--disable-gil``)
 - PyPy 3.11
-- GraalPy 3.12, 3.13 (experimental)
 
 Python implementation notes
 ===========================
@@ -168,18 +154,6 @@ Urwid core is fully supported. Some extras may have compatibility issues:
 - ❌ Unsupported: glib, zmq (C extensions with limited PyPy support)
 - ❌ Unsupported: curses on Windows (PyPy for Windows ships no ``_curses`` module and ``windows-curses`` publishes
   no PyPy wheels)
-
-**GraalPy (experimental)**
-
-Urwid core and the ``select``/``asyncio`` event loops are supported. Some extras, display
-modules, and the Terminal widget are not:
-
-- ✅ Supported: core, tornado, serial, lcd
-- ❌ Unsupported: curses (GraalPy ships no ``_curses`` module), glib, zmq, twisted, trio (no C
-  extension support, or known compatibility issues), Terminal widget/``urwid.vterm`` (like on
-  Windows, ``fcntl``/``pty`` usage doesn't work on GraalPy)
-- ❌ Unsupported: GraalPy 3.11 (GraalPy 24), whose ``os`` module has no ``O_NOFOLLOW`` and whose ASCII and Latin-1
-  codecs ignore registered error handlers
 
 Authors
 =======

@@ -1615,8 +1615,7 @@ class TermCanvas(Canvas):
                 return modes.mouse_encoding == mode
             case _ if mode in _ALTERNATE_SCREEN_MODES:
                 return modes.alternate_screen
-            case _:
-                return None
+        return None
 
     def csi_report_private_mode(self, mode: int) -> None:
         """Answer a DECRQM query for DEC private *mode* with a DECRPM reply (CSI ? mode ; state $ y).

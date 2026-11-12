@@ -47,7 +47,6 @@ if typing.TYPE_CHECKING:
     from collections.abc import Callable
 
 IS_WINDOWS = sys.platform == "win32"
-IS_GRAALPY = sys.implementation.name == "graalpy"
 IS_CPYTHON = sys.implementation.name == "cpython"
 
 # Sentinel values for the mocked PTY.
@@ -253,7 +252,6 @@ def _forbidden(name: str) -> Callable[..., typing.NoReturn]:
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
-@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
 class TermTest(unittest.TestCase):
     def setUp(self) -> None:
         self.pty = _FakePTY()
@@ -2005,7 +2003,6 @@ class TermTest(unittest.TestCase):
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
-@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
 class TermWindowSizeTest(unittest.TestCase):
     """Check the size on a real pty pair, with no child process started."""
 
@@ -2034,7 +2031,6 @@ class TermWindowSizeTest(unittest.TestCase):
 
 
 @unittest.skipIf(IS_WINDOWS, "Terminal is not supported under windows")
-@unittest.skipIf(IS_GRAALPY, "Terminal is not supported under GraalPy")
 class TermScreenEventLoopTest(unittest.TestCase):
     """A terminal on the loop of a screen without event loop support, reading a real pipe."""
 

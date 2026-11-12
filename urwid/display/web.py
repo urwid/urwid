@@ -476,7 +476,7 @@ def _session_path(urwid_id: str) -> str:
 
     :raises PermissionError: the session directory is not private, see :func:`_session_dir`.
     """
-    # 128 bits of SHA-256: hashlib.blake2b with a custom digest size is not available on GraalPy
+    # 128 bits of SHA-256
     digest = hashlib.sha256(urwid_id.encode("ascii")).hexdigest()[:32]
     return os.path.join(_session_dir(), digest)
 

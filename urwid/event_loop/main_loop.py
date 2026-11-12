@@ -469,7 +469,7 @@ class MainLoop:
         """Remove an alarm. Return ``True`` if *handle* was found, ``False`` otherwise."""
         return self.event_loop.remove_alarm(handle)
 
-    if not IS_WINDOWS and sys.implementation.name != "graalpy":
+    if not IS_WINDOWS:
 
         def watch_pipe(self, callback: Callable[[bytes], bool | None]) -> int:
             """Create a pipe used by another thread or subprocess to trigger *callback* in the main loop.

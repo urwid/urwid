@@ -16,7 +16,7 @@ except ImportError:  # Windows has no termios
 
 try:
     from urwid.display import curses as curses_display
-except ImportError:  # no stdlib curses on this platform, e.g. Windows and GraalPy
+except ImportError:  # no stdlib curses on this platform, e.g. Windows
     curses_display = None
 
 

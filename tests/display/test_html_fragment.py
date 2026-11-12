@@ -11,7 +11,7 @@ from urwid.event_loop import ExitMainLoop
 
 try:
     from urwid.display import curses
-except ImportError:  # no stdlib curses on this platform, e.g. Windows and GraalPy
+except ImportError:  # no stdlib curses on this platform, e.g. Windows
     curses = None  # type: ignore[assignment]
 
 

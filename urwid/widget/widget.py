@@ -29,7 +29,7 @@ import logging
 import types
 import typing
 import warnings
-from operator import attrgetter, index
+from operator import attrgetter
 
 from urwid import _deprecation, signals
 from urwid.canvas import Canvas, CanvasCache, CompositeCanvas
@@ -740,15 +740,6 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
     def __init__(self) -> None:
         """Initialize a logger scoped to the concrete widget subclass."""
         self.logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
-
-    def __reduce_ex__(self, protocol: typing.SupportsIndex, /) -> str | tuple[typing.Any, ...]:
-        """Reduce the widget as pickle protocol 2 does, whatever the protocol.
-
-        Protocols 0 and 1 rebuild an object from the first of its bases that is not a heap type.
-        GraalPy implements :class:`typing.Generic` as such a base, so it is chosen there and cannot build the widget.
-        A subclass with its own ``__reduce__`` keeps it.
-        """
-        return super().__reduce_ex__(max(index(protocol), 2))
 
     def _invalidate(self) -> None:
         """Mark cached canvases rendered by this widget as dirty so that they will not be used again."""

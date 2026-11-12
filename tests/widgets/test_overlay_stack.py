@@ -9,7 +9,7 @@ import unittest
 import weakref
 
 import urwid
-from tests.util import XFAIL_GRAALPY_LIST_KEEPS_REMOVED, collect_and_count_alive
+from tests.util import collect_and_count_alive
 from urwid.testing import check_sizing, render_text
 
 if typing.TYPE_CHECKING:
@@ -451,7 +451,6 @@ class OverlayStackPropertiesTest(unittest.TestCase):
 class OverlayStackLeakTest(unittest.TestCase):
     """Closed dialogs are freed."""
 
-    @XFAIL_GRAALPY_LIST_KEEPS_REMOVED
     def test_closed_level_is_freed(self) -> None:
         """After ``close()`` neither the dialog's overlay nor its widget is kept alive by the stack."""
         stack = urwid.OverlayStack(urwid.SolidFill("."), close_on_menu=True, close_on_click_outside=True)

@@ -457,13 +457,13 @@ class Pile(
                 if any(
                     (
                         t not in {WHSettings.PACK, WHSettings.GIVEN, WHSettings.WEIGHT},
-                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(float(n)))),
+                        (n is not None and (not isinstance(n, (int, float)) or n < 0 or not math.isfinite(n))),
                         t == WHSettings.GIVEN and not isinstance(n, int),
                     )
                 ):
                     invalid_items.append(item)
 
-        # OverflowError: float() of an int too large for a float
+        # OverflowError: math.isfinite() of an int too large for a float
         except (TypeError, ValueError, OverflowError) as exc:
             raise PileError(f"added content invalid: {exc}").with_traceback(exc.__traceback__) from exc
 
