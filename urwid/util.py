@@ -49,7 +49,7 @@ if typing.TYPE_CHECKING:
     class _TagMarkupList(Protocol):
         """List of markup parts joined together by `decompose_tagmarkup`.
 
-        `_tagmarkup_recurse` traverses only `list` instances as containers of parts,
+        `_tagmarkup_append` traverses only `list` instances as containers of parts,
         while a `tuple` always means a single (display attribute, markup) pair,
         so `tuple` must not be accepted here.
         A protocol is used instead of `list["_TagMarkup"]` because `list` is invariant:
@@ -703,22 +703,32 @@ def _tagmarkup_recurse(
     :param attr: current attribute or None
     :raises TagMarkupException: an element is neither text nor an ``(attribute, tagmarkup)`` pair.
     """
+    rtl: list[str | bytes] = []
+    ral: list[tuple[Hashable, int]] = []
+    _tagmarkup_append(tm, attr, rtl, ral)
+    return rtl, ral
+
+
+def _tagmarkup_append(
+    tm: _TagMarkup,
+    attr: Hashable,
+    rtl: list[str | bytes],
+    ral: list[tuple[Hashable, int]],
+) -> None:
+    """Append the text elements of tagmarkup to *rtl* and their attribute runs to *ral*.
+
+    Every level appends to the same two lists, so each text element is handled once whatever its nesting depth.
+
+    :param tm: tagmarkup
+    :param attr: current attribute or None
+    :param rtl: text list to append to
+    :param ral: attribute list to append to, merging a run with the last one when the attributes are equal
+    :raises TagMarkupException: an element is neither text nor an ``(attribute, tagmarkup)`` pair.
+    """
     if isinstance(tm, list):
-        # for lists recurse to process each subelement
-        rtl: list[str | bytes] = []
-        ral: list[tuple[Hashable, int]] = []
         for element in tm:
-            tl, al = _tagmarkup_recurse(element, attr)
-            if ral and al:
-                # merge attributes when possible
-                last_attr, last_run = ral[-1]
-                top_attr, top_run = al[0]
-                if last_attr == top_attr:
-                    ral[-1] = (top_attr, last_run + top_run)
-                    del al[0]
-            rtl += tl
-            ral += al
-        return rtl, ral
+            _tagmarkup_append(element, attr, rtl, ral)
+        return
 
     if isinstance(tm, tuple):
         # tuples mark a new attribute boundary
@@ -726,13 +736,18 @@ def _tagmarkup_recurse(
             raise TagMarkupException(f"Tuples must be in the form (attribute, tagmarkup): {tm!r}")
 
         inner_attr, element = tm
-        return _tagmarkup_recurse(element, LayeredAttr.layer(inner_attr, attr))
+        _tagmarkup_append(element, LayeredAttr.layer(inner_attr, attr), rtl, ral)
+        return
 
     if not isinstance(tm, (str, bytes)):
         raise TagMarkupException(f"Invalid markup element: {tm!r}")
 
     # text
-    return [tm], [(attr, len(tm))]
+    rtl.append(tm)
+    if ral and ral[-1][0] == attr:
+        ral[-1] = (attr, ral[-1][1] + len(tm))
+    else:
+        ral.append((attr, len(tm)))
 
 
 def is_mouse_event(ev: tuple[str, int, int, int] | typing.Any) -> bool:
