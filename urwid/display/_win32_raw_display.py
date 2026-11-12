@@ -353,6 +353,13 @@ class Screen(_raw_display_base.Screen):
         self._input_thread = None
 
     def _read_raw_input(self, timeout: float) -> bytearray:
+        """Read the raw input available, waiting at most *timeout* seconds.
+
+        A read stops once `_INPUT_READ_LIMIT` bytes are in, exceeding it by less than one chunk.
+        The rest stays in the input socket for the next pass.
+
+        :raises InputClosedError: the input socket has been closed.
+        """
         ready = self._wait_for_input_ready(timeout)
 
         fd = self._input_fileno()
@@ -364,7 +371,8 @@ class Screen(_raw_display_base.Screen):
         with selectors.DefaultSelector() as selector:
             selector.register(fd, selectors.EVENT_READ)
 
-            while selector.select(0):
+            # pylint: disable-next=protected-access  # same package
+            while len(chars) < _raw_display_base._INPUT_READ_LIMIT and selector.select(0):
                 chunk = self._term_input_file.recv(1024)
                 if not chunk:
                     raise InputClosedError("stdin has been closed")

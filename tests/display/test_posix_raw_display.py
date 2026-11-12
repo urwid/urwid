@@ -791,7 +791,7 @@ class TestReadRawInput(unittest.TestCase):
 
         self.assertEqual(bytearray(b"abcdef"), result)
 
-    @mock.patch("urwid.display._posix_raw_display._INPUT_READ_LIMIT", 4)
+    @mock.patch("urwid.display._raw_display_base._INPUT_READ_LIMIT", 4)
     def test_input_beyond_the_read_limit_is_left_for_the_next_pass(self):
         """One call reads at most the limit, so a producer that keeps writing cannot keep it reading."""
         read_fd, write_fd = os.pipe()

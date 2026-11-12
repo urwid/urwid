@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import socket
 import sys
+import time
 import typing
 import unittest
 from unittest import mock
@@ -218,6 +219,28 @@ class TestScreenInput(unittest.TestCase):
                 self.assertEqual(resized, s._resized)
                 self.assertEqual(window_size, reader_class.call_args.kwargs["window_size"])
                 self.assertEqual(window, reader_class.call_args.kwargs["start_window_size"])
+
+    @mock.patch("urwid.display._raw_display_base._INPUT_READ_LIMIT", 4)
+    def test_input_beyond_the_read_limit_is_left_for_the_next_pass(self):
+        """One call stops reading once the limit is in, so a producer that keeps writing cannot keep it reading."""
+        input_socket, peer = socket.socketpair()
+        self.addCleanup(input_socket.close)
+        self.addCleanup(peer.close)
+        s = _win32_raw_display.Screen(input=input_socket)
+        data = bytes(range(256)) * 6  # more than one 1024-byte chunk past the limit
+        peer.sendall(data)
+        # a socket pair on Windows is a TCP loopback connection, which can deliver the data in parts
+        for _ in range(100):
+            if len(input_socket.recv(len(data), socket.MSG_PEEK)) == len(data):
+                break
+            time.sleep(0.01)
+
+        with mock.patch.object(s, "_started", True):
+            first = s.get_available_raw_input()
+            rest = s.get_available_raw_input()
+
+        self.assertLess(len(first), 4 + 1024)
+        self.assertEqual(list(data), first + rest)
 
     def test_closed_input_socket_raises(self):
         """Input from a caller's socket whose other end closed raises instead of spinning."""

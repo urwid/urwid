@@ -84,9 +84,6 @@ _GPM_MOD_ALTGR = 2
 _GPM_MOD_CTRL = 4
 _GPM_MOD_ALT = 8
 
-# most bytes of terminal input read per wake-up
-_INPUT_READ_LIMIT = 65536
-
 # seconds the gpm helper is given to exit on SIGINT before it is killed
 _GPM_STOP_TIMEOUT = 1.0
 
@@ -467,7 +464,7 @@ class Screen(_raw_display_base.Screen):
             return chars
 
         # `fd` was just reported ready, so this read does not block. Input beyond the limit is read on the next pass.
-        chunk = os.read(fd, _INPUT_READ_LIMIT)
+        chunk = os.read(fd, _raw_display_base._INPUT_READ_LIMIT)  # pylint: disable=protected-access  # same package
         if not chunk:
             raise InputClosedError("stdin has been closed")
         chars.extend(chunk)

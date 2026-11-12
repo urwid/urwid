@@ -84,6 +84,9 @@ IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
 # default is only ever actually used on POSIX.
 _SIGWINCH = getattr(signal, "SIGWINCH", 28)
 
+# most bytes of terminal input read per wake-up
+_INPUT_READ_LIMIT = 65536
+
 _ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
 
 # Terminals that implement SGR 90-97 / 100-107 bright colors without needing bold/blink.
