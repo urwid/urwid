@@ -28,6 +28,7 @@ import fcntl
 import functools
 import os
 import signal
+import stat
 import struct
 import subprocess
 import sys
@@ -87,6 +88,11 @@ _GPM_MOD_ALT = 8
 
 # seconds the gpm helper is given to exit on SIGINT before it is killed
 _GPM_STOP_TIMEOUT = 1.0
+
+# Linux virtual consoles /dev/tty1 to /dev/tty63: TTY_MAJOR and MAX_NR_CONSOLES in the kernel's tty headers.
+# Minor 0 is /dev/tty0, the console in the foreground, and minors from 64 on are serial ports.
+_VT_MAJOR = 4
+_VT_MAX_MINOR = 63
 
 
 class Screen(_raw_display_base.Screen):
@@ -223,17 +229,37 @@ class Screen(_raw_display_base.Screen):
 
     def _start_gpm_tracking(self) -> None:
         """
-        Start the gpm helper that reports mouse events on the Linux console.
+        Start the gpm helper that reports mouse events on the Linux console the screen reads from.
 
+        The helper starts only when :attr:`term` names the Linux console and the input is a virtual console.
+        It is attached to that console by number.
+        The gpm daemon gives a client that names no console of its own,
+        such as one on a pseudo-terminal, the events of every console without a client.
+
+        :raises OSError: the input descriptor cannot be examined, for example because it was closed.
         :raises RuntimeError: the gpm helper process provides no standard output.
         """
         if not os.path.isfile("/usr/bin/mev"):
             return
         if not _raw_display_base._is_linux_console(self.term):  # pylint: disable=protected-access  # same package
             return
+        fd = self._input_fileno()
+        if fd is None:
+            return
+        # The device number tells both whether the input is a virtual console and which one,
+        # whatever the names under /dev are.
+        input_stat = os.fstat(fd)
+        console = os.minor(input_stat.st_rdev)
+        if not (
+            stat.S_ISCHR(input_stat.st_mode)
+            and os.major(input_stat.st_rdev) == _VT_MAJOR
+            and 1 <= console <= _VT_MAX_MINOR
+        ):
+            return
 
-        m = Popen(
-            ["/usr/bin/mev", "-e", "158"],
+        m = Popen(  # noqa: S603  # fixed program path; the only variable argument is the kernel's console number
+            # mev reads the console number with scanf("%x")
+            ["/usr/bin/mev", "-e", "158", "-C", f"{console:x}"],
             stdin=PIPE,
             stdout=PIPE,
             close_fds=True,

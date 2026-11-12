@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import os
 import signal
+import stat
 import struct
 import subprocess
 import sys
@@ -47,6 +48,11 @@ def _make_screen(input_fd: int | None = None) -> Screen:
         input_fd, write_fd = os.pipe()
         os.close(write_fd)
     return Screen(input=os.fdopen(input_fd, "rb", buffering=0), output=open(os.devnull, "w"))
+
+
+def _device_stat(major: int, minor: int, *, file_type: int = stat.S_IFCHR) -> os.stat_result:
+    """Build the result `os.fstat` gives for a device node, without touching a real one."""
+    return os.stat_result((file_type | 0o620, 0, 0, 1, 0, 0, 0, 0, 0, 0), {"st_rdev": os.makedev(major, minor)})
 
 
 def _send_mode_queries(screen: Screen) -> None:
@@ -579,10 +585,11 @@ class TestGpmTracking(unittest.TestCase):
         mock_popen_cls.return_value = mock_proc
 
         s = _make_screen()
-        s._start_gpm_tracking()
+        with mock.patch("os.fstat", return_value=_device_stat(4, 12)):  # /dev/tty12
+            s._start_gpm_tracking()
 
         mock_popen_cls.assert_called_once_with(
-            ["/usr/bin/mev", "-e", "158"],
+            ["/usr/bin/mev", "-e", "158", "-C", "c"],
             stdin=mock.ANY,
             stdout=mock.ANY,
             close_fds=True,
@@ -612,10 +619,50 @@ class TestGpmTracking(unittest.TestCase):
                 s = _make_screen()
                 s.term = term
 
-                s._start_gpm_tracking()
+                with mock.patch("os.fstat", return_value=_device_stat(4, 1)):  # /dev/tty1
+                    s._start_gpm_tracking()
 
                 self.assertEqual(started, mock_popen_cls.called)
                 self.assertEqual(started, s.gpm_mev is mock_popen_cls.return_value)
+
+    @mock.patch.dict(os.environ, {"TERM": "linux"})
+    @mock.patch("os.set_blocking")
+    @mock.patch("urwid.display._posix_raw_display.Popen")
+    @mock.patch("os.path.isfile", return_value=True)
+    def test_start_gpm_tracking_follows_the_input_device(self, mock_isfile, mock_popen_cls, mock_set_blocking):
+        """The helper starts only for a virtual console as input, and is attached to it by its number in hex."""
+        for name, input_stat, console in (
+            ("/dev/tty1", _device_stat(4, 1), "1"),
+            ("/dev/tty12", _device_stat(4, 12), "c"),
+            ("/dev/tty63", _device_stat(4, 63), "3f"),
+            ("/dev/tty0, the foreground console", _device_stat(4, 0), None),
+            ("/dev/ttyS0, a serial port", _device_stat(4, 64), None),
+            ("/dev/pts/0, a pseudo-terminal", _device_stat(136, 0), None),
+            ("a block device with the console's number", _device_stat(4, 1, file_type=stat.S_IFBLK), None),
+        ):
+            with self.subTest(name):
+                mock_popen_cls.reset_mock()
+                s = _make_screen()
+
+                with mock.patch("os.fstat", return_value=input_stat):
+                    s._start_gpm_tracking()
+
+                if console is None:
+                    mock_popen_cls.assert_not_called()
+                    self.assertIsNone(s.gpm_mev)
+                else:
+                    self.assertEqual(["/usr/bin/mev", "-e", "158", "-C", console], mock_popen_cls.call_args.args[0])
+                    self.assertIs(mock_popen_cls.return_value, s.gpm_mev)
+
+    @mock.patch.dict(os.environ, {"TERM": "linux"})
+    @mock.patch("urwid.display._posix_raw_display.Popen")
+    @mock.patch("os.path.isfile", return_value=True)
+    def test_start_gpm_tracking_skips_when_input_not_a_terminal(self, mock_isfile, mock_popen_cls):
+        """A screen reading from a pipe starts no helper, whatever TERM says."""
+        s = _make_screen()
+        s._start_gpm_tracking()
+        mock_popen_cls.assert_not_called()
+        self.assertIsNone(s.gpm_mev)
 
     @mock.patch.dict(os.environ, {"TERM": "linux"})
     @mock.patch("urwid.display._posix_raw_display.Popen")
@@ -626,7 +673,7 @@ class TestGpmTracking(unittest.TestCase):
         mock_popen_cls.return_value = mock_proc
 
         s = _make_screen()
-        with self.assertRaises(RuntimeError):
+        with mock.patch("os.fstat", return_value=_device_stat(4, 1)), self.assertRaises(RuntimeError):
             s._start_gpm_tracking()
 
         mock_proc.kill.assert_called_once()
@@ -665,7 +712,8 @@ class TestGpmTracking(unittest.TestCase):
         seen = []
         signals.connect_signal(s, INPUT_DESCRIPTORS_CHANGED, lambda: seen.append(s.gpm_mev))
 
-        s.set_mouse_tracking(True)
+        with mock.patch("os.fstat", return_value=_device_stat(4, 1)):  # /dev/tty1
+            s.set_mouse_tracking(True)
         s.set_mouse_tracking(False)
 
         self.assertEqual([fake_proc, None], seen)
@@ -683,7 +731,8 @@ class TestGpmTracking(unittest.TestCase):
         fake_proc.wait.side_effect = subprocess.TimeoutExpired("mev", 1.0)
         s = _make_screen()
 
-        s.set_mouse_tracking(True)
+        with mock.patch("os.fstat", return_value=_device_stat(4, 1)):  # /dev/tty1
+            s.set_mouse_tracking(True)
         s.set_mouse_tracking(False)
 
         fake_proc.kill.assert_called_once_with()
