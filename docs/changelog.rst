@@ -2,6 +2,46 @@
 Changelog
 ---------
 
+Urwid 5.1.3
+============
+
+2026-11-12
+
+Breaking Changes ⚠
+++++++++++++++++++
+* Drop the experimental GraalPy support: the GraalPy 3.12 and 3.13 test environments, the classifier and the documentation entries are removed, and the workarounds for GraalPy are removed from the library. A failure that only GraalPy shows is no longer treated as a bug by @penguinolog in https://github.com/urwid/urwid/pull/1648
+
+New features 🗹
++++++++++++++++
+* Add ``MonitoredFocusDeque.set_focus_moved_callback()``, so ``MonitoredFocusDeque`` and ``SimpleFocusDequeWalker`` report a focus change as ``MonitoredFocusList`` does by @penguinolog in https://github.com/urwid/urwid/pull/1633
+* Add the ``"postchange"`` signal to ``DropDown``: it is sent with the previous index once ``selected`` and the label show the new option, while ``"change"`` is still sent before the selection changes by @penguinolog in https://github.com/urwid/urwid/pull/1634
+* Support in-band resize notifications (DEC private mode 2048): a resize keeps its place among the keys and reaches the program over links that carry no ``SIGWINCH``, such as a serial console or telnet. Add ``in_band_resize`` to the raw and curses ``Screen``, accept the mode and answer ``DECRQM`` in the ``Terminal`` widget, and report a Windows console resize in order with the input by @penguinolog in https://github.com/urwid/urwid/pull/1643
+
+Deprecations ⚡
++++++++++++++++
+* Deprecate ``TermCanvas.reverse_video()`` with ``PendingDeprecationWarning``, for removal in 8.0. DECSCNM is now a flag applied when the content is drawn instead of a rewrite of every cell, so a child program that toggles the mode no longer stalls the event loop by @penguinolog in https://github.com/urwid/urwid/pull/1641
+
+Bug fixes 🕷
+++++++++++++
+* Notify list consumers when a sort that fails part-way has already changed the order of the items by @charan-rathore in https://github.com/urwid/urwid/pull/1636
+* Start the gpm helper only when the raw screen reads a virtual console (``/dev/tty1`` to ``/dev/tty63``, also through ``/dev/tty`` or ``/dev/console``); on a pseudo-terminal it no longer takes over the mouse of the host's console by @penguinolog in https://github.com/urwid/urwid/pull/1644
+* Read CGI web display requests by ``CONTENT_LENGTH`` instead of until the end of input, which could block forever; answer ``400 Bad Request`` to a request that cannot be decoded or whose length is invalid or over the limit by @penguinolog in https://github.com/urwid/urwid/pull/1645
+* Stop terminal reports that no input filter took from raising ``TypeError`` in ``MainLoop.process_input()``; the curses display drops terminal query replies by @penguinolog in https://github.com/urwid/urwid/pull/1647
+* Report a window resize after the input typed before it, so that input is no longer handled at the new layout by @penguinolog in https://github.com/urwid/urwid/pull/1640
+* Bound and validate CGI web display keyboard input: drop lines longer than ``MAX_LINE_LENGTH`` and lines that are not key names, send whole column counts from the page, and keep client text out of the debug log by @penguinolog in https://github.com/urwid/urwid/pull/1642
+
+Optimizations 🛠
++++++++++++++++
+* Decode terminal input in linear time: decoding a 64 KiB burst took seconds and now takes milliseconds (about 92% to 99.8% less time), reported by lanjianchun by @penguinolog in https://github.com/urwid/urwid/pull/1640
+* Speed up cursor seeks in ASCII text (``calc_string_text_pos()``), about 99% less time by @dexhunter in https://github.com/urwid/urwid/pull/1639
+* Decompose nested tag markup in linear time: markup 800 levels deep takes about 90% less time by @penguinolog in https://github.com/urwid/urwid/pull/1646
+
+Documentation 🕮
+++++++++++++++++
+* Document the CGI web display limits in the reference and ``SECURITY.md``, and where the Linux console mouse reaches the raw screen by @penguinolog in https://github.com/urwid/urwid/pull/1642, https://github.com/urwid/urwid/pull/1644 and https://github.com/urwid/urwid/pull/1645
+
+**Full Changelog**: https://github.com/urwid/urwid/compare/5.1.2...5.1.3
+
 Urwid 5.1.2
 ============
 
