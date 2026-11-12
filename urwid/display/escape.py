@@ -48,6 +48,8 @@ if typing.TYPE_CHECKING:
     # the parameters of a Primary Device Attributes reply
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
     _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    # the keyboard protocol the terminal has on, beyond the legacy key encoding
+    _KeyboardProtocol = typing.Literal["kitty", "modify other keys"]
 
 IS_WINDOWS: typing.Final = sys.platform == "win32"
 
@@ -444,23 +446,46 @@ class KeyqueueTrie:
         :returns: the input and the codes left after it, with ``None`` as the input of a mouse report cut short;
             ``None`` when no sequence matches.
         """
-        result: tuple[str | _MouseInput | _CursorPosition | _TerminalReport | None, list[int]] | None
-        if result := self.get_recurse(self.data, keys, more_available):
+        if (result := self._get_at(keys, 0, more_available, csi_u_shift_applied=csi_u_shift_applied)) is None:
+            return None
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _get_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+        *,
+        csi_u_shift_applied: bool = False,
+    ) -> tuple[str | _MouseInput | _CursorPosition | _TerminalReport | None, int] | None:
+        """Do what :meth:`get` does for ``codes[start:]``, returning the position after the input.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        result: tuple[str | _MouseInput | _CursorPosition | _TerminalReport | None, int] | None
+        if result := self._get_recurse_at(self.data, codes, start, more_available):
             return result
 
-        if (result := self.read_private_mode_report(keys, more_available)) is not None:
+        if (result := self._read_private_mode_report_at(codes, start, more_available)) is not None:
             return result
 
-        if (result := self.read_private_report(keys, more_available)) is not None:
+        if (result := self._read_private_report_at(codes, start, more_available)) is not None:
             return result
 
-        if (result := self.read_modify_keys_report(keys, more_available)) is not None:
+        if (result := self._read_modify_keys_report_at(codes, start, more_available)) is not None:
             return result
 
-        if (result := self.read_key_report(keys, more_available, csi_u_shift_applied=csi_u_shift_applied)) is not None:
+        result = self._read_key_report_at(
+            codes,
+            start,
+            more_available,
+            csi_u_shift_applied=csi_u_shift_applied,
+        )
+        if result is not None:
             return result
 
-        return self.read_cursor_position(keys, more_available)
+        return self._read_cursor_position_at(codes, start, more_available)
 
     def get_recurse(
         self,
@@ -473,25 +498,44 @@ class KeyqueueTrie:
 
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
-        if not isinstance(root, MutableMapping):
-            if root == "mouse":
-                return self.read_mouse_info(keys, more_available)
-
-            if root == "sgrmouse":
-                return self.read_sgrmouse_info(keys, more_available)
-
-            return (root, keys)
-
-        if not keys:
-            # get more keys
-            if more_available:
-                raise MoreInputRequired
+        if (result := self._get_recurse_at(root, keys, 0, more_available)) is None:
             return None
+        decoded, end = result
+        return decoded, keys[end:]
 
-        if keys[0] not in root:
-            return None
+    def _get_recurse_at(
+        self,
+        root: (_KeyQueueData | str),
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[str | _MouseInput | None, int] | None:
+        """Do what :meth:`get_recurse` does for ``codes[start:]``, returning the position after the input.
 
-        return self.get_recurse(root[keys[0]], keys[1:], more_available)
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        node = root
+        pos = start
+        while isinstance(node, MutableMapping):
+            if pos >= len(codes):
+                # get more keys
+                if more_available:
+                    raise MoreInputRequired
+                return None
+
+            if codes[pos] not in node:
+                return None
+
+            node = node[codes[pos]]
+            pos += 1
+
+        if node == "mouse":
+            return self._read_mouse_info_at(codes, pos, more_available)
+
+        if node == "sgrmouse":
+            return self._read_sgrmouse_info_at(codes, pos, more_available)
+
+        return (node, pos)
 
     def read_mouse_info(
         self,
@@ -509,20 +553,37 @@ class KeyqueueTrie:
             ``None`` when the codes end right after ``ESC [ M``.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        if (result := self._read_mouse_info_at(keys, 0, more_available)) is None:
+            return None
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_mouse_info_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_MouseInput | None, int] | None:
+        """Do what :meth:`read_mouse_info` does for ``codes[start:]``, returning the position after the report.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        # the three bytes of the report and the two after an ESC among them, the most this reads
+        keys = codes[start : start + 5]
         # Any other byte below the offset is a coordinate the terminal wrapped past 255, as the Linux console does;
         # 27 is one too (column or row 250), so only a whole "ESC [ M" marks the next report.
         for i, k in enumerate(keys[:3]):
             if k == 27:
                 following = tuple(keys[i + 1 : i + 3])
                 if following == _NEXT_MOUSE_REPORT:
-                    return None, keys[i:]
+                    return None, start + i
                 if more_available and len(following) < 2 and following == _NEXT_MOUSE_REPORT[: len(following)]:
                     raise MoreInputRequired
         if len(keys) < 3:
             if more_available:
                 raise MoreInputRequired
             if keys:
-                return None, []
+                return None, len(codes)
             return None
 
         b = keys[0] - _MOUSE_BYTE_OFFSET
@@ -565,22 +626,39 @@ class KeyqueueTrie:
         else:
             action = "press"
 
-        return ((f"{prefix}mouse {action}", button, x, y), keys[3:])
+        return ((f"{prefix}mouse {action}", button, x, y), start + 3)
 
     def read_sgrmouse_info(
         self,
         keys: list[int],
         more_available: bool,
     ) -> tuple[_MouseInput, list[int]] | None:
-        # Helpful links:
-        # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
-        # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
         """Read an SGR mouse report from the codes and return the resulting input.
 
         :returns: the mouse event and the codes left after the report,
             or None when the codes do not start with an SGR mouse report.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        if (result := self._read_sgrmouse_info_at(keys, 0, more_available)) is None:
+            return None
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_sgrmouse_info_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_MouseInput, int] | None:
+        # Helpful links:
+        # https://stackoverflow.com/questions/5966903/how-to-get-mousemove-and-mouseclick-in-bash
+        # http://invisible-island.net/xterm/ctlseqs/ctlseqs.pdf
+        """Do what :meth:`read_sgrmouse_info` does for ``codes[start:]``, returning the position after the report.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        # the longest body and its terminator, the most this reads
+        keys = codes[start : start + _SGR_MOUSE_MAX_LEN + 1]
         if not keys:
             if more_available:
                 raise MoreInputRequired
@@ -637,7 +715,7 @@ class KeyqueueTrie:
         else:
             action = "release"
 
-        return ((f"{prefix}mouse {action}", button, x, y), keys[pos_m + 1 :])
+        return ((f"{prefix}mouse {action}", button, x, y), start + pos_m + 1)
 
     def read_private_mode_report(
         self,
@@ -649,6 +727,24 @@ class KeyqueueTrie:
         :returns: ``('private mode report', mode, value)``.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        if (result := self._read_private_mode_report_at(keys, 0, more_available)) is None:
+            return None
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_private_mode_report_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_PrivateModeReport, int] | None:
+        """Do what :meth:`read_private_mode_report` does for ``codes[start:]``, returning the position after the reply.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        # "[?", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "$y": a longer run is not a report
+        limit = _CSI_PARAMETERS_MAX_LEN + 4
+        keys = codes[start : start + limit]
         if not keys:
             if more_available:
                 raise MoreInputRequired
@@ -661,14 +757,11 @@ class KeyqueueTrie:
             return None
         if keys[1] != ord("?"):
             return None
-        # "[?", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "$y": a longer run is not a report
-        limit = _CSI_PARAMETERS_MAX_LEN + 4
-        codes = keys[:limit]
         more_available = more_available and len(keys) < limit
         # read the mode number
         mode = ""
         i = 2
-        for k in codes[i:]:
+        for k in keys[i:]:
             i += 1
             if k == ord(";"):
                 if not mode:
@@ -681,14 +774,14 @@ class KeyqueueTrie:
             if more_available:
                 raise MoreInputRequired
             return None
-        if not codes[i:]:
+        if not keys[i:]:
             if more_available:
                 raise MoreInputRequired
             return None
         # Ps: "0" is a valid value here (mode not recognized), unlike the mode number above.
         value = 0
         got_digit = False
-        for k in codes[i:]:
+        for k in keys[i:]:
             i += 1
             if k == ord("$"):
                 break
@@ -702,13 +795,13 @@ class KeyqueueTrie:
             return None
         if not got_digit:
             return None
-        if not codes[i:]:
+        if not keys[i:]:
             if more_available:
                 raise MoreInputRequired
             return None
-        if codes[i] != ord("y"):
+        if keys[i] != ord("y"):
             return None
-        return (("private mode report", mode, value), keys[i + 1 :])
+        return (("private mode report", mode, value), start + i + 1)
 
     def read_cursor_position(
         self,
@@ -721,19 +814,34 @@ class KeyqueueTrie:
         :returns: ('cursor position', x, y) where (x, y) == (0, 0) is the top left of the screen.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        if (result := self._read_cursor_position_at(keys, 0, more_available)) is None:
+            return None
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_cursor_position_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_CursorPosition, int] | None:
+        """Do what :meth:`read_cursor_position` does for ``codes[start:]``, returning the position after the report.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        # "[", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "R": a longer run is not a report
+        limit = _CSI_PARAMETERS_MAX_LEN + 2
+        keys = codes[start : start + limit]
         if not keys:
             if more_available:
                 raise MoreInputRequired
             return None
         if keys[0] != ord("["):
             return None
-        # "[", at most _CSI_PARAMETERS_MAX_LEN parameter bytes and the final "R": a longer run is not a report
-        limit = _CSI_PARAMETERS_MAX_LEN + 2
-        codes = keys[:limit]
         # read y value
         y = 0
         i = 1
-        for k in codes[i:]:
+        for k in keys[i:]:
             i += 1
             if k == ord(";"):
                 if not y:
@@ -744,24 +852,24 @@ class KeyqueueTrie:
             if not y and k == _ORD_0:
                 return None
             y = y * 10 + k - _ORD_0
-        if not codes[i:]:
+        if not keys[i:]:
             if more_available and len(keys) < limit:
                 raise MoreInputRequired
             return None
         # read x value
         x = 0
-        for k in codes[i:]:
+        for k in keys[i:]:
             i += 1
             if k == ord("R"):
                 if not x:
                     return None
-                return (("cursor position", x - 1, y - 1), keys[i:])
+                return (("cursor position", x - 1, y - 1), start + i)
             if k < _ORD_0 or k > _ORD_9:
                 return None
             if not x and k == _ORD_0:
                 return None
             x = x * 10 + k - _ORD_0
-        if not codes[i:] and more_available and len(keys) < limit:
+        if not keys[i:] and more_available and len(keys) < limit:
             raise MoreInputRequired
         return None
 
@@ -778,6 +886,25 @@ class KeyqueueTrie:
             or None when the codes do not start with such a sequence.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        if (split := KeyqueueTrie._split_csi_at(keys, 0, more_available, introducer, final_bytes)) is None:
+            return None
+        fields, final, end = split
+        return fields, final, keys[end:]
+
+    @staticmethod
+    def _split_csi_at(
+        codes: list[int],
+        start: int,
+        more_available: bool,
+        introducer: bytes,
+        final_bytes: Iterable[int],
+    ) -> tuple[list[list[str]], int, int] | None:
+        """Do what :meth:`_split_csi` does for ``codes[start:]``, returning the position after the sequence.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        # the introducer, the longest body and the final byte, the most this reads
+        keys = codes[start : start + len(introducer) + _CSI_PARAMETERS_MAX_LEN + 1]
         if keys[: len(introducer)] != list(introducer[: len(keys)]):
             return None
         for pos in range(len(introducer), min(len(keys), len(introducer) + _CSI_PARAMETERS_MAX_LEN + 1)):
@@ -791,7 +918,7 @@ class KeyqueueTrie:
                 raise MoreInputRequired
             return None
         body = bytes(keys[len(introducer) : pos]).decode("ascii")
-        return [field.split(":") for field in body.split(";")], keys[pos], keys[pos + 1 :]
+        return [field.split(":") for field in body.split(";")], keys[pos], start + pos + 1
 
     def read_private_report(
         self,
@@ -803,17 +930,32 @@ class KeyqueueTrie:
         :returns: ``('keyboard protocol report', flags)`` or ``('device attributes', parameters)``.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
-        if (split := self._split_csi(keys, more_available, b"[?", (ord("u"), ord("c")))) is None:
+        if (result := self._read_private_report_at(keys, 0, more_available)) is None:
             return None
-        fields, final, rest = split
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_private_report_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_KeyboardProtocolReport | _DeviceAttributesReport, int] | None:
+        """Do what :meth:`read_private_report` does for ``codes[start:]``, returning the position after the reply.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if (split := self._split_csi_at(codes, start, more_available, b"[?", (ord("u"), ord("c")))) is None:
+            return None
+        fields, final, end = split
         if any(len(field) != 1 or not field[0] for field in fields):
             return None
         values = tuple(int(field[0]) for field in fields)
         if final == ord("c"):
-            return ("device attributes", values), rest
+            return ("device attributes", values), end
         if len(values) != 1:
             return None
-        return ("keyboard protocol report", values[0]), rest
+        return ("keyboard protocol report", values[0]), end
 
     def read_modify_keys_report(
         self,
@@ -825,13 +967,28 @@ class KeyqueueTrie:
         :returns: ``('modify keys report', resource, value)``, with value None when the reply omits it.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
-        if (split := self._split_csi(keys, more_available, b"[>", (ord("m"),))) is None:
+        if (result := self._read_modify_keys_report_at(keys, 0, more_available)) is None:
             return None
-        fields, _final, rest = split
+        decoded, end = result
+        return decoded, keys[end:]
+
+    def _read_modify_keys_report_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_ModifyKeysReport, int] | None:
+        """Do what :meth:`read_modify_keys_report` does for ``codes[start:]``, returning the position after the reply.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if (split := self._split_csi_at(codes, start, more_available, b"[>", (ord("m"),))) is None:
+            return None
+        fields, _final, end = split
         if len(fields) > 2 or any(len(field) != 1 for field in fields) or not fields[0][0]:
             return None
         value = int(fields[1][0]) if len(fields) == 2 and fields[1][0] else None
-        return ("modify keys report", int(fields[0][0]), value), rest
+        return ("modify keys report", int(fields[0][0]), value), end
 
     def read_key_report(
         self,
@@ -853,13 +1010,36 @@ class KeyqueueTrie:
         :returns: the key name, or None when the codes do not start with a key report urwid can name.
         :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
         """
+        result = self._read_key_report_at(
+            keys,
+            0,
+            more_available,
+            csi_u_shift_applied=csi_u_shift_applied,
+        )
+        if result is None:
+            return None
+        name, end = result
+        return name, keys[end:]
+
+    def _read_key_report_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+        *,
+        csi_u_shift_applied: bool = False,
+    ) -> tuple[str, int] | None:
+        """Do what :meth:`read_key_report` does for ``codes[start:]``, returning the position after the report.
+
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
         final_bytes = (ord("u"), ord("~"), *_CSI_LETTER_KEYS)
-        if keys[1:2] and not _ORD_0 <= keys[1] <= _ORD_9:
+        if codes[start + 1 : start + 2] and not _ORD_0 <= codes[start + 1] <= _ORD_9:
             # a key report starts with its key's number; a private parameter starts a terminal reply instead
             return None
-        if (split := self._split_csi(keys, more_available, b"[", final_bytes)) is None:
+        if (split := self._split_csi_at(codes, start, more_available, b"[", final_bytes)) is None:
             return None
-        fields, final, rest = split
+        fields, final, end = split
         numbers = [[int(sub) if sub else None for sub in field] for field in fields]
         code, shifted_code = (numbers[0] + [None])[:2]
         modifiers = numbers[1][0] if len(numbers) > 1 and numbers[1][0] is not None else 1
@@ -887,7 +1067,7 @@ class KeyqueueTrie:
 
         if name is None:
             return None
-        return name, rest
+        return name, end
 
 
 # This is added to button value to signal mouse release by curses_display
@@ -1035,11 +1215,12 @@ if IS_WINDOWS:
     _keyconv[358] = "end"
 
 
-def _control_sequence_length(codes: list[int], more_available: bool) -> int | None:
-    """Return the length of the ECMA-48 control sequence body at the start of *codes*.
+def _control_sequence_length(codes: list[int], more_available: bool, *, start: int = 0) -> int | None:
+    """Return the length of the ECMA-48 control sequence body at the start of ``codes[start:]``.
 
-    :param codes: the codes following ``ESC [``.
+    :param codes: the codes following ``ESC [`` from *start* on.
     :param more_available: if True then raise MoreInputRequired when the codes end before the final byte.
+    :param start: the position in *codes* where the body starts.
     :returns: the number of codes up to and including the final byte, or None when the codes do not start with
         at least one parameter or intermediate byte and a final byte, in that order,
         within ``_CSI_PARAMETERS_MAX_LEN`` bytes before the final byte.
@@ -1047,14 +1228,14 @@ def _control_sequence_length(codes: list[int], more_available: bool) -> int | No
     :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
     """
     intermediate = False
-    for pos, code in enumerate(codes[: _CSI_PARAMETERS_MAX_LEN + 1]):
+    for pos, code in enumerate(codes[start : start + _CSI_PARAMETERS_MAX_LEN + 1]):
         if 0x40 <= code <= 0x7E:
             return pos + 1 if pos else None
         if 0x20 <= code <= 0x2F:
             intermediate = True
         elif intermediate or not 0x30 <= code <= 0x3F:
             return None
-    if more_available and len(codes) <= _CSI_PARAMETERS_MAX_LEN:
+    if more_available and len(codes) - start <= _CSI_PARAMETERS_MAX_LEN:
         raise MoreInputRequired
     return None
 
@@ -1063,7 +1244,7 @@ def process_keyqueue(
     codes: list[int],
     more_available: bool,
     *,
-    keyboard_protocol: typing.Literal["kitty", "modify other keys"] | None = None,
+    keyboard_protocol: _KeyboardProtocol | None = None,
 ) -> tuple[list[str | _MouseInput | _CursorPosition | _TerminalReport], list[int]]:
     """Decode `codes` into input events, consuming as much of the queue as is currently decodable.
 
@@ -1077,16 +1258,31 @@ def process_keyqueue(
         The list of input is empty when the codes consumed are a mouse report cut short.
     :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
     """
-    code = codes[0]
+    run, end = _process_keyqueue_at(codes, 0, more_available, keyboard_protocol=keyboard_protocol)
+    return run, codes[end:]
+
+
+def _process_keyqueue_at(
+    codes: list[int],
+    start: int,
+    more_available: bool,
+    *,
+    keyboard_protocol: _KeyboardProtocol | None,
+) -> tuple[list[str | _MouseInput | _CursorPosition | _TerminalReport], int]:
+    """Do what :func:`process_keyqueue` does for ``codes[start:]``, returning the position after the input.
+
+    :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+    """
+    code = codes[start]
     if 32 <= code <= 126:
         key = chr(code)
-        return [key], codes[1:]
+        return [key], start + 1
     if code in _keyconv:
-        return [_keyconv[code]], codes[1:]
+        return [_keyconv[code]], start + 1
     if 0 < code < 27:
-        return [f"ctrl {ord('a') + code - 1:c}"], codes[1:]
+        return [f"ctrl {ord('a') + code - 1:c}"], start + 1
     if 27 < code < 32:
-        return [f"ctrl {ord('A') + code - 1:c}"], codes[1:]
+        return [f"ctrl {ord('A') + code - 1:c}"], start + 1
 
     em = str_util.get_byte_encoding()
 
@@ -1098,25 +1294,25 @@ def process_keyqueue(
         elif code & 0xF8 == 0xF0:  # 4-byte form
             need_more = 3
         else:
-            return [f"<{code:d}>"], codes[1:]
+            return [f"<{code:d}>"], start + 1
 
         for i in range(1, need_more + 1):
-            if len(codes) <= i:
+            if len(codes) - start <= i:
                 if more_available:
                     raise MoreInputRequired
 
-                return [f"<{code:d}>"], codes[1:]
+                return [f"<{code:d}>"], start + 1
 
-            k = codes[i]
+            k = codes[start + i]
             if k > 256 or k & 0xC0 != 0x80:
-                return [f"<{code:d}>"], codes[1:]
+                return [f"<{code:d}>"], start + 1
 
-        s = bytes(codes[: need_more + 1])
+        s = bytes(codes[start : start + need_more + 1])
 
         try:
-            return [s.decode("utf-8")], codes[need_more + 1 :]
+            return [s.decode("utf-8")], start + need_more + 1
         except UnicodeDecodeError:
-            return [f"<{code:d}>"], codes[1:]
+            return [f"<{code:d}>"], start + 1
 
     if (
         em == "wide"
@@ -1127,52 +1323,56 @@ def process_keyqueue(
             0,
         )
     ):
-        if not codes[1:] and more_available:
+        if start + 1 == len(codes) and more_available:
             raise MoreInputRequired
-        if codes[1:] and codes[1] < 256:
-            end_code = codes[1].to_bytes(1, "little")
+        if start + 1 < len(codes) and codes[start + 1] < 256:
+            end_code = codes[start + 1].to_bytes(1, "little")
 
             if str_util.within_double_byte(start_code + end_code, 0, 1):
                 # a pair that is not a character of the encoding falls through and is decoded byte by byte
                 with contextlib.suppress(UnicodeDecodeError):
-                    return [(start_code + end_code).decode(util.get_encoding())], codes[2:]
+                    return [(start_code + end_code).decode(util.get_encoding())], start + 2
 
     if 127 < code < 256:
         try:
             key = code.to_bytes(1, "little").decode(util.get_encoding())
         except UnicodeDecodeError:
             key = chr(code)  # not a character of the encoding (always for "ascii"): read the byte as Latin-1
-        return [key], codes[1:]
+        return [key], start + 1
     if code != 27:
-        return [f"<{code:d}>"], codes[1:]
+        return [f"<{code:d}>"], start + 1
 
-    if keyboard_protocol == "kitty" and codes[1:3] == [ord("["), ord("P")]:
-        return ["f1"], codes[3:]
+    if keyboard_protocol == "kitty" and codes[start + 1 : start + 3] == [ord("["), ord("P")]:
+        return ["f1"], start + 3
 
     shift_applied = keyboard_protocol == "modify other keys"
-    if (result := input_trie.get(codes[1:], more_available, csi_u_shift_applied=shift_applied)) is not None:
-        decoded, remaining_codes = result
-        return ([] if decoded is None else [decoded]), remaining_codes
+    # pylint: disable-next=protected-access  # the offset form of KeyqueueTrie.get, private to this module
+    if (result := input_trie._get_at(codes, start + 1, more_available, csi_u_shift_applied=shift_applied)) is not None:
+        decoded, end = result
+        return ([] if decoded is None else [decoded]), end
 
     # An unrecognised control sequence is one key: decoding it byte by byte would type its body as text.
-    if codes[1:2] == [ord("[")] and (length := _control_sequence_length(codes[2:], more_available)) is not None:
-        return [f"<csi {bytes(codes[2 : 2 + length]).decode('ascii')}>"], codes[2 + length :]
+    if (
+        codes[start + 1 : start + 2] == [ord("[")]
+        and (length := _control_sequence_length(codes, more_available, start=start + 2)) is not None
+    ):
+        return [f"<csi {bytes(codes[start + 2 : start + 2 + length]).decode('ascii')}>"], start + 2 + length
 
-    if codes[1:3] == [27, 27]:
+    if codes[start + 1 : start + 3] == [27, 27]:
         # With a third ESC following, the second one cannot start a sequence the first one prefixes as meta,
         # so decode the first one alone rather than recursing once per ESC in an arbitrarily long run.
-        return ["esc"], codes[1:]
+        return ["esc"], start + 1
 
-    if codes[1:]:
+    if len(codes) - start > 1:
         # Meta keys -- ESC+Key form
-        run, remaining_codes = process_keyqueue(codes[1:], more_available, keyboard_protocol=keyboard_protocol)
+        run, end = _process_keyqueue_at(codes, start + 1, more_available, keyboard_protocol=keyboard_protocol)
         # A mouse event or a terminal report (cursor position, DECRPM, a query reply) cannot take a meta prefix,
         # and an unrecognised control sequence may be such a report.
         if not run or not isinstance(run[0], str) or run[0] == "esc" or "meta " in run[0] or run[0].startswith("<csi "):
-            return ["esc", *run], remaining_codes
-        return [f"meta {run[0]}", *run[1:]], remaining_codes
+            return ["esc", *run], end
+        return [f"meta {run[0]}", *run[1:]], end
 
-    return ["esc"], codes[1:]
+    return ["esc"], start + 1
 
 
 ####################
@@ -1302,6 +1502,7 @@ def set_modify_other_keys(value: int | None) -> str:
 
 # level 2 reports every key pressed with a modifier, Ctrl+C included
 MODIFY_OTHER_KEYS_ON: typing.Final = set_modify_other_keys(2)
+
 
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().
 # Ps: 0 = not recognized, 1-4 = recognized.
