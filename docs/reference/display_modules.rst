@@ -30,6 +30,8 @@ WEB display
 
 .. autodata:: MAX_LINE_LENGTH
 
+.. autodata:: MAX_INITIAL_READ
+
 WebSocket display
 -----------------
 

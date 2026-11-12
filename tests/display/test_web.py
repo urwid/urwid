@@ -103,9 +103,10 @@ class HandleShortRequestTest(unittest.TestCase):
 
     def test_keyboard_input_uses_request_charset(self) -> None:
         """The request body is decoded with its own charset and written to the pipe as UTF-8."""
-        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
+        # the web server need not close stdin after the body, so nothing past CONTENT_LENGTH is read
+        stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\nnot part of the body"), encoding="ascii")
         stdout = io.StringIO()
-        environ = {**self.environ, "CONTENT_TYPE": 'text/plain; charset="iso-8859-1"'}
+        environ = {**self.environ, "CONTENT_TYPE": 'text/plain; charset="iso-8859-1"', "CONTENT_LENGTH": "2"}
 
         with (
             mock.patch.dict(os.environ, environ, clear=True),
@@ -121,11 +122,34 @@ class HandleShortRequestTest(unittest.TestCase):
         write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
+        self.assertEqual(2, stdin.buffer.tell())
+
+    def test_keyboard_input_rejects_invalid_content_length(self) -> None:
+        """Answer 400 without reading the body or opening the pipe when CONTENT_LENGTH cannot be honoured."""
+        for content_length in (str(web.MAX_READ + 1), "abc", "-1", "\u0665", "9" * 5000):
+            stdin = io.TextIOWrapper(io.BytesIO(b"x\n"), encoding="ascii")
+            stdout = io.StringIO()
+
+            with (
+                self.subTest(content_length=content_length[:10]),
+                mock.patch.dict(os.environ, {**self.environ, "CONTENT_LENGTH": content_length}, clear=True),
+                mock.patch.object(web.sys, "stdin", stdin),
+                mock.patch.object(web.sys, "stdout", stdout),
+                mock.patch.object(web.os, "open", return_value=42) as pipe_open,
+                mock.patch.object(web.os, "write") as write,
+                mock.patch.object(web.os, "close"),
+            ):
+                self.assertTrue(web.handle_short_request())
+
+            pipe_open.assert_not_called()
+            write.assert_not_called()
+            self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+            self.assertEqual(0, stdin.buffer.tell())
 
     def test_keyboard_encoding_error_closes_pipe(self) -> None:
         stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
-        environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=ascii"}
+        environ = {**self.environ, "CONTENT_TYPE": "text/plain; charset=ascii", "CONTENT_LENGTH": "2"}
 
         with (
             mock.patch.dict(os.environ, environ, clear=True),
@@ -446,6 +470,8 @@ class ScreenStartTest(unittest.TestCase):
             b"window resize abc 24\n",
             b"\x80",
             b"window resize 80 24\xff\n",
+            b"window resize 80 24\n\xff\xfe",
+            "window resize 80 24\n".encode("utf-16"),
         ):
             stdout = io.StringIO()
             # a text stdin decoding strictly, as in a UTF-8 locale without the UTF-8 mode
@@ -453,7 +479,11 @@ class ScreenStartTest(unittest.TestCase):
 
             with (
                 self.subTest(client_init=client_init),
-                mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
+                mock.patch.dict(
+                    os.environ,
+                    {"HTTP_X_URWID_METHOD": "multipart", "CONTENT_LENGTH": str(len(client_init))},
+                    clear=True,
+                ),
                 mock.patch.object(web.sys, "stdin", stdin),
                 mock.patch.object(web.sys, "stdout", stdout),
             ):
@@ -503,22 +533,29 @@ class ScreenStartTest(unittest.TestCase):
     @unittest.skipIf(IS_WINDOWS, "Creating the client pipe requires the POSIX-only os.mkfifo and signal.alarm")
     @unittest.skipIf(IS_GRAALPY, "os.mkfifo is missing on GraalPy")
     def test_start_accepts_valid_resize_request(self) -> None:
-        # only the first line is decoded, so what follows it in the read does not matter
-        for client_init in (
-            b"window resize 80 24\n",
-            b"window resize 80 24\n\xff\xfe",
-            # 51 bytes: the read of 50 ends inside the last two-byte character
-            b"window resize 80 24\n-" + "é".encode() * 15,
+        for client_init, content_type, content_length in (
+            (b"window resize 80 24\n", "text/plain; charset=utf-8", "20"),
+            (b"window resize 80 24\n", "text/plain; charset=utf-8", "00020"),
+            (b"window resize 80 24", "text/plain; charset=utf-8", "19"),
+            ("window resize 80 24\n".encode("utf-16"), "text/plain; charset=utf-16", "42"),
         ):
-            with self.subTest(client_init=client_init):
+            # the web server need not close stdin after the body, so nothing past CONTENT_LENGTH is read
+            stdin = io.TextIOWrapper(io.BytesIO(client_init + b"not part of the body"), encoding="utf-8")
+            environ = {
+                "HTTP_X_URWID_METHOD": "multipart",
+                "CONTENT_TYPE": content_type,
+                "CONTENT_LENGTH": content_length,
+            }
+
+            with self.subTest(client_init=client_init, content_length=content_length):
                 screen = web.Screen()
                 # left over from an earlier session of the same screen
                 screen.input_tail = "page "
                 screen._dropping_line = True
 
                 with (
-                    mock.patch.object(web.sys, "stdin", io.TextIOWrapper(io.BytesIO(client_init), encoding="utf-8")),
-                    mock.patch.dict(os.environ, {"HTTP_X_URWID_METHOD": "multipart"}, clear=True),
+                    mock.patch.object(web.sys, "stdin", stdin),
+                    mock.patch.dict(os.environ, environ, clear=True),
                     mock.patch.object(web.os, "mkfifo") as mkfifo,
                     mock.patch.object(web.os, "open", return_value=42),
                     mock.patch.object(web.signal, "signal"),
@@ -527,6 +564,7 @@ class ScreenStartTest(unittest.TestCase):
                     screen.start()
 
                 self.assertTrue(screen.started)
+                self.assertEqual(len(client_init), stdin.buffer.tell())
                 # the pipe lives in the private session directory and its name does not reveal the session id
                 urwid_id = screen.content_head.split("X-Urwid-ID: ", 1)[1].split("\r\n", 1)[0]
                 self.assertNotIn(urwid_id, screen.pipe_name)
@@ -540,7 +578,11 @@ class ScreenStartTest(unittest.TestCase):
 
     def test_start_rejects_unknown_request_charset(self) -> None:
         """Answer 400 when the request names a charset Python does not know."""
-        environ = {"HTTP_X_URWID_METHOD": "multipart", "CONTENT_TYPE": "text/plain; charset=no-such-charset"}
+        environ = {
+            "HTTP_X_URWID_METHOD": "multipart",
+            "CONTENT_TYPE": "text/plain; charset=no-such-charset",
+            "CONTENT_LENGTH": "20",
+        }
         stdout = io.StringIO()
 
         with (
@@ -556,6 +598,32 @@ class ScreenStartTest(unittest.TestCase):
         self.assertEqual(ctx.exception.code, 0)
         self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
         self.assertFalse(self.screen.started)
+
+    def test_start_rejects_invalid_content_length(self) -> None:
+        """Answer 400 without reading the body when CONTENT_LENGTH cannot be honoured."""
+        # an empty CONTENT_LENGTH means the request has no body, so it carries no resize request
+        for content_length in ("", str(web.MAX_INITIAL_READ + 1), "abc", "-1", "\u0665", "9" * 5000):
+            stdout = io.StringIO()
+            stdin = io.TextIOWrapper(io.BytesIO(b"window resize 80 24\n"), encoding="utf-8")
+
+            with (
+                self.subTest(content_length=content_length[:10]),
+                mock.patch.dict(
+                    os.environ,
+                    {"HTTP_X_URWID_METHOD": "multipart", "CONTENT_LENGTH": content_length},
+                    clear=True,
+                ),
+                mock.patch.object(web.sys, "stdin", stdin),
+                mock.patch.object(web.sys, "stdout", stdout),
+                self.assertRaises(SystemExit) as ctx,
+                self.assertLogs(self.screen.logger, "DEBUG"),
+            ):
+                self.screen.start()
+
+            self.assertEqual(ctx.exception.code, 0)
+            self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+            self.assertFalse(self.screen.started)
+            self.assertEqual(0, stdin.buffer.tell())
 
 
 class SpanStyleTest(unittest.TestCase):

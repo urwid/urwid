@@ -68,6 +68,8 @@ _js_code = CURRENT_DIR.joinpath("_web_common.js").read_text("utf-8") + CURRENT_D
 ALARM_DELAY = 60
 POLL_CONNECT = 3
 MAX_READ = 4096
+#: the longest initial client request, in bytes
+MAX_INITIAL_READ: typing.Final = 50
 #: the longest keyboard input line, in characters
 MAX_LINE_LENGTH: typing.Final = 256
 # encoding of the keyboard input pipe, written by handle_short_request() and read by Screen.get_input()
@@ -192,14 +194,17 @@ class Screen(BrowserScreen):
             sys.stdout.write("Status: 403 Forbidden\r\n\r\n")
             sys.exit(0)
 
-        # only the first line is the request: the rest of the read may end inside a multi-byte character.
-        # Splitting the bytes assumes an ASCII-compatible charset; the page sends UTF-8.
-        client_init = sys.stdin.buffer.read(50).split(b"\n", 1)[0]
+        client_init = _read_request_body(MAX_INITIAL_READ)
+        if client_init is None:
+            self.logger.debug("Initial client request with an invalid or too large CONTENT_LENGTH")
+            sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+            sys.exit(0)
+
         try:
-            request = client_init.decode(_request_charset()).strip()
+            request = client_init.decode(_request_charset())
         except (LookupError, UnicodeError):
             request = ""
-        if not self._handle_resize_request(request):
+        if not self._handle_resize_request(request.split("\n", 1)[0].strip()):
             self.logger.debug("Invalid initial client request, %d bytes long", len(client_init))
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
             sys.exit(0)
@@ -428,6 +433,22 @@ def _request_charset() -> str:
     return content_type.get_content_charset() or "utf-8"
 
 
+def _read_request_body(limit: int) -> bytes | None:
+    """Read the request body of the length the web server gives in ``CONTENT_LENGTH``.
+
+    The read stops at that length, because the web server does not have to close stdin after the body.
+    A request without ``CONTENT_LENGTH`` has no body.
+
+    :param limit: the largest body accepted, in bytes.
+    :returns: the body, or None when ``CONTENT_LENGTH`` is not a decimal number or is larger than ``limit``.
+    """
+    length = os.environ.get("CONTENT_LENGTH") or "0"
+    # the digit count keeps int() away from a number with more digits than it converts
+    if not (length.isascii() and length.isdigit()) or len(length.lstrip("0")) > len(str(limit)) or int(length) > limit:
+        return None
+    return sys.stdin.buffer.read(int(length))
+
+
 def _session_dir() -> str:
     """Return the private directory for the session files of the effective user.
 
@@ -523,6 +544,11 @@ def handle_short_request() -> bool:
         return True
 
     # this is a keyboard input request
+    keydata = _read_request_body(MAX_READ)
+    if keydata is None:
+        sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
+        return True
+
     try:
         fd = os.open(f"{pipe_name}.in", os.O_WRONLY)
     except OSError:
@@ -531,7 +557,6 @@ def handle_short_request() -> bool:
 
     try:
         try:
-            keydata = sys.stdin.buffer.read(MAX_READ)
             encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
             sys.stdout.write("Status: 400 Bad Request\r\n\r\n")
