@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>MainLoop and Event Loops &#8212; Urwid 5.1.2</title>
+    <title>MainLoop and Event Loops &#8212; Urwid 5.1.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2c218288"></script>
+    <script src="../_static/documentation_options.js?v=88590691"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>
@@ -218,18 +218,21 @@ See <a class="reference internal" href="../manual/displaymodules.html#screens-wi
 
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.MainLoop.process_input">
-<span class="sig-name descname"><span class="pre">process_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.MainLoop.process_input" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">process_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'cursor</span> <span class="pre">position'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="headerlink" href="#urwid.MainLoop.process_input" title="Link to this definition">¶</a></dt>
 <dd><p>Pass keyboard input and mouse events to <a class="reference internal" href="#urwid.MainLoop.widget" title="urwid.MainLoop.widget"><code class="xref py py-attr docutils literal notranslate"><span class="pre">widget</span></code></a>.</p>
 <p>This method is called automatically from the <a class="reference internal" href="#urwid.MainLoop.run" title="urwid.MainLoop.run"><code class="xref py py-meth docutils literal notranslate"><span class="pre">run()</span></code></a> method when
 there is input, but may also be called to simulate input from the user.</p>
 <p><em>keys</em> is a list of input returned from <a class="reference internal" href="#urwid.MainLoop.screen" title="urwid.MainLoop.screen"><code class="xref py py-attr docutils literal notranslate"><span class="pre">screen</span></code></a>’s get_input() method or its event loop hook.
-The widgets handle it with this loop as the running loop, also when the loop is not started.</p>
+The input after a <code class="docutils literal notranslate"><span class="pre">&quot;window</span> <span class="pre">resize&quot;</span></code> is handled at the screen size read after it.
+The widgets handle it with this loop as the running loop, also when the loop is not started.
+A cursor position report is skipped, since no widget handles it.
+An application that queries the cursor position takes the report in its <em>input_filter</em>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">True</span></code> if any key was handled by a widget or the <a class="reference internal" href="#urwid.MainLoop.unhandled_input" title="urwid.MainLoop.unhandled_input"><code class="xref py py-meth docutils literal notranslate"><span class="pre">unhandled_input()</span></code></a> method.</p>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>TypeError</strong> – an item of <em>keys</em> is neither a key name nor a mouse event tuple.</p>
+<dd class="field-even"><p><strong>TypeError</strong> – an item of <em>keys</em> is neither a key name, a mouse event tuple nor a cursor position report.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1608,7 +1611,7 @@ such as <a class="reference internal" href="display_modules.html#urwid.display.w
         <li class="right" >
           <a href="index.html" title="Urwid Reference"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">MainLoop and Event Loops</a></li> 
       </ul>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widget Classes &#8212; Urwid 5.1.2</title>
+    <title>Widget Classes &#8212; Urwid 5.1.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2c218288"></script>
+    <script src="../_static/documentation_options.js?v=88590691"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>
@@ -3340,8 +3340,13 @@ activating it opens no list.</p>
 <p>DropDown requires <code class="docutils literal notranslate"><span class="pre">MainLoop(...,</span> <span class="pre">pop_ups=True)</span></code>, or another <a class="reference internal" href="#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>
 above it. The list is a pop-up, and without a target activating the widget shows nothing.</p>
 </div>
-<p>Signals supported: <code class="docutils literal notranslate"><span class="pre">'change'</span></code>, sent as <code class="docutils literal notranslate"><span class="pre">callback(drop_down,</span> <span class="pre">new_index)</span></code> before <a class="reference internal" href="#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">selected</span></code></a> changes,
-so the callback still reads the previous value there.</p>
+<p>Signals supported:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'change'</span></code>, sent as <code class="docutils literal notranslate"><span class="pre">callback(drop_down,</span> <span class="pre">new_index)</span></code> before <a class="reference internal" href="#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">selected</span></code></a> changes,
+so the callback still reads the previous value there.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'postchange'</span></code>, sent as <code class="docutils literal notranslate"><span class="pre">callback(drop_down,</span> <span class="pre">previous_index)</span></code> after <a class="reference internal" href="#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">selected</span></code></a> and the label changed,
+so the callback reads the new value there.</p></li>
+</ul>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">drop_down</span> <span class="o">=</span> <span class="n">DropDown</span><span class="p">([</span><span class="s2">"red"</span><span class="p">,</span> <span class="s2">"green"</span><span class="p">,</span> <span class="s2">"blue"</span><span class="p">],</span> <span class="n">selected</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">drop_down</span><span class="o">.</span><span class="n">render</span><span class="p">(())</span><span class="o">.</span><span class="n">text</span>
 <span class="go">[b'green v']</span>
@@ -3428,7 +3433,11 @@ so the callback still reads the previous value there.</p>
 <dt class="sig sig-object py" id="urwid.DropDown.selected">
 <span class="property"><span class="k"><span class="pre">property</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">selected</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></span><a class="headerlink" href="#urwid.DropDown.selected" title="Link to this definition">¶</a></dt>
 <dd><p>Index of the selected option.</p>
-<p>Setting it sends the <code class="docutils literal notranslate"><span class="pre">'change'</span></code> signal when the index differs from the current one.</p>
+<p>Setting it to an index that differs from the current one sends two signals:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">'change'</span></code>, with the new index, before the selection changes;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">'postchange'</span></code>, with the previous index, once <a class="reference internal" href="#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">selected</span></code></a> and the label show the new option.</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Raises<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>IndexError</strong> – the new value is not an index of <a class="reference internal" href="#urwid.DropDown.options" title="urwid.DropDown.options"><code class="xref py py-attr docutils literal notranslate"><span class="pre">options</span></code></a>.</p>
@@ -10544,7 +10553,7 @@ show these non-ASCII members:</p>
         <li class="right" >
           <a href="main_loop.html" title="MainLoop and Event Loops"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widget Classes</a></li> 
       </ul>

@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>User Input &#8212; Urwid 5.1.2</title>
+    <title>User Input &#8212; Urwid 5.1.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2c218288"></script>
+    <script src="../_static/documentation_options.js?v=88590691"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>
@@ -59,6 +59,11 @@ widgets, or can catch unhandled input by passing functions into the
 the screen.</p>
 <p>There may be more than one keystroke or mouse event processed at a time, and
 each is sent as a separate item in the list.</p>
+<p>A terminal’s reply to a cursor position query (<code class="docutils literal notranslate"><span class="pre">CSI</span> <span class="pre">6</span> <span class="pre">n</span></code>) is returned as a
+<code class="docutils literal notranslate"><span class="pre">(&quot;cursor</span> <span class="pre">position&quot;,</span> <span class="pre">x,</span> <span class="pre">y)</span></code> item, where <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> is the top left of the
+screen. Urwid does not send this query itself.
+An application that sends it takes the reply in its input filter:
+<a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> passes the item to no widget and skips it.</p>
 <section id="keyboard-input">
 <span id="id2"></span><h2>Keyboard Input<a class="headerlink" href="#keyboard-input" title="Link to this heading">¶</a></h2>
 <p>Not all keystrokes are sent by a user’s terminal to the program, and which keys
@@ -244,6 +249,43 @@ control again.
 and CTRL+Z from raising signals, as <code class="docutils literal notranslate"><span class="pre">examples/input_test.py</span></code> does.</p>
 </section>
 </section>
+<section id="window-resize">
+<span id="in-band-resize"></span><h2>Window Resize<a class="headerlink" href="#window-resize" title="Link to this heading">¶</a></h2>
+<p>A resize of the terminal is reported as a <code class="docutils literal notranslate"><span class="pre">'window</span> <span class="pre">resize'</span></code> item in the input,
+after the keys typed before it. The application reads the new size with the
+screen’s <code class="docutils literal notranslate"><span class="pre">get_cols_rows()</span></code> method, which <a class="reference internal" href="../reference/main_loop.html#urwid.MainLoop" title="urwid.MainLoop"><code class="xref py py-class docutils literal notranslate"><span class="pre">MainLoop</span></code></a> does for it.</p>
+<p>The raw display learns about a resize from the <code class="docutils literal notranslate"><span class="pre">SIGWINCH</span></code> signal,
+and also from the resize notifications of DEC private mode 2048, on terminals
+that implement it, such as kitty, foot, ghostty, iTerm2 and contour. Such a
+terminal sends the new size in the input stream itself, so the resize keeps its
+exact place among the keys. The notifications also arrive over a connection that
+carries no <code class="docutils literal notranslate"><span class="pre">SIGWINCH</span></code> and no size of the terminal device: a serial console,
+telnet, or a raw socket. On Windows the console reports every resize in its
+place among the keys without the mode.</p>
+<p>The screen asks the terminal whether it supports the mode, and turns the mode on
+when the terminal answers that it does. It does not wait for the answer. The raw
+display keeps the answer in <code class="docutils literal notranslate"><span class="pre">screen.modes.in_band_resize</span></code>. To skip the
+question and force the mode on or off, pass <code class="docutils literal notranslate"><span class="pre">in_band_resize</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">screen</span> <span class="o">=</span> <span class="n">urwid</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">Screen</span><span class="p">(</span><span class="n">in_band_resize</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">'window</span> <span class="pre">resize'</span></code> and <code class="docutils literal notranslate"><span class="pre">get_cols_rows()</span></code> are the same for the application in
+either case. A notification of the size the screen already has is not reported
+again. After a notification, <code class="docutils literal notranslate"><span class="pre">get_cols_rows()</span></code> returns the size it carried
+until the next <code class="docutils literal notranslate"><span class="pre">SIGWINCH</span></code>, which makes the size of the terminal device current
+again. The mode is turned off when the screen stops.</p>
+<p>The curses display turns the mode on only when it is created with
+<code class="docutils literal notranslate"><span class="pre">in_band_resize=True</span></code>, without asking the terminal. Use it only with a
+terminal that supports the mode: the mode stays on while ncurses suspends the
+program with CTRL+Z, so a terminal resized then sends the notifications to the
+shell.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>A program that writes its own sequence to reset the terminal after a crash
+adds <code class="docutils literal notranslate"><span class="pre">ESC</span> <span class="pre">[</span> <span class="pre">?</span> <span class="pre">2048</span> <span class="pre">l</span></code> to it, so the terminal stops sending the
+notifications to the shell.</p>
+</div>
+</section>
 <section id="mouse-input">
 <span id="id5"></span><h2>Mouse Input<a class="headerlink" href="#mouse-input" title="Link to this heading">¶</a></h2>
 <p>Mouse input is sent as a (<em>event</em>, <em>button</em>, <em>x</em>, <em>y</em>) tuple. <em>event</em> is a string
@@ -316,7 +358,16 @@ does not pass them on. Offer another way to do what they do.</p>
 terminal’s mouse reports;</p></li>
 <li><p>the curses screen delivers 1 to 5, the buttons Python’s <code class="xref py py-mod docutils literal notranslate"><span class="pre">curses</span></code>
 defines;</p></li>
-<li><p>GPM, the Linux console mouse, delivers 1 to 3;</p></li>
+<li><p>GPM, the Linux console mouse, delivers 1 to 3 to the raw screen when the
+screen reads from a Linux virtual console and <code class="docutils literal notranslate"><span class="pre">TERM</span></code> names it:</p>
+<ul>
+<li><p>input opened through <code class="docutils literal notranslate"><span class="pre">/dev/tty</span></code> or <code class="docutils literal notranslate"><span class="pre">/dev/console</span></code> counts as the
+console behind it;</p></li>
+<li><p>input through a pseudo-terminal gets no GPM events, even when the session
+runs on a console, as under <code class="docutils literal notranslate"><span class="pre">sudo</span></code> with <code class="docutils literal notranslate"><span class="pre">use_pty</span></code> or under
+<code class="docutils literal notranslate"><span class="pre">script</span></code>;</p></li>
+</ul>
+</li>
 <li><p>the FreeBSD console, with <code class="docutils literal notranslate"><span class="pre">moused</span></code> running (FreeBSD has no GPM):</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">vt(4)</span></code>:</p>
@@ -400,6 +451,7 @@ one position off the screen if the user drags their mouse to the edge.</p>
 <li><a class="reference internal" href="#flow-control-keys">Flow Control Keys</a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#window-resize">Window Resize</a></li>
 <li><a class="reference internal" href="#mouse-input">Mouse Input</a><ul>
 <li><a class="reference internal" href="#mouse-press-events"><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">press'</span></code> Events</a></li>
 <li><a class="reference internal" href="#mouse-release-events"><code class="docutils literal notranslate"><span class="pre">'mouse</span> <span class="pre">release'</span></code> Events</a></li>
@@ -454,7 +506,7 @@ one position off the screen if the user drags their mouse to the edge.</p>
         <li class="right" >
           <a href="widgets.html" title="Widgets"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">User Input</a></li> 
       </ul>

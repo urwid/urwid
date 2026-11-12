@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Widgets &#8212; Urwid 5.1.2</title>
+    <title>Widgets &#8212; Urwid 5.1.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2c218288"></script>
+    <script src="../_static/documentation_options.js?v=88590691"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>
@@ -301,6 +301,9 @@ value from the widget:</p>
 <span class="n">urwid</span><span class="o">.</span><span class="n">connect_signal</span><span class="p">(</span><span class="n">drop_down</span><span class="p">,</span> <span class="s2">"change"</span><span class="p">,</span> <span class="n">on_change</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>The <code class="docutils literal notranslate"><span class="pre">'postchange'</span></code> signal is sent with the previous index once
+<a class="reference internal" href="../reference/widget.html#urwid.DropDown.selected" title="urwid.DropDown.selected"><code class="xref py py-attr docutils literal notranslate"><span class="pre">DropDown.selected</span></code></a> and the label show the new option, so a callback
+that reads the widget sees the new value.</p>
 <p>The list is a pop-up, so <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> needs a <a class="reference internal" href="../reference/widget.html#urwid.PopUpTarget" title="urwid.PopUpTarget"><code class="xref py py-class docutils literal notranslate"><span class="pre">PopUpTarget</span></code></a>;
 see <a class="reference internal" href="../reference/widget.html#urwid.DropDown" title="urwid.DropDown"><code class="xref py py-class docutils literal notranslate"><span class="pre">DropDown</span></code></a> for the requirement.</p>
 <p>The <a class="reference external" href="https://github.com/urwid/urwid/blob/master/examples/tour.py">tour.py</a> example program shows two drop-down widgets.</p>
@@ -1871,7 +1874,7 @@ defined in superclasses after the class definition.</p>
         <li class="right" >
           <a href="displaymodules.html" title="Display Modules"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Manual</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Widgets</a></li> 
       </ul>

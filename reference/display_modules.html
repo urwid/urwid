@@ -5,12 +5,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Display Modules &#8212; Urwid 5.1.2</title>
+    <title>Display Modules &#8212; Urwid 5.1.3</title>
     <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=03e43079" />
     <link rel="stylesheet" type="text/css" href="../_static/classic.css?v=65f223dd" />
     <link rel="stylesheet" type="text/css" href="../_static/urwid_theme.css?v=de5f08c4" />
     
-    <script src="../_static/documentation_options.js?v=2c218288"></script>
+    <script src="../_static/documentation_options.js?v=88590691"></script>
     <script src="../_static/doctools.js?v=fd6eb6e6"></script>
     <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
     
@@ -32,7 +32,7 @@
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              accesskey="P">previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
@@ -290,7 +290,7 @@ so an event loop hooked to the screen stops watching its input.</p>
 <span id="raw-display"></span><h2>RAW display<a class="headerlink" href="#module-urwid.display.raw" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.raw.Screen">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.raw.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextWriter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extended_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.raw.Screen" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.raw.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">SupportsFileno</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdin&gt;'</span> <span class="pre">mode='r'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">TextWriter</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">&lt;_io.TextIOWrapper</span> <span class="pre">name='&lt;stdout&gt;'</span> <span class="pre">mode='w'</span> <span class="pre">encoding='utf-8'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bracketed_paste_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">focus_reporting</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">extended_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_band_resize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.raw.Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Raw screen backend that drives a real POSIX terminal.</p>
 <p>Initialize a screen that directly prints escape codes to an output terminal.</p>
 <dl class="field-list simple">
@@ -307,6 +307,11 @@ pass True/False to force it without probing.</p></li>
 <li><p><strong>extended_keys</strong> – report the keys the legacy encodings cannot tell apart, such as <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">enter'</span></code>
 and <code class="docutils literal notranslate"><span class="pre">'ctrl</span> <span class="pre">i'</span></code> apart from <code class="docutils literal notranslate"><span class="pre">'tab'</span></code>, through the keyboard protocol the terminal supports.
 Ctrl+C and Ctrl+Z then arrive as keys instead of signals; see <a class="reference internal" href="../manual/userinput.html#extended-keys"><span class="std std-ref">Extended Keys</span></a>.</p></li>
+<li><p><strong>in_band_resize</strong> – take the terminal size from the resize notifications the terminal sends in the input
+(DEC private mode 2048), as well as from <code class="docutils literal notranslate"><span class="pre">SIGWINCH</span></code>; see <a class="reference internal" href="../manual/userinput.html#in-band-resize"><span class="std std-ref">Window Resize</span></a>.
+None (default) auto-detects via DECRQM and enables it once confirmed supported,
+except on the iTerm2 releases that send the notifications without their final byte;
+pass True/False to force it without probing.</p></li>
 </ul>
 </dd>
 </dl>
@@ -347,6 +352,8 @@ The flag is checked after the wake-up socket is drained, so a later request keep
 <dt class="sig sig-object py" id="urwid.display.raw.Screen.get_cols_rows">
 <span class="sig-name descname"><span class="pre">get_cols_rows</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#urwid.display.raw.Screen.get_cols_rows" title="Link to this definition">¶</a></dt>
 <dd><p>Return the terminal dimensions (num columns, num rows).</p>
+<p>The size the terminal last reported in the input is returned while it is newer than the last <code class="docutils literal notranslate"><span class="pre">SIGWINCH</span></code>,
+see <a class="reference internal" href="../manual/userinput.html#in-band-resize"><span class="std std-ref">Window Resize</span></a>; otherwise the size is read from the terminal device.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -399,11 +406,21 @@ applications.</p>
 <span id="curses-display"></span><h2>Curses display<a class="headerlink" href="#module-urwid.display.curses" title="Link to this heading">¶</a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.curses.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><a class="headerlink" href="#urwid.display.curses.Screen" title="Link to this definition">¶</a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">urwid.display.curses.</span></span><span class="sig-name descname"><span class="pre">Screen</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="keyword-only-separator o"><abbr title="Keyword-only parameters separator (PEP 3102)"><span class="pre">*</span></abbr></span></em>, <em class="sig-param"><span class="n"><span class="pre">in_band_resize</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#urwid.display.curses.Screen" title="Link to this definition">¶</a></dt>
 <dd><p>Screen backend that drives the real terminal through the <code class="docutils literal notranslate"><span class="pre">curses</span></code> module.</p>
 <p>Outside Windows, <cite>start()</cite> clears the <code class="docutils literal notranslate"><span class="pre">IEXTEN</span></code> and <code class="docutils literal notranslate"><span class="pre">FLUSHO</span></code> flags of a terminal input,
 as <a class="reference internal" href="#urwid.display.raw.Screen" title="urwid.display.raw.Screen"><code class="xref py py-class docutils literal notranslate"><span class="pre">urwid.display.raw.Screen</span></code></a> does, and <cite>stop()</cite> restores them.</p>
 <p>Initialize an unstarted curses screen with no color pairs allocated yet.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>in_band_resize</strong> – turn on the resize notifications the terminal sends in the input
+(DEC private mode 2048), and take the terminal size from them as well as from the resize curses reports;
+see <a class="reference internal" href="../manual/userinput.html#in-band-resize"><span class="std std-ref">Window Resize</span></a>.
+Only for a terminal known to support the mode, since it is not asked.
+The mode stays on while ncurses suspends the program,
+so a terminal resized then sends the notifications to the shell.</p>
+</dd>
+</dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="urwid.display.curses.Screen.clear">
 <span class="sig-name descname"><span class="pre">clear</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#urwid.display.curses.Screen.clear" title="Link to this definition">¶</a></dt>
@@ -554,6 +571,8 @@ click events along with keystrokes.</p>
 <dt class="sig sig-object py">
 <span class="sig-name descname"><span class="pre">get_input</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">raw_keys</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Literal</span><span class="p"><span class="pre">[</span></span><span class="k"><span class="pre">True</span></span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span></dt>
 <dd><p>Return pending input as a list.</p>
+<p>An input line longer than <a class="reference internal" href="#urwid.display.web.MAX_LINE_LENGTH" title="urwid.display.web.MAX_LINE_LENGTH"><code class="xref py py-data docutils literal notranslate"><span class="pre">MAX_LINE_LENGTH</span></code></a> is dropped whole, up to and including its newline.
+A line that is neither a key name the page script sends nor a valid resize request is dropped too.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -601,6 +620,18 @@ click events along with keystrokes.</p>
 <dd><p>Do nothing.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.display.web.MAX_LINE_LENGTH">
+<span class="sig-prename descclassname"><span class="pre">urwid.display.web.</span></span><span class="sig-name descname"><span class="pre">MAX_LINE_LENGTH</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">256</span></span><a class="headerlink" href="#urwid.display.web.MAX_LINE_LENGTH" title="Link to this definition">¶</a></dt>
+<dd><p>the longest keyboard input line, in characters</p>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="urwid.display.web.MAX_INITIAL_READ">
+<span class="sig-prename descclassname"><span class="pre">urwid.display.web.</span></span><span class="sig-name descname"><span class="pre">MAX_INITIAL_READ</span></span><span class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Final</span></span><span class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">50</span></span><a class="headerlink" href="#urwid.display.web.MAX_INITIAL_READ" title="Link to this definition">¶</a></dt>
+<dd><p>the longest initial client request, in bytes</p>
 </dd></dl>
 
 </section>
@@ -1321,6 +1352,8 @@ keys are released.</p>
 <li><a class="reference internal" href="#urwid.display.web.Screen.tty_signal_keys"><code class="docutils literal notranslate"><span class="pre">Screen.tty_signal_keys()</span></code></a></li>
 </ul>
 </li>
+<li><a class="reference internal" href="#urwid.display.web.MAX_LINE_LENGTH"><code class="docutils literal notranslate"><span class="pre">MAX_LINE_LENGTH</span></code></a></li>
+<li><a class="reference internal" href="#urwid.display.web.MAX_INITIAL_READ"><code class="docutils literal notranslate"><span class="pre">MAX_INITIAL_READ</span></code></a></li>
 </ul>
 </li>
 <li><a class="reference internal" href="#module-urwid.display.websocket">WebSocket display</a><ul>
@@ -1455,7 +1488,7 @@ keys are released.</p>
         <li class="right" >
           <a href="widget.html" title="Widget Classes"
              >previous</a> |</li>
-        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.2</a> &#187;</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Urwid 5.1.3</a> &#187;</li>
           <li class="nav-item nav-item-1"><a href="index.html" >Urwid Reference</a> &#187;</li>
         <li class="nav-item nav-item-this"><a href="">Display Modules</a></li> 
       </ul>
