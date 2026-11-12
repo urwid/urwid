@@ -38,7 +38,6 @@
 <li><strong>CPython 3.11, 3.12, 3.13, 3.14, 3.15</strong> - Full support for all extras</li>
 <li><strong>CPython 3.13+ with free-threading</strong> (PEP 703 --disable-gil) - Pure-Python extras only (tornado, trio, twisted, serial, lcd)</li>
 <li><strong>PyPy 3.11</strong> - Compatible extras (tornado, trio, serial, lcd)</li>
-<li><strong>GraalPy 3.12, 3.13</strong> (experimental) - Compatible extras (tornado, serial, lcd)</li>
 </ul>
 
 <h4>Operating System</h4>
@@ -62,13 +61,11 @@
 <th style="border: 1px solid #ccc; padding: 8px;">CPython</th>
 <th style="border: 1px solid #ccc; padding: 8px;">Free-threaded</th>
 <th style="border: 1px solid #ccc; padding: 8px;">PyPy</th>
-<th style="border: 1px solid #ccc; padding: 8px;">GraalPy</th>
 <th style="border: 1px solid #ccc; padding: 8px;">Package</th>
 </tr>
 <tr>
 <td style="border: 1px solid #ccc; padding: 8px;">GLib event loop (deprecated)</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">python-gi (pygobject)</td>
@@ -78,12 +75,10 @@
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓ (24.10.0+)</td>
 <td style="border: 1px solid #ccc; padding: 8px;">⚠ Limited</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">twisted>=24.10.0</td>
 </tr>
 <tr>
 <td style="border: 1px solid #ccc; padding: 8px;">Tornado event loop</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
@@ -94,7 +89,6 @@
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">trio>=0.31.0</td>
 </tr>
 <tr>
@@ -102,12 +96,10 @@
 <td style="border: 1px solid #ccc; padding: 8px;">✓ (Linux/Unix)</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✗</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">pyzmq>=26.0.0 (not available on Windows)</td>
 </tr>
 <tr>
 <td style="border: 1px solid #ccc; padding: 8px;">Serial/LCD display</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
@@ -118,7 +110,6 @@
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">⚠ Limited</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">windows-curses</td>
 </tr>
 <tr>
@@ -126,7 +117,6 @@
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
 <td style="border: 1px solid #ccc; padding: 8px;">✓</td>
-<td style="border: 1px solid #ccc; padding: 8px;">✗</td>
 <td style="border: 1px solid #ccc; padding: 8px;">fcntl, pty (stdlib; not supported on Windows either)</td>
 </tr>
 </table>
