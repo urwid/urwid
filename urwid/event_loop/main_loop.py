@@ -240,6 +240,7 @@ class MainLoop:
         "_input_filter",
         "_poll_interval",
         "_pop_ups",
+        "_size_read_after_resize",
         "_thread_calls",
         "_thread_calls_unwatchable",
         "_topmost_widget",
