@@ -1509,3 +1509,51 @@ class TestParseInput(unittest.TestCase):
         callback.assert_called_once_with(["meta ["], [27, ord("[")])
         self.assertEqual([], s._partial_codes)
         self.assertIsNone(s._input_timeout)
+
+    def test_resize_waits_for_the_input_typed_before_it(self) -> None:
+        """Hold a resize back while input typed before it can still wait, and wake the input loop to read it."""
+        s = urwid.display.raw.Screen()
+        s._resized = True
+        s._hold_resize = True
+
+        keys, _raw = s.parse_input(None, None, [ord("a")])
+
+        self.assertEqual(["a"], keys)
+        self.assertTrue(s._resized)
+        self.assertEqual(b"R", s._resize_pipe_rd.recv(16))
+
+        s._hold_resize = False
+        keys, _raw = s.parse_input(None, None, [ord("b")])
+
+        self.assertEqual(["b", "window resize"], keys)
+        self.assertFalse(s._resized)
+
+    def test_window_size_report_is_a_resize_where_the_screen_sends_it(self) -> None:
+        """Report a window size report as a resize in its place among the keys, on a screen that sends it.
+
+        On any other screen it is dropped, so input that only looks like one cannot cause a redraw.
+        """
+        report = list(escape.window_size_report(80, 24).encode())
+        # Adjacent reports are one resize, as the resize flag merges them, also with a dropped query reply between.
+        codes = [ord("a"), *report, *b"\x1b[?2004;1$y", *report, ord("b")]
+        for in_band_resize, expected in ((True, ["a", "window resize", "b"]), (False, ["a", "b"])):
+            with self.subTest(in_band_resize=in_band_resize):
+                s = urwid.display.raw.Screen()
+                s._in_band_resize = in_band_resize
+                s.screen_buf = []
+
+                keys, _raw = s.parse_input(None, None, codes)
+
+                self.assertEqual(expected, keys)
+                self.assertEqual(None if in_band_resize else [], s.screen_buf)
+
+    def test_resize_is_held_for_a_limited_number_of_passes(self) -> None:
+        """Report a resize after a bounded number of passes, however long input keeps arriving."""
+        s = urwid.display.raw.Screen()
+        s._resized = True
+        s._hold_resize = True
+
+        passes = [s.parse_input(None, None, [ord("a")])[0] for _ in range(_raw_display_base._RESIZE_HOLD_PASSES + 1)]
+
+        self.assertEqual([["a"]] * _raw_display_base._RESIZE_HOLD_PASSES + [["a", "window resize"]], passes)
+        self.assertEqual(0, s._resize_held_passes)

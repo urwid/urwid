@@ -264,6 +264,20 @@ class CursesGetInputTest(unittest.TestCase):
                 self.assertEqual([ord("a"), 27, ord("["), *([later] if later >= 0 else [])], raw)
 
 
+    def test_window_size_report_is_dropped(self) -> None:
+        """Drop a report a terminal sends while a program left mode 2048 on, which the application cannot handle."""
+        screen = curses_display.Screen()
+        report = list(escape.window_size_report(80, 24).encode())
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[ord("a"), -1]),
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[*report, ord("b"), -1]),
+        ):
+            processed, _raw = screen._get_input(None)
+
+        self.assertEqual(["a", "b"], processed)
+
+
 @unittest.skipIf(curses_display is None, "the curses module is not available")
 class CursesMouseTest(unittest.TestCase):
     """Tests for the mouse events of curses, which the screen encodes as X10 reports for the input parser."""

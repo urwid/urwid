@@ -47,7 +47,11 @@ if typing.TYPE_CHECKING:
     _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
     # the parameters of a Primary Device Attributes reply
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
-    _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    # the text area size in columns and rows, from an in-band resize notification (mode 2048)
+    _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
+    _TerminalReport = (
+        _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport | _WindowSizeReport
+    )
     # the keyboard protocol the terminal has on, beyond the legacy key encoding
     _KeyboardProtocol = typing.Literal["kitty", "modify other keys"]
 
@@ -81,6 +85,8 @@ _SGR_MOUSE_MAX_LEN: typing.Final = 32
 # longest body of a control sequence accepted before its final byte:
 # the parameters of a key report or a terminal reply, or the parameter and intermediate bytes of an unrecognised one
 _CSI_PARAMETERS_MAX_LEN: typing.Final = 64
+# the rows, columns, height and width of an in-band resize notification
+_WINDOW_SIZE_REPORT_VALUES: typing.Final = 4
 
 ###################
 # Input sequences
@@ -467,14 +473,14 @@ class KeyqueueTrie:
         if result := self._get_recurse_at(self.data, codes, start, more_available):
             return result
 
-        if (result := self._read_private_mode_report_at(codes, start, more_available)) is not None:
-            return result
-
-        if (result := self._read_private_report_at(codes, start, more_available)) is not None:
-            return result
-
-        if (result := self._read_modify_keys_report_at(codes, start, more_available)) is not None:
-            return result
+        for read_report in (
+            self._read_private_mode_report_at,
+            self._read_private_report_at,
+            self._read_modify_keys_report_at,
+            self._read_window_size_report_at,
+        ):
+            if (result := read_report(codes, start, more_available)) is not None:
+                return result
 
         result = self._read_key_report_at(
             codes,
@@ -989,6 +995,28 @@ class KeyqueueTrie:
             return None
         value = int(fields[1][0]) if len(fields) == 2 and fields[1][0] else None
         return ("modify keys report", int(fields[0][0]), value), end
+
+    def _read_window_size_report_at(
+        self,
+        codes: list[int],
+        start: int,
+        more_available: bool,
+    ) -> tuple[_WindowSizeReport, int] | None:
+        """Interpret an in-band resize notification (CSI 48 ; rows ; columns ; height ; width t) at *start*.
+
+        The height and width in pixels are read but not returned.
+
+        :returns: ``('window size report', columns, rows)`` and the position after the report,
+            or None when the codes at *start* are not such a report.
+        :raises MoreInputRequired: the codes end in the middle of a sequence and *more_available* is set.
+        """
+        if (split := self._split_csi_at(codes, start, more_available, b"[48;", (ord("t"),))) is None:
+            return None
+        fields, _final, end = split
+        if len(fields) != _WINDOW_SIZE_REPORT_VALUES or any(len(field) != 1 or not field[0] for field in fields):
+            return None
+        rows, cols = int(fields[0][0]), int(fields[1][0])
+        return ("window size report", cols, rows), end
 
     def read_key_report(
         self,
@@ -1537,6 +1565,17 @@ def set_modify_other_keys(value: int | None) -> str:
 
 # level 2 reports every key pressed with a modifier, Ctrl+C included
 MODIFY_OTHER_KEYS_ON: typing.Final = set_modify_other_keys(2)
+
+
+def window_size_report(cols: int, rows: int) -> str:
+    r"""Return the in-band resize notification (mode 2048) a terminal sends for a text area of *cols* by *rows*.
+
+    The size in pixels is sent as 0, which stands for unknown.
+
+    >>> window_size_report(80, 24)
+    '\x1b[48;24;80;0;0t'
+    """
+    return f"{CSI}48;{rows:d};{cols:d};0;0t"
 
 
 # DECRQM (CSI ? Pd $ p) reply is DECRPM (CSI ? Pd ; Ps $ y), recognized by KeyqueueTrie.read_private_mode_report().

@@ -74,8 +74,8 @@ if typing.TYPE_CHECKING:
     _ModifyKeysReport = tuple[typing.Literal["modify keys report"], int, int | None]
     _DeviceAttributesReport = tuple[typing.Literal["device attributes"], tuple[int, ...]]
     _TerminalReport = _PrivateModeReport | _KeyboardProtocolReport | _ModifyKeysReport | _DeviceAttributesReport
+    _WindowSizeReport = tuple[typing.Literal["window size report"], int, int]
     _DecodedInput = list[str | _MouseInput | _CursorPosition]
-    _DecodedInputWithReports = list[str | _MouseInput | _CursorPosition | _TerminalReport]
 
 IS_WINDOWS = sys.platform == "win32"
 IS_WSL = (sys.platform == "linux") and ("wsl" in platform.platform().lower())
@@ -86,6 +86,8 @@ _SIGWINCH = getattr(signal, "SIGWINCH", 28)
 
 # most bytes of terminal input read per wake-up
 _INPUT_READ_LIMIT = 65536
+# most input passes a resize waits for the input typed before it, so input that keeps coming cannot hold it forever
+_RESIZE_HOLD_PASSES = 64
 
 _ColorCount = typing.Literal[1, 16, 88, 256, 16777216]
 
@@ -619,6 +621,11 @@ class Screen(BaseScreen, RealTerminal):
         self._drawn_rows: list[list[tuple[str, Literal["0", "U"] | None, bytes]]] = []
         self._screen_buf_canvas: Canvas | None = None
         self._resized = False
+        # set by the last read of terminal input: a resize may have input typed before it still waiting
+        self._hold_resize = False
+        # the input carries window size reports that this screen put there itself, in order with the keys
+        self._in_band_resize = False
+        self._resize_held_passes = 0
         self.maxrow: int | None = None
         self._alternate_buffer = False
         self._mouse_tracking_enabled = False
@@ -781,10 +788,35 @@ class Screen(BaseScreen, RealTerminal):
         self.write(queries)
         self.flush()
 
+    def _apply_window_size_reports(
+        self,
+        decoded_codes: list[str | _MouseInput | _CursorPosition | _WindowSizeReport],
+    ) -> _DecodedInput:
+        """Replace the window size reports among *decoded_codes* with ``"window resize"`` at their place among the keys.
+
+        Adjacent reports become one resize.
+        A report counts only on a screen that puts such reports into its own input.
+        Elsewhere it is dropped, so input that only looks like one cannot cause a redraw.
+        """
+        logger = self.logger.getChild("terminal_reports")
+        filtered: _DecodedInput = []
+        for item in decoded_codes:
+            match item:
+                case ("window size report", _cols, _rows) if self._in_band_resize:
+                    self.screen_buf = None
+                    # adjacent resizes are one, as the resize flag merges them, so get_input can throttle them
+                    if filtered[-1:] != ["window resize"]:
+                        filtered.append("window resize")
+                case ("window size report", *_):
+                    logger.debug(f"Dropped a window size report this screen did not send: {item!r}")
+                case _:
+                    filtered.append(item)
+        return filtered
+
     def _apply_terminal_reports(
         self,
-        decoded_codes: _DecodedInputWithReports,
-    ) -> _DecodedInput:
+        decoded_codes: list[str | _MouseInput | _CursorPosition | _TerminalReport | _WindowSizeReport],
+    ) -> list[str | _MouseInput | _CursorPosition | _WindowSizeReport]:
         """Apply the query replies among *decoded_codes* to `self.modes` and strip them out.
 
         A reply counts only as the answer to a query urwid sent and has no answer for yet.
@@ -795,7 +827,7 @@ class Screen(BaseScreen, RealTerminal):
           after them.
         """
         logger = self.logger.getChild("terminal_reports")
-        filtered: _DecodedInput = []
+        filtered: list[str | _MouseInput | _CursorPosition | _WindowSizeReport] = []
         reports: list[tuple[str, int]] = []
         for item in decoded_codes:
             match item:
@@ -1282,6 +1314,10 @@ class Screen(BaseScreen, RealTerminal):
         the screen or event loop look like; it only deals with parsing keycodes
         and setting a timeout when an incomplete one is detected.
 
+        A terminal resize is reported as ``"window resize"`` after the input typed before it.
+        When the last read of this screen's own input can have left such input waiting,
+        the resize is held for a later call and the input loop is woken to read it.
+
         `codes` is a list of keycodes: the integer values of the input bytes, or curses key codes.
         """
         logger = self.logger.getChild("parse_input")
@@ -1310,13 +1346,22 @@ class Screen(BaseScreen, RealTerminal):
             if event_loop:
                 self._input_timeout = event_loop.alarm(self.complete_wait, _parse_incomplete_input)
 
-        output_codes = self._drop_past_end_mouse_events(self._apply_terminal_reports(decoded_codes))
+        output_codes = self._drop_past_end_mouse_events(
+            self._apply_window_size_reports(self._apply_terminal_reports(decoded_codes)),
+        )
 
         # formats the whole input burst, so it is skipped unless the record is emitted
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"Decoded codes: {output_codes!r}, raw codes: {raw_codes!r}")
 
-        if self._resized:
+        # read once: a resize recorded between two reads would skip the hold below
+        resized = self._resized
+        if resized and self._hold_resize and self._resize_held_passes < _RESIZE_HOLD_PASSES:
+            # Input typed before the resize can still wait: report the resize after it, in a pass this wake-up starts.
+            self._resize_held_passes += 1
+            self._wake_input_loop()
+        elif resized:
+            self._resize_held_passes = 0
             self._resized = False
             self.screen_buf = None
             output_codes.append("window resize")

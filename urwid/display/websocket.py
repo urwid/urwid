@@ -420,8 +420,8 @@ class Screen(BrowserScreen):
         """Hand the queued input to the main loop, and close the session when a handler raises ExitMainLoop.
 
         The input is handed over in batches that end at each ``"window resize"``,
-        since the main loop lays out a whole batch at one screen size,
-        and :meth:`get_cols_rows` returns the size each batch arrived at while it is handed over.
+        since :meth:`get_cols_rows` returns the size each batch arrived at while it is handed over:
+        the input after a resize is laid out at the new size only in a batch of its own.
         When a handler unhooks or hooks the screen again, the batches not handed over yet wait for the next hook.
         """
         self._delivery = None

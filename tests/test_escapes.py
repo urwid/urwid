@@ -969,6 +969,11 @@ class KeyReportTest(unittest.TestCase):
     def test_shift_space_with_modify_other_keys_is_a_space(self):
         self.assertEqual(([" "], []), escape.process_keyqueue([27, *b"[27;2;32~"], more_available=False))
 
+    def test_window_size_report_round_trip(self):
+        """Decode the window size report urwid builds into the size it was built for."""
+        report = list(escape.window_size_report(132, 43).encode())
+        self.assertEqual(([("window size report", 132, 43)], len(report)), escape.decode_input(report, False))
+
     def test_csi_q_and_csi_s_are_f2_and_f4(self):
         for sequence, key in ((b"[Q", "f2"), (b"[S", "f4")):
             with self.subTest(sequence=sequence):
@@ -984,6 +989,8 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
             (b"[?6c", ("device attributes", (6,))),
             (b"[>4;2m", ("modify keys report", 4, 2)),
             (b"[>4m", ("modify keys report", 4, None)),
+            (b"[48;24;80;0;0t", ("window size report", 80, 24)),
+            (b"[48;30;100;600;1000t", ("window size report", 100, 30)),
         ):
             with self.subTest(sequence=sequence):
                 actual, rest = escape.process_keyqueue([27, *sequence, ord("x")], more_available=False)
@@ -997,9 +1004,14 @@ class ReadKeyboardQueryReplyTest(unittest.TestCase):
         for sequence in (b"[>m", b"[>;2m", b"[>4;2;1m", b"[>4:1m"):
             with self.subTest(sequence=sequence):
                 self.assertIsNone(escape.input_trie.read_modify_keys_report(list(sequence), more_available=False))
+        # a window size report has exactly four values
+        for sequence in (b"[48;24;80t", b"[48;24;80;0;0;0t", b"[48;;80;0;0t", b"[48;24:1;80;0;0t"):
+            with self.subTest(sequence=sequence):
+                actual, _rest = escape.process_keyqueue([27, *sequence], more_available=False)
+                self.assertEqual([f"<csi {sequence[1:].decode()}>"], actual)
 
     def test_truncated_replies_wait_for_more_input(self):
-        for sequence in (b"[?62;22c", b"[>4;2m"):
+        for sequence in (b"[?62;22c", b"[>4;2m", b"[48;24;80;0;0t"):
             for length in range(1, len(sequence)):
                 with self.subTest(sequence=sequence, length=length), self.assertRaises(escape.MoreInputRequired):
                     escape.process_keyqueue([27, *sequence[:length]], more_available=True)

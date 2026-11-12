@@ -37,6 +37,7 @@ import typing
 from subprocess import PIPE, Popen
 
 from urwid import signals
+from urwid._selectors import read_selector
 
 from . import _raw_display_base, escape
 from .common import INPUT_DESCRIPTORS_CHANGED, InputClosedError
@@ -428,7 +429,10 @@ class Screen(_raw_display_base.Screen):
             self.stop()  # restores the previous SIGTSTP disposition, which the kill below runs
             os.kill(os.getpid(), signal.SIGTSTP)
             self.start()
+            # This resize is the redraw after the resume and is set after this pass's read,
+            # so no input typed before it can still be waiting, and it is not held back.
             self._resized = True
+            self._hold_resize = False
         return codes
 
     def _get_input_codes(self) -> list[int]:
@@ -451,8 +455,13 @@ class Screen(_raw_display_base.Screen):
         """
         Read at most `_INPUT_READ_LIMIT` bytes of the raw input available, waiting at most *timeout* seconds.
 
+        `_hold_resize` is set when a resize can have input typed before it still waiting:
+        the resize was not pending when the read started, or input is still readable after it.
+
         :raises InputClosedError: the input file has been closed.
         """
+        resize_pending = self._resized
+        self._hold_resize = not resize_pending
         ready = self._wait_for_input_ready(timeout)
         gpm_stdout = self.gpm_mev.stdout if self.gpm_mev is not None else None
         if gpm_stdout is not None and gpm_stdout.fileno() in ready:
@@ -468,6 +477,10 @@ class Screen(_raw_display_base.Screen):
         if not chunk:
             raise InputClosedError("stdin has been closed")
         chars.extend(chunk)
+        # A terminal returns at most its line discipline buffer per read (about 4 KiB on Linux), below the limit,
+        # so whether input is left is asked of the descriptor rather than read off the size of the chunk.
+        with read_selector([(fd, None)]) as selector:
+            self._hold_resize = not resize_pending or bool(selector.select(0))
         return chars
 
     def _encode_gpm_event(self) -> list[int]:

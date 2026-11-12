@@ -50,13 +50,15 @@ class TestReadInputThread(unittest.TestCase):
         resize: mock.Mock | None = None,
         window_sizes: tuple[tuple[int, int] | None, ...] = (None,),
         start_window_size: tuple[int, int] | None = None,
-    ) -> list[bytes]:
+        sent: list[typing.Any] | None = None,
+    ) -> list[typing.Any]:
         """Run the reader over console reads returning *batches*, and return what it sent.
 
         A batch holds key characters and console input records; a batch of None is a wait that times out.
         The window size reported to the reader goes through *window_sizes*, then stays at the last one.
+        What is sent is appended to *sent*, a new list by default.
         """
-        sent: list[bytes] = []
+        sent = [] if sent is None else sent
         sizes = iter(window_sizes)
         thread = _win32_raw_display.ReadInputThread(
             mock.Mock(sendall=sent.append),
@@ -104,12 +106,43 @@ class TestReadInputThread(unittest.TestCase):
         """A failing console read ends the thread instead of looping over stale records."""
         self.assertEqual([], self._run_reads(["a"], ["b"], read_succeeds=False))
 
+    def test_keys_and_a_resize_of_one_read_keep_their_order(self) -> None:
+        """Send the keys typed before a resize record, report the resize, then send the keys typed after it."""
+        report = _win32_raw_display.escape.window_size_report(100, 30).encode()
+        for label, batch, window_sizes, expected in (
+            ("keys around the resize", ["a", _resize_record(), "b"], ((100, 30),), [b"a", report, b"b"]),
+            ("size unread: reported out of band", ["a", _resize_record(), "b"], (None,), [b"a", "resize", b"b"]),
+            (
+                "a character split by the resize",
+                ["\ud83d", _resize_record(), "\ude00"],
+                ((100, 30),),
+                [report, "\U0001f600".encode()],
+            ),
+        ):
+            with self.subTest(label):
+                events: list[typing.Any] = []
+                resize = mock.Mock(side_effect=lambda events=events: events.append("resize"))
+
+                self._run_reads(batch, resize=resize, window_sizes=window_sizes, sent=events)
+
+                self.assertEqual(expected, events)
+
     def test_resize_is_reported_for_a_buffer_or_a_window_change(self) -> None:
-        """A buffer size event or a new window size reports one resize; an unchanged or unread size reports none."""
+        """A buffer size event or a new window size reports one resize; an unchanged or unread size reports none.
+
+        A resize is counted whether it is written into the input as a window size report or reported out of band.
+        """
         for label, batches, window_sizes, start_size, resizes in (
             ("buffer size event", ([_resize_record(), "a"],), ((80, 24),), None, 1),
             ("window change while idle", (None, None), ((80, 24), (80, 24), (80, 30)), None, 1),
             ("window change with a buffer size event", ([_resize_record()],), ((80, 24), (100, 30)), None, 1),
+            (
+                "window change after a buffer size event",
+                ([_resize_record()],),
+                ((80, 24), (100, 30), (120, 40)),
+                None,
+                2,
+            ),
             ("unchanged window", (None, ["a"]), ((80, 24),), None, 0),
             ("no console window", (None,), (None,), None, 0),
             ("failed size query", (None, None), ((80, 24), None, (80, 24)), None, 0),
@@ -117,8 +150,9 @@ class TestReadInputThread(unittest.TestCase):
         ):
             with self.subTest(label):
                 resize = mock.Mock()
-                self._run_reads(*batches, resize=resize, window_sizes=window_sizes, start_window_size=start_size)
-                self.assertEqual(resizes, resize.call_count)
+                sent = self._run_reads(*batches, resize=resize, window_sizes=window_sizes, start_window_size=start_size)
+                reports = [data for data in sent if data.startswith(b"\x1b[48;")]
+                self.assertEqual(resizes, resize.call_count + len(reports))
 
 
 @unittest.skipUnless(IS_WINDOWS, "_win32_raw_display needs the Windows console API")
@@ -241,6 +275,38 @@ class TestScreenInput(unittest.TestCase):
 
         self.assertLess(len(first), 4 + 1024)
         self.assertEqual(list(data), first + rest)
+
+    @mock.patch("urwid.display._raw_display_base._INPUT_READ_LIMIT", 4)
+    def test_resize_is_reported_after_the_input_read_before_it(self):
+        """Report a resize only once the input that was waiting when it came is read, so keys keep their layout."""
+        input_socket, peer = socket.socketpair()
+        self.addCleanup(input_socket.close)
+        self.addCleanup(peer.close)
+        s = _win32_raw_display.Screen(input=input_socket)
+        data = b"a" * 1500  # more than one 1024-byte chunk past the limit
+        peer.sendall(data)
+        # a socket pair on Windows is a TCP loopback connection, which can deliver the data in parts
+        for _ in range(100):
+            if len(input_socket.recv(len(data), socket.MSG_PEEK)) == len(data):
+                break
+            time.sleep(0.01)
+        s._sigwinch_handler()
+
+        with mock.patch.object(s, "_started", True):
+            first = s.get_input()
+            rest = s.get_input()
+
+        self.assertEqual(0, first.count("window resize"))
+        self.assertEqual([*"a" * len(data), "window resize"], first + rest)
+
+    def test_resize_from_the_console_reader_keeps_its_place_among_the_keys(self):
+        """Report a resize the console reader wrote into the input at its place among the keys."""
+        s = _win32_raw_display.Screen()
+        report = _win32_raw_display.escape.window_size_report(100, 30).encode()
+        s._send_input.sendall(b"a" + report + b"b")
+
+        with mock.patch.object(s, "_started", True):
+            self.assertEqual(["a", "window resize", "b"], s.get_input())
 
     def test_closed_input_socket_raises(self):
         """Input from a caller's socket whose other end closed raises instead of spinning."""
