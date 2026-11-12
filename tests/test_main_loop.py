@@ -1023,6 +1023,21 @@ class TestMainLoop(unittest.TestCase):
             self.assertTrue(evl.process_input([("mouse press", 1, 5, 4)]))
         self.assertEqual([("mouse press", 1, 5, 4)], widget.mouse_calls)
 
+    def test_process_input_skips_a_cursor_position_report(self) -> None:
+        """Skip a cursor position report no input filter took.
+
+        It reaches no widget and no unhandled input handler, and does not count as handled input.
+        """
+        widget = RecordingWidget(selectable=True, keypress_return="a", mouse_return=True)
+        unhandled: list[object] = []
+        with dummy_raw_main_loop(widget, unhandled_input=unhandled.append) as evl:
+            evl.screen_size = (10, 5)
+            self.assertFalse(evl.process_input([("cursor position", 4, 2)]))
+            evl.process_input([("cursor position", 4, 2), "a"])
+        self.assertEqual(["a"], widget.keypress_calls)
+        self.assertEqual([], widget.mouse_calls)
+        self.assertEqual(["a"], unhandled)
+
     def test_process_input_invalid_key_raises_type_error(self):
         """A key that is neither a string nor a mouse event tuple raises TypeError."""
         with dummy_raw_main_loop() as evl:

@@ -1045,7 +1045,10 @@ class MainLoop:
         screen.get_input(True)
         """
 
-    def process_input(self, keys: Iterable[str | tuple[str, int, int, int]]) -> bool:
+    def process_input(
+        self,
+        keys: Iterable[str | tuple[str, int, int, int] | tuple[Literal["cursor position"], int, int]],
+    ) -> bool:
         """Pass keyboard input and mouse events to :attr:`widget`.
 
         This method is called automatically from the :meth:`run` method when
@@ -1054,9 +1057,11 @@ class MainLoop:
         *keys* is a list of input returned from :attr:`screen`'s get_input() method or its event loop hook.
         The input after a ``"window resize"`` is handled at the screen size read after it.
         The widgets handle it with this loop as the running loop, also when the loop is not started.
+        A cursor position report is skipped, since no widget handles it.
+        An application that queries the cursor position takes the report in its *input_filter*.
 
         :returns: ``True`` if any key was handled by a widget or the :meth:`unhandled_input` method.
-        :raises TypeError: an item of *keys* is neither a key name nor a mouse event tuple.
+        :raises TypeError: an item of *keys* is neither a key name, a mouse event tuple nor a cursor position report.
         """
         with self._as_running(explicit=True):
             self.logger.debug(f"Processing input: keys={keys!r}")
@@ -1086,7 +1091,8 @@ class MainLoop:
                             something_handled = True
                             continue
 
-                elif is_mouse_event(key):
+                # is_mouse_event() checks the type and the length too, but mypy narrows *key* only by these checks
+                elif isinstance(key, tuple) and len(key) == 4 and is_mouse_event(key):
                     event, button, col, row = key
                     if hasattr(self._topmost_widget, "mouse_event") and self._topmost_widget.mouse_event(
                         self.screen_size,
@@ -1099,8 +1105,12 @@ class MainLoop:
                         something_handled = True
                         continue
 
+                elif isinstance(key, tuple) and len(key) == 3 and key[0] == "cursor position":
+                    self.logger.debug(f"Skipped a cursor position report no input filter took: {key!r}")
+                    continue
+
                 else:
-                    raise TypeError(f"{key!r} is not str | tuple[str, int, int, int]")
+                    raise TypeError(f"{key!r} is neither a key name, a mouse event tuple nor a cursor position report")
 
                 if key:
                     if command_map[key] == Command.REDRAW_SCREEN:  # type: ignore[index]  # not `str` is mouse event
