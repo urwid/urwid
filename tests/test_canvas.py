@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import gc
+import math
 import sys
 import traceback
 import unittest
@@ -360,7 +361,16 @@ class CanvasTest(unittest.TestCase):
             ("zero height", {"overlay_height": 0}, "Pop-up size must be positive"),
             ("negative width", {"overlay_width": -3}, "Pop-up size must be positive"),
             ("negative height", {"overlay_height": -3}, "Pop-up size must be positive"),
+            ("zero percent width", {"overlay_width": ("relative", 0)}, "Pop-up size must be positive"),
+            ("infinite percent height", {"overlay_height": ("relative", math.inf)}, "Pop-up size must be positive"),
+            ("NaN percent width", {"overlay_width": ("relative", math.nan)}, "Pop-up size must be positive"),
+            ("string percent width", {"overlay_width": ("relative", "50")}, "Pop-up size must be positive"),
+            ("fit string width", {"overlay_width": "fit"}, "Pop-up size must be positive"),
+            ("float height", {"overlay_height": 2.0}, "Pop-up size must be positive"),
             ("negative anchor height", {"anchor_height": -1}, "Pop-up anchor height must not be negative"),
+            ("vertical alignment for left", {"left": "middle"}, "Pop-up position must be a number of cells"),
+            ("horizontal alignment for top", {"top": urwid.CENTER}, "Pop-up position must be a number of cells"),
+            ("anchor with an aligned top", {"top": "bottom", "anchor_height": 1}, "needs top as a number of rows"),
         ):
             with self.subTest(description):
                 params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
@@ -374,6 +384,35 @@ class CanvasTest(unittest.TestCase):
             canvas.set_pop_up(widget, 0, 0, 4, 2)
             self.assertEqual((0, 0, (widget, 4, 2)), canvas.get_pop_up())
             self.assertIsNone(canvas.get_pop_up_anchor_height())
+
+        with self.subTest("relative sizes are accepted"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, ("relative", 50), (urwid.RELATIVE, 100.0))
+            self.assertEqual((0, 0, (widget, ("relative", 50), (urwid.RELATIVE, 100.0))), canvas.get_pop_up())
+
+        with self.subTest("pack sizes are accepted"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            canvas.set_pop_up(widget, 0, 0, urwid.PACK, "pack")
+            self.assertEqual((0, 0, (widget, urwid.PACK, "pack")), canvas.get_pop_up())
+
+        with self.subTest("alignments are kept beside a zero position"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            self.assertEqual((None, None), canvas.get_pop_up_align())
+            canvas.set_pop_up(widget, urwid.CENTER, 2, 4, 2)
+            self.assertEqual((0, 2, (widget, 4, 2)), canvas.get_pop_up())
+            self.assertEqual(("center", None), canvas.get_pop_up_align())
+            canvas.set_pop_up(widget, 1, 2, 4, 2)
+            self.assertEqual((None, None), canvas.get_pop_up_align())
+
+        with self.subTest("an alignment of another pop-up at the same position is ignored"):
+            aligned = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            aligned.set_pop_up(urwid.SolidFill("a"), urwid.CENTER, 1, 4, 2)
+            plain = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            plain.set_pop_up(widget, 0, 0, 4, 2)
+            # The second canvas starts on row 1, so both pop-ups end up at (0, 1) and its "pop up" entry wins.
+            combined = urwid.CanvasCombine([(aligned, None, False), (plain, None, False)])
+            self.assertIs(widget, combined.get_pop_up()[2][0])
+            self.assertEqual((None, None), combined.get_pop_up_align())
 
         with self.subTest("a negative position opens the pop-up left of and above the canvas"):
             canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))

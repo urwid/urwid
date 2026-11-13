@@ -29,25 +29,26 @@ from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
 from .constants import Align, MouseButton, Sizing, VAlign
+from .filler import Filler
 from .overlay import Overlay
-from .widget import delegate_to_widget_mixin
+from .widget import WidgetError, delegate_to_widget_mixin
 from .widget_decoration import WidgetDecoration
 
 if typing.TYPE_CHECKING:
     from collections.abc import Callable
     from typing import Literal, NotRequired, TypedDict
 
-    from urwid.canvas import Canvas
+    from urwid.canvas import Canvas, PopUpLeft, PopUpSize, PopUpTop
 
     from .widget import AbstractBoxWidget, AbstractWidget, _DelegateToWidgetMixin
 
     class PopUpParametersModel(TypedDict):
         """Position and box size a :class:`PopUpLauncher` requests for its pop-up."""
 
-        left: int
-        top: int
-        overlay_width: int
-        overlay_height: int
+        left: PopUpLeft
+        top: PopUpTop
+        overlay_width: PopUpSize
+        overlay_height: PopUpSize
         anchor_height: NotRequired[int]
 
 
@@ -120,6 +121,23 @@ class PopUpLauncher(
         (*overlay_width*, *overlay_height*) size.  Wrap a flow or fixed widget in a
         :class:`Filler <urwid.Filler>` (or in another box container) before returning it.
 
+        With a ``'pack'`` size the widget is measured instead:
+
+        - a ``'pack'`` width needs a fixed widget, and takes the columns it packs to;
+        - a ``'pack'`` height needs a flow widget, and takes its rows at the pop-up width.
+
+        Such a widget that cannot take a box size is rendered as a flow widget,
+        with the rows that do not fit on screen cut off.
+        A :class:`ListBox(flow=True) <urwid.ListBox>` takes the box size and scrolls instead.
+
+        :class:`PopUpTarget` raises :exc:`WidgetError <urwid.WidgetError>` when it renders a widget that does not
+        meet these rules:
+
+        - a ``'pack'`` width on a widget that is not fixed;
+        - a ``'pack'`` height on a widget that is not flow;
+        - a ``'pack'`` width on a fixed-only widget, such as :class:`BigText <urwid.BigText>`, since it can be
+          rendered neither at the box size nor as a flow widget.
+
         :raises NotImplementedError: the subclass does not override this method.
         """
         raise NotImplementedError("Subclass must override this method")
@@ -128,6 +146,10 @@ class PopUpLauncher(
         """Return a dict of pop-up parameters.
 
         For example: ``{'left': 0, 'top': 1, 'overlay_width': 30, 'overlay_height': 4, 'anchor_height': 1}``.
+        A size can also be ``('relative', percentage)`` of the space from the pop-up's edge to the far edge
+        of the :class:`PopUpTarget`, or ``'pack'`` for the size of the pop-up widget itself (see :meth:`create_pop_up`).
+        A position can also be an alignment inside the whole :class:`PopUpTarget`:
+        ``'left'``, ``'center'`` or ``'right'`` for ``left``, and ``'top'``, ``'middle'`` or ``'bottom'`` for ``top``.
 
         Subclass must override this method. It is called each time this widget is rendered.
 
@@ -206,6 +228,31 @@ def _place_anchored(maxrow: int, top: int, height: int, anchor_height: int) -> t
     return 0, rows_above
 
 
+def _aligned_start(space: int, length: int, align: str) -> int:
+    """Return the first of `length` cells aligned inside `space` cells, at least 0.
+
+    >>> _aligned_start(10, 4, "center")
+    3
+    >>> _aligned_start(10, 4, "bottom")
+    6
+    >>> _aligned_start(3, 5, "right")  # longer than the space: Overlay shrinks it from the start
+    0
+
+    :raises ValueError: `align` is not a member of :class:`Align` or :class:`VAlign`.
+    """
+    match align:
+        case Align.LEFT | VAlign.TOP:
+            start = 0
+        case Align.CENTER | VAlign.MIDDLE:
+            # Overlay's own centring: an odd spare cell goes after the pop-up.
+            start = (space - length) // 2
+        case Align.RIGHT | VAlign.BOTTOM:
+            start = space - length
+        case _:
+            raise ValueError(f"Not a pop-up alignment: {align!r}")
+    return max(start, 0)
+
+
 class PopUpTarget(WidgetDecoration[WrappedWidget]):
     """Box widget that overlays the pop-up(s) declared by a :class:`PopUpLauncher` inside it.
 
@@ -254,6 +301,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         :param size: box size to render :attr:`_original_widget` and every pop-up level at.
         :param focus: whether this widget is in focus.
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         canv = self._original_widget.render(size, focus=focus)
         self._cache_original_canvas = canv  # imperfect performance hack
@@ -267,6 +316,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         pop_up = canv.get_pop_up()
         anchor_height = canv.get_pop_up_anchor_height()
+        h_align, v_align = canv.get_pop_up_align()
         on_unhandled_key = canv.get_pop_up_unhandled_key()
         on_click_outside = canv.get_pop_up_click_outside()
         top_unhandled_key = None
@@ -275,31 +325,78 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         offset_left = offset_top = 0
         while pop_up:
             left, top, (w, overlay_width, overlay_height) = pop_up
-            left += offset_left
-            top += offset_top
+            # An aligned axis is placed inside the whole target once the size is known, so its space starts at 0.
+            left = offset_left + left if h_align is None else 0
+            top = offset_top + top if v_align is None else 0
+            sizing = w.sizing()
+            packed = isinstance(overlay_width, str) or isinstance(overlay_height, str)
+            # Resolve a relative or "pack" size to cells, so the anchor placement gets a number of rows.
+            # A relative size uses Overlay's own rounding (half up), and is capped at the larger of that space and the
+            # whole target, because a huge percentage gives an infinite product that has no integer value.
+            # A "pack" height is the rows at the width the Overlay leaves once it has shrunk the pop-up to the target.
+            # Either is at least one cell, like a size given in cells.
+            width: int
+            if isinstance(overlay_width, tuple):
+                space = max(size[0] - left, 0)
+                width = max(int(min(space * overlay_width[1] / 100, max(space, size[0])) + 0.5), 1)
+            elif isinstance(overlay_width, str):
+                if Sizing.FIXED not in sizing:
+                    raise WidgetError(f"A 'pack' pop-up width needs a FIXED widget, got {w!r}")
+                width = max(w.pack((), focus)[0], 1)
+            else:
+                width = overlay_width
+            height: int
+            if isinstance(overlay_height, tuple):
+                space = max(size[1] - top, 0)
+                height = max(int(min(space * overlay_height[1] / 100, max(space, size[1])) + 0.5), 1)
+            elif isinstance(overlay_height, str):
+                if Sizing.FLOW not in sizing:
+                    raise WidgetError(f"A 'pack' pop-up height needs a FLOW widget, got {w!r}")
+                height = max(w.pack((min(width, size[0]),), focus)[1], 1)
+            else:
+                height = overlay_height
+            if h_align is not None:
+                left = _aligned_start(size[0], width, h_align)
+            if v_align is not None:
+                top = _aligned_start(size[1], height, v_align)
             if anchor_height is not None:
-                top, overlay_height = _place_anchored(size[1], top, overlay_height, anchor_height)
+                top, height = _place_anchored(size[1], top, height, anchor_height)
             level = len(new_levels)
+            reuse = not rebuilding and level < len(old_levels) and old_levels[level][0] == w
+            # A measured widget that cannot take a box size is shown as a flow widget, with the rows that do not fit
+            # the box cut off, so it stays off the anchor rows.
+            top_w = w
+            if packed and Sizing.BOX not in sizing:
+                if Sizing.FLOW not in sizing:
+                    raise WidgetError(f"A pop-up with a 'pack' size needs a FLOW or BOX widget, got {w!r}")
+                previous = old_levels[level][1].top_w if reuse else None
+                top_w = (
+                    previous
+                    if isinstance(previous, Filler) and previous.original_widget is w
+                    else Filler(w, valign=VAlign.TOP)
+                )
             overlay: Overlay[AbstractWidget, AbstractWidget]
-            if not rebuilding and level < len(old_levels) and old_levels[level][0] == w:
+            if reuse:
                 overlay = old_levels[level][1]
+                if overlay.top_w is not top_w:
+                    overlay.top_w = top_w
                 overlay.set_overlay_parameters(
                     align=Align.LEFT,
-                    width=overlay_width,
+                    width=width,
                     valign=VAlign.TOP,
-                    height=overlay_height,
+                    height=height,
                     left=left,
                     top=top,
                 )
             else:
                 rebuilding = True
                 overlay = Overlay(
-                    top_w=w,
+                    top_w=top_w,
                     bottom_w=bottom_widget,
                     align=Align.LEFT,
-                    width=overlay_width,
+                    width=width,
                     valign=VAlign.TOP,
-                    height=overlay_height,
+                    height=height,
                     left=left,
                     top=top,
                 )
@@ -308,15 +405,18 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             top_unhandled_key = on_unhandled_key
 
             # Check w itself for a further nested pop-up; see the docstring for why. Render it where and at the
-            # size the Overlay puts it, which differs from the request when it does not fit.
+            # size the Overlay puts it, which differs from the request when it does not fit, through the Filler
+            # that shows a flow pop-up.
             padding = overlay.calculate_padding_filler(size, focus)
             top_click_outside = None if on_click_outside is None else (on_click_outside, padding)
             pad_left, pad_right, pad_top, pad_bottom = padding
             offset_left, offset_top = pad_left, pad_top
-            w_size = overlay.top_w_size(size, pad_left, pad_right, pad_top, pad_bottom)
-            w_canv = w.render(w_size, focus=focus)
+            # Both dimensions were given to the Overlay in cells, so it returns a box size.
+            w_size = typing.cast("tuple[int, int]", overlay.top_w_size(size, pad_left, pad_right, pad_top, pad_bottom))
+            w_canv = top_w.render(w_size, focus=focus)
             pop_up = w_canv.get_pop_up()
             anchor_height = w_canv.get_pop_up_anchor_height()
+            h_align, v_align = w_canv.get_pop_up_align()
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
             on_click_outside = w_canv.get_pop_up_click_outside()
 
@@ -330,7 +430,11 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         size: tuple[int, int],  # type: ignore[override]
         focus: bool = False,
     ) -> Canvas:
-        """Rebuild the pop-up overlay chain for *size* and render the resulting widget."""
+        """Rebuild the pop-up overlay chain for *size* and render the resulting widget.
+
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
+        """
         self._update_overlay(size, focus)
         return self._current_widget.render(size, focus=focus)
 
@@ -339,6 +443,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         Return the cursor coordinates of the current widget.
 
         :raises TypeError: the current widget has no ``get_cursor_coords`` method.
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         self._update_overlay(size, True)
 
@@ -352,6 +458,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         Return the preferred cursor column of the current widget, or None if it has none.
 
         :raises TypeError: the current widget has no ``get_pref_col`` method.
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         self._update_overlay(size, True)
 
@@ -372,6 +480,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         A key the topmost pop-up leaves unhandled goes to the ``on_unhandled_key`` callback its launcher set, if
         any; see :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         self._update_overlay(size, True)
         unhandled = self._current_widget.keypress(size, key)
@@ -384,6 +495,8 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         Move the cursor of the current widget to ``(x, y)``.
 
         :raises TypeError: the current widget has no ``move_cursor_to_coords`` method.
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         self._update_overlay(size, True)
 
@@ -407,6 +520,9 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         launcher set, if any.
         The press is then handled and does not reach the widgets under the pop-up.
         See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+
+        :raises WidgetError: a pop-up widget cannot take its ``'pack'`` size,
+            see :meth:`PopUpLauncher.create_pop_up`.
         """
         self._update_overlay(size, focus)
         if (

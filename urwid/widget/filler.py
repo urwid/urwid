@@ -25,8 +25,22 @@ from .widget_decoration import WidgetDecoration, WidgetError, WidgetWarning
 if typing.TYPE_CHECKING:
     from typing import Literal
 
+    from urwid.canvas import Canvas
+
     from .constants import Align
     from .widget import AbstractFlowWidget, AbstractWidget
+
+
+def _cursor_scroll(canv: Canvas, maxrow: int) -> int:
+    """Return the rows trimmed off the top of a body canvas taller than `maxrow` rows to show its cursor.
+
+    A body without a cursor, or with the cursor in its first `maxrow` rows, is shown from its first row.
+    """
+    cursor: tuple[int, int] | None = canv.cursor
+    if maxrow and canv.rows() > maxrow and cursor is not None and cursor[1] >= maxrow:
+        return cursor[1] - maxrow + 1
+    return 0
+
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 
@@ -299,10 +313,9 @@ class Filler(WidgetDecoration[WrappedWidget]):
         canv = self._original_widget.render(self._body_size((maxcol, maxrow), top, bottom), focus)
         canv = CompositeCanvas(canv)
 
-        if maxrow and canv.rows() > maxrow and canv.cursor is not None:
-            _cx, cy = canv.cursor
-            if cy >= maxrow:
-                canv.trim(cy - maxrow + 1, maxrow - top - bottom)
+        scroll = _cursor_scroll(canv, maxrow)
+        if scroll:
+            canv.trim(scroll, maxrow - top - bottom)
         if canv.rows() > maxrow:
             canv.trim(0, maxrow)
             return canv
@@ -361,7 +374,10 @@ class Filler(WidgetDecoration[WrappedWidget]):
         col: int | Literal["left", "right", Align.LEFT, Align.RIGHT],
         row: int,
     ) -> bool:
-        """Pass to self.original_widget."""
+        """Pass to self.original_widget.
+
+        *row* is the row shown. For a body taller than the box, it counts from the first row :meth:`render` shows.
+        """
         maxcol, maxrow = self.pack(size, True)
         if not hasattr(self._original_widget, "move_cursor_to_coords"):
             return True
@@ -370,12 +386,13 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if row < top or row >= maxrow - bottom:
             return False
 
+        body_size = self._body_size((maxcol, maxrow), top, bottom)
         return typing.cast(
             "bool",
             self._original_widget.move_cursor_to_coords(
-                self._body_size((maxcol, maxrow), top, bottom),
+                body_size,
                 col,
-                row - top,
+                row - top + self._shown_scroll(body_size, maxrow, True),
             ),
         )
 
@@ -388,7 +405,10 @@ class Filler(WidgetDecoration[WrappedWidget]):
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Pass to self.original_widget."""
+        """Pass to self.original_widget.
+
+        *row* is the row shown. For a body taller than the box, it counts from the first row :meth:`render` shows.
+        """
         maxcol, maxrow = self.pack(size, focus)
         if not hasattr(self._original_widget, "mouse_event"):
             return False
@@ -397,14 +417,25 @@ class Filler(WidgetDecoration[WrappedWidget]):
         if row < top or row >= maxrow - bottom:
             return False
 
+        body_size = self._body_size((maxcol, maxrow), top, bottom)
         return self._original_widget.mouse_event(
-            self._body_size((maxcol, maxrow), top, bottom),
+            body_size,
             event,
             button,
             col,
-            row - top,
+            row - top + self._shown_scroll(body_size, maxrow, focus),
             focus,
         )
+
+    def _shown_scroll(self, body_size: tuple[int] | tuple[int, int], maxrow: int, focus: bool) -> int:
+        """Return the body rows :meth:`render` trims off the top to show the cursor.
+
+        Adding them to a row maps it to the body row shown there.
+        Only a flow body can be taller than the box, because a box body is rendered at the rows it is given.
+        """
+        if len(body_size) != 1:
+            return 0
+        return _cursor_scroll(self._original_widget.render(body_size, focus), maxrow)
 
 
 def calculate_top_bottom_filler(

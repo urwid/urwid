@@ -257,18 +257,35 @@ class PopUpTargetTest(unittest.TestCase):
 class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
     """A one-row launcher whose pop-up is anchored to it by default, so PopUpTarget keeps the pop-up off its row."""
 
-    def __init__(self, pop_up_height: int, *, anchor_height: int | None = 1, left: int = 0, top: int = 1) -> None:
-        super().__init__(urwid.Text("L"))
+    def __init__(
+        self,
+        pop_up_height: int | tuple[str, float] | str,
+        *,
+        pop_up_width: int | tuple[str, float] | str = 3,
+        pop_up: urwid.Widget | None = None,
+        anchor_height: int | None = 1,
+        left: int | str = 0,
+        top: int | str = 1,
+        close_on_click_outside: bool = False,
+    ) -> None:
+        super().__init__(urwid.Text("L"), close_on_click_outside=close_on_click_outside)
         self.pop_up_height = pop_up_height
+        self.pop_up_width = pop_up_width
+        self.pop_up = pop_up
         self.anchor_height = anchor_height
         self.left = left
         self.top = top
 
-    def create_pop_up(self) -> urwid.SolidFill:
-        return urwid.SolidFill("p")
+    def create_pop_up(self) -> urwid.Widget:
+        return urwid.SolidFill("p") if self.pop_up is None else self.pop_up
 
     def get_pop_up_parameters(self) -> dict:
-        parameters = {"left": self.left, "top": self.top, "overlay_width": 3, "overlay_height": self.pop_up_height}
+        parameters = {
+            "left": self.left,
+            "top": self.top,
+            "overlay_width": self.pop_up_width,
+            "overlay_height": self.pop_up_height,
+        }
         if self.anchor_height is not None:
             parameters["anchor_height"] = self.anchor_height
         return parameters
@@ -293,6 +310,208 @@ class NegativePopUpPositionTest(unittest.TestCase):
                     [(row, expected_col) for row in expected_rows],
                     [(index, line.index("ppp")) for index, line in enumerate(rows) if "ppp" in line],
                 )
+
+
+class RelativePopUpSizeTest(unittest.TestCase):
+    def test_relative_size(self) -> None:
+        """A relative size is a percentage of the space from the pop-up's edge to the far edge of the target."""
+        for description, left, top, size, expected in (
+            ("whole space", 0, 0, ("relative", 100), [" ppppppppppp"] * 5),
+            ("fractional percentage", 0, 0, ("relative", 100.0), [" ppppppppppp"] * 5),
+            # More than the space: the Overlay moves the pop-up left and up to fit, and shrinks it to the target.
+            ("above 100%", 0, 0, ("relative", 250), ["pppppppppppp"] * 5),
+            # The product of the space and the percentage is infinite; the result is the same as for 250%.
+            ("huge percentage", 0, 0, ("relative", 1e308), ["pppppppppppp"] * 5),
+            # 33.4% of 11 columns is 3.67, rounded up to 4; of 5 rows it is 1.67, rounded up to 2.
+            ("fractional, rounded", 0, 0, ("relative", 33.4), [*[" pppp       "] * 2, *[" " * 12] * 3]),
+            # 50% of the 9 columns right of column 3 rounds up to 5; 50% of the 4 rows below row 1 is 2.
+            ("half, offset", 2, 1, ("relative", 50), [" L          ", *["   ppppp    "] * 2, *[" " * 12] * 2]),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(size, pop_up_width=size, anchor_height=None, left=left, top=top)
+                target = urwid.PopUpTarget(urwid.Filler(urwid.Padding(launcher, left=1), valign="top"))
+                launcher.open_pop_up()
+                self.assertEqual(expected, [line.decode() for line in target.render((12, 5)).text])
+
+    def test_relative_height_with_no_room_below_is_anchored_above(self) -> None:
+        """A relative height is at least one row, so an anchored pop-up with no rows below goes above."""
+        launcher = AnchoredLauncher(("relative", 100))
+        pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), 4), launcher])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        self.assertEqual(["xxx", "xxx", "xxx", "ppp", "L  "], [line.decode() for line in target.render((3, 5)).text])
+
+
+class PackedPopUpSizeTest(unittest.TestCase):
+    @staticmethod
+    def render(launcher: AnchoredLauncher, launcher_row: int = 0, size: tuple[int, int] = (6, 5)) -> list[str]:
+        pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), launcher_row), launcher])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        return [line.decode() for line in target.render(size).text]
+
+    def test_packed_size(self) -> None:
+        """A 'pack' width is the fixed size of the widget, a 'pack' height its rows at the pop-up width."""
+        for description, width, height, expected in (
+            ("pack height", 4, urwid.PACK, ["L     ", "ab    ", "cde   ", *["      "] * 2]),
+            ("pack width and height", "pack", "pack", ["L     ", "ab    ", "cde   ", *["      "] * 2]),
+            # At 2 columns "cde" wraps to a third row.
+            ("pack height at a narrow width", 2, "pack", ["L     ", "ab    ", "cd    ", "e     ", "      "]),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(
+                    height,
+                    pop_up_width=width,
+                    pop_up=urwid.Text("ab\ncde"),
+                    anchor_height=None,
+                )
+                self.assertEqual(expected, self.render(launcher))
+
+    def test_packed_height_taller_than_the_space_is_cut_off_the_anchor_rows(self) -> None:
+        """A flow pop-up taller than its side loses its last rows rather than covering the launcher."""
+        text = urwid.Text("\n".join(f"t{index}" for index in range(6)))
+        launcher = AnchoredLauncher("pack", pop_up=text)
+        self.assertEqual(["xxxxxx", "xxxxxx", "L     ", "t0    ", "t1    "], self.render(launcher, launcher_row=2))
+
+    def test_packed_list_box_takes_the_box_size(self) -> None:
+        """A ListBox(flow=True) is rendered as a box when cut down, so it can scroll to its focus."""
+        walker = urwid.SimpleFocusListWalker([urwid.Text(f"l{index}") for index in range(6)])
+        walker.set_focus(5)
+        launcher = AnchoredLauncher("pack", pop_up=urwid.ListBox(walker, flow=True))
+        self.assertEqual(["xxxxxx", "xxxxxx", "L     ", "l4    ", "l5    "], self.render(launcher, launcher_row=2))
+
+    def test_packed_flow_pop_up_takes_keys(self) -> None:
+        edit = urwid.Edit()
+        launcher = AnchoredLauncher("pack", pop_up_width=4, pop_up=edit, anchor_height=None)
+        pile = urwid.Pile([launcher])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        target.render((6, 5), focus=True)
+        self.assertIsNone(target.keypress((6, 5), "a"))
+        self.assertEqual("a", edit.edit_text)
+
+    def test_click_in_a_cut_off_packed_pop_up_hits_the_row_shown(self) -> None:
+        """A packed flow pop-up scrolled to its focus takes a click on the row it shows there."""
+        pressed: list[int] = []
+        buttons = urwid.Pile(
+            [urwid.Button(f"b{index}", on_press=lambda _button, i=index: pressed.append(i)) for index in range(6)]
+        )
+        launcher = AnchoredLauncher("pack", pop_up_width=6, pop_up=buttons, close_on_click_outside=True)
+        pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), 2), launcher])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        size = (6, 5)
+        for _ in range(5):
+            target.keypress(size, "down")
+        rows = [line.decode() for line in target.render(size, focus=True).text]
+        self.assertEqual(["< b4 >", "< b5 >"], rows[3:])
+
+        target.mouse_event(size, "mouse press", 1, 2, 3, True)
+        self.assertEqual([4], pressed)
+        self.assertIsNotNone(launcher.pop_up_widget)
+
+        # The launcher row is outside the pop-up: the press closes it and does not reach the launcher.
+        self.assertTrue(target.mouse_event(size, "mouse press", 1, 0, 2, True))
+        self.assertIsNone(launcher.pop_up_widget)
+
+    def test_packed_pop_up_keeps_its_filler_between_renders(self) -> None:
+        launcher = AnchoredLauncher("pack", pop_up=urwid.Text("ab"), anchor_height=None)
+        target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+        launcher.open_pop_up()
+        target.render((6, 5))
+        first = target._pop_up_levels[0][1].top_w
+        launcher.pop_up_width = 4
+        launcher._invalidate()
+        target.render((6, 5))
+
+        self.assertIsInstance(first, urwid.Filler)
+        self.assertEqual(4, target._pop_up_levels[0][1].width_amount)
+        self.assertIs(first, target._pop_up_levels[0][1].top_w)
+
+    def test_nested_pop_up_inside_a_packed_pop_up(self) -> None:
+        """A pop-up opened from a packed flow pop-up is placed relative to it, through the Filler around it."""
+        inner = AnchoredLauncher(1, anchor_height=None, left=1, top=1)
+        outer = AnchoredLauncher("pack", pop_up_width=4, pop_up=inner, anchor_height=None, top=2)
+        target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+        outer.open_pop_up()
+        inner.open_pop_up()
+
+        self.assertEqual(
+            ["L     ", "      ", "L     ", " ppp  ", "      "],
+            [line.decode() for line in target.render((6, 5)).text],
+        )
+
+    def test_packed_size_needs_a_matching_widget(self) -> None:
+        for description, width, height in (
+            ("pack width of a box widget", "pack", 2),
+            ("pack height of a box widget", 3, "pack"),
+            ("pack width of a fixed only widget", "pack", 2),
+        ):
+            with self.subTest(description):
+                pop_up = (
+                    urwid.BigText("A", urwid.Thin3x3Font())
+                    if description.endswith("fixed only widget")
+                    else urwid.SolidFill("p")
+                )
+                launcher = AnchoredLauncher(height, pop_up_width=width, pop_up=pop_up, anchor_height=None)
+                with self.assertRaises(urwid.WidgetError):
+                    self.render(launcher)
+
+
+class AlignedPopUpTest(unittest.TestCase):
+    def test_alignment_inside_the_target(self) -> None:
+        """An aligned axis is placed inside the whole target after the size is known, wherever the launcher is."""
+        blank = " " * 12
+        for description, left, top, width, height, expected in (
+            (
+                "packed and centred",
+                "center",
+                "middle",
+                "pack",
+                "pack",
+                ["xxxxxxxxxxxx", "xxxxab xxxxx", "xxxxcdexxxxx", "  L         ", blank],
+            ),
+            (
+                "right and bottom",
+                urwid.RIGHT,
+                urwid.BOTTOM,
+                3,
+                "pack",
+                ["xxxxxxxxxxxx", "xxxxxxxxxxxx", "xxxxxxxxxxxx", "  L      ab ", "         cde"],
+            ),
+            # Relative to all 12 columns, not to the 10 right of the launcher.
+            (
+                "relative and centred",
+                "center",
+                -3,
+                ("relative", 50),
+                "pack",
+                ["xxxab    xxx", "xxxcde   xxx", "xxxxxxxxxxxx", "  L         ", blank],
+            ),
+        ):
+            with self.subTest(description):
+                launcher = AnchoredLauncher(
+                    height,
+                    pop_up_width=width,
+                    pop_up=urwid.Text("ab\ncde"),
+                    anchor_height=None,
+                    left=left,
+                    top=top,
+                )
+                pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), 3), urwid.Padding(launcher, left=2)])
+                target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+                launcher.open_pop_up()
+                self.assertEqual(expected, [line.decode() for line in target.render((12, 5)).text])
+
+    def test_nested_aligned_pop_up_is_centred_in_the_target(self) -> None:
+        """An aligned nested pop-up ignores the position of the pop-up that opened it."""
+        inner = AnchoredLauncher(1, anchor_height=None, left="center", top="middle")
+        outer = DialogWithLauncher(inner)
+        target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+        outer.open_pop_up()
+        inner.open_pop_up()
+        rows = [line.decode() for line in target.render((12, 10)).text]
+        self.assertEqual([(4, 4)], [(index, line.index("ppp")) for index, line in enumerate(rows) if "ppp" in line])
 
 
 class AnchoredPopUpTest(unittest.TestCase):
@@ -474,6 +693,8 @@ class NestedPopUpOffsetTest(unittest.TestCase):
             ("plain, below", {}, 3, None, range(6, 9)),
             ("anchored, below", {}, 4, 1, range(6, 10)),
             ("anchored, flipped above", {}, 5, 1, range(5)),
+            # Relative to the space below the pop-up's top on the screen, not inside the 4-row dialog.
+            ("relative height", {}, ("relative", 100), None, range(6, 10)),
             # The dialog is too tall for the screen, so the Overlay shrinks it to the 10 screen rows and the
             # Filler centres its 2 rows there: the launcher is on screen row 5, not where a 14-row dialog has it.
             ("dialog shrunk to the screen", {"dialog_height": 14, "valign": "middle"}, 2, None, range(6, 8)),

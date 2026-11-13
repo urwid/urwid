@@ -317,8 +317,8 @@ together to show it:
 * :class:`PopUpLauncher` wraps the widget that opens the pop-up.  A subclass
   implements :meth:`PopUpLauncher.create_pop_up`, which returns the pop-up
   widget, and :meth:`PopUpLauncher.get_pop_up_parameters`, which returns its
-  position relative to the launcher and its size.  Calling
-  :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
+  position and its size.
+  Calling :meth:`PopUpLauncher.open_pop_up` and :meth:`PopUpLauncher.close_pop_up`
   opens and closes it, and ``PopUpLauncher(..., close_on_menu=True)`` also
   closes it when the pop-up leaves :kbd:`esc` unhandled.
   ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
@@ -333,14 +333,33 @@ together to show it:
   is shown only inside a :class:`PopUpTarget`.  ``MainLoop(..., pop_ups=True)``
   wraps the topmost widget in one, so a pop-up can use the whole screen.
 
+Each size in the parameters is one of:
+
+* a number of columns or rows;
+* ``("relative", percentage)`` of the space from the pop-up's edge to the far
+  edge of the :class:`PopUpTarget`;
+* ``"pack"``, the size of the pop-up widget itself: the columns a fixed widget
+  packs to, or the rows a flow widget takes at the pop-up width.  Such a
+  widget needs no :class:`Filler` around it: a :class:`Pile` of
+  :class:`Text` loses the rows that do not fit, and a ``ListBox(flow=True)``
+  scrolls instead.
+
+Each position is an offset from the launcher, or an alignment inside the whole
+:class:`PopUpTarget`: ``"left"``, ``"center"`` or ``"right"`` for ``left``, and
+``"top"``, ``"middle"`` or ``"bottom"`` for ``top``.  An alignment is applied
+once the size is known, so a dialog sized with ``"pack"`` is centred with
+``{"left": "center", "top": "middle", "overlay_width": 40,
+"overlay_height": "pack"}``.
+
 A pop-up that would extend past an edge of the :class:`PopUpTarget` is moved,
 and shrunk when it is larger, to fit inside it.  When the parameters include
 ``anchor_height``, the number of launcher rows directly above the pop-up, the
 pop-up is kept off those rows: it is placed below the launcher when it fits
 there, above the launcher when it fits there, and otherwise on the side with
-more rows, with its height clipped to that side.  A pop-up widget may itself be
-a :class:`PopUpLauncher` with its own pop-up open; that pop-up is placed
-relative to the pop-up that opened it.
+more rows, with its height clipped to that side.
+``anchor_height`` needs ``top`` as a number of rows.
+A pop-up widget may itself be a :class:`PopUpLauncher` with its own pop-up open;
+that pop-up is placed relative to the pop-up that opened it.
 
 The calc.py_ example program has a :guilabel:`Theme` button that opens a pop-up, and
 :class:`DropDown` (see :ref:`controls`) is a :class:`PopUpLauncher` whose

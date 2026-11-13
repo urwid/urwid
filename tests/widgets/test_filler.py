@@ -522,6 +522,43 @@ class FillerTest(unittest.TestCase):
         self.assertEqual(3, canvas.rows())
         self.assertEqual((0, 2), canvas.cursor)
 
+    def test_rows_map_to_the_rows_shown_after_a_cursor_trim(self) -> None:
+        """A click or a cursor move on a row reaches the body row shown there, in or out of focus."""
+        size = (6, 2)
+        for description, focus, valign, row, expected in (
+            # In focus, the trim keeps the focused last row visible: rows 4 and 5 are shown.
+            ("focused, first shown row", True, urwid.TOP, 0, 4),
+            ("focused, last shown row", True, urwid.TOP, 1, 5),
+            # A body taller than the box gets no filler, whatever its alignment.
+            ("focused, bottom aligned", True, urwid.BOTTOM, 0, 4),
+            # Out of focus there is no cursor and no trim: rows 0 and 1 are shown.
+            ("unfocused", False, urwid.TOP, 1, 1),
+        ):
+            with self.subTest(description):
+                pressed: list[int] = []
+                buttons = urwid.Pile(
+                    [
+                        urwid.Button(f"b{index}", on_press=lambda _button, i=index: pressed.append(i))
+                        for index in range(6)
+                    ]
+                )
+                buttons.focus_position = 5
+                filler = urwid.Filler(buttons, valign=valign)
+                shown = [line.decode() for line in filler.render(size, focus=focus).text]
+                self.assertIn(f"b{expected}", shown[row])
+
+                filler.mouse_event(size, "mouse press", 1, 2, row, focus)
+                self.assertEqual([expected], pressed)
+
+        with self.subTest("cursor move"):
+            edits = urwid.Pile([urwid.Edit("", f"e{index}") for index in range(6)])
+            edits.focus_position = 5
+            filler = urwid.Filler(edits, valign=urwid.TOP)
+            self.assertEqual(["e4    ", "e5    "], [line.decode() for line in filler.render(size, focus=True).text])
+
+            self.assertTrue(filler.move_cursor_to_coords(size, 0, 0))
+            self.assertEqual(4, edits.focus_position)
+
     def test_keypress_pack_height(self) -> None:
         body = CursorWidget([urwid.FLOW], num_rows=1)
         widget = urwid.Filler(body)

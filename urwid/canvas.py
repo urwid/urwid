@@ -25,6 +25,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import itertools
+import math
 import re
 import typing
 import weakref
@@ -50,6 +51,14 @@ if typing.TYPE_CHECKING:
     from typing import Literal, NotRequired
 
     from .widget import AbstractWidget
+    from .widget.constants import Align, VAlign, WHSettings
+
+    # A pop-up dimension: a number of screen cells, a percentage of the space from the pop-up's edge to the far
+    # edge of the PopUpTarget, or the pop-up widget's own size.
+    PopUpSize = int | tuple[Literal["relative", WHSettings.RELATIVE], float] | Literal["pack", WHSettings.PACK]
+    # A pop-up position on one axis: an offset from the launcher, or an alignment inside the PopUpTarget.
+    PopUpLeft = int | Literal["left", "center", "right", Align.LEFT, Align.CENTER, Align.RIGHT]
+    PopUpTop = int | Literal["top", "middle", "bottom", VAlign.TOP, VAlign.MIDDLE, VAlign.BOTTOM]
 
     _ContentLine = list[tuple[Hashable, Literal["0", "U"] | None, bytes]]
     _CView = tuple[int, int, int, int, Mapping[Hashable, Hashable] | None, "Canvas"]
@@ -57,13 +66,15 @@ if typing.TYPE_CHECKING:
     _CanvasCoords = typing.TypedDict(
         "_CanvasCoords",
         {
-            "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, int, int]]],
+            "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpSize, PopUpSize]]],
             # Same (x, y) as "pop up", so both move together; the data part is the anchor height.
             "pop up anchor": NotRequired[tuple[int, int, int]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
             "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
             "pop up click outside": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[], None]]]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget and its alignments, None for an offset.
+            "pop up align": NotRequired[tuple[int, int, tuple[AbstractWidget, str | None, str | None]]],
             "cursor": NotRequired[tuple[int, int, None]],
         },
     )
@@ -381,7 +392,7 @@ class Canvas:
 
     cursor = property(get_cursor, set_cursor)
 
-    def get_pop_up(self) -> tuple[int, int, tuple[AbstractWidget, int, int]] | None:
+    def get_pop_up(self) -> tuple[int, int, tuple[AbstractWidget, PopUpSize, PopUpSize]] | None:
         """Return the pop-up info set on this canvas, or ``None`` if none was set."""
         return self.coords.get("pop up", None)
 
@@ -415,13 +426,26 @@ class Canvas:
             return None
         return on_click[2][1]
 
+    def get_pop_up_align(self) -> tuple[str | None, str | None]:
+        """Return the horizontal and vertical alignments set with the pop-up on this canvas.
+
+        :returns: the ``left`` and ``top`` alignments given to :meth:`CompositeCanvas.set_pop_up`, as strings;
+            ``None`` for an axis given as an offset, and ``(None, None)`` when no pop-up was set.
+        """
+        pop_up = self.coords.get("pop up", None)
+        align = self.coords.get("pop up align", None)
+        # As for the anchor, use only the alignment set together with this pop-up.
+        if pop_up is None or align is None or align[:2] != pop_up[:2] or align[2][0] is not pop_up[2][0]:
+            return None, None
+        return align[2][1], align[2][2]
+
     def set_pop_up(
         self,
         w: AbstractWidget,
-        left: int,
-        top: int,
-        overlay_width: int,
-        overlay_height: int,
+        left: PopUpLeft,
+        top: PopUpTop,
+        overlay_width: PopUpSize,
+        overlay_height: PopUpSize,
         *,
         anchor_height: int | None = None,
         on_unhandled_key: Callable[[str], str | None] | None = None,
@@ -437,49 +461,88 @@ class Canvas:
         with the current item on the launcher's row. A pop-up that would extend past an edge of the
         :class:`PopUpTarget <urwid.PopUpTarget>` is moved, and shrunk when it is larger, to fit inside it.
 
+        An alignment instead of a number places the pop-up inside the whole :class:`PopUpTarget <urwid.PopUpTarget>`,
+        wherever this canvas is: ``left="center", top="middle"`` centres a dialog on the screen.
+        It is applied after the size is known, so it also centres a ``"pack"`` sized pop-up.
+
         :param w: widget to use for the pop-up
-        :param left: x position for left edge of pop-up, may be negative
-        :param top: y position for top edge of pop-up, may be negative
-        :param overlay_width: width of overlay in screen columns > 0
-        :param overlay_height: height of overlay in screen rows > 0
+        :param left: x position for left edge of pop-up, may be negative,
+            or ``"left"``, ``"center"`` or ``"right"`` to align the pop-up inside the target
+        :param top: y position for top edge of pop-up, may be negative,
+            or ``"top"``, ``"middle"`` or ``"bottom"`` to align the pop-up inside the target
+        :param overlay_width: width of overlay in screen columns > 0, ``("relative", percentage)`` of the columns
+            from the pop-up's left edge to the right edge of the :class:`PopUpTarget <urwid.PopUpTarget>`
+            (of all its columns when `left` is an alignment), with a percentage > 0,
+            or ``"pack"`` for the width of `w` as a fixed widget
+        :param overlay_height: height of overlay in screen rows > 0, ``("relative", percentage)`` of the rows
+            from the pop-up's top edge to the bottom edge of the :class:`PopUpTarget <urwid.PopUpTarget>`
+            (of all its rows when `top` is an alignment), with a percentage > 0,
+            or ``"pack"`` for the rows of `w` as a flow widget at the pop-up width
         :param anchor_height: rows of the launcher directly above the pop-up, >= 0, or ``None`` to place the pop-up
             exactly as given. With an anchor, :class:`PopUpTarget <urwid.PopUpTarget>` keeps the pop-up off those
             rows: it goes below them when it fits there, above them when it fits there, and otherwise on the side
-            with more rows, with its height clipped to that side.
+            with more rows, with its height clipped to that side. It needs `top` as a number of rows.
         :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
             unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
             to pass on. ``None`` passes every unhandled key on.
         :param on_click_outside: called by :class:`PopUpTarget <urwid.PopUpTarget>` instead of passing on a press of
             mouse button 1, 2 or 3 outside `w` while it is the topmost open pop-up.
             ``None`` leaves such a press unhandled.
-        :raises CanvasError: the canvas is already finalised, the anchor height is negative
-            or the overlay size is not positive
+        :raises CanvasError: the canvas is already finalised, the anchor height is negative,
+            an anchor height is given with an aligned `top`, a position is neither a number nor an alignment of its
+            axis, or an overlay dimension is not a positive integer, a positive finite percentage or ``"pack"``
         """
         if self.widget_info and self.cacheable:
             raise CanvasError(self._finalized_message)
 
-        if overlay_width <= 0 or overlay_height <= 0:
-            raise CanvasError(
-                f"Pop-up size must be positive, "
-                f"got overlay_width={overlay_width!r} and overlay_height={overlay_height!r}"
-            )
+        for position, alignments in ((left, ("left", "center", "right")), (top, ("top", "middle", "bottom"))):
+            if not isinstance(position, int) and position not in alignments:
+                raise CanvasError(
+                    f"Pop-up position must be a number of cells or an alignment, "
+                    f"got left={left!r} and top={top!r}; the alignments are {alignments!r}"
+                )
+
+        for dimension in (overlay_width, overlay_height):
+            if isinstance(dimension, tuple) and len(dimension) == 2 and dimension[0] == "relative":
+                valid = isinstance(dimension[1], (int, float)) and math.isfinite(dimension[1]) and dimension[1] > 0
+            else:
+                valid = dimension == "pack" or (isinstance(dimension, int) and dimension > 0)
+            if not valid:
+                raise CanvasError(
+                    f"Pop-up size must be positive: a number of cells, ('relative', percentage) or 'pack', "
+                    f"got overlay_width={overlay_width!r} and overlay_height={overlay_height!r}"
+                )
 
         if anchor_height is not None and anchor_height < 0:
             raise CanvasError(f"Pop-up anchor height must not be negative, got {anchor_height!r}")
 
-        self.coords["pop up"] = (left, top, (w, overlay_width, overlay_height))
+        if anchor_height is not None and not isinstance(top, int):
+            raise CanvasError(f"Pop-up anchor height needs top as a number of rows, got top={top!r}")
+
+        # The coordinates are moved with this canvas, so an aligned axis keeps 0 there and its alignment beside it.
+        x = left if isinstance(left, int) else 0
+        y = top if isinstance(top, int) else 0
+        self.coords["pop up"] = (x, y, (w, overlay_width, overlay_height))
         if anchor_height is None:
             self.coords.pop("pop up anchor", None)
         else:
-            self.coords["pop up anchor"] = (left, top, anchor_height)
+            self.coords["pop up anchor"] = (x, y, anchor_height)
         if on_unhandled_key is None:
             self.coords.pop("pop up unhandled key", None)
         else:
-            self.coords["pop up unhandled key"] = (left, top, (w, on_unhandled_key))
+            self.coords["pop up unhandled key"] = (x, y, (w, on_unhandled_key))
         if on_click_outside is None:
             self.coords.pop("pop up click outside", None)
         else:
-            self.coords["pop up click outside"] = (left, top, (w, on_click_outside))
+            self.coords["pop up click outside"] = (x, y, (w, on_click_outside))
+        if isinstance(left, int) and isinstance(top, int):
+            self.coords.pop("pop up align", None)
+        else:
+            self.coords["pop up align"] = (
+                x,
+                y,
+                (w, None if isinstance(left, int) else str(left), None if isinstance(top, int) else str(top)),
+            )
 
     def translate_coords(self, dx: int, dy: int) -> _CanvasCoords:
         """Return coords shifted by (dx, dy)."""
