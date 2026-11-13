@@ -1133,6 +1133,47 @@ class TableSelectNavigationTest(unittest.TestCase):
         self.assertEqual([], press(table, (10, 3), "tab"))
         self.assertEqual(2, table.focus._w.focus_position)
 
+    def test_entered_from_parent(self) -> None:
+        """A parent with select navigation enters the table at its first or last selectable cell."""
+
+        def cell_focus(table: urwid.Table) -> tuple[int, int]:
+            return table.focus_position, table.focus._w.focus_position
+
+        skipping = urwid.Table([Column("A"), Column("B"), Column("C")], select_navigation=True)
+        skipping.body.extend(
+            [
+                [urwid.Edit("", "a0"), urwid.Edit("", "b0"), "c0"],
+                skipping.layout.row([urwid.Edit("", "a1")], selectable=False),
+            ]
+        )
+        skipping.focus_position = 1
+        plain = urwid.Table(
+            [Column("A"), Column("B")],
+            [[urwid.Edit("", "a0"), urwid.Edit("", "b0")], [urwid.Edit("", "a1"), urwid.Edit("", "b1")]],
+        )
+        plain.focus_position = 1
+        plain.focus._w.focus_position = 0
+        cases = (
+            # (label, table, start in the pile, key, cell focus after the key, "focus changed" events)
+            ("shift tab from below", self.make(), 2, "shift tab", (1, 2), [(0, 1)]),
+            ("tab from above", self.make(), 0, "tab", (0, 0), [(1, 0)]),
+            ("skips a trailing text cell and a non-selectable row", skipping, 2, "shift tab", (0, 1), [(1, 0)]),
+            ("without select navigation", plain, 2, "shift tab", (1, 0), []),
+        )
+        for label, table, start, key, expected, expected_events in cases:
+            with self.subTest(label):
+                if label == "tab from above":
+                    table.focus_position = 1
+                    table.focus._w.focus_position = 2
+                events: list[tuple[int | None, int | None]] = []
+                urwid.connect_signal(table, "focus changed", lambda _w, old, new, e=events: e.append((old, new)))
+                pile = urwid.Pile([urwid.Edit("", "above"), table, urwid.Edit("", "below")], select_navigation=True)
+                pile.focus_position = start
+                self.assertEqual([], press(pile, (20,), key))
+                self.assertIs(table, pile.focus)
+                self.assertEqual(expected, cell_focus(table))
+                self.assertEqual(expected_events, events)
+
 
 class TableOptionsTest(unittest.TestCase):
     """Tests of the scrollbar and the rows spanning every column."""

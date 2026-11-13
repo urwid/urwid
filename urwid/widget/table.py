@@ -1069,6 +1069,16 @@ class Table(Widget):
         """Return whether the table has a row to focus."""
         return self._listbox.selectable()
 
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Start at the first selectable cell of the first selectable row, or at the last one when *reverse* is set.
+
+        It is the entry hook a parent container calls, and acts only when the table was built with
+        ``select_navigation``, see :ref:`select-navigation`.
+
+        :param reverse: start at the last selectable cell of the last selectable row instead.
+        """
+        self._listbox.enter_selectable(reverse=reverse)
+
     def sizing(self) -> frozenset[Sizing]:
         """Return BOX and FLOW, and FIXED as well when no column is weighted."""
         if any(isinstance(column.width, tuple) for column in self._layout.columns):
