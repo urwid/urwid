@@ -726,7 +726,7 @@ class ThemeButton(urwid.PopUpLauncher[urwid.Button]):
         self.theme = next(iter(THEMES))  # the saved theme
         self._shown = self.theme
 
-    def create_pop_up(self) -> urwid.AttrMap[urwid.LineBox[urwid.Filler[urwid.Pile]]]:
+    def create_pop_up(self) -> urwid.AttrMap[urwid.LineBox[urwid.Pile]]:
         """Return the theme radio buttons over :guilabel:`OK` and :guilabel:`Cancel`."""
         group: list[urwid.RadioButton] = []
         radios = [
@@ -747,11 +747,14 @@ class ThemeButton(urwid.PopUpLauncher[urwid.Button]):
             dividechars=2,
         )
         body = urwid.Pile([*radios, urwid.Divider(), buttons])
-        return urwid.AttrMap(urwid.LineBox(urwid.Filler(body, valign=urwid.TOP), title="Theme"), "dialog")
+        return urwid.AttrMap(urwid.LineBox(body, title="Theme"), "dialog")
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
-        """Place the pop-up under the button, or over it when there is no room below."""
-        return {"left": 0, "top": 1, "overlay_width": 26, "overlay_height": len(THEMES) + 4, "anchor_height": 1}
+        """Place the pop-up under the button.
+
+        It goes over the button when there is no room below, and it is as tall as its content.
+        """
+        return {"left": 0, "top": 1, "overlay_width": 26, "overlay_height": urwid.PACK, "anchor_height": 1}
 
     def close_pop_up(self) -> None:
         """Close the pop-up and show the saved theme.
