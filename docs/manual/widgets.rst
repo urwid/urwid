@@ -404,6 +404,7 @@ any object.
 as its body use integer positions.  :class:`Frame` uses ``'body'``, ``'header'``
 and ``'footer'``;  :class:`ListBox` with a custom list walker will use the
 positions the list walker returns.
+A :class:`Table` uses the index of a row, and a :class:`TableRow` the index of a cell.
 
 Reading this value on an empty container or on any non-container widgets
 (that inherit from Widget) raises an IndexError.  Writing to this property with

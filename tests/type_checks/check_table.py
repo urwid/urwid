@@ -47,6 +47,14 @@ if typing.TYPE_CHECKING:
         footed.footer = footed.layout.row(["3 rows"], span=True)
         footed.footer = None
 
+    def container(table: urwid.Table) -> None:
+        """Type the positions and the children of a table and of its rows."""
+        assert_type(table.focus_position, int)
+        assert_type(table.contents[0], tuple[urwid.AbstractWidget, None])
+        row = table.body[0]
+        assert_type(row.focus, urwid.AbstractWidget | None)
+        assert_type(row.focus_position, int)
+
     def layout() -> None:
         """Build rows without a table."""
         shared = TableLayout([urwid.TableColumn(), urwid.TableColumn(align=urwid.RIGHT)])
