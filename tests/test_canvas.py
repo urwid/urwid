@@ -404,6 +404,16 @@ class CanvasTest(unittest.TestCase):
             canvas.set_pop_up(widget, 1, 2, 4, 2)
             self.assertEqual((None, None), canvas.get_pop_up_align())
 
+        with self.subTest("an alignment of another pop-up at the same position is ignored"):
+            aligned = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            aligned.set_pop_up(urwid.SolidFill("a"), urwid.CENTER, 1, 4, 2)
+            plain = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            plain.set_pop_up(widget, 0, 0, 4, 2)
+            # The second canvas starts on row 1, so both pop-ups end up at (0, 1) and its "pop up" entry wins.
+            combined = urwid.CanvasCombine([(aligned, None, False), (plain, None, False)])
+            self.assertIs(widget, combined.get_pop_up()[2][0])
+            self.assertEqual((None, None), combined.get_pop_up_align())
+
         with self.subTest("a negative position opens the pop-up left of and above the canvas"):
             canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
             canvas.set_pop_up(widget, -2, -3, 4, 2)

@@ -414,6 +414,33 @@ class PackedPopUpSizeTest(unittest.TestCase):
         self.assertTrue(target.mouse_event(size, "mouse press", 1, 0, 2, True))
         self.assertIsNone(launcher.pop_up_widget)
 
+    def test_packed_pop_up_keeps_its_filler_between_renders(self) -> None:
+        launcher = AnchoredLauncher("pack", pop_up=urwid.Text("ab"), anchor_height=None)
+        target = urwid.PopUpTarget(urwid.Filler(launcher, valign="top"))
+        launcher.open_pop_up()
+        target.render((6, 5))
+        first = target._pop_up_levels[0][1].top_w
+        launcher.pop_up_width = 4
+        launcher._invalidate()
+        target.render((6, 5))
+
+        self.assertIsInstance(first, urwid.Filler)
+        self.assertEqual(4, target._pop_up_levels[0][1].width_amount)
+        self.assertIs(first, target._pop_up_levels[0][1].top_w)
+
+    def test_nested_pop_up_inside_a_packed_pop_up(self) -> None:
+        """A pop-up opened from a packed flow pop-up is placed relative to it, through the Filler around it."""
+        inner = AnchoredLauncher(1, anchor_height=None, left=1, top=1)
+        outer = AnchoredLauncher("pack", pop_up_width=4, pop_up=inner, anchor_height=None, top=2)
+        target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+        outer.open_pop_up()
+        inner.open_pop_up()
+
+        self.assertEqual(
+            ["L     ", "      ", "L     ", " ppp  ", "      "],
+            [line.decode() for line in target.render((6, 5)).text],
+        )
+
     def test_packed_size_needs_a_matching_widget(self) -> None:
         for description, width, height in (
             ("pack width of a box widget", "pack", 2),
