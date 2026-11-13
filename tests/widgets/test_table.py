@@ -1063,6 +1063,81 @@ class TableTest(unittest.TestCase):
         self.assertEqual((4, 2), table.layout.widths(20))
 
 
+class TableContainerTest(unittest.TestCase):
+    """Tests of Table and TableRow as containers: positions, contents and focus paths."""
+
+    def make(self) -> urwid.Table:
+        """Return a table of two rows of Edit cells, the first column with an attr."""
+        return urwid.Table(
+            [Column("A", attr="col"), Column("B")],
+            [[urwid.Edit("", "a0"), urwid.Edit("", "b0")], [urwid.Edit("", "a1"), urwid.Edit("", "b1")]],
+        )
+
+    def test_container_protocol(self) -> None:
+        """Both classes are containers whose positions are indexes."""
+        table = self.make()
+        row = table.body[1]
+        span = table.layout.row(["spanning"], span=True)
+        for label, container, positions in (("table", table, [0, 1]), ("row", row, [0, 1]), ("span", span, [0])):
+            with self.subTest(label):
+                self.assertIsInstance(container, urwid.WidgetContainerMixin)
+                self.assertEqual(positions, list(container))
+                self.assertEqual(positions[::-1], list(reversed(container)))
+                self.assertEqual([None] * len(positions), [container.contents[p][1] for p in positions])
+                self.assertIsNone(container.options())
+                with self.assertRaises(AttributeError):
+                    container.contents = ()
+
+    def test_getitem_gives_bare_cell(self) -> None:
+        """``table[row][cell]`` is the cell without the AttrMap of its column; contents holds the AttrMap."""
+        table = self.make()
+        cell = table.body[1].cells[0]
+        self.assertIs(table.body[1], table[1])
+        self.assertIs(cell, table[1][0])
+        self.assertIsInstance(table[1].contents[0][0], urwid.AttrMap)
+        self.assertIs(cell, table[1].contents[0][0].base_widget)
+
+    def test_focus_path(self) -> None:
+        """A focus path reaches the cell through the row, and set_focus_path round-trips."""
+        table = self.make()
+        events: list[tuple[int | None, int | None]] = []
+        urwid.connect_signal(table, "focus changed", lambda _w, old, new: events.append((old, new)))
+        pile = urwid.Pile([urwid.Text("t"), table])
+        self.assertEqual([1, 0, 0], pile.get_focus_path())
+        pile.set_focus_path([1, 1, 1])
+        self.assertEqual([1, 1, 1], pile.get_focus_path())
+        self.assertEqual([(0, 1)], events)
+        self.assertEqual((1, 1), (table.focus_position, table.focus.focus_position))
+        self.assertIs(table.body[1].cells[1], pile.get_focus_widgets()[-1])
+        self.assertIs(table.body[1].cells[1], table.focus.focus)
+
+    def test_row_outside_table(self) -> None:
+        """A row built by a layout and put directly in a Pile is entered by the focus path."""
+        layout = TableLayout([Column(), Column()])
+        pile = urwid.Pile([urwid.Text("t"), layout.row([urwid.Edit("", "a"), urwid.Edit("", "b")])])
+        self.assertEqual([1, 0], pile.get_focus_path())
+        pile.set_focus_path([1, 1])
+        self.assertEqual([1, 1], pile.get_focus_path())
+
+    def test_empty_table(self) -> None:
+        """An empty table has an empty focus path and stays true in a boolean test."""
+        table = urwid.Table([Column("A")])
+        self.assertEqual([], table.get_focus_path())
+        self.assertEqual([], list(table))
+        self.assertTrue(table)
+
+    def test_invalid_cell_position(self) -> None:
+        """An invalid cell position raises IndexError and leaves the cell focus unchanged."""
+        table = self.make()
+        for label, position in (("past the end", 2), ("negative", -1), ("not an int", "x")):
+            with self.subTest(label):
+                with self.assertRaises(IndexError):
+                    table.body[0].focus_position = position
+                with self.assertRaises(IndexError):
+                    table.set_focus_path([0, position])
+                self.assertEqual(0, table.body[0].focus_position)
+
+
 class TableSelectNavigationTest(unittest.TestCase):
     """Tests of Tab and Shift+Tab across the cells and rows."""
 
@@ -1132,6 +1207,47 @@ class TableSelectNavigationTest(unittest.TestCase):
         table.render((10, 3), focus=True)
         self.assertEqual([], press(table, (10, 3), "tab"))
         self.assertEqual(2, table.focus._w.focus_position)
+
+    def test_entered_from_parent(self) -> None:
+        """A parent with select navigation enters the table at its first or last selectable cell."""
+
+        def cell_focus(table: urwid.Table) -> tuple[int, int]:
+            return table.focus_position, table.focus._w.focus_position
+
+        skipping = urwid.Table([Column("A"), Column("B"), Column("C")], select_navigation=True)
+        skipping.body.extend(
+            [
+                [urwid.Edit("", "a0"), urwid.Edit("", "b0"), "c0"],
+                skipping.layout.row([urwid.Edit("", "a1")], selectable=False),
+            ]
+        )
+        skipping.focus_position = 1
+        plain = urwid.Table(
+            [Column("A"), Column("B")],
+            [[urwid.Edit("", "a0"), urwid.Edit("", "b0")], [urwid.Edit("", "a1"), urwid.Edit("", "b1")]],
+        )
+        plain.focus_position = 1
+        plain.focus._w.focus_position = 0
+        cases = (
+            # (label, table, start in the pile, key, cell focus after the key, "focus changed" events)
+            ("shift tab from below", self.make(), 2, "shift tab", (1, 2), [(0, 1)]),
+            ("tab from above", self.make(), 0, "tab", (0, 0), [(1, 0)]),
+            ("skips a trailing text cell and a non-selectable row", skipping, 2, "shift tab", (0, 1), [(1, 0)]),
+            ("without select navigation", plain, 2, "shift tab", (1, 0), []),
+        )
+        for label, table, start, key, expected, expected_events in cases:
+            with self.subTest(label):
+                if label == "tab from above":
+                    table.focus_position = 1
+                    table.focus._w.focus_position = 2
+                events: list[tuple[int | None, int | None]] = []
+                urwid.connect_signal(table, "focus changed", lambda _w, old, new, e=events: e.append((old, new)))
+                pile = urwid.Pile([urwid.Edit("", "above"), table, urwid.Edit("", "below")], select_navigation=True)
+                pile.focus_position = start
+                self.assertEqual([], press(pile, (20,), key))
+                self.assertIs(table, pile.focus)
+                self.assertEqual(expected, cell_focus(table))
+                self.assertEqual(expected_events, events)
 
 
 class TableOptionsTest(unittest.TestCase):

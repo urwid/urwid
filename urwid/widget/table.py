@@ -20,7 +20,7 @@ from urwid.command_map import Command
 from .attr_map import AttrMap, AttrMapError, _attr_map_dict
 from .columns import Columns
 from .constants import Align, Sizing, WHSettings, WrapMode
-from .container import _WeakCallback
+from .container import WidgetContainerMixin, _WeakCallback
 from .list_walker import SimpleFocusListWalker
 from .listbox import ListBox
 from .scrollable import SCROLLBAR_LEFT, ScrollBar
@@ -35,6 +35,8 @@ if typing.TYPE_CHECKING:
 
     from .attr_map import _AttrMapLike
     from .container import _UnfocusedFocusAttrFunc
+    from .list_walker import ListBoxContentsProto
+    from .widget import AbstractWidget
 
     # A cell as a caller gives it: a widget, or text markup that becomes a text cell.
     _Cell: typing.TypeAlias = Widget | _TagMarkup
@@ -504,11 +506,17 @@ class TableLayout:
         self._update_natural()
 
 
-class TableRow(WidgetWrap[_TableColumns]):
+class TableRow(WidgetWrap[_TableColumns], WidgetContainerMixin[int]):
     """One row of cells laid out by a :class:`TableLayout`.
 
     A row is selectable unless built with ``selectable=False``, whatever its cells,
     so a row of plain text can take the focus in a :class:`Table`.
+
+    It is a container whose positions are the indexes of its cells.
+    A span row has one position.
+    The widget at a position is the cell as the row lays it out: the cell in an :class:`AttrMap` when its column
+    has an ``attr``.
+    ``row[i]`` gives the cell's :attr:`base_widget`, as for any container.
 
     The attribute map applied to the row's canvas is, in this order:
 
@@ -629,6 +637,40 @@ class TableRow(WidgetWrap[_TableColumns]):
     def focus_attr(self, focus_attr: _AttrMapLike | None) -> None:
         self._focus_attr = None if focus_attr is None else _attr_map_dict(focus_attr)
         self._invalidate()
+
+    @property
+    def contents(self) -> tuple[tuple[AbstractWidget, None], ...]:
+        """The ``(cell, None)`` pairs of the row, read-only, in the order of the columns."""
+        return tuple((cell, None) for cell, _options in self._w.contents)
+
+    @property
+    def focus(self) -> AbstractWidget | None:
+        """The cell in focus, or ``None`` when the layout has no columns."""
+        return self._w.focus
+
+    @property
+    def focus_position(self) -> int:
+        """The index of the cell in focus.
+
+        :raises IndexError: the layout has no columns.
+            The position set is not an index of a cell.
+        """
+        return self._w.focus_position
+
+    @focus_position.setter
+    def focus_position(self, position: int) -> None:
+        self._w.focus_position = position
+
+    def __iter__(self) -> Iterator[int]:
+        """Return the cell positions from first to last."""
+        return iter(range(len(self._w.contents)))
+
+    def __reversed__(self) -> Iterator[int]:
+        """Return the cell positions from last to first."""
+        return reversed(range(len(self._w.contents)))
+
+    def options(self) -> None:
+        """Return ``None``, the options half of every :attr:`contents` item."""
 
     def selectable(self) -> bool:
         """Return whether the row takes the focus, as set when it was built or by :meth:`set_selectable`."""
@@ -774,11 +816,14 @@ class _TableRows(SimpleFocusListWalker[TableRow]):  # pylint: disable=abstract-m
             super().__setitem__(i, self._convert(y))
 
 
-class Table(Widget):
+class Table(Widget, WidgetContainerMixin[int]):
     """Rows of cells in columns of shared widths, between a fixed header and footer, and with a focused row.
 
     The rows scroll in a :class:`ListBox`.
     The header stays on top, the footer stays at the bottom, and neither takes the focus.
+    It is a container whose positions are the indexes of the rows in :attr:`body`.
+    The header and the footer are not in it.
+    A focus path goes on through the focused :class:`TableRow` to its focused cell.
     It is a box and flow widget, and a fixed widget as well when no column is weighted.
 
     A box size that does not fit the whole table drops the header or the footer by *header_drop* and *footer_drop*.
@@ -1022,6 +1067,22 @@ class Table(Widget):
         self._listbox.wheel = wheel
 
     @property
+    def contents(self) -> ListBoxContentsProto[int]:
+        """The ``(row, None)`` pairs of :attr:`body`, read-only, as :attr:`ListBox.contents` gives them."""
+        return self._listbox.contents
+
+    def __iter__(self) -> Iterator[int]:
+        """Return the row positions from first to last."""
+        return iter(self._listbox)
+
+    def __reversed__(self) -> Iterator[int]:
+        """Return the row positions from last to first."""
+        return reversed(self._listbox)
+
+    def options(self) -> None:
+        """Return ``None``, the options half of every :attr:`contents` item."""
+
+    @property
     def focus(self) -> TableRow | None:
         """The row in focus, or ``None`` when the table is empty."""
         position = self._rows.focus
@@ -1068,6 +1129,16 @@ class Table(Widget):
     def selectable(self) -> bool:
         """Return whether the table has a row to focus."""
         return self._listbox.selectable()
+
+    def enter_selectable(self, *, reverse: bool = False) -> None:
+        """Start at the first selectable cell of the first selectable row, or at the last one when *reverse* is set.
+
+        It is the entry hook a parent container calls, and acts only when the table was built with
+        ``select_navigation``, see :ref:`select-navigation`.
+
+        :param reverse: start at the last selectable cell of the last selectable row instead.
+        """
+        self._listbox.enter_selectable(reverse=reverse)
 
     def sizing(self) -> frozenset[Sizing]:
         """Return BOX and FLOW, and FIXED as well when no column is weighted."""
