@@ -266,8 +266,9 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         anchor_height: int | None = 1,
         left: int | str = 0,
         top: int | str = 1,
+        close_on_click_outside: bool = False,
     ) -> None:
-        super().__init__(urwid.Text("L"))
+        super().__init__(urwid.Text("L"), close_on_click_outside=close_on_click_outside)
         self.pop_up_height = pop_up_height
         self.pop_up_width = pop_up_width
         self.pop_up = pop_up
@@ -388,6 +389,30 @@ class PackedPopUpSizeTest(unittest.TestCase):
         target.render((6, 5), focus=True)
         self.assertIsNone(target.keypress((6, 5), "a"))
         self.assertEqual("a", edit.edit_text)
+
+    def test_click_in_a_cut_off_packed_pop_up_hits_the_row_shown(self) -> None:
+        """A packed flow pop-up scrolled to its focus takes a click on the row it shows there."""
+        pressed: list[int] = []
+        buttons = urwid.Pile(
+            [urwid.Button(f"b{index}", on_press=lambda _button, i=index: pressed.append(i)) for index in range(6)]
+        )
+        launcher = AnchoredLauncher("pack", pop_up_width=6, pop_up=buttons, close_on_click_outside=True)
+        pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill("x"), 2), launcher])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        size = (6, 5)
+        for _ in range(5):
+            target.keypress(size, "down")
+        rows = [line.decode() for line in target.render(size, focus=True).text]
+        self.assertEqual(["< b4 >", "< b5 >"], rows[3:])
+
+        target.mouse_event(size, "mouse press", 1, 2, 3, True)
+        self.assertEqual([4], pressed)
+        self.assertIsNotNone(launcher.pop_up_widget)
+
+        # The launcher row is outside the pop-up: the press closes it and does not reach the launcher.
+        self.assertTrue(target.mouse_event(size, "mouse press", 1, 0, 2, True))
+        self.assertIsNone(launcher.pop_up_widget)
 
     def test_packed_size_needs_a_matching_widget(self) -> None:
         for description, width, height in (
