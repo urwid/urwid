@@ -31,7 +31,7 @@ import functools
 import inspect
 import logging
 import typing
-from contextlib import suppress
+import weakref
 
 from tornado import ioloop
 
@@ -74,7 +74,8 @@ class TornadoEventLoop(EventLoop):
 
             self._loop = ioloop.IOLoop.current()
 
-        self._pending_alarms: dict[object, int] = {}
+        self._pending_alarms: weakref.WeakSet[asyncio.TimerHandle] = weakref.WeakSet()
+        self._pending_custom_alarms: set[object] = set()
         self._watch_handles: dict[int, int] = {}  # {<watch_handle> : <file_descriptor>}
         self._max_watch_handle: int = 0
         self._exc: BaseException | None = None
@@ -146,24 +147,41 @@ class TornadoEventLoop(EventLoop):
         @self._also_call_idle
         @functools.wraps(callback)
         def wrapped() -> None:
-            with suppress(KeyError):
-                del self._pending_alarms[handle]
-
+            fired_handle = handle_ref()
+            if isinstance(fired_handle, asyncio.TimerHandle):
+                self._pending_alarms.discard(fired_handle)
+            else:
+                self._pending_custom_alarms.discard(fired_handle)
             self.handle_exit(callback)()
 
         handle = self._loop.add_timeout(self._loop.time() + seconds, wrapped)
-        self._pending_alarms[handle] = 1
+        handle_ref: Callable[[], object]
+        if isinstance(handle, asyncio.TimerHandle):
+            # Native asyncio timers support weak references and a cancelled-state query.
+            handle_ref = weakref.ref(handle)
+            self._pending_alarms.add(handle)
+        else:
+            # IOLoop subclasses may return any opaque handle, without cancel() or weak references.
+            def handle_ref() -> object:
+                return handle
+
+            self._pending_custom_alarms.add(handle)
         return handle
 
     def remove_alarm(self, handle: object) -> bool:
-        """Cancel an alarm scheduled by :meth:`alarm`, returning whether it was still pending."""
-        self._loop.remove_timeout(handle)
-        try:
-            del self._pending_alarms[handle]
-        except KeyError:
-            return False
+        """Cancel an alarm, returning whether it was still pending.
 
-        return True
+        Native asyncio timers cancelled directly are no longer pending. Other IOLoop implementations
+        return opaque handles, so only cancellation through this wrapper can be tracked for them.
+        """
+        if isinstance(handle, asyncio.TimerHandle):
+            existed = handle in self._pending_alarms and not handle.cancelled()
+            self._pending_alarms.discard(handle)
+        else:
+            existed = handle in self._pending_custom_alarms
+            self._pending_custom_alarms.discard(handle)
+        self._loop.remove_timeout(handle)
+        return existed
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
         """Call *callback* whenever *fd* is readable and return a handle for :meth:`remove_watch_file`.

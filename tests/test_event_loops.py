@@ -1228,6 +1228,169 @@ class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
         self.assertRaises(ZeroDivisionError, evl.run)
 
 
+@unittest.skipUnless(TORNADO_AVAILABLE, "Tornado is not available")
+class TornadoNativeAlarmTest(unittest.TestCase):
+    """The native IOLoop can cancel Urwid alarms without going through remove_alarm."""
+
+    def setUp(self) -> None:
+        from tornado.platform.asyncio import AsyncIOLoop
+
+        self.loop = asyncio.new_event_loop()
+        self.native = AsyncIOLoop(asyncio_loop=self.loop)
+        self.evl = urwid.TornadoEventLoop(self.native)
+        self.addCleanup(self.native.close)
+
+    def test_remove_natively_cancelled_alarm(self) -> None:
+        """A native removal leaves no pending alarm for Urwid to remove."""
+        handle = self.evl.alarm(3600, lambda: None)
+        self.native.remove_timeout(handle)
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_remove_directly_cancelled_alarm(self) -> None:
+        """A timer handle cancelled directly is no longer pending either."""
+        handle = typing.cast("asyncio.TimerHandle", self.evl.alarm(3600, lambda: None))
+        handle.cancel()
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_native_cancel_does_not_retain_handles(self) -> None:
+        """Cancelled native timers are collectible once the scheduler releases them."""
+        references = []
+        for _ in range(1000):
+            handle = self.evl.alarm(3600, lambda: None)
+            references.append(weakref.ref(handle))
+            self.native.remove_timeout(handle)
+        del handle
+        self.loop.run_until_complete(asyncio.sleep(0))
+        gc.collect()
+        self.assertTrue(all(reference() is None for reference in references))
+
+    def test_cancel_one_preserves_other_alarm(self) -> None:
+        """Native cancellation must neither run its callback nor remove another timer."""
+        called = []
+        cancelled = self.evl.alarm(0, lambda: called.append("cancelled"))
+        remaining = self.evl.alarm(0, lambda: called.append("remaining"))
+        self.native.remove_timeout(cancelled)
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual(["remaining"], called)
+        self.assertFalse(self.evl.remove_alarm(remaining))
+        self.assertFalse(self.evl.remove_alarm(cancelled))
+
+    def test_pending_alarm_is_kept_by_the_native_loop(self) -> None:
+        """Dropping the caller's handle must not drop a pending callback."""
+        called = []
+        self.evl.alarm(0, lambda: called.append("fired"))
+        gc.collect()
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual(["fired"], called)
+
+    def test_removing_pending_alarm_reports_once(self) -> None:
+        """The wrapper still reports successful removal of its own pending alarm."""
+        called = []
+        handle = self.evl.alarm(0, lambda: called.append("cancelled"))
+        self.assertTrue(self.evl.remove_alarm(handle))
+        self.assertFalse(self.evl.remove_alarm(handle))
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual([], called)
+
+    def test_fired_timer_has_no_callback_cycle(self) -> None:
+        """A fired handle need not wait for cyclic garbage collection on CPython."""
+        if sys.implementation.name != "cpython":
+            self.skipTest("Requires reference counting")
+        was_enabled = gc.isenabled()
+        gc.disable()
+        try:
+            handle = self.evl.alarm(0, lambda: None)
+            reference = weakref.ref(handle)
+            del handle
+            self.loop.run_until_complete(asyncio.sleep(0))
+            self.assertIsNone(reference())
+        finally:
+            if was_enabled:
+                gc.enable()
+
+
+@unittest.skipUnless(TORNADO_AVAILABLE, "Tornado is not available")
+class TornadoOpaqueAlarmTest(unittest.TestCase):
+    """IOLoop subclasses may return handles without cancel() or weak-reference support."""
+
+    def setUp(self) -> None:
+        from tornado.platform.asyncio import AsyncIOLoop
+
+        class OpaqueIOLoop(AsyncIOLoop):
+            def initialize(self, **kwargs):
+                super().initialize(**kwargs)
+                self.timers = {}
+                self.make_handle = object
+
+            def call_at(self, when, callback, *args, **kwargs):
+                handle = self.make_handle()
+
+                def fire():
+                    self.timers.pop(handle, None)
+                    callback(*args, **kwargs)
+
+                self.timers[handle] = super().call_at(when, fire)
+                return handle
+
+            def remove_timeout(self, handle):
+                timer = self.timers.pop(handle, None)
+                if timer is not None:
+                    super().remove_timeout(timer)
+
+        self.loop = asyncio.new_event_loop()
+        self.native = OpaqueIOLoop(asyncio_loop=self.loop)
+        self.evl = urwid.TornadoEventLoop(self.native)
+        self.addCleanup(self.native.close)
+
+    def test_pending_opaque_alarm_fires(self) -> None:
+        """An unreferenced opaque handle must keep its callback until firing."""
+        called = []
+        self.evl.alarm(0, lambda: called.append("fired"))
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual(["fired"], called)
+
+    def test_remove_opaque_alarm(self) -> None:
+        """Removing an opaque pending alarm succeeds only once and prevents firing."""
+        called = []
+        handle = self.evl.alarm(0, lambda: called.append("cancelled"))
+        self.assertTrue(self.evl.remove_alarm(handle))
+        self.assertFalse(self.evl.remove_alarm(handle))
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual([], called)
+
+    def test_remove_fired_opaque_alarm(self) -> None:
+        """An opaque alarm already dispatched is no longer pending."""
+        handle = self.evl.alarm(0, lambda: None)
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_integer_alarm_handle(self) -> None:
+        """An integer token remains a supported IOLoop alarm handle."""
+        self.native.make_handle = lambda: 17
+        handle = self.evl.alarm(3600, lambda: None)
+        self.assertEqual(17, handle)
+        self.assertTrue(self.evl.remove_alarm(handle))
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_weakrefable_opaque_handle_without_cancelled(self) -> None:
+        """Weak-reference support alone does not imply the asyncio timer API."""
+        class Handle:
+            pass
+
+        self.native.make_handle = Handle
+        called = []
+        cancelled = self.evl.alarm(0, lambda: called.append("cancelled"))
+        fired = self.evl.alarm(0, lambda: called.append("fired"))
+        self.assertTrue(self.evl.remove_alarm(cancelled))
+        self.loop.run_until_complete(asyncio.sleep(0))
+        self.assertEqual(["fired"], called)
+        self.assertFalse(self.evl.remove_alarm(fired))
+
+    def test_unknown_opaque_alarm(self) -> None:
+        """An unknown opaque handle remains a false removal, not a type error."""
+        self.assertFalse(self.evl.remove_alarm(object()))
+
+
 @unittest.skipUnless(TWISTED_AVAILABLE, "Twisted is not available")
 @unittest.skipIf(
     IS_WINDOWS,
