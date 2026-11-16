@@ -112,6 +112,15 @@ Source: :doc:`code/spinner`
 A spinner for every frame preset, started, stopped, stepped and sped up together
 
 
+terminal_output.py
+------------------
+
+Source: :doc:`code/terminal_output`
+
+A chart drawn with 256-color and true-color escape sequences, drawn again for each new size, with the earlier
+charts in the scrollback
+
+
 external_editor.py
 ------------------
 
@@ -162,6 +171,7 @@ demonstrate the BigText widget
    code/calc
    code/notifications
    code/spinner
+   code/terminal_output
    code/external_editor
    code/thread_worker
    code/palette_test

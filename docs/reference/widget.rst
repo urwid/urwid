@@ -307,6 +307,8 @@ Terminal
 
 .. autoclass:: Terminal
 
+.. autoclass:: TerminalOutput
+
 
 Scroll Widget Classes
 ---------------------

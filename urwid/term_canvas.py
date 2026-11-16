@@ -433,6 +433,15 @@ class TermCanvas(Canvas):
     def escbuf(self, value: bytes) -> None:
         self._escbuf = bytearray(value)
 
+    @property
+    def reads_utf8(self) -> bool:
+        """Whether input bytes are decoded as UTF-8.
+
+        They are when the data selected UTF-8 (``ESC % G``) or urwid's encoding is UTF-8.
+        Otherwise each byte is one character in urwid's encoding.
+        """
+        return self.modes.main_charset == CHARSET_UTF8 or util.get_encoding_mode() == "utf8"
+
     def set_term_cursor(self, x: int | None = None, y: int | None = None) -> None:
         """Set terminal cursor to x/y and update canvas cursor.
 
@@ -443,7 +452,7 @@ class TermCanvas(Canvas):
         if y is None:
             y = self.term_cursor[1]
 
-        self.term_cursor = self.constrain_coords(x, y)
+        self.term_cursor = x, y = self.constrain_coords(x, y)
 
         if self.has_focus and self.modes.visible_cursor and self.scrolling_up < self.height - y:
             self.cursor = (x, y + self.scrolling_up)
@@ -936,7 +945,7 @@ class TermCanvas(Canvas):
 
         :param byte: an integer ordinal
         """
-        if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding_mode() == "utf8":
+        if self.reads_utf8:
             continuation = 0x80 <= byte < 0xC0
             pending = self.utf8_eat_bytes is not None
             # A lone continuation byte, or a sequence cut short by a byte that does not continue it, is not valid UTF-8,

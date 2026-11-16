@@ -61,6 +61,7 @@ from .solid_fill import SolidFill
 from .spinner import Spinner
 from .table import Table, TableColumn, TableError, TableLayout, TableRow
 from .tabs import Tabs, TabsError
+from .terminal_output import TerminalOutput
 from .text import Text, TextError
 from .treetools import ParentNode, TreeListBox, TreeNode, TreeWalker, TreeWidget, TreeWidgetError
 from .widget import (
@@ -186,6 +187,7 @@ __all__ = (
     "TableRow",
     "Tabs",
     "TabsError",
+    "TerminalOutput",
     "Text",
     "TextError",
     "TreeListBox",
