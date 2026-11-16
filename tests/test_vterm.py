@@ -600,9 +600,15 @@ class TermTest(unittest.TestCase):
         self.assertEqual(length, 5)
 
     def test_encoding_unicode(self):
-        with set_temporary_encoding("utf-8"):
-            self.write("\\e%G\xe2\x80\x94")
-            self.expect("\xe2\x80\x94")
+        """Read UTF-8 output as one cell per character.
+
+        Under a UTF-8 encoding by either name, with or without ESC % G.
+        """
+        for encoding in ("utf-8", "utf8"):
+            for select_utf8 in ("\\e%G", ""):
+                with self.subTest(encoding=encoding, select_utf8=select_utf8), set_temporary_encoding(encoding):
+                    self.write(f"\\ec{select_utf8}\xe2\x80\x94")
+                    self.expect([[(None, None, b"\xe2\x80\x94")]], raw=True)
 
     def test_encoding_unicode_ascii(self):
         with set_temporary_encoding("ascii"):
@@ -672,34 +678,39 @@ class TermTest(unittest.TestCase):
         self.write("\\e];stupid title\\e\\\\e[0G\\e[2Ktest2")
         self.expect("test2")
         self.expect_signal("stupid title")
-        self._sig_response = None
-        self.write("\\e]0;bad \xff\007\\e[0G\\e[2Ktest3")
-        self.expect("test3")
-        self.assertIsNone(self._sig_response, "a title that is not valid UTF-8 is not set, as in tmux")
+        # \xff, a lead byte no UTF-8 sequence uses, cut short by BEL; and the complete but overlong \xc0\x80
+        for select_utf8, invalid in itertools.product(("", "\\e%G"), ("\xff", "\xc0\x80")):
+            with self.subTest(select_utf8=select_utf8, invalid=invalid), set_temporary_encoding("utf-8"):
+                self._sig_response = None
+                self.write(f"\\ec{select_utf8}\\e]0;bad {invalid}\007test3")
+                self.expect("test3")
+                self.assertIsNone(self._sig_response, "a title that is not valid UTF-8 is not set, as in tmux")
         self.disconnect_signal("title")
 
     def test_hyperlink(self):
         """Link the text after an OSC 8 command through SGR changes, and end the link at an empty or invalid one."""
         link = urwid.Hyperlink("https://urwid.org", id="a")
-        self.write(
-            "\\e]8;id=a;https://urwid.org\\e\\\\e[1mab\\e[0mc\\e]8;;\\e\\d"
-            "\\e]8;;https://b.org\007e\\e]8;;bad\x7fbad\x18f\\e]8;;https://b.org\007g\\e]8;;bad\xff\007h"
-        )
-        self.expect(
-            [
-                [
-                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"a"),
-                    (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"b"),
-                    (urwid.AttrSpec("default", "default", hyperlink=link), None, b"c"),
-                    (None, None, b"d"),
-                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"e"),
-                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"f"),
-                    (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"g"),
-                    (None, None, b"h"),
-                ]
-            ],
-            raw=True,
-        )
+        for select_utf8 in ("", "\\e%G"):
+            with self.subTest(select_utf8=select_utf8), set_temporary_encoding("utf-8"):
+                self.write(
+                    f"\\ec{select_utf8}\\e]8;id=a;https://urwid.org\\e\\\\e[1mab\\e[0mc\\e]8;;\\e\\d"
+                    "\\e]8;;https://b.org\007e\\e]8;;bad\x7fbad\x18f\\e]8;;https://b.org\007g\\e]8;;bad\xff\007h"
+                )
+                self.expect(
+                    [
+                        [
+                            (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"a"),
+                            (urwid.AttrSpec("default,bold", "default", hyperlink=link), None, b"b"),
+                            (urwid.AttrSpec("default", "default", hyperlink=link), None, b"c"),
+                            (None, None, b"d"),
+                            (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"e"),
+                            (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"f"),
+                            (urwid.AttrSpec("default", "default", hyperlink="https://b.org"), None, b"g"),
+                            (None, None, b"h"),
+                        ]
+                    ],
+                    raw=True,
+                )
 
     def test_hyperlink_not_in_blank_cells(self):
         """Leave erased cells unlinked, and end the link at an over-long OSC 8 command."""
@@ -774,6 +785,11 @@ class TermTest(unittest.TestCase):
         self.write("\\e%G\\e]0;caf\xc3\xa9\007")
         self.read()
         self.expect_signal("caf\xe9")
+        # every byte is valid Latin-1, so only the UTF-8 decoding can tell that \xff is not a character
+        self._sig_response = None
+        self.write("\\e]0;bad \xff\007")
+        self.read()
+        self.assertIsNone(self._sig_response, "a title that is not valid UTF-8 is not set, as in tmux")
         self.disconnect_signal("title")
 
     def test_c1_characters_in_title_are_kept(self):
