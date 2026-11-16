@@ -266,11 +266,11 @@ class TermTest(unittest.TestCase):
         self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
 
-    def restart(self, width: int = 80, height: int = 24, soft: bool = False) -> None:
+    def restart(self, width: int = 80, height: int = 24, soft: bool = False, *, scroll_on_output: bool = True) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
-        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop, scroll_on_output=scroll_on_output)
         self.resize(width, height, soft)
 
     def tearDown(self) -> None:
@@ -454,14 +454,16 @@ class TermTest(unittest.TestCase):
         self.resize(80, 24)
         self.edgewall()
         self.expect("1-" + " " * 76 + "-2" + "\n" * 22 + "3-" + " " * 76 + "-4")
+        # the bottom line is redrawn one row higher each time, and the blank rows below it go first,
+        # so the top line stays on the screen
         for y in range(23, 1, -1):
             self.resize(80, y, soft=True)
             self.write(r"\e[%df\e[J3-\e[%d;%df-4" % (y, y, 79))
             desc = "try to rescale to 80x%d." % y
-            self.expect("\n" * (y - 2) + "3-" + " " * 76 + "-4", desc)
+            self.expect("1-" + " " * 76 + "-2" + "\n" * (y - 1) + "3-" + " " * 76 + "-4", desc)
         self.resize(80, 24, soft=True)
         self.flush()
-        self.expect("1-" + " " * 76 + "-2" + "\n" * 22 + "3-" + " " * 76 + "-4")
+        self.expect("1-" + " " * 76 + "-2" + "\n" + "3-" + " " * 76 + "-4")
 
     def write_movements(self, arg):
         fmt = "XXX\n\\e[faaa\\e[Bccc\\e[Addd\\e[Bfff\\e[Cbbb\\e[A\\e[Deee"
@@ -614,6 +616,23 @@ class TermTest(unittest.TestCase):
         with set_temporary_encoding("ascii"):
             self.write("\\e%G\xe2\x80\x94")
             self.expect("?")
+
+    def test_encoding_unicode_csi_byte(self):
+        """Show a UTF-8 character that is the CSI byte in urwid's encoding as a cell, and keep escapes as they were."""
+        self.connect_signal("title")
+        with set_temporary_encoding("cp1252"):
+            # U+203A is 0x9B in cp1252.
+            self.write("\\e%Ga\xe2\x80\xba1m")
+            self.expect([[(None, None, char) for char in (b"a", b"\x9b", b"1", b"m")]], raw=True)
+            # In an OSC string the character is part of the title.
+            self.write("\\e]2;a\xe2\x80\xbab\a")
+            self.read()
+            self.expect_signal("a\u203ab")
+            # In CSI parameters it starts a new CSI, so ESC [ U+203A 25 l does not hide the cursor.
+            self.write("\\e[\xe2\x80\xba25l")
+            self.read()
+            self.assertTrue(self.term.term_modes.visible_cursor)
+        self.disconnect_signal("title")
 
     def test_encoding_unicode_ascii_dec_special(self):
         """A DEC drawing character, or a fallback to one, from a UTF-8 child is one cell in the DEC character set."""
@@ -1173,14 +1192,15 @@ class TermTest(unittest.TestCase):
     def test_resize_keeps_the_cursor_on_its_line(self) -> None:
         """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
         self.write("a\nb\nc\\e[2;2H")
-        for size, char in (((70, 24), "X"), ((70, 23), "Y"), ((80, 24), "Z")):
+        # two rows: the blank rows below the cursor go first, then "a" moves into the scrollback
+        for size, char in (((70, 24), "X"), ((70, 2), "Y"), ((80, 24), "Z")):
             self.read()
             self.resize(*size)
             self.write(char)
         self.expect("a\nbXYZ\nc")
         self.write(r"\e[2;2H\e7")
         self.read()
-        self.resize(80, 23)
+        self.resize(80, 2)
         self.write(r"\e8W")
         self.expect("bWYZ\nc")
         self.write(r"\e[1;3H\e7")
@@ -1188,6 +1208,21 @@ class TermTest(unittest.TestCase):
         self.resize(80, 24)
         self.write(r"\e8V")
         self.expect("a\nbWVZ\nc")
+        # shrinking past the cursor's row and growing back leaves the cursor at the end of its line
+        self.write("\\echello\nworld")
+        for size in ((80, 1), (80, 24)):
+            self.read()
+            self.resize(*size)
+        self.write("!")
+        self.expect("hello\nworld!")
+        # a view scrolled back past what a resize leaves in the scrollback is moved down, and still renders whole
+        self.write("\\ec1\n2\n3\n4\n5")
+        self.read()
+        self.resize(80, 3)
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.resize(80, 5)
+        self.assertEqual(self.term.term.scrolling_up, 0)
+        self.assertEqual(5, len(list(self.term.render((80, 5)).content())))
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
@@ -1532,10 +1567,22 @@ class TermTest(unittest.TestCase):
         """A key the child has no byte form for leaves the view where it was scrolled to."""
         self.resize(10, 3)
         self.write("1\n2\n3\n4\n5")
+        self.drain()
         self.term.term.scroll_buffer(up=True, lines=2)
         self.term.keygrab = True
         self.assertEqual(self.term.keypress(self.termsize, "shift up"), "shift up")
         self.assertEqual(self.term.term.scrolling_up, 2)
+
+    def test_output_while_scrolled_back(self) -> None:
+        """Return the view to the bottom on output, or keep it on the lines being read with scroll_on_output off."""
+        for scroll_on_output, view in ((True, "6\n7\n8"), (False, "1\n2\n3")):
+            with self.subTest(scroll_on_output=scroll_on_output):
+                self.restart(10, 3, scroll_on_output=scroll_on_output)
+                self.write("1\n2\n3\n4\n5")
+                self.drain()
+                self.term.term.scroll_buffer(up=True, lines=2)
+                self.write("\n6\n7\n8")
+                self.expect(view)
 
     def test_function_keys_above_f12_send_linux_sequences(self) -> None:
         """Send F13-F20 as the linux terminal type defines them, which urwid's own input parser reads back."""

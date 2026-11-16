@@ -363,14 +363,27 @@ class TermCanvas(Canvas):
 
     cacheable = False
 
-    def __init__(self, width: int, height: int, widget: _TermCanvasOwner) -> None:
-        """Initialize an empty `width` by `height` canvas backing `widget`."""
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        widget: _TermCanvasOwner,
+        *,
+        scroll_on_output: bool = True,
+    ) -> None:
+        """Initialize an empty `width` by `height` canvas backing `widget`.
+
+        :param scroll_on_output: move a view scrolled back from the bottom to the bottom when output arrives.
+            When off, the view stays on the lines it shows while new lines scroll into the scrollback below them.
+        """
         super().__init__()
 
         self.width, self.height = width, height
         self.widget = widget
         self.modes: TermModes = widget.term_modes
         self.has_focus = False
+        #: Whether output returns a scrolled-back view to the bottom, see :meth:`__init__`.
+        self.scroll_on_output = scroll_on_output
 
         self.scrollback_buffer: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = deque(
             maxlen=10000
@@ -610,14 +623,20 @@ class TermCanvas(Canvas):
             # not displayable, do nothing!
             return
 
+        if self.scrolling_up and self.scroll_on_output and data:
+            self.scroll_buffer(reset=True)
         for byte in data:
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """Resize both screens to the given width and height, keeping the cursor and saved cursors on their lines."""
+        """Resize both screens to the given width and height.
+
+        A screen that shrinks drops its blank bottom rows below the cursor first, so the cursor stays on its line
+        unless a row below it holds content; the cursor and the saved cursors move with the rows that stay.
+        """
         x, y = self.term_cursor
 
-        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height)
+        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height, cursor_row=y)
         y += shift
         if self.saved_cursor is not None:
             self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
@@ -630,6 +649,8 @@ class TermCanvas(Canvas):
         self.height = height
 
         self.reset_scroll()
+        # growing takes lines back from the scrollback, so a view scrolled back past what is left is moved down
+        self.scrolling_up = min(self.scrolling_up, len(self.scrollback_buffer))
 
         x, y = self.constrain_coords(x, y)
         self.set_term_cursor(x, y)
@@ -643,11 +664,16 @@ class TermCanvas(Canvas):
         scrollback: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
         width: int,
         height: int,
+        *,
+        cursor_row: int | None = None,
     ) -> int:
         """Fit *lines*, a screen of the current size, to *width* and *height* in place.
 
         A screen that shrinks moves its top lines to the end of *scrollback*, and one that grows takes them back from
         there, or adds blank lines at the bottom once *scrollback* is empty.
+        With *cursor_row*, a shrinking screen first drops the blank lines at its bottom below that row,
+        so the lines above stay on the screen.
+        A blank line is spaces with no attributes, in any character set.
 
         :returns: how many rows the lines that stay on the screen moved down, negative when they moved up.
         """
@@ -665,6 +691,13 @@ class TermCanvas(Canvas):
             lines.insert(0, last_line[:width] + [_BLANK_CELL] * (width - len(last_line)))
             shift += 1
         for _y in range(height, self.height):
+            if (
+                cursor_row is not None
+                and len(lines) - 1 > cursor_row + shift
+                and all(attr is None and text == b" " for attr, _charset, text in lines[-1])
+            ):
+                lines.pop()
+                continue
             scrollback.append(lines.pop(0))
             shift -= 1
 
@@ -934,6 +967,11 @@ class TermCanvas(Canvas):
                         if charsets == [("0", 1)]:
                             # a DEC drawing character, or a fallback to one: one cell in the DEC character set
                             self.push_cursor(char, dec_special=True)
+                            return
+                        if char == b"\x9b":
+                            # A character whose byte in urwid's encoding is 0x9B (U+203A in cp1252, U+042B in cp866)
+                            # is a cell, as the display draws that byte; process_char() would run it as CSI.
+                            self.push_cursor(char)
                             return
 
                 else:
@@ -1215,6 +1253,9 @@ class TermCanvas(Canvas):
             killed = self.term.pop(self.scrollregion_start)
             self.scrollback_buffer.append(killed)
             self.term.insert(self.scrollregion_end, self.empty_line())
+            if self.scrolling_up and not self.scroll_on_output:
+                # the view moves up with the lines it shows
+                self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
 
     def decaln(self) -> None:
         """DEC screen alignment test: Fill screen with E's."""
