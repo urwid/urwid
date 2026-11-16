@@ -19,7 +19,7 @@
 """Standalone ANSI/VT100 escape-sequence parsing, decoupled from any canvas.
 
 This module extracts the platform-independent portion of the escape-sequence
-grammar historically embedded inside :mod:`urwid.vterm`'s ``TermCanvas`` --
+grammar historically embedded inside :mod:`urwid.term_canvas`'s ``TermCanvas`` --
 SGR colour/attribute interpretation, horizontal cursor movement, BEL, OSC
 title, OSC 8 hyperlink, DEC Special Graphics and keyboard-LED recognition -- into a form that can be used to
 interpret a single string (or a stream of chunks) of ANSI-coloured text
@@ -921,7 +921,7 @@ def parse_ansi_text(text: str, previous_attr: AttrSpec | ParsedLine | None = Non
 def led_state(mode: int) -> str | None:
     """Map a keyboard-LED ``CSI n q`` mode number to its urwid-facing state name.
 
-    Shared by :class:`AnsiParser` and :mod:`urwid.vterm`'s ``TermCanvas.csi_set_keyboard_leds`` so the LED code
+    Shared by :class:`AnsiParser` and :mod:`urwid.term_canvas`'s ``TermCanvas.csi_set_keyboard_leds`` so the LED code
     mapping is maintained in exactly one place.
 
     :param mode: the ``CSI n q`` mode number to resolve.
@@ -941,7 +941,7 @@ def led_state(mode: int) -> str | None:
 def resolve_osc_title(buf: str) -> str | None:
     """Resolve the window-title text encoded in an OSC command body, if it matches a recognised title prefix.
 
-    Applies the same prefix rules xterm and :mod:`urwid.vterm` use to recognise an OSC window-title request -- a
+    Applies the same prefix rules xterm and :mod:`urwid.term_canvas` use to recognise an OSC window-title request -- a
     body starting (after stripping leading zeros) with ``;``, ``0;`` or ``2;`` -- and returns the text following
     the first ``;``. Returns ``None`` for any other OSC body (e.g. an unrecognised or palette-setting OSC), rather
     than raising.

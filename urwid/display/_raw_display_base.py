@@ -176,7 +176,7 @@ class TerminalProperties:
 
 @dataclasses.dataclass
 class TermModes:
-    """Terminal modes negotiated with the real host terminal (counterpart to `vterm.TermModes`).
+    """Terminal modes negotiated with the real host terminal (counterpart to `term_canvas.TermModes`).
 
     None: sentinel, resolved by a DECRPM reply (see escape.PrivateMode) or an explicit Screen.__init__ arg.
     """

@@ -1476,7 +1476,7 @@ class PrivateMode(enum.StrEnum):
 
     Not every member is queried or acted on, some members are for future development.
     `_raw_display_base.TermModes` carries a field for each mode the raw display queries.
-    `vterm.TermModes` carries the modes a `Terminal` acts on, with one field for each group of modes that replace
+    `term_canvas.TermModes` carries the modes a `Terminal` acts on, with one field for each group of modes that replace
     each other, such as the mouse tracking modes.
     """
 
@@ -1489,7 +1489,7 @@ class PrivateMode(enum.StrEnum):
     CURSOR_BLINK = "12"
     CURSOR_VISIBLE = "25"  # DECTCEM
     # The alternate screen (47, 1047, 1049) and the cursor saved as DECSC saves it (1048); a Terminal implements them
-    # as `vterm.TermCanvas.set_alternate_screen` describes.
+    # as `term_canvas.TermCanvas.set_alternate_screen` describes.
     ALTERNATE_SCREEN = "47"
     ALTERNATE_SCREEN_CLEARED_ON_EXIT = "1047"
     SAVE_CURSOR = "1048"
