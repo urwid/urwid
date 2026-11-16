@@ -721,6 +721,13 @@ user cannot see it.  A Columns wider than the screen therefore does not scroll t
 its hidden columns when the focus moves; it shows them again once it is wide
 enough.
 
+When the columns do not fit, the columns after the focus column are left out
+first, then the ones before it, starting from the left.  With
+``shrink_pack=True`` a ``PACK`` column whose widget can render at any width,
+such as a :class:`Text` label, narrows towards ``min_width`` before any column
+is left out, as the ``PACK`` columns of a :class:`Table` do.  A narrowed text
+wraps onto more rows.  See :attr:`Columns.shrink_pack`.
+
 
 GridFlow Widgets
 ----------------

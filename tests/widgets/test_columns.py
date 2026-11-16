@@ -793,6 +793,118 @@ class ColumnsTest(unittest.TestCase):
             widget.min_width = 2
             self.assertEqual([2], widget.column_widths((2,)))
 
+        with self.subTest("shrink_pack"):
+            widget = urwid.Columns([(urwid.PACK, urwid.Text("aaaa")), SelectableText("b")], focus_column=1)
+            self.assertEqual([0, 3], widget.column_widths((3,)))
+            widget.shrink_pack = True
+            self.assertEqual([2, 1], widget.column_widths((3,)))
+
+    def test_shrink_pack(self) -> None:
+        """With ``shrink_pack`` a 'pack' column that renders at any width narrows before a column is dropped."""
+
+        class FixedBox(urwid.Widget):
+            """A widget 6 columns wide when packed, which renders as a box but not as a flow widget."""
+
+            _sizing = frozenset((urwid.FIXED, urwid.BOX))
+
+            def pack(self, size: tuple[()] | tuple[int, int] = (), focus: bool = False) -> tuple[int, int]:
+                return (6, 1)
+
+            def render(self, size: tuple[()] | tuple[int, int], focus: bool = False) -> urwid.SolidCanvas:
+                return urwid.SolidCanvas("x", *(size or self.pack(size, focus)))
+
+        label = "Select the file system:"
+        for name, contents, kwargs, size, widths in (
+            ("flow, not narrowed", [(urwid.PACK, urwid.Text(label)), urwid.Edit()], {}, (23,), [0, 23]),
+            ("flow", [(urwid.PACK, urwid.Text(label)), urwid.Edit()], {"shrink_pack": True}, (23,), [22, 1]),
+            (
+                "floor at min_width",
+                [(urwid.PACK, urwid.Text(label)), urwid.Edit()],
+                {"shrink_pack": True, "min_width": 10},
+                (22,),
+                [12, 10],
+            ),
+            (
+                "in proportion to the width above the floor",
+                [(urwid.PACK, urwid.Text("a" * 10)), (urwid.PACK, urwid.Text("b" * 20)), urwid.Edit()],
+                {"shrink_pack": True},
+                (23,),
+                [8, 14, 1],
+            ),
+            (
+                "FIXED only keeps its width",
+                [(urwid.PACK, urwid.BigText("1234", urwid.Thin3x3Font())), urwid.Edit()],
+                {"shrink_pack": True},
+                (10,),
+                [0, 10],
+            ),
+            ("BOX in a flow render", [(urwid.PACK, FixedBox()), urwid.Edit()], {"shrink_pack": True}, (5,), [0, 5]),
+            ("BOX in a box render", [(urwid.PACK, FixedBox()), urwid.Edit()], {"shrink_pack": True}, (5, 2), [4, 1]),
+            (
+                "min_width 0, not narrowed",
+                [(urwid.PACK, urwid.Text("x" * 12)), (urwid.PACK, urwid.Text("yyy")), urwid.Edit()],
+                {"min_width": 0},
+                (10,),
+                [0, 3, 7],
+            ),
+            (
+                "min_width 0 keeps the weighted focus column",
+                [(urwid.PACK, urwid.Text("x" * 12)), (urwid.PACK, urwid.Text("yyy")), urwid.Edit()],
+                {"shrink_pack": True, "min_width": 0},
+                (10,),
+                [6, 3, 1],
+            ),
+            (
+                "min_width 0 keeps the weighted columns after the focus",
+                [(urwid.PACK, urwid.Text("x" * 7)), urwid.Edit(), urwid.Edit()],
+                {"shrink_pack": True, "min_width": 0, "dividechars": 2, "focus_column": 0},
+                (10,),
+                [4, 1, 1],
+            ),
+            (
+                "a column after the focus, not narrowed",
+                [urwid.Edit(), (urwid.PACK, urwid.Text("a" * 10))],
+                {"dividechars": 1, "focus_column": 0},
+                (8,),
+                [8],
+            ),
+            (
+                "a column after the focus kept by narrowing",
+                [urwid.Edit(), (urwid.PACK, urwid.Text("a" * 10))],
+                {"shrink_pack": True, "dividechars": 1, "focus_column": 0},
+                (8,),
+                [1, 6],
+            ),
+            (
+                "the focus column narrows",
+                [(urwid.PACK, urwid.Text("a" * 10)), (urwid.PACK, SelectableText("b" * 10))],
+                {"shrink_pack": True, "dividechars": 1},
+                (12,),
+                [5, 6],
+            ),
+        ):
+            with self.subTest(name):
+                widget = urwid.Columns(contents, **{"focus_column": len(contents) - 1, "dividechars": 0, **kwargs})
+                self.assertEqual(widths, widget.column_widths(size, focus=True))
+
+        with self.subTest("BOX in a flow render, then in a box render of the same width"):
+            widget = urwid.Columns([(urwid.PACK, FixedBox()), urwid.Edit()], focus_column=1, shrink_pack=True)
+            self.assertEqual([0, 5], widget.column_widths((5,), focus=True))
+            self.assertEqual([4, 1], widget.column_widths((5, 2), focus=True))
+
+        with self.subTest("the narrowed text wraps"):
+            widget = urwid.Columns(
+                [(urwid.PACK, urwid.Text("aaaa bbbb")), SelectableText("c")],
+                focus_column=1,
+                dividechars=1,
+                shrink_pack=True,
+            )
+            self.assertEqual([b"aaaa c", b"bbbb  "], widget.render((6,), focus=True).text)
+            self.assertEqual(
+                "<Columns selectable fixed/flow widget (2 items) dividechars=1 focus_column=1 shrink_pack=True>",
+                repr(widget),
+            )
+
     def test_default_focus_skips_hidden_columns(self) -> None:
         """A column that is not drawn gets the initial focus only when no other column is selectable."""
         for hidden, min_width in (

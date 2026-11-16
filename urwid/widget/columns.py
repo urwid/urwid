@@ -49,6 +49,31 @@ _GIVEN_BOX = _ContainerElementSizingFlag.BOX | _ContainerElementSizingFlag.WH_GI
 _BOX_OR_FLOW = frozenset((Sizing.BOX, Sizing.FLOW))
 
 
+def _shrink_by_slack(widths: list[int], minimums: dict[int, int], deficit: int) -> None:
+    """Narrow the columns in *minimums* by *deficit* screen columns in total.
+
+    Each column gives up a share in proportion to how far it is above its minimum.
+    The screen columns the rounding leaves over come off the widest column above its minimum, one at a time.
+
+    :param widths: the width of every column, changed in place.
+    :param minimums: the smallest width of each column that may narrow, by column index.
+    :param deficit: the screen columns to take, more than 0 and at most the sum of the widths above the minimums.
+    """
+    slack = {index: widths[index] - minimum for index, minimum in minimums.items()}
+    total = sum(slack.values())
+    remainder = deficit
+    for index, amount in slack.items():
+        given_up = amount * deficit // total
+        widths[index] -= given_up
+        remainder -= given_up
+    for _ in range(remainder):
+        widest = max(
+            (index for index in minimums if widths[index] > minimums[index]),
+            key=lambda index: widths[index],
+        )
+        widths[widest] -= 1
+
+
 class ColumnsError(WidgetError):
     """Columns related errors."""
 
@@ -262,6 +287,7 @@ class Columns(
         select_navigation: bool = False,
         unfocused_focus_attr: _AttrMapLike | None = None,
         unfocused_focus_attr_func: _UnfocusedFocusAttrFunc | None = None,
+        shrink_pack: bool = False,
     ) -> None:
         """Initialize a new Columns instance.
 
@@ -281,6 +307,8 @@ class Columns(
             focus, in any form :class:`AttrMap` takes; see :attr:`unfocused_focus_attr`.
         :param unfocused_focus_attr_func: function that gives the map applied to the focus child while the columns
             renders without focus, instead of *unfocused_focus_attr*; see :attr:`unfocused_focus_attr_func`.
+        :param shrink_pack: narrow the ``'pack'`` columns that can render at any width before dropping a column,
+            see :attr:`shrink_pack`.
         :raises ColumnsError: an item of *widget_list* is not a widget or a valid ``(width, widget)`` pair.
         :raises ValueError: *focus_column* is a widget that is not in *widget_list*.
         :warns ColumnsWarning: an item of *widget_list* is not a widget.
@@ -310,7 +338,8 @@ class Columns(
         filling the full height.
         """
         self._cache_column_widths: list[int] = []
-        self._cache_pack_widths: dict[int, int] = {}
+        # the packed width of every 'pack' column and whether it can render narrower, by position
+        self._cache_pack_widths: dict[int, tuple[int, bool]] = {}
         # the widths of the last layout, by position, or None before the first layout of the current contents:
         # keyboard navigation skips the columns it left 0 wide or did not lay out
         self._cache_layout_widths: tuple[int, ...] | None = None
@@ -400,6 +429,7 @@ class Columns(
             self.focus_position = focus_column
         self.pref_col: Literal["left", "right", Align.LEFT, Align.RIGHT] | int | None = None
         self._min_width = min_width
+        self._shrink_pack = shrink_pack
         self._cache_maxcol: int | None = None
         self.select_navigation = select_navigation
         self._set_unfocused_focus_attr(unfocused_focus_attr)
@@ -430,6 +460,7 @@ class Columns(
             "select_navigation": self.select_navigation,
             "unfocused_focus_attr": self._unfocused_focus_attr,
             "unfocused_focus_attr_func": self._unfocused_focus_attr_func,
+            "shrink_pack": self.shrink_pack,
         }
         return remove_defaults(attrs, Columns.__init__)
 
@@ -463,6 +494,7 @@ class Columns(
         yield "select_navigation", self.select_navigation, False
         yield "unfocused_focus_attr", self._unfocused_focus_attr, None
         yield "unfocused_focus_attr_func", self._unfocused_focus_attr_func, None
+        yield "shrink_pack", self.shrink_pack, False
 
     def __len__(self) -> int:
         """Return the number of columns."""
@@ -665,6 +697,34 @@ class Columns(
         self._min_width = min_width
         self._invalidate()
 
+    @property
+    def shrink_pack(self) -> bool:
+        """Whether a ``'pack'`` column narrows below its packed width before any column is dropped.
+
+        It applies to a column whose widget renders at any width given to it:
+        one that supports FLOW sizing,
+        and one that supports BOX sizing in a column listed in *box_columns* or in a Columns rendered as a box.
+        Such columns narrow in proportion to how far each is above :attr:`min_width`, and never below it.
+        A column already narrower than :attr:`min_width` keeps its packed width.
+        With a :attr:`min_width` of 0, the floor of these columns and of the weighted columns of nonzero weight is 1.
+        A ``'pack'`` column with only FIXED sizing keeps its packed width.
+        A narrowed text wraps onto more rows, as its ``wrap`` mode says.
+        Columns are dropped as :meth:`column_widths` describes only when the narrowed columns still do not fit.
+
+        >>> from urwid import Edit, Text
+        >>> row = [(WHSettings.PACK, Text("Select the file system:")), Edit()]
+        >>> Columns(row, dividechars=1, focus_column=1).column_widths((24,))
+        [0, 24]
+        >>> Columns(row, dividechars=1, focus_column=1, shrink_pack=True).column_widths((24,))
+        [22, 1]
+        """
+        return self._shrink_pack
+
+    @shrink_pack.setter
+    def shrink_pack(self, shrink_pack: bool) -> None:
+        self._shrink_pack = shrink_pack
+        self._invalidate()
+
     def _select_candidates(self, *, reverse: bool, from_edge: bool) -> Iterator[int]:
         """Yield the selectable positions as the base class does.
 
@@ -718,6 +778,11 @@ class Columns(
 
         A width of 0 hides the corresponding column completely, and keyboard navigation skips it.
         A subclass may override this method to lay the columns out itself; every sized layout uses its result.
+
+        The columns are laid out from the left.
+        After the focus column, the first column that does not fit is dropped with every column after it.
+        When the columns still do not fit, columns are dropped from the left, the focus column included.
+        With :attr:`shrink_pack`, the ``'pack'`` columns that can narrow do so before any column is dropped.
         """
         maxcol = size[0]
 
@@ -726,9 +791,10 @@ class Columns(
             size_kind: WHSettings,
             is_box: bool,
             focused: bool,
-        ) -> int:
+        ) -> tuple[int, bool]:
             """Calculate the width a 'pack' column takes by packing its widget.
 
+            :returns: the packed width, and whether the widget renders at any width given to it.
             :warns ColumnsWarning: the column holds an object that is not a widget,
                 or its widget supports neither FIXED nor FLOW sizing.
             """
@@ -738,6 +804,11 @@ class Columns(
             else:
                 warnings.warn(f"{widget!r} is not a Widget", ColumnsWarning, stacklevel=4)
                 w_sizing = frozenset((urwid.BOX, urwid.FLOW))
+
+            # the sizes get_column_sizes() renders the column at: (width, height) for BOX, (width,) for FLOW
+            resizable = self._shrink_pack and (
+                Sizing.FLOW in w_sizing or (Sizing.BOX in w_sizing and (is_box or len(size) == 2))
+            )
 
             if w_sizing & frozenset((Sizing.FIXED, Sizing.FLOW)):
                 candidate_size = 0
@@ -755,7 +826,7 @@ class Columns(
                         focused,
                     )[0]
 
-                return candidate_size
+                return candidate_size, resizable
 
             warnings.warn(
                 f"Unusual widget {widget} sizing for {size_kind} (box={is_box}). "
@@ -763,7 +834,7 @@ class Columns(
                 ColumnsWarning,
                 stacklevel=4,
             )
-            return widget.pack((maxcol,), focused)[0]
+            return widget.pack((maxcol,), focused)[0], resizable
 
         # 'pack' widgets can change their packed width without invalidating the cache,
         # so recompute their widths and reuse the cached result only when nothing changed.
@@ -776,6 +847,10 @@ class Columns(
             for i, (w, (t, width, b)) in enumerate(contents)
             if t == WHSettings.PACK
         }
+        # a narrowing 'pack' column is laid out at its floor first and gets its packed width back after the drop;
+        # a weighted column of nonzero weight keeps a floor of 1 then, so restoring the 'pack' widths cannot hide it
+        floor = max(min_width, 1) if self._shrink_pack else min_width
+        floors = {i: min(width, floor) for i, (width, resizable) in pack_widths.items() if resizable}
         if maxcol == self._cache_maxcol and pack_widths == self._cache_pack_widths:
             self._cache_layout_widths = tuple(self._cache_column_widths)
             return self._cache_column_widths
@@ -794,9 +869,9 @@ class Columns(
             if options[0] == WHSettings.GIVEN:
                 static_w = options[1]
             elif options[0] == WHSettings.PACK:
-                static_w = pack_widths[i]
+                static_w = floors.get(i, pack_widths[i][0])
             else:
-                static_w = min_width
+                static_w = floor if options[1] else min_width
 
             divider = dividechars if static_w > 0 or options[0] not in {WHSettings.GIVEN, WHSettings.PACK} else 0
             if shared < static_w + divider and i > focus_position:
@@ -817,7 +892,16 @@ class Columns(
             if weighted and weighted[0][1] == i:
                 del weighted[0]
 
-        grow = shared + len(weighted) * min_width
+        # the columns kept fit with the narrowing ones at their floors, so narrowing them covers any overflow
+        if kept := {i: floor for i, floor in floors.items() if i < len(widths) and widths[i]}:
+            for i in kept:
+                widths[i] = pack_widths[i][0]
+            shared -= sum(widths[i] - floor for i, floor in kept.items())
+            if shared < 0:
+                _shrink_by_slack(widths, kept, -shared)
+                shared = 0
+
+        grow = shared + sum(widths[i] for _weight, i in weighted)
         if weighted and (max_weight := max(weight for weight, _i in weighted)) > sys.float_info.max / (
             len(weighted) * max(grow, 1)
         ):
@@ -828,7 +912,7 @@ class Columns(
         if shared and wtotal:
             # divide up the remaining space between weighted cols
             for weight, i in sorted(weighted):
-                width = max(int(grow * weight / wtotal + 0.5), min_width)
+                width = max(int(grow * weight / wtotal + 0.5), floor if weight else min_width)
 
                 widths[i] = width
                 grow -= width
