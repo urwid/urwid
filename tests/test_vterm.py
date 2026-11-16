@@ -454,14 +454,16 @@ class TermTest(unittest.TestCase):
         self.resize(80, 24)
         self.edgewall()
         self.expect("1-" + " " * 76 + "-2" + "\n" * 22 + "3-" + " " * 76 + "-4")
+        # the bottom line is redrawn one row higher each time, and the blank rows below it go first,
+        # so the top line stays on the screen
         for y in range(23, 1, -1):
             self.resize(80, y, soft=True)
             self.write(r"\e[%df\e[J3-\e[%d;%df-4" % (y, y, 79))
             desc = "try to rescale to 80x%d." % y
-            self.expect("\n" * (y - 2) + "3-" + " " * 76 + "-4", desc)
+            self.expect("1-" + " " * 76 + "-2" + "\n" * (y - 1) + "3-" + " " * 76 + "-4", desc)
         self.resize(80, 24, soft=True)
         self.flush()
-        self.expect("1-" + " " * 76 + "-2" + "\n" * 22 + "3-" + " " * 76 + "-4")
+        self.expect("1-" + " " * 76 + "-2" + "\n" + "3-" + " " * 76 + "-4")
 
     def write_movements(self, arg):
         fmt = "XXX\n\\e[faaa\\e[Bccc\\e[Addd\\e[Bfff\\e[Cbbb\\e[A\\e[Deee"
@@ -1173,14 +1175,15 @@ class TermTest(unittest.TestCase):
     def test_resize_keeps_the_cursor_on_its_line(self) -> None:
         """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
         self.write("a\nb\nc\\e[2;2H")
-        for size, char in (((70, 24), "X"), ((70, 23), "Y"), ((80, 24), "Z")):
+        # two rows: the blank rows below the cursor go first, then "a" moves into the scrollback
+        for size, char in (((70, 24), "X"), ((70, 2), "Y"), ((80, 24), "Z")):
             self.read()
             self.resize(*size)
             self.write(char)
         self.expect("a\nbXYZ\nc")
         self.write(r"\e[2;2H\e7")
         self.read()
-        self.resize(80, 23)
+        self.resize(80, 2)
         self.write(r"\e8W")
         self.expect("bWYZ\nc")
         self.write(r"\e[1;3H\e7")
@@ -1188,6 +1191,21 @@ class TermTest(unittest.TestCase):
         self.resize(80, 24)
         self.write(r"\e8V")
         self.expect("a\nbWVZ\nc")
+        # shrinking past the cursor's row and growing back leaves the cursor at the end of its line
+        self.write("\\echello\nworld")
+        for size in ((80, 1), (80, 24)):
+            self.read()
+            self.resize(*size)
+        self.write("!")
+        self.expect("hello\nworld!")
+        # a view scrolled back past what a resize leaves in the scrollback is moved down, and still renders whole
+        self.write("\\ec1\n2\n3\n4\n5")
+        self.read()
+        self.resize(80, 3)
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.resize(80, 5)
+        self.assertEqual(self.term.term.scrolling_up, 0)
+        self.assertEqual(5, len(list(self.term.render((80, 5)).content())))
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
@@ -1532,6 +1550,7 @@ class TermTest(unittest.TestCase):
         """A key the child has no byte form for leaves the view where it was scrolled to."""
         self.resize(10, 3)
         self.write("1\n2\n3\n4\n5")
+        self.drain()
         self.term.term.scroll_buffer(up=True, lines=2)
         self.term.keygrab = True
         self.assertEqual(self.term.keypress(self.termsize, "shift up"), "shift up")

@@ -614,10 +614,14 @@ class TermCanvas(Canvas):
             self.addbyte(byte)
 
     def resize(self, width: int, height: int) -> None:
-        """Resize both screens to the given width and height, keeping the cursor and saved cursors on their lines."""
+        """Resize both screens to the given width and height.
+
+        A screen that shrinks drops its blank bottom rows below the cursor first, so the cursor stays on its line
+        unless a row below it holds content; the cursor and the saved cursors move with the rows that stay.
+        """
         x, y = self.term_cursor
 
-        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height)
+        shift = self._resize_lines(self.term, self.scrollback_buffer, width, height, cursor_row=y)
         y += shift
         if self.saved_cursor is not None:
             self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
@@ -630,6 +634,8 @@ class TermCanvas(Canvas):
         self.height = height
 
         self.reset_scroll()
+        # growing takes lines back from the scrollback, so a view scrolled back past what is left is moved down
+        self.scrolling_up = min(self.scrolling_up, len(self.scrollback_buffer))
 
         x, y = self.constrain_coords(x, y)
         self.set_term_cursor(x, y)
@@ -643,11 +649,16 @@ class TermCanvas(Canvas):
         scrollback: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]],
         width: int,
         height: int,
+        *,
+        cursor_row: int | None = None,
     ) -> int:
         """Fit *lines*, a screen of the current size, to *width* and *height* in place.
 
         A screen that shrinks moves its top lines to the end of *scrollback*, and one that grows takes them back from
         there, or adds blank lines at the bottom once *scrollback* is empty.
+        With *cursor_row*, a shrinking screen first drops the blank lines at its bottom below that row,
+        so the lines above stay on the screen.
+        A blank line is spaces with no attributes, in any character set.
 
         :returns: how many rows the lines that stay on the screen moved down, negative when they moved up.
         """
@@ -665,6 +676,13 @@ class TermCanvas(Canvas):
             lines.insert(0, last_line[:width] + [_BLANK_CELL] * (width - len(last_line)))
             shift += 1
         for _y in range(height, self.height):
+            if (
+                cursor_row is not None
+                and len(lines) - 1 > cursor_row + shift
+                and all(attr is None and text == b" " for attr, _charset, text in lines[-1])
+            ):
+                lines.pop()
+                continue
             scrollback.append(lines.pop(0))
             shift -= 1
 
