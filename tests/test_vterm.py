@@ -617,6 +617,23 @@ class TermTest(unittest.TestCase):
             self.write("\\e%G\xe2\x80\x94")
             self.expect("?")
 
+    def test_encoding_unicode_csi_byte(self):
+        """Show a UTF-8 character that is the CSI byte in urwid's encoding as a cell, and keep escapes as they were."""
+        self.connect_signal("title")
+        with set_temporary_encoding("cp1252"):
+            # U+203A is 0x9B in cp1252.
+            self.write("\\e%Ga\xe2\x80\xba1m")
+            self.expect([[(None, None, char) for char in (b"a", b"\x9b", b"1", b"m")]], raw=True)
+            # In an OSC string the character is part of the title.
+            self.write("\\e]2;a\xe2\x80\xbab\a")
+            self.read()
+            self.expect_signal("a\u203ab")
+            # In CSI parameters it starts a new CSI, so ESC [ U+203A 25 l does not hide the cursor.
+            self.write("\\e[\xe2\x80\xba25l")
+            self.read()
+            self.assertTrue(self.term.term_modes.visible_cursor)
+        self.disconnect_signal("title")
+
     def test_encoding_unicode_ascii_dec_special(self):
         """A DEC drawing character, or a fallback to one, from a UTF-8 child is one cell in the DEC character set."""
         self.addCleanup(urwid.set_ascii_fallbacks, urwid.get_ascii_fallbacks())

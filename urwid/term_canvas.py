@@ -953,6 +953,11 @@ class TermCanvas(Canvas):
                             # a DEC drawing character, or a fallback to one: one cell in the DEC character set
                             self.push_cursor(char, dec_special=True)
                             return
+                        if char == b"\x9b":
+                            # A character whose byte in urwid's encoding is 0x9B (U+203A in cp1252, U+042B in cp866)
+                            # is a cell, as the display draws that byte; process_char() would run it as CSI.
+                            self.push_cursor(char)
+                            return
 
                 else:
                     # an invalid multibyte sequence is dropped, and parse_osc() refuses an OSC string that had one
