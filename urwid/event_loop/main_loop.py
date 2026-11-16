@@ -711,6 +711,14 @@ class MainLoop:
         If you would prefer to manage the event loop yourself, don't use this
         method.  Instead, call :meth:`start` before starting the event loop,
         and :meth:`stop` once it's finished.
+
+        :raises RuntimeError: the event loop refuses to run from where this is called.
+            The asyncio, Tornado, Trio, Twisted and ZMQ loops refuse while they are running.
+            The asyncio, Tornado and ZMQ loops also refuse while another asyncio loop is running in this thread.
+            The Trio loop also refuses inside another Trio run.
+            Under ``nest_asyncio``, which lets asyncio loops run nested,
+            the asyncio, Tornado and ZMQ loops do not refuse.
+            Nothing is started before the error.
         """
         with suppress(ExitMainLoop):
             self._run()
@@ -730,6 +738,7 @@ class MainLoop:
         >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()  # doctest:+ELLIPSIS
+        event_loop._check_run()
         screen.start()
         screen.set_mouse_tracking()
         screen.unhook_event_loop(...)
@@ -916,6 +925,9 @@ class MainLoop:
         screen.hook_event_loop(self.event_loop, self._update)
 
     def _run(self) -> None:
+        # start() changes the screen and the hooks of a run that is already in progress,
+        # so a run the event loop refuses is refused before it.
+        self.event_loop._check_run()  # pylint: disable=protected-access  # cooperating class
         try:
             self.start()
         except CantUseExternalLoop:

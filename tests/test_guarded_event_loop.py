@@ -153,6 +153,11 @@ class GuardedEventLoopTest(unittest.TestCase):
         with mock.patch.object(self.inner, "run") as run:
             self.loop.run()
         run.assert_called_once_with()
+        with (
+            mock.patch.object(self.inner, "_check_run", side_effect=RuntimeError("running")),
+            self.assertRaisesRegex(RuntimeError, "running"),
+        ):
+            self.loop._check_run()
         with self.assertRaises(NotImplementedError):
             self.loop.run_in_executor(mock.Mock(), print)
 

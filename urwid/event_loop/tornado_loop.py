@@ -42,6 +42,8 @@ if typing.TYPE_CHECKING:
     from concurrent.futures import Executor
     from typing import Literal, ParamSpec
 
+    from tornado.platform.asyncio import BaseAsyncIOLoop
+
     _Spec = ParamSpec("_Spec")
     _T = typing.TypeVar("_T")
 
@@ -286,3 +288,29 @@ class TornadoEventLoop(EventLoop):
         if self._exc:
             exc, self._exc = self._exc, None
             raise exc.with_traceback(exc.__traceback__)
+
+    def _check_run(self) -> None:
+        """Raise the error :mod:`asyncio` raises for a run of the IOLoop's asyncio loop while a loop is running.
+
+        A :class:`asyncio.BaseEventLoop` is asked through its own check, which its ``run_forever()`` calls,
+        so a loop whose check is replaced to allow a nested run, as by ``nest_asyncio``, is not refused.
+
+        :raises RuntimeError: the asyncio loop under the IOLoop is running,
+            or another asyncio loop is running in this thread.
+            Neither is refused when the loop's own check was replaced to allow a nested run.
+        """
+        # Every IOLoop of the supported Tornado releases runs on an asyncio loop.
+        asyncio_loop = typing.cast("BaseAsyncIOLoop", self._loop).asyncio_loop
+        if isinstance(asyncio_loop, asyncio.BaseEventLoop):
+            # pyrefly: ignore[missing-attribute]  # private to asyncio and not in typeshed
+            asyncio_loop._check_running()  # type: ignore[attr-defined]  # pylint: disable=protected-access
+            return
+        if asyncio_loop.is_running():
+            msg = "This event loop is already running"
+            raise RuntimeError(msg)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        msg = "Cannot run the event loop while another loop is running"
+        raise RuntimeError(msg)

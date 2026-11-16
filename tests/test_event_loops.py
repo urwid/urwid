@@ -42,6 +42,9 @@ else:
 
 try:
     import twisted
+    import twisted.internet.defer
+    import twisted.internet.error
+    import twisted.internet.testing
 except ImportError:
     TWISTED_AVAILABLE = False
 else:
@@ -540,10 +543,93 @@ class MainLoopTestMixin:
     """MainLoop run on the event loop of the test case."""
 
     evl: urwid.EventLoop
+    # Whether the event loop refuses run() while it is running. The select loop runs inside its own run.
+    nested_run_refused: typing.ClassVar[bool] = True
+    # Whether the event loop refuses run() while an asyncio loop it does not run on is running in the thread.
+    run_inside_other_asyncio_loop_refused: typing.ClassVar[bool] = False
 
     def _main_loop_event_loop(self) -> urwid.EventLoop:
         """Return the event loop to run a :class:`urwid.MainLoop` on."""
         return self.evl
+
+    def test_main_loop_run_inside_another_asyncio_loop_starts_nothing(self) -> None:
+        """A run() the event loop refuses inside another running asyncio loop is refused before the screen starts."""
+        if not self.run_inside_other_asyncio_loop_refused:
+            self.skipTest("the event loop runs inside another asyncio loop")
+        loop = external_loop(event_loop=self._main_loop_event_loop())
+        other = asyncio.new_event_loop()
+        self.addCleanup(other.close)
+
+        async def scenario() -> urwid.MainLoop | None:
+            # The task runs in its own copy of the context, so the running loop is read inside it.
+            with self.assertRaises(RuntimeError):
+                loop.run()
+            return urwid.get_running_loop_or_none()
+
+        self.assertIsNone(other.run_until_complete(scenario()))
+        typing.cast("mock.Mock", loop.screen).start.assert_not_called()
+
+    def _asyncio_loop(self) -> asyncio.AbstractEventLoop | None:
+        """Return the asyncio loop the event loop's run() runs, or None when it has none of its own."""
+        return None
+
+    def test_check_run_uses_the_asyncio_loop_check(self) -> None:
+        """The asyncio loop's own check decides, so a check replaced to allow a nested run lets the run through."""
+        if (asyncio_loop := self._asyncio_loop()) is None:
+            self.skipTest("the event loop runs no asyncio loop of its own")
+        other = asyncio.new_event_loop()
+        self.addCleanup(other.close)
+
+        async def scenario() -> mock.Mock:
+            # Replaced with a no-op, as nest_asyncio does; the original refuses inside a running loop.
+            with mock.patch.object(asyncio_loop, "_check_running") as check:
+                self.evl._check_run()
+            return check
+
+        other.run_until_complete(scenario()).assert_called_once_with()
+
+    def test_main_loop_refused_nested_run_keeps_the_outer_run(self) -> None:
+        """A run() from a callback that the event loop refuses leaves the outer run reading its started screen."""
+        if not self.nested_run_refused:
+            self.skipTest("the event loop runs inside its own run")
+        out: list[object] = []
+        rd: socket.socket
+        wr: socket.socket
+
+        def nested() -> None:
+            try:
+                loop.run()
+            except RuntimeError:
+                out.append("refused")
+            out.append(("started", loop.screen.started))
+            wr.send(b"x")
+
+        def give_up() -> typing.NoReturn:
+            out.append("timeout")
+            raise urwid.ExitMainLoop
+
+        def unhandled(key: str | tuple[str, int, int, int]) -> typing.NoReturn:
+            out.append(key)
+            raise urwid.ExitMainLoop
+
+        with (
+            ClosingSocketPair() as (rd, wr),
+            ClosingSocketPair() as (_output_rd, output_wr),
+            output_wr.makefile("w", encoding="utf-8") as output,
+        ):
+            loop = urwid.MainLoop(
+                urwid.SolidFill(),
+                screen=urwid.display.raw.Screen(input=rd, output=output),
+                event_loop=self._main_loop_event_loop(),
+                handle_mouse=False,
+                unhandled_input=unhandled,
+            )
+            loop.set_alarm_in(0, lambda *_args: nested())
+            loop.set_alarm_in(10, lambda *_args: give_up())
+            loop.run()
+
+        self.assertEqual(["refused", ("started", True), "x"], out)
+        self.assertIsNone(urwid.get_running_loop_or_none())
 
     def test_main_loop_paused_watches_the_input_again(self) -> None:
         """Input written while MainLoop.paused() runs is read from the restarted screen once the block ends."""
@@ -675,6 +761,8 @@ class SelectEventLoopTest(
     AlarmFairnessTestMixin,
     MainLoopTestMixin,
 ):
+    nested_run_refused = False
+
     def setUp(self):
         self.evl = urwid.SelectEventLoop()
 
@@ -731,6 +819,8 @@ class SelectEventLoopTest(
 
 @unittest.skipIf(IS_WINDOWS, "Windows is temporary not supported by AsyncioEventLoop.")
 class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
+    run_inside_other_asyncio_loop_refused = True
+
     def setUp(self):
         self.evl_runner = asyncio.Runner(loop_factory=asyncio.SelectorEventLoop)
         self.loop = self.evl_runner.get_loop()
@@ -738,6 +828,27 @@ class AsyncioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
 
     def tearDown(self):
         self.evl_runner.close()
+
+    def _asyncio_loop(self) -> asyncio.AbstractEventLoop:
+        """Return the loop of the runner the event loop wraps."""
+        return self.loop
+
+    def test_check_run_without_the_base_event_loop_check(self) -> None:
+        """A loop that is not a BaseEventLoop, such as uvloop's, is refused in the two cases asyncio refuses."""
+        other = asyncio.new_event_loop()
+        self.addCleanup(other.close)
+        idle = mock.Mock(spec=asyncio.AbstractEventLoop, **{"is_running.return_value": False})
+        running = mock.Mock(spec=asyncio.AbstractEventLoop, **{"is_running.return_value": True})
+
+        urwid.AsyncioEventLoop(loop=idle)._check_run()
+        with self.assertRaisesRegex(RuntimeError, "This event loop is already running"):
+            urwid.AsyncioEventLoop(loop=running)._check_run()
+
+        async def scenario() -> None:
+            urwid.AsyncioEventLoop(loop=idle)._check_run()
+
+        with self.assertRaisesRegex(RuntimeError, "Cannot run the event loop while another loop is running"):
+            other.run_until_complete(scenario())
 
     _expected_idle_handle = None
 
@@ -1188,10 +1299,16 @@ class GLibSignalHandlerTest(unittest.TestCase):
     "Windows is temporary not supported by TornadoEventLoop due to race conditions.",
 )
 class TornadoEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin):
+    run_inside_other_asyncio_loop_refused = True
+
     def setUp(self):
         from tornado.ioloop import IOLoop
 
         self.evl = urwid.TornadoEventLoop(IOLoop())
+
+    def _asyncio_loop(self) -> asyncio.AbstractEventLoop:
+        """Return the asyncio loop under the event loop's IOLoop."""
+        return self.evl._loop.asyncio_loop
 
     _expected_idle_handle = None
 
@@ -1479,6 +1596,58 @@ class TwistedEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMi
         for signum in (signal.SIGINT, signal.SIGTERM):
             self.addCleanup(signal.signal, signum, signal.getsignal(signum))
         return urwid.TwistedEventLoop(reactor=reactor)
+
+    def test_check_run_while_startup_is_pending(self) -> None:
+        """A run is refused once the reactor's run() was called, before it reports running."""
+        evl = typing.cast("urwid.TwistedEventLoop", self._main_loop_event_loop())
+        reactor = evl.reactor
+        unmanaged = urwid.TwistedEventLoop(reactor=reactor, manage_reactor=False)
+        startup: twisted.internet.defer.Deferred[None] = twisted.internet.defer.Deferred()
+        # A before-startup trigger that has not fired keeps the reactor out of the running state.
+        reactor.addSystemEventTrigger("before", "startup", lambda: startup)
+        seen: list[object] = []
+
+        def probe() -> None:
+            # Twisted logs and swallows an exception from a callLater callback, so every outcome is recorded.
+            try:
+                seen.append(reactor.running)
+                for loop in (evl, unmanaged):
+                    try:
+                        loop._check_run()
+                    except twisted.internet.error.ReactorAlreadyRunning:
+                        seen.append("refused" if loop is evl else "unmanaged refused")
+            finally:
+                startup.callback(None)
+
+        reactor.callLater(0, probe)
+        reactor.callWhenRunning(reactor.stop)
+        guard = reactor.callLater(10, reactor.stop)
+        reactor.run()
+        if guard.active():
+            guard.cancel()
+
+        self.assertEqual([False, "refused"], seen)
+
+    def test_check_run_with_a_reactor_that_is_not_a_reactor_base(self) -> None:
+        """A reactor such as MemoryReactorClock is checked through its public running attribute."""
+        reactor = twisted.internet.testing.MemoryReactorClock()
+        evl = urwid.TwistedEventLoop(reactor=reactor)
+        unmanaged = urwid.TwistedEventLoop(reactor=reactor, manage_reactor=False)
+        seen: list[str] = []
+
+        def probe() -> None:
+            for loop in (evl, unmanaged):
+                try:
+                    loop._check_run()
+                except twisted.internet.error.ReactorAlreadyRunning:
+                    seen.append("refused" if loop is evl else "unmanaged refused")
+
+        evl._check_run()
+        # Its run() reports running only while it calls these hooks, then stops and returns.
+        reactor.callWhenRunning(probe)
+        reactor.run()
+
+        self.assertEqual(["refused"], seen)
 
     def test_watch_file_twice_replaces_the_watch(self) -> None:
         """A second watch on one descriptor replaces the first one in the reactor."""
@@ -2020,12 +2189,63 @@ class ZMQEventLoopTest(
     AlarmFairnessTestMixin,
     MainLoopTestMixin,
 ):
+    run_inside_other_asyncio_loop_refused = True
+
     def setUp(self):
         self.evl = urwid.ZMQEventLoop()
 
     def _poll_once(self) -> None:
         """Run one iteration of the loop."""
         asyncio.run(self.evl._loop())
+
+    def test_check_run_inside_a_running_loop_unless_asyncio_run_is_replaced(self) -> None:
+        """Inside a running loop, the run is refused unless asyncio.run() was replaced, as nest_asyncio does."""
+        other = asyncio.new_event_loop()
+        self.addCleanup(other.close)
+
+        async def scenario() -> None:
+            with self.assertRaisesRegex(RuntimeError, r"asyncio\.run\(\) cannot be called from a running event loop"):
+                self.evl._check_run()
+            with mock.patch("asyncio.run"):
+                self.evl._check_run()
+
+        other.run_until_complete(scenario())
+
+    def test_run_on_a_running_loop_restores_its_handler_and_the_outer_task(self) -> None:
+        """A run nested under nest_asyncio gives back the loop's own handler and the outer run's main task."""
+
+        def previous_handler(_loop: asyncio.AbstractEventLoop, _context: dict[str, typing.Any]) -> None:
+            """Stand in for an exception handler the application installed."""
+
+        # Stand in for the main task of an outer run of the same event loop.
+        running_outer = mock.Mock(spec=asyncio.Task, **{"done.return_value": False})
+        finished_outer = mock.Mock(spec=asyncio.Task, **{"done.return_value": True})
+        later_run = mock.Mock(spec=asyncio.Task, **{"done.return_value": False})
+        cases = [
+            ("outer run still going", running_outer, False, running_outer),
+            ("outer run finished first", finished_outer, False, None),
+            ("another run became the main task", running_outer, True, later_run),
+        ]
+        for name, outer_task, replaced, expected in cases:
+            with self.subTest(name):
+                evl = urwid.ZMQEventLoop()
+                other = asyncio.new_event_loop()
+                self.addCleanup(other.close)
+                other.set_exception_handler(previous_handler)
+                evl._main_task = outer_task
+
+                def stop(evl: urwid.ZMQEventLoop = evl, replaced: bool = replaced) -> typing.NoReturn:
+                    if replaced:
+                        evl._main_task = later_run
+                    raise urwid.ExitMainLoop
+
+                evl.alarm(0, stop)
+                guard = other.call_later(10, other.stop)
+                other.run_until_complete(evl._run_async())
+                guard.cancel()
+
+                self.assertIs(previous_handler, other.get_exception_handler())
+                self.assertIs(expected, evl._main_task)
 
     def test_fractional_poll_timeout_does_not_busy_spin(self):
         called = []

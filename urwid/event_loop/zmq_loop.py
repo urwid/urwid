@@ -309,10 +309,33 @@ class ZMQEventLoop(EventLoop):
             exc, self._exc = self._exc, None
             raise exc.with_traceback(exc.__traceback__)
 
+    def _check_run(self) -> None:
+        """Raise the error :func:`asyncio.run` raises in a thread whose asyncio loop is running.
+
+        A replaced :func:`asyncio.run`, such as the one ``nest_asyncio`` installs to run inside a running loop,
+        decides for itself, so it is not refused here.
+
+        :raises RuntimeError: an asyncio loop is running in this thread, and :func:`asyncio.run` is not replaced.
+        """
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        if asyncio.run is not asyncio.runners.run:
+            return
+        msg = "asyncio.run() cannot be called from a running event loop"
+        raise RuntimeError(msg)
+
     async def _run_async(self) -> None:
         """Drive :meth:`_loop` until :exc:`ExitMainLoop` is raised, directly or from a background task."""
-        asyncio.get_running_loop().set_exception_handler(self._exception_handler)
-        self._main_task = typing.cast("asyncio.Task[None]", asyncio.current_task())
+        loop = asyncio.get_running_loop()
+        # Under nest_asyncio, the loop can be the application's,
+        # and this run can be nested in another run of this event loop.
+        # Afterwards the loop gets its exception handler back, and the outer run gets its main task back.
+        previous_handler = loop.get_exception_handler()
+        previous_main_task = self._main_task
+        loop.set_exception_handler(self._exception_handler)
+        main_task = self._main_task = typing.cast("asyncio.Task[None]", asyncio.current_task())
         try:
             while True:
                 try:
@@ -323,7 +346,13 @@ class ZMQEventLoop(EventLoop):
         except (ExitMainLoop, asyncio.CancelledError):
             pass
         finally:
-            self._main_task = None
+            # Runs that end out of nesting order leave the main task of the run still going,
+            # and a finished task is not kept alive.
+            if self._main_task is main_task:
+                self._main_task = (
+                    previous_main_task if previous_main_task is not None and not previous_main_task.done() else None
+                )
+            loop.set_exception_handler(previous_handler)
 
     async def _loop(self) -> None:
         """Run a single iteration of the event loop."""

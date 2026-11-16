@@ -31,7 +31,7 @@ import logging
 import typing
 
 from twisted.internet.abstract import FileDescriptor
-from twisted.internet.error import AlreadyCalled, AlreadyCancelled
+from twisted.internet.error import AlreadyCalled, AlreadyCancelled, ReactorAlreadyRunning
 
 from .abstract_loop import EventLoop, ExitMainLoop
 
@@ -43,6 +43,7 @@ if typing.TYPE_CHECKING:
 
     from twisted.internet.base import DelayedCall, ReactorBase
     from twisted.internet.interfaces import IReactorFDSet, IReadDescriptor
+    from twisted.internet.testing import MemoryReactorClock
 
     _Spec = ParamSpec("_Spec")
 
@@ -55,7 +56,7 @@ _T = typing.TypeVar("_T")
 class _TwistedInputDescriptor(FileDescriptor):
     def __init__(
         self,
-        reactor: ReactorBase,
+        reactor: ReactorBase | MemoryReactorClock,
         fd: int,
         cb: Callable[[], typing.Any],
     ) -> None:
@@ -101,10 +102,15 @@ class TwistedEventLoop(EventLoop):
 
     _idle_emulation_delay = 1.0 / 256  # a short time (in seconds)
 
-    def __init__(self, reactor: ReactorBase | None = None, manage_reactor: bool = True) -> None:
+    def __init__(
+        self,
+        reactor: ReactorBase | MemoryReactorClock | None = None,
+        manage_reactor: bool = True,
+    ) -> None:
         """Initialize the event loop, wrapping *reactor* or Twisted's default reactor.
 
-        :param reactor: reactor to use
+        :param reactor: reactor to use, or ``None`` for Twisted's default reactor.
+            Twisted's in-memory test reactor ``MemoryReactorClock`` is accepted as well as a ``ReactorBase``.
         :param manage_reactor: `True` if you want this event loop to run
                                and stop the reactor.
 
@@ -128,7 +134,7 @@ class TwistedEventLoop(EventLoop):
             # pyrefly: ignore[bad-assignment]  # the reactor module is the ReactorBase instance
             reactor = twisted.internet.reactor
         # pyrefly: ignore[bad-assignment]  # the reactor module is the ReactorBase instance
-        self.reactor: ReactorBase = reactor
+        self.reactor: ReactorBase | MemoryReactorClock = reactor
         self._watch_files: dict[int, _TwistedInputDescriptor] = {}
         self._idle_handle: int = 0
         self._twisted_idle_enabled = False
@@ -270,6 +276,29 @@ class TwistedEventLoop(EventLoop):
             exc = self._exc
             self._exc = None
             raise exc.with_traceback(exc.__traceback__)
+
+    def _check_run(self) -> None:
+        """Raise the error the reactor raises for a run while its ``run()`` is in progress.
+
+        A loop that does not manage the reactor never runs it, so it raises nothing.
+        A reactor that is not a :class:`~twisted.internet.base.ReactorBase`, such as Twisted's ``MemoryReactorClock``,
+        is checked through its public ``running`` attribute.
+
+        :raises ReactorAlreadyRunning: this loop manages the reactor,
+            and the reactor's ``run()`` was called and has not returned yet.
+        """
+        # Imported here: the module loads with every ``import urwid``, and by now a reactor has loaded it.
+        import twisted.internet.base
+
+        if not self.manage_reactor:
+            return
+        if isinstance(self.reactor, twisted.internet.base.ReactorBase):
+            # The flag the reactor's own refusal reads: unlike ``running``, it is also set while startup is pending.
+            started = self.reactor._started  # pylint: disable=protected-access
+        else:
+            started = self.reactor.running
+        if started:
+            raise ReactorAlreadyRunning
 
     def handle_exit(self, f: Callable[_Spec, _T], enable_idle: bool = True) -> Callable[_Spec, _T | None]:
         """Wrap *f* so that :exc:`ExitMainLoop` raised inside it exits the :class:`TwistedEventLoop` cleanly.
