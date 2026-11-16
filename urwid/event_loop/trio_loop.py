@@ -229,15 +229,14 @@ class TrioEventLoop(EventLoop):
         """Remove an alarm.
 
         :param handle: the handle of the alarm to remove
-        :returns: True if the alarm was still pending, False if it has fired or was removed already
+        :returns: True if the alarm was still pending, False if it has fired, was removed already,
+            or was cancelled directly with handle.cancel()
         """
-        try:
-            self._pending_alarms.remove(handle)
-        except KeyError:
-            return False
-        finally:
-            handle.cancel()
-        return True
+        # A directly cancelled scope stays in _pending_alarms until its task unwinds.
+        existed = handle in self._pending_alarms and not handle.cancel_called
+        self._pending_alarms.discard(handle)
+        handle.cancel()
+        return existed
 
     def remove_enter_idle(self, handle: int) -> bool:
         """Remove an idle callback.

@@ -1951,6 +1951,21 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin
 
         self.assertEqual(["hi"], out)
 
+    def test_remove_directly_cancelled_alarm(self) -> None:
+        """An alarm whose scope was cancelled directly is not pending, also before its task unwinds."""
+        evl = self.evl
+        out: list[bool] = []
+
+        def step() -> typing.NoReturn:
+            handle = evl.alarm(3600, lambda: None)
+            handle.cancel()
+            out.append(evl.remove_alarm(handle))
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0, step)
+        evl.run()
+        self.assertEqual([False], out)
+
     def test_run_async_embeds_in_an_existing_trio_run(self):
         evl = self.evl
         out: list[str] = []
