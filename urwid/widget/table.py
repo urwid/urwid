@@ -18,7 +18,7 @@ from urwid.canvas import CanvasCombine, CompositeCanvas, SolidCanvas
 from urwid.command_map import Command
 
 from .attr_map import AttrMap, AttrMapError, _attr_map_dict
-from .columns import Columns
+from .columns import Columns, _shrink_by_slack
 from .constants import Align, Sizing, WHSettings, WrapMode
 from .container import WidgetContainerMixin, _WeakCallback
 from .list_walker import SimpleFocusListWalker
@@ -366,20 +366,9 @@ class TableLayout:
                 return tuple(widths)
 
             deficit = reserved - maxcol
-            slack = {index: widths[index] - minimums[index] for index in visible if kinds[index] == WHSettings.PACK}
-            total = sum(slack.values())
-            if total >= deficit:
-                remainder = deficit
-                for index, amount in slack.items():
-                    given_up = amount * deficit // total
-                    widths[index] -= given_up
-                    remainder -= given_up
-                for _ in range(remainder):
-                    widest = max(
-                        (index for index in slack if widths[index] > minimums[index]),
-                        key=lambda index: widths[index],
-                    )
-                    widths[widest] -= 1
+            packed = {index: minimums[index] for index in visible if kinds[index] == WHSettings.PACK}
+            if sum(widths[index] - minimum for index, minimum in packed.items()) >= deficit:
+                _shrink_by_slack(widths, packed, deficit)
                 return tuple(widths)
 
             # the last resort: a row wider than maxcol is the only alternative
