@@ -363,14 +363,27 @@ class TermCanvas(Canvas):
 
     cacheable = False
 
-    def __init__(self, width: int, height: int, widget: _TermCanvasOwner) -> None:
-        """Initialize an empty `width` by `height` canvas backing `widget`."""
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        widget: _TermCanvasOwner,
+        *,
+        scroll_on_output: bool = True,
+    ) -> None:
+        """Initialize an empty `width` by `height` canvas backing `widget`.
+
+        :param scroll_on_output: move a view scrolled back from the bottom to the bottom when output arrives.
+            When off, the view stays on the lines it shows while new lines scroll into the scrollback below them.
+        """
         super().__init__()
 
         self.width, self.height = width, height
         self.widget = widget
         self.modes: TermModes = widget.term_modes
         self.has_focus = False
+        #: Whether output returns a scrolled-back view to the bottom, see :meth:`__init__`.
+        self.scroll_on_output = scroll_on_output
 
         self.scrollback_buffer: deque[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = deque(
             maxlen=10000
@@ -610,6 +623,8 @@ class TermCanvas(Canvas):
             # not displayable, do nothing!
             return
 
+        if self.scrolling_up and self.scroll_on_output and data:
+            self.scroll_buffer(reset=True)
         for byte in data:
             self.addbyte(byte)
 
@@ -1238,6 +1253,9 @@ class TermCanvas(Canvas):
             killed = self.term.pop(self.scrollregion_start)
             self.scrollback_buffer.append(killed)
             self.term.insert(self.scrollregion_end, self.empty_line())
+            if self.scrolling_up and not self.scroll_on_output:
+                # the view moves up with the lines it shows
+                self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
 
     def decaln(self) -> None:
         """DEC screen alignment test: Fill screen with E's."""

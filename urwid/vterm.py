@@ -276,6 +276,8 @@ class Terminal(Widget):
         main_loop: _WatchLoop | None = None,
         escape_sequence: str | None = None,
         encoding: str = "utf-8",
+        *,
+        scroll_on_output: bool = True,
     ) -> None:
         """Initialize a terminal emulator widget.
 
@@ -302,6 +304,10 @@ class Terminal(Widget):
         characters to the spawned process in non-UTF8 encoding.
         Applies to Python 3.x only.
 
+        ``scroll_on_output`` moves a view scrolled back with :kbd:`Page Up` back to the bottom when the child writes,
+        as xterm does by default. Set it to ``False`` to keep the view on the lines it shows while new output scrolls
+        into the scrollback below them.
+
         .. note::
 
             If your Terminal instance does not show Unicode glyphs correctly, urwid's encoding is not UTF-8.
@@ -311,6 +317,7 @@ class Terminal(Widget):
         super().__init__()
 
         self.escape_sequence: str = escape_sequence or "ctrl a"
+        self._scroll_on_output = scroll_on_output
 
         self.env = dict(env or os.environ)
 
@@ -490,7 +497,7 @@ class Terminal(Widget):
         self.set_termsize(width, height)
 
         if not self.term:
-            self.term = TermCanvas(width, height, self)
+            self.term = TermCanvas(width, height, self, scroll_on_output=self._scroll_on_output)
         else:
             self.term.resize(width, height)
             if self.term.modes.in_band_resize:

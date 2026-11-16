@@ -266,11 +266,11 @@ class TermTest(unittest.TestCase):
         self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
         self.resize(80, 24)
 
-    def restart(self, width: int = 80, height: int = 24, soft: bool = False) -> None:
+    def restart(self, width: int = 80, height: int = 24, soft: bool = False, *, scroll_on_output: bool = True) -> None:
         """Replace the terminal under test with a fresh one on a fresh fake PTY, for one case of a table test."""
         self.term.terminate()
         self.pty.reset()
-        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop)
+        self.term = urwid.Terminal(["/bin/false"], main_loop=self.event_loop, scroll_on_output=scroll_on_output)
         self.resize(width, height, soft)
 
     def tearDown(self) -> None:
@@ -1572,6 +1572,17 @@ class TermTest(unittest.TestCase):
         self.term.keygrab = True
         self.assertEqual(self.term.keypress(self.termsize, "shift up"), "shift up")
         self.assertEqual(self.term.term.scrolling_up, 2)
+
+    def test_output_while_scrolled_back(self) -> None:
+        """Return the view to the bottom on output, or keep it on the lines being read with scroll_on_output off."""
+        for scroll_on_output, view in ((True, "6\n7\n8"), (False, "1\n2\n3")):
+            with self.subTest(scroll_on_output=scroll_on_output):
+                self.restart(10, 3, scroll_on_output=scroll_on_output)
+                self.write("1\n2\n3\n4\n5")
+                self.drain()
+                self.term.term.scroll_buffer(up=True, lines=2)
+                self.write("\n6\n7\n8")
+                self.expect(view)
 
     def test_function_keys_above_f12_send_linux_sequences(self) -> None:
         """Send F13-F20 as the linux terminal type defines them, which urwid's own input parser reads back."""
