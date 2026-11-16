@@ -107,6 +107,15 @@ class LineBoxTest(unittest.TestCase):
         box = urwid.LineBox(urwid.Text("Some text"), title=["Title"], title_attr="title")
         self.assertEqual((" Title ", [("title", 7)]), box.title_widget.get_text())
 
+        box.set_title("New")
+        self.assertEqual((" New ", [("title", 5)]), box.title_widget.get_text())
+
+        box.set_title(("key", "K"))
+        self.assertEqual(
+            (" K ", [("title", 1), (urwid.LayeredAttr("key", "title"), 1), ("title", 1)]),
+            box.title_widget.get_text(),
+        )
+
         for empty in ([], b"", ("key", ""), ["", ("key", b"")]):
             with self.subTest(title=empty):
                 box = urwid.LineBox(urwid.Text("abc"), title=empty)
