@@ -125,6 +125,17 @@ class _Activation:
         self.previous = previous  # the start entry of the same loop that this one is nested in
 
 
+class _ThreadCall:
+    """One call queued by :meth:`MainLoop.call_from_thread`."""
+
+    __slots__ = ("__weakref__", "call", "taken")
+
+    def __init__(self, call: Callable[[], object]) -> None:
+        self.call: typing.Final = call
+        # Set by the loop thread before it runs the call, so the sender can tell a call that ran from a dropped one.
+        self.taken = False
+
+
 class _ThreadCalls:
     """Calls handed to a running :class:`MainLoop` from other threads, for one run of the loop.
 
@@ -136,7 +147,7 @@ class _ThreadCalls:
 
     def __init__(self, reader: socket.socket, writer: socket.socket) -> None:
         # append() and popleft() of a deque are atomic, so neither a thread nor a signal handler takes a lock.
-        self.calls: deque[Callable[[], object]] = deque()
+        self.calls: deque[_ThreadCall] = deque()
         self.reader: typing.Final = reader  # watched by the event loop; one byte is sent per wake-up
         self.writer: typing.Final = writer
         self.handle: typing.Any = None  # the event loop's watch of reader
@@ -614,6 +625,8 @@ class MainLoop:
 
         :raises TypeError: *callback* is an ``async def`` function, which this method cannot await.
         :raises RuntimeError: the loop is not running: before :meth:`start` or :meth:`run`, or after :meth:`stop`.
+            Also when the loop stops while this method runs, before it takes the call, which is then dropped.
+            A call the loop took does not raise, even when that call stopped the loop.
             Also while it runs on an event loop that cannot watch files,
             such as :class:`AsyncioEventLoop` on asyncio's ``ProactorEventLoop``, the default on Windows.
         """
@@ -622,11 +635,12 @@ class MainLoop:
             raise TypeError(msg)
         if (state := self._thread_calls) is None:
             raise RuntimeError(_CANNOT_WATCH if self._thread_calls_unwatchable else _NOT_RUNNING)
-        state.calls.append(functools.partial(callback, *args, **kwargs))
+        entry = _ThreadCall(functools.partial(callback, *args, **kwargs))
+        state.calls.append(entry)
         with suppress(BlockingIOError):  # a full buffer means wake-ups are already pending
             state.writer.send(b"\0")
-        if not state.active:
-            # The loop stopped since the state was read, and the call sits in the deque of the ended run.
+        if not state.active and not entry.taken:
+            # The loop stopped before taking the call, so the call never runs.
             raise RuntimeError(_NOT_RUNNING)
 
     def _open_thread_calls(self) -> None:
@@ -686,15 +700,16 @@ class MainLoop:
             with self._as_running():
                 for _ in range(_THREAD_CALLS_PER_PASS):
                     try:
-                        call = state.calls.popleft()
+                        entry = state.calls.popleft()
                     except IndexError:
                         break
+                    entry.taken = True
                     try:
-                        call()
+                        entry.call()
                     except ExitMainLoop:
                         raise
                     except Exception:
-                        self.logger.exception("Unhandled exception in callback %r called from a thread", call)
+                        self.logger.exception("Unhandled exception in callback %r called from a thread", entry.call)
                     if not state.active:
                         break  # a call stopped the loop
         finally:
