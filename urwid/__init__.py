@@ -80,6 +80,7 @@ from urwid.signals import (
     register_signal,
 )
 from urwid.str_util import calc_text_pos, calc_width, is_wide_char, move_next_char, move_prev_char, within_double_byte
+from urwid.term_canvas import TermCanvas, TermCharset, TermModes
 from urwid.text_layout import LayoutSegment, StandardTextLayout, TextLayout, default_layout
 from urwid.util import (
     LayeredAttr,
@@ -418,6 +419,9 @@ __all__: tuple[str, ...] = (
     "Tabs",
     "TabsError",
     "TagMarkupException",
+    "TermCanvas",
+    "TermCharset",
+    "TermModes",
     "Text",
     "TextCanvas",
     "TextError",
@@ -515,9 +519,9 @@ else:
 
 # OS Specific
 if sys.platform != "win32":
-    from .vterm import TermCanvas, TermCharset, Terminal, TermModes
+    from .vterm import Terminal
 
-    __all__ += ("TermCanvas", "TermCharset", "TermModes", "Terminal")
+    __all__ += ("Terminal",)
 
     # ZMQEventLoop cause interpreter crash on Windows
     try:

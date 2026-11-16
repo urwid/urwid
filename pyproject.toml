@@ -382,7 +382,7 @@ matches = "examples/**"
 [tool.pyrefly.sub-config.errors]
 bad-override = "ignore"
 [[tool.pyrefly.sub-config]]
-matches = "urwid/vterm.py"
+matches = "urwid/term_canvas.py"
 [tool.pyrefly.sub-config.errors]
 # CSI_COMMANDS is a table of lambdas, and Pyrefly does not type them from the CSICommand.callback field.
 implicit-any-lambda = "ignore"
