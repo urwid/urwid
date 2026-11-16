@@ -304,10 +304,9 @@ class Terminal(Widget):
 
         .. note::
 
-            If you notice your Terminal instance is not printing unicode glyphs
-            correctly, make sure the global encoding for urwid is set to
-            ``utf8`` with ``urwid.set_encoding("utf8")``. See
-            :ref:`text-encodings` for more details.
+            If your Terminal instance does not show Unicode glyphs correctly, urwid's encoding is not UTF-8.
+            It is taken from the locale at start-up, and ``urwid.set_encoding("utf-8")`` sets it.
+            See :ref:`text-encodings` for more details.
         """
         super().__init__()
 

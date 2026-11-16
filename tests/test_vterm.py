@@ -600,9 +600,15 @@ class TermTest(unittest.TestCase):
         self.assertEqual(length, 5)
 
     def test_encoding_unicode(self):
-        with set_temporary_encoding("utf-8"):
-            self.write("\\e%G\xe2\x80\x94")
-            self.expect("\xe2\x80\x94")
+        """Read UTF-8 output as one cell per character.
+
+        Under a UTF-8 encoding by either name, with or without ESC % G.
+        """
+        for encoding in ("utf-8", "utf8"):
+            for select_utf8 in ("\\e%G", ""):
+                with self.subTest(encoding=encoding, select_utf8=select_utf8), set_temporary_encoding(encoding):
+                    self.write(f"\\ec{select_utf8}\xe2\x80\x94")
+                    self.expect([[(None, None, b"\xe2\x80\x94")]], raw=True)
 
     def test_encoding_unicode_ascii(self):
         with set_temporary_encoding("ascii"):

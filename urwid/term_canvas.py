@@ -903,7 +903,7 @@ class TermCanvas(Canvas):
 
         :param byte: an integer ordinal
         """
-        if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding() == "utf8":
+        if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding_mode() == "utf8":
             continuation = 0x80 <= byte < 0xC0
             pending = self.utf8_eat_bytes is not None
             # A lone continuation byte, or a sequence cut short by a byte that does not continue it, is not valid UTF-8,
