@@ -120,7 +120,7 @@ content.
    * - :class:`BigText`
      - ``'fixed'``
    * - :class:`SolidFill`, :class:`BarGraph`, :class:`GraphVScale`,
-       :class:`Terminal`
+       :class:`Terminal`, :class:`TerminalOutput`
      - ``'box'``
    * - :class:`AttrMap`, :class:`LineBox`, :class:`PopUpLauncher`,
        :class:`WidgetDisable`, :class:`WidgetPlaceholder`
@@ -174,8 +174,10 @@ Basic widgets, controls and graphic widgets are the content with which users
 interact. They may also be used as part of custom widgets you create.
 Controls are the widgets a user operates to make a choice: :class:`Button`,
 :class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
-The graphic widgets also include :class:`Terminal`, a box widget that runs a
-child process and shows its terminal output.
+The terminal widgets are box widgets that emulate a terminal.
+:class:`Terminal` runs a child process and shows its output.
+:class:`TerminalOutput` shows output the application writes to it, such as
+captured output, with no process behind it, and also works on Windows.
 
 The color of a widget's title in the figures shows the sizing modes it
 supports: blue for box, orange for flow and yellow for fixed.  A title in more
