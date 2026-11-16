@@ -131,10 +131,11 @@ class LineBox(
         if not tline and title and formatted_title:
             raise ValueError("Cannot have a title when tline is empty string")
 
-        if title_attr:
-            self.title_widget = Text((title_attr, formatted_title), wrap=WrapMode.ELLIPSIS)
-        else:
-            self.title_widget = Text(formatted_title, wrap=WrapMode.ELLIPSIS)
+        self._title_attr = title_attr
+        self.title_widget = Text(
+            (title_attr, formatted_title) if title_attr else formatted_title,
+            wrap=WrapMode.ELLIPSIS,
+        )
 
         if tline:
             if title_align not in {Align.LEFT, Align.CENTER, Align.RIGHT}:
@@ -243,11 +244,14 @@ class LineBox(
         """
         Set the title shown in the top line of the box.
 
+        The title gets the `title_attr` the box was created with.
+
         :raises ValueError: this LineBox has no top line to put a title on.
         """
         if not self.tline_widget:
             raise ValueError("Cannot set title when tline is unset")
-        self.title_widget.set_text(self.format_title(text))
+        title = self.format_title(text)
+        self.title_widget.set_text((self._title_attr, title) if self._title_attr else title)
         self.tline_widget._invalidate()
 
     @property
