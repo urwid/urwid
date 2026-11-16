@@ -380,6 +380,8 @@ class TermCanvas(Canvas):
         self.utf8_eat_bytes: int | None = None
         self.utf8_buffer = bytearray()
         self._escbuf = bytearray()
+        # the OSC string being read had a sequence that is not valid UTF-8, in UTF-8 mode
+        self._osc_invalid_utf8 = False
 
         self.coords["cursor"] = (0, 0, None)
 
@@ -776,6 +778,7 @@ class TermCanvas(Canvas):
         :meth:`parse_escape` ends it for an over-long one, which never reaches this method.
         The body is in the encoding :meth:`addbyte` passes characters on in, and as in tmux, a title that is not
         valid in it is not set.
+        A string that had a sequence that is not valid UTF-8, in UTF-8 mode, sets no title and ends the current link.
 
         :param buf: the OSC command body, excluding the ``ESC ]`` framing and terminator.
         """
@@ -790,7 +793,7 @@ class TermCanvas(Canvas):
             valid = True
         title = resolve_osc_title(body)
         if title is not None:
-            if valid:
+            if valid and not self._osc_invalid_utf8:
                 self.widget.set_title(title)
             return
         try:
@@ -800,6 +803,8 @@ class TermCanvas(Canvas):
         else:
             if link is None:
                 return
+            if self._osc_invalid_utf8:
+                link = None
         self.attrspec = attrspec_with_hyperlink(self.attrspec, link, unset_color="default")
 
     def parse_escape(self, char: bytes) -> None:
@@ -818,6 +823,7 @@ class TermCanvas(Canvas):
         elif self.parsestate == 0 and char == b"]":
             # start of OSC
             self._escbuf = bytearray()
+            self._osc_invalid_utf8 = False
             self.parsestate = 2
             return
         elif self.parsestate in {2, 4} and self._escbuf[-1:] == ESC_B and char != b"\\":
@@ -877,6 +883,7 @@ class TermCanvas(Canvas):
         self.within_escape = False
         self.parsestate = 0
         self._escbuf = bytearray()
+        self._osc_invalid_utf8 = False
 
     def get_utf8_len(self, bytenum: int) -> int:
         """Process startbyte and return the number of bytes following it to get a valid UTF-8 multibyte sequence.
@@ -897,6 +904,12 @@ class TermCanvas(Canvas):
         :param byte: an integer ordinal
         """
         if self.modes.main_charset == CHARSET_UTF8 or util.get_encoding() == "utf8":
+            continuation = 0x80 <= byte < 0xC0
+            pending = self.utf8_eat_bytes is not None
+            # A lone continuation byte, or a sequence cut short by a byte that does not continue it, is not valid UTF-8,
+            # and parse_osc() refuses an OSC string that had one.
+            if self.parsestate == 2 and continuation != pending:
+                self._osc_invalid_utf8 = True
             if byte >= 0xC0:
                 # start multibyte sequence
                 self.utf8_eat_bytes = self.get_utf8_len(byte)
@@ -924,7 +937,9 @@ class TermCanvas(Canvas):
                             return
 
                 else:
-                    # invalid multibyte sequence, stop processing
+                    # an invalid multibyte sequence is dropped, and parse_osc() refuses an OSC string that had one
+                    if self.parsestate == 2:
+                        self._osc_invalid_utf8 = True
                     return
             else:
                 self.utf8_eat_bytes = None
