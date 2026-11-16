@@ -2828,6 +2828,77 @@ class ListBoxEdgeModeTest(unittest.TestCase):
             urwid.ListBox([], edge="wrap")  # type: ignore[arg-type]
 
 
+class ListBoxEdgeReachedTest(unittest.TestCase):
+    """``"edge reached"`` is sent when a key or a wheel notch moves nothing at an end of the list."""
+
+    SIZE = (5, 3)
+
+    def make(
+        self, *, edge: typing.Literal["return", "stop"] = "return", wheel: typing.Literal["focus", "view"] = "focus"
+    ) -> tuple[urwid.ListBox, list[str]]:
+        lbox = urwid.ListBox(
+            urwid.SimpleFocusListWalker([SelectableText(str(i)) for i in range(10)]),
+            edge=edge,
+            wheel=wheel,
+        )
+        ends: list[str] = []
+        urwid.connect_signal(lbox, "edge reached", lambda _widget, end: ends.append(end))
+        lbox.render(self.SIZE, focus=True)
+        return lbox, ends
+
+    def go_to(self, lbox: urwid.ListBox, ends: list[str], end: typing.Literal["top", "bottom"]) -> None:
+        """Move the view to *end* with page keys, then forget the signals sent on the way."""
+        key = "page up" if end == "top" else "page down"
+        for _ in range(10):
+            lbox.keypress(self.SIZE, key)
+            lbox.render(self.SIZE, focus=True)
+        ends.clear()
+
+    def test_keys(self) -> None:
+        """Up, down, page up and page down at an end send the end in both modes."""
+        for edge in ("return", "stop"):
+            for key, end in (("up", "top"), ("down", "bottom"), ("page up", "top"), ("page down", "bottom")):
+                with self.subTest(edge=edge, key=key):
+                    lbox, ends = self.make(edge=edge)
+                    self.go_to(lbox, ends, end)
+                    lbox.keypress(self.SIZE, key)
+                    self.assertEqual([end], ends)
+
+    def test_keys_that_move(self) -> None:
+        """A key that moves the view sends nothing, including the page key that reaches the end."""
+        lbox, ends = self.make()
+        # Each page key moves the view two rows, the last one only one row.
+        for key in ("down", "down", "page down", "page down", "page down", "up", "page up", "page up"):
+            lbox.keypress(self.SIZE, key)
+            lbox.render(self.SIZE, focus=True)
+        self.assertEqual([], ends)
+
+    def test_wheel(self) -> None:
+        """A wheel notch at an end sends the end in both wheel modes, and a notch that moves nothing else sends none."""
+        for wheel in ("focus", "view"):
+            for button, start, end in ((4, 0, "top"), (5, 9, "bottom")):
+                with self.subTest(wheel=wheel, button=button):
+                    lbox, ends = self.make(wheel=wheel)
+                    lbox.focus_position = start
+                    lbox.render(self.SIZE, focus=True)
+                    self.assertFalse(lbox.mouse_event(self.SIZE, "mouse press", button, 0, 0, focus=True))
+                    self.assertEqual([end], ends)
+            with self.subTest(wheel=wheel, notch="inside"):
+                lbox, ends = self.make(wheel=wheel)
+                lbox.focus_position = 5
+                lbox.render(self.SIZE, focus=True)
+                self.assertTrue(lbox.mouse_event(self.SIZE, "mouse press", 5, 0, 0, focus=True))
+                self.assertEqual([], ends)
+
+    def test_empty(self) -> None:
+        """An empty list box sends no signal."""
+        lbox = urwid.ListBox(urwid.SimpleFocusListWalker([]))
+        ends: list[str] = []
+        urwid.connect_signal(lbox, "edge reached", lambda _widget, end: ends.append(end))
+        self.assertEqual("up", lbox.keypress(self.SIZE, "up"))
+        self.assertEqual([], ends)
+
+
 class ListBoxWheelModeTest(unittest.TestCase):
     """``wheel`` decides whether a wheel notch moves the focus or scrolls the view."""
 

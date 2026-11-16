@@ -251,8 +251,18 @@ class _ListBoxContents(Sized, typing.Generic[_K]):
 
 
 class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
-    """Vertically stacked list of widgets."""
+    """Vertically stacked list of widgets.
 
+    Signals:
+
+    ``"edge reached"``
+        Sent with the end, ``"top"`` or ``"bottom"``, when a key or a wheel notch asks the view to move past it
+        and nothing moves.
+        It is sent in both :attr:`edge` modes, after the key or notch has been handled, so the end is already in view.
+    """
+
+    # (this variable is picked up by the MetaSignals metaclass)
+    signals: typing.ClassVar[list[str]] = ["edge reached"]
     _selectable = True
     _sizing = frozenset([Sizing.BOX])
     #: Whether this ListBox reports FLOW sizing as well, when the body allows it; see :meth:`sizing`.
@@ -1567,6 +1577,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             move cursor down one listbox length (or widget)
 
         With :attr:`edge` ``"stop"``, :kbd:`up` at the first row and :kbd:`down` at the last row are consumed.
+        Whatever :attr:`edge` is, a key that moves nothing at an end sends the ``"edge reached"`` signal.
 
         With :attr:`select_navigation`, unhandled ``'next selectable'`` and ``'prev selectable'`` commands
         move the focus to the next or previous selectable widget.
@@ -1602,17 +1613,21 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         # pass off the heavy lifting
         if self._command_map[key] == Command.UP:
             unhandled = self._keypress_up((maxcol, maxrow))
+            if unhandled:
+                self._emit("edge reached", "top")
             return actual_key(unhandled and self._edge == "return")
 
         if self._command_map[key] == Command.DOWN:
             unhandled = self._keypress_down((maxcol, maxrow))
+            if unhandled:
+                self._emit("edge reached", "bottom")
             return actual_key(unhandled and self._edge == "return")
 
         if self._command_map[key] == Command.PAGE_UP:
-            return actual_key(self._keypress_page_up((maxcol, maxrow)))
+            return actual_key(self._keypress_page(self._keypress_page_up, (maxcol, maxrow), "top"))
 
         if self._command_map[key] == Command.PAGE_DOWN:
-            return actual_key(self._keypress_page_down((maxcol, maxrow)))
+            return actual_key(self._keypress_page(self._keypress_page_down, (maxcol, maxrow), "bottom"))
 
         if self._command_map[key] == Command.MAX_LEFT:
             return actual_key(self._keypress_max_left((maxcol, maxrow)))  # type: ignore[func-returns-value]
@@ -1621,6 +1636,27 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             return actual_key(self._keypress_max_right((maxcol, maxrow)))  # type: ignore[func-returns-value]
 
         return key
+
+    def _keypress_page(
+        self,
+        move: Callable[[tuple[int, int]], bool | None],
+        size: tuple[int, int],
+        end: Literal["top", "bottom"],
+    ) -> bool | None:
+        """Run a page key and send ``"edge reached"`` when it moved nothing at *end*.
+
+        The return value of a page key does not tell whether the view moved, so the focus and its offset are compared.
+        """
+        before = self._body.get_focus()[1], self.offset_rows, self.inset_fraction
+        unhandled = move(size)
+        focus_widget, focus_pos = self._body.get_focus()
+        if (
+            focus_widget is not None  # a body can lose its rows while the key is handled
+            and before == (focus_pos, self.offset_rows, self.inset_fraction)
+            and end in self.ends_visible(size, True)
+        ):
+            self._emit("edge reached", end)
+        return unhandled
 
     def _select_walk(
         self,
@@ -2367,7 +2403,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
         """Pass the event to the contained widgets.
 
         May change focus on button 1 press.
-        A vertical wheel notch the widget under the pointer does not handle moves what :attr:`wheel` selects.
+        A vertical wheel notch the widget under the pointer does not handle moves what :attr:`wheel` selects,
+        and sends the ``"edge reached"`` signal when the view is already at that end.
 
         .. deprecated:: 2.4.0
             Support for a contained widget that does not implement ``mouse_event`` is deprecated.
@@ -2413,16 +2450,20 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             return False
 
         step: Literal[-1, 1] = -1 if button == MouseButton.WHEEL_UP else 1
+        end: Literal["top", "bottom"] = "top" if step < 0 else "bottom"
         if (
             self._wheel == "view"
             and (scrolled := self._wheel_scroll_view((maxcol, maxrow), step, focus=focus)) is not None
         ):
+            if not scrolled:
+                self._emit("edge reached", end)
             return scrolled
         # In "view" mode this is reached when the cursor of the focus widget held the view.
 
-        if button == MouseButton.WHEEL_UP:
-            return not self._keypress_up((maxcol, maxrow))
-        return not self._keypress_down((maxcol, maxrow))
+        unhandled = self._keypress_up((maxcol, maxrow)) if step < 0 else self._keypress_down((maxcol, maxrow))
+        if unhandled:
+            self._emit("edge reached", end)
+        return not unhandled
 
     def _wheel_scroll_view(self, size: tuple[int, int], step: Literal[-1, 1], *, focus: bool) -> bool | None:
         """Scroll the view one row for a wheel notch in ``"view"`` mode.
