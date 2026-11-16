@@ -148,6 +148,10 @@ class GuardedEventLoop(EventLoop):
         """Run the wrapped event loop."""
         self._loop.run()
 
+    def _check_run(self) -> None:
+        """Raise the error the wrapped loop's :meth:`run` raises while that loop is running."""
+        self._loop._check_run()  # pylint: disable=protected-access  # the same method of the wrapped loop
+
     def run_in_executor(
         self,
         executor: Executor,

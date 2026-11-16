@@ -125,6 +125,17 @@ class _Activation:
         self.previous = previous  # the start entry of the same loop that this one is nested in
 
 
+class _ThreadCall:
+    """One call queued by :meth:`MainLoop.call_from_thread`."""
+
+    __slots__ = ("__weakref__", "call", "taken")
+
+    def __init__(self, call: Callable[[], object]) -> None:
+        self.call: typing.Final = call
+        # Set by the loop thread before it runs the call, so the sender can tell a call that ran from a dropped one.
+        self.taken = False
+
+
 class _ThreadCalls:
     """Calls handed to a running :class:`MainLoop` from other threads, for one run of the loop.
 
@@ -136,7 +147,7 @@ class _ThreadCalls:
 
     def __init__(self, reader: socket.socket, writer: socket.socket) -> None:
         # append() and popleft() of a deque are atomic, so neither a thread nor a signal handler takes a lock.
-        self.calls: deque[Callable[[], object]] = deque()
+        self.calls: deque[_ThreadCall] = deque()
         self.reader: typing.Final = reader  # watched by the event loop; one byte is sent per wake-up
         self.writer: typing.Final = writer
         self.handle: typing.Any = None  # the event loop's watch of reader
@@ -614,6 +625,8 @@ class MainLoop:
 
         :raises TypeError: *callback* is an ``async def`` function, which this method cannot await.
         :raises RuntimeError: the loop is not running: before :meth:`start` or :meth:`run`, or after :meth:`stop`.
+            Also when the loop stops while this method runs, before it takes the call, which is then dropped.
+            A call the loop took does not raise, even when that call stopped the loop.
             Also while it runs on an event loop that cannot watch files,
             such as :class:`AsyncioEventLoop` on asyncio's ``ProactorEventLoop``, the default on Windows.
         """
@@ -622,11 +635,12 @@ class MainLoop:
             raise TypeError(msg)
         if (state := self._thread_calls) is None:
             raise RuntimeError(_CANNOT_WATCH if self._thread_calls_unwatchable else _NOT_RUNNING)
-        state.calls.append(functools.partial(callback, *args, **kwargs))
+        entry = _ThreadCall(functools.partial(callback, *args, **kwargs))
+        state.calls.append(entry)
         with suppress(BlockingIOError):  # a full buffer means wake-ups are already pending
             state.writer.send(b"\0")
-        if not state.active:
-            # The loop stopped since the state was read, and the call sits in the deque of the ended run.
+        if not state.active and not entry.taken:
+            # The loop stopped before taking the call, so the call never runs.
             raise RuntimeError(_NOT_RUNNING)
 
     def _open_thread_calls(self) -> None:
@@ -686,15 +700,16 @@ class MainLoop:
             with self._as_running():
                 for _ in range(_THREAD_CALLS_PER_PASS):
                     try:
-                        call = state.calls.popleft()
+                        entry = state.calls.popleft()
                     except IndexError:
                         break
+                    entry.taken = True
                     try:
-                        call()
+                        entry.call()
                     except ExitMainLoop:
                         raise
                     except Exception:
-                        self.logger.exception("Unhandled exception in callback %r called from a thread", call)
+                        self.logger.exception("Unhandled exception in callback %r called from a thread", entry.call)
                     if not state.active:
                         break  # a call stopped the loop
         finally:
@@ -711,6 +726,14 @@ class MainLoop:
         If you would prefer to manage the event loop yourself, don't use this
         method.  Instead, call :meth:`start` before starting the event loop,
         and :meth:`stop` once it's finished.
+
+        :raises RuntimeError: the event loop refuses to run from where this is called.
+            The asyncio, Tornado, Trio, Twisted and ZMQ loops refuse while they are running.
+            The asyncio, Tornado and ZMQ loops also refuse while another asyncio loop is running in this thread.
+            The Trio loop also refuses inside another Trio run.
+            Under ``nest_asyncio``, which lets asyncio loops run nested,
+            the asyncio, Tornado and ZMQ loops do not refuse.
+            Nothing is started before the error.
         """
         with suppress(ExitMainLoop):
             self._run()
@@ -730,6 +753,7 @@ class MainLoop:
         >>> evl.watch_file_rval = 2
         >>> ml = MainLoop(w, [], scr, event_loop=evl)
         >>> ml.run()  # doctest:+ELLIPSIS
+        event_loop._check_run()
         screen.start()
         screen.set_mouse_tracking()
         screen.unhook_event_loop(...)
@@ -916,6 +940,9 @@ class MainLoop:
         screen.hook_event_loop(self.event_loop, self._update)
 
     def _run(self) -> None:
+        # start() changes the screen and the hooks of a run that is already in progress,
+        # so a run the event loop refuses is refused before it.
+        self.event_loop._check_run()  # pylint: disable=protected-access  # cooperating class
         try:
             self.start()
         except CantUseExternalLoop:

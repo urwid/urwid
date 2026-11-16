@@ -141,6 +141,13 @@ class EventLoop(abc.ABC):
         This method has no default implementation.
         """
 
+    def _check_run(self) -> None:  # noqa: B027  # an optional hook: the default is to raise nothing
+        """Raise the error :meth:`run` raises when it is called while the loop is already running.
+
+        It changes nothing, so a run can be refused before anything is set up for it.
+        The default raises nothing, which suits a loop whose :meth:`run` can be called from its own callbacks.
+        """
+
     @abc.abstractmethod
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> typing.Any:
         """Call callback() when fd has some data to read.

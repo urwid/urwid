@@ -1793,6 +1793,31 @@ class TestCallFromThread(unittest.TestCase):
         self.assertFalse(self._wake_up_pending(loop))
         self.assertEqual(["first"], seen)
 
+    def test_call_that_ran_and_stopped_the_loop_is_not_reported_dropped(self) -> None:
+        """A call the loop runs before call_from_thread() returns does not raise, even when it stopped the loop."""
+        seen: list[str] = []
+
+        class RunningDeque(collections.deque):
+            """Deque whose append() lets the loop take and run the call at once, as a thread switch there can."""
+
+            def append(self, x: typing.Any, /) -> None:
+                super().append(x)
+                loop._run_thread_calls(state)
+
+        def stop() -> None:
+            seen.append("ran")
+            loop.stop()
+
+        loop, _event_loop = self._started()
+        state = loop._thread_calls
+        assert state is not None
+        state.calls = RunningDeque()
+
+        loop.call_from_thread(stop)
+
+        self.assertEqual(["ran"], seen)
+        self.assertIsNone(loop._thread_calls)
+
     def test_sender_racing_a_restart_reaches_no_later_run(self) -> None:
         """A call that read the state before stop() and queues after the next start() raises and never runs."""
         seen: list[str] = []

@@ -301,6 +301,15 @@ class TrioEventLoop(EventLoop):
         except BaseException as exc:  # noqa: BLE001  # would be handled
             self._handle_main_loop_exception(exc)
 
+    def _check_run(self) -> None:
+        """Raise the error :func:`trio.run` raises inside a Trio run.
+
+        :raises RuntimeError: this thread is inside a Trio run.
+        """
+        if trio.lowlevel.in_trio_run():
+            msg = "Attempted to call run() from inside a run()"
+            raise RuntimeError(msg)
+
     async def run_async(self) -> None:
         """Start the main loop and block asynchronously until the main loop exits.
 

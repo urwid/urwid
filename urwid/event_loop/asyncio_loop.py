@@ -288,3 +288,26 @@ class AsyncioEventLoop(EventLoop):
             exc = self._exc
             self._exc = None
             raise exc.with_traceback(exc.__traceback__)
+
+    def _check_run(self) -> None:
+        """Raise the error :mod:`asyncio` raises for a run of the loop while a loop is running.
+
+        A :class:`asyncio.BaseEventLoop` is asked through its own check, which its ``run_forever()`` calls,
+        so a loop whose check is replaced to allow a nested run, as by ``nest_asyncio``, is not refused.
+
+        :raises RuntimeError: the asyncio loop is running, or another asyncio loop is running in this thread.
+            Neither is refused when the loop's own check was replaced to allow a nested run.
+        """
+        if isinstance(self._loop, asyncio.BaseEventLoop):
+            # pyrefly: ignore[missing-attribute]  # private to asyncio and not in typeshed
+            self._loop._check_running()  # type: ignore[attr-defined]  # pylint: disable=protected-access
+            return
+        if self._loop.is_running():
+            msg = "This event loop is already running"
+            raise RuntimeError(msg)
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            return
+        msg = "Cannot run the event loop while another loop is running"
+        raise RuntimeError(msg)
