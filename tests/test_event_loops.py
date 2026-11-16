@@ -1083,7 +1083,7 @@ class GLibEventLoopTest(unittest.TestCase, EventLoopTestMixin):
 
 @unittest.skipUnless(GLIB_AVAILABLE, "GLIB unavailable")
 class GLibWithoutRunningLoopTest(unittest.TestCase):
-    """Idle callback and watch handling, exercised without running the GLib main loop."""
+    """Alarm, idle callback and watch handling, exercised without running the GLib main loop."""
 
     # pylint: disable=protected-access  # the loop's state is read and driven directly instead of by a running loop
 
@@ -1119,6 +1119,44 @@ class GLibWithoutRunningLoopTest(unittest.TestCase):
                 self.assertIsNone(GLib.MainContext.default().find_source_by_id(first_source))
             finally:
                 self.evl.remove_watch_file(handle)
+
+    def dispatch_ready_sources(self) -> None:
+        """Run the GLib sources that are ready now, as one pass of a running loop would."""
+        from gi.repository import GLib
+
+        context = GLib.MainContext.default()
+        for _ in range(100):  # Bounded, so a source that stays ready fails the test instead of hanging it.
+            if not context.pending():
+                return
+            context.iteration(False)
+        self.fail("GLib sources stayed ready")
+
+    def test_fired_alarm_is_not_pending(self) -> None:
+        """An alarm that fired is neither tracked nor removable, also from its own callback."""
+        evl = self.evl
+        out: list[bool] = []
+        handle = evl.alarm(0, lambda: out.append(evl.remove_alarm(handle)))
+        self.dispatch_ready_sources()
+        self.assertEqual([False], out)
+        self.assertFalse(evl.remove_alarm(handle))
+        self.assertEqual(set(), evl._alarms)
+
+    def test_remove_pending_alarm(self) -> None:
+        """Removing a pending alarm destroys its source and succeeds only once."""
+        from gi.repository import GLib
+
+        handle = self.evl.alarm(3600, lambda: None)
+        self.assertTrue(self.evl.remove_alarm(handle))
+        self.assertIsNone(GLib.MainContext.default().find_source_by_id(handle[0]))
+        self.assertFalse(self.evl.remove_alarm(handle))
+
+    def test_remove_alarm_removed_by_glib(self) -> None:
+        """An alarm whose source was removed with GLib.source_remove() is no longer pending."""
+        from gi.repository import GLib
+
+        handle = self.evl.alarm(3600, lambda: None)
+        GLib.source_remove(handle[0])
+        self.assertFalse(self.evl.remove_alarm(handle))
 
     def test_idle_callback_error_keeps_idle_scheduling(self) -> None:
         """An idle callback that raises does not leave idle scheduling switched off."""

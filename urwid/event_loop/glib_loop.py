@@ -74,7 +74,7 @@ class GLibEventLoop(EventLoop):
         _deprecation.warn("GLibEventLoop is deprecated.", since="4.1.7", removed_in="6.0")
         super().__init__()
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
-        self._alarms: list[int] = []
+        self._alarms: set[int] = set()  # GLib source IDs of the alarms that have not fired or been removed
         self._watch_files: dict[int, int] = {}
         self._idle_handle: int = 0
         self._glib_idle_enabled = False  # have we called glib.idle_add?
@@ -116,12 +116,14 @@ class GLibEventLoop(EventLoop):
 
         @self.handle_exit
         def ret_false() -> Literal[False]:
+            # GLib destroys the source after this call: handle_exit returns False also when callback raises.
+            self._alarms.discard(fd)
             callback()
             self._enable_glib_idle()
             return False
 
         fd = GLib.timeout_add(int(seconds * 1000), ret_false)
-        self._alarms.append(fd)
+        self._alarms.add(fd)
         return (fd, callback)
 
     def set_signal_handler(
@@ -187,18 +189,18 @@ class GLibEventLoop(EventLoop):
         self._signal_handlers[signum] = source
 
     def remove_alarm(self, handle: tuple[int, Callable[[], typing.Any]]) -> bool:
-        """
-        Remove an alarm.
+        """Remove an alarm.
 
-        :returns: True if the alarm exists, False otherwise
+        :returns: True if the alarm was still pending, False if it has fired, was removed already,
+            or its source was removed directly with GLib.source_remove().
         """
-        try:
-            self._alarms.remove(handle[0])
-            GLib.source_remove(handle[0])
-
-        except ValueError:
+        source_id = handle[0]
+        if source_id not in self._alarms:
             return False
-
+        self._alarms.remove(source_id)
+        if GLib.MainContext.default().find_source_by_id(source_id) is None:
+            return False
+        GLib.source_remove(source_id)
         return True
 
     def watch_file(self, fd: int, callback: Callable[[], typing.Any]) -> int:
