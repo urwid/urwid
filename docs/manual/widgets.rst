@@ -1264,6 +1264,12 @@ above or below the list.  Created with ``edge="stop"`` it consumes those keys
 and the focus stays in the list; the attribute :attr:`ListBox.edge` can be
 changed later.  An empty ListBox returns the keys in both modes.
 
+A list that loads more rows on demand connects to the ``"edge reached"`` signal
+of the ListBox.  It is sent with ``"top"`` or ``"bottom"`` when :kbd:`up`,
+:kbd:`down`, :kbd:`page up`, :kbd:`page down` or a wheel notch asks the view to
+move past that end of the list and nothing moves, in both ``edge`` modes.  The
+end is already in view when it is sent, so a handler may extend the body.
+
 :meth:`ListBox.set_scrollpos` scrolls the view so that a given row of the body
 is its first row, as :meth:`Scrollable.set_scrollpos` does.  The view always
 contains the focus widget, so the focus stays only while one of its rows is in
