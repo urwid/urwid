@@ -99,15 +99,48 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         attlist: Sequence[str | tuple[str, str]],
         hatt: list[str] | None = None,
         satt: Mapping[tuple[int, int], str] | None = None,
+        *,
+        keep: Literal["first", "last"] = "first",
     ) -> None:
         """Create a bar graph with the passed display characteristics.
 
-        See :meth:`set_segment_attributes` for a description of the parameters.
+        See :meth:`set_segment_attributes` for a description of *attlist*, *hatt* and *satt*.
+
+        :param keep: which bars are shown when not all of them fit, see :attr:`keep`.
+        :raises ValueError: *keep* is not ``"first"`` or ``"last"``.
         """
         super().__init__()
+        self._keep: Literal["first", "last"] = "first"
+        self.keep = keep
         self.set_segment_attributes(attlist, hatt, satt)
         self.set_data([], 1, None)
         self.set_bar_width(None)
+
+    @property
+    def keep(self) -> Literal["first", "last"]:
+        """Which bars are shown when not all of them fit.
+
+        * ``"first"``: the bars from the start of the data, drawn from the left edge.
+        * ``"last"``: the bars from the end of the data, drawn up to the right edge.
+          The newest samples of a time series stay in view, and the columns no bar takes are drawn as
+          background on the left.
+
+        :raises ValueError: on assignment, the value is not ``"first"`` or ``"last"``.
+
+        >>> import urwid
+        >>> graph = urwid.BarGraph(["bg", "fg"], keep="last")
+        >>> graph.set_data([[1], [2], [3], [4]], 4)
+        >>> graph.get_data((2, 4))[0]
+        [[3], [4]]
+        """
+        return self._keep
+
+    @keep.setter
+    def keep(self, keep: Literal["first", "last"]) -> None:
+        if keep not in ("first", "last"):  # a tuple, so an unhashable value is refused with ValueError too
+            raise ValueError(f"keep must be 'first' or 'last', not {keep!r}")
+        self._keep = keep
+        self._invalidate()
 
     def set_segment_attributes(
         self,
@@ -229,13 +262,16 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         This function is called by render to retrieve the data for the graph.
         It may be overloaded to create a dynamic bar graph.
 
-        This implementation will truncate the bardata list returned if not all bars will fit within maxcol.
+        This implementation will truncate the bardata list returned if not all bars will fit within maxcol,
+        keeping the bars :attr:`keep` names.
         """
         (maxcol, maxrow) = size
         bardata, top, hlines = self.data
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
 
         if len(bardata) > len(widths):
+            if self._keep == "last":
+                return bardata[len(bardata) - len(widths) :], top, hlines
             return bardata[: len(widths)], top, hlines
 
         return bardata, top, hlines
@@ -297,6 +333,10 @@ class BarGraph(Widget, metaclass=BarGraphMeta):
         (maxcol, maxrow) = size
         bardata, top, hlines = self._get_data((maxcol, maxrow))
         widths = self.calculate_bar_widths((maxcol, maxrow), bardata)
+        if self._keep == "last" and (spare := maxcol - sum(widths)) > 0:
+            # A zero bar draws only background, so the real bars end at the right edge.
+            bardata = [[0], *bardata]
+            widths = [spare, *widths]
 
         disp_inner: list[tuple[int, list[tuple[int | tuple[int, int] | tuple[int, int, int], int]]]]
         if self.use_smoothed():
