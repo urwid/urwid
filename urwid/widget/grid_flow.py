@@ -1,4 +1,4 @@
-"""GridFlow: a container that flows widgets of equal width into a grid."""
+"""GridFlow: a container that flows widgets into a grid of rows."""
 
 from __future__ import annotations
 
@@ -50,9 +50,10 @@ class GridFlow(
     SelectNavigationListContentsMixin[GridFlowContentsItem],
     _UnfocusedFocusAttrMixin,
 ):
-    """Flow widget that renders all the widgets it contains the same width.
+    """Flow widget that arranges the widgets it contains into rows.
 
     Arranges them from left to right and top to bottom.
+    Each cell is :attr:`cell_width` wide unless its options in :attr:`contents` give it its own width.
 
     Sends ``"focus changed"`` after :attr:`focus_position` changed, also through a change of :attr:`contents`.
     Its handlers receive the container, the old and the new focus position, which is ``None`` while it is empty.
@@ -285,6 +286,14 @@ class GridFlow(
         """
         Return a new options tuple for use in a GridFlow's .contents list.
 
+        Each cell keeps the width its options give, so the cells of one GridFlow may differ in width:
+
+        >>> import urwid
+        >>> grid = urwid.GridFlow([], 1, 1, 0, "left")
+        >>> grid.contents.extend((urwid.Text(label), grid.options("given", len(label))) for label in ("Open", "Quit"))
+        >>> grid.render(()).text
+        [b'Open Quit']
+
         :param width_type: 'given' is the only value accepted
         :param width_amount: None to use the default cell_width for this GridFlow
         :raises GridFlowError: *width_type* is not ``GIVEN``.
@@ -335,22 +344,24 @@ class GridFlow(
     def _get_maxcol(self, size: tuple[int] | tuple[()]) -> int:
         """Return the number of screen columns to lay the cells out in.
 
-        A flow size gives the width directly, and a :exc:`GridFlowWarning` is issued when it is narrower than one cell.
+        A flow size gives the width directly.
+        A :exc:`GridFlowWarning` is issued when that width is narrower than the widest cell.
         A fixed size uses the width of all cells in one row.
 
         :param size: ``(maxcol,)`` for a flow size, ``()`` for a fixed size
         :returns: the width in screen columns, 0 for an empty GridFlow with a fixed size
         """
+        widths = [width_amount for _w, (_width_type, width_amount) in self.contents]
         if size:
             (maxcol,) = size
-            if self and maxcol < self.cell_width:
+            if widths and maxcol < (widest := max(widths)):
                 warnings.warn(
-                    f"Size is smaller than cell width ({maxcol!r} < {self.cell_width!r})",
+                    f"Size is smaller than cell width ({maxcol!r} < {widest!r})",
                     GridFlowWarning,
                     stacklevel=3,
                 )
-        elif self:
-            maxcol = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
+        elif widths:
+            maxcol = sum(widths) + (len(widths) - 1) * self.h_sep
         else:
             maxcol = 0
         return maxcol
@@ -486,10 +497,7 @@ class GridFlow(
         """Return the number of screen columns and rows this widget requires."""
         if size:
             return super().pack(size, focus)
-        if self:
-            cols = len(self) * self.cell_width + (len(self) - 1) * self.h_sep
-        else:
-            cols = 0
+        cols = self._get_maxcol(())
         return cols, self.rows((cols,), focus)
 
     def rows(self, size: tuple[int], focus: bool = False) -> int:

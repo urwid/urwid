@@ -37,6 +37,16 @@ class GridFlowTest(unittest.TestCase):
         self.assertEqual(rows, canvas.rows())
         self.assertEqual([b"<   OK   > < Cancel > <  Help  >"], canvas.text)
 
+    def test_fixed_own_cell_widths(self) -> None:
+        """A fixed size fits cells whose widths differ from ``cell_width`` on one row."""
+        grid = urwid.GridFlow([], cell_width=1, h_sep=1, v_sep=0, align=urwid.LEFT)
+        grid.contents.extend(
+            (urwid.Text(label), grid.options(urwid.GIVEN, len(label))) for label in ("Open", "Quit program", "Up")
+        )
+
+        self.assertEqual((20, 1), grid.pack(()))
+        self.assertEqual([b"Open Quit program Up"], grid.render(()).text)
+
     def test_default_focus(self):
         with self.subTest("Simple"):
             grid = urwid.GridFlow(
@@ -114,6 +124,16 @@ class GridFlowTest(unittest.TestCase):
             ("< f", "  i", "  r", "  s", "  t", "< s", "  e", "  c", "  o", "  n", "  d"),
             canvas.decoded_text,
         )
+
+    def test_not_fit_widest_cell(self) -> None:
+        """The warning compares the size with the widest cell, not with ``cell_width``."""
+        grid = urwid.GridFlow([], cell_width=1, h_sep=0, v_sep=0, align=urwid.LEFT)
+        grid.contents.append((urwid.Text("hidden files"), grid.options(urwid.GIVEN, 12)))
+
+        with self.assertWarns(urwid.widget.GridFlowWarning):
+            canvas = grid.render((6,))
+
+        self.assertEqual(("hidden", "files "), canvas.decoded_text)
 
     def test_multiline(self):
         """Test widgets fit only with multiple lines"""
