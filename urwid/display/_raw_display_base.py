@@ -40,6 +40,7 @@ import socket
 import stat
 import struct
 import sys
+import time
 import typing
 
 from urwid import _deprecation, signals, str_util, util
@@ -610,6 +611,8 @@ class Screen(BaseScreen, RealTerminal):
         super().__init__()
 
         self._partial_codes: list[int] = []
+        # get_input() decodes a sequence cut short as it is once no more of it arrived by this time.monotonic() value
+        self._partial_deadline = 0.0
         self.modes = TermModes(
             bracketed_paste=bracketed_paste_mode,
             focus_reporting=focus_reporting,
@@ -668,7 +671,6 @@ class Screen(BaseScreen, RealTerminal):
         self._rows_used: int | None = None
         self._cy = 0
         self.register_palette_entry(None, "default", "default")
-        self._next_timeout: float | None = None
         self.signal_handler_setter = signal.signal
 
         # Our connections to the world
@@ -738,17 +740,14 @@ class Screen(BaseScreen, RealTerminal):
 
         :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
             None
-        :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
-            the end of the available input
+        :param complete_wait: amount of time in seconds to wait for the rest of an escape sequence cut short at the end
+            of the available input, before get_input returns it decoded as it is.
+            The wait never lasts past the end of *max_wait*: the sequence is then kept for the next get_input.
         :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
-            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation
+            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation.
+            The wait never lasts past the end of *max_wait*.
         """
         self.max_wait = max_wait
-        if max_wait is not None:
-            if self._next_timeout is None:
-                self._next_timeout = max_wait
-            else:
-                self._next_timeout = min(self._next_timeout, max_wait)
         self.complete_wait = complete_wait
         self.resize_wait = resize_wait
 
@@ -1193,6 +1192,9 @@ class Screen(BaseScreen, RealTerminal):
         wait before returning an empty list.  The wait time may be
         configured with the set_input_timeouts function.
 
+        A key that can begin a longer sequence, such as Esc, is kept until the rest of the sequence arrives
+        or *complete_wait* is over, so the list can be empty before *max_wait* is over.
+
         If raw_keys is False (default) this function will return a list
         of keys pressed.  If raw_keys is True this function will return
         a ( keys pressed, raw keycodes ) tuple instead.
@@ -1225,15 +1227,45 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
-        self._wait_for_input_ready(self._next_timeout)
-        keys, raw = self.parse_input(None, None, self.get_available_raw_input())
+        now = time.monotonic()
+        # The waits for more input after a resize end by the time max_wait would have ended.
+        deadline = None if self.max_wait is None else now + self.max_wait
+        partial: list[int] = self._partial_codes
+        keys: _DecodedInput = []
+        raw: list[int] = []
+        wait = self.max_wait
+        if partial and now >= self._partial_deadline:
+            # Its deadline passed before this call: it is decoded alone, ahead of the input that came since.
+            # A pending resize is left to the parse after the read, which knows whether input came before it.
+            self._partial_codes = []
+            keys, _consumed = self._decode_codes(partial, wait_for_more=False)
+            raw = partial
+            partial = []
+            wait = 0.0
+        elif partial:
+            # the rest of a sequence cut short is waited for only until its deadline
+            left = max(0.0, self._partial_deadline - now)
+            wait = left if wait is None else min(wait, left)
+        self._wait_for_input_ready(wait)
+        codes = self.get_available_raw_input()
+        read_new = len(codes) > len(partial)
+        # a sequence cut short, with no more of it by its deadline, is decoded as it is
+        expired = bool(partial) and not read_new and time.monotonic() >= self._partial_deadline
+        new_keys, new_raw = self.parse_input(None, None, codes, wait_for_more=not expired)
+        keys = [*keys, *new_keys]
+        raw = [*raw, *new_raw]
 
-        # Avoid pegging CPU at 100% when slowly resizing
-        if keys == ["window resize"] and self.prev_input_resize:
+        # Avoid pegging CPU at 100% when slowly resizing; not while a sequence cut short waits for its rest
+        if keys == ["window resize"] and self.prev_input_resize and not self._partial_codes:
             logger.debug('get_input: got "window resize" > 1 times. Enable throttling for resize.')
             for _ in range(2):
-                self._wait_for_input_ready(self.resize_wait)
-                new_keys, new_raw = self.parse_input(None, None, self.get_available_raw_input())
+                wait = self.resize_wait
+                if deadline is not None:
+                    wait = min(wait, max(0.0, deadline - time.monotonic()))
+                self._wait_for_input_ready(wait)
+                new_codes = self.get_available_raw_input()
+                read_new = read_new or bool(new_codes)
+                new_keys, new_raw = self.parse_input(None, None, new_codes)
                 raw += new_raw
                 if new_keys and new_keys != ["window resize"]:
                     if "window resize" in new_keys:
@@ -1248,6 +1280,10 @@ class Screen(BaseScreen, RealTerminal):
             self.prev_input_resize = 1
         else:
             self.prev_input_resize = 0
+
+        # each read that leaves a sequence cut short gives it complete_wait to arrive whole
+        if self._partial_codes and read_new:
+            self._partial_deadline = time.monotonic() + self.complete_wait
 
         if raw_keys:
             return keys, raw
@@ -1400,11 +1436,7 @@ class Screen(BaseScreen, RealTerminal):
             event_loop.remove_alarm(self._input_timeout)
             self._input_timeout = None
 
-        decoded_codes, consumed = escape.decode_input(
-            codes,
-            wait_for_more,
-            keyboard_protocol=self._keyboard_protocol_enabled,
-        )
+        output_codes, consumed = self._decode_codes(codes, wait_for_more=wait_for_more)
         raw_codes = codes[:consumed]
         partial_codes = self._partial_codes = codes[consumed:]
         if partial_codes:
@@ -1417,10 +1449,6 @@ class Screen(BaseScreen, RealTerminal):
 
             if event_loop:
                 self._input_timeout = event_loop.alarm(self.complete_wait, _parse_incomplete_input)
-
-        output_codes = self._drop_past_end_mouse_events(
-            self._apply_window_size_reports(self._apply_terminal_reports(decoded_codes)),
-        )
 
         # formats the whole input burst, so it is skipped unless the record is emitted
         if logger.isEnabledFor(logging.DEBUG):
@@ -1449,6 +1477,17 @@ class Screen(BaseScreen, RealTerminal):
 
         # For get_input
         return output_codes, raw_codes
+
+    def _decode_codes(self, codes: list[int], *, wait_for_more: bool) -> tuple[_DecodedInput, int]:
+        """Decode *codes* into keys with the terminal reports applied.
+
+        A pending resize is left to the caller.
+
+        :returns: the keys, and the number of codes they were decoded from.
+        """
+        decoded, consumed = escape.decode_input(codes, wait_for_more, keyboard_protocol=self._keyboard_protocol_enabled)
+        reported = self._apply_window_size_reports(self._apply_terminal_reports(decoded))
+        return self._drop_past_end_mouse_events(reported), consumed
 
     def _wait_for_input_ready(self, timeout: float | None) -> list[int]:
         logger = self.logger.getChild("wait_for_input_ready")

@@ -296,22 +296,154 @@ class CursesGetInputTest(unittest.TestCase):
     """Tests for ``_get_input``, which decodes the keys curses has queued."""
 
     def test_sequence_cut_short_waits_for_the_next_keys(self) -> None:
-        """Read the keys after a sequence cut short, and decode the sequence alone when none come."""
-        for label, later, expected in (
-            ("completed by the keys that follow", ord("B"), ["a", "down"]),
-            ("decoded as it is when none follow", -1, ["a", "meta ["]),
+        """Keep a sequence cut short for the next call, and decode it alone once none of it came by complete_wait.
+
+        The next call waits only for the time left until then, so a caller waiting for input forever still gets it.
+        """
+        # clock: time.monotonic() at the start of each call and when the first call keeps the sequence;
+        # one more read in the second call checks whether its deadline passed
+        for label, later, clock, expected in (
+            ("completed by the keys that follow", ord("B"), [100.0, 100.0, 100.0], ["down"]),
+            ("decoded as it is when none follow", -1, [100.0, 100.0, 100.0, 100.2], ["meta ["]),
         ):
             with self.subTest(label):
                 screen = curses_display.Screen()
+                screen._started = True
                 with (
                     mock.patch("curses.doupdate"),
-                    mock.patch.object(screen, "_getch", side_effect=[ord("a"), later]),
+                    mock.patch.object(screen, "_getch", side_effect=[ord("a"), later]) as getch,
                     mock.patch.object(screen, "_getch_nodelay", side_effect=[27, ord("["), -1, -1]),
+                    mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
                 ):
-                    processed, raw = screen._get_input(None)
+                    self.assertEqual(["a"], screen.get_input())
+                    self.assertEqual(expected, screen.get_input())
 
-                self.assertEqual(expected, processed)
-                self.assertEqual([ord("a"), 27, ord("["), *([later] if later >= 0 else [])], raw)
+                # no max_wait: the first call waits forever, the second until complete_wait, one tenth, is over
+                self.assertEqual([None, 1], [call.args[0] for call in getch.call_args_list])
+                self.assertEqual([], screen._partial_keys)
+
+    def test_sequence_cut_short_after_new_input_gets_its_own_complete_wait(self) -> None:
+        """Give an Esc read after a decoded key the whole complete_wait, also when an Esc was kept before.
+
+        The time left is rounded up, so a call does not return before the deadline and leave its caller polling.
+        """
+        screen = curses_display.Screen()
+        screen._started = True
+        # clock: each call's start, and the reset of the deadline after the first two;
+        # the third call checks the deadline once more
+        clock = [100.0, 100.0, 100.08, 100.08, 100.15, 100.15]
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[27, ord("a"), -1]) as getch,
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[-1, 27, -1]),
+            mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
+        ):
+            self.assertEqual([], screen.get_input())
+            self.assertEqual(["meta a"], screen.get_input())
+            self.assertEqual([], screen.get_input())
+        self.assertEqual([27], screen._partial_keys)
+        # 0.02 s and 0.03 s were left: one tenth each, not none
+        self.assertEqual([None, 1, 1], [call.args[0] for call in getch.call_args_list])
+
+    def test_sequence_cut_short_waits_for_its_rest_forever_without_complete_wait(self) -> None:
+        """With complete_wait None, keep a sequence cut short until more input comes, as max_wait allows."""
+        screen = curses_display.Screen()
+        screen._started = True
+        screen.set_input_timeouts(max_wait=0.2, complete_wait=None)
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[27, -1, ord("[")]) as getch,
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[-1, ord("A"), -1]),
+        ):
+            self.assertEqual([], screen.get_input())
+            self.assertEqual([], screen.get_input())
+            self.assertEqual(["up"], screen.get_input())
+        self.assertEqual([2, 2, 2], [call.args[0] for call in getch.call_args_list])
+
+    def test_sequence_kept_past_its_deadline_comes_before_later_keys(self) -> None:
+        """Decode a sequence whose deadline passed before the call alone, ahead of what was read after it.
+
+        A resize read while the sequence was kept is reported after it as well.
+        """
+        # clock: each call's start, and the deadline set by the first call
+        for label, getch, nodelay, first, second in (
+            ("keys typed later", [ord("x"), ord("a")], [27, -1, -1], ["x"], ["esc", "a"]),
+            (
+                "a resize read with the sequence",
+                [27, -1],
+                [curses_display.KEY_RESIZE, -1],
+                [],
+                ["esc", "window resize"],
+            ),
+        ):
+            with self.subTest(label):
+                screen = curses_display.Screen()
+                screen._started = True
+                with (
+                    mock.patch("curses.doupdate"),
+                    mock.patch.object(screen, "_getch", side_effect=getch) as getch_mock,
+                    mock.patch.object(screen, "_getch_nodelay", side_effect=nodelay),
+                    mock.patch.object(curses_display.time, "monotonic", side_effect=[100.0, 100.0, 100.5]),
+                ):
+                    self.assertEqual(first, screen.get_input())
+                    self.assertEqual(second, screen.get_input())
+                self.assertEqual([None, 0], [call.args[0] for call in getch_mock.call_args_list])
+
+    def test_resize_read_with_kept_keys_is_reported_after_them(self) -> None:
+        """Hold a resize read while keys are kept, across calls, and report it after them once they are decoded."""
+        screen = curses_display.Screen()
+        screen._started = True
+        # clock: the first call's start and its deadline; the second call's start and its deadline check;
+        # the third call's start
+        clock = [100.0, 100.0, 100.02, 100.05, 100.06]
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[27, -1, ord("[")]),
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[curses_display.KEY_RESIZE, -1, ord("A"), -1]),
+            mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
+        ):
+            self.assertEqual([], screen.get_input())
+            self.assertEqual([], screen.get_input())
+            self.assertEqual(["up", "window resize"], screen.get_input())
+
+    def test_resize_ends_the_wait_for_a_sequence_without_complete_wait(self) -> None:
+        """With complete_wait None, decode the kept keys when a resize comes, so the resize is reported at once."""
+        screen = curses_display.Screen()
+        screen._started = True
+        screen.set_input_timeouts(complete_wait=None)
+        with (
+            mock.patch("curses.doupdate"),
+            mock.patch.object(screen, "_getch", side_effect=[27]),
+            mock.patch.object(screen, "_getch_nodelay", side_effect=[curses_display.KEY_RESIZE, -1]),
+        ):
+            self.assertEqual(["esc", "window resize"], screen.get_input())
+
+    def test_resize_throttle_waits_no_longer_than_the_caller_allows(self) -> None:
+        """Wait for more input after repeated resizes only within max_wait, so an alarm due sooner is not held up.
+
+        The time left is rounded to the nearest tenth, as max_wait is.
+        """
+        # clock: time.monotonic() at the start and before each of the two waits for more input
+        for label, max_wait, clock, expected in (
+            ("waiting forever", None, [100.0], [1, 1]),
+            ("no wait", 0, [100.0, 100.0, 100.0], [0, 0]),
+            ("part of max_wait left", 0.3, [100.0, 100.15, 100.22], [1, 1]),
+            ("max_wait used up", 0.3, [100.0, 100.28, 100.3], [0, 0]),
+        ):
+            with self.subTest(label):
+                screen = curses_display.Screen()
+                screen._started = True
+                screen.prev_input_resize = 2
+                screen.set_input_timeouts(max_wait)
+                with (
+                    mock.patch.object(screen, "_get_input", return_value=(["window resize"], [])) as get_input,
+                    mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
+                ):
+                    self.assertEqual(["window resize"], screen.get_input())
+                self.assertEqual(
+                    [screen.max_tenths, *expected],
+                    [call.args[0] for call in get_input.call_args_list],
+                )
 
     def test_report_this_screen_did_not_ask_for_is_dropped(self) -> None:
         """Drop a report or a query reply that answers another program.

@@ -14,6 +14,7 @@ import stat
 import struct
 import sys
 import tempfile
+import time
 import typing
 import unittest
 import weakref
@@ -1509,6 +1510,148 @@ class TestParseInput(unittest.TestCase):
         callback.assert_called_once_with(["meta ["], [27, ord("[")])
         self.assertEqual([], s._partial_codes)
         self.assertIsNone(s._input_timeout)
+
+    def test_resize_throttle_waits_no_longer_than_the_caller_allows(self) -> None:
+        """Wait for more input after repeated resizes only within max_wait, so an alarm due sooner is not held up."""
+        # clock: time.monotonic() at the start and before each of the two waits for more input
+        for label, max_wait, clock, expected in (
+            ("waiting forever", None, [100.0], [0.125, 0.125]),
+            ("no wait", 0, [100.0, 100.0, 100.0], [0, 0]),
+            ("part of max_wait left", 0.3, [100.0, 100.25, 100.28], [0.05, 0.02]),
+        ):
+            with self.subTest(label):
+                s = urwid.display.raw.Screen()
+                s._started = True
+                s.prev_input_resize = 2
+                s.set_input_timeouts(max_wait)
+                with (
+                    mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+                    mock.patch.object(s, "get_available_raw_input", return_value=[]),
+                    mock.patch.object(s, "parse_input", return_value=(["window resize"], [])),
+                    mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+                ):
+                    self.assertEqual(["window resize"], s.get_input())
+                waits = [call.args[0] for call in wait.call_args_list]
+                self.assertEqual(max_wait, waits[0])
+                for wanted, waited in zip(expected, waits[1:], strict=True):
+                    self.assertAlmostEqual(wanted, waited)
+
+    def test_max_wait_set_last_is_the_one_used(self) -> None:
+        """Wait as long as the max_wait set last, also after a shorter one was set before it."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        s.set_input_timeouts(0.05)
+        s.set_input_timeouts(None)
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+            mock.patch.object(s, "get_available_raw_input", return_value=[]),
+        ):
+            self.assertEqual([], s.get_input())
+        wait.assert_called_once_with(None)
+
+    def test_sequence_cut_short_is_decoded_alone_once_complete_wait_is_over(self) -> None:
+        """Keep a sequence cut short for the next call, and decode it alone once none of it came by complete_wait.
+
+        The next call waits only for the time left until then, so a caller waiting for input forever still gets it.
+        """
+        # clock: time.monotonic() at the start of each call and when the first call keeps the sequence;
+        # one more read in the second call checks whether its deadline passed
+        for label, later, clock, expected in (
+            ("completed by the keys that follow", [ord("["), ord("A")], [100.0, 100.0, 100.0], ["up"]),
+            ("decoded as it is when none follow", [], [100.0, 100.0, 100.0, 100.2], ["esc"]),
+        ):
+            with self.subTest(label):
+                s = urwid.display.raw.Screen()
+                s._started = True
+                with (
+                    mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+                    mock.patch.object(s, "_get_input_codes", side_effect=[[27], later]),
+                    mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+                ):
+                    self.assertEqual([], s.get_input())
+                    self.assertEqual(expected, s.get_input())
+
+                # no max_wait: the first call waits forever, the second until complete_wait is over
+                self.assertEqual([None, 0.125], [call.args[0] for call in wait.call_args_list])
+                self.assertEqual([], s._partial_codes)
+
+    def test_sequence_cut_short_after_new_input_gets_its_own_complete_wait(self) -> None:
+        """Give an Esc read after a decoded key the whole complete_wait, also when an Esc was kept before."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        # clock: each call's start, and the reset of the deadline after the first two;
+        # the third call checks the deadline once more
+        clock = [100.0, 100.0, 100.1, 100.1, 100.15, 100.15]
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]),
+            mock.patch.object(s, "_get_input_codes", side_effect=[[27], [ord("a"), 27], []]),
+            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+        ):
+            self.assertEqual([], s.get_input())
+            self.assertEqual(["meta a"], s.get_input())
+            self.assertEqual([], s.get_input())
+        self.assertEqual([27], s._partial_codes)
+
+    def test_sequence_cut_short_is_kept_past_a_shorter_max_wait(self) -> None:
+        """Return nothing after max_wait and keep the sequence, when its complete_wait is not over yet."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        s.set_input_timeouts(0.05)
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+            mock.patch.object(s, "_get_input_codes", side_effect=[[27], []]),
+            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=[100.0, 100.0, 100.0, 100.05]),
+        ):
+            self.assertEqual([], s.get_input())
+            self.assertEqual([], s.get_input())
+        self.assertEqual([0.05, 0.05], [call.args[0] for call in wait.call_args_list])
+        self.assertEqual([27], s._partial_codes)
+
+    def test_resize_throttle_is_skipped_while_a_sequence_waits_for_its_rest(self) -> None:
+        """Return a resize at once while a sequence cut short is kept, instead of waiting for more resizes."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        s.prev_input_resize = 2
+        s._partial_codes = [27]
+        s._partial_deadline = time.monotonic() + 60
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+            mock.patch.object(s, "get_available_raw_input", return_value=[27]),
+            mock.patch.object(s, "parse_input", return_value=(["window resize"], [])),
+        ):
+            self.assertEqual(["window resize"], s.get_input())
+        wait.assert_called_once()
+
+    def test_sequence_kept_past_its_deadline_comes_before_later_keys(self) -> None:
+        """Decode a sequence whose deadline passed before the call alone, ahead of the keys typed after it."""
+        s = urwid.display.raw.Screen()
+        s._started = True
+        # clock: each call's start, and the deadline set by the first call
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+            mock.patch.object(s, "_get_input_codes", side_effect=[[ord("x"), 27], [ord("a")]]),
+            mock.patch.object(_raw_display_base.time, "monotonic", side_effect=[100.0, 100.0, 100.5]),
+        ):
+            self.assertEqual(["x"], s.get_input())
+            self.assertEqual(["esc", "a"], s.get_input())
+        self.assertEqual([None, 0.0], [call.args[0] for call in wait.call_args_list])
+
+    def test_expired_sequence_leaves_the_resize_to_the_read_after_it(self) -> None:
+        """Report a pending resize after the keys read in the same call, also when a kept sequence expired first.
+
+        Whether input came before the resize is known only after this call's read, not from the previous one.
+        """
+        s = urwid.display.raw.Screen()
+        s._started = True
+        s._partial_codes = [27]
+        s._partial_deadline = 0.0
+        s._resized = True
+        s._hold_resize = False  # left by the previous call's read
+        with (
+            mock.patch.object(s, "_wait_for_input_ready", return_value=[]),
+            mock.patch.object(s, "_get_input_codes", return_value=[ord("a")]),
+        ):
+            self.assertEqual(["esc", "a", "window resize"], s.get_input())
 
     def test_resize_waits_for_the_input_typed_before_it(self) -> None:
         """Hold a resize back while input typed before it can still wait, and wake the input loop to read it."""

@@ -222,8 +222,6 @@ class Screen(_raw_display_base.Screen):
         self._enable_keyboard_protocol()
         self._show_title()
 
-        self._next_timeout = self.max_wait
-
         signals.emit_signal(self, INPUT_DESCRIPTORS_CHANGED)
         # restore mouse tracking to previous state
         self._mouse_tracking(self._mouse_tracking_enabled)
