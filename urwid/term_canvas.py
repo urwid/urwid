@@ -1251,8 +1251,10 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def scroll(self, reverse: bool = False) -> None:
-        """Append a new line at the bottom and put the topmost line into the scrollback buffer.
+        """Append a new line at the bottom of the scrolling region and remove its topmost line.
 
+        The removed line goes into the scrollback buffer when the region starts at the top row, as in xterm.
+        A region below the top row drops it.
         If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
         """
         if reverse:
@@ -1260,8 +1262,10 @@ class TermCanvas(Canvas):
             self.term.insert(self.scrollregion_start, self.empty_line())
         else:
             killed = self.term.pop(self.scrollregion_start)
-            self.scrollback_buffer.append(killed)
             self.term.insert(self.scrollregion_end, self.empty_line())
+            if self.scrollregion_start > 0:
+                return
+            self.scrollback_buffer.append(killed)
             if self.scrolling_up and not self.scroll_on_output:
                 # the view moves up with the lines it shows
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
