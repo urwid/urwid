@@ -1827,6 +1827,34 @@ class TrioEventLoopTest(unittest.TestCase, EventLoopTestMixin, MainLoopTestMixin
 
     _expected_idle_handle = None
 
+    def test_remove_alarm_before_run(self) -> None:
+        """Alarms may be created before run(), and removed there too."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        handle = evl.alarm(50, lambda: None)
+        self.assertTrue(evl.remove_alarm(handle))
+        self.assertFalse(evl.remove_alarm(handle))
+
+    def test_remove_directly_cancelled_alarm_before_run(self) -> None:
+        """A scope cancelled with handle.cancel() before run() reports as removed, not pending."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        handle = evl.alarm(50, lambda: None)
+        handle.cancel()
+        self.assertFalse(evl.remove_alarm(handle))
+
+    def test_alarm_removed_before_run_never_fires(self) -> None:
+        """An alarm removed before run() stays removed through the run."""
+        evl = typing.cast("urwid.TrioEventLoop", self.evl)
+        fired: list[str] = []
+        handle = evl.alarm(0.01, lambda: fired.append("x"))
+        self.assertTrue(evl.remove_alarm(handle))
+
+        def exit_clean() -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        evl.alarm(0.05, exit_clean)
+        evl.run()
+        self.assertEqual([], fired)
+
     def test_error(self):
         evl = self.evl
         evl.alarm(0, lambda: 1 / 0)  # Simulate error in event loop
