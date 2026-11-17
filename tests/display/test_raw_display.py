@@ -1510,6 +1510,31 @@ class TestParseInput(unittest.TestCase):
         self.assertEqual([], s._partial_codes)
         self.assertIsNone(s._input_timeout)
 
+    def test_resize_throttle_waits_no_longer_than_the_caller_allows(self) -> None:
+        """Wait for more input after repeated resizes only within max_wait, so an alarm due sooner is not held up."""
+        # clock: time.monotonic() at the start and before each of the two waits for more input
+        for label, max_wait, clock, expected in (
+            ("waiting forever", None, [], [0.125, 0.125]),
+            ("no wait", 0, [100.0, 100.0, 100.0], [0, 0]),
+            ("part of max_wait left", 0.3, [100.0, 100.25, 100.28], [0.05, 0.02]),
+        ):
+            with self.subTest(label):
+                s = urwid.display.raw.Screen()
+                s._started = True
+                s.prev_input_resize = 2
+                s._next_timeout = max_wait
+                with (
+                    mock.patch.object(s, "_wait_for_input_ready", return_value=[]) as wait,
+                    mock.patch.object(s, "get_available_raw_input", return_value=[]),
+                    mock.patch.object(s, "parse_input", return_value=(["window resize"], [])),
+                    mock.patch.object(_raw_display_base.time, "monotonic", side_effect=clock),
+                ):
+                    self.assertEqual(["window resize"], s.get_input())
+                waits = [call.args[0] for call in wait.call_args_list]
+                self.assertEqual(max_wait, waits[0])
+                for wanted, waited in zip(expected, waits[1:], strict=True):
+                    self.assertAlmostEqual(wanted, waited)
+
     def test_resize_waits_for_the_input_typed_before_it(self) -> None:
         """Hold a resize back while input typed before it can still wait, and wake the input loop to read it."""
         s = urwid.display.raw.Screen()

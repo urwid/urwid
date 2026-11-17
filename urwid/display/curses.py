@@ -26,6 +26,7 @@ import curses
 import errno
 import os
 import sys
+import time
 import typing
 from contextlib import suppress
 
@@ -446,7 +447,8 @@ class Screen(BaseScreen, RealTerminal):
         :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
             the end of the available input
         :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
-            in a row to stop urwid from consuming 100% cpu during a gradual window resize operation
+            in a row to stop urwid from consuming 100% cpu during a gradual window resize operation.
+            The wait never lasts past the end of *max_wait*.
         """
 
         def convert_to_tenths(s: float | None) -> int | None:
@@ -503,6 +505,8 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
+        # The waits for more input after a resize end by the time the first wait would have ended.
+        deadline = None if self.max_tenths is None else time.monotonic() + self.max_tenths / 10
         keys, raw = self._get_input(self.max_tenths)
 
         # Avoid pegging CPU at 100% when slowly resizing, and work
@@ -510,7 +514,12 @@ class Screen(BaseScreen, RealTerminal):
         # return "no key" between "window resize" commands
         if keys == ["window resize"] and self.prev_input_resize:
             for _ in range(2):
-                new_keys, new_raw = self._get_input(self.resize_tenths)
+                wait_tenths = self.resize_tenths
+                if deadline is not None:
+                    # rounded to the nearest tenth, as set_input_timeouts() rounds max_wait
+                    left_tenths = max(0, int((deadline - time.monotonic() + 0.05) * 10))
+                    wait_tenths = left_tenths if wait_tenths is None else min(wait_tenths, left_tenths)
+                new_keys, new_raw = self._get_input(wait_tenths)
                 raw += new_raw
                 if new_keys and new_keys != ["window resize"]:
                     if "window resize" in new_keys:

@@ -313,6 +313,33 @@ class CursesGetInputTest(unittest.TestCase):
                 self.assertEqual(expected, processed)
                 self.assertEqual([ord("a"), 27, ord("["), *([later] if later >= 0 else [])], raw)
 
+    def test_resize_throttle_waits_no_longer_than_the_caller_allows(self) -> None:
+        """Wait for more input after repeated resizes only within max_wait, so an alarm due sooner is not held up.
+
+        The time left is rounded to the nearest tenth, as max_wait is.
+        """
+        # clock: time.monotonic() at the start and before each of the two waits for more input
+        for label, max_wait, clock, expected in (
+            ("waiting forever", None, [], [1, 1]),
+            ("no wait", 0, [100.0, 100.0, 100.0], [0, 0]),
+            ("part of max_wait left", 0.3, [100.0, 100.15, 100.22], [1, 1]),
+            ("max_wait used up", 0.3, [100.0, 100.28, 100.3], [0, 0]),
+        ):
+            with self.subTest(label):
+                screen = curses_display.Screen()
+                screen._started = True
+                screen.prev_input_resize = 2
+                screen.set_input_timeouts(max_wait)
+                with (
+                    mock.patch.object(screen, "_get_input", return_value=(["window resize"], [])) as get_input,
+                    mock.patch.object(curses_display.time, "monotonic", side_effect=clock),
+                ):
+                    self.assertEqual(["window resize"], screen.get_input())
+                self.assertEqual(
+                    [screen.max_tenths, *expected],
+                    [call.args[0] for call in get_input.call_args_list],
+                )
+
     def test_report_this_screen_did_not_ask_for_is_dropped(self) -> None:
         """Drop a report or a query reply that answers another program.
 

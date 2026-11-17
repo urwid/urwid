@@ -40,6 +40,7 @@ import socket
 import stat
 import struct
 import sys
+import time
 import typing
 
 from urwid import _deprecation, signals, str_util, util
@@ -741,7 +742,8 @@ class Screen(BaseScreen, RealTerminal):
         :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
             the end of the available input
         :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
-            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation
+            in a row to stop Urwid from consuming 100% cpu during a gradual window resize operation.
+            The wait never lasts past the end of *max_wait*.
         """
         self.max_wait = max_wait
         if max_wait is not None:
@@ -1225,6 +1227,8 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
+        # The waits for more input after a resize end by the time the first wait would have ended.
+        deadline = None if self._next_timeout is None else time.monotonic() + self._next_timeout
         self._wait_for_input_ready(self._next_timeout)
         keys, raw = self.parse_input(None, None, self.get_available_raw_input())
 
@@ -1232,7 +1236,10 @@ class Screen(BaseScreen, RealTerminal):
         if keys == ["window resize"] and self.prev_input_resize:
             logger.debug('get_input: got "window resize" > 1 times. Enable throttling for resize.')
             for _ in range(2):
-                self._wait_for_input_ready(self.resize_wait)
+                wait = self.resize_wait
+                if deadline is not None:
+                    wait = min(wait, max(0.0, deadline - time.monotonic()))
+                self._wait_for_input_ready(wait)
                 new_keys, new_raw = self.parse_input(None, None, self.get_available_raw_input())
                 raw += new_raw
                 if new_keys and new_keys != ["window resize"]:
