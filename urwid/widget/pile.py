@@ -538,7 +538,7 @@ class Pile(
         :param new_contents: `(widget, options)` tuples, with options made by the :meth:`options` method
         :raises PileError: an item is not a valid ``(widget, options)`` pair.
         """
-        self._contents[:] = new_contents
+        self._contents.replace(new_contents)
 
     @typing.overload
     @staticmethod

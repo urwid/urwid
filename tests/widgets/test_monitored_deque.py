@@ -559,5 +559,228 @@ class MonitoredFocusDequeIndexTest(unittest.TestCase):
                 self.assertEqual((1 + value) % 3, items.focus)
 
 
+# operations a MonitoredFocusList and a MonitoredFocusDeque both have, with the same meaning
+SHARED_OPERATIONS: typing.Final[dict[str, Callable[[typing.Any], object]]] = {
+    "setitem": lambda items: operator.setitem(items, 1, 9),
+    "setitem negative": lambda items: operator.setitem(items, -1, 9),
+    "delitem": lambda items: operator.delitem(items, 1),
+    "delitem negative": lambda items: operator.delitem(items, -1),
+    "append": lambda items: items.append(9),
+    "extend": lambda items: items.extend((8, 9)),
+    "+=": lambda items: operator.iadd(items, (8, 9)),
+    "*= 2": lambda items: operator.imul(items, 2),
+    "*= 0": lambda items: operator.imul(items, 0),
+    "insert first": lambda items: items.insert(0, 9),
+    "insert middle": lambda items: items.insert(2, 9),
+    "insert negative": lambda items: items.insert(-1, 9),
+    "insert past end": lambda items: items.insert(10, 9),
+    "pop": lambda items: items.pop(),
+    "remove": lambda items: items.remove(2),
+    "clear": lambda items: items.clear(),
+    "replace longer": lambda items: items.replace((5, 6, 7, 8, 9)),
+    "replace shorter": lambda items: items.replace((5,)),
+    "replace empty": lambda items: items.replace(()),
+}
+
+
+class MonitoredFocusDequeValidationTest(unittest.TestCase):
+    """The validation callback of a focus deque matches the one of a focus list."""
+
+    @staticmethod
+    def recording(items: typing.Any) -> list[tuple[tuple[int, int, int], list[typing.Any], list[typing.Any]]]:
+        """Record each validation call as its indices, its new items and the contents before the change."""
+        seen: list[tuple[tuple[int, int, int], list[typing.Any], list[typing.Any]]] = []
+        items.set_validate_contents_modified(
+            lambda indices, new_items: seen.append((indices, list(new_items), list(items))),
+        )
+        return seen
+
+    def test_parity_with_list(self) -> None:
+        """Check the validation calls, contents and focus against a focus list for each shared operation."""
+        for name, operation in SHARED_OPERATIONS.items():
+            for focus in (0, 1, 3):
+                with self.subTest(operation=name, focus=focus):
+                    reference = urwid.MonitoredFocusList([0, 1, 2, 3], focus=focus)
+                    items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=focus)
+                    expected = self.recording(reference)
+                    seen = self.recording(items)
+                    operation(reference)
+                    operation(items)
+                    self.assertEqual(expected, seen)
+                    self.assertEqual(list(reference), list(items))
+                    self.assertEqual(reference.focus, items.focus)
+
+    def test_out_of_range_index_parity_with_list(self) -> None:
+        """Check that an index out of range is validated as an empty range and raises IndexError, as on a list."""
+        operations: dict[str, Callable[[typing.Any, int], object]] = {
+            "setitem": lambda items, index: operator.setitem(items, index, 9),
+            "delitem": operator.delitem,
+        }
+        for name, operation in operations.items():
+            for index in (-8, -6, -5, 4, 10):
+                with self.subTest(operation=name, index=index):
+                    reference = urwid.MonitoredFocusList([0, 1, 2, 3], focus=1)
+                    items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                    expected = self.recording(reference)
+                    seen = self.recording(items)
+                    with self.assertRaises(IndexError):
+                        operation(reference, index)
+                    with self.assertRaises(IndexError):
+                        operation(items, index)
+                    self.assertEqual(expected, seen)
+                    self.assertEqual([0, 1, 2, 3], list(items))
+                    self.assertEqual(1, items.focus)
+
+    def test_bounded_validation_arguments(self) -> None:
+        """Check the range and the new items a bounded deque passes for changes larger than its maxlen."""
+        cases: dict[str, tuple[int, Callable[[typing.Any], object], tuple[int, int, int], list[int]]] = {
+            "*= large count": (3, lambda items: operator.imul(items, 10**9), (2, 2, 1), [0, 1]),
+            "replace longer than maxlen": (3, lambda items: items.replace(range(5)), (0, 2, 1), [0, 1, 2, 3, 4]),
+            "append to maxlen 0": (0, lambda items: items.append(9), (0, 0, 1), [9]),
+        }
+        for name, (maxlen, operation, indices, new_items) in cases.items():
+            with self.subTest(case=name):
+                items = urwid.MonitoredFocusDeque([0, 1], maxlen=maxlen)
+                before = list(items)
+                seen = self.recording(items)
+                operation(items)
+                self.assertEqual([(indices, new_items, before)], seen)
+
+    def test_left_end_operations(self) -> None:
+        """Check that a change at the left end is described as a range starting at 0."""
+        operations: dict[str, tuple[Callable[[typing.Any], object], tuple[int, int, int], list[int]]] = {
+            "appendleft": (lambda items: items.appendleft(9), (0, 0, 1), [9]),
+            "extendleft": (lambda items: items.extendleft((8, 9)), (0, 0, 1), [9, 8]),
+            "popleft": (lambda items: items.popleft(), (0, 1, 1), []),
+        }
+        for name, (operation, indices, new_items) in operations.items():
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                seen = self.recording(items)
+                operation(items)
+                self.assertEqual([(indices, new_items, [0, 1, 2, 3])], seen)
+
+    def test_reordering_is_not_validated(self) -> None:
+        """Check that a reordering is not passed to the callback, as for a focus list."""
+        for name in ("reverse", "rotate"):
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                seen = self.recording(items)
+                getattr(items, name)()
+                self.assertEqual([], seen)
+
+    def test_bounded_add_reports_the_added_items_only(self) -> None:
+        """Check that an item evicted by a bounded deque is not part of the validated range."""
+        items = urwid.MonitoredFocusDeque([0, 1, 2], maxlen=3, focus=1)
+        seen = self.recording(items)
+        items.append(9)
+        self.assertEqual([((3, 3, 1), [9], [0, 1, 2])], seen)
+        self.assertEqual([1, 2, 9], list(items))
+
+    def test_empty_pop_validates_nothing_removed(self) -> None:
+        """Check that a pop from an empty deque validates an empty range before it raises."""
+        for name in ("pop", "popleft"):
+            with self.subTest(operation=name):
+                items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+                seen = self.recording(items)
+                with self.assertRaises(IndexError):
+                    getattr(items, name)()
+                self.assertEqual([((0, 0, 1), [], [])], seen)
+
+    def test_rejection_leaves_the_deque_unchanged(self) -> None:
+        """Check that a rejected change keeps the items and the focus, and notifies nothing."""
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            **SHARED_OPERATIONS,
+            "appendleft": lambda items: items.appendleft(9),
+            "extendleft": lambda items: items.extendleft((8, 9)),
+            "popleft": lambda items: items.popleft(),
+        }
+        for name, operation in operations.items():
+            with self.subTest(operation=name):
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=1)
+                modified: list[bool] = []
+                moved: list[tuple[int | None, int | None]] = []
+                items.set_modified_callback(functools.partial(modified.append, True))
+                items.set_focus_moved_callback(lambda old, new, sink=moved: sink.append((old, new)))
+
+                def reject(indices: tuple[int, int, int], new_items: object) -> None:
+                    raise ValueError("rejected")
+
+                items.set_validate_contents_modified(reject)
+                with self.assertRaisesRegex(ValueError, "rejected"):
+                    operation(items)
+                self.assertEqual([0, 1, 2, 3], list(items))
+                self.assertEqual(1, items.focus)
+                self.assertEqual([], modified)
+                self.assertEqual([], moved)
+
+    def test_returned_focus_is_used(self) -> None:
+        """Check that a focus returned by the callback replaces the default one."""
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            **{name: operation for name, operation in SHARED_OPERATIONS.items() if "empty" not in name},
+            "appendleft": lambda items: items.appendleft(9),
+            "extendleft": lambda items: items.extendleft((8, 9)),
+            "popleft": lambda items: items.popleft(),
+        }
+        for name, operation in operations.items():
+            if name in {"clear", "*= 0"}:
+                continue
+            with self.subTest(operation=name):
+                # follow_end would move the focus to the new last item if the returned focus were ignored
+                items = urwid.MonitoredFocusDeque([0, 1, 2, 3], focus=3, follow_end=True)
+                items.set_validate_contents_modified(lambda indices, new_items: 0)
+                operation(items)
+                self.assertEqual(0, items.focus)
+
+    def test_container_validator(self) -> None:
+        """A container's validator accepts and rejects deque changes as it does list changes."""
+        pile = urwid.Pile([urwid.Text("a")])
+        items = urwid.MonitoredFocusDeque(pile.contents)
+        items.set_validate_contents_modified(pile._validate_contents_modified)
+        items.appendleft((urwid.Text("top"), pile.options()))
+        self.assertEqual(2, len(items))
+        with self.assertRaises(urwid.PileError):
+            items.appendleft(urwid.Text("bad"))
+        self.assertEqual(2, len(items))
+
+
+class MonitoredFocusDequeReplaceTest(unittest.TestCase):
+    """Replacing all items of a focus deque behaves as on a focus list."""
+
+    def test_focus(self) -> None:
+        """Check that the focus after a replacement matches a focus list."""
+        cases = {
+            "keeps index": ([0, 1, 2], 1, [5, 6, 7], 1),
+            "clamps to last": ([0, 1, 2], 2, [5], 0),
+            "fills empty with last": ([], 0, [5, 6, 7], 2),
+            "empties": ([0, 1], 1, [], None),
+        }
+        for name, (initial, focus, new, expected) in cases.items():
+            with self.subTest(case=name):
+                reference = urwid.MonitoredFocusList(initial, focus=focus)
+                items = urwid.MonitoredFocusDeque(initial, focus=focus)
+                reference.replace(new)
+                items.replace(new)
+                self.assertEqual(expected, reference.focus)
+                self.assertEqual(expected, items.focus)
+                self.assertEqual(new, list(items))
+
+    def test_bounded_keeps_last_items(self) -> None:
+        """Check that a bounded deque keeps the last items of a longer replacement."""
+        items = urwid.MonitoredFocusDeque([0, 1], maxlen=3, focus=1)
+        items.replace(range(5, 10))
+        self.assertEqual([7, 8, 9], list(items))
+        self.assertEqual(1, items.focus)
+
+    def test_notifies_once(self) -> None:
+        """Check that a replacement sends one modified notification and one focus moved notification."""
+        items = urwid.MonitoredFocusDeque([0, 1, 2], focus=2)
+        events: list[object] = []
+        items.set_modified_callback(lambda: events.append(("modified", list(items), items.focus)))
+        items.set_focus_moved_callback(lambda old, new: events.append(("moved", old, new)))
+        items.replace(iter((5, 6)))
+        self.assertEqual([("modified", [5, 6], 1), ("moved", 2, 1)], events)
+
+
 if __name__ == "__main__":
     unittest.main()

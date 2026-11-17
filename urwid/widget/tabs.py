@@ -370,7 +370,7 @@ class Tabs(
         :raises TypeError: an item is not a `(body, label)` pair of widgets.
         :raises ValueError: a label is not a fixed widget, or a body is neither a flow nor a box widget.
         """
-        self._contents[:] = new_contents
+        self._contents.replace(new_contents)
 
     @staticmethod
     def _validate_contents_modified(
