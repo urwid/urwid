@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import typing
 import unittest
 
 import urwid
@@ -98,6 +99,61 @@ class BarWidthTest(unittest.TestCase):
         # Only floor(10 / 5) == 2 bars fit into 10 columns.
         bardata, _top, _hlines = g._get_data((10, 3))
         self.assertEqual(bardata, [[1], [2]])
+
+
+class KeepTest(unittest.TestCase):
+    """BarGraph(keep=) picks the bars shown when not all of them fit."""
+
+    def test_bars_kept_when_not_all_fit(self) -> None:
+        """The first or the last bars are kept, with automatic and fixed bar widths."""
+        bars = [[n] for n in range(10)]
+        for keep, bar_width, maxcol, expected in (
+            ("first", None, 4, bars[:4]),
+            ("last", None, 4, bars[6:]),
+            ("last", 3, 10, bars[7:]),
+            ("last", 3, 2, []),
+        ):
+            with self.subTest(keep=keep, bar_width=bar_width, maxcol=maxcol):
+                g = urwid.BarGraph(["bg", "fg"], keep=keep)
+                g.set_bar_width(bar_width)
+                g.set_data(bars, 10)
+                bardata, _top, _hlines = g._get_data((maxcol, 3))
+                self.assertEqual(bardata, expected)
+
+    def test_invalid_keep_raises(self) -> None:
+        """A value other than "first" or "last" is refused and the old value stays."""
+        for keep in ("middle", ["last"]):
+            with self.subTest(keep=keep), self.assertRaises(ValueError):
+                urwid.BarGraph(["bg", "fg"], keep=keep)  # type: ignore[arg-type]
+        g = urwid.BarGraph(["bg", "fg"])
+        with self.assertRaises(ValueError):
+            g.keep = "middle"  # type: ignore[assignment]
+        self.assertEqual(g.keep, "first")
+
+    def test_last_draws_the_spare_columns_on_the_left(self) -> None:
+        """With keep="last" the bars end at the right edge and the spare columns are background."""
+
+        def render(
+            keep: typing.Literal["first", "last"],
+            hlines: list[float | int] | None = None,
+        ) -> list[bytes]:
+            g = urwid.BarGraph([("bg", "."), ("fg", "#")], keep=keep)
+            g.set_bar_width(2)
+            g.set_data([[1], [2], [1], [2]], 2, hlines)
+            return g.render((7, 2)).text
+
+        self.assertEqual(render("first"), [b"..##.. ", b"###### "])
+        self.assertEqual(render("last"), [b".##..##", b".######"])
+        # A horizontal line runs over the spare columns as well, since they are background.
+        self.assertEqual(render("last", [1]), [b"_##__##", b".######"])
+
+    def test_assignment_invalidates_the_rendered_canvas(self) -> None:
+        """Assigning keep redraws the graph instead of reusing the cached canvas."""
+        g = urwid.BarGraph([("bg", "."), ("fg", "#")])
+        g.set_data([[1], [2], [3]], 3)
+        self.assertEqual(g.render((2, 1)).text, [b".#"])
+        g.keep = "last"
+        self.assertEqual(g.render((2, 1)).text, [b"##"])
 
 
 class SelectableTest(unittest.TestCase):
