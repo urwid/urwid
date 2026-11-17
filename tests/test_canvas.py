@@ -455,6 +455,16 @@ class CanvasTest(unittest.TestCase):
             canvas.set_pop_up(widget, 1, 2, 4, 2)
             self.assertIsNone(canvas.get_pop_up_anchor_width())
 
+        with self.subTest("an anchor height of another pop-up at the same position is ignored"):
+            anchored = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            anchored.set_pop_up(urwid.SolidFill("a"), 0, 1, 4, 2, anchor_height=1)
+            plain = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            plain.set_pop_up(widget, 0, 0, 4, 2)
+            # The second canvas starts on row 1, so both pop-ups end up at (0, 1) and its "pop up" entry wins.
+            combined = urwid.CanvasCombine([(anchored, None, False), (plain, None, False)])
+            self.assertIs(widget, combined.get_pop_up()[2][0])
+            self.assertIsNone(combined.get_pop_up_anchor_height())
+
         with self.subTest("an anchor width of another pop-up at the same position is ignored"):
             anchored = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
             anchored.set_pop_up(urwid.SolidFill("a"), 0, 1, 4, 2, anchor_width=2)

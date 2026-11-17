@@ -67,8 +67,8 @@ if typing.TYPE_CHECKING:
         "_CanvasCoords",
         {
             "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpSize, PopUpSize]]],
-            # Same (x, y) as "pop up", so both move together; the data part is the anchor height.
-            "pop up anchor": NotRequired[tuple[int, int, int]],
+            # Same (x, y) as "pop up", so both move together; the data part is the pop-up widget and the anchor height.
+            "pop up anchor": NotRequired[tuple[int, int, tuple[AbstractWidget, int]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget, the anchor width and the anchor side.
             "pop up anchor width": NotRequired[tuple[int, int, tuple[AbstractWidget, int, Literal["left", "right"]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
@@ -402,10 +402,11 @@ class Canvas:
         """Return the anchor height set with the pop-up on this canvas, or ``None`` if none was set."""
         pop_up = self.coords.get("pop up", None)
         anchor = self.coords.get("pop up anchor", None)
-        # A merged canvas can hold the anchor of one pop-up and the position of another: use only a matching pair.
-        if pop_up is None or anchor is None or anchor[:2] != pop_up[:2]:
+        # A merged canvas can hold the anchor of one pop-up and the position of another, even at the same
+        # coordinates: use only the anchor set together with this pop-up.
+        if pop_up is None or anchor is None or anchor[:2] != pop_up[:2] or anchor[2][0] is not pop_up[2][0]:
             return None
-        return anchor[2]
+        return anchor[2][1]
 
     def get_pop_up_anchor_width(self) -> tuple[int, Literal["left", "right"]] | None:
         """Return the horizontal anchor set with the pop-up on this canvas.
@@ -569,7 +570,7 @@ class Canvas:
         if anchor_height is None:
             self.coords.pop("pop up anchor", None)
         else:
-            self.coords["pop up anchor"] = (x, y, anchor_height)
+            self.coords["pop up anchor"] = (x, y, (w, anchor_height))
         if anchor_width is None:
             self.coords.pop("pop up anchor width", None)
         else:
