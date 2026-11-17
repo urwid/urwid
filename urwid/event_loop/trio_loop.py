@@ -243,7 +243,6 @@ class TrioEventLoop(EventLoop):
                 # trio reads the clock for a scope that was not cancelled, which needs a
                 # running loop. Outside it - before run(), say - no alarm task can be
                 # unwinding, so set membership alone tells whether the alarm is pending.
-                pass
         self._pending_alarms.discard(handle)
         handle.cancel()
         return existed
