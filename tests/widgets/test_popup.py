@@ -367,15 +367,20 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         pop_up_width: int | tuple[str, float] | str = 3,
         pop_up: urwid.Widget | None = None,
         anchor_height: int | None = 1,
+        anchor_width: int | None = None,
+        anchor_side: str | None = None,
         left: int | str = 0,
         top: int | str = 1,
         close_on_click_outside: bool = False,
+        label: str = "L",
     ) -> None:
-        super().__init__(urwid.Text("L"), close_on_click_outside=close_on_click_outside)
+        super().__init__(urwid.Text(label), close_on_click_outside=close_on_click_outside)
         self.pop_up_height = pop_up_height
         self.pop_up_width = pop_up_width
         self.pop_up = pop_up
         self.anchor_height = anchor_height
+        self.anchor_width = anchor_width
+        self.anchor_side = anchor_side
         self.left = left
         self.top = top
 
@@ -391,6 +396,10 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         }
         if self.anchor_height is not None:
             parameters["anchor_height"] = self.anchor_height
+        if self.anchor_width is not None:
+            parameters["anchor_width"] = self.anchor_width
+        if self.anchor_side is not None:
+            parameters["anchor_side"] = self.anchor_side
         return parameters
 
 
@@ -644,6 +653,95 @@ class AnchoredPopUpTest(unittest.TestCase):
         launcher.open_pop_up()
         self.assertEqual([b"ppp"], target.render((3, 1)).text)
 
+    @staticmethod
+    def render_beside(
+        launcher_col: int,
+        anchor_width: int,
+        anchor_side: str,
+        pop_up_width: int | tuple[str, float] | str,
+        *,
+        pop_up: urwid.Widget | None = None,
+        pop_up_height: int | str = 1,
+        size: tuple[int, int] = (10, 2),
+    ) -> list[str]:
+        """Render a launcher of `anchor_width` columns at `launcher_col` on row 0, its pop-up anchored beside it.
+
+        The pop-up starts on row 1, so the launcher row stays visible; the launcher is drawn as "L" characters.
+        """
+        launcher = AnchoredLauncher(
+            pop_up_height,
+            pop_up_width=pop_up_width,
+            pop_up=pop_up,
+            anchor_height=None,
+            anchor_width=anchor_width,
+            anchor_side=anchor_side,
+            left=anchor_width if anchor_side == "left" else 0,
+            label="L" * anchor_width,
+        )
+        columns = urwid.Columns([(launcher_col, urwid.Text("")), (anchor_width, launcher), urwid.Text("")])
+        target = urwid.PopUpTarget(urwid.Filler(columns, valign="top"))
+        launcher.open_pop_up()
+        rows = [line.decode() for line in target.render(size).text]
+        assert rows[0] == " " * launcher_col + "L" * anchor_width + " " * (size[0] - launcher_col - anchor_width)
+        return rows
+
+    @staticmethod
+    def columns_of(line: str, char: str) -> list[int]:
+        return [index for index, cell in enumerate(line) if cell == char]
+
+    def test_horizontal_placement(self) -> None:
+        """The preferred side if it fits, else the other side if it fits, else the larger side clipped."""
+        # The target has 10 columns; the launcher covers `anchor_width` columns from `launcher_col`.
+        for description, launcher_col, anchor_width, side, width, expected_cols in (
+            ("left anchor: fits right", 2, 2, "left", 3, range(4, 7)),
+            ("left anchor: flips left", 6, 2, "left", 3, range(3, 6)),
+            ("left anchor: clipped right, more columns right", 3, 2, "left", 8, range(5, 10)),
+            ("left anchor: clipped left, more columns left", 5, 2, "left", 8, range(5)),
+            ("left anchor: clipped right on equal sides", 4, 2, "left", 8, range(6, 10)),
+            ("left anchor: no column on either side", 0, 10, "left", 3, range(7, 10)),
+            ("right anchor: fits left", 5, 2, "right", 3, range(2, 5)),
+            ("right anchor: flips right", 1, 2, "right", 3, range(3, 6)),
+            ("right anchor: clipped right, more columns right", 3, 2, "right", 8, range(5, 10)),
+            ("right anchor: clipped left, more columns left", 5, 2, "right", 8, range(5)),
+            ("right anchor: clipped left on equal sides", 4, 2, "right", 8, range(4)),
+            ("right anchor: no column on either side", 0, 10, "right", 3, range(3)),
+        ):
+            with self.subTest(description):
+                rows = self.render_beside(launcher_col, anchor_width, side, width)
+                self.assertEqual(list(expected_cols), self.columns_of(rows[1], "p"))
+                anchor = set(range(launcher_col, launcher_col + anchor_width))
+                if anchor_width < 10:
+                    self.assertFalse(anchor & set(expected_cols))
+
+    def test_horizontal_anchor_sizes(self) -> None:
+        """A relative width is a share of the preferred side; a "pack" width is measured, on either side."""
+        for description, launcher_col, side, width, pop_up, expected_cols in (
+            ("relative, left anchor: half of the 6 columns right", 2, "left", ("relative", 50), None, range(4, 7)),
+            ("relative, right anchor: half of the 6 columns left", 6, "right", ("relative", 50), None, range(3, 6)),
+            ("pack, left anchor", 2, "left", "pack", urwid.Text("ppp"), range(4, 7)),
+            ("pack, right anchor", 6, "right", "pack", urwid.Text("ppp"), range(3, 6)),
+        ):
+            with self.subTest(description):
+                rows = self.render_beside(launcher_col, 2, side, width, pop_up=pop_up)
+                self.assertEqual(list(expected_cols), self.columns_of(rows[1], "p"))
+
+    def test_packed_height_is_measured_at_the_clipped_width(self) -> None:
+        """A "pack" height takes the rows of the text at the width the horizontal anchor leaves."""
+        # 5 columns are left right of the launcher: "aaa bbb ccc" wraps to 3 rows there, and to 2 at the asked 8.
+        rows = self.render_beside(3, 2, "left", 8, pop_up=urwid.Text("aaa bbb ccc"), pop_up_height="pack", size=(10, 6))
+        # Measured at 8 columns the pop-up would get 2 rows, and "ccc" would be cut off.
+        self.assertEqual(["     aaa  ", "     bbb  ", "     ccc  "], rows[1:4])
+
+    def test_both_anchors(self) -> None:
+        """A launcher in the bottom right corner gets its pop-up above it and to its left."""
+        launcher = AnchoredLauncher(2, anchor_height=1, anchor_width=2, left=2, top=1, label="LL")
+        columns = urwid.Columns([(7, urwid.Text("")), (2, launcher), urwid.Text("")])
+        pile = urwid.Pile([urwid.BoxAdapter(urwid.SolidFill(" "), 3), columns])
+        target = urwid.PopUpTarget(urwid.Filler(pile, valign="top"))
+        launcher.open_pop_up()
+        rows = [line.decode() for line in target.render((10, 4)).text]
+        self.assertEqual(["          ", "    ppp   ", "    ppp   ", "       LL "], rows)
+
 
 class NestedDialog(urwid.PopUpLauncher[urwid.Filler[urwid.Edit]]):
     """A pop-up launcher whose own pop-up is another :class:`NestedDialog`.
@@ -816,6 +914,25 @@ class NestedPopUpOffsetTest(unittest.TestCase):
                     list(expected_rows),
                     [index for index, line in enumerate(rows) if line[6:9] == "ppp"],
                 )
+
+    def test_nested_pop_up_with_a_horizontal_anchor(self) -> None:
+        """The anchor columns of a nested pop-up are offset by where the dialog holding its launcher is."""
+        # The launcher is on screen column 6; 5 columns are right of it and 6 left of it.
+        for description, pop_up_width, expected_cols in (
+            ("fits right of the launcher", 4, range(7, 11)),
+            ("flips left of the launcher", 6, range(6)),
+        ):
+            with self.subTest(description):
+                inner = AnchoredLauncher(1, pop_up_width=pop_up_width, anchor_height=None, anchor_width=1, left=1)
+                outer = DialogWithLauncher(inner)
+                target = urwid.PopUpTarget(urwid.Filler(outer, valign="top"))
+                outer.open_pop_up()
+                inner.open_pop_up()
+
+                rows = [line.decode() for line in target.render((12, 10)).text]
+
+                self.assertEqual("L", rows[5][6])
+                self.assertEqual(list(expected_cols), [index for index, cell in enumerate(rows[6]) if cell == "p"])
 
 
 if __name__ == "__main__":

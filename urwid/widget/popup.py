@@ -50,6 +50,8 @@ if typing.TYPE_CHECKING:
         overlay_width: PopUpSize
         overlay_height: PopUpSize
         anchor_height: NotRequired[int]
+        anchor_width: NotRequired[int]
+        anchor_side: NotRequired[Literal["left", "right"]]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
@@ -162,8 +164,10 @@ class PopUpLauncher(
         Subclass must override this method. It is called each time this widget is rendered.
 
         The optional ``anchor_height`` key makes :class:`PopUpTarget` move the pop-up above the launcher, or clip
-        its height, when it does not fit below;
-        see :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
+        its height, when it does not fit below.
+        The optional ``anchor_width`` and ``anchor_side`` keys do the same for columns: the pop-up moves to the
+        other side of the launcher, or its width is clipped, when it does not fit on the side it prefers.
+        See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
 
         :raises NotImplementedError: the subclass does not override this method.
         """
@@ -218,12 +222,25 @@ class PopUpLauncher(
         return None
 
 
-def _place_anchored(maxrow: int, top: int, height: int, anchor_height: int) -> tuple[int, int]:
-    """Return the (top, height) of a pop-up kept off the `anchor_height` launcher rows directly above `top`.
+def _place_anchored(
+    limit: int,
+    edge: int,
+    length: int,
+    anchor_length: int,
+    *,
+    prefer_after: bool = True,
+) -> tuple[int, int]:
+    """Return the (start, length) of a pop-up kept off the `anchor_length` cells of its anchor on one axis.
 
-    The pop-up goes below the launcher when it fits there, above it when it fits there, and otherwise on the side
-    with more rows (below on a tie), clipped to that side. When neither side has a row, the position is returned
-    unchanged and :class:`Overlay` shifts the pop-up over the launcher, as it does for a pop-up without an anchor.
+    The axis has `limit` cells.
+    With `prefer_after`, the anchor is the cells ``[edge - anchor_length, edge)`` and the pop-up prefers to start at
+    `edge`, after the anchor (below it, or right of it).
+    Without it, the anchor is ``[edge, edge + anchor_length)`` and the pop-up prefers to end at `edge`, before it.
+
+    The pop-up goes on the preferred side when it fits there, on the other side when it fits there, and otherwise on
+    the side with more cells (the preferred side on a tie), clipped to that side. When neither side has a cell, the
+    preferred position is returned unchanged and :class:`Overlay` shifts the pop-up over the anchor, as it does for a
+    pop-up without an anchor.
 
     >>> _place_anchored(24, 5, 10, 1)  # fits below
     (5, 10)
@@ -235,18 +252,32 @@ def _place_anchored(maxrow: int, top: int, height: int, anchor_height: int) -> t
     (0, 12)
     >>> _place_anchored(24, 20, 10, 3)  # flips above a 3-row launcher on rows 17-19
     (7, 10)
+    >>> _place_anchored(40, 20, 8, 6, prefer_after=False)  # fits left of an anchor on columns 20-25
+    (12, 8)
+    >>> _place_anchored(40, 5, 8, 6, prefer_after=False)  # flips right of an anchor on columns 5-10
+    (11, 8)
+    >>> _place_anchored(40, 16, 30, 6, prefer_after=False)  # clipped right: 18 columns right, 16 left
+    (22, 18)
     """
-    rows_below = maxrow - top
-    rows_above = top - anchor_height
-    if height <= rows_below:
-        return top, height
-    if height <= rows_above:
-        return rows_above - height, height
-    if max(rows_below, rows_above) < 1:
-        return top, height
-    if rows_below >= rows_above:
-        return top, rows_below
-    return 0, rows_above
+    if prefer_after:
+        before_end, after_start = edge - anchor_length, edge
+    else:
+        before_end, after_start = edge, edge + anchor_length
+    space_before = before_end
+    space_after = limit - after_start
+    space_preferred, space_other = (space_after, space_before) if prefer_after else (space_before, space_after)
+    after = after_start, length
+    before = before_end - length, length
+    preferred, other = (after, before) if prefer_after else (before, after)
+    if length <= space_preferred:
+        return preferred
+    if length <= space_other:
+        return other
+    if max(space_preferred, space_other) < 1:
+        return preferred
+    if (space_after > space_before) or (space_after == space_before and prefer_after):
+        return after_start, space_after
+    return 0, space_before
 
 
 def _aligned_start(space: int, length: int, align: str) -> int:
@@ -337,6 +368,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
 
         pop_up = canv.get_pop_up()
         anchor_height = canv.get_pop_up_anchor_height()
+        anchor_width = canv.get_pop_up_anchor_width()
         h_align, v_align = canv.get_pop_up_align()
         on_unhandled_key = canv.get_pop_up_unhandled_key()
         on_click_outside = canv.get_pop_up_click_outside()
@@ -351,14 +383,18 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             top = offset_top + top if v_align is None else 0
             sizing = w.sizing()
             packed = isinstance(overlay_width, str) or isinstance(overlay_height, str)
-            # Resolve a relative or "pack" size to cells, so the anchor placement gets a number of rows.
+            # Resolve a relative or "pack" size to cells, so the anchor placement gets a number of cells.
             # A relative size uses Overlay's own rounding (half up), and is capped at the larger of that space and the
             # whole target, because a huge percentage gives an infinite product that has no integer value.
-            # A "pack" height is the rows at the width the Overlay leaves once it has shrunk the pop-up to the target.
+            # The width is placed before the height is resolved, because a horizontal anchor can clip it, and a
+            # "pack" height is the rows at the width the Overlay leaves once it has shrunk the pop-up to the target.
             # Either is at least one cell, like a size given in cells.
             width: int
             if isinstance(overlay_width, tuple):
-                space = max(size[0] - left, 0)
+                if anchor_width is not None and anchor_width[1] == "right":
+                    space = max(left, 0)
+                else:
+                    space = max(size[0] - left, 0)
                 width = max(int(min(space * overlay_width[1] / 100, max(space, size[0])) + 0.5), 1)
             elif isinstance(overlay_width, str):
                 if Sizing.FIXED not in sizing:
@@ -366,6 +402,16 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                 width = max(w.pack((), focus)[0], 1)
             else:
                 width = overlay_width
+            if h_align is not None:
+                left = _aligned_start(size[0], width, h_align)
+            if anchor_width is not None:
+                left, width = _place_anchored(
+                    size[0],
+                    left,
+                    width,
+                    anchor_width[0],
+                    prefer_after=anchor_width[1] == "left",
+                )
             height: int
             if isinstance(overlay_height, tuple):
                 space = max(size[1] - top, 0)
@@ -376,8 +422,6 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                 height = max(w.pack((min(width, size[0]),), focus)[1], 1)
             else:
                 height = overlay_height
-            if h_align is not None:
-                left = _aligned_start(size[0], width, h_align)
             if v_align is not None:
                 top = _aligned_start(size[1], height, v_align)
             if anchor_height is not None:
@@ -437,6 +481,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             w_canv = top_w.render(w_size, focus=focus)
             pop_up = w_canv.get_pop_up()
             anchor_height = w_canv.get_pop_up_anchor_height()
+            anchor_width = w_canv.get_pop_up_anchor_width()
             h_align, v_align = w_canv.get_pop_up_align()
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
             on_click_outside = w_canv.get_pop_up_click_outside()

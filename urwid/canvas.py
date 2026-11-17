@@ -69,6 +69,8 @@ if typing.TYPE_CHECKING:
             "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpSize, PopUpSize]]],
             # Same (x, y) as "pop up", so both move together; the data part is the anchor height.
             "pop up anchor": NotRequired[tuple[int, int, int]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget, the anchor width and the anchor side.
+            "pop up anchor width": NotRequired[tuple[int, int, tuple[AbstractWidget, int, Literal["left", "right"]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
             "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
@@ -405,6 +407,19 @@ class Canvas:
             return None
         return anchor[2]
 
+    def get_pop_up_anchor_width(self) -> tuple[int, Literal["left", "right"]] | None:
+        """Return the horizontal anchor set with the pop-up on this canvas.
+
+        :returns: ``(anchor_width, anchor_side)`` as given to :meth:`CompositeCanvas.set_pop_up`,
+            or ``None`` when the pop-up was set without `anchor_width` or no pop-up was set.
+        """
+        pop_up = self.coords.get("pop up", None)
+        anchor = self.coords.get("pop up anchor width", None)
+        # As for the callbacks, use only the anchor set together with this pop-up.
+        if pop_up is None or anchor is None or anchor[:2] != pop_up[:2] or anchor[2][0] is not pop_up[2][0]:
+            return None
+        return anchor[2][1], anchor[2][2]
+
     def get_pop_up_unhandled_key(self) -> Callable[[str], str | None] | None:
         """Return the unhandled key callback set with the pop-up on this canvas, or ``None`` if none was set."""
         pop_up = self.coords.get("pop up", None)
@@ -448,6 +463,8 @@ class Canvas:
         overlay_height: PopUpSize,
         *,
         anchor_height: int | None = None,
+        anchor_width: int | None = None,
+        anchor_side: Literal["left", "right"] = "left",
         on_unhandled_key: Callable[[str], str | None] | None = None,
         on_click_outside: Callable[[], None] | None = None,
     ) -> None:
@@ -482,14 +499,28 @@ class Canvas:
             exactly as given. With an anchor, :class:`PopUpTarget <urwid.PopUpTarget>` keeps the pop-up off those
             rows: it goes below them when it fits there, above them when it fits there, and otherwise on the side
             with more rows, with its height clipped to that side. It needs `top` as a number of rows.
+        :param anchor_width: columns of the anchor beside the pop-up, >= 0, such as a launcher or the menu that
+            opened the pop-up, or ``None`` to place the pop-up exactly as given.
+            With an anchor, :class:`PopUpTarget <urwid.PopUpTarget>` keeps the pop-up off those columns,
+            by the same rule as for `anchor_height`, with the side `anchor_side` gives preferred.
+            It needs `left` as a number of columns: the column of the anchor edge that the pop-up touches on its
+            preferred side.
+            A relative `overlay_width` is then a percentage of the columns on the preferred side.
+        :param anchor_side: the side of the pop-up the anchor is on.
+            ``"left"``: the anchor is the `anchor_width` columns before `left`, and the pop-up prefers to start at
+            `left`, to the right of the anchor.
+            ``"right"``: the anchor is the `anchor_width` columns from `left` on, and the pop-up prefers to end
+            just before `left`, to the left of the anchor. It needs `anchor_width`.
         :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
             unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
             to pass on. ``None`` passes every unhandled key on.
         :param on_click_outside: called by :class:`PopUpTarget <urwid.PopUpTarget>` instead of passing on a press of
             mouse button 1, 2 or 3 outside `w` while it is the topmost open pop-up.
             ``None`` leaves such a press unhandled.
-        :raises CanvasError: the canvas is already finalised, the anchor height is negative,
-            an anchor height is given with an aligned `top`, a position is neither a number nor an alignment of its
+        :raises CanvasError: the canvas is already finalised, the anchor height or width is negative,
+            an anchor height is given with an aligned `top`, an anchor width with an aligned `left`,
+            `anchor_side` is neither ``"left"`` nor ``"right"``, ``anchor_side="right"`` is given without an anchor
+            width, a position is neither a number nor an alignment of its
             axis, or an overlay dimension is not a positive integer, a positive finite percentage or ``"pack"``
         """
         if self.widget_info and self.cacheable:
@@ -519,6 +550,18 @@ class Canvas:
         if anchor_height is not None and not isinstance(top, int):
             raise CanvasError(f"Pop-up anchor height needs top as a number of rows, got top={top!r}")
 
+        if anchor_width is not None and anchor_width < 0:
+            raise CanvasError(f"Pop-up anchor width must not be negative, got {anchor_width!r}")
+
+        if anchor_width is not None and not isinstance(left, int):
+            raise CanvasError(f"Pop-up anchor width needs left as a number of columns, got left={left!r}")
+
+        if anchor_side not in ("left", "right"):
+            raise CanvasError(f"Pop-up anchor side must be 'left' or 'right', got {anchor_side!r}")
+
+        if anchor_side == "right" and anchor_width is None:
+            raise CanvasError("Pop-up anchor side 'right' needs an anchor width")
+
         # The coordinates are moved with this canvas, so an aligned axis keeps 0 there and its alignment beside it.
         x = left if isinstance(left, int) else 0
         y = top if isinstance(top, int) else 0
@@ -527,6 +570,10 @@ class Canvas:
             self.coords.pop("pop up anchor", None)
         else:
             self.coords["pop up anchor"] = (x, y, anchor_height)
+        if anchor_width is None:
+            self.coords.pop("pop up anchor width", None)
+        else:
+            self.coords["pop up anchor width"] = (x, y, (w, anchor_width, anchor_side))
         if on_unhandled_key is None:
             self.coords.pop("pop up unhandled key", None)
         else:

@@ -363,6 +363,15 @@ pop-up is kept off those rows: it is placed below the launcher when it fits
 there, above the launcher when it fits there, and otherwise on the side with
 more rows, with its height clipped to that side.
 ``anchor_height`` needs ``top`` as a number of rows.
+``anchor_width`` does the same for the columns of the launcher beside the
+pop-up, and needs ``left`` as a number of columns: the column of the
+launcher's edge that the pop-up touches.  With the default
+``anchor_side="left"`` the launcher is the ``anchor_width`` columns before
+``left`` and the pop-up opens to the right of it; with
+``anchor_side="right"`` the launcher is the ``anchor_width`` columns from
+``left`` on and the pop-up opens to the left of it.  Either way the pop-up
+moves to the other side when it does not fit, and a submenu placed this way
+next to its parent menu never covers it while one side has room.
 A pop-up widget may itself be a :class:`PopUpLauncher` with its own pop-up open;
 that pop-up is placed relative to the pop-up that opened it.
 
