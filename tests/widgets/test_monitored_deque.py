@@ -744,6 +744,53 @@ class MonitoredFocusDequeValidationTest(unittest.TestCase):
         self.assertEqual(2, len(items))
 
 
+class MonitoredFocusDequeFillEmptyTest(unittest.TestCase):
+    """Filling an empty focus deque focuses the item a focus list would focus."""
+
+    def test_right_end_gives_focus_to_last_new_item(self) -> None:
+        """Check the focus of a focus deque and a deque walker after each way of filling them at the right end."""
+        targets: dict[str, Callable[[], typing.Any]] = {
+            "MonitoredFocusDeque": urwid.MonitoredFocusDeque,
+            "bounded MonitoredFocusDeque": lambda: urwid.MonitoredFocusDeque(maxlen=2),
+            "SimpleFocusDequeWalker": lambda: urwid.SimpleFocusDequeWalker([]),
+        }
+        operations: dict[str, Callable[[typing.Any], object]] = {
+            "extend": lambda items: items.extend((7, 8, 9)),
+            "+=": lambda items: operator.iadd(items, (7, 8, 9)),
+            "append": lambda items: items.append(9),
+            "insert": lambda items: items.insert(0, 9),
+            "replace": lambda items: items.replace((7, 8, 9)),
+        }
+        for target, make in targets.items():
+            for name, operation in operations.items():
+                with self.subTest(target=target, operation=name):
+                    items = make()
+                    operation(items)
+                    self.assertEqual(len(items) - 1, items.focus)
+
+    def test_left_end_gives_focus_to_item_added_last(self) -> None:
+        """Check that filling at the left end focuses the item added last, which is the first one."""
+        for name in ("appendleft", "extendleft"):
+            with self.subTest(operation=name):
+                items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+                getattr(items, name)((7, 8, 9) if name == "extendleft" else 9)
+                self.assertEqual(0, items.focus)
+                self.assertEqual(9, items[0])
+
+    def test_follow_end_keeps_following_after_fill(self) -> None:
+        """Check that a deque following its end still does so after it is filled from empty."""
+        items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque(follow_end=True)
+        items.extend((7, 8, 9))
+        items.append(10)
+        self.assertEqual(3, items.focus)
+
+    def test_empty_extension_keeps_the_deque_empty(self) -> None:
+        """Check that extending an empty deque with nothing leaves no focus."""
+        items: urwid.MonitoredFocusDeque[int] = urwid.MonitoredFocusDeque()
+        items.extend(())
+        self.assertIsNone(items.focus)
+
+
 class MonitoredFocusDequeReplaceTest(unittest.TestCase):
     """Replacing all items of a focus deque behaves as on a focus list."""
 

@@ -490,7 +490,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd.clear()
         focus: 1 -> None
         >>> mfd.extend([5, 6])
-        focus: None -> 0
+        focus: None -> 1
         """
         self._focus_moved_callback = callback
 
@@ -734,6 +734,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
     def extend(self, items: Iterable[_T]) -> None:
         """Extend the deque with ``items`` on the right end.
 
+        Filling an empty deque focuses the last item, as on a :class:`MonitoredFocusList`.
+
         :param items: items to append, in order
 
         >>> mfd = MonitoredFocusDeque([0, 1, 2], focus=2)
@@ -744,13 +746,17 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> bounded.extend((6, 7, 8))
         >>> bounded
         MonitoredFocusDeque([2, 6, 7, 8], maxlen=4, focus=0)
+        >>> empty = MonitoredFocusDeque()
+        >>> empty.extend((6, 7, 8))
+        >>> empty
+        MonitoredFocusDeque([6, 7, 8], focus=2)
         """
         items_list = list(items)
         if self.maxlen is not None:
             evicted = max(0, len(items_list) - (self.maxlen - len(self)))
         else:
             evicted = 0
-        focus = max(0, self._focus - evicted) if self else 0
+        focus = max(0, self._focus - evicted) if self else len(items_list) - evicted - 1
         validated = self._validate_contents_modified((len(self), len(self), 1), items_list)
         self._modify(
             self._focus_after_append(focus) if validated is None else validated,
