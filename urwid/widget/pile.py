@@ -19,7 +19,9 @@ from .constants import Align, MouseButton, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
+    _apply_focus_request,
     _ContainerElementSizingFlag,
+    _focus_request_scope,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
@@ -1276,7 +1278,7 @@ class Pile(
     ) -> bool | None:
         """Pass the event to the contained widget.
 
-        May change focus on button 1 press.
+        May change focus on button 1 press, and on a :meth:`Widget.request_focus` from the child.
 
         :raises PileError: *size* is ``()`` and the children cannot be sized as a fixed widget.
 
@@ -1306,12 +1308,17 @@ class Pile(
             )
             return False
 
-        # widget kind and size arguments matched separately
-        return w.mouse_event(
-            w_size,  # type: ignore[arg-type]
-            event,
-            button,
-            col,
-            target_row,
-            focus and self.focus == w,
-        )
+        focus_before = self.focus_position
+        with _focus_request_scope() as request:
+            # widget kind and size arguments matched separately
+            handled = w.mouse_event(
+                w_size,  # type: ignore[arg-type]
+                event,
+                button,
+                col,
+                target_row,
+                focus and self.focus == w,
+            )
+        if request.requested:
+            _apply_focus_request(self, i, w, focus_before)
+        return handled

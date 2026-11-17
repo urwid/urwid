@@ -325,6 +325,9 @@ together to show it:
   closes it when the pop-up leaves :kbd:`esc` unhandled.
   ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
   click outside the pop-up; that click does not reach the widget under it.
+  ``PopUpLauncher(..., signal_open_close=True)`` sends the signals ``"open"``
+  and ``"close"`` when the pop-up opens and closes, with the launcher as the
+  only argument; repeated calls on an open or a closed launcher send nothing.
   :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
   :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
   at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up
@@ -360,6 +363,15 @@ pop-up is kept off those rows: it is placed below the launcher when it fits
 there, above the launcher when it fits there, and otherwise on the side with
 more rows, with its height clipped to that side.
 ``anchor_height`` needs ``top`` as a number of rows.
+``anchor_width`` does the same for the columns of the launcher beside the
+pop-up, and needs ``left`` as a number of columns: the column of the
+launcher's edge that the pop-up touches.  With the default
+``anchor_side="left"`` the launcher is the ``anchor_width`` columns before
+``left`` and the pop-up opens to the right of it; with
+``anchor_side="right"`` the launcher is the ``anchor_width`` columns from
+``left`` on and the pop-up opens to the left of it.  Either way the pop-up
+moves to the other side when it does not fit, and a submenu placed this way
+next to its parent menu never covers it while one side has room.
 A pop-up widget may itself be a :class:`PopUpLauncher` with its own pop-up open;
 that pop-up is placed relative to the pop-up that opened it.
 
@@ -613,6 +625,44 @@ from the first to the last position of its ``positions()``, so the key is
 returned at its end.  Another list walker that repeats a position is treated
 as ending where the walk comes back to the focus: the search does not loop,
 but the key is returned only when no other selectable widget is left.
+
+.. _focus-request:
+
+Asking for the Focus from a Mouse Event
+---------------------------------------
+
+:class:`Pile`, :class:`Columns`, :class:`ListBox` and :class:`Frame` move
+their focus to the widget under the pointer on a press of mouse button 1
+only.  A widget that wants the focus on another event, such as a context menu
+opened by mouse button 3, calls :meth:`Widget.request_focus` inside its
+``mouse_event()``::
+
+    class Row(urwid.WidgetWrap):
+        def mouse_event(self, size, event, button, col, row, focus):
+            if button == urwid.MouseButton.RIGHT and urwid.util.is_mouse_press(event):
+                self.request_focus()
+                self.open_menu()
+                return True
+            return super().mouse_event(size, event, button, col, row, focus)
+
+When the widget's ``mouse_event()`` returns, each container on the path, from
+the innermost one out, moves its focus to the child the event went to and
+passes the request to the container above it, so the whole path ends up in
+focus.  :class:`Tabs` returns the focus from its bar to the body.  A container
+whose child is not selectable passes the request on without moving its focus.
+A handler that changed the container, so that the widget is no longer where it
+was called, cancels the request, and a focus the handler set itself is kept.
+The request is for the path of the current event, whichever widget makes the
+call.  A :class:`ListBox` whose list walker keeps its widgets, such as
+:class:`SimpleFocusListWalker`, checks that the same widget is still at its
+position, because an insertion or a removal can move another widget there.
+With a list walker that creates a new widget each time it is asked, it checks
+that the walker still has the position, so such a walker's positions have to
+keep naming the same rows: one that builds its widgets from an index into a
+list that the handler inserts into or removes from can have the focus moved to
+the row that took the index.
+The request is part of the event: one made outside ``mouse_event()``, or from
+a ``mouse_event()`` that raises an exception, has no effect.
 
 .. _focus-changed-signal:
 

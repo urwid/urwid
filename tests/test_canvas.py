@@ -371,6 +371,11 @@ class CanvasTest(unittest.TestCase):
             ("vertical alignment for left", {"left": "middle"}, "Pop-up position must be a number of cells"),
             ("horizontal alignment for top", {"top": urwid.CENTER}, "Pop-up position must be a number of cells"),
             ("anchor with an aligned top", {"top": "bottom", "anchor_height": 1}, "needs top as a number of rows"),
+            ("negative anchor width", {"anchor_width": -1}, "Pop-up anchor width must not be negative"),
+            ("anchor width with an aligned left", {"left": "center", "anchor_width": 1}, "needs left as a number"),
+            ("unknown anchor side", {"anchor_width": 1, "anchor_side": "top"}, "must be 'left' or 'right'"),
+            ("unhashable anchor side", {"anchor_width": 1, "anchor_side": ["left"]}, "must be 'left' or 'right'"),
+            ("right anchor side without a width", {"anchor_side": "right"}, "needs an anchor width"),
         ):
             with self.subTest(description):
                 params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
@@ -438,6 +443,37 @@ class CanvasTest(unittest.TestCase):
             canvas.set_pop_up(widget, 0, 0, 4, 2, anchor_height=1)
             canvas.coords["pop up"] = (2, 3, (widget, 4, 2))
             self.assertIsNone(canvas.get_pop_up_anchor_height())
+
+        with self.subTest("anchor width moves with the pop-up"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            self.assertIsNone(canvas.get_pop_up_anchor_width())
+            canvas.set_pop_up(widget, 1, 2, 4, 2, anchor_width=3, anchor_side="right")
+            canvas.coords = canvas.translate_coords(3, 4)
+            self.assertEqual((3, "right"), canvas.get_pop_up_anchor_width())
+            canvas.set_pop_up(widget, 1, 2, 4, 2, anchor_width=2)
+            self.assertEqual((2, "left"), canvas.get_pop_up_anchor_width())
+            canvas.set_pop_up(widget, 1, 2, 4, 2)
+            self.assertIsNone(canvas.get_pop_up_anchor_width())
+
+        with self.subTest("an anchor height of another pop-up at the same position is ignored"):
+            anchored = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            anchored.set_pop_up(urwid.SolidFill("a"), 0, 1, 4, 2, anchor_height=1)
+            plain = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            plain.set_pop_up(widget, 0, 0, 4, 2)
+            # The second canvas starts on row 1, so both pop-ups end up at (0, 1) and its "pop up" entry wins.
+            combined = urwid.CanvasCombine([(anchored, None, False), (plain, None, False)])
+            self.assertIs(widget, combined.get_pop_up()[2][0])
+            self.assertIsNone(combined.get_pop_up_anchor_height())
+
+        with self.subTest("an anchor width of another pop-up at the same position is ignored"):
+            anchored = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            anchored.set_pop_up(urwid.SolidFill("a"), 0, 1, 4, 2, anchor_width=2)
+            plain = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))
+            plain.set_pop_up(widget, 0, 0, 4, 2)
+            # The second canvas starts on row 1, so both pop-ups end up at (0, 1) and its "pop up" entry wins.
+            combined = urwid.CanvasCombine([(anchored, None, False), (plain, None, False)])
+            self.assertIs(widget, combined.get_pop_up()[2][0])
+            self.assertIsNone(combined.get_pop_up_anchor_width())
 
         def on_unhandled_key(key: str) -> str | None:
             return key

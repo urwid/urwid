@@ -15,6 +15,8 @@ from .constants import MouseButton, Sizing, VAlign
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationMixin,
+    _apply_focus_request,
+    _focus_request_scope,
 )
 from .filler import Filler
 from .widget import (
@@ -776,38 +778,37 @@ class Frame(
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Pass mouse event to appropriate part of frame. Focus may be changed on button 1 press."""
+        """Pass mouse event to appropriate part of frame.
+
+        Focus may be changed on button 1 press, and on a :meth:`Widget.request_focus` from the part.
+        """
         maxcol = size[0]
         htrim, footer_top, body_size = self._layout(size, focus=focus)
         header: AbstractFlowWidget | None = self._header
         footer: AbstractFlowWidget | None = self._footer
 
+        part: Literal["header", "footer", "body"]
+        w: AbstractWidget
+        w_size: tuple[int] | tuple[int, int]
         if header is not None and row < htrim:  # within header
-            focus = focus and self.focus_part == "header"
-            if is_mouse_press(event) and button == MouseButton.LEFT and header.selectable():
-                self.focus_position = "header"
+            part, w, w_size, w_row = "header", header, (maxcol,), row
+        elif footer is not None and row >= footer_top:  # within footer
+            part, w, w_size, w_row = "footer", footer, (maxcol,), row - footer_top
+        else:
+            part, w, w_size, w_row = "body", self.body, body_size, row - htrim
 
-            if not hasattr(header, "mouse_event"):
-                return False
-            return header.mouse_event((maxcol,), event, button, col, row, focus)
+        focus = focus and self.focus_part == part
+        if is_mouse_press(event) and button == MouseButton.LEFT and w.selectable():
+            self.focus_position = part
 
-        if footer is not None and row >= footer_top:  # within footer
-            focus = focus and self.focus_part == "footer"
-            if is_mouse_press(event) and button == MouseButton.LEFT and footer.selectable():
-                self.focus_position = "footer"
-
-            if not hasattr(footer, "mouse_event"):
-                return False
-            return footer.mouse_event((maxcol,), event, button, col, row - footer_top, focus)
-
-        # within body
-        focus = focus and self.focus_part == "body"
-        if is_mouse_press(event) and button == MouseButton.LEFT and self.body.selectable():
-            self.focus_position = "body"
-
-        if not hasattr(self.body, "mouse_event"):
+        if not hasattr(w, "mouse_event"):
             return False
-        return self.body.mouse_event(body_size, event, button, col, row - htrim, focus)  # type: ignore[arg-type]
+        focus_before = self.focus_position
+        with _focus_request_scope() as request:
+            handled = w.mouse_event(w_size, event, button, col, w_row, focus)  # type: ignore[arg-type]
+        if request.requested:
+            _apply_focus_request(self, part, w, focus_before)
+        return handled
 
     def get_cursor_coords(self, size: tuple[int, int] | tuple[int]) -> tuple[int, int] | None:
         """Return the cursor coordinates of the focus widget."""
