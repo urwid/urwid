@@ -1261,6 +1261,15 @@ class TermTest(unittest.TestCase):
         self.resize(80, 5)
         self.assertEqual(self.term.term.scrolling_up, 0)
         self.assertEqual(5, len(list(self.term.render((80, 5)).content())))
+        # a view scrolled back keeps its top line while a resize moves lines into the scrollback and back
+        self.write("\\ec" + "\n".join(map(str, range(10))))
+        self.read()
+        self.term.term.scroll_buffer(up=True, lines=3)
+        self.expect("2\n3\n4\n5\n6")
+        self.resize(80, 3)
+        self.expect("2\n3\n4")
+        self.resize(80, 5)
+        self.expect("2\n3\n4\n5\n6")
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""

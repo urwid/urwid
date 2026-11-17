@@ -646,6 +646,7 @@ class TermCanvas(Canvas):
         A screen that shrinks drops its blank bottom rows below the cursor first, so the cursor stays on its line
         unless a row below it holds content; the cursor and the saved cursors move with the rows that stay.
         For the hidden screen, that row is the one its cursor was on when it was hidden.
+        A view scrolled back keeps showing the same top line.
         """
         x, y = self.term_cursor
 
@@ -669,8 +670,9 @@ class TermCanvas(Canvas):
         self.height = height
 
         self.reset_scroll()
-        # growing takes lines back from the scrollback, so a view scrolled back past what is left is moved down
-        self.scrolling_up = min(self.scrolling_up, len(self.scrollback_buffer))
+        if self.scrolling_up:
+            # the lines moved into the scrollback, or taken back from it, would otherwise move the view
+            self.scrolling_up = max(0, min(self.scrolling_up - shift, len(self.scrollback_buffer)))
 
         x, y = self.constrain_coords(x, y)
         self.set_term_cursor(x, y)
