@@ -355,8 +355,12 @@ class Terminal(Widget):
         self.terminated = False
 
     def get_cursor_coords(self, size: tuple[int, int]) -> tuple[int, int] | None:
-        """Return the cursor coordinates for this terminal."""
-        if self.term is None:
+        """Return where the cursor is drawn at *size* when the widget has focus.
+
+        :returns: the ``(column, row)`` of the cursor, or ``None`` when it is not drawn:
+            the child hid it, or the view is scrolled back so far that its row is not shown.
+        """
+        if self.term is None or not self.term.modes.visible_cursor:
             return None
 
         # temporarily set width/height to figure out the new cursor position
@@ -373,7 +377,9 @@ class Terminal(Widget):
 
         self.term.width, self.term.height = orig_width, orig_height
 
-        return (x, y)
+        if self.term.scrolling_up >= size[1] - y:
+            return None
+        return (x, y + self.term.scrolling_up)
 
     def spawn(self) -> None:
         """Fork the child process running :attr:`command` and connect it to a new pty."""

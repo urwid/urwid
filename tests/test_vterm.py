@@ -509,6 +509,32 @@ class TermTest(unittest.TestCase):
         self.write(r"\e[?6h\e[10;20r\e[2;5rtest")
         self.expect("\ntest")
 
+    def test_scrolling_region_scrollback(self) -> None:
+        """Save the lines scrolled off a region only when it starts at the top row, as xterm does."""
+        for region, row, saved, screen in (
+            ("3;5", 5, [], "STATUS\nL1\nN1\nN2\nN3"),
+            ("1;4", 4, [b"STATUS", b"L1", b"L2"], "L3\nN1\nN2\nN3\nL4"),
+        ):
+            with self.subTest(region=region):
+                self.restart(10, 5)
+                self.write(f"STATUS\nL1\nL2\nL3\nL4\\e[{region}r\\e[{row};1H\nN1\nN2\nN3")
+                self.expect(screen)
+                self.assertEqual(
+                    [
+                        b"".join(text for _attr, _charset, text in line).rstrip()
+                        for line in self.term.term.scrollback_buffer
+                    ],
+                    saved,
+                )
+        # a view frozen with scroll_on_output off keeps the status line above such a region on its row
+        self.restart(10, 5, scroll_on_output=False)
+        self.write("L0\nL1\nL2\nL3\nL4\nL5\nL6\\e[1;1HSTATUS\\e[3;5r\\e[5;1H")
+        self.drain()
+        self.term.term.scroll_buffer(up=True, lines=2)
+        self.expect("L0\nL1\nSTATUS\nL3\nL4")
+        self.write("\nN1\nN2\nN3")
+        self.expect("L0\nL1\nSTATUS\nL3\nN1")
+
     def test_wrap_below_scrolling_region(self) -> None:
         """Wrapping on a row below the scrolling region moves down a row, or stays on the last one, without scrolling."""
         for label, row, screen in (
@@ -589,9 +615,11 @@ class TermTest(unittest.TestCase):
         self.write(r"\e[?25linvisible")
         self.expect("invisible", focus=True)
         self.assertEqual(self.term.term.cursor, None)
+        self.assertIsNone(self.term.get_cursor_coords(self.termsize))
         self.write("\rvisible\\e[?25h\\e[K")
         self.expect("visible", focus=True)
         self.assertNotEqual(self.term.term.cursor, None)
+        self.assertEqual(self.term.get_cursor_coords(self.termsize), self.term.term.cursor)
 
     def test_get_utf8_len(self):
         length = self.term.term.get_utf8_len(int("11110000", 2))
@@ -1188,6 +1216,16 @@ class TermTest(unittest.TestCase):
         self.read()
         self.assertEqual(self.term.get_cursor_coords((80, 24)), (3, 0))
         self.assertEqual(self.term.get_cursor_coords((2, 24)), (1, 0))
+        # a view scrolled back moves the cursor down with its row, and drops it once that row is not shown
+        self.restart(10, 3)
+        self.write("1\n2\n3\n4\n5\n6\\e[1;2H")
+        self.read()
+        for lines, coords in ((1, (1, 1)), (2, (1, 2)), (3, None)):
+            with self.subTest(lines=lines):
+                self.term.term.scroll_buffer(up=True, lines=lines)
+                self.assertEqual(self.term.get_cursor_coords(self.termsize), coords)
+                self.assertEqual(self.term.render(self.termsize, focus=True).cursor, coords)
+                self.term.term.scroll_buffer(reset=True)
 
     def test_resize_keeps_the_cursor_on_its_line(self) -> None:
         """Keep the cursor and the saved cursor on their line across width changes and scrollback moves both ways."""
@@ -1223,6 +1261,15 @@ class TermTest(unittest.TestCase):
         self.resize(80, 5)
         self.assertEqual(self.term.term.scrolling_up, 0)
         self.assertEqual(5, len(list(self.term.render((80, 5)).content())))
+        # a view scrolled back keeps its top line while a resize moves lines into the scrollback and back
+        self.write("\\ec" + "\n".join(map(str, range(10))))
+        self.read()
+        self.term.term.scroll_buffer(up=True, lines=3)
+        self.expect("2\n3\n4\n5\n6")
+        self.resize(80, 3)
+        self.expect("2\n3\n4")
+        self.resize(80, 5)
+        self.expect("2\n3\n4\n5\n6")
 
     def test_resize_adds_cells_without_attributes(self) -> None:
         """Fill the columns and rows a resize adds with cells that do not take the attributes in effect."""
@@ -1364,6 +1411,16 @@ class TermTest(unittest.TestCase):
         self.resize(10, 3)
         self.write(r"\e[?1049lY")
         self.expect("1\n2\n3ZY")
+        # the hidden main screen drops its blank rows below the cursor it was hidden with, as the screen shown does;
+        # neither the alternate screen's cursor nor a cursor DECSC saved lower down keeps them
+        for enter, leave, screen in ((r"\e[?1049h", r"\e[?1049l", "a\nbX"), (r"\e[?47h", r"\e[?47l", "a\nb\nX")):
+            with self.subTest(enter=enter):
+                self.restart(4, 5)
+                self.write(r"\e[5;1H\e7\e[Ha" + "\nb" + enter + r"\e[5;1H")
+                self.read()
+                self.resize(4, 3)
+                self.write(leave + "X")
+                self.expect(screen)
 
     def test_reset_shows_the_main_screen(self) -> None:
         """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen and the flags."""

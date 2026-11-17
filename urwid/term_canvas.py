@@ -290,6 +290,8 @@ class _Screen:
     saved_cursor: tuple[int, int] | None = None
     saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
     keyboard_flags: list[int] = field(default_factory=list)
+    #: the row the cursor was on when the screen was hidden, moved with the rows a resize keeps
+    cursor_row: int = 0
 
 
 class TermCharset:
@@ -536,6 +538,7 @@ class TermCanvas(Canvas):
             self.saved_cursor,
             self.saved_attrs,
             self.modes.keyboard_flags,
+            self.term_cursor[1],
         )
         self.term = hidden.term
         self.scrollback_buffer = hidden.scrollback_buffer
@@ -642,6 +645,8 @@ class TermCanvas(Canvas):
 
         A screen that shrinks drops its blank bottom rows below the cursor first, so the cursor stays on its line
         unless a row below it holds content; the cursor and the saved cursors move with the rows that stay.
+        For the hidden screen, that row is the one its cursor was on when it was hidden.
+        A view scrolled back keeps showing the same top line.
         """
         x, y = self.term_cursor
 
@@ -650,7 +655,14 @@ class TermCanvas(Canvas):
         if self.saved_cursor is not None:
             self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
         hidden = self._hidden_screen
-        hidden_shift = self._resize_lines(hidden.term, hidden.scrollback_buffer, width, height)
+        hidden_shift = self._resize_lines(
+            hidden.term,
+            hidden.scrollback_buffer,
+            width,
+            height,
+            cursor_row=hidden.cursor_row,
+        )
+        hidden.cursor_row += hidden_shift
         if hidden.saved_cursor is not None:
             hidden.saved_cursor = (hidden.saved_cursor[0], hidden.saved_cursor[1] + hidden_shift)
 
@@ -658,8 +670,9 @@ class TermCanvas(Canvas):
         self.height = height
 
         self.reset_scroll()
-        # growing takes lines back from the scrollback, so a view scrolled back past what is left is moved down
-        self.scrolling_up = min(self.scrolling_up, len(self.scrollback_buffer))
+        if self.scrolling_up:
+            # the lines moved into the scrollback, or taken back from it, would otherwise move the view
+            self.scrolling_up = max(0, min(self.scrolling_up - shift, len(self.scrollback_buffer)))
 
         x, y = self.constrain_coords(x, y)
         self.set_term_cursor(x, y)
@@ -1251,8 +1264,10 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def scroll(self, reverse: bool = False) -> None:
-        """Append a new line at the bottom and put the topmost line into the scrollback buffer.
+        """Append a new line at the bottom of the scrolling region and remove its topmost line.
 
+        The removed line goes into the scrollback buffer when the region starts at the top row, as in xterm.
+        A region below the top row drops it.
         If reverse is True, do exactly the opposite, but don't save into scrollback buffer.
         """
         if reverse:
@@ -1260,8 +1275,10 @@ class TermCanvas(Canvas):
             self.term.insert(self.scrollregion_start, self.empty_line())
         else:
             killed = self.term.pop(self.scrollregion_start)
-            self.scrollback_buffer.append(killed)
             self.term.insert(self.scrollregion_end, self.empty_line())
+            if self.scrollregion_start > 0:
+                return
+            self.scrollback_buffer.append(killed)
             if self.scrolling_up and not self.scroll_on_output:
                 # the view moves up with the lines it shows
                 self.scrolling_up = min(self.scrolling_up + 1, len(self.scrollback_buffer))
