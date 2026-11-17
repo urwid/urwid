@@ -291,6 +291,7 @@ class MonitoredFocusListClearValidationTest(unittest.TestCase):
 
 FILL_OPERATIONS: typing.Final[Mapping[str, Callable[[list[typing.Any], list[typing.Any]], object]]] = {
     "slice all": lambda items, new: operator.setitem(items, slice(None), new),
+    "replace": lambda items, new: items.replace(new),
     "slice 0:0": lambda items, new: operator.setitem(items, slice(0, 0), new),
     "extend": lambda items, new: items.extend(new),
     "+=": operator.iadd,

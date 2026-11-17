@@ -241,7 +241,7 @@ class Notifications(WidgetWrap[Pile]):
         ]
         if not widgets and self._default_markup is not None:
             widgets.append(self._default if self._default_attr is None else AttrMap(self._default, self._default_attr))
-        self._w.contents[:] = [(widget, self._w.options(WHSettings.PACK)) for widget in widgets]
+        self._w.contents.replace([(widget, self._w.options(WHSettings.PACK)) for widget in widgets])
 
     def sizing(self) -> frozenset[Sizing]:
         """Return flow sizing, whatever is showing."""

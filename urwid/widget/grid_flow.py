@@ -276,7 +276,7 @@ class GridFlow(
         :param new_contents: `(widget, options)` tuples, with options made by the :meth:`options` method
         :raises GridFlowError: an item is not a valid ``(widget, options)`` pair.
         """
-        self._contents[:] = new_contents
+        self._contents.replace(new_contents)
 
     def options(
         self,
@@ -433,7 +433,7 @@ class GridFlow(
 
         if self.v_sep:
             # remove first divider
-            del p.contents[:1]
+            del p.contents[0]
 
         return p
 

@@ -802,6 +802,25 @@ class MonitoredFocusList(MonitoredList[_T], typing.Generic[_T]):
         focus = self._adjust_focus_on_contents_modified(slice(0, len(self)))
         self._modify(focus, super(MonitoredList, self).clear)
 
+    def replace(self, items: Iterable[_T]) -> None:
+        """Replace all items with *items*, adjusting focus accordingly.
+
+        It is the same change as ``self[:] = items``, and :class:`MonitoredFocusDeque` has it under the same name.
+        The focus keeps its index when that is an index of the new items, otherwise it moves to the last item.
+
+        :param items: the new items
+        :raises Exception: whatever the validation callback raises. The items and the focus are unchanged.
+
+        >>> ml = MonitoredFocusList([0, 1, 2], focus=1)
+        >>> ml.replace([5, 6, 7, 8])
+        >>> ml
+        MonitoredFocusList([5, 6, 7, 8], focus=1)
+        >>> ml.replace([9])
+        >>> ml
+        MonitoredFocusList([9], focus=0)
+        """
+        self[:] = items
+
 
 def _test() -> None:
     import doctest

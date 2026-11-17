@@ -27,7 +27,7 @@ import operator
 import typing
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable, Iterator
+    from collections.abc import Callable, Collection, Iterable, Iterator
     from typing import Concatenate, ParamSpec, Self
 
     ArgSpec = ParamSpec("ArgSpec")
@@ -269,17 +269,14 @@ class MonitoredDeque(collections.deque[_T], typing.Generic[_T]):
 class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
     """Trigger a callback any time its contents are modified, and any time the focus index is changed.
 
-    Reuses the ``focus``/``_focus_changed``/``set_focus_changed_callback`` and the
-    ``_focus_moved``/``set_focus_moved_callback`` machinery verbatim from :class:`MonitoredFocusList`.
+    Reuses the ``focus``/``_focus_changed``/``set_focus_changed_callback``,
+    the ``_focus_moved``/``set_focus_moved_callback``
+    and the ``set_validate_contents_modified`` machinery from :class:`MonitoredFocusList`.
 
-    Deliberately **not** provided (an intentional simplification, unlike
-    :class:`MonitoredFocusList`): ``_validate_contents_modified_callback``/
-    ``set_validate_contents_modified`` and the slice-based
-    ``_adjust_focus_on_contents_modified``. ``deque`` has no slice mutation,
-    so there is no meaningful external-validation hook analogous to the list
-    version. Instead a single-index helper, ``_adjust_focus_on_single_change``,
-    is used by every mutating method below, since every ``deque`` mutation
-    touches either a single item or the whole collection.
+    ``deque`` has no slice mutation, so the slice-based ``_adjust_focus_on_contents_modified`` is not provided.
+    Every ``deque`` mutation touches a single point or the whole collection,
+    so the mutating methods below describe each change as one contiguous range
+    and use the single-index helper ``_adjust_focus_on_single_change``.
 
     **Edge cases:**
 
@@ -301,9 +298,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
       >>> mfd
       MonitoredFocusDeque([], maxlen=0, focus=None)
 
-    Replacing an item at a given index never changes which index is in
-    focus (there is no dedicated ``__setitem__`` override for this reason --
-    the inherited :meth:`MonitoredDeque.__setitem__` already covers it):
+    Replacing an item at a given index never changes which index is in focus:
 
     >>> mfd = MonitoredFocusDeque([0, 1, 2, 3], focus=2)
     >>> mfd[0] = 9
@@ -323,6 +318,7 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
 
     _focus_changed_callback: Callable[[int], typing.Any] | None = None
     _focus_moved_callback: Callable[[int | None, int | None], typing.Any] | None = None
+    _validate_contents_modified_callback: Callable[[tuple[int, int, int], Collection[_T]], int | None] | None = None
     follow_end: bool = False
     """Move the focus from the last item to the new last item when items are added after it."""
 
@@ -494,9 +490,54 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd.clear()
         focus: 1 -> None
         >>> mfd.extend([5, 6])
-        focus: None -> 0
+        focus: None -> 1
         """
         self._focus_moved_callback = callback
+
+    def _validate_contents_modified(
+        self,
+        indices: tuple[int, int, int],
+        new_items: Collection[_T],
+    ) -> int | None:
+        """Return what the validation callback returns, or None when none is set."""
+        if self._validate_contents_modified_callback is not None:
+            return self._validate_contents_modified_callback(indices, new_items)
+        return None
+
+    def set_validate_contents_modified(
+        self,
+        callback: Callable[[tuple[int, int, int], Collection[_T]], int | None],
+    ) -> None:
+        r"""Assign a callback function to handle validating changes to the deque.
+
+        It takes the same callbacks as :meth:`MonitoredFocusList.set_validate_contents_modified`.
+        The callback is called before the change is applied.
+        It may raise an exception if the change should not be performed.
+        It may also return an integer position to be the new focus after the deque is modified,
+        or None to use the default behaviour.
+
+        Every change is described as one contiguous range: ``indices`` is always ``(start, stop, 1)``.
+        Items that a bounded deque evicts to make room for the new items are not part of that range.
+        A reordering (:meth:`reverse`, :meth:`rotate`) adds and removes nothing, and is not passed to the callback.
+
+        :param callback: a callable in the form ``callback(indices, new_items)``, where ``indices`` is a
+            ``(start, stop, 1)`` tuple whose range covers the items being removed or replaced,
+            and ``new_items`` holds the items put at ``start``, in their order in the deque.
+
+        >>> import sys
+        >>> mfd = MonitoredFocusDeque([1, 2, 3], focus=1)
+        >>> mfd.set_validate_contents_modified(lambda i, n: sys.stdout.write(f"{range(*i)} <- {list(n)}\n") and None)
+        >>> mfd.appendleft(0)
+        range(0, 0) <- [0]
+        >>> mfd.extendleft((-2, -1))
+        range(0, 0) <- [-1, -2]
+        >>> mfd[1] = 9
+        range(1, 2) <- [9]
+        >>> mfd.pop()
+        range(5, 6) <- []
+        3
+        """
+        self._validate_contents_modified_callback = callback
 
     def _adjust_focus_on_single_change(self, index: int, num_removed: int, num_inserted: int) -> int:
         """Compute the focus position for after a change applied at ``index``.
@@ -570,14 +611,40 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             self._focus_moved(old_focus)
         return rval
 
-    # override all the deque methods that modify the deque, except __setitem__: replacing an item at a given
-    # index never changes which index is in focus, so the inherited MonitoredDeque.__setitem__ needs no
-    # focus-adjustment wrapper here (see the class docstring for a worked example).
+    # override all the deque methods that modify the deque
+
+    def __setitem__(self, index: typing.SupportsIndex, item: _T) -> None:  # type: ignore[override]
+        """Replace the item at ``index``, keeping the focus index.
+
+        :param index: position to replace
+        :param item: the new item
+        :raises TypeError: *index* has no ``__index__``.
+        :raises OverflowError: *index* does not fit a C ``ssize_t``.
+        :raises IndexError: *index* is out of range.
+        :raises Exception: whatever the validation callback raises. The items and the focus are unchanged.
+
+        >>> mfd = MonitoredFocusDeque([0, 1, 2], focus=1)
+        >>> mfd[-1] = 9
+        >>> mfd
+        MonitoredFocusDeque([0, 1, 9], focus=1)
+        """
+        position = operator.index(index)
+        focus = self._validate_contents_modified(slice(position, position + 1 or None).indices(len(self)), (item,))
+        self._modify(
+            self._focus if focus is None else focus,
+            super(MonitoredDeque, self).__setitem__,
+            position,
+            item,
+        )
 
     def __delitem__(self, index: typing.SupportsIndex) -> None:  # type: ignore[override]
         """Delete the item at ``index``, adjusting focus to follow the point of removal.
 
         :param index: position to delete
+        :raises TypeError: *index* has no ``__index__``.
+        :raises OverflowError: *index* does not fit a C ``ssize_t``.
+        :raises IndexError: *index* is out of range.
+        :raises Exception: whatever the validation callback raises. The items and the focus are unchanged.
 
         >>> mfd = MonitoredFocusDeque([0, 1, 2, 3, 4], focus=2)
         >>> del mfd[3]
@@ -600,7 +667,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         idx = position
         if idx < 0:
             idx += len(self)
-        focus = self._adjust_focus_on_single_change(idx, 1, 0)
+        validated = self._validate_contents_modified(slice(position, position + 1 or None).indices(len(self)), ())
+        focus = self._adjust_focus_on_single_change(idx, 1, 0) if validated is None else validated
         self._modify(focus, super(MonitoredDeque, self).__delitem__, position)
 
     def append(self, item: _T) -> None:
@@ -628,7 +696,12 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = max(0, self._focus - 1)
         else:
             focus = self._focus
-        self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).append, item)
+        validated = self._validate_contents_modified((len(self), len(self), 1), (item,))
+        self._modify(
+            self._focus_after_append(focus) if validated is None else validated,
+            super(MonitoredDeque, self).append,
+            item,
+        )
 
     def appendleft(self, item: _T) -> None:
         """Append ``item`` to the left end of the deque.
@@ -655,10 +728,13 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             focus = min(self._focus + 1, len(self) - 1)
         else:
             focus = self._focus + 1
-        self._modify(focus, super(MonitoredDeque, self).appendleft, item)
+        validated = self._validate_contents_modified((0, 0, 1), (item,))
+        self._modify(focus if validated is None else validated, super(MonitoredDeque, self).appendleft, item)
 
     def extend(self, items: Iterable[_T]) -> None:
         """Extend the deque with ``items`` on the right end.
+
+        Filling an empty deque focuses the last item, as on a :class:`MonitoredFocusList`.
 
         :param items: items to append, in order
 
@@ -670,14 +746,23 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> bounded.extend((6, 7, 8))
         >>> bounded
         MonitoredFocusDeque([2, 6, 7, 8], maxlen=4, focus=0)
+        >>> empty = MonitoredFocusDeque()
+        >>> empty.extend((6, 7, 8))
+        >>> empty
+        MonitoredFocusDeque([6, 7, 8], focus=2)
         """
         items_list = list(items)
         if self.maxlen is not None:
             evicted = max(0, len(items_list) - (self.maxlen - len(self)))
         else:
             evicted = 0
-        focus = max(0, self._focus - evicted) if self else 0
-        self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).extend, items_list)
+        focus = max(0, self._focus - evicted) if self else len(items_list) - evicted - 1
+        validated = self._validate_contents_modified((len(self), len(self), 1), items_list)
+        self._modify(
+            self._focus_after_append(focus) if validated is None else validated,
+            super(MonitoredDeque, self).extend,
+            items_list,
+        )
 
     def __iadd__(self, items: Iterable[_T]) -> Self:
         """Extend the deque in place with ``items``, adjusting the focus like :meth:`extend`.
@@ -709,10 +794,12 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         total = len(self) * count
         evicted = total - self.maxlen if self.maxlen is not None and total > self.maxlen else 0
         focus = max(0, self._focus - evicted) if self else 0
+        repeat = _bounded_repeat_count(len(self), self.maxlen, count)
+        validated = self._validate_contents_modified((len(self), len(self), 1), list(self) * (repeat - 1))
         self._modify(
-            self._focus_after_append(focus),
+            self._focus_after_append(focus) if validated is None else validated,
             super(MonitoredDeque, self).__imul__,
-            _bounded_repeat_count(len(self), self.maxlen, count),
+            repeat,
         )
         return self
 
@@ -734,7 +821,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         focus = self._focus + len(items_list) if self else 0
         if self.maxlen is not None:
             focus = min(focus, self.maxlen - 1)
-        self._modify(focus, super(MonitoredDeque, self).extendleft, items_list)
+        validated = self._validate_contents_modified((0, 0, 1), items_list[::-1])
+        self._modify(focus if validated is None else validated, super(MonitoredDeque, self).extendleft, items_list)
 
     def pop(self) -> _T:  # type: ignore[override]  # as on deque.pop in typeshed: no index, unlike MutableSequence.pop
         """Remove and return the tail item.
@@ -750,7 +838,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([0, 1, 2], focus=2)
         """
-        focus = self._adjust_focus_on_single_change(len(self) - 1, 1, 0)
+        validated = self._validate_contents_modified(slice(len(self) - 1, len(self)).indices(len(self)), ())
+        focus = self._adjust_focus_on_single_change(len(self) - 1, 1, 0) if validated is None else validated
         return self._modify(focus, super(MonitoredDeque, self).pop)
 
     def popleft(self) -> _T:
@@ -766,7 +855,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([1, 2, 3], focus=1)
         """
-        focus = self._adjust_focus_on_single_change(0, 1, 0)
+        validated = self._validate_contents_modified(slice(0, 1).indices(len(self)), ())
+        focus = self._adjust_focus_on_single_change(0, 1, 0) if validated is None else validated
         return self._modify(focus, super(MonitoredDeque, self).popleft)
 
     def insert(self, index: typing.SupportsIndex, item: _T) -> None:
@@ -798,10 +888,13 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
             idx = max(0, len(self) + position)
         else:
             idx = min(position, len(self))
-        focus = self._adjust_focus_on_single_change(idx, 0, 1)
-        if idx == len(self):
-            self._modify(self._focus_after_append(focus), super(MonitoredDeque, self).insert, position, item)
-            return
+        validated = self._validate_contents_modified((idx, idx, 1), (item,))
+        if validated is not None:
+            focus: int | Callable[[], int] = validated
+        elif idx == len(self):
+            focus = self._focus_after_append(self._adjust_focus_on_single_change(idx, 0, 1))
+        else:
+            focus = self._adjust_focus_on_single_change(idx, 0, 1)
         self._modify(focus, super(MonitoredDeque, self).insert, position, item)
 
     def remove(self, value: _T) -> None:
@@ -816,7 +909,8 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         MonitoredFocusDeque([-2, 0, 1, 2, -1, 3], focus=3)
         """
         index = self.index(value)
-        focus = self._adjust_focus_on_single_change(index, 1, 0)
+        validated = self._validate_contents_modified((index, index + 1, 1), ())
+        focus = self._adjust_focus_on_single_change(index, 1, 0) if validated is None else validated
         self._modify(focus, super(MonitoredDeque, self).remove, value)
 
     def reverse(self) -> None:
@@ -858,7 +952,38 @@ class MonitoredFocusDeque(MonitoredDeque[_T], typing.Generic[_T]):
         >>> mfd
         MonitoredFocusDeque([], focus=None)
         """
-        self._modify(0, super(MonitoredDeque, self).clear)
+        validated = self._validate_contents_modified((0, len(self), 1), ())
+        self._modify(0 if validated is None else validated, super(MonitoredDeque, self).clear)
+
+    def replace(self, items: Iterable[_T]) -> None:
+        """Replace all items with *items*, adjusting focus accordingly.
+
+        It is the same change as :meth:`MonitoredFocusList.replace`, validated and notified once,
+        which ``clear()`` followed by ``extend()`` is not.
+        The focus keeps its index when that is an index of the new items, otherwise it moves to the last item.
+        A bounded deque keeps the last ``maxlen`` of *items*.
+
+        :param items: the new items
+        :raises Exception: whatever the validation callback raises. The items and the focus are unchanged.
+
+        >>> mfd = MonitoredFocusDeque([0, 1, 2], focus=1)
+        >>> mfd.replace([5, 6, 7, 8])
+        >>> mfd
+        MonitoredFocusDeque([5, 6, 7, 8], focus=1)
+        >>> mfd.replace([9])
+        >>> mfd
+        MonitoredFocusDeque([9], focus=0)
+        """
+        items_list = list(items)
+        kept = len(items_list) if self.maxlen is None else min(len(items_list), self.maxlen)
+        focus = min(self._focus, kept - 1) if self else kept - 1
+        validated = self._validate_contents_modified((0, len(self), 1), items_list)
+
+        def change() -> None:
+            super(MonitoredDeque, self).clear()
+            super(MonitoredDeque, self).extend(items_list)
+
+        self._modify(focus if validated is None else validated, change)
 
 
 def _test() -> None:
