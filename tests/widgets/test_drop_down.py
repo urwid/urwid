@@ -28,6 +28,7 @@ class DropDownConstructionTest(unittest.TestCase):
             ("no visible items", (COLOURS,), {"max_visible_items": 0}, ValueError),
             ("selected past the end", (COLOURS,), {"selected": 3}, IndexError),
             ("negative selected", (COLOURS,), {"selected": -1}, IndexError),
+            ("multi-line option with a border", (["a\nb", "c"],), {"border": True}, ValueError),
         ):
             with self.subTest(description), self.assertRaises(error):
                 urwid.DropDown(*args, **kwargs)
@@ -99,6 +100,45 @@ class DropDownListTest(unittest.TestCase):
 
         self.assertEqual(["green v", "red    ", "green  ", "blue   "], rows[:4])
         self.assertEqual((0, 2), target.render((7, 6), focus=True).cursor)
+
+    def test_border(self) -> None:
+        """A bordered list is boxed, and a list that scrolls has its scroll bar outside the box."""
+        for description, options, expected in (
+            # As without a border, the list is at least as wide as the drop-down.
+            ("fits", COLOURS, ["red     v", "┌───────┐", "│red    │", "│green  │", "│blue   │", "└───────┘"]),
+            (
+                "scrolls",
+                numbers(4),
+                ["n00     v", "┌──────┐ ", "│n00   │█", "│n01   │█", "│n02   │ ", "└──────┘ "],
+            ),
+        ):
+            with self.subTest(description):
+                drop_down = urwid.DropDown(options, border=True, max_visible_items=3, attr_map="option")
+                target = drop_down_at_row(drop_down, 0)
+                target.keypress((9, 7), "enter")
+                self.assertEqual(expected, urwid.testing.render_text(target, (9, 7), focus=True)[:6])
+                # The box is drawn in the attribute of the options.
+                corner = next(iter(list(target.render((9, 7), focus=True).content())[1]))
+                self.assertEqual("option", corner[0])
+                target.keypress((9, 7), "down")
+                target.keypress((9, 7), "enter")
+                self.assertEqual(1, drop_down.selected)
+
+    def test_border_cursor_reaches_the_target(self) -> None:
+        drop_down = urwid.DropDown(COLOURS, border=True, selected=1)
+        target = drop_down_at_row(drop_down, 0)
+        target.keypress((9, 7), "enter")
+        self.assertEqual((1, 3), target.get_cursor_coords((9, 7)))
+        self.assertEqual((1, 3), target.render((9, 7), focus=True).cursor)
+
+    def test_border_list_cut_short_by_the_screen_gets_a_scroll_bar(self) -> None:
+        drop_down = urwid.DropDown(numbers(8), border=True)
+        target = drop_down_at_row(drop_down, 0)
+        target.keypress((10, 5), "enter")
+        self.assertEqual(
+            ["n00      v", "┌───────┐ ", "│n00    │█", "│n01    │ ", "└───────┘ "],
+            urwid.testing.render_text(target, (10, 5), focus=True),
+        )
 
     def test_choose_with_keys(self) -> None:
         drop_down = urwid.DropDown(COLOURS)

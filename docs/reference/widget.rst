@@ -109,6 +109,16 @@ DropDown
 
 .. autoclass:: DropDown
 
+ActionMenu
+~~~~~~~~~~
+
+.. autoclass:: ActionMenu
+
+MenuItem
+~~~~~~~~
+
+.. autoclass:: MenuItem
+
 
 Special cases text widgets
 --------------------------

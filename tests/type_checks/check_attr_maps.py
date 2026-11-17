@@ -29,6 +29,8 @@ if typing.TYPE_CHECKING:
         attr_map.set_focus_map(None)
         attr_map.attr_map = plain
         urwid.DropDown(["x", "y"], attr_map=plain, focus_map={"a": "b"})
+        urwid.ActionMenu("menu", ["x"], attr_map=plain, focus_map={"a": "b"}, disabled_map="attr")
+        urwid.ActionMenu("menu", ["x"], disabled_map=["not", "hashable"])  # type: ignore[call-overload]
         urwid.AttrMap(text, ["not", "hashable"])  # type: ignore[arg-type]
 
     def unfocused_focus_attr_forms(cells: list[urwid.Text], plain: dict[str, str]) -> None:

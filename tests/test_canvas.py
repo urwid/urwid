@@ -376,6 +376,7 @@ class CanvasTest(unittest.TestCase):
             ("unknown anchor side", {"anchor_width": 1, "anchor_side": "top"}, "must be 'left' or 'right'"),
             ("unhashable anchor side", {"anchor_width": 1, "anchor_side": ["left"]}, "must be 'left' or 'right'"),
             ("right anchor side without a width", {"anchor_side": "right"}, "needs an anchor width"),
+            ("anchor side callback without a width", {"on_anchor_side": print}, "on_anchor_side needs an anchor width"),
         ):
             with self.subTest(description):
                 params = {"left": 0, "top": 0, "overlay_width": 4, "overlay_height": 2, **kwargs}
@@ -464,6 +465,15 @@ class CanvasTest(unittest.TestCase):
             combined = urwid.CanvasCombine([(anchored, None, False), (plain, None, False)])
             self.assertIs(widget, combined.get_pop_up()[2][0])
             self.assertIsNone(combined.get_pop_up_anchor_height())
+
+        with self.subTest("the anchor side callback moves with the pop-up and belongs to it"):
+            canvas = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 5))
+            self.assertIsNone(canvas.get_pop_up_on_anchor_side())
+            canvas.set_pop_up(widget, 1, 2, 4, 2, anchor_width=3, on_anchor_side=print)
+            canvas.coords = canvas.translate_coords(3, 4)
+            self.assertIs(print, canvas.get_pop_up_on_anchor_side())
+            canvas.coords["pop up"] = (4, 6, (urwid.SolidFill("+"), 4, 2))
+            self.assertIsNone(canvas.get_pop_up_on_anchor_side())
 
         with self.subTest("an anchor width of another pop-up at the same position is ignored"):
             anchored = urwid.CompositeCanvas(urwid.SolidCanvas(" ", 10, 1))

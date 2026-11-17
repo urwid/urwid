@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import typing
 
+from .action_menu import ActionMenu, MenuItem
 from .ansi_text import ANSIText
 from .attr_map import AttrMap, AttrMapError
 from .attr_wrap import AttrWrap
@@ -108,6 +109,7 @@ __all__ = (
     "AbstractFixedWidget",
     "AbstractFlowWidget",
     "AbstractWidget",
+    "ActionMenu",
     "Align",
     "AttrMap",
     "AttrMapError",
@@ -144,6 +146,7 @@ __all__ = (
     "ListBoxError",
     "ListWalker",
     "ListWalkerError",
+    "MenuItem",
     "MonitoredDeque",
     "MonitoredFocusDeque",
     "MonitoredFocusList",
