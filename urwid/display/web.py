@@ -52,6 +52,7 @@ from ._web_common import (  # pylint: disable=unused-import  # code_span is a pu
 )
 
 if typing.TYPE_CHECKING:
+    from collections.abc import Collection
     from types import FrameType
     from typing import Literal
 
@@ -329,8 +330,8 @@ class Screen(BrowserScreen):
 
         Force parent process to exit.
         """
-        daemonize(f"{self.pipe_name}.err")
-        self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
+        # the reader stays open through the forks, so a keystroke request never finds the pipe without one
+        daemonize(f"{self.pipe_name}.err", keep_fds=(typing.cast("int", self.input_fd),))
         self.update_method = "polling child"
         s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         s.bind(f"{self.pipe_name}.update")
@@ -389,8 +390,10 @@ class Screen(BrowserScreen):
             return []
 
         keydata = self._input_decoder.decode(os.read(input_fd, MAX_READ))
-        os.close(input_fd)
+        # The new reader is opened before the old one is closed, so the pipe always has a reader:
+        # a request opening it in between would otherwise fail, and bytes still in it would be lost.
         self.input_fd = os.open(f"{self.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY)
+        os.close(input_fd)
         lines = (self.input_tail + keydata).split("\n")
         if self._dropping_line:
             # input_tail is empty here, so the first piece is the rest of the over-long line
@@ -550,12 +553,15 @@ def handle_short_request() -> bool:
         return True
 
     try:
-        fd = os.open(f"{pipe_name}.in", os.O_WRONLY)
+        # Non-blocking: with no screen reading the pipe, as after the screen process was killed,
+        # the open fails with ENXIO instead of waiting forever.
+        fd = os.open(f"{pipe_name}.in", os.O_WRONLY | os.O_NONBLOCK)
     except OSError:
         sys.stdout.write("Status: 404 Not Found\r\n\r\n")
         return True
 
     try:
+        os.set_blocking(fd, True)
         try:
             encoded_keydata = keydata.decode(_request_charset()).encode(_PIPE_ENCODING)
         except (LookupError, UnicodeError):
@@ -617,8 +623,12 @@ class ErrorLog:
             f.write(err)
 
 
-def daemonize(errfile: str) -> None:
-    """Detach process and become a daemon."""
+def daemonize(errfile: str, *, keep_fds: Collection[int] = ()) -> None:
+    """Detach process and become a daemon.
+
+    :param errfile: path of the file that receives what is written to :data:`sys.stderr`.
+    :param keep_fds: descriptors below 20 to leave open. Every other descriptor below 20 is closed.
+    """
     if os.fork():
         os._exit(0)
 
@@ -632,6 +642,8 @@ def daemonize(errfile: str) -> None:
 
     os.chdir("/")
     for fd in range(20):
+        if fd in keep_fds:
+            continue
         with suppress(OSError):
             os.close(fd)
 

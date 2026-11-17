@@ -5,6 +5,7 @@ import itertools
 import os
 import pathlib
 import re
+import signal
 import stat
 import sys
 import tempfile
@@ -100,6 +101,7 @@ class HandleShortRequestTest(unittest.TestCase):
             "HTTP_X_URWID_ID": "valid-id",
         }
 
+    @unittest.skipIf(IS_WINDOWS, "Opening the client pipe requires the POSIX-only os.O_NONBLOCK flag")
     def test_keyboard_input_uses_request_charset(self) -> None:
         """The request body is decoded with its own charset and written to the pipe as UTF-8."""
         # the web server need not close stdin after the body, so nothing past CONTENT_LENGTH is read
@@ -112,12 +114,17 @@ class HandleShortRequestTest(unittest.TestCase):
             mock.patch.object(web.sys, "stdin", stdin),
             mock.patch.object(web.sys, "stdout", stdout),
             mock.patch.object(web.os, "open", return_value=42) as pipe_open,
+            mock.patch.object(web.os, "set_blocking") as set_blocking,
             mock.patch.object(web.os, "write") as write,
             mock.patch.object(web.os, "close") as close,
         ):
             self.assertTrue(web.handle_short_request())
-            pipe_open.assert_called_once_with(f"{web._session_path('valid-id')}.in", os.O_WRONLY)
+            pipe_open.assert_called_once_with(
+                f"{web._session_path('valid-id')}.in",
+                os.O_WRONLY | os.O_NONBLOCK,
+            )
 
+        set_blocking.assert_called_once_with(42, True)
         write.assert_called_once_with(42, b"\xc3\xa9\n")
         close.assert_called_once_with(42)
         self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
@@ -145,6 +152,7 @@ class HandleShortRequestTest(unittest.TestCase):
             self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
             self.assertEqual(0, stdin.buffer.tell())
 
+    @unittest.skipIf(IS_WINDOWS, "Opening the client pipe requires the POSIX-only os.O_NONBLOCK flag")
     def test_keyboard_encoding_error_closes_pipe(self) -> None:
         stdin = io.TextIOWrapper(io.BytesIO(b"\xe9\n"), encoding="ascii")
         stdout = io.StringIO()
@@ -155,6 +163,7 @@ class HandleShortRequestTest(unittest.TestCase):
             mock.patch.object(web.sys, "stdin", stdin),
             mock.patch.object(web.sys, "stdout", stdout),
             mock.patch.object(web.os, "open", return_value=42),
+            mock.patch.object(web.os, "set_blocking"),
             mock.patch.object(web.os, "write") as write,
             mock.patch.object(web.os, "close") as close,
         ):
@@ -163,6 +172,51 @@ class HandleShortRequestTest(unittest.TestCase):
         write.assert_not_called()
         close.assert_called_once_with(42)
         self.assertEqual("Status: 400 Bad Request\r\n\r\n", stdout.getvalue())
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_to_a_pipe_without_reader_is_not_found(self) -> None:
+        """A pipe left behind by a killed screen has no reader: answer 404 at once instead of blocking."""
+        os.mkfifo(f"{web._session_path('valid-id')}.in", 0o600)
+        stdin = io.TextIOWrapper(io.BytesIO(b"a\n"), encoding="ascii")
+        stdout = io.StringIO()
+
+        def blocked(_sig: int, _frame: object) -> None:
+            self.fail("opening a pipe without a reader blocked")
+
+        # an AssertionError is not an OSError, so the handler's except clause cannot turn a hang into a 404
+        previous = signal.signal(signal.SIGALRM, blocked)
+        self.addCleanup(signal.signal, signal.SIGALRM, previous)
+        self.addCleanup(signal.alarm, 0)
+        signal.alarm(5)
+
+        with (
+            mock.patch.dict(os.environ, {**self.environ, "CONTENT_LENGTH": "2"}, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            self.assertTrue(web.handle_short_request())
+
+        self.assertEqual("Status: 404 Not Found\r\n\r\n", stdout.getvalue())
+
+    @unittest.skipIf(IS_WINDOWS, "The client pipe is a POSIX-only os.mkfifo FIFO")
+    def test_keyboard_input_reaches_the_screen_reading_the_pipe(self) -> None:
+        """The screen's reader receives the request body through a real pipe."""
+        pipe = f"{web._session_path('valid-id')}.in"
+        os.mkfifo(pipe, 0o600)
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        self.addCleanup(os.close, reader)
+        stdin = io.TextIOWrapper(io.BytesIO(b"a\n"), encoding="ascii")
+        stdout = io.StringIO()
+
+        with (
+            mock.patch.dict(os.environ, {**self.environ, "CONTENT_LENGTH": "2"}, clear=True),
+            mock.patch.object(web.sys, "stdin", stdin),
+            mock.patch.object(web.sys, "stdout", stdout),
+        ):
+            self.assertTrue(web.handle_short_request())
+
+        self.assertEqual(b"a\n", os.read(reader, 16))
+        self.assertEqual("Content-type: text/plain\r\n\r\n", stdout.getvalue())
 
     @unittest.skipIf(IS_WINDOWS, "The polling update channel is a POSIX-only socket.AF_UNIX socket")
     def test_polling_decodes_after_receiving_complete_utf8_payload(self) -> None:
@@ -200,6 +254,46 @@ class HandleShortRequestTest(unittest.TestCase):
 
         sock.__exit__.assert_called_once()
         self.assertEqual("Status: 502 Bad Gateway\r\n\r\n", stdout.getvalue())
+
+
+@unittest.skipIf(IS_WINDOWS, "Daemonizing requires the POSIX-only os.fork and os.setsid")
+class DaemonizeTest(unittest.TestCase):
+    """Tests for daemonize and the polling child that calls it."""
+
+    def test_daemonize_leaves_the_kept_descriptors_open(self) -> None:
+        """Every descriptor below 20 is closed except the ones the caller keeps."""
+        with (
+            mock.patch.object(web.os, "fork", return_value=0),
+            mock.patch.object(web.os, "setsid"),
+            mock.patch.object(web.signal, "signal"),
+            mock.patch.object(web.os, "umask"),
+            mock.patch.object(web.os, "chdir"),
+            mock.patch.object(web.os, "close") as close,
+            mock.patch.object(web, "open", create=True),
+            mock.patch.object(web.sys, "stdin"),
+            mock.patch.object(web.sys, "stdout"),
+            mock.patch.object(web.sys, "stderr"),
+        ):
+            web.daemonize("errfile", keep_fds=(3, 7))
+
+        self.assertEqual([mock.call(fd) for fd in range(20) if fd not in {3, 7}], close.call_args_list)
+
+    def test_fork_child_keeps_the_client_pipe_reader(self) -> None:
+        """The reader stays open through the forks, so the pipe never lacks one while the screen runs."""
+        screen = web.Screen()
+        screen.input_fd = 5
+        screen.pipe_name = os.path.join(_use_temporary_pipe_dir(self), "session")
+
+        with (
+            mock.patch.object(web, "daemonize") as daemonize,
+            mock.patch.object(web.socket, "socket"),
+            mock.patch.object(web.os, "open") as pipe_open,
+        ):
+            screen._fork_child()
+
+        daemonize.assert_called_once_with(f"{screen.pipe_name}.err", keep_fds=(5,))
+        pipe_open.assert_not_called()
+        self.assertEqual(5, screen.input_fd)
 
 
 @unittest.skipIf(IS_WINDOWS, "Reading the client pipe requires the POSIX-only os.O_NONBLOCK flag")
@@ -259,6 +353,26 @@ class ScreenGetInputTest(unittest.TestCase):
             result = self.screen.get_input(raw_keys=False)
 
         self.assertEqual(result, ["a", "b", "c"])
+
+    def test_get_input_opens_the_new_reader_before_closing_the_old_one(self) -> None:
+        """The pipe never lacks a reader, so a keystroke request arriving meanwhile is not refused."""
+        selector_mock = self._make_selector_mock(has_input=True)
+        calls = mock.Mock()
+
+        with (
+            mock.patch("urwid.display.web.selectors.DefaultSelector", return_value=selector_mock),
+            mock.patch("urwid.display.web.os.read", return_value=b"a\n"),
+            mock.patch("urwid.display.web.os.close", calls.close),
+            mock.patch("urwid.display.web.os.open", calls.open),
+        ):
+            calls.open.return_value = 11
+            self.screen.get_input(raw_keys=False)
+
+        self.assertEqual(
+            [mock.call.open(f"{self.screen.pipe_name}.in", os.O_NONBLOCK | os.O_RDONLY), mock.call.close(10)],
+            calls.mock_calls,
+        )
+        self.assertEqual(11, self.screen.input_fd)
 
     def test_get_input_valid_window_resize(self) -> None:
         """Handles valid window resize commands correctly."""
