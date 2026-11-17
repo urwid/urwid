@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import abc
+import contextlib
 import enum
 import inspect
 import typing
@@ -14,10 +15,10 @@ from urwid.command_map import Command
 
 from .attr_map import _attr_map_dict
 from .constants import Sizing, WHSettings
-from .widget import AbstractWidget, Widget, WidgetWarning, _select_enter_child
+from .widget import _FOCUS_REQUEST, AbstractWidget, Widget, WidgetWarning, _FocusRequest, _select_enter_child
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Hashable, Iterable, Iterator, MutableSequence, Sequence
+    from collections.abc import Callable, Generator, Hashable, Iterable, Iterator, MutableSequence, Sequence
 
     from urwid.canvas import Canvas
     from urwid.command_map import CommandMap
@@ -115,6 +116,43 @@ class _ContainerElementSizingFlag(enum.IntEnum):
 _SELECT_COMMANDS: typing.Final = frozenset((Command.SELECT_NEXT, Command.SELECT_PREVIOUS))
 # The Widget.focus_position property, which raises IndexError: a container that keeps it has no positions.
 _WIDGET_FOCUS_POSITION: typing.Final = inspect.getattr_static(Widget, "focus_position")
+
+
+@contextlib.contextmanager
+def _focus_request_scope() -> Generator[_FocusRequest]:
+    """Collect a :meth:`Widget.request_focus` call made by a child's ``mouse_event()`` inside the ``with`` block.
+
+    The container reads the request only after a normal exit, and applies it there.
+    """
+    request = _FocusRequest()
+    token = _FOCUS_REQUEST.set(request)
+    try:
+        yield request
+    finally:
+        _FOCUS_REQUEST.reset(token)
+
+
+def _apply_focus_request(
+    container: Widget,
+    position: typing.Any,
+    child: AbstractWidget,
+    focus_before: typing.Any,
+) -> None:
+    """Give the focus to `child` on its request, for a container whose ``contents[position][0]`` is the child.
+
+    :param position: where `child` was when the container called its ``mouse_event()``.
+    :param focus_before: the container's ``focus_position`` just before that call.
+    """
+    try:
+        still_there = container.contents[position][0] is child  # type: ignore[attr-defined]
+    except (IndexError, KeyError):
+        still_there = False
+    if not still_there:
+        return
+    focus_position = container.focus_position
+    if focus_position == focus_before and focus_position != position and child.selectable():
+        container.focus_position = position
+    container.request_focus()
 
 
 class WidgetContainerMixin(WidgetContainerMixinProto[_KT_contra]):

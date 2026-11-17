@@ -626,6 +626,44 @@ returned at its end.  Another list walker that repeats a position is treated
 as ending where the walk comes back to the focus: the search does not loop,
 but the key is returned only when no other selectable widget is left.
 
+.. _focus-request:
+
+Asking for the Focus from a Mouse Event
+---------------------------------------
+
+:class:`Pile`, :class:`Columns`, :class:`ListBox` and :class:`Frame` move
+their focus to the widget under the pointer on a press of mouse button 1
+only.  A widget that wants the focus on another event, such as a context menu
+opened by mouse button 3, calls :meth:`Widget.request_focus` inside its
+``mouse_event()``::
+
+    class Row(urwid.WidgetWrap):
+        def mouse_event(self, size, event, button, col, row, focus):
+            if button == urwid.MouseButton.RIGHT and urwid.util.is_mouse_press(event):
+                self.request_focus()
+                self.open_menu()
+                return True
+            return super().mouse_event(size, event, button, col, row, focus)
+
+When the widget's ``mouse_event()`` returns, each container on the path, from
+the innermost one out, moves its focus to the child the event went to and
+passes the request to the container above it, so the whole path ends up in
+focus.  :class:`Tabs` returns the focus from its bar to the body.  A container
+whose child is not selectable passes the request on without moving its focus.
+A handler that changed the container, so that the widget is no longer where it
+was called, cancels the request, and a focus the handler set itself is kept.
+The request is for the path of the current event, whichever widget makes the
+call.  A :class:`ListBox` whose list walker keeps its widgets, such as
+:class:`SimpleFocusListWalker`, checks that the same widget is still at its
+position, because an insertion or a removal can move another widget there.
+With a list walker that creates a new widget each time it is asked, it checks
+that the walker still has the position, so such a walker's positions have to
+keep naming the same rows: one that builds its widgets from an index into a
+list that the handler inserts into or removes from can have the focus moved to
+the row that took the index.
+The request is part of the event: one made outside ``mouse_event()``, or from
+a ``mouse_event()`` that raises an exception, has no effect.
+
 .. _focus-changed-signal:
 
 Reacting to Focus Changes

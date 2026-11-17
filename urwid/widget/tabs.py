@@ -34,6 +34,7 @@ from .constants import MouseButton, Sizing, VAlign, WrapMode
 from .container import (
     WidgetContainerListContentsMixin,
     WidgetContainerMixin,
+    _focus_request_scope,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
@@ -943,6 +944,7 @@ class Tabs(
 
         With a selectable bar the press also moves the keyboard focus to the bar.
         A press on the body while the bar has the focus returns the focus to the body.
+        So does a :meth:`Widget.request_focus` from the body, unless its handler changed the selected tab.
 
         :raises TabsError: *size* is ``()``, or a flow size and the selected body is not a flow widget.
         """
@@ -967,7 +969,16 @@ class Tabs(
         if is_mouse_press(event) and button == MouseButton.LEFT and self._bar_focused and body.selectable():
             self._bar_focused = False
             self._invalidate()
-        return body.mouse_event(body_size, event, button, col, row - body_top, focus and not self._bar_focused)
+        index, bar_focused = self.focus_position, self._bar_focused
+        with _focus_request_scope() as request:
+            handled = body.mouse_event(body_size, event, button, col, row - body_top, focus and not self._bar_focused)
+        if request.requested and self._contents and self.focus_position == index and self._contents[index][0] is body:
+            # A bar focus the handler set itself is kept.
+            if self._bar_focused and bar_focused and body.selectable():
+                self._bar_focused = False
+                self._invalidate()
+            self.request_focus()
+        return handled
 
     def enter_selectable(self, *, reverse: bool = False) -> None:
         """Put the keyboard focus on the selected body, or on the bar when the body is not selectable.

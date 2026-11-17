@@ -35,6 +35,7 @@ from .constants import MouseButton, Sizing, VAlign, WHSettings, normalize_valign
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationMixin,
+    _focus_request_scope,
     _UnfocusedFocusAttrMixin,
 )
 from .deque_walker import SimpleDequeWalker, SimpleFocusDequeWalker
@@ -1251,6 +1252,8 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
 
         It steps from a neighbour back to *position* with ``get_prev()`` and ``get_next()``.
         A body that has no ``__getitem__`` supports that too.
+        A position with no neighbour on either side is checked against the body's focus, which is where the only
+        position of a one-item body is.
 
         :returns: the widget, or ``None`` when *position* is no longer in the body.
         """
@@ -1261,9 +1264,10 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             else:
                 next_widget, next_pos = self._body.get_next(position)
                 if next_widget is None:
-                    return None
-                widget, pos = self._body.get_prev(next_pos)
-        except (IndexError, KeyError):
+                    widget, pos = self._body.get_focus()
+                else:
+                    widget, pos = self._body.get_prev(next_pos)
+        except (IndexError, KeyError, ValueError):
             # A body may reject a position it no longer holds instead of reporting no neighbour.
             return None
         return widget if pos == position else None
@@ -2402,7 +2406,7 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
     ) -> bool | None:
         """Pass the event to the contained widgets.
 
-        May change focus on button 1 press.
+        May change focus on button 1 press, and on a :meth:`Widget.request_focus` from the widget under the pointer.
         A vertical wheel notch the widget under the pointer does not handle moves what :attr:`wheel` selects,
         and sends the ``"edge reached"`` signal when the view is already at that end.
 
@@ -2443,7 +2447,26 @@ class ListBox(Widget, SelectNavigationMixin[_K], _UnfocusedFocusAttrMixin):
             )
             return False
 
-        if w.mouse_event((maxcol,), event, button, col, row - wrow, focus and w == focus_widget):
+        body = self._body
+        focus_before = body.get_focus()[1]
+        with _focus_request_scope() as request:
+            handled = w.mouse_event((maxcol,), event, button, col, row - wrow, focus and w == focus_widget)
+        # The handler may have replaced the body or changed it, so the request applies only while the same body
+        # still has the position; a focus the handler moved itself stays.
+        # A body that keeps its widgets gives the same object twice, and an insertion or a removal can move another
+        # widget to an index position, so there the clicked widget itself must still be at it.
+        # A body that creates a new widget on each call gives two different objects, and the position alone
+        # identifies the row.
+        if (
+            request.requested
+            and self._body is body
+            and (current := self._body_widget_at(w_pos)) is not None
+            and (current is w or current is not self._body_widget_at(w_pos))
+        ):
+            if body.get_focus()[1] == focus_before and w_pos != focus_before and w.selectable():
+                self.change_focus((maxcol, maxrow), w_pos, wrow)
+            self.request_focus()
+        if handled:
             return True
 
         if not is_mouse_press(event) or button not in {MouseButton.WHEEL_UP, MouseButton.WHEEL_DOWN}:

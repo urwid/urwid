@@ -23,6 +23,7 @@
 from __future__ import annotations
 
 import abc
+import contextvars
 import enum
 import functools
 import logging
@@ -66,6 +67,24 @@ __all__ = (
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractWidget")
 LOGGER = logging.getLogger(__name__)
+
+
+class _FocusRequest:
+    """Mark that a widget asked for the focus during one container's call of a child's ``mouse_event()``."""
+
+    __slots__ = ("requested",)
+
+    def __init__(self) -> None:
+        """Start unmarked."""
+        self.requested = False
+
+
+# The request of the innermost container that is calling a child's mouse_event(), or None outside such a call.
+# A context variable rather than an attribute, so each dispatch step, thread and task sees only its own request.
+_FOCUS_REQUEST: contextvars.ContextVar[_FocusRequest | None] = contextvars.ContextVar(
+    "urwid_focus_request",
+    default=None,
+)
 
 
 class WidgetMeta(
@@ -960,6 +979,31 @@ class Widget(AbstractWidget, metaclass=WidgetMeta):
                 )
                 LOGGER.debug(f"Widget {self!r} is not selectable")
         return False
+
+    def request_focus(self) -> None:
+        """Ask the containers on the path of the current mouse event for the focus, from inside :meth:`mouse_event`.
+
+        It is for an event the containers do not move the focus for themselves, such as a press of mouse button 3.
+        Each container applies the request when the child it sent the event to returns, then passes it to the
+        container above, so the whole path from the top to the widget under the pointer gets the focus.
+        The request is for that path whichever widget makes the call, so a widget calls it on itself.
+
+        - A container that the handler changed so that its child is no longer at the position it was called at
+          drops the request.
+          A :class:`ListBox` whose list walker keeps its widgets checks the widget itself;
+          with a list walker that creates a new widget on each call it checks that the walker still has the
+          position.
+        - A container whose focus the handler set itself keeps that focus, and still passes the request up.
+        - A container whose child on the path is not selectable does not move its focus, and passes the request up.
+
+        A request made outside a container's call of :meth:`mouse_event` does nothing, so it never carries over into
+        a later event.
+        The request goes up through every widget that called :meth:`mouse_event` on the way to this one, including a
+        widget that forwards an event it received to another widget.
+        A :meth:`mouse_event` that raises an exception takes its request with it: no container applies it.
+        """
+        if (request := _FOCUS_REQUEST.get()) is not None:
+            request.requested = True
 
     def render(
         self,

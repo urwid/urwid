@@ -19,7 +19,9 @@ from .constants import Align, MouseButton, Sizing, WHSettings
 from .container import (
     _SELECT_COMMANDS,
     SelectNavigationListContentsMixin,
+    _apply_focus_request,
     _ContainerElementSizingFlag,
+    _focus_request_scope,
     _invalidate_on_focus_change,
     _UnfocusedFocusAttrMixin,
     _WeakCallback,
@@ -1286,7 +1288,9 @@ class Columns(
         row: int,
         focus: bool,
     ) -> bool | None:
-        """Send event to appropriate column. May change focus on button 1 press.
+        """Send event to appropriate column.
+
+        May change focus on button 1 press, and on a :meth:`Widget.request_focus` from the column.
 
         :raises ColumnsError: *size* is ``()`` and the children cannot be sized as a fixed widget.
 
@@ -1320,8 +1324,13 @@ class Columns(
                 )
                 return False
 
-            # widget kind and size arguments matched separately
-            return w.mouse_event(w_size, event, button, col - x, row, focus)  # type: ignore[arg-type]
+            focus_before = self.focus_position
+            with _focus_request_scope() as request:
+                # widget kind and size arguments matched separately
+                handled = w.mouse_event(w_size, event, button, col - x, row, focus)  # type: ignore[arg-type]
+            if request.requested:
+                _apply_focus_request(self, i, w, focus_before)
+            return handled
         return False
 
     def get_pref_col(
