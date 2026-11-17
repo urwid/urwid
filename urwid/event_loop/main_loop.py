@@ -227,6 +227,11 @@ class MainLoop:
                           ``None``, the default, checks them only after input or an alarm.
                           See :ref:`screens-without-event-loop-support`.
 
+    :param resized: a function called with the new screen size once the screen stopped changing its size,
+                    called from :meth:`.resized`
+
+    :param resize_delay: seconds without a further resize that :meth:`.resized` waits for, 0.1 by default
+
 
     .. attribute:: screen
 
@@ -251,6 +256,9 @@ class MainLoop:
         "_input_filter",
         "_poll_interval",
         "_pop_ups",
+        "_resize_alarm",
+        "_resize_delay",
+        "_resized",
         "_size_read_after_resize",
         "_thread_calls",
         "_thread_calls_unwatchable",
@@ -280,15 +288,24 @@ class MainLoop:
         pop_ups: bool = False,
         *,
         poll_interval: float | None = None,
+        resized: Callable[[tuple[int, int]], object] | None = None,
+        resize_delay: float = 0.1,
     ) -> None:
         """
         Set up the main loop around a top-level widget, a screen and an event loop.
 
         :raises NotImplementedError: an *event_loop* is given but *screen* does not support external event loops.
         :raises ValueError: *poll_interval* is not ``None`` or a finite number of seconds of at least 0.1.
+            Also when *resize_delay* is not a finite, non-negative number of seconds.
         """
+        if not (math.isfinite(resize_delay) and resize_delay >= 0):
+            raise ValueError(f"resize_delay must be a finite, non-negative number of seconds, not {resize_delay!r}")
         self._poll_interval: float | None = None
         self.poll_interval = poll_interval
+        self._resized = resized
+        self._resize_delay = resize_delay
+        # the alarm that calls resized() once the resizes stop, while one is pending
+        self._resize_alarm: typing.Any = None
         self.logger = logging.getLogger(__name__).getChild(self.__class__.__name__)
         self._widget = widget
         self._topmost_widget = widget
@@ -837,6 +854,7 @@ class MainLoop:
         try:
             self._close_thread_calls()
         finally:
+            self._remove_resize_alarm()
             self.event_loop.remove_enter_idle(self.idle_handle)
             self.idle_handle = None
             signals.disconnect_signal(self.screen, INPUT_DESCRIPTORS_CHANGED, self._reset_input_descriptors)
@@ -955,6 +973,7 @@ class MainLoop:
                 try:
                     self._close_thread_calls()
                 finally:
+                    self._remove_resize_alarm()
                     self._deactivate()
                     self.screen.stop()
         except BaseException:
@@ -1102,6 +1121,10 @@ class MainLoop:
                     # the keys after it in the same batch arrived at the new size
                     self.screen_size = None
                     self._size_read_after_resize = False
+                    if self._resized is not None or type(self).resized is not MainLoop.resized:
+                        # One report once the resizes stop: a report per resize holds up the input during a drag.
+                        self._remove_resize_alarm()
+                        self._resize_alarm = self.set_alarm_in(self._resize_delay, MainLoop._report_resize)
                     continue
 
                 # a handler of an earlier key may have paused the loop, which drops the screen size
@@ -1194,6 +1217,51 @@ class MainLoop:
         if self._unhandled_input:
             return self._unhandled_input(data)
         return False
+
+    def resized(self, size: tuple[int, int]) -> None:
+        """Call the *resized* function passed to the constructor.
+
+        A ``"window resize"`` never reaches :meth:`unhandled_input`, so an application that lays itself out
+        by the screen size, such as one choosing its columns by the width, does it here.
+        It reports changes only: the application lays itself out for the size it starts at by itself.
+        A subclass may override this method instead of passing *resized*.
+
+        It is called *resize_delay* seconds after the last resize of a series, once, with the size read then.
+        The widgets meanwhile render at every new size, so the screen stays correct while it changes.
+
+        It runs on the thread running the event loop, like an alarm callback:
+
+        - a widget it changes is drawn on the way back to idle;
+        - :exc:`ExitMainLoop` raised by it stops the loop;
+        - any other exception is logged, and the loop goes on.
+
+        The loop handles no input while it runs, so slow work goes to another thread,
+        which hands its result back with :meth:`call_from_thread`.
+        A report still pending when the loop stops is dropped.
+
+        :param size: ``(cols, rows)`` of the screen
+        """
+        if self._resized is not None:
+            self._resized(size)
+
+    def _report_resize(self, _user_data: None) -> None:
+        """Call :meth:`resized` with the screen size, reading it unless it was read after the resize."""
+        self._resize_alarm = None
+        if self._activation is None:
+            # Scheduled after stop(), by a resize later in the batch whose handler stopped the loop,
+            # on an event loop the application keeps running.
+            return
+        if not self.screen_size:
+            self.screen_size = self.screen.get_cols_rows()
+            # the screen event loop then keeps it for the next draw, as a screen that scripts its sizes expects
+            self._size_read_after_resize = True
+        self.resized(self.screen_size)
+
+    def _remove_resize_alarm(self) -> None:
+        """Remove the pending alarm that calls :meth:`resized`, if any."""
+        if (handle := self._resize_alarm) is not None:
+            self._resize_alarm = None
+            self.event_loop.remove_alarm(handle)
 
     def entering_idle(self) -> None:
         """Call :meth:`draw_screen` to update the screen when anything has changed.

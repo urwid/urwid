@@ -1944,3 +1944,178 @@ class TestCallFromThread(unittest.TestCase):
         screen.unhook_event_loop.assert_called()
         screen.stop.assert_called_once_with()
         self.assertIsNone(urwid.get_running_loop_or_none())
+
+
+class MainLoopResizedTest(unittest.TestCase):
+    """MainLoop(resized=...) reports the screen size once a series of resizes stops."""
+
+    def resizing_loop(self, **kwargs: typing.Any) -> tuple[urwid.MainLoop, urwid.testing.VirtualClockEventLoop]:
+        """Return a loop on an unscripted screen of 80x24, driven by a virtual clock."""
+        event_loop = urwid.testing.VirtualClockEventLoop()
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=urwid.testing.ScriptedScreen(inputs=None),
+            event_loop=event_loop,
+            **kwargs,
+        )
+        return loop, event_loop
+
+    def test_one_report_with_the_last_size_once_the_resizes_stop(self) -> None:
+        """A drag resizing every 16 ms is reported once, resize_delay after its last resize, with the final size."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append)
+        screen = typing.cast("urwid.testing.ScriptedScreen", loop.screen)
+        with loop.start():
+            for cols in range(81, 91):
+                screen.size = (cols, 24)
+                loop.process_input(["window resize"])
+                event_loop.advance(0.016)
+            self.assertEqual([], sizes)
+
+            event_loop.advance(0.1 - 0.016 - 0.001)
+            self.assertEqual([], sizes)
+            event_loop.advance(0.001)
+            self.assertEqual([(90, 24)], sizes)
+
+            event_loop.run_until_idle()
+        self.assertEqual([(90, 24)], sizes)
+
+    def test_resize_delay_sets_the_wait(self) -> None:
+        """A resize_delay of 0 reports at the next pass of the event loop."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append, resize_delay=0)
+        screen = typing.cast("urwid.testing.ScriptedScreen", loop.screen)
+        with loop.start():
+            screen.size = (100, 30)
+            loop.process_input(["window resize"])
+            event_loop.advance(0)
+        self.assertEqual([(100, 30)], sizes)
+
+    def test_resize_delay_is_a_finite_non_negative_number(self) -> None:
+        """A negative or not finite resize_delay is refused."""
+        for resize_delay in (-0.1, math.inf, math.nan):
+            with self.subTest(resize_delay=resize_delay), self.assertRaises(ValueError):
+                urwid.MainLoop(urwid.SolidFill(), screen=NonExternalLoopScreen(), resize_delay=resize_delay)
+
+    def test_subclass_override_is_called(self) -> None:
+        """A subclass overriding resized() is reported to without passing resized."""
+        sizes: list[tuple[int, int]] = []
+
+        class Loop(urwid.MainLoop):
+            """Main loop recording the reported sizes in its own method."""
+
+            def resized(self, size: tuple[int, int]) -> None:
+                sizes.append(size)
+
+        event_loop = urwid.testing.VirtualClockEventLoop()
+        loop = Loop(urwid.SolidFill(), screen=urwid.testing.ScriptedScreen(inputs=None), event_loop=event_loop)
+        with loop.start():
+            loop.process_input(["window resize"])
+            event_loop.run_until_idle()
+        self.assertEqual([(80, 24)], sizes)
+
+    def test_no_report_is_scheduled_without_a_hook(self) -> None:
+        """Without resized, a resize sets no alarm, so the size is read only for the next draw."""
+        loop, event_loop = self.resizing_loop()
+        with (
+            loop.start(),
+            unittest.mock.patch.object(loop.screen, "get_cols_rows", return_value=(100, 30)) as get_cols_rows,
+        ):
+            loop.screen_size = (80, 24)  # the size the screen was last drawn at
+            loop.process_input(["window resize"])
+            self.assertIsNone(loop._resize_alarm)
+            event_loop.run_until_idle()
+        get_cols_rows.assert_called_once_with()
+
+    def test_report_reuses_the_size_read_for_the_draw(self) -> None:
+        """The report takes the size the draw after the resize read, instead of reading it again."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append)
+        with (
+            loop.start(),
+            unittest.mock.patch.object(loop.screen, "get_cols_rows", return_value=(100, 30)) as get_cols_rows,
+        ):
+            loop.screen_size = (80, 24)  # the size the screen was last drawn at
+            loop.process_input(["window resize"])
+            event_loop.run_until_idle()
+        get_cols_rows.assert_called_once_with()
+        self.assertEqual([(100, 30)], sizes)
+
+    def test_screen_event_loop_reads_the_size_once_for_report_and_draw(self) -> None:
+        """Without event loop support, a report due at once reads the size that the next draw then uses."""
+        sizes: list[tuple[int, int]] = []
+        screen = LimitedInputScreen([(["window resize"], []), (["q"], [])])
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=screen,
+            unhandled_input=stop_screen_cb,
+            resized=sizes.append,
+            resize_delay=0,
+        )
+        with unittest.mock.patch.object(screen, "get_cols_rows", return_value=(100, 30)) as get_cols_rows:
+            loop.run()
+        # one read for the first draw, one for the report and the draw after the resize
+        self.assertEqual(2, get_cols_rows.call_count)
+        self.assertEqual([(100, 30)], sizes)
+
+    def test_stop_drops_a_pending_report(self) -> None:
+        """A report still pending when the loop stops never runs."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append)
+        with loop.start():
+            loop.process_input(["window resize"])
+        event_loop.run_until_idle()
+        self.assertEqual([], sizes)
+        self.assertIsNone(loop._resize_alarm)
+
+    def test_error_in_the_report_is_logged_and_the_loop_goes_on(self) -> None:
+        """An exception raised by resized is logged with the callback named, and later alarms still run."""
+        calls: list[str] = []
+
+        def failing(_size: tuple[int, int]) -> None:
+            raise ZeroDivisionError
+
+        loop, event_loop = self.resizing_loop(resized=failing)
+        with loop.start(), self.assertLogs(loop.logger, level="ERROR") as logs:
+            loop.process_input(["window resize"])
+            loop.set_alarm_in(1, lambda *_args: calls.append("later"))
+            event_loop.run_until_idle()
+        self.assertEqual(["later"], calls)
+        self.assertTrue(any("ZeroDivisionError" in output for output in logs.output))
+
+    def test_report_scheduled_after_stop_in_the_same_batch_is_dropped(self) -> None:
+        """A resize after a key whose handler stopped the loop is not reported on the event loop that goes on."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append, unhandled_input=lambda _key: loop.stop())
+        loop.start()
+        loop.process_input(["q", "window resize"])
+        event_loop.run_until_idle()
+        self.assertEqual([], sizes)
+
+    def test_screen_event_loop_drops_a_report_pending_at_exit(self) -> None:
+        """Without event loop support, a report pending when run() ends does not fire in the next run()."""
+        sizes: list[tuple[int, int]] = []
+        # Unlimited empty input after the script: the second run() ends at its own alarm.
+        screen = ScriptedInputScreen([(["window resize", "q"], [])])
+        loop = urwid.MainLoop(
+            urwid.SolidFill(),
+            screen=screen,
+            unhandled_input=stop_screen_cb,
+            resized=sizes.append,
+            resize_delay=0.05,
+        )
+        loop.run()
+        loop.set_alarm_in(0.1, stop_screen_cb)
+        loop.run()
+        self.assertEqual([], sizes)
+
+    def test_exit_main_loop_from_the_report_stops_the_loop(self) -> None:
+        """ExitMainLoop raised by resized ends run()."""
+
+        def stop(_size: tuple[int, int]) -> typing.NoReturn:
+            raise urwid.ExitMainLoop
+
+        loop, _event_loop = self.resizing_loop(resized=stop)
+        loop.set_alarm_in(0, lambda main_loop, _data: main_loop.process_input(["window resize"]))
+        loop.run()
+        self.assertIsNone(urwid.get_running_loop_or_none())

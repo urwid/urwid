@@ -52,6 +52,31 @@ custom input handling is done from :meth:`MainLoop.unhandled_input`,
 it will be difficult to extend as your application gets more complicated.
 
 
+Reacting to a Resize
+====================
+
+The widgets render at the screen size by themselves, so most applications need
+nothing when the terminal is resized.
+An application that lays itself out by the size, such as one that chooses which
+columns to show by the width, passes ``resized`` and gets the new size::
+
+    def choose_columns(size: tuple[int, int]) -> None:
+        cols, _rows = size
+        table.set_columns(ALL_COLUMNS if cols >= 100 else NARROW_COLUMNS)
+
+    loop = urwid.MainLoop(table, resized=choose_columns)
+    choose_columns(loop.screen.get_cols_rows())  # the size it starts at
+
+Dragging the edge of a terminal window resizes it many times a second, so the
+function is called once the size stopped changing for ``resize_delay`` seconds,
+0.1 by default, with the size reached then.
+It runs on the loop's thread like an alarm callback, and the loop handles no input
+while it runs: work that takes longer, such as asking another program for its
+size, goes to a thread that hands its result back with
+:meth:`MainLoop.call_from_thread`, described below.
+A subclass of :class:`MainLoop` may override :meth:`MainLoop.resized` instead.
+
+
 Running Another Program in the Terminal
 =======================================
 
