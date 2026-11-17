@@ -142,7 +142,12 @@ def set_encoding(encoding: str) -> None:
 
     global _target_encoding, _use_dec_special  # noqa: PLW0603  # noqa: PLW0603  # pylint: disable=global-statement
 
-    if encoding in {"utf-8", "utf8", "utf"}:
+    try:
+        codec_name = codecs.lookup(encoding).name
+    except LookupError:
+        codec_name = encoding
+
+    if codec_name == "utf-8":
         str_util.set_byte_encoding("utf8")
 
         _use_dec_special = False

@@ -21,12 +21,14 @@ class CalcWidthTest(unittest.TestCase):
         assert result == exp, f"{desc} got:{result!r} expected:{exp!r}"
 
     def test1(self):
-        util.set_encoding("utf-8")
-        self.wtest("narrow", "hello", 5)
-        self.wtest("wide char", "\xe6\x9b\xbf", 2)
-        self.wtest("invalid", "\xe6", 1)
-        self.wtest("zero width", "\xcc\x80", 0)
-        self.wtest("mixed", "hello\xe6\x9b\xbf\xe6\x9b\xbf", 9)
+        for name in ("utf-8", "UTF8", "utf_8", "u8", "cp65001"):
+            with self.subTest(encoding=name):
+                util.set_encoding(name)
+                self.wtest("narrow", "hello", 5)
+                self.wtest("wide char", "\xe6\x9b\xbf", 2)
+                self.wtest("invalid", "\xe6", 1)
+                self.wtest("zero width", "\xcc\x80", 0)
+                self.wtest("mixed", "hello\xe6\x9b\xbf\xe6\x9b\xbf", 9)
 
     def test2(self):
         util.set_encoding("euc-jp")
