@@ -25,7 +25,7 @@ import typing
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
-from ._pop_up_list import _focused_list, _PopUpListItem
+from ._pop_up_list import _boxed_list, _focused_list, _PopUpListItem
 from .attr_map import AttrMap
 from .columns import Columns
 from .constants import MouseButton, WrapMode
@@ -41,8 +41,8 @@ if typing.TYPE_CHECKING:
     from urwid.util import _TagMarkup
 
     from .attr_map import _AttrMapLike
-    from .listbox import ListBox
     from .popup import PopUpParametersModel
+    from .widget import AbstractWidget
 
 
 class DropDown(PopUpLauncher[Columns]):
@@ -88,6 +88,7 @@ class DropDown(PopUpLauncher[Columns]):
         max_visible_items: int = 10,
         attr_map: _AttrMapLike = None,
         focus_map: _AttrMapLike = None,
+        border: bool = False,
     ) -> None:
         """Create a drop-down over `options`, with the option at index `selected` shown.
 
@@ -96,7 +97,10 @@ class DropDown(PopUpLauncher[Columns]):
         :param max_visible_items: most options the open list shows at once; it scrolls through the rest.
         :param attr_map: display attribute of each option in the open list, as for :class:`AttrMap <urwid.AttrMap>`.
         :param focus_map: display attribute of the focused option in the open list.
-        :raises ValueError: `options` is empty, or `max_visible_items` is less than 1.
+        :param border: draw a box around the open list, with its scroll bar outside the box,
+            in the display attribute of `attr_map`; every option must then be one line.
+        :raises ValueError: `options` is empty, `max_visible_items` is less than 1, or `border` is set and an
+            option takes more than one line.
         :raises IndexError: `selected` is not an index of `options`.
         """
         self._options: tuple[_TagMarkup, ...] = tuple(options)
@@ -104,10 +108,13 @@ class DropDown(PopUpLauncher[Columns]):
             raise ValueError("DropDown needs at least one option")
         if max_visible_items < 1:
             raise ValueError(f"max_visible_items must be at least 1, got {max_visible_items!r}")
+        if border and any(Text(option).pack()[1] > 1 for option in self._options):
+            raise ValueError("A DropDown with a border needs options of one line, as its box sides are one row high")
 
         self._max_visible_items = max_visible_items
         self._attr_map = attr_map
         self._focus_map = focus_map
+        self._border = border
         # Widest option, so the widget and its list do not change width with the selection.
         self._options_width = max(Text(option).pack()[0] for option in self._options)
         indicator_width = self.drop_down_indicator.pack()[0]
@@ -160,24 +167,34 @@ class DropDown(PopUpLauncher[Columns]):
         self.close_pop_up()
         self.selected = index
 
-    def create_pop_up(self) -> ScrollBar[ListBox[int]]:
+    def create_pop_up(self) -> AbstractWidget:
         """Return the list of all options, with the selected one focused; it scrolls when they do not all fit."""
         items = [
             AttrMap(_PopUpListItem(option, index, self._choose), self._attr_map, self._focus_map)
             for index, option in enumerate(self._options)
         ]
-        return ScrollBar(_focused_list(items, self._selected))
+        if not self._border:
+            return ScrollBar(_focused_list(items, self._selected))
+        _list_box, body = _boxed_list(items, self._selected, border=True)
+        return AttrMap(body, self._attr_map)
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
         """Return the list position directly below this widget, anchored to it so it can move above it."""
         # Before the first render, the size the widget packs to with no size given.
         width, rows = self.launcher_size or (self._fixed_width, 1)
+        visible = min(len(self._options), self._max_visible_items)
+        if self._border:
+            # A blank column after the widest option, the box sides, and the scroll bar outside the box.
+            list_width = self._options_width + 3 + int(len(self._options) > visible)
+            visible += 2
+        else:
+            # One column more than the widest option leaves room for the scroll bar.
+            list_width = self._options_width + 1
         return {
             "left": 0,
             "top": rows,
-            # One column more than the widest option leaves room for the scroll bar.
-            "overlay_width": max(width, self._options_width + 1),
-            "overlay_height": min(len(self._options), self._max_visible_items),
+            "overlay_width": max(width, list_width),
+            "overlay_height": visible,
             "anchor_height": rows,
         }
 
