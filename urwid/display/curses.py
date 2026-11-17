@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import curses
 import errno
+import math
 import os
 import sys
 import time
@@ -152,6 +153,12 @@ class Screen(BaseScreen, RealTerminal):
         self.s: curses.window | None = None
         self.cursor_state: typing.Literal["fixed"] | int | None = None
         self.prev_input_resize = 0
+        # keys of a sequence cut short, kept for the next get_input()
+        self._partial_keys: list[int] = []
+        # get_input() decodes them as they are once no more of the sequence arrived by this time.monotonic() value
+        self._partial_deadline = 0.0
+        # a resize read while keys were kept, reported after them once they are decoded
+        self._resize_held = False
         self.set_input_timeouts()
         self.last_bstate = 0
         self._mouse_tracking_enabled = False
@@ -444,8 +451,9 @@ class Screen(BaseScreen, RealTerminal):
 
         :param max_wait: amount of time in seconds to wait for input when there is no input pending, wait forever if
             None
-        :param complete_wait: amount of time in seconds to wait when get_input detects an incomplete escape sequence at
-            the end of the available input
+        :param complete_wait: amount of time in seconds to wait for the rest of an escape sequence cut short at the end
+            of the available input, before get_input returns it decoded as it is.
+            The wait never lasts past the end of *max_wait*: the sequence is then kept for the next get_input.
         :param resize_wait: amount of time in seconds to wait for more input after receiving two screen resize requests
             in a row to stop urwid from consuming 100% cpu during a gradual window resize operation.
             The wait never lasts past the end of *max_wait*.
@@ -477,6 +485,9 @@ class Screen(BaseScreen, RealTerminal):
         wait before returning an empty list.  The wait time may be
         configured with the set_input_timeouts function.
 
+        A key that can begin a longer sequence, such as Esc, is kept until the rest of the sequence arrives
+        or *complete_wait* is over, so the list can be empty before *max_wait* is over.
+
         If raw_keys is False (default) this function will return a list
         of keys pressed.  If raw_keys is True this function will return
         a ( keys pressed, raw keycodes ) tuple instead.
@@ -505,14 +516,34 @@ class Screen(BaseScreen, RealTerminal):
         if not self._started:
             raise RuntimeError
 
-        # The waits for more input after a resize end by the time the first wait would have ended.
-        deadline = None if self.max_tenths is None else time.monotonic() + self.max_tenths / 10
-        keys, raw = self._get_input(self.max_tenths)
+        now = time.monotonic()
+        # The waits for more input after a resize end by the time max_wait would have ended.
+        deadline = None if self.max_tenths is None else now + self.max_tenths / 10
+        partial = self._partial_keys
+        expired_keys: _DecodedInput = []
+        wait_tenths = self.max_tenths
+        if partial and now >= self._partial_deadline:
+            # Its deadline passed before this call: it is decoded alone, ahead of the keys that came since.
+            self._partial_keys = []
+            decoded = escape.decode_input(partial, more_available=False)[0]
+            expired_keys, held = self._apply_terminal_reports(decoded, self._resize_held)
+            self._resize_held = False
+            if held:
+                expired_keys.append("window resize")
+            wait_tenths = 0
+        elif partial and math.isfinite(self._partial_deadline):
+            # The rest of a sequence cut short is waited for only until its deadline.
+            # Rounded up, as a wait of 0 tenths would return before it and the caller would poll until then.
+            left_tenths = max(0, math.ceil((self._partial_deadline - now) * 10))
+            wait_tenths = left_tenths if wait_tenths is None else min(wait_tenths, left_tenths)
+        keys, raw = self._get_input(wait_tenths)
+        keys = [*expired_keys, *keys]
 
         # Avoid pegging CPU at 100% when slowly resizing, and work
         # around a bug with some braindead curses implementations that
-        # return "no key" between "window resize" commands
-        if keys == ["window resize"] and self.prev_input_resize:
+        # return "no key" between "window resize" commands;
+        # not while a sequence cut short waits for its rest
+        if keys == ["window resize"] and self.prev_input_resize and not self._partial_keys:
             for _ in range(2):
                 wait_tenths = self.resize_tenths
                 if deadline is not None:
@@ -548,7 +579,8 @@ class Screen(BaseScreen, RealTerminal):
         key = self._getch(wait_tenths)
         resize = False
         raw = []
-        keys: list[int] = []
+        partial = self._partial_keys
+        keys = [*partial]
 
         while key >= 0:
             raw.append(key)
@@ -560,21 +592,28 @@ class Screen(BaseScreen, RealTerminal):
                 keys.append(key)
             key = self._getch_nodelay()
 
-        processed, consumed = escape.decode_input(keys, more_available=True)
+        read_new = len(keys) > len(partial)
+        # a sequence cut short, with no more of it by its deadline, is decoded as it is
+        expired = bool(partial) and not read_new and time.monotonic() >= self._partial_deadline
+        processed, consumed = escape.decode_input(keys, more_available=not expired)
+        self._partial_keys = keys[consumed:]
+        # each read that leaves a sequence cut short gives it complete_wait to arrive whole; None waits forever
+        if self._partial_keys and read_new:
+            complete_wait = math.inf if self.complete_tenths is None else self.complete_tenths / 10
+            self._partial_deadline = time.monotonic() + complete_wait
 
-        if consumed < len(keys):
-            keys = keys[consumed:]
-            key = self._getch(self.complete_tenths)
-            while key >= 0:
-                raw.append(key)
-                if key == KEY_RESIZE:
-                    resize = True
-                elif key == KEY_MOUSE:
-                    keys += self._encode_mouse_event()
-                else:
-                    keys.append(key)
-                key = self._getch_nodelay()
-            processed += escape.decode_input(keys, more_available=False)[0]
+        if self._partial_keys and (resize or self._resize_held) and self.complete_tenths is None:
+            # With no deadline for the rest of the sequence, a resize ends the wait, so it is not held for good.
+            processed += escape.decode_input(self._partial_keys, more_available=False)[0]
+            self._partial_keys = []
+
+        if self._partial_keys:
+            # a resize read after keys still kept is reported once they are decoded, after them
+            self._resize_held = self._resize_held or resize
+            resize = False
+        elif self._resize_held:
+            resize = True
+            self._resize_held = False
 
         result, resize = self._apply_terminal_reports(processed, resize)
 

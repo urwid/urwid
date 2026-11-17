@@ -356,7 +356,6 @@ class Screen(_raw_display_base.Screen):
         self._show_title()
 
         self.signal_init()
-        self._next_timeout = self.max_wait
 
         if not self._signal_keys_set:
             self._old_signal_keys = self.tty_signal_keys(fileno=fd)
