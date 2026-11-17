@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+import typing
 import unittest
 
 import urwid
@@ -8,11 +9,18 @@ from urwid.command_map import Command
 
 
 class ThingWithAPopUp(urwid.PopUpLauncher[urwid.SolidFill]):
-    def __init__(self, *, close_on_menu: bool = False, close_on_click_outside: bool = False) -> None:
+    def __init__(
+        self,
+        *,
+        close_on_menu: bool = False,
+        close_on_click_outside: bool = False,
+        signal_open_close: bool = False,
+    ) -> None:
         super().__init__(
             urwid.SolidFill("x"),
             close_on_menu=close_on_menu,
             close_on_click_outside=close_on_click_outside,
+            signal_open_close=signal_open_close,
         )
         self.launcher_sizes_seen: list[tuple[int, int] | None] = []
 
@@ -252,6 +260,101 @@ class PopUpTargetTest(unittest.TestCase):
         launcher = ThingWithAPopUp()
         target = urwid.PopUpTarget(launcher)
         self.assertEqual(target.pack((10, 5)), (10, 5))
+
+
+class LauncherWithOwnCloseSignal(ThingWithAPopUp):
+    """Launcher that declares a "close" signal of its own and sends it after closing, as downstream launchers do."""
+
+    signals: typing.ClassVar[list[str]] = ["close", "closed"]
+
+    def close_pop_up(self) -> None:
+        super().close_pop_up()
+        self._emit("closed")
+
+
+class OpenCloseSignalTest(unittest.TestCase):
+    @staticmethod
+    def record(
+        launcher: urwid.PopUpLauncher,
+        names: tuple[str, ...] = ("open", "close"),
+    ) -> list[tuple[str, urwid.Widget]]:
+        """Connect a recorder to the signals `names` of `launcher` and return the list it fills."""
+        sent: list[tuple[str, urwid.Widget]] = []
+        for name in names:
+            urwid.connect_signal(launcher, name, lambda w, name=name: sent.append((name, w)))
+        return sent
+
+    def test_signals_on_state_change_only(self) -> None:
+        """Repeated calls send balanced pairs: "open" only from closed, "close" only from open."""
+        launcher = ThingWithAPopUp(signal_open_close=True)
+        sent = self.record(launcher)
+
+        launcher.close_pop_up()
+        launcher.open_pop_up()
+        launcher.open_pop_up()
+        launcher.close_pop_up()
+        launcher.close_pop_up()
+
+        self.assertEqual([("open", launcher), ("close", launcher)], sent)
+
+    def test_reopening_creates_a_new_pop_up(self) -> None:
+        """A second open_pop_up() on an open launcher still calls create_pop_up(), without a second "open"."""
+        launcher = ThingWithAPopUp(signal_open_close=True)
+        sent = self.record(launcher)
+        launcher.open_pop_up()
+        first = launcher.pop_up_widget
+        launcher.open_pop_up()
+
+        self.assertIsNot(first, launcher.pop_up_widget)
+        self.assertEqual([("open", launcher)], sent)
+
+    def test_every_way_of_closing_sends_close(self) -> None:
+        for description, close in (
+            ("call", lambda target, launcher: launcher.close_pop_up()),
+            ("menu key", lambda target, launcher: target.keypress((20, 6), "esc")),
+            ("click outside", lambda target, launcher: target.mouse_event((20, 6), "mouse press", 1, 0, 0, True)),
+        ):
+            with self.subTest(description):
+                launcher = ThingWithAPopUp(close_on_menu=True, close_on_click_outside=True, signal_open_close=True)
+                target = urwid.PopUpTarget(launcher)
+                sent = self.record(launcher)
+                launcher.open_pop_up()
+                target.render((20, 6))
+
+                close(target, launcher)
+
+                self.assertIsNone(launcher.pop_up_widget)
+                self.assertEqual([("open", launcher), ("close", launcher)], sent)
+
+    def test_nothing_sent_when_off(self) -> None:
+        launcher = ThingWithAPopUp()
+        sent = self.record(launcher)
+        launcher.open_pop_up()
+        launcher.close_pop_up()
+        self.assertEqual([], sent)
+
+    def test_subclass_with_its_own_close_signal(self) -> None:
+        """A subclass declaring "close" itself keeps it; with the keyword off it receives no extra "close"."""
+        self.assertEqual({"close", "closed", "open"}, set(LauncherWithOwnCloseSignal.signals))
+        for signal_open_close, expected in (
+            (False, [("closed", None)]),
+            (True, [("close", None), ("closed", None)]),
+        ):
+            with self.subTest(signal_open_close=signal_open_close):
+                launcher = LauncherWithOwnCloseSignal(signal_open_close=signal_open_close)
+                sent = self.record(launcher, ("close", "closed"))
+                launcher.open_pop_up()
+                launcher.close_pop_up()
+                # "close" comes before the subclass's own follow-up signal.
+                self.assertEqual(expected, [(name, None) for name, _ in sent])
+
+    def test_open_launcher_with_signals_pickles(self) -> None:
+        launcher = ThingWithAPopUp(signal_open_close=True)
+        launcher.open_pop_up()
+        restored = pickle.loads(pickle.dumps(launcher))
+        sent = self.record(restored)
+        restored.close_pop_up()
+        self.assertEqual([("close", restored)], sent)
 
 
 class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):

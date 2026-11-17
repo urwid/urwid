@@ -325,6 +325,9 @@ together to show it:
   closes it when the pop-up leaves :kbd:`esc` unhandled.
   ``PopUpLauncher(..., close_on_click_outside=True)`` closes it on a mouse
   click outside the pop-up; that click does not reach the widget under it.
+  ``PopUpLauncher(..., signal_open_close=True)`` sends the signals ``"open"``
+  and ``"close"`` when the pop-up opens and closes, with the launcher as the
+  only argument; repeated calls on an open or a closed launcher send nothing.
   :attr:`PopUpLauncher.pop_up_widget` is the open pop-up, and
   :attr:`PopUpLauncher.launcher_size` the size the launcher was last rendered
   at, which :meth:`PopUpLauncher.get_pop_up_parameters` can place the pop-up

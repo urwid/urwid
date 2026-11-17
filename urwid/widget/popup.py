@@ -69,9 +69,12 @@ class PopUpLauncher(
 ):
     """Decoration that lets a wrapped widget open and close a pop-up drawn over other widgets by a PopUpTarget."""
 
+    signals: typing.ClassVar[list[str]] = ["open", "close"]
+
     # Class-level defaults, so a launcher pickled before these attributes existed still loads.
     _close_on_menu: bool = False
     _close_on_click_outside: bool = False
+    _signal_open_close: bool = False
     _launcher_size: tuple[int, int] | None = None
 
     def __init__(
@@ -80,6 +83,7 @@ class PopUpLauncher(
         *,
         close_on_menu: bool = False,
         close_on_click_outside: bool = False,
+        signal_open_close: bool = False,
     ) -> None:
         """Wrap `original_widget`, with no pop-up open yet.
 
@@ -89,10 +93,14 @@ class PopUpLauncher(
         :param close_on_click_outside: close the pop-up on a press of mouse button 1, 2 or 3 outside it
             while it is the topmost open pop-up.
             The press closes the pop-up only, and does not reach the widget under it.
+        :param signal_open_close: send ``"open"`` from :meth:`open_pop_up` when the pop-up was closed,
+            and ``"close"`` from :meth:`close_pop_up` when it was open, each with the launcher as the only argument.
+            Off by default, because a subclass may already send signals of these names itself.
         """
         super().__init__(original_widget)
         self._close_on_menu = close_on_menu
         self._close_on_click_outside = close_on_click_outside
+        self._signal_open_close = signal_open_close
         self._pop_up_widget: AbstractWidget | None = None
         self._launcher_size = None
 
@@ -162,14 +170,27 @@ class PopUpLauncher(
         raise NotImplementedError("Subclass must override this method")
 
     def open_pop_up(self) -> None:
-        """Create the pop-up widget via :meth:`create_pop_up` and invalidate this widget."""
+        """Create the pop-up widget via :meth:`create_pop_up` and invalidate this widget.
+
+        A call on an open launcher replaces its pop-up widget with a new one.
+        With ``signal_open_close`` it sends ``"open"`` only when the pop-up was closed before the call.
+        """
+        was_closed = self._pop_up_widget is None
         self._pop_up_widget = self.create_pop_up()
         self._invalidate()
+        if was_closed and self._signal_open_close:
+            self._emit("open")
 
     def close_pop_up(self) -> None:
-        """Discard the currently open pop-up widget, if any, and invalidate this widget."""
+        """Discard the currently open pop-up widget, if any, and invalidate this widget.
+
+        With ``signal_open_close`` it sends ``"close"`` only when the pop-up was open before the call.
+        """
+        was_open = self._pop_up_widget is not None
         self._pop_up_widget = None
         self._invalidate()
+        if was_open and self._signal_open_close:
+            self._emit("close")
 
     def render(
         self,
