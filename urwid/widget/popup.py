@@ -52,6 +52,7 @@ if typing.TYPE_CHECKING:
         anchor_height: NotRequired[int]
         anchor_width: NotRequired[int]
         anchor_side: NotRequired[Literal["left", "right"]]
+        on_anchor_side: NotRequired[Callable[[Literal["left", "right"]], None]]
 
 
 WrappedWidget = typing.TypeVar("WrappedWidget", bound="AbstractBoxWidget")
@@ -167,6 +168,7 @@ class PopUpLauncher(
         its height, when it does not fit below.
         The optional ``anchor_width`` and ``anchor_side`` keys do the same for columns: the pop-up moves to the
         other side of the launcher, or its width is clipped, when it does not fit on the side it prefers.
+        The optional ``on_anchor_side`` key is called with the side the anchor ended up on.
         See :meth:`CompositeCanvas.set_pop_up <urwid.CompositeCanvas.set_pop_up>`.
 
         :raises NotImplementedError: the subclass does not override this method.
@@ -369,6 +371,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
         pop_up = canv.get_pop_up()
         anchor_height = canv.get_pop_up_anchor_height()
         anchor_width = canv.get_pop_up_anchor_width()
+        on_anchor_side = canv.get_pop_up_on_anchor_side()
         h_align, v_align = canv.get_pop_up_align()
         on_unhandled_key = canv.get_pop_up_unhandled_key()
         on_click_outside = canv.get_pop_up_click_outside()
@@ -405,6 +408,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             if h_align is not None:
                 left = _aligned_start(size[0], width, h_align)
             if anchor_width is not None:
+                edge = left
                 left, width = _place_anchored(
                     size[0],
                     left,
@@ -412,6 +416,10 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
                     anchor_width[0],
                     prefer_after=anchor_width[1] == "left",
                 )
+                if on_anchor_side is not None:
+                    # The pop-up is right of the anchor when it starts at or after the anchor's right edge.
+                    anchor_right = edge if anchor_width[1] == "left" else edge + anchor_width[0]
+                    on_anchor_side("left" if left >= anchor_right else "right")
             height: int
             if isinstance(overlay_height, tuple):
                 space = max(size[1] - top, 0)
@@ -482,6 +490,7 @@ class PopUpTarget(WidgetDecoration[WrappedWidget]):
             pop_up = w_canv.get_pop_up()
             anchor_height = w_canv.get_pop_up_anchor_height()
             anchor_width = w_canv.get_pop_up_anchor_width()
+            on_anchor_side = w_canv.get_pop_up_on_anchor_side()
             h_align, v_align = w_canv.get_pop_up_align()
             on_unhandled_key = w_canv.get_pop_up_unhandled_key()
             on_click_outside = w_canv.get_pop_up_click_outside()

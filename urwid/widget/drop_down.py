@@ -21,63 +21,28 @@
 from __future__ import annotations
 
 import typing
-import weakref
 
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
+from ._pop_up_list import _focused_list, _PopUpListItem
 from .attr_map import AttrMap
 from .columns import Columns
 from .constants import MouseButton, WrapMode
-from .list_walker import SimpleFocusListWalker
-from .listbox import ListBox
 from .popup import PopUpLauncher
 from .scrollable import ScrollBar
 from .text import Text
 from .wimp import SelectableIcon
 
 if typing.TYPE_CHECKING:
-    from collections.abc import Callable, Iterable
+    from collections.abc import Iterable
 
     from urwid.canvas import Canvas, CompositeCanvas
     from urwid.util import _TagMarkup
 
     from .attr_map import _AttrMapLike
+    from .listbox import ListBox
     from .popup import PopUpParametersModel
-
-
-class _DropDownItem(SelectableIcon):
-    """One option of an open drop-down list: activating it, or clicking it, chooses the option."""
-
-    def __init__(self, label: _TagMarkup, index: int, on_choose: Callable[[int], None]) -> None:
-        super().__init__(label, 0, wrap=WrapMode.ELLIPSIS)
-        self._index = index
-        # Weak, so the open list does not keep its DropDown alive.
-        self._on_choose = weakref.WeakMethod(on_choose)
-
-    def keypress(self, size: tuple[int] | tuple[()], key: str) -> str | None:  # type: ignore[override]
-        """Choose this option on the ``activate`` command."""
-        if self._command_map[key] != Command.ACTIVATE:
-            return key
-        if on_choose := self._on_choose():
-            on_choose(self._index)
-        return None
-
-    def mouse_event(
-        self,
-        size: tuple[int] | tuple[()],  # type: ignore[override]
-        event: str,
-        button: int,
-        col: int,
-        row: int,
-        focus: bool,
-    ) -> bool:
-        """Choose this option on a button 1 press."""
-        if button != MouseButton.LEFT or not is_mouse_press(event):
-            return False
-        if on_choose := self._on_choose():
-            on_choose(self._index)
-        return True
 
 
 class DropDown(PopUpLauncher[Columns]):
@@ -198,12 +163,10 @@ class DropDown(PopUpLauncher[Columns]):
     def create_pop_up(self) -> ScrollBar[ListBox[int]]:
         """Return the list of all options, with the selected one focused; it scrolls when they do not all fit."""
         items = [
-            AttrMap(_DropDownItem(option, index, self._choose), self._attr_map, self._focus_map)
+            AttrMap(_PopUpListItem(option, index, self._choose), self._attr_map, self._focus_map)
             for index, option in enumerate(self._options)
         ]
-        list_box = ListBox(SimpleFocusListWalker(items))
-        list_box.focus_position = self._selected
-        return ScrollBar(list_box)
+        return ScrollBar(_focused_list(items, self._selected))
 
     def get_pop_up_parameters(self) -> PopUpParametersModel:
         """Return the list position directly below this widget, anchored to it so it can move above it."""

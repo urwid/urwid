@@ -373,6 +373,7 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         top: int | str = 1,
         close_on_click_outside: bool = False,
         label: str = "L",
+        on_anchor_side: typing.Callable[[str], None] | None = None,
     ) -> None:
         super().__init__(urwid.Text(label), close_on_click_outside=close_on_click_outside)
         self.pop_up_height = pop_up_height
@@ -381,6 +382,7 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
         self.anchor_height = anchor_height
         self.anchor_width = anchor_width
         self.anchor_side = anchor_side
+        self.on_anchor_side = on_anchor_side
         self.left = left
         self.top = top
 
@@ -400,6 +402,8 @@ class AnchoredLauncher(urwid.PopUpLauncher[urwid.Text]):
             parameters["anchor_width"] = self.anchor_width
         if self.anchor_side is not None:
             parameters["anchor_side"] = self.anchor_side
+        if self.on_anchor_side is not None:
+            parameters["on_anchor_side"] = self.on_anchor_side
         return parameters
 
 
@@ -663,6 +667,7 @@ class AnchoredPopUpTest(unittest.TestCase):
         pop_up: urwid.Widget | None = None,
         pop_up_height: int | str = 1,
         size: tuple[int, int] = (10, 2),
+        on_anchor_side: typing.Callable[[str], None] | None = None,
     ) -> list[str]:
         """Render a launcher of `anchor_width` columns at `launcher_col` on row 0, its pop-up anchored beside it.
 
@@ -677,6 +682,7 @@ class AnchoredPopUpTest(unittest.TestCase):
             anchor_side=anchor_side,
             left=anchor_width if anchor_side == "left" else 0,
             label="L" * anchor_width,
+            on_anchor_side=on_anchor_side,
         )
         columns = urwid.Columns([(launcher_col, urwid.Text("")), (anchor_width, launcher), urwid.Text("")])
         target = urwid.PopUpTarget(urwid.Filler(columns, valign="top"))
@@ -712,6 +718,22 @@ class AnchoredPopUpTest(unittest.TestCase):
                 anchor = set(range(launcher_col, launcher_col + anchor_width))
                 if anchor_width < 10:
                     self.assertFalse(anchor & set(expected_cols))
+
+    def test_side_the_anchor_ended_up_on(self) -> None:
+        """on_anchor_side is told the side of the pop-up the anchor is on after placement, in anchor_side terms."""
+        for description, launcher_col, side, width, expected in (
+            ("left anchor kept", 2, "left", 3, "left"),
+            ("left anchor, pop-up flipped to its left", 6, "left", 3, "right"),
+            ("left anchor, clipped on the left", 5, "left", 8, "right"),
+            ("left anchor, no column on either side", 0, "left", 3, "left"),
+            ("right anchor kept", 5, "right", 3, "right"),
+            ("right anchor, pop-up flipped to its right", 1, "right", 3, "left"),
+        ):
+            with self.subTest(description):
+                anchor_width = 10 if "no column" in description else 2
+                seen: list[str] = []
+                self.render_beside(launcher_col, anchor_width, side, width, on_anchor_side=seen.append)
+                self.assertEqual(expected, seen[-1])
 
     def test_horizontal_anchor_sizes(self) -> None:
         """A relative width is a share of the preferred side; a "pack" width is measured, on either side."""

@@ -234,6 +234,15 @@ def main() -> None:
         "November",
         "December",
     ]
+    text_action_menu: list[str | tuple[str, str]] = [
+        "An ",
+        ("important", "ActionMenu"),
+        (
+            " opens a list of actions with ENTER, SPACE or a click.  The key in brackets chooses an item, "
+            "a disabled item cannot be focused, and Send to opens a submenu with RIGHT; LEFT or ESC closes it.  "
+            "Near the right edge the submenu opens to the left of the list."
+        ),
+    ]
     text_tabs: list[str | tuple[str, str]] = [
         "A ",
         ("important", "Tabs"),
@@ -279,6 +288,33 @@ def main() -> None:
     show_drop_down_selection()
     # One width for both, so the two drop-downs line up.
     drop_down_width = max(drop_down.pack()[0] for drop_down in drop_downs)
+
+    action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
+
+    def show_action(_menu: urwid.ActionMenu, item: urwid.MenuItem) -> None:
+        action_chosen.set_text(["Action: ", ("important", str(item.value))])
+
+    action_menu = urwid.ActionMenu(
+        "Actions",
+        [
+            urwid.MenuItem("(O)pen", "open", key="o"),
+            urwid.MenuItem("Re(n)ame", "rename", enabled=False, key="n"),
+            None,
+            urwid.MenuItem(
+                "(S)end to",
+                submenu=[
+                    urwid.MenuItem("(M)ail", "send by mail", key="m"),
+                    urwid.MenuItem("(P)rinter", "print", key="p"),
+                ],
+                key="s",
+            ),
+            urwid.MenuItem("(D)elete", "delete", key="d"),
+        ],
+        on_action=show_action,
+        attr_map="buttn",
+        focus_map="buttnf",
+        disabled_map="tab",
+    )
 
     blank = urwid.Divider()
     listbox_content: list[urwid.widget.AbstractFlowWidget] = [
@@ -536,6 +572,16 @@ def main() -> None:
         urwid.Padding(drop_down_selected, left=4, right=3, min_width=20),
         blank,
         blank,
+        urwid.Padding(urwid.Text(text_action_menu), left=2, right=2, min_width=20),
+        blank,
+        urwid.Padding(
+            urwid.Columns([(action_menu.pack()[0], urwid.AttrMap(action_menu, "buttn", "buttnf")), action_chosen]),
+            left=4,
+            right=3,
+            min_width=20,
+        ),
+        blank,
+        blank,
         urwid.Padding(urwid.Text(text_tabs), left=2, right=2, min_width=20),
         blank,
         urwid.Padding(
@@ -613,7 +659,7 @@ def main() -> None:
 
     urwid.command_map.bind(Command.NEXT_TAB, "meta right")
     urwid.command_map.bind(Command.PREVIOUS_TAB, "meta left")
-    # pop_ups=True adds the PopUpTarget that shows the open DropDown lists.
+    # pop_ups=True adds the PopUpTarget that shows the open DropDown and ActionMenu lists.
     urwid.MainLoop(frame, palette, screen, unhandled_input=unhandled, pop_ups=True).run()
 
 

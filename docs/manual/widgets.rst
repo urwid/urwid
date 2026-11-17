@@ -114,6 +114,9 @@ content.
        :class:`SelectableIcon`, :class:`Button`, :class:`CheckBox`,
        :class:`RadioButton`, :class:`DropDown`, :class:`Spinner`
      - ``'flow'`` and ``'fixed'``
+   * - :class:`ActionMenu`
+     - ``'flow'`` and ``'fixed'`` with its label; the modes of the launcher
+       widget when it is given one
    * - :class:`Edit` and its subclasses, :class:`Divider`,
        :class:`ProgressBar`, :class:`Notifications`
      - ``'flow'``
@@ -173,7 +176,8 @@ Included Widgets
 Basic widgets, controls and graphic widgets are the content with which users
 interact. They may also be used as part of custom widgets you create.
 Controls are the widgets a user operates to make a choice: :class:`Button`,
-:class:`CheckBox`, :class:`RadioButton` and :class:`DropDown`.
+:class:`CheckBox`, :class:`RadioButton`, :class:`DropDown` and
+:class:`ActionMenu`.
 The terminal widgets are box widgets that emulate a terminal.
 :class:`Terminal` runs a child process and shows its output.
 :class:`TerminalOutput` shows output the application writes to it, such as
@@ -267,6 +271,66 @@ see :class:`DropDown` for the requirement.
 The tour.py_ example program shows two drop-down widgets.
 
 .. _tour.py: https://github.com/urwid/urwid/blob/master/examples/tour.py
+
+ActionMenu Widgets
+------------------
+
+:class:`ActionMenu` opens a list of actions, such as a context menu or the
+menu behind a button.  Each entry of its item list is a :class:`MenuItem`,
+markup for an item with that label, or ``None`` for a separator::
+
+    def on_action(menu: urwid.ActionMenu, item: urwid.MenuItem, path: str) -> None:
+        status.set_text(f"{item.value} {path}")
+
+    menu = urwid.ActionMenu(
+        "Actions",
+        [
+            urwid.MenuItem("(O)pen", "open", key="o"),
+            urwid.MenuItem("Re(n)ame", "rename", enabled=False, key="n"),
+            None,
+            urwid.MenuItem("(S)end to", submenu=["Mail", "Printer"], key="s"),
+        ],
+        on_action=on_action,
+        user_data="report.txt",
+    )
+
+The list opens below the launcher, or above it when it does not fit below.
+:kbd:`up` and :kbd:`down` skip separators and disabled items, and
+:kbd:`enter`, :kbd:`space`, a click or an item's ``key`` chooses an item.
+The list then closes and the menu sends the ``'action'`` signal with the
+chosen :class:`MenuItem`, after its ``'close'`` signal.  :kbd:`esc` or a
+click outside closes the list without a choice.
+
+- ``show_keys=True`` draws the keys in a column before the labels; without
+  it the menu draws no key, and the label marks it, as ``"(O)pen"`` does.
+- An item with a ``submenu`` opens its child list beside the row on
+  :kbd:`enter`: a child of the top list on the side ``align`` prefers, a
+  deeper one in the direction its parent list went, and either on the other
+  side of its parent list near a screen edge.  The arrows follow where the child is
+  drawn: the arrow back towards the parent closes only the child, as
+  :kbd:`esc` does, and the other arrow on a submenu row opens a further
+  child.  In the top list either arrow opens a child.
+- ``align="right"`` lines up the right edges of the list and the launcher,
+  for a menu at the right edge or a right-to-left interface.
+- ``border=False`` draws the list without its box.
+
+The launcher is a label with :attr:`ActionMenu.menu_indicator` after it, or
+any widget given as ``launcher``, such as a row of a :class:`ListBox`.  The
+keys in ``open_keys`` open the list at the launcher's edge, a press of a
+button in ``open_buttons`` opens it at the pointer, and every other key and
+button goes to the launcher.  A mouse opening also gives the row the focus
+through :meth:`Widget.request_focus`.  :meth:`ActionMenu.open_at` opens the
+list at a position from an application's own handler.
+
+A menu with no item that can be chosen opens nothing.  Its label launcher is
+then not selectable and is drawn with ``disabled_map``; a launcher widget
+keeps all its keys and buttons.
+
+.. important::
+    The list is a pop-up, so :class:`ActionMenu` needs
+    ``MainLoop(..., pop_ups=True)`` or another :class:`PopUpTarget` above it.
+
+The tour.py_ example program shows an action menu with a submenu.
 
 Edit Widgets
 ------------

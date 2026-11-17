@@ -69,8 +69,20 @@ if typing.TYPE_CHECKING:
             "pop up": NotRequired[tuple[int, int, tuple[AbstractWidget, PopUpSize, PopUpSize]]],
             # Same (x, y) as "pop up", so both move together; the data part is the pop-up widget and the anchor height.
             "pop up anchor": NotRequired[tuple[int, int, tuple[AbstractWidget, int]]],
-            # Same (x, y) as "pop up"; the data part is the pop-up widget, the anchor width and the anchor side.
-            "pop up anchor width": NotRequired[tuple[int, int, tuple[AbstractWidget, int, Literal["left", "right"]]]],
+            # Same (x, y) as "pop up"; the data part is the pop-up widget, the anchor width, the anchor side and the
+            # callback told the side the anchor ended up on.
+            "pop up anchor width": NotRequired[
+                tuple[
+                    int,
+                    int,
+                    tuple[
+                        AbstractWidget,
+                        int,
+                        Literal["left", "right"],
+                        Callable[[Literal["left", "right"]], None] | None,
+                    ],
+                ]
+            ],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its unhandled key callback.
             "pop up unhandled key": NotRequired[tuple[int, int, tuple[AbstractWidget, Callable[[str], str | None]]]],
             # Same (x, y) as "pop up"; the data part is the pop-up widget and its outside click callback.
@@ -421,6 +433,19 @@ class Canvas:
             return None
         return anchor[2][1], anchor[2][2]
 
+    def get_pop_up_on_anchor_side(self) -> Callable[[Literal["left", "right"]], None] | None:
+        """Return the callback set with the pop-up on this canvas to learn which side of it the anchor ended up on.
+
+        :returns: the `on_anchor_side` callback given to :meth:`CompositeCanvas.set_pop_up`,
+            or ``None`` when none was set or no pop-up was set.
+        """
+        pop_up = self.coords.get("pop up", None)
+        anchor = self.coords.get("pop up anchor width", None)
+        # As for the anchor itself, use only the callback set together with this pop-up.
+        if pop_up is None or anchor is None or anchor[:2] != pop_up[:2] or anchor[2][0] is not pop_up[2][0]:
+            return None
+        return anchor[2][3]
+
     def get_pop_up_unhandled_key(self) -> Callable[[str], str | None] | None:
         """Return the unhandled key callback set with the pop-up on this canvas, or ``None`` if none was set."""
         pop_up = self.coords.get("pop up", None)
@@ -466,6 +491,7 @@ class Canvas:
         anchor_height: int | None = None,
         anchor_width: int | None = None,
         anchor_side: Literal["left", "right"] = "left",
+        on_anchor_side: Callable[[Literal["left", "right"]], None] | None = None,
         on_unhandled_key: Callable[[str], str | None] | None = None,
         on_click_outside: Callable[[], None] | None = None,
     ) -> None:
@@ -512,6 +538,11 @@ class Canvas:
             `left`, to the right of the anchor.
             ``"right"``: the anchor is the `anchor_width` columns from `left` on, and the pop-up prefers to end
             just before `left`, to the left of the anchor. It needs `anchor_width`.
+        :param on_anchor_side: called by :class:`PopUpTarget <urwid.PopUpTarget>` each time it places the pop-up,
+            with the side of the pop-up the anchor ended up on, in the terms of `anchor_side`.
+            It differs from `anchor_side` when the pop-up moved to the other side of the anchor.
+            A widget that opens a chain of pop-ups, such as submenus, uses it to know which way leads back.
+            It needs `anchor_width`.
         :param on_unhandled_key: called by :class:`PopUpTarget <urwid.PopUpTarget>` with a key that `w` returned
             unhandled while it is the topmost open pop-up; it returns ``None`` when it handled the key, or the key
             to pass on. ``None`` passes every unhandled key on.
@@ -520,8 +551,8 @@ class Canvas:
             ``None`` leaves such a press unhandled.
         :raises CanvasError: the canvas is already finalised, the anchor height or width is negative,
             an anchor height is given with an aligned `top`, an anchor width with an aligned `left`,
-            `anchor_side` is neither ``"left"`` nor ``"right"``, ``anchor_side="right"`` is given without an anchor
-            width, a position is neither a number nor an alignment of its
+            `anchor_side` is neither ``"left"`` nor ``"right"``, ``anchor_side="right"`` or `on_anchor_side` is given
+            without an anchor width, a position is neither a number nor an alignment of its
             axis, or an overlay dimension is not a positive integer, a positive finite percentage or ``"pack"``
         """
         if self.widget_info and self.cacheable:
@@ -563,6 +594,9 @@ class Canvas:
         if anchor_side == "right" and anchor_width is None:
             raise CanvasError("Pop-up anchor side 'right' needs an anchor width")
 
+        if on_anchor_side is not None and anchor_width is None:
+            raise CanvasError("Pop-up on_anchor_side needs an anchor width")
+
         # The coordinates are moved with this canvas, so an aligned axis keeps 0 there and its alignment beside it.
         x = left if isinstance(left, int) else 0
         y = top if isinstance(top, int) else 0
@@ -574,7 +608,7 @@ class Canvas:
         if anchor_width is None:
             self.coords.pop("pop up anchor width", None)
         else:
-            self.coords["pop up anchor width"] = (x, y, (w, anchor_width, anchor_side))
+            self.coords["pop up anchor width"] = (x, y, (w, anchor_width, anchor_side, on_anchor_side))
         if on_unhandled_key is None:
             self.coords.pop("pop up unhandled key", None)
         else:
