@@ -1518,13 +1518,14 @@ class TestMouseTracking(unittest.TestCase):
 class TestGetColsRows(unittest.TestCase):
     @mock.patch("fcntl.ioctl")
     def test_uses_ioctl_result(self, mock_ioctl):
-        mock_ioctl.return_value = struct.pack("hhhh", 40, 100, 0, 0)
-        s = _make_screen()
+        """Return the size the device holds, whose fields are unsigned shorts, also above 32767."""
+        for rows, cols in ((40, 100), (40000, 65535)):
+            with self.subTest(rows=rows, cols=cols):
+                mock_ioctl.return_value = struct.pack("HHHH", rows, cols, 0, 0)
+                s = _make_screen()
 
-        cols, rows = s.get_cols_rows()
-
-        self.assertEqual((100, 40), (cols, rows))
-        self.assertEqual(40, s.maxrow)
+                self.assertEqual((cols, rows), s.get_cols_rows())
+                self.assertEqual(rows, s.maxrow)
 
     @mock.patch("fcntl.ioctl")
     def test_falls_back_to_80x24_for_ansi_vt100_when_ioctl_gives_non_positive(self, mock_ioctl):

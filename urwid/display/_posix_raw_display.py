@@ -631,7 +631,8 @@ class Screen(_raw_display_base.Screen):
         with contextlib.suppress(OSError):  # Term size could not be determined
             if isinstance(self._term_output_file, _raw_display_base.SupportsFileno):
                 buf = fcntl.ioctl(self._term_output_file.fileno(), termios.TIOCGWINSZ, b" " * 8)
-                y, x, _, _ = struct.unpack("hhhh", buf)
+                # struct winsize holds unsigned shorts
+                y, x, _, _ = struct.unpack("HHHH", buf)
 
         # Provide some lightweight fallbacks in case the TIOCWINSZ doesn't
         # give sane answers
