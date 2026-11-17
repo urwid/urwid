@@ -2119,3 +2119,37 @@ class MainLoopResizedTest(unittest.TestCase):
         loop.set_alarm_in(0, lambda main_loop, _data: main_loop.process_input(["window resize"]))
         loop.run()
         self.assertIsNone(urwid.get_running_loop_or_none())
+
+    def test_size_changed_during_paused_is_reported(self) -> None:
+        """A size changed while paused() held the terminal is reported once; an unchanged one is not."""
+        for size_after, expected in (((100, 30), [(100, 30)]), ((80, 24), [])):
+            with self.subTest(size_after=size_after):
+                sizes: list[tuple[int, int]] = []
+                loop, event_loop = self.resizing_loop(resized=sizes.append)
+                screen = typing.cast("urwid.testing.ScriptedScreen", loop.screen)
+                with loop.start():
+                    event_loop.run_until_idle()
+                    with loop.paused():
+                        screen.size = size_after
+                    event_loop.run_until_idle()
+                self.assertEqual(expected, sizes)
+
+    def test_paused_from_a_key_after_a_resize_reports_once(self) -> None:
+        """A key handler pausing after a resize in the same batch gives one report, with the size after the pause."""
+        sizes: list[tuple[int, int]] = []
+        loop, event_loop = self.resizing_loop(resized=sizes.append)
+        screen = typing.cast("urwid.testing.ScriptedScreen", loop.screen)
+
+        def pause(_key: str | tuple[str, int, int, int]) -> bool:
+            with loop.paused():
+                screen.size = (120, 40)
+            return True
+
+        loop._unhandled_input = pause
+        with loop.start():
+            event_loop.run_until_idle()
+            screen.size = (100, 30)
+            loop._update(["window resize", "e"], [])
+            event_loop.run_until_idle()
+        self.assertEqual([(120, 40)], sizes)
+        self.assertEqual((120, 40), loop.screen_size)

@@ -871,6 +871,8 @@ class MainLoop:
         On exit the mouse tracking is restored when :attr:`handle_mouse` is set,
         the screen is cleared and the screen size is read again, so the next draw repaints all of it
         at the terminal's current size.
+        A size that changed during the block is reported to :meth:`resized`, like a resize,
+        when the size was known before the block.
         A screen that is not started is left alone on both sides of the block.
         The screen is restarted the way :meth:`start` starts it:
         an application that started its screen with ``alternate_buffer=False`` comes back in the alternate buffer.
@@ -892,6 +894,7 @@ class MainLoop:
             stopping it ends the browser session, and starting it again reads a new client request from standard input.
         """
         was_started = self.screen.started
+        size_before = self.screen_size
         if was_started:
             self.screen.stop()
         try:
@@ -903,6 +906,21 @@ class MainLoop:
                     self.screen.set_mouse_tracking()
                 self.screen.clear()
                 self.screen_size = None
+                self._report_size_change_after_pause(size_before)
+
+    def _report_size_change_after_pause(self, size_before: tuple[int, int] | None) -> None:
+        """Report the screen size to :meth:`resized` when it differs from *size_before*, the size before a pause.
+
+        A stopped screen reports no resize, so the size is compared here instead.
+        Nothing is read when nothing takes the report or no size was known before the pause:
+        the next draw then reads the size.
+        """
+        if size_before is None or (self._resized is None and type(self).resized is MainLoop.resized):
+            return
+        self.screen_size = self.screen.get_cols_rows()
+        self._size_read_after_resize = True
+        if self.screen_size != size_before:
+            self._schedule_resize_report()
 
     def _activate(self) -> None:
         """Make this loop the running loop of the current context until :meth:`_deactivate`."""
@@ -1122,9 +1140,7 @@ class MainLoop:
                     self.screen_size = None
                     self._size_read_after_resize = False
                     if self._resized is not None or type(self).resized is not MainLoop.resized:
-                        # One report once the resizes stop: a report per resize holds up the input during a drag.
-                        self._remove_resize_alarm()
-                        self._resize_alarm = self.set_alarm_in(self._resize_delay, MainLoop._report_resize)
+                        self._schedule_resize_report()
                     continue
 
                 # a handler of an earlier key may have paused the loop, which drops the screen size
@@ -1227,6 +1243,8 @@ class MainLoop:
         A subclass may override this method instead of passing *resized*.
 
         It is called *resize_delay* seconds after the last resize of a series, once, with the size read then.
+        A size that changed while :meth:`paused` held the terminal is reported the same way,
+        when the size was known before it.
         The widgets meanwhile render at every new size, so the screen stays correct while it changes.
 
         It runs on the thread running the event loop, like an alarm callback:
@@ -1256,6 +1274,12 @@ class MainLoop:
             # the screen event loop then keeps it for the next draw, as a screen that scripts its sizes expects
             self._size_read_after_resize = True
         self.resized(self.screen_size)
+
+    def _schedule_resize_report(self) -> None:
+        """Report the screen size *resize_delay* seconds from now, replacing a pending report."""
+        # One report once the resizes stop: a report per resize holds up the input during a drag.
+        self._remove_resize_alarm()
+        self._resize_alarm = self.set_alarm_in(self._resize_delay, MainLoop._report_resize)
 
     def _remove_resize_alarm(self) -> None:
         """Remove the pending alarm that calls :meth:`resized`, if any."""

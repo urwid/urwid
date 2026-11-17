@@ -70,6 +70,8 @@ columns to show by the width, passes ``resized`` and gets the new size::
 Dragging the edge of a terminal window resizes it many times a second, so the
 function is called once the size stopped changing for ``resize_delay`` seconds,
 0.1 by default, with the size reached then.
+A size that changed while :meth:`MainLoop.paused` handed the terminal to another
+program is reported the same way, once the screen has been drawn before the pause.
 It runs on the loop's thread like an alarm callback, and the loop handles no input
 while it runs: work that takes longer, such as asking another program for its
 size, goes to a thread that hands its result back with
