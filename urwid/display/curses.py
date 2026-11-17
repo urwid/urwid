@@ -357,7 +357,7 @@ class Screen(BaseScreen, RealTerminal):
                             # resize_term(), unlike resizeterm(), queues no KEY_RESIZE of its own
                             curses.resize_term(rows, cols)
                         except curses.error:
-                            # a size too large to allocate, which only a forged report carries
+                            # a size too large for curses to allocate
                             logger.debug(f"Dropped a window size report curses could not apply: {item!r}")
                             continue
                     elif not resize:

@@ -1008,8 +1008,8 @@ class KeyqueueTrie:
 
         The height and width in pixels may be left out; when present, they are skipped without being read.
         Each value may carry sub-parameters after a colon, which are ignored, as mode 2048 asks of a client.
-        A row or column count of 0 or above 65535 makes the notification invalid,
-        so a forged one cannot make the layout allocate a canvas of that size.
+        A row or column count of 0 or above 65535 makes the notification invalid.
+        A notification therefore carries no size a terminal device could not, see ``_WINDOW_SIZE_MAX``.
 
         :returns: ``('window size report', columns, rows)`` and the position after the report,
             or None when the codes at *start* are not such a report.
