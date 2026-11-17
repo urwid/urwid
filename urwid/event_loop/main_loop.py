@@ -288,7 +288,7 @@ class MainLoop:
         pop_ups: bool = False,
         *,
         poll_interval: float | None = None,
-        resized: Callable[[tuple[int, int]], object] | None = None,
+        resized: Callable[[tuple[int, int]], None] | None = None,
         resize_delay: float = 0.1,
     ) -> None:
         """

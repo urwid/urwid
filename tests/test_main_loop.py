@@ -2086,7 +2086,10 @@ class MainLoopResizedTest(unittest.TestCase):
     def test_report_scheduled_after_stop_in_the_same_batch_is_dropped(self) -> None:
         """A resize after a key whose handler stopped the loop is not reported on the event loop that goes on."""
         sizes: list[tuple[int, int]] = []
-        loop, event_loop = self.resizing_loop(resized=sizes.append, unhandled_input=lambda _key: loop.stop())
+        loop, event_loop = self.resizing_loop(
+            resized=sizes.append,
+            unhandled_input=lambda _key: urwid.get_running_loop().stop(),
+        )
         loop.start()
         loop.process_input(["q", "window resize"])
         event_loop.run_until_idle()
