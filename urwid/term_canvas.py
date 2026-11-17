@@ -290,6 +290,8 @@ class _Screen:
     saved_cursor: tuple[int, int] | None = None
     saved_attrs: tuple[AttrSpec | None, TermCharset] | None = None
     keyboard_flags: list[int] = field(default_factory=list)
+    #: the row the cursor was on when the screen was hidden, moved with the rows a resize keeps
+    cursor_row: int = 0
 
 
 class TermCharset:
@@ -536,6 +538,7 @@ class TermCanvas(Canvas):
             self.saved_cursor,
             self.saved_attrs,
             self.modes.keyboard_flags,
+            self.term_cursor[1],
         )
         self.term = hidden.term
         self.scrollback_buffer = hidden.scrollback_buffer
@@ -642,6 +645,7 @@ class TermCanvas(Canvas):
 
         A screen that shrinks drops its blank bottom rows below the cursor first, so the cursor stays on its line
         unless a row below it holds content; the cursor and the saved cursors move with the rows that stay.
+        For the hidden screen, that row is the one its cursor was on when it was hidden.
         """
         x, y = self.term_cursor
 
@@ -650,7 +654,14 @@ class TermCanvas(Canvas):
         if self.saved_cursor is not None:
             self.saved_cursor = (self.saved_cursor[0], self.saved_cursor[1] + shift)
         hidden = self._hidden_screen
-        hidden_shift = self._resize_lines(hidden.term, hidden.scrollback_buffer, width, height)
+        hidden_shift = self._resize_lines(
+            hidden.term,
+            hidden.scrollback_buffer,
+            width,
+            height,
+            cursor_row=hidden.cursor_row,
+        )
+        hidden.cursor_row += hidden_shift
         if hidden.saved_cursor is not None:
             hidden.saved_cursor = (hidden.saved_cursor[0], hidden.saved_cursor[1] + hidden_shift)
 

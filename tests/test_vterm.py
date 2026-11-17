@@ -1402,6 +1402,16 @@ class TermTest(unittest.TestCase):
         self.resize(10, 3)
         self.write(r"\e[?1049lY")
         self.expect("1\n2\n3ZY")
+        # the hidden main screen drops its blank rows below the cursor it was hidden with, as the screen shown does;
+        # neither the alternate screen's cursor nor a cursor DECSC saved lower down keeps them
+        for enter, leave, screen in ((r"\e[?1049h", r"\e[?1049l", "a\nbX"), (r"\e[?47h", r"\e[?47l", "a\nb\nX")):
+            with self.subTest(enter=enter):
+                self.restart(4, 5)
+                self.write(r"\e[5;1H\e7\e[Ha" + "\nb" + enter + r"\e[5;1H")
+                self.read()
+                self.resize(4, 3)
+                self.write(leave + "X")
+                self.expect(screen)
 
     def test_reset_shows_the_main_screen(self) -> None:
         """Show the main screen on a reset, keeping its scrollback, and clear the alternate screen and the flags."""
