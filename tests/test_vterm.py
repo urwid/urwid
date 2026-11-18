@@ -1472,6 +1472,23 @@ class TermTest(unittest.TestCase):
                 r"\eV\e[1$w",
                 b"\x1bP1$u1;1;1;@;@;@;0;2;@;B0BB\x1b\\",
             ),
+            *(
+                (
+                    f"DECCIR reports no pending wrap after {label}, as xterm does",
+                    "A" * 80 + data + r"\e[1$w",
+                    b"\x1bP1$u1;%d;1;@;@;@;0;2;@;B0BB\x1b\\" % column,
+                )
+                for label, data, column in (
+                    ("CR", "\r", 1),
+                    ("BS", "\b", 79),
+                    ("DECSTBM", r"\e[1;3r", 1),
+                    ("DECOM reset", r"\e[?6l", 1),
+                    ("ED", r"\e[2J", 80),
+                    ("EL", r"\e[K", 80),
+                    ("ECH", r"\e[X", 80),
+                    ("the alternate screen is shown", r"\e[?1049h", 80),
+                )
+            ),
             ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
             (
                 "DECRQM reports DECLRMM and DECKBUM permanently reset",

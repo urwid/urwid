@@ -1551,6 +1551,7 @@ class TermCanvas(Canvas):
         elif not dc and char == b"\b":  # backspace BS
             if x > 0:
                 self.set_term_cursor(x - 1, y)
+            self.is_rotten_cursor = False
         elif not dc and char == b"\a" and self.parsestate not in {2, 4}:  # BEL
             # inside an OSC string (parsestate 2, or 4 once over-long) BEL is its terminator
             self.widget.beep()
@@ -1648,8 +1649,12 @@ class TermCanvas(Canvas):
         self.set_term_cursor(x, y)
 
     def carriage_return(self) -> None:
-        """Move the cursor to column 0 of the current line."""
+        """Move the cursor to column 0 of the current line.
+
+        A pending wrap ends, as in xterm.
+        """
         self.set_term_cursor(0, self.term_cursor[1])
+        self.is_rotten_cursor = False
 
     def newline(self) -> None:
         """Do a carriage return followed by a line feed."""
@@ -2003,6 +2008,7 @@ class TermCanvas(Canvas):
         erased short of it hold written spaces, which DECRQCRA counts.
         With *selective*, as DECSED and DECSEL, or as ED, EL and ECH after SPA, the protected characters are kept, and
         each run of cells between them is erased as a row would be.
+        A pending wrap ends, as in xterm.
 
         The 'start' tuple (x, y) defines the starting position of the erase, while end (x, y) the last position.
 
@@ -2018,6 +2024,7 @@ class TermCanvas(Canvas):
         # pyrefly: ignore[bad-argument-type]  # the optional third element widens to bool | int
         ex, ey = self.constrain_coords(*end)
 
+        self.is_rotten_cursor = False
         blank = self.empty_char()
         written = self.empty_char(b" ")
         for y in range(sy, ey + 1):
@@ -2102,6 +2109,7 @@ class TermCanvas(Canvas):
             elif private_mode == PrivateMode.ORIGIN_MODE:
                 self.modes.constrain_scrolling = flag
                 self.set_term_cursor(0, 0)
+                self.is_rotten_cursor = False
             elif private_mode == PrivateMode.AUTO_WRAP:
                 self.modes.autowrap = flag
             elif private_mode == PrivateMode.CURSOR_VISIBLE:
@@ -2714,6 +2722,7 @@ class TermCanvas(Canvas):
             self.scrollregion_end = self.constrain_coords(0, bottom - 1, ignore_scrolling=True)[1]
 
             self.set_term_cursor(0, 0)
+            self.is_rotten_cursor = False
 
     def csi_clear_tabstop(self, mode: int = 0) -> None:
         """Clear tabstop at current position or if 'mode' is 3, delete all tabstops."""
@@ -2851,13 +2860,17 @@ class TermCanvas(Canvas):
             self.widget.leds(state)  # type: ignore[arg-type]
 
     def clear(self, cursor: tuple[int, int] | None = None) -> None:
-        """Clear the whole terminal screen and reset the cursor position to (0, 0) or to 'cursor'."""
+        """Clear the whole terminal screen and move the cursor to (0, 0) or to 'cursor'.
+
+        A pending wrap ends, as in xterm.
+        """
         self.term = [self.empty_line() for _ in range(self.height)]
 
         if cursor is None:
             self.set_term_cursor(0, 0)
         else:
             self.set_term_cursor(*cursor)
+        self.is_rotten_cursor = False
 
     def cols(self) -> int:
         """Return the canvas's number of columns."""
