@@ -150,7 +150,8 @@ jobs:
           && 'serial,tornado,trio,twisted,zmq'
           || 'curses,serial,tornado,trio,twisted,zmq' }}]"
       - name: Test
-        run: uv run --no-project python -m pytest --cov-report=term --cov-report=xml
+        # One pytest-xdist worker per runner CPU.
+        run: uv run --no-project python -m pytest -n auto --cov-report=term --cov-report=xml
       - name: Coveralls Parallel
         uses: coverallsapp/github-action@v2
         with:
