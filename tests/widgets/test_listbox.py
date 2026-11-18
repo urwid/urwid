@@ -2855,14 +2855,24 @@ class ListBoxEdgeReachedTest(unittest.TestCase):
         ends.clear()
 
     def test_keys(self) -> None:
-        """Up, down, page up and page down at an end send the end in both modes."""
+        """Up, down, page up and page down at an end send the end in both modes.
+
+        The end is reached by page keys, or by setting the focus position from the other end,
+        which leaves the stored offset of the view different from the drawn one.
+        """
         for edge in ("return", "stop"):
             for key, end in (("up", "top"), ("down", "bottom"), ("page up", "top"), ("page down", "bottom")):
-                with self.subTest(edge=edge, key=key):
-                    lbox, ends = self.make(edge=edge)
-                    self.go_to(lbox, ends, end)
-                    lbox.keypress(self.SIZE, key)
-                    self.assertEqual([end], ends)
+                for reached_by in ("keys", "focus_position"):
+                    with self.subTest(edge=edge, key=key, reached_by=reached_by):
+                        lbox, ends = self.make(edge=edge)
+                        if reached_by == "keys":
+                            self.go_to(lbox, ends, end)
+                        else:
+                            self.go_to(lbox, ends, "bottom" if end == "top" else "top")
+                            lbox.focus_position = 0 if end == "top" else 9
+                            lbox.render(self.SIZE, focus=True)
+                        lbox.keypress(self.SIZE, key)
+                        self.assertEqual([end], ends)
 
     def test_keys_that_move(self) -> None:
         """A key that moves the view sends nothing, including the page key that reaches the end."""
