@@ -557,6 +557,25 @@ class TermTest(unittest.TestCase):
         self.read()
         self.assertEqual(self.term.term.term[0][0][::2], (red, b" "), "DECSERA keeps the cell's own attributes")
 
+    def test_area_attributes_change_as_sgr(self) -> None:
+        """Change attributes with DECCARA and DECRARA as SGR does, so bold brightens a basic colour and faint stays."""
+        for label, data, sgr in (
+            ("DECCARA 1", r"\e[31mA\e[0m\e[1;1;1;1;1$r", r"\e[31;1m"),
+            ("DECCARA 22", r"\e[31;1mA\e[0m\e[1;1;1;1;22$r", r"\e[31m"),
+            ("DECCARA 22 keeping faint", r"\e[1;2mA\e[0m\e[1;1;1;1;22$r", r"\e[2m"),
+            ("DECRARA 1", r"\e[31;1mA\e[0m\e[1;1;1;1;1$t", r"\e[31m"),
+            ("DECCARA 0 keeping the colours", r"\e[1;4;31;44mA\e[0m\e[1;1;1;1;0$r", r"\e[31;44m"),
+        ):
+            with self.subTest(label):
+                self.restart(4, 2)
+                self.write(sgr + "A")
+                self.read()
+                expected = self.term.term.term[0][0]
+                self.restart(4, 2)
+                self.write(data)
+                self.read()
+                self.assertEqual(self.term.term.term[0][0], expected)
+
     def test_scrolling_region_simple(self):
         # TODO(Aleksei): Issue #544
         self.write("\\e[10;20r\\e[10f1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\\e[faa")
@@ -1317,6 +1336,92 @@ class TermTest(unittest.TestCase):
                     ("off after DECSTR", r'\e[1"q\e[!p', b"0"),
                     ("off after RIS", r'\e[1"q\ec', b"0"),
                 )
+            ),
+            *(
+                (
+                    f"DECRQCRA counts the cells as xterm does after {label}",
+                    "\\ec"
+                    + data
+                    + "".join(
+                        rf"\e[1;1;{row};{col};{row};{col}*y" for row in range(1, rows + 1) for col in range(1, 5)
+                    ),
+                    b"".join(b"\x1bP1!~%s\x1b\\" % value for value in values.encode().split()),
+                )
+                for label, data, rows, values in (
+                    ("DECCARA setting bold", r"ABCD\e[1;2;1;3;1$r", 1, "FFBF FF3E FF3D FFBC"),
+                    (
+                        "DECCARA setting underline, blink and reverse video",
+                        r"ABCD\e[1;1;1;1;4$r\e[1;2;1;2;5$r\e[1;3;1;3;7$r",
+                        1,
+                        "FFAF FF7E FF9D FFBC",
+                    ),
+                    ("DECCARA 0", r"\e[1;4;5;7mABCD\e[0m\e[1;1;1;4;0$r", 1, "FFBF FFBE FFBD FFBC"),
+                    ("DECCARA without attributes", r"\e[1;4;5;7mABCD\e[0m\e[1;1;1;4$r", 1, "FECF FECE FECD FECC"),
+                    (
+                        "DECCARA resetting each attribute",
+                        r"\e[1;4;5;7mABCD\e[0m\e[1;1;1;1;22$r\e[1;2;1;2;24$r\e[1;3;1;3;25$r\e[1;4;1;4;27$r",
+                        1,
+                        "FF4F FEDE FF0D FEEC",
+                    ),
+                    ("DECCARA in order", r"ABCD\e[1;1;1;1;1;22$r\e[1;2;1;2;22;1$r", 1, "FFBF FF3E FFBD FFBC"),
+                    ("DECCARA ignoring another parameter", r"A\e[1;1;1;1;1;99$r", 1, "FF3F 0000 0000 0000"),
+                    ("DECCARA keeping the protection", r'\e[1"qA\e[0"q\e[1;1;1;1;1$r', 1, "FF3B 0000 0000 0000"),
+                    (
+                        "DECCARA in origin mode",
+                        "ABCD\nEFGH" + r"\e[2;5r\e[?6h\e[1;1;1;1;1$r\e[?6l\e[r",
+                        2,
+                        "FFBF FFBE FFBD FFBC FF3B FFBA FFB9 FFB8",
+                    ),
+                    ("DECRARA", r"ABCD\e[1;1;1;2;7$r\e[1;2;1;3;7$t", 1, "FF9F FFBE FF9D FFBC"),
+                    ("DECRARA 0", r"\e[1mA\e[0mB\e[1;1;1;2;0$t", 1, "FF4F FECE 0000 0000"),
+                    ("DECRARA without attributes", r"\e[1mA\e[0mB\e[1;1;1;2$t", 1, "FF3F FFBE 0000 0000"),
+                    ("DECRARA ignoring 22", r"\e[1mA\e[0m\e[1;1;1;1;22$t", 1, "FF3F 0000 0000 0000"),
+                    ("DECRARA reversing twice", r"A\e[1;1;1;1;1;1$t", 1, "FFBF 0000 0000 0000"),
+                    (
+                        "DECCARA in a stream, the default",
+                        "ABCD\nEFGH\nIJKL" + r"\e[1;2;3;3;1$r",
+                        3,
+                        "FFBF FF3E FF3D FF3C FF3B FF3A FF39 FF38 FF37 FF36 FF35 FFB4",
+                    ),
+                    (
+                        "DECCARA in a rectangle after DECSACE 2",
+                        "ABCD\nEFGH\nIJKL" + r"\e[2*x\e[1;2;3;3;1$r",
+                        3,
+                        "FFBF FF3E FF3D FFBC FFBB FF3A FF39 FFB8 FFB7 FF36 FF35 FFB4",
+                    ),
+                    (
+                        "DECCARA in a stream after DECSACE 3",
+                        "ABCD\nEFGH" + r"\e[3*x\e[1;2;2;3;1$r",
+                        2,
+                        "FFBF FF3E FF3D FF3C FF3B FF3A FF39 FFB8",
+                    ),
+                    (
+                        "DECCARA in a stream, skipping cells never written",
+                        r"AB\e[1;1;1;4;1$r",
+                        1,
+                        "FF3F FF3E 0000 0000",
+                    ),
+                    ("DECCARA in a rectangle, writing spaces", r"AB\e[2*x\e[1;1;1;4;1$r", 1, "FF3F FF3E FF60 FF60"),
+                    ("DECRARA in a rectangle", r"AB\e[2*x\e[1;1;1;4;7$t", 1, "FF9F FF9E FFC0 FFC0"),
+                    ("DECCARA 0 in a rectangle", r"\e[2*x\e[1;1;1;1;0$r", 1, "FFE0 0000 0000 0000"),
+                    ("DECCARA without attributes in a rectangle", r"\e[2*x\e[1;1;1;1$r", 1, "FFE0 0000 0000 0000"),
+                    (
+                        "DECERA after DECSACE 1, still on a rectangle",
+                        "ABCD\nEFGH" + r"\e[1*x\e[1;2;2;3$z",
+                        2,
+                        "FFBF FFE0 FFE0 FFBC FFBB FFE0 FFE0 FFB8",
+                    ),
+                )
+            ),
+            (
+                "DECRQSS reports any DECSACE, and no parameter as 0",
+                rf"\eP$q*x{_ST}\e[2*x\eP$q*x{_ST}\e[3*x\eP$q*x{_ST}\e[*x\eP$q*x{_ST}",
+                b"".join(b"\x1bP1$r%s*x\x1b\\" % value for value in (b"0", b"2", b"3", b"0")),
+            ),
+            (
+                "DECSTR keeps DECSACE, and RIS resets it",
+                rf"\e[2*x\e[!p\eP$q*x{_ST}\ec\eP$q*x{_ST}",
+                b"\x1bP1$r2*x\x1b\\\x1bP1$r0*x\x1b\\",
             ),
             (
                 "DECCIR reports DECSCA, and DECRSPS restores it",

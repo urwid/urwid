@@ -155,6 +155,14 @@ _CONFORMANCE_LEVELS: typing.Final = range(61, 64)
 
 #: the DECCIR rendition bits of the AttrSpec flags, and the SGR parameters DECRSPS sets them with
 _RENDITION_BITS: typing.Final = (("bold", 1, 1), ("underline", 2, 4), ("blink", 4, 5), ("standout", 8, 7))
+#: the AttrSpec flags DECCARA sets and DECRARA reverses, by SGR parameter, as xterm takes them
+_AREA_FLAGS: typing.Final = types.MappingProxyType({sgr: name for name, _bit, sgr in _RENDITION_BITS})
+#: the AttrSpec flags DECCARA resets, by SGR parameter
+_AREA_FLAG_RESETS: typing.Final = types.MappingProxyType(
+    {22: "bold", 24: "underline", 25: "blink", 27: "standout"},
+)
+#: the DECSACE value that makes DECCARA and DECRARA act on a rectangle rather than on a stream of cells
+_ATTRIBUTE_EXTENT_RECTANGLE: typing.Final = 2
 #: the DECCIR flag bits: origin mode, a pending SS2, a pending SS3, and a pending autowrap
 _FLAG_ORIGIN: typing.Final = 1
 _FLAG_SS2: typing.Final = 2
@@ -309,8 +317,10 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     # DECRQPSR (CSI Ps $ w) is answered in parse_csi, and the other forms are not implemented
     b"w": CSICommand(0, 0, lambda s, none, q: None),
     # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECRQDE (CSI " v),
-    # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECRQCRA
-    # (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~); DECSCA (CSI Ps " q) is run there too
+    # DECFRA (CSI ... $ x), DECERA (CSI ... $ z), DECSERA (CSI ... $ {), DECCRA (CSI ... $ v), DECCARA (CSI ... $ r),
+    # DECRARA (CSI ... $ t), DECSACE (CSI Ps * x), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~);
+    # DECSCA (CSI Ps " q) is run there too
+    b"t": CSICommand(0, 0, lambda s, none, q: None),
     b"v": CSICommand(0, 0, lambda s, none, q: None),
     b"x": CSICommand(0, 0, lambda s, none, q: None),
     b"y": CSICommand(0, 0, lambda s, none, q: None),
@@ -593,6 +603,15 @@ def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) ->
     return attrspec
 
 
+def _apply_area_sgr(sgrs: Sequence[int], attrspec: AttrSpec | None) -> AttrSpec | None:
+    """Return *attrspec* with the SGR parameters *sgrs* of DECCARA or DECRARA applied, keeping faint.
+
+    SGR 22 also ends faint, which neither control changes, so faint is set again, as xterm keeps it.
+    """
+    faint = [2] if attrspec is not None and attrspec.faint and 22 in sgrs else []
+    return sgi_params_to_attrspec([*sgrs, *faint], attrspec)
+
+
 def _sgr_parameters(attrspec: AttrSpec | None) -> str:
     """Return the SGR parameters that select *attrspec* from the default attributes.
 
@@ -673,6 +692,8 @@ class TermCanvas(Canvas):
         self.attrspec: AttrSpec | None = None
         #: DECSCA: the characters written are protected from the selective erases
         self.protected = False
+        #: DECSACE: 2 makes DECCARA and DECRARA act on a rectangle, and any other value on a stream of cells
+        self.attribute_extent = 0
 
         self.charset = TermCharset()
 
@@ -785,6 +806,7 @@ class TermCanvas(Canvas):
 
         self.attrspec = None
         self.protected = False
+        self.attribute_extent = 0
         self.charset = TermCharset()
 
         self.saved_cursor = None
@@ -2081,7 +2103,7 @@ class TermCanvas(Canvas):
         - a setting this canvas does not report gets Ps 0 and an empty Pt.
 
         The settings reported are SGR (``m``), DECSTBM (``r``), DECSCL (``"p``), DECSCA (``"q``), DECSCPP (``$|``),
-        DECSLRM (``s``), DECSNLS (``*|``), DECSLPP (``t``) and DECSCUSR (`` q``).
+        DECSLRM (``s``), DECSNLS (``*|``), DECSLPP (``t``), DECSACE (``*x``) and DECSCUSR (`` q``).
         """
         match request:
             case b"m":
@@ -2105,6 +2127,8 @@ class TermCanvas(Canvas):
             case b"t":
                 # DECSLPP: the lines per page
                 setting = f"{self.height:d}t"
+            case b"*x":
+                setting = f"{self.attribute_extent:d}*x"
             case b" q":
                 # DECSCUSR: the cursor style
                 style = self.modes.cursor_style
@@ -2279,6 +2303,88 @@ class TermCanvas(Canvas):
                 attrspec, charset, char = line[x]
                 if not isinstance(char, _Protected):
                     line[x] = (attrspec, charset, b" ")
+
+    def _change_area_attributes(
+        self,
+        params: Sequence[int | None],
+        change: Callable[[AttrSpec | None], AttrSpec | None],
+    ) -> None:
+        """Replace the attributes of the cells DECCARA or DECRARA select with what *change* returns for them.
+
+        The area is the rectangle Pt ; Pl ; Pb ; Pr in *params*, or with DECSACE in stream mode the cells from its top
+        left to its bottom right, wrapping at the right edge.
+        As in xterm, the stream skips the cells never written, and the rectangle makes them written spaces.
+        """
+        if (area := self._rectangle(params)) is None:
+            return
+        top, left, bottom, right = area
+        rectangle = self.attribute_extent == _ATTRIBUTE_EXTENT_RECTANGLE
+        # a screen holds few distinct attributes, so each is changed once
+        changed: dict[AttrSpec | None, AttrSpec | None] = {}
+        for y in range(top, bottom + 1):
+            line = self.term[y]
+            first = left if rectangle or y == top else 0
+            last = right if rectangle or y == bottom else self.width - 1
+            for x in range(first, last + 1):
+                attrspec, charset, char = line[x]
+                if char is _BLANK:
+                    if not rectangle:
+                        continue
+                    char = b" "
+                if attrspec not in changed:
+                    changed[attrspec] = change(attrspec)
+                line[x] = (changed[attrspec], charset, char)
+
+    def csi_change_area_attributes(self, params: Sequence[int | None]) -> None:
+        """Set or reset attributes in an area (DECCARA, CSI Pt ; Pl ; Pb ; Pr ; Ps ... $ r).
+
+        Each Ps, in order, sets bold (1), underline (4), blink (5) or reverse video (7), resets one of them (22, 24, 25,
+        27), or resets all four (0); others, such as xterm's concealed (8), are ignored, as in xterm.
+        The attributes change as SGR changes them, so bold brightens a basic colour here too, and faint is kept.
+        :meth:`_change_area_attributes` describes the area.
+        """
+        sgrs: list[int] = []
+        for sgr in (sgr for sgr in params[4:] if sgr is not None):
+            if sgr == 0:
+                sgrs.extend(_AREA_FLAG_RESETS)
+            elif sgr in _AREA_FLAGS or sgr in _AREA_FLAG_RESETS:
+                sgrs.append(sgr)
+        self._change_area_attributes(params[:4], lambda attrspec: _apply_area_sgr(sgrs, attrspec))
+
+    def csi_reverse_area_attributes(self, params: Sequence[int | None]) -> None:
+        """Reverse attributes in an area (DECRARA, CSI Pt ; Pl ; Pb ; Pr ; Ps ... $ t).
+
+        Each Ps, in order, reverses bold (1), underline (4), blink (5) or reverse video (7), or all four (0); others,
+        such as xterm's concealed (8), are ignored, as in xterm.
+        The attributes change as SGR changes them, so bold brightens a basic colour here too, and faint is kept.
+        :meth:`_change_area_attributes` describes the area.
+        """
+        names: list[str] = []
+        for sgr in (sgr for sgr in params[4:] if sgr is not None):
+            if sgr == 0:
+                names.extend(_AREA_FLAGS.values())
+            elif sgr in _AREA_FLAGS:
+                names.append(_AREA_FLAGS[sgr])
+        # reversing a flag twice leaves it as it was
+        reversed_flags = [(sgr, name) for sgr, name in _AREA_FLAGS.items() if names.count(name) % 2]
+        resets = {name: sgr for sgr, name in _AREA_FLAG_RESETS.items()}
+        self._change_area_attributes(
+            params[:4],
+            lambda attrspec: _apply_area_sgr(
+                [
+                    resets[name] if attrspec is not None and getattr(attrspec, name) else sgr
+                    for sgr, name in reversed_flags
+                ],
+                attrspec,
+            ),
+        )
+
+    def csi_select_attribute_extent(self, params: Sequence[int | None]) -> None:
+        """Make DECCARA and DECRARA act on a rectangle (2) or on a stream of cells (DECSACE, CSI Ps * x).
+
+        Any value is kept for DECRQSS to report, as in xterm, and only 2 selects the rectangle.
+        """
+        self.attribute_extent = params[0] or 0
 
     def csi_select_protection(self, params: Sequence[int | None]) -> None:
         """Protect the characters written from now on from the selective erases, or stop (DECSCA, CSI Ps " q).
@@ -2657,6 +2763,9 @@ _INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[Term
             (b"$", b"x"): TermCanvas.csi_fill_rectangle,
             (b"$", b"z"): TermCanvas.csi_erase_rectangle,
             (b"$", b"{"): TermCanvas.csi_selective_erase_rectangle,
+            (b"$", b"r"): TermCanvas.csi_change_area_attributes,
+            (b"$", b"t"): TermCanvas.csi_reverse_area_attributes,
+            (b"*", b"x"): TermCanvas.csi_select_attribute_extent,
             (b'"', b"q"): TermCanvas.csi_select_protection,
             (b"$", b"v"): TermCanvas.csi_copy_rectangle,
             (b"*", b"y"): TermCanvas.csi_request_checksum,
