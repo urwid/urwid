@@ -429,6 +429,8 @@ class TermCharset:
     def define(self, g: int, charset: str, *, final: bytes | None = None, size96: bool = False) -> None:
         """Redefine G'g' with new mapping.
 
+        :param g: the slot, 0 to 3 for G0 to G3.
+        :param charset: the name of the character set, a key of :attr:`MAPPING`.
         :param final: the final byte of the designation, reported by DECCIR; the one *charset* is known by by default.
             A final that is not one byte from ``0`` to ``~``, or is ``;``, cannot be reported and is replaced so too.
         :param size96: the designation is of a 96-character set.
@@ -2060,14 +2062,9 @@ class TermCanvas(Canvas):
             return
         row, col, _page, rendition, _protection, flags, gl, gr, sets96, finals = fields
         bits = [field[0] - 0x40 for field in (rendition, flags, sets96) if len(field) == 1 and 0x40 <= field[0] < 0x50]
-        if (
-            len(bits) != 3
-            or not (row.isdigit() and col.isdigit())
-            or gl not in {b"0", b"1", b"2", b"3"}
-            or gr not in {b"0", b"1", b"2", b"3"}
-            or len(finals) != 4
-            or not all(0x30 <= final < 0x7F for final in finals)
-        ):
+        if len(bits) != 3 or not (row.isdigit() and col.isdigit()):
+            return
+        if {gl, gr} - {b"0", b"1", b"2", b"3"} or len(finals) != 4 or not all(0x30 <= final < 0x7F for final in finals):
             return
         rendition_bits, flag_bits, sets96_bits = bits
         # origin mode first, since it decides how the cursor position is constrained
