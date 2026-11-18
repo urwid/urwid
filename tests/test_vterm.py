@@ -79,6 +79,10 @@ def _pty_echo(data: bytes) -> bytes:
     return bytes(out)
 
 
+#: the string terminator ST, ESC backslash, in the form TermTest.write() takes
+_ST = "\\e\\"
+
+
 class _FakePTY:
     """In-memory replacement for the spawned subprocess + PTY pair, standing in for the ``os`` calls on both.
 
@@ -1132,15 +1136,59 @@ class TermTest(unittest.TestCase):
                 b"\x1b[?0n\x1b[?13n\x1b[?20n\x1b[?27;1;0;0n",
             ),
             ("the DEC DSR forms of the other reports are not answered", r"\e[?53n\e[15n\e[25n\e[26n", b""),
-            ("DA reports a VT220 with ANSI colour", r"\e[c", b"\x1b[?62;22c"),
+            ("DA reports a VT320 with ANSI colour", r"\e[c", b"\x1b[?63;22c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
-            ("DECID reports a VT220", r"\eZ", b"\x1b[?62;22c"),
-            ("DECID after an unfinished ESC # reports a VT220", r"\e#\eZ", b"\x1b[?62;22c"),
+            ("DECID reports a VT320", r"\eZ", b"\x1b[?63;22c"),
+            ("DECID after an unfinished ESC # reports a VT320", r"\e#\eZ", b"\x1b[?63;22c"),
             ("ESC # Z is no DECID and is not answered", r"\e#Z", b""),
-            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?62;22c"),
-            ("Secondary DA reports a VT220", r"\e[>c\e[>0c", b"\x1b[>1;10;0c" * 2),
+            ("the kitty keyboard flags are answered before DA", r"\e[?u\e[c", b"\x1b[?0u\x1b[?63;22c"),
+            ("Secondary DA reports a VT320", r"\e[>c\e[>0c", b"\x1b[>24;10;0c" * 2),
             ("Secondary DA with a parameter other than 0 is not answered", r"\e[>1c", b""),
-            ("Tertiary DA is not answered", r"\e[=c", b""),
+            ("Tertiary DA reports unit ID zero", r"\e[=c\e[=0c", b"\x1bP!|00000000\x1b\\" * 2),
+            ("Tertiary DA with a parameter other than 0 is not answered", r"\e[=1c", b""),
+            ("Tertiary DA is not answered at the VT100 level", r'\e[61"p\e[=c', b""),
+            ("DECRQCRA counts a blank cell 0", r"\e[5;1;1;1;1;1*y", b"\x1bP5!~0000\x1b\\"),
+            (
+                "DECRQCRA adds bold, blink, reverse and underline to the character, not faint or colours",
+                r"A\e[1mA\e[0;5mA\e[0;7mA\e[0;4mA\e[0;2;31mA\e[0m"
+                + "".join(rf"\e[1;1;1;{col};1;{col}*y" for col in range(1, 7)),
+                b"".join(b"\x1bP1!~%s\x1b\\" % code for code in (b"FFBF", b"FF3F", b"FF7F", b"FF9F", b"FFAF", b"FFBF")),
+            ),
+            ("DECRQCRA takes the low 7 bits of a character", "\xc3\xa9\\e[1;1;1;1;1;1*y", b"\x1bP1!~FF97\x1b\\"),
+            ("DECRQCRA sums a rectangle, the whole page by default", r"AB\e[1;1*y", b"\x1bP1!~FF7D\x1b\\"),
+            (
+                "DECRQCRA counts rows from the top margin in origin mode",
+                r"\e[3;7r\e[?6hA\e[1;1;1;1;1;1*y",
+                b"\x1bP1!~FFBF\x1b\\",
+            ),
+            (
+                "DECRQCRA without parameters is not answered, and an empty Pid is 65535, as in xterm",
+                r"\e[*y\e[;*y\e[7*y",
+                b"\x1bP65535!~0000\x1b\\\x1bP7!~0000\x1b\\",
+            ),
+            ("DECRQCRA is not answered at the VT100 level", r'\e[61"p\e[1;1;1;1;1;1*y', b""),
+            (
+                "DECFRA fills in the current attributes, and DECERA erases",
+                r"\e[1m\e[88;1;1;2;3$x\e[0m\e[1;1;1;1;2;3*y\e[1;1;1;1$z\e[1;1;1;1;1;1*y\e[1;1;1;2;1;2*y",
+                b"\x1bP1!~FAF0\x1b\\\x1bP1!~0000\x1b\\\x1bP1!~FF28\x1b\\",
+            ),
+            ("DECFRA ignores a control character", r"\e[10;1;1;1;1$x\e[1;1;1;1;1;1*y", b"\x1bP1!~0000\x1b\\"),
+            (
+                "DECCRA copies a rectangle and leaves the source",
+                r"AB\e[1;1;1;2;1;3;5;1$v\e[1;1;3;5;3;6*y\e[1;1;1;1;1;2*y",
+                b"\x1bP1!~FF7D\x1b\\" * 2,
+            ),
+            ("DECRQSS reports the lines per page", rf"\eP$qt{_ST}", b"\x1bP1$r24t\x1b\\"),
+            (
+                "DECRQSS reports the cursor style DECSCUSR set, 0 being 1, a style past 6 ignored",
+                rf"\eP$q q{_ST}\e[0 q\eP$q q{_ST}\e[5 q\e[7 q\eP$q q{_ST}",
+                b"\x1bP1$r2 q\x1b\\\x1bP1$r1 q\x1b\\\x1bP1$r5 q\x1b\\",
+            ),
+            (
+                "DECSTR and RIS restore the steady block cursor",
+                rf"\e[5 q\e[!p\eP$q q{_ST}\e[5 q\ec\eP$q q{_ST}",
+                b"\x1bP1$r2 q\x1b\\" * 2,
+            ),
             ("DECRQM reports a mode reset", r"\e[?2048$p", b"\x1b[?2048;2$y"),
             ("DECRQM reports a mode set", r"\e[?2004h\e[?2004$p", b"\x1b[?2004;1$y"),
             (
@@ -1150,7 +1198,7 @@ class TermTest(unittest.TestCase):
             ),
             ("DECRQM reports a mode with no state as unknown", r"\e[?3$p\e[?9999$p", b"\x1b[?3;0$y\x1b[?9999;0$y"),
             ("DECRQM is not answered without a mode", r"\e[?$p\e[?1;2$p", b""),
-            ("other sequences ending in p are not answered", r"\e[5p\e[!p\e[61;1\"p", b""),
+            ("other sequences ending in p are not answered", r'\e[5p\e[!p\e[61;1"p', b""),
             (
                 "DECRQM reports the ANSI modes",
                 r"\e[4h\e[20h\e[4$p\e[20$p\e[3$p\e[2$p\e[12$p\e[99$p",
@@ -1167,27 +1215,115 @@ class TermTest(unittest.TestCase):
                 r"\e[?66h\e[?67h\ec\e[?66$p\e[?67$p",
                 b"\x1b[?66;2$y\x1b[?67;2$y",
             ),
-            ("DECRQSS reports the default SGR", r"\eP$qm\e\\", b"\x1bP1$r0m\x1b\\"),
+            ("DECRQSS reports the default SGR", rf"\eP$qm{_ST}", b"\x1bP1$r0m\x1b\\"),
             (
                 "DECRQSS reports the SGR set, bold making the colour bright",
-                r"\e[1;2;3;4;5;7;9;31;44m\eP$qm\e\\",
+                rf"\e[1;2;3;4;5;7;9;31;44m\eP$qm{_ST}",
                 b"\x1bP1$r0;1;2;3;4;5;7;9;91;44m\x1b\\",
             ),
-            ("DECRQSS reports a 256-colour SGR", r"\e[38;5;100;48;5;7m\eP$qm\e\\", b"\x1bP1$r0;38;5;100;48;5;7m\x1b\\"),
-            ("DECRQSS reports a true-colour SGR", r"\e[48;2;1;2;3m\eP$qm\e\\", b"\x1bP1$r0;48;2;1;2;3m\x1b\\"),
-            ("DECRQSS leaves the hyperlink out of SGR", r"\e]8;;http://x\e\\\eP$qm\e\\", b"\x1bP1$r0m\x1b\\"),
-            ("DECRQSS reports the scrolling region", r"\e[2;5r\eP$qr\e\\", b"\x1bP1$r2;5r\x1b\\"),
-            ("DECRQSS reports the whole screen as the region", r"\eP$qr\e\\", b"\x1bP1$r1;24r\x1b\\"),
-            ("DECRQSS reports the conformance level", r'\eP$q"p\e\\', b'\x1bP1$r62;1"p\x1b\\'),
+            (
+                "DECRQSS reports a 256-colour SGR",
+                rf"\e[38;5;100;48;5;7m\eP$qm{_ST}",
+                b"\x1bP1$r0;38;5;100;48;5;7m\x1b\\",
+            ),
+            ("DECRQSS reports a true-colour SGR", rf"\e[48;2;1;2;3m\eP$qm{_ST}", b"\x1bP1$r0;48;2;1;2;3m\x1b\\"),
+            ("DECRQSS leaves the hyperlink out of SGR", rf"\e]8;;http://x{_ST}\eP$qm{_ST}", b"\x1bP1$r0m\x1b\\"),
+            ("DECRQSS reports the scrolling region", rf"\e[2;5r\eP$qr{_ST}", b"\x1bP1$r2;5r\x1b\\"),
+            ("DECRQSS reports the whole screen as the region", rf"\eP$qr{_ST}", b"\x1bP1$r1;24r\x1b\\"),
+            ("DECRQSS reports the conformance level", rf'\eP$q"p{_ST}', b'\x1bP1$r63;1"p\x1b\\'),
+            ("DECRQSS reports no protected characters", rf'\eP$q"q{_ST}', b'\x1bP1$r0"q\x1b\\'),
+            ("DECRQSS reports the columns per page", rf"\eP$q$|{_ST}", b"\x1bP1$r80$|\x1b\\"),
+            (
+                "DECSCL sets the level DECRQSS reports, and ignores another level",
+                rf'\e[62;1"p\eP$q"p{_ST}\e[64"p\e[60"p\eP$q"p{_ST}\e[63"p\eP$q"p{_ST}',
+                b'\x1bP1$r62;1"p\x1b\\\x1bP1$r62;1"p\x1b\\\x1bP1$r63;1"p\x1b\\',
+            ),
+            (
+                "at the VT100 level DECRQSS and DECRQPSR are not answered, DECRQM still is",
+                rf'\e[61"p\eP$qm{_ST}\e[1$w\e[2$w\e[?66$p',
+                b"\x1b[?66;2$y",
+            ),
+            ("DECSCL performs a soft reset", r'\e[?25l\e[63;1"p\e[?25$p', b"\x1b[?25;1$y"),
+            (
+                "DECRSPS keeps faint and the colours, which DECCIR does not carry",
+                rf"\e[2;31m\eP1$t1;1;1;A;@;@;0;2;@;B0BB{_ST}\eP$qm{_ST}",
+                b"\x1bP1$r0;1;2;91m\x1b\\",
+            ),
+            (
+                "DECCIR reports the screen row in origin mode, and DECRSPS restores it",
+                rf"\e[3;7r\e[?6h\e[1$w\eP1$t4;1;1;@;@;A;0;2;@;B0BB{_ST}\e[1$w",
+                b"\x1bP1$u3;1;1;@;@;A;0;2;@;B0BB\x1b\\\x1bP1$u4;1;1;@;@;A;0;2;@;B0BB\x1b\\",
+            ),
+            ("RIS restores the VT300 level", rf'\e[61"p\ec\eP$q"p{_ST}', b'\x1bP1$r63;1"p\x1b\\'),
+            (
+                "DECCIR reports the cursor and the startup state",
+                r"\e[3;5H\e[1$w",
+                b"\x1bP1$u3;5;1;@;@;@;0;2;@;B0BB\x1b\\",
+            ),
+            (
+                "DECCIR reports bold, underline, blink and reverse, not faint, italics or strikethrough",
+                r"\e[1;4;5;7m\e[1$w\e[0;2;3;9m\e[1$w",
+                b"\x1bP1$u1;1;1;O;@;@;0;2;@;B0BB\x1b\\\x1bP1$u1;1;1;@;@;@;0;2;@;B0BB\x1b\\",
+            ),
+            (
+                "DECCIR reports origin mode and a pending autowrap",
+                r"\e[?6h\e[1$w\e[?6l\e[1;80Hx\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;A;0;2;@;B0BB\x1b\\\x1bP1$u1;80;1;@;@;H;0;2;@;B0BB\x1b\\",
+            ),
+            (
+                "DECCIR reports a pending single shift and the shifts into GL and GR",
+                "\\eN\\e[1$w\\eO\\e[1$wy\x0e\\e|\\e[1$w",
+                (
+                    b"\x1bP1$u1;1;1;@;@;B;0;2;@;B0BB\x1b\\"
+                    b"\x1bP1$u1;1;1;@;@;D;0;2;@;B0BB\x1b\\"
+                    b"\x1bP1$u1;2;1;@;@;@;1;3;@;B0BB\x1b\\"
+                ),
+            ),
+            (
+                "DECCIR reports the designations, 96-character sets marked",
+                r"\e(0\e)B\e*<\e[1$w\e-A\e.A\e/A\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;@;0;2;@;0B<B\x1b\\\x1bP1$u1;1;1;@;@;@;0;2;N;0AAA\x1b\\",
+            ),
+            (
+                "DECTABSR reports the tab stops",
+                r"\e[2$w\e[3g\e[1;3H\eH\e[1;10H\eH\e[2$w",
+                b"\x1bP2$u1/9/17/25/33/41/49/57/65/73\x1b\\\x1bP2$u3/10\x1b\\",
+            ),
+            ("DECRQPSR for another report is not answered", r"\e[0$w\e[3$w\e[$w", b""),
+            (
+                "DECRSPS restores the tab stops, dropping one past the edge, and an empty list clears them",
+                rf"\eP2$t5/9/81/33{_ST}\e[2$w\eP2$t{_ST}\e[2$w\eP2$t3{_ST}\eP2$t5/x{_ST}\e[2$w",
+                b"\x1bP2$u5/9/33\x1b\\\x1bP2$u\x1b\\\x1bP2$u3\x1b\\",
+            ),
+            (
+                "DECRSPS restores the cursor information DECCIR reported",
+                rf"\eP1$t2;7;1;A;@;C;1;3;D;0BAB{_ST}\e[1$w\e[6n",
+                b"\x1bP1$u2;7;1;A;@;C;1;3;D;0BAB\x1b\\\x1b[2;7R",
+            ),
+            (
+                "DECRSPS sets origin mode before the cursor, and ends a single shift the report has none of",
+                rf"\e[3;5r\e[?6h\eN\eP1$t1;1;1;@;@;@;0;2;@;BBBB{_ST}\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;@;0;2;@;BBBB\x1b\\",
+            ),
+            (
+                "DECCIR reports a final byte it cannot carry as the default set",
+                "\\e(\xc3\xa9\\e);\\e-\xc3\xa9\\e[1$w",
+                b"\x1bP1$u1;1;1;@;@;@;0;2;B;BBBB\x1b\\",
+            ),
+            (
+                "DECRSPS ignores a malformed DECCIR whole",
+                rf"\e[2;2H\eP1$t5;5;1;A;@;@;0;2;@;0B{_ST}\eP1$tzz{_ST}\e[6n",
+                b"\x1b[2;2R",
+            ),
             (
                 "DECRQSS answers a setting not reported as invalid",
-                r"\eP$q q\e\\\eP$qmm\e\\\eP$q\e\\",
+                rf"\eP$q$}}{_ST}\eP$qmm{_ST}\eP$q{_ST}",
                 b"\x1bP0$r\x1b\\" * 3,
             ),
-            ("DECRQSS ignores BEL and ends only at ST", "\\eP$q\x07m\\e\\\\", b"\x1bP1$r0m\x1b\\"),
-            ("a DCS that is no DECRQSS is not answered", r"\eP1$qm\e\\\ePzz\e\\", b""),
-            ("an over-long DECRQSS is not answered", r"\eP$q" + "m" * 40 + r"\e\\", b""),
-            ("DECRQSS aborted by CAN is not answered", "\\eP$qm\x18\\e\\\\", b""),
+            ("DECRQSS ignores BEL and ends only at ST", f"\\eP$q\x07m{_ST}", b"\x1bP1$r0m\x1b\\"),
+            ("a DCS that is no DECRQSS is not answered", rf"\eP1$qm{_ST}\ePzz{_ST}", b""),
+            ("an over-long DECRQSS is not answered", r"\eP$q" + "m" * 4096 + rf"{_ST}", b""),
+            ("DECRQSS aborted by CAN is not answered", f"\\eP$qm\x18{_ST}", b""),
             ("mode 2048 reports the size on each set", r"\e[?2048h\e[?2048h", b"\x1b[48;24;80;0;0t" * 2),
             ("mode 2048 is reset by RIS", r"\e[?2048h\ec\e[?2048$p", b"\x1b[48;24;80;0;0t\x1b[?2048;2$y"),
         ):
@@ -1288,7 +1424,7 @@ class TermTest(unittest.TestCase):
             ("SGR 10 during SS2 keeps it a single shift", r"\e*0\eN\e[10mqq", [dec, ascii_q]),
             ("SI during SS2 changes the slot it returns to", "\\e*0\x0e\\eN\x0fqq", [dec, ascii_q]),
             ("LS2 and LS3 stay until SI", "\\e*0\\e+0\\enq\\eoq\x0fq", [dec, dec, ascii_q]),
-            ("a 96-character set designation changes no slot", r"\e-A\e.A\e/Aq\enq", [ascii_q, ascii_q]),
+            ("a 96-character set is drawn as the default set", "\\e)0\\e-A\\e.A\\e/A\x0eq\\enq", [ascii_q, ascii_q]),
             ("RIS resets G2 and G3", r"\e*0\ec\enq", [ascii_q]),
         ):
             with self.subTest(label):
@@ -1301,12 +1437,76 @@ class TermTest(unittest.TestCase):
         self.write("\\e7\\e(0\\e8\x0fq")
         self.expect([[(None, None, b"q")]], raw=True)
 
+    def test_cursor_style_is_drawn_after_decscusr(self) -> None:
+        """Draw the cursor cell in the style DECSCUSR set instead of the display's cursor, until DECSTR or RIS."""
+        reverse = urwid.AttrSpec("default,standout", "default")
+        underline = urwid.AttrSpec("default,underline", "default")
+        red_reverse = urwid.AttrSpec("dark red,standout", "default")
+        for label, data, cell, cursor in (
+            ("the display's cursor before a DECSCUSR", r"AB\e[1;1H", (None, None, b"A"), (0, 0)),
+            ("a block in reverse video", r"AB\e[1;1H\e[2 q", (reverse, None, b"A"), None),
+            ("a blinking underline drawn steady", r"AB\e[1;1H\e[3 q", (underline, None, b"A"), None),
+            ("a bar in reverse video", r"AB\e[1;1H\e[6 q", (reverse, None, b"A"), None),
+            (
+                "a reverse cell drawn back to normal",
+                r"\e[7mA\e[0mB\e[1;1H\e[2 q",
+                (urwid.AttrSpec("default", "default"), None, b"A"),
+                None,
+            ),
+            (
+                "an underlined cell drawn without the underline",
+                r"\e[4mA\e[0mB\e[1;1H\e[4 q",
+                (urwid.AttrSpec("default", "default"), None, b"A"),
+                None,
+            ),
+            ("the cell keeps its colour", r"\e[31mA\e[0mB\e[1;1H\e[2 q", (red_reverse, None, b"A"), None),
+            ("a hidden cursor is not drawn", r"AB\e[1;1H\e[2 q\e[?25l", (None, None, b"A"), None),
+            ("DECSTR returns to the display's cursor", r"AB\e[1;1H\e[2 q\e[!p", (None, None, b"A"), (0, 0)),
+            ("RIS returns to the display's cursor", r"\e[2 q\ecAB\e[1;1H", (None, None, b"A"), (0, 0)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 3)
+                self.write(data)
+                self.term.wait_and_feed()
+                canvas = self.term.render(self.termsize, focus=True)
+                self.assertEqual(next(iter(canvas.content()))[0], cell)
+                self.assertEqual(canvas.cursor, cursor)
+        # out of focus no cursor is drawn
+        self.restart(10, 3)
+        self.write(r"AB\e[1;1H\e[2 q")
+        self.term.wait_and_feed()
+        self.assertEqual(next(iter(self.term.render(self.termsize, focus=False).content()))[0], (None, None, b"A"))
+
+    def test_column_operations(self) -> None:
+        """Insert and delete columns in the scrolling region with DECIC, DECDC, DECBI and DECFI, as xterm does."""
+        for label, sequence, rows, cursor in (
+            ("DECIC at the cursor column", r"\e[1;3H\e[2'}", ["AB  CDEF"] * 4, (2, 0)),
+            ("DECDC at the cursor column", r"\e[2;3H\e[2'~", ["ABEF"] * 4, (2, 1)),
+            (
+                "DECIC only in the scrolling region",
+                r"\e[2;3r\e[2;3H\e['}",
+                ["ABCDEF", "AB CDEF", "AB CDEF", "ABCDEF"],
+                (2, 1),
+            ),
+            ("DECIC outside the scrolling region", r"\e[2;3r\e[1;3H\e['}", ["ABCDEF"] * 4, (2, 0)),
+            ("DECBI at the left edge", r"\e[2;1H\e6", [" ABCDEF"] * 4, (0, 1)),
+            ("DECBI elsewhere moves left", r"\e[2;3H\e6", ["ABCDEF"] * 4, (1, 1)),
+            ("DECFI at the right edge", r"\e[2;10H\e9", ["BCDEF"] * 4, (9, 1)),
+            ("DECFI elsewhere moves right", r"\e[2;3H\e9", ["ABCDEF"] * 4, (3, 1)),
+        ):
+            with self.subTest(label):
+                self.restart(10, 4)
+                self.write("ABCDEF\nABCDEF\nABCDEF\nABCDEF" + sequence)
+                self.read()
+                self.assertEqual([line.rstrip() for line in self.term.term.text], [row.encode() for row in rows])
+                self.assertEqual(self.term.term.term_cursor, cursor)
+
     def test_soft_reset(self) -> None:
         """Reset the modes, the region, the attributes and the charsets DECSTR resets, keeping the cursor, as xterm."""
         self.write(r"\e[?1h\e[?25l\e[4h\e[?7l\e[2;4r\e[1;31m\e=\e(0\e[3;5H\e7\e[2;2H\e[!p")
         self.read()
         self.assertEqual(self.term.term.term_cursor, (1, 1))
-        self.write(r"\e[?1$p\e[?6$p\e[?7$p\e[?25$p\e[4$p\e[?66$p\eP$qm\e\\\eP$qr\e\\")
+        self.write(rf"\e[?1$p\e[?6$p\e[?7$p\e[?25$p\e[4$p\e[?66$p\eP$qm{_ST}\eP$qr{_ST}")
         self.read()
         self.assertEqual(
             bytes(self.pty.from_widget),
@@ -1386,7 +1586,7 @@ class TermTest(unittest.TestCase):
 
     def test_csi_with_sub_parameters_or_intermediate_bytes_is_ignored_whole(self) -> None:
         """Ignore a whole CSI sequence with sub-parameters, a private marker or intermediate bytes (ECMA-48 5.4)."""
-        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 qd\e[>4;1me\e[=5cf\e[1$wg\e[>1ch")
+        self.write(r"\e[38:5:196ma\e[38:2::1:2:3mb\e[4:3mc\e[2 @d\e[>4;1me\e[=5cf\e[1$tg\e[>1ch")
         self.expect("abcdefgh")
         self.assertIsNone(self.term.term.attrspec)
         self.assertEqual(bytes(self.pty.from_widget), b"")

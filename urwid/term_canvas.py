@@ -109,16 +109,34 @@ _STRING_STATES: typing.Final = frozenset((2, 4, 5))
 #: the final bytes after ESC that open a DCS, SOS, PM and APC string
 _COMMAND_STRING_OPENERS: typing.Final = frozenset((b"P", b"X", b"^", b"_"))
 
-#: the Primary DA reply: a VT220 (62) with ANSI colour (22)
-_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?62;22c"
-#: the Secondary DA reply, as a VT220 sends it: the VT220 (1), firmware version 1.0 (10), no ROM cartridge (0)
-_SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[>1;10;0c"
+#: the Primary DA reply: a VT320 (63) with ANSI colour (22)
+_PRIMARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[?63;22c"
+#: the Secondary DA reply, as a VT320 sends it: the VT320 (24), firmware version 1.0 (10), no ROM cartridge (0)
+_SECONDARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}[>24;10;0c"
 
-#: the DECRQSS reply for DECSCL: VT200 level (62) with 7-bit controls (1), the only ones sent
-_CONFORMANCE_LEVEL_SETTING: typing.Final = '62;1"p'
+#: the Tertiary DA reply (DECRPTUI): the unit ID, zero as in xterm
+_TERTIARY_DEVICE_ATTRIBUTES: typing.Final = f"{ESC}P!|00000000{ESC}\\"
 
-#: the bytes of a DCS string kept, the "P" that opens it included; a longer string is no request this canvas answers
-_DCS_KEPT_LENGTH: typing.Final = 32
+#: the cursor styles DECSCUSR sets: 1 and 2 a blinking and a steady block, 3 and 4 underline, 5 and 6 a bar
+_CURSOR_STYLES: typing.Final = range(1, 7)
+#: the cursor styles drawn underlined; the others, a block or a bar, are drawn in reverse video
+_UNDERLINE_CURSOR_STYLES: typing.Final = frozenset((3, 4))
+#: the cursor style DECRQSS reports before a DECSCUSR, a steady block, as xterm reports its startup one
+_DEFAULT_CURSOR_STYLE: typing.Final = 2
+
+#: the DECRQCRA checksum bits of the AttrSpec flags, as xterm adds them to each character
+_CHECKSUM_BITS: typing.Final = (("bold", 0x80), ("blink", 0x40), ("standout", 0x20), ("underline", 0x10))
+
+#: the conformance levels DECSCL selects: VT100 (61), VT200 (62) and VT300 (63), the highest and the startup one
+_CONFORMANCE_LEVELS: typing.Final = range(61, 64)
+
+#: the DECCIR rendition bits of the AttrSpec flags, and the SGR parameters DECRSPS sets them with
+_RENDITION_BITS: typing.Final = (("bold", 1, 1), ("underline", 2, 4), ("blink", 4, 5), ("standout", 8, 7))
+#: the DECCIR flag bits: origin mode, a pending SS2, a pending SS3, and a pending autowrap
+_FLAG_ORIGIN: typing.Final = 1
+_FLAG_SS2: typing.Final = 2
+_FLAG_SS3: typing.Final = 4
+_FLAG_WRAP: typing.Final = 8
 
 #: the states the ANSI modes this canvas keeps no flag for are reported in, by DECRQM: 4 is permanently reset, for
 #: KAM (keyboard locked), and 3 permanently set, for SRM (no local echo)
@@ -137,6 +155,14 @@ _SGR_FLAGS: typing.Final = (
 
 #: the character set slot each intermediate byte of a 94-character set designation (ESC I F) selects
 _DESIGNATED_SLOTS: typing.Final = types.MappingProxyType({b"(": 0, b")": 1, b"*": 2, b"+": 3})
+#: the slot each intermediate byte of a 96-character set designation selects
+_DESIGNATED_96_SLOTS: typing.Final = types.MappingProxyType({b"-": 1, b".": 2, b"/": 3})
+#: the TermCharset name of each designated final byte; any other final byte is drawn as the default set
+_DESIGNATED_CHARSETS: typing.Final = types.MappingProxyType({b"0": "vt100", b"U": "ibmpc", b"K": "user"})
+#: the final byte each TermCharset name is reported with, the inverse of _DESIGNATED_CHARSETS, ASCII for the default
+_CHARSET_FINALS: typing.Final = types.MappingProxyType({"default": b"B", "vt100": b"0", "ibmpc": b"U", "user": b"K"})
+#: the final bytes after ESC of the locking shifts into GR: LS1R, LS2R and LS3R
+_GR_LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"~": 1, b"}": 2, b"|": 3})
 
 #: the final bytes after ESC of the locking shifts LS2 and LS3 and the single shifts SS2 and SS3, with their slot
 _LOCKING_SHIFTS: typing.Final = types.MappingProxyType({b"n": 2, b"o": 3})
@@ -247,14 +273,24 @@ CSI_COMMANDS: dict[bytes, CSIAlias | CSICommand] = {
     b"l": CSICommand(1, 0, lambda s, modes, q: s.csi_set_modes(modes, q, reset=True)),
     b"m": CSICommand(1, 0, lambda s, attrs, q: s.csi_set_attr(attrs)),
     b"n": CSICommand(1, 0, lambda s, mode, q: s.csi_status_report(mode[0], private=q)),
-    # DECRQM (CSI ? Ps $ p, CSI Ps $ p) and DECSTR (CSI ! p) are run in parse_csi; DECSCL (CSI Ps ; Ps " p) is accepted
-    # and not applied, and the other forms are not implemented
+    # DECRQM (CSI ? Ps $ p, CSI Ps $ p), DECSTR (CSI ! p) and DECSCL (CSI Ps ; Ps " p) are run in parse_csi, and the
+    # other forms are not implemented
     b"p": CSICommand(0, 0, lambda s, none, q: None),
     b"q": CSICommand(1, 0, lambda s, mode, q: s.csi_set_keyboard_leds(mode[0])),
     b"r": CSICommand(2, 0, lambda s, t_b, q: s.csi_set_scroll(t_b[0], t_b[1])),
     # SCOSC and SCORC save and restore what DECSC and DECRC do, as in xterm and the Linux console
     b"s": CSICommand(0, 0, lambda s, none, q: s.save_cursor(with_attrs=True)),
     b"u": CSICommand(0, 0, lambda s, none, q: s.restore_cursor(with_attrs=True)),
+    # DECRQPSR (CSI Ps $ w) is answered in parse_csi, and the other forms are not implemented
+    b"w": CSICommand(0, 0, lambda s, none, q: None),
+    # the VT420 sequences with an intermediate byte, run in parse_csi from _INTERMEDIATE_COMMANDS: DECFRA (CSI ... $ x),
+    # DECERA (CSI ... $ z), DECCRA (CSI ... $ v), DECRQCRA (CSI ... * y), DECIC (CSI Ps ' }) and DECDC (CSI Ps ' ~)
+    b"v": CSICommand(0, 0, lambda s, none, q: None),
+    b"x": CSICommand(0, 0, lambda s, none, q: None),
+    b"y": CSICommand(0, 0, lambda s, none, q: None),
+    b"z": CSICommand(0, 0, lambda s, none, q: None),
+    b"}": CSICommand(0, 0, lambda s, none, q: None),
+    b"~": CSICommand(0, 0, lambda s, none, q: None),
     b"`": CSIAlias("alias", b"G"),
 }
 
@@ -312,6 +348,9 @@ class TermModes:
     keypad_application: bool = False
     # the backarrow key sends BS rather than DEL (DECBKM)
     backarrow_sends_backspace: bool = False
+    # the cursor style DECSCUSR set, 1 to 6, which the canvas draws itself in place of the display's cursor; None
+    # before a DECSCUSR and after DECSTR or RIS, while the display's cursor is shown
+    cursor_style: int | None = None
 
     def reset(self) -> None:
         """Reset every mode flag to its terminal-startup default."""
@@ -332,6 +371,7 @@ class TermModes:
         self.alternate_screen = False
         self.keypad_application = False
         self.backarrow_sends_backspace = False
+        self.cursor_style = None
 
         self.keyboard_flags = []
 
@@ -356,7 +396,7 @@ class _Screen:
 class TermCharset:
     """Tracks the terminal's G0 to G3 character set slots and which one is currently active."""
 
-    __slots__ = ("_g", "_sgr_mapping", "_single", "active", "current")
+    __slots__ = ("_finals", "_g", "_sets96", "_sgr_mapping", "_single", "active", "current", "gr")
 
     MAPPING: typing.ClassVar[dict[str, str | None]] = {
         "default": None,
@@ -369,6 +409,11 @@ class TermCharset:
         """Initialize with G1 as DEC special graphics and G0, G2 and G3 at the default charset, G0 active."""
         # a tuple, so a copy kept by DECSC is not changed by a later designation
         self._g: tuple[str, ...] = ("default", "vt100", "default", "default")
+        # the final byte each slot was designated with, and a bit per slot designated with a 96-character set
+        self._finals: tuple[bytes, ...] = (b"B", b"0", b"B", b"B")
+        self._sets96 = 0
+        #: the slot invoked into GR by LS1R, LS2R or LS3R; GR is not drawn from, only reported
+        self.gr = 2
 
         self._sgr_mapping = False
 
@@ -381,10 +426,31 @@ class TermCharset:
 
         self.activate(0)
 
-    def define(self, g: int, charset: str) -> None:
-        """Redefine G'g' with new mapping."""
+    def define(self, g: int, charset: str, *, final: bytes | None = None, size96: bool = False) -> None:
+        """Redefine G'g' with new mapping.
+
+        :param g: the slot, 0 to 3 for G0 to G3.
+        :param charset: the name of the character set, a key of :attr:`MAPPING`.
+        :param final: the final byte of the designation, reported by DECCIR; the one *charset* is known by by default.
+            A final that is not one byte from ``0`` to ``~``, or is ``;``, cannot be reported and is replaced so too.
+        :param size96: the designation is of a 96-character set.
+        """
+        if final is None or len(final) != 1 or not 0x30 <= final[0] < 0x7F or final == b";":
+            final = _CHARSET_FINALS[charset]
         self._g = (*self._g[:g], charset, *self._g[g + 1 :])
+        self._finals = (*self._finals[:g], final, *self._finals[g + 1 :])
+        self._sets96 = self._sets96 | (1 << g) if size96 else self._sets96 & ~(1 << g)
         self.activate(g=self.active)
+
+    @property
+    def designations(self) -> tuple[bytes, int]:
+        """Return the final bytes G0 to G3 were designated with, and a bit per slot holding a 96-character set."""
+        return b"".join(self._finals), self._sets96
+
+    @property
+    def single_shifted(self) -> int | None:
+        """Return the slot a pending single shift draws the next character from, or None without one."""
+        return self._single
 
     def activate(self, g: int) -> None:
         """Activate the given charset slot.
@@ -437,6 +503,23 @@ class TermCharset:
             return char
 
         return char
+
+
+def _with_flag(attrspec: AttrSpec | None, flag: str, *, remove: bool = False) -> AttrSpec:
+    """Return *attrspec* with the foreground setting *flag*, such as ``standout``, added, or removed with *remove*.
+
+    None stands for the default colours.
+    """
+    if attrspec is None:
+        attrspec = AttrSpec("default", "default")
+    attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
+    if flag in attrs and remove:
+        attrs.remove(flag)
+        attrspec = attrspec.copy_modified(fg=",".join(attrs))
+    elif flag not in attrs and not remove:
+        attrs.append(flag)
+        attrspec = attrspec.copy_modified(fg=",".join(attrs))
+    return attrspec
 
 
 def _sgr_parameters(attrspec: AttrSpec | None) -> str:
@@ -530,6 +613,9 @@ class TermCanvas(Canvas):
         self.scrollregion_start = 0
         self.scrollregion_end = self.height - 1
 
+        #: the conformance level DECSCL selected, 61 to 63: at 61 the VT300 reports are not answered
+        self.conformance_level = _CONFORMANCE_LEVELS[-1]
+
         self.tabstops: list[int] = []
         self.term: list[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]] = []
         # the screen not shown: the alternate one while the main one is shown, and the other way round
@@ -569,10 +655,15 @@ class TermCanvas(Canvas):
 
         self.term_cursor = x, y = self.constrain_coords(x, y)
 
+        # with a cursor style set, content() draws the cursor and the display shows none
+        self.cursor = self._shown_cursor() if self.modes.cursor_style is None else None
+
+    def _shown_cursor(self) -> tuple[int, int] | None:
+        """Return the cursor's column and row in the view, or None while it is hidden, out of focus or scrolled away."""
+        x, y = self.term_cursor
         if self.has_focus and self.modes.visible_cursor and self.scrolling_up < self.height - y:
-            self.cursor = (x, y + self.scrolling_up)
-        else:
-            self.cursor = None
+            return x, y + self.scrolling_up
+        return None
 
     def reset_scroll(self) -> None:
         """Reset scrolling region to full terminal size."""
@@ -631,6 +722,8 @@ class TermCanvas(Canvas):
         self.reset_scroll()
 
         self.init_tabstops()
+
+        self.conformance_level = _CONFORMANCE_LEVELS[-1]
 
         # terminal modes
         self.modes.reset()
@@ -850,17 +943,7 @@ class TermCanvas(Canvas):
             return
 
         g = _DESIGNATED_SLOTS.get(mod, 1)
-
-        if char == b"0":
-            cset = "vt100"
-        elif char == b"U":
-            cset = "ibmpc"
-        elif char == b"K":
-            cset = "user"
-        else:
-            cset = "default"
-
-        self.charset.define(g, cset)
+        self.charset.define(g, _DESIGNATED_CHARSETS.get(char, "default"), final=char)
 
     def parse_csi(self, char: bytes) -> None:
         """Parse ECMA-48 CSI (Control Sequence Introducer) sequences."""
@@ -879,9 +962,35 @@ class TermCanvas(Canvas):
                 self.csi_report_mode(int(mode))
             return
 
+        if char == b"c" and bytes(self._escbuf) in {b"=", b"=0"}:
+            # Tertiary DA: CSI = c, a DCS reply, which a VT100 (level 61) does not send
+            if self.conformance_level > 61:
+                self.widget.respond(_TERTIARY_DEVICE_ATTRIBUTES)
+            return
+
+        if (handler := _INTERMEDIATE_COMMANDS.get((bytes(self._escbuf[-1:]), char))) is not None:
+            params = self._escbuf[:-1]
+            if not params.strip(b"0123456789;"):
+                handler(self, [int(param) if param else None for param in params.split(b";")])
+            return
+
         if char == b"p" and self._escbuf == b"!":
             # DECSTR: CSI ! p
             self.soft_reset()
+            return
+
+        if char == b"p" and self._escbuf.endswith(b'"'):
+            # DECSCL: CSI Ps1 ; Ps2 " p; Ps2 chooses 7-bit or 8-bit controls, and only 7-bit ones are sent
+            level, *_controls = self._escbuf[:-1].split(b";")
+            if level.isdigit() and int(level) in _CONFORMANCE_LEVELS:
+                self.soft_reset()
+                self.conformance_level = int(level)
+            return
+
+        if char == b"w" and self._escbuf.endswith(b"$"):
+            # DECRQPSR: CSI Ps $ w, which a VT100 (level 61) does not answer
+            if (report := self._escbuf[:-1]).isdigit() and self.conformance_level > 61:
+                self.csi_report_presentation_state(int(report))
             return
 
         if char == b"c" and bytes(self._escbuf) in {b">", b">0"}:
@@ -936,10 +1045,19 @@ class TermCanvas(Canvas):
                 self.modes.main_charset = CHARSET_UTF8
         elif mod in _DESIGNATED_SLOTS:  # define G0 to G3
             self.set_g01(char, mod)
+        elif mod in _DESIGNATED_96_SLOTS:
+            # a 96-character set, such as ISO Latin-1 (A), for G1 to G3: drawn as the default set and reported by DECCIR
+            if self.modes.main_charset == CHARSET_DEFAULT:
+                self.charset.define(_DESIGNATED_96_SLOTS[mod], "default", final=char, size96=True)
         elif mod:
-            # another intermediate byte, such as the 96-character set designations (ESC - F, ESC . F, ESC / F) and
-            # S7C1T/S8C1T (ESC SP F, ESC SP G): accepted and not applied
+            # another intermediate byte, such as S7C1T/S8C1T (ESC SP F, ESC SP G): accepted and not applied
             pass
+        elif char in _GR_LOCKING_SHIFTS:
+            self.charset.gr = _GR_LOCKING_SHIFTS[char]
+        elif char == b"6":  # DECBI
+            self.back_index()
+        elif char == b"9":  # DECFI
+            self.forward_index()
         elif char in _LOCKING_SHIFTS:
             self.charset.activate(_LOCKING_SHIFTS[char])
         elif char in _SINGLE_SHIFTS:
@@ -1004,10 +1122,17 @@ class TermCanvas(Canvas):
     def parse_dcs(self, body: bytes) -> None:
         """Apply the DCS string *body*, given without its ``ESC P`` and ST framing.
 
-        DECRQSS is answered, and any other DCS string is ignored.
+        DECRQSS is answered and DECRSPS is applied, except at the VT100 level (61).
+        Any other DCS string is ignored.
         """
+        if self.conformance_level == 61:
+            return
         if body.startswith(b"$q"):
             self.dcs_request_setting(body[2:])
+        elif body.startswith(b"1$t"):
+            self.dcs_restore_cursor_information(body[3:])
+        elif body.startswith(b"2$t"):
+            self.dcs_restore_tab_stops(body[3:])
 
     def parse_escape(self, char: bytes) -> None:
         """Feed *char* through the escape-sequence state machine, dispatching to CSI/OSC/non-CSI parsing as needed."""
@@ -1045,10 +1170,10 @@ class TermCanvas(Canvas):
             pass
         elif self.parsestate == 5 and self._escbuf[-1:] == ESC_B and char == b"\\":
             # end of a DCS, SOS, PM or APC string; only a DCS that was kept whole is applied
-            if self._escbuf.startswith(b"P") and len(self._escbuf) < _DCS_KEPT_LENGTH:
+            if self._escbuf.startswith(b"P") and len(self._escbuf) < MAX_OSC_LENGTH:
                 self.parse_dcs(bytes(self._escbuf[1:-1]))
         elif self.parsestate == 5:
-            if len(self._escbuf) < _DCS_KEPT_LENGTH:
+            if len(self._escbuf) < MAX_OSC_LENGTH:
                 self._escbuf += char
             else:
                 # past the limit only the last byte is replaced, which is enough to recognise ST, also when *char* is a
@@ -1096,7 +1221,23 @@ class TermCanvas(Canvas):
             return
         elif self.parsestate == 3:
             self.parse_noncsi(char, bytes(self._escbuf))
-        elif char in {b"c", b"D", b"E", b"H", b"M", b"Z", b"7", b"8", b">", b"=", *_LOCKING_SHIFTS, *_SINGLE_SHIFTS}:
+        elif char in {
+            b"c",
+            b"D",
+            b"E",
+            b"H",
+            b"M",
+            b"Z",
+            b"7",
+            b"6",
+            b"8",
+            b"9",
+            b">",
+            b"=",
+            *_LOCKING_SHIFTS,
+            *_SINGLE_SHIFTS,
+            *_GR_LOCKING_SHIFTS,
+        }:
             self.parse_noncsi(char)
 
         self.leave_escape()
@@ -1644,16 +1785,7 @@ class TermCanvas(Canvas):
 
     def reverse_attrspec(self, attrspec: AttrSpec | None, undo: bool = False) -> AttrSpec:
         """Put standout mode to the 'attrspec' given and remove it if 'undo' is True."""
-        if attrspec is None:
-            attrspec = AttrSpec("default", "default")
-        attrs = [fg.strip() for fg in attrspec.foreground.split(",")]
-        if "standout" in attrs and undo:
-            attrs.remove("standout")
-            attrspec = attrspec.copy_modified(fg=",".join(attrs))
-        elif "standout" not in attrs and not undo:
-            attrs.append("standout")
-            attrspec = attrspec.copy_modified(fg=",".join(attrs))
-        return attrspec
+        return _with_flag(attrspec, "standout", remove=undo)
 
     @deprecated(
         "TermCanvas.reverse_video() is deprecated, set TermCanvas.modes.reverse_video instead. "
@@ -1822,7 +1954,8 @@ class TermCanvas(Canvas):
     def soft_reset(self) -> None:
         """Reset the modes, margins, attributes and character sets DECSTR resets, as xterm does.
 
-        The cursor is shown, insert, origin, cursor key and keypad application modes are reset, and autowrap is set.
+        The cursor is shown with the startup style, insert, origin, cursor key and keypad application modes are reset,
+        and autowrap is set.
         The scrolling region is the whole screen again, without moving the cursor.
         The attributes are reset as by SGR 0, and the character sets are the startup ones.
         The cursor saved by DECSC is the home position with these attributes and character sets, origin mode off and no
@@ -1835,6 +1968,7 @@ class TermCanvas(Canvas):
         modes.autowrap = True
         modes.keys_decckm = False
         modes.keypad_application = False
+        modes.cursor_style = None
         self.reset_scroll()
         self.csi_set_attr([0])
         self.charset = TermCharset()
@@ -1851,7 +1985,8 @@ class TermCanvas(Canvas):
         - a valid request gets Ps 1, and Pt is the control sequence that restores the setting;
         - a setting this canvas does not report gets Ps 0 and an empty Pt.
 
-        The settings reported are SGR (``m``), DECSTBM (``r``) and DECSCL (``"p``).
+        The settings reported are SGR (``m``), DECSTBM (``r``), DECSCL (``"p``), DECSCA (``"q``), DECSCPP (``$|``),
+        DECSLPP (``t``) and DECSCUSR (`` q``).
         """
         match request:
             case b"m":
@@ -1859,11 +1994,268 @@ class TermCanvas(Canvas):
             case b"r":
                 setting = f"{self.scrollregion_start + 1:d};{self.scrollregion_end + 1:d}r"
             case b'"p':
-                setting = _CONFORMANCE_LEVEL_SETTING
+                # 7-bit controls (1), the only ones sent
+                setting = f'{self.conformance_level:d};1"p'
+            case b'"q':
+                # DECSCA: no character is protected from selective erase, which is not implemented
+                setting = '0"q'
+            case b"$|":
+                # DECSCPP: the columns per page
+                setting = f"{self.width:d}$|"
+            case b"t":
+                # DECSLPP: the lines per page
+                setting = f"{self.height:d}t"
+            case b" q":
+                # DECSCUSR: the cursor style
+                style = self.modes.cursor_style
+                setting = f"{_DEFAULT_CURSOR_STYLE if style is None else style:d} q"
             case _:
                 self.widget.respond(f"{ESC}P0$r{ESC}\\")
                 return
         self.widget.respond(f"{ESC}P1$r{setting}{ESC}\\")
+
+    def csi_report_presentation_state(self, report: int) -> None:
+        """Answer DECRQPSR for *report* 1 with DECCIR and for *report* 2 with DECTABSR.
+
+        Any other report is not answered.
+
+        DECCIR is ``DCS 1 $ u Pr ; Pc ; Pp ; Srend ; Satt ; Sflag ; Pgl ; Pgr ; Scss ; Sdesig ST``, as xterm sends it:
+
+        - the 1-based cursor row and column on the screen, also in origin mode, and page 1;
+        - ``@`` plus the bits of bold (1), underline (2), blink (4) and reverse (8);
+        - ``@``, since no character is protected;
+        - ``@`` plus the bits of origin mode (1), a pending SS2 (2) or SS3 (4), and a pending autowrap (8);
+        - the slots invoked into GL and GR;
+        - ``@`` plus a bit per slot holding a 96-character set, and the final bytes G0 to G3 were designated with.
+
+        DECTABSR is ``DCS 2 $ u Pt ST``, with the 1-based columns of the tab stops separated by ``/``.
+        """
+        match report:
+            case 1:
+                x, y = self.term_cursor
+                rendition = sum(bit for name, bit, _sgr in _RENDITION_BITS if getattr(self.attrspec, name, False))
+                single = self.charset.single_shifted
+                flags = (
+                    _FLAG_ORIGIN * self.modes.constrain_scrolling
+                    + _FLAG_SS2 * (single == 2)
+                    + _FLAG_SS3 * (single == 3)
+                    + _FLAG_WRAP * self.is_rotten_cursor
+                )
+                finals, sets96 = self.charset.designations
+                body = (
+                    f"{y + 1:d};{x + 1:d};1;{chr(0x40 + rendition)};@;{chr(0x40 + flags)};"
+                    f"{self.charset.active:d};{self.charset.gr:d};{chr(0x40 + sets96)};{finals.decode('ascii')}"
+                )
+                self.widget.respond(f"{ESC}P1$u{body}{ESC}\\")
+            case 2:
+                stops = "/".join(str(x + 1) for x in range(self.width) if self.is_tabstop(x))
+                self.widget.respond(f"{ESC}P2$u{stops}{ESC}\\")
+
+    def dcs_restore_cursor_information(self, body: bytes) -> None:
+        """Restore the cursor, its attributes and the character sets from a DECCIR report *body* (DECRSPS 1).
+
+        A body that is not in the form :meth:`csi_report_presentation_state` describes is ignored whole.
+        The colours are kept, since DECCIR does not carry them.
+        """
+        fields = body.split(b";")
+        if len(fields) != 10:
+            return
+        row, col, _page, rendition, _protection, flags, gl, gr, sets96, finals = fields
+        bits = [field[0] - 0x40 for field in (rendition, flags, sets96) if len(field) == 1 and 0x40 <= field[0] < 0x50]
+        if len(bits) != 3 or not (row.isdigit() and col.isdigit()):
+            return
+        if {gl, gr} - {b"0", b"1", b"2", b"3"} or len(finals) != 4 or not all(0x30 <= final < 0x7F for final in finals):
+            return
+        rendition_bits, flag_bits, sets96_bits = bits
+        # origin mode first, since it decides how the cursor position is constrained
+        self.modes.constrain_scrolling = bool(flag_bits & _FLAG_ORIGIN)
+        self.set_term_cursor(int(col) - 1, int(row) - 1)
+        self.is_rotten_cursor = bool(flag_bits & _FLAG_WRAP)
+        # SGR 22 also ends faint, which DECCIR does not carry, so faint is set again, as xterm keeps it
+        faint = [2] if getattr(self.attrspec, "faint", False) else []
+        self.csi_set_attr(
+            [22, 24, 25, 27, *faint, *(sgr for _name, bit, sgr in _RENDITION_BITS if rendition_bits & bit)],
+        )
+        for g, final in enumerate(finals):
+            final_byte = bytes((final,))
+            self.charset.define(
+                g,
+                _DESIGNATED_CHARSETS.get(final_byte, "default"),
+                final=final_byte,
+                size96=bool(sets96_bits & (1 << g)),
+            )
+        self.charset.activate(int(gl))
+        self.charset.gr = int(gr)
+        self.charset.end_single_shift()
+        if flag_bits & (_FLAG_SS2 | _FLAG_SS3):
+            self.charset.single_shift(2 if flag_bits & _FLAG_SS2 else 3)
+
+    def dcs_restore_tab_stops(self, body: bytes) -> None:
+        """Set the tab stops to the 1-based columns of a DECTABSR report *body* (DECRSPS 2), separated by ``/``.
+
+        An empty body clears every tab stop, and a body with anything but such columns is ignored whole.
+        A column past the right edge is dropped.
+        """
+        columns = body.split(b"/") if body else []
+        if not all(column.isdigit() for column in columns):
+            return
+        self.set_tabstop(clear=True)
+        for column in columns:
+            if 0 < int(column) <= self.width:
+                self.set_tabstop(int(column) - 1)
+
+    def _rectangle(self, params: Sequence[int | None]) -> tuple[int, int, int, int] | None:
+        """Return the rectangle the parameters Pt ; Pl ; Pb ; Pr of a VT420 rectangular area sequence select.
+
+        A missing or zero parameter selects the edge of the page, and a parameter past the edge selects the edge.
+        In origin mode the rows count from the top margin and stop at the bottom margin, as in xterm.
+
+        :returns: the 0-based top row, left column, bottom row and right column, all included, or None for a rectangle
+            whose top is below its bottom or whose left is right of its right.
+        """
+        top, left, bottom, right = (*params, None, None, None, None)[:4]
+        if self.modes.constrain_scrolling:
+            first, last = self.scrollregion_start, self.scrollregion_end
+        else:
+            first, last = 0, self.height - 1
+        top_row = min(first + (top or 1) - 1, last)
+        bottom_row = last if not bottom else min(first + bottom - 1, last)
+        left_col = min((left or 1) - 1, self.width - 1)
+        right_col = self.width - 1 if not right else min(right - 1, self.width - 1)
+        if top_row > bottom_row or left_col > right_col:
+            return None
+        return top_row, left_col, bottom_row, right_col
+
+    def csi_fill_rectangle(self, params: Sequence[int | None]) -> None:
+        """Fill a rectangle with a character in the current attributes (DECFRA, CSI Pch ; Pt ; Pl ; Pb ; Pr $ x).
+
+        The character code is a printable ASCII or Latin-1 one, 32 to 126 or 160 to 255, and any other is ignored.
+        """
+        code = params[0] if params else None
+        if code is None or not (32 <= code <= 126 or 160 <= code <= 255):
+            return
+        if (area := self._rectangle(params[1:])) is None:
+            return
+        top, left, bottom, right = area
+        cell = (self.attrspec, self.charset.current, chr(code).encode(util.get_encoding(), "urwid_fallback_ascii"))
+        for y in range(top, bottom + 1):
+            self.term[y][left : right + 1] = [cell] * (right - left + 1)
+
+    def csi_erase_rectangle(self, params: Sequence[int | None]) -> None:
+        """Erase a rectangle, as erasing in a line does (DECERA, CSI Pt ; Pl ; Pb ; Pr $ z)."""
+        if (area := self._rectangle(params)) is None:
+            return
+        top, left, bottom, right = area
+        for y in range(top, bottom + 1):
+            self.term[y][left : right + 1] = [self.empty_char()] * (right - left + 1)
+
+    def csi_copy_rectangle(self, params: Sequence[int | None]) -> None:
+        """Copy a rectangle to another place on the screen (DECCRA).
+
+        The sequence is ``CSI Pts ; Pls ; Pbs ; Prs ; Pps ; Ptd ; Pld ; Ppd $ v``: the source rectangle and page, then
+        the destination's top left corner and page.
+        The pages are ignored, since there is one, and a copy past the screen edge is cut there.
+        """
+        if (area := self._rectangle(params[:4])) is None:
+            return
+        top, left, bottom, right = area
+        if (destination := self._rectangle([*params[5:7], None, None])) is None:
+            return
+        to_top, to_left, last, _right = destination
+        rows = [self.term[y][left : right + 1] for y in range(top, bottom + 1)]
+        for offset, cells in enumerate(rows[: last - to_top + 1]):
+            fitting = cells[: self.width - to_left]
+            self.term[to_top + offset][to_left : to_left + len(fitting)] = fitting
+
+    def csi_request_checksum(self, params: Sequence[int | None]) -> None:
+        """Answer DECRQCRA (``CSI Pid ; Pp ; Pt ; Pl ; Pb ; Pr * y``) with ``DCS Pid ! ~ XXXX ST``.
+
+        The checksum is xterm's: the negated 16-bit sum of each cell's character, its low 7 bits, plus the bits of bold
+        (0x80), blink (0x40), reverse (0x20) and underline (0x10).
+        A blank cell without those attributes counts 0, as a cell never written does in xterm.
+
+        This canvas keeps no difference between a written and an erased cell, so two cases differ from xterm:
+
+        - a space written without those attributes counts 0 here and 0x20 in xterm;
+        - a cell erased while one of those attributes is set counts 0x20 plus its bits here and 0 in xterm.
+
+        DEC special graphics cells count their ASCII character, which xterm values differently.
+        Without parameters it is not answered, and an empty Pid is 65535, as in xterm.
+        It is not answered at the VT100 level (61), like the other DCS replies.
+        """
+        if self.conformance_level == 61 or params == [None]:
+            return
+        request = 0xFFFF if params[0] is None else params[0]
+        if (area := self._rectangle(params[2:])) is None:
+            return
+        top, left, bottom, right = area
+        encoding = util.get_encoding()
+        # a screen holds few distinct cells, so each is valued once per request
+        values: dict[tuple[AttrSpec | None, bytes], int] = {}
+        total = 0
+        for y in range(top, bottom + 1):
+            for attrspec, _charset, char in self.term[y][left : right + 1]:
+                value = values.get((attrspec, char))
+                if value is None:
+                    flags = (
+                        0 if attrspec is None else sum(bit for name, bit in _CHECKSUM_BITS if getattr(attrspec, name))
+                    )
+                    text = char.decode(encoding, "replace")
+                    # a blank cell without those attributes counts as a cell never written
+                    value = 0 if char == b" " and not flags else (ord(text[0]) & 0x7F if text else 0) + flags
+                    values[attrspec, char] = value
+                total += value
+        self.widget.respond(f"{ESC}P{request:d}!~{-total & 0xFFFF:04X}{ESC}\\")
+
+    def csi_insert_columns(self, params: Sequence[int | None]) -> None:
+        """Insert blank columns at the cursor column in the scrolling region (DECIC, CSI Ps ' }).
+
+        Nothing happens while the cursor is outside the scrolling region.
+        """
+        x, y = self.term_cursor
+        if self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.insert_chars((x, row), chars=params[0] or 1)
+
+    def csi_delete_columns(self, params: Sequence[int | None]) -> None:
+        """Delete columns at the cursor column in the scrolling region (DECDC, CSI Ps ' ~).
+
+        Nothing happens while the cursor is outside the scrolling region.
+        """
+        x, y = self.term_cursor
+        if self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.remove_chars((x, row), chars=params[0] or 1)
+
+    def back_index(self) -> None:
+        """Move the cursor one column left, or at the left edge insert a blank column there (DECBI)."""
+        x, y = self.term_cursor
+        if x > 0:
+            self.set_term_cursor(x - 1, y)
+        else:
+            self.csi_insert_columns([1])
+        self.is_rotten_cursor = False
+
+    def forward_index(self) -> None:
+        """Move the cursor one column right, or at the right edge delete the leftmost column (DECFI)."""
+        x, y = self.term_cursor
+        if x < self.width - 1:
+            self.set_term_cursor(x + 1, y)
+        elif self.scrollregion_start <= y <= self.scrollregion_end:
+            for row in range(self.scrollregion_start, self.scrollregion_end + 1):
+                self.remove_chars((0, row))
+        self.is_rotten_cursor = False
+
+    def csi_set_cursor_style(self, params: Sequence[int | None]) -> None:
+        """Set the cursor style DECSCUSR (``CSI Ps SP q``) selects.
+
+        0 selects 1, as in xterm, and any value past 6 is ignored.
+        From then on :meth:`content` draws the cursor cell itself, see :attr:`TermModes.cursor_style`.
+        """
+        style = params[0] or 1
+        if style in _CURSOR_STYLES:
+            self.modes.cursor_style = style
+            self.set_term_cursor()
 
     def csi_set_modes(
         self,
@@ -2049,9 +2441,33 @@ class TermCanvas(Canvas):
 
         The cells store the attributes the child set.
         While the reverse video mode (DECSCNM) is on, every line is yielded with its attributes in standout.
+        After a DECSCUSR the shown cursor cell is drawn in reverse video for a block or a bar, or underlined for an
+        underline, and the blinking styles are drawn steady.
+        A cell that is already in reverse video, or already underlined for an underline, is drawn without it.
 
         All parameters are ignored.
         """
+        lines = self._screen_lines()
+        style = self.modes.cursor_style
+        if style is None or (shown := self._shown_cursor()) is None:
+            yield from lines
+            return
+        cursor_x, cursor_y = shown
+        for row, line in enumerate(lines):
+            if row != cursor_y or cursor_x >= len(line):
+                yield line
+                continue
+            # a copy, so the screen's own row is not changed
+            drawn = list(line)
+            cell_attr, charset, text = drawn[cursor_x]
+            # the flag is turned off on a cell that already has it, so the cursor stays visible there
+            flag = "underline" if style in _UNDERLINE_CURSOR_STYLES else "standout"
+            cell_attr = _with_flag(cell_attr, flag, remove=cell_attr is not None and getattr(cell_attr, flag))
+            drawn[cursor_x] = (cell_attr, charset, text)
+            yield drawn
+
+    def _screen_lines(self) -> Iterator[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]:
+        """Yield the rows in view, with their attributes in standout while the reverse video mode (DECSCNM) is on."""
         lines: Iterable[list[tuple[AttrSpec | None, Literal["0", "U"] | None, bytes]]]
         if self.scrolling_up == 0:
             lines = self.term
@@ -2075,3 +2491,20 @@ class TermCanvas(Canvas):
                     reversed_attrs[cell_attr] = self.reverse_attrspec(cell_attr)
                 reversed_line.append((reversed_attrs[cell_attr], charset, text))
             yield reversed_line
+
+
+#: the CSI sequences with an intermediate byte before the final one, by intermediate and final byte, run with their
+#: parameters, None for an empty one
+_INTERMEDIATE_COMMANDS: typing.Final[Mapping[tuple[bytes, bytes], Callable[[TermCanvas, list[int | None]], None]]] = (
+    types.MappingProxyType(
+        {
+            (b"$", b"x"): TermCanvas.csi_fill_rectangle,
+            (b"$", b"z"): TermCanvas.csi_erase_rectangle,
+            (b"$", b"v"): TermCanvas.csi_copy_rectangle,
+            (b"*", b"y"): TermCanvas.csi_request_checksum,
+            (b"'", b"}"): TermCanvas.csi_insert_columns,
+            (b"'", b"~"): TermCanvas.csi_delete_columns,
+            (b" ", b"q"): TermCanvas.csi_set_cursor_style,
+        }
+    )
+)

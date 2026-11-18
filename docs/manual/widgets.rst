@@ -180,10 +180,18 @@ Controls are the widgets a user operates to make a choice: :class:`Button`,
 :class:`ActionMenu`.
 The terminal widgets are box widgets that emulate a terminal.
 :class:`Terminal` runs a child process and shows its output.
-It answers a device attributes query as a VT220 with ANSI colour, and also
-answers the VT320 queries DECRQSS, for the SGR attributes, the scrolling
-region and the conformance level, and DECRQM, for the ANSI and DEC private
-modes it keeps.  The child is given ``TERM=linux``.
+It answers a device attributes query as a VT320 with ANSI colour.  It
+answers DECRQSS, DECRQM for the ANSI and DEC private modes it keeps, and
+DECRQPSR with the cursor information and the tab stops, which DECRSPS
+restores.  DECSCL selects the VT100, VT200 or VT300 level.  Of the VT420 it
+takes the rectangular area operations DECFRA, DECERA, DECCRA and the DECRQCRA
+checksum, the column operations DECIC, DECDC, DECBI and DECFI, and the
+tertiary device attributes query, at every level, although xterm takes them
+only at the VT420 level.  At the VT100 level no reply in a DCS string is
+sent.  After the child sets a cursor style with DECSCUSR, the widget draws the
+cursor cell itself, in reverse video for a block or a bar and underlined for
+an underline, instead of the display's cursor.  Replies use 7-bit controls
+only.  The child is given ``TERM=linux``.
 :class:`TerminalOutput` shows output the application writes to it, such as
 captured output, with no process behind it, and also works on Windows.
 
