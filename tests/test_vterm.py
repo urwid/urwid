@@ -509,6 +509,7 @@ class TermTest(unittest.TestCase):
             ("ICH", r"X\e[1;1H\e[7;4;1;44m\e[@", (blue, None, b" ")),
             ("IL", r"\e[7;4;1;44m\e[L", (blue, None, b" ")),
             ("ED with default colours", r"\e[7;4m\e[2J", (None, None, b" ")),
+            ("ED from the middle row", r"\e[2;2H\e[44m\e[1J", (blue, None, b" ")),
             ("DECERA keeps the flags", r"\e[7;44m\e[1;1;1;2$z", (reverse, None, b" ")),
             ("DECALN ignores the attributes and the charset", r"\e[7;44m\e(0\e#8", (None, None, b"E")),
         ):
@@ -1192,7 +1193,52 @@ class TermTest(unittest.TestCase):
             (
                 "DECFRA fills in the current attributes, and DECERA erases",
                 r"\e[1m\e[88;1;1;2;3$x\e[0m\e[1;1;1;1;2;3*y\e[1;1;1;1$z\e[1;1;1;1;1;1*y\e[1;1;1;2;1;2*y",
-                b"\x1bP1!~FAF0\x1b\\\x1bP1!~0000\x1b\\\x1bP1!~FF28\x1b\\",
+                b"\x1bP1!~FAF0\x1b\\\x1bP1!~FFE0\x1b\\\x1bP1!~FF28\x1b\\",
+            ),
+            *(
+                (
+                    f"DECRQCRA counts a cell left by {label} as xterm does",
+                    "\\ec" + data + "\\e[0m" + rf"\e[1;1;{row};{col};{row};{col}*y",
+                    b"\x1bP1!~%s\x1b\\" % value,
+                )
+                for label, data, row, col, value in (
+                    ("EL, never written", "ABCD\\e[1;2H\\e[1m\\e[K", 1, 2, b"0000"),
+                    ("ED, never written", "ABCD\\e[1;2H\\e[1m\\e[J", 1, 2, b"0000"),
+                    ("ECH, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e[2X", 1, 2, b"FFE0"),
+                    ("ICH, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e[2@", 1, 2, b"FFE0"),
+                    ("DECIC, a space without attributes", "ABCD\\e[1;2H\\e[1m\\e['}", 1, 2, b"FFE0"),
+                    ("DCH, never written", "ABCD\\e[1;1H\\e[1m\\e[2P", 1, 80, b"0000"),
+                    ("IL, never written", "ABCD\\e[1;1H\\e[1m\\e[L", 1, 1, b"0000"),
+                    ("scrolling, never written", "ABCD\\e[1m\\e[24;1H\n", 24, 1, b"0000"),
+                    ("DECERA, a space in the attributes", "ABCD\\e[1m\\e[1;2;1;2$z", 1, 2, b"FF60"),
+                    ("a written space", " ", 1, 1, b"FFE0"),
+                    ("a written bold space", "\\e[1m ", 1, 1, b"FF60"),
+                    ("a tab, never written", "\\e[1m\tX", 1, 2, b"0000"),
+                    ("DECALN, a plain E", "\\e[1m\\e#8", 1, 1, b"FFBB"),
+                    ("a Latin-1 character, its low 7 bits", "\xc3\xa9", 1, 1, b"FF97"),
+                    ("a no-break space", "\xc2\xa0", 1, 1, b"FFE5"),
+                    ("U+00FF", "\xc3\xbf", 1, 1, b"0000"),
+                    ("a character past Latin-1", "\xe2\x82\xac", 1, 1, b"FFE5"),
+                    ("a DEC graphics character", "\\e(0q", 1, 1, b"FFE3"),
+                    ("a DEC graphics blank", "\\e(0_", 1, 1, b"0000"),
+                    ("a DEC graphics degree sign", "\\e(0f", 1, 1, b"FF50"),
+                )
+            ),
+            (
+                "DECRQCRA values a blank and a written space apart in one request",
+                r"\e[2;1H \e[1;1;1;1;2;1*y",
+                b"\x1bP1!~FFE0\x1b\\",
+            ),
+            ("DECRQDE reports the screen", r'\e["v', b'\x1b[24;80;1;1;1"w'),
+            (
+                "DECRQM reports DECLRMM and DECKBUM permanently reset",
+                r"\e[?69h\e[?69$p\e[?68$p",
+                b"\x1b[?69;4$y\x1b[?68;4$y",
+            ),
+            (
+                "DECRQSS reports the full-width margins and the lines per screen",
+                rf"\eP$qs{_ST}\eP$q*|{_ST}",
+                b"\x1bP1$r1;80s\x1b\\\x1bP1$r24*|\x1b\\",
             ),
             ("DECFRA ignores a control character", r"\e[10;1;1;1;1$x\e[1;1;1;1;1;1*y", b"\x1bP1!~0000\x1b\\"),
             (
