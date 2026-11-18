@@ -22,11 +22,12 @@ from __future__ import annotations
 
 import typing
 
+from urwid.canvas import CompositeCanvas
 from urwid.command_map import Command
 from urwid.util import is_mouse_press
 
 from ._pop_up_list import _bar_settings, _boxed_list, _PopUpListItem
-from .attr_map import AttrMap
+from .attr_map import AttrMap, _attr_map_dict
 from .columns import Columns
 from .constants import BOX_SYMBOLS, MouseButton, WrapMode
 from .divider import Divider
@@ -37,7 +38,7 @@ from .wimp import SelectableIcon
 if typing.TYPE_CHECKING:
     from collections.abc import Collection, Iterable
 
-    from urwid.canvas import Canvas, CompositeCanvas
+    from urwid.canvas import Canvas
     from urwid.util import _TagMarkup
 
     from .attr_map import _AttrMapLike
@@ -59,7 +60,7 @@ class DropDown(PopUpLauncher[Columns]):
     Neither can be focused or chosen, so :kbd:`up`, :kbd:`down`, :kbd:`home` and :kbd:`end` skip them.
 
     With a single option that can be chosen there is nothing to choose, so the widget is read-only: it is not
-    selectable, and activating it opens no list.
+    selectable, it is drawn with `disabled_map`, and activating it opens no list.
 
     .. important::
         DropDown requires ``MainLoop(..., pop_ups=True)``, or another :class:`PopUpTarget <urwid.PopUpTarget>`
@@ -113,7 +114,8 @@ class DropDown(PopUpLauncher[Columns]):
             it scrolls through the rest.
         :param attr_map: display attribute of each option in the open list, as for :class:`AttrMap <urwid.AttrMap>`.
         :param focus_map: display attribute of the focused option in the open list.
-        :param disabled_map: display attribute of a disabled option in the open list, applied over `attr_map`.
+        :param disabled_map: display attribute of a disabled option in the open list, applied over `attr_map`,
+            and of the whole widget while it is read-only.
         :param border: draw a box around the open list, with its scroll bar outside the box,
             in the display attribute of `attr_map`; every option must then be one line.
         :param scrollbar_options: the :class:`ScrollBar <urwid.ScrollBar>` parameters of the open list's scroll bar,
@@ -129,6 +131,7 @@ class DropDown(PopUpLauncher[Columns]):
             - :class:`ScrollBar <urwid.ScrollBar>` rejects the value of a ``scrollbar_`` parameter.
         :raises TypeError: a keyword argument is neither a parameter of the drop-down nor one of `scrollbar_options`.
         :raises IndexError: `selected` or an index in `disabled` is not an index of `options`.
+        :raises AttrMapError: a key or value of `disabled_map` is not hashable.
         """
         self._bar = _bar_settings(type(self).__name__, scrollbar_options)
         self._options: tuple[_TagMarkup | None, ...] = tuple(options)
@@ -155,7 +158,7 @@ class DropDown(PopUpLauncher[Columns]):
         self._max_visible_items = max_visible_items
         self._attr_map = attr_map
         self._focus_map = focus_map
-        self._disabled_map = disabled_map
+        self._disabled_map = _attr_map_dict(disabled_map)
         self._border = border
         self._choosable_count = len(choosable)
         # Widest option, so the widget and its list do not change width with the selection.
@@ -285,8 +288,16 @@ class DropDown(PopUpLauncher[Columns]):
         size: tuple[()] | tuple[int] | tuple[int, int],
         focus: bool = False,
     ) -> CompositeCanvas | Canvas:
-        """Render the selected option and the indicator, with the list attached when it is open."""
-        return super().render(size or (self._fixed_width,), focus)
+        """Render the selected option and the indicator, with the list attached when it is open.
+
+        A read-only drop-down is drawn with `disabled_map`.
+        """
+        canv = super().render(size or (self._fixed_width,), focus)
+        if self.selectable():
+            return canv
+        canv = CompositeCanvas(canv)
+        canv.fill_attr_apply(self._disabled_map)
+        return canv
 
     def keypress(
         self,

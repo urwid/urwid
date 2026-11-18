@@ -39,6 +39,7 @@ class DropDownConstructionTest(unittest.TestCase):
             ("disabled separator", (SIZES,), {"disabled": {1}}, ValueError),
             ("disabled past the end", (SIZES,), {"disabled": {4}}, IndexError),
             ("nothing choosable", ([None, "a"],), {"disabled": {1}}, ValueError),
+            ("unhashable disabled map", (COLOURS,), {"disabled_map": {"a": []}}, urwid.AttrMapError),
         ):
             with self.subTest(description), self.assertRaises(error):
                 urwid.DropDown(*args, **kwargs)
@@ -283,8 +284,16 @@ class DropDownListTest(unittest.TestCase):
         self.assertIsNone(drop_down._pop_up_widget)
 
     def test_single_choosable_option_is_read_only(self) -> None:
-        self.assertFalse(urwid.DropDown(["only", None, "off"], disabled={2}).selectable())
-        self.assertTrue(urwid.DropDown(SIZES, disabled={3}).selectable())
+        """A read-only drop-down is drawn with ``disabled_map``, and one with a choice is not."""
+        read_only = urwid.DropDown(["only", None, "off"], disabled={2}, disabled_map="disabled")
+        choice = urwid.DropDown(SIZES, disabled={3}, disabled_map="disabled")
+
+        self.assertFalse(read_only.selectable())
+        self.assertTrue(choice.selectable())
+        for drop_down, expected in ((read_only, {"disabled"}), (choice, {None})):
+            with self.subTest(selectable=drop_down.selectable()):
+                content = drop_down.render(()).content()
+                self.assertEqual(expected, {attr for row in content for attr, _cs, _text in row})
 
     def test_separator_and_disabled_option(self) -> None:
         """A separator and a disabled option are drawn in the list, and up and down skip them."""

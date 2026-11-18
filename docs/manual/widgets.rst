@@ -249,8 +249,9 @@ attribute of ``disabled_map``, that cannot be chosen.  :kbd:`up`, :kbd:`down`,
 :kbd:`home` and :kbd:`end` skip both, and :attr:`DropDown.selected` cannot
 name either; it starts on the first option that can be chosen unless
 ``selected`` names another.  A drop-down with a single option that can be
-chosen has nothing to choose, so it is read-only: it is not selectable, opens
-no list, and leaves the key or the click to the widgets above it.
+chosen has nothing to choose, so it is read-only: it is not selectable, is
+drawn in the attribute of ``disabled_map``, opens no list, and leaves the key
+or the click to the widgets above it.
 ``DropDown(..., border=True)`` draws a box around the open list, in the
 attribute of ``attr_map``, with the scroll bar outside the box when the list
 scrolls; without it the list has no border.
