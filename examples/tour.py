@@ -222,7 +222,7 @@ def main() -> None:
             "scrollbar while they do not all fit, a footer row of totals, and keeps the focused row marked while the "
             "focus is elsewhere.  A narrow window hides the Size column first, since its priority is the lowest.  "
             "Click a column label, or press UP at the first row and ENTER on a label, to sort by that column; again "
-            "to reverse the order."
+            "to reverse the order.  The check box below it shows or hides the Size column."
         ),
     ]
     # (name, size, size in bytes for sorting, note)
@@ -356,6 +356,13 @@ def main() -> None:
         return True
 
     urwid.connect_signal(table, "header activated", sort_table)
+
+    def show_sizes(_check_box: urwid.CheckBox, state: bool) -> None:
+        # the columns are named by the keys generated from their labels
+        table.layout.column_order = ("name", "size", "note") if state else ("name", "note")
+
+    show_sizes_box = urwid.CheckBox("Show sizes", state=True)
+    urwid.connect_signal(show_sizes_box, "change", show_sizes)
 
     action_chosen = urwid.Text(["Action: ", ("important", "none yet")])
 
@@ -602,7 +609,7 @@ def main() -> None:
         urwid.Padding(urwid.Text(text_table), left=2, right=2, min_width=20),
         blank,
         urwid.Padding(
-            table,
+            urwid.Pile([table, urwid.AttrMap(show_sizes_box, "buttn", "buttnf")]),
             left=4,
             right=3,
             min_width=20,

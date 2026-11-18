@@ -933,6 +933,35 @@ A hidden column stays hidden at that width even when hiding another one later
 leaves room for it.
 A hidden column is skipped by the keyboard.
 
+A column is named by its index in the list of columns, or by a ``key``.
+A ``key`` is any hashable value except a number, which would read as an index.
+A column without a ``key`` is also named by its label in lower case, while no
+other column has the same label; :meth:`TableLayout.column_index` resolves
+either form.  :attr:`TableLayout.column_order` shows, hides and reorders the
+columns of a built table: it is the shown columns from left to right, and a
+column left out is hidden, so a setting such as "the columns to show, in
+order" maps onto it directly::
+
+    table = urwid.Table(
+        [
+            urwid.TableColumn("Name"),
+            urwid.TableColumn("Size", align=urwid.RIGHT),
+            urwid.TableColumn("Last change", key="mtime"),
+        ],
+        rows,
+    )
+    table.layout.column_order = ("mtime", "name")  # Size hidden
+
+The order changes only what is drawn and what the keys and the mouse reach.
+The cells of a row, the cell positions, :meth:`TableLayout.widths`,
+:attr:`Table.sort_column`, :attr:`Table.header_column` and the
+``"header activated"`` signal keep using the index in the list of columns.
+The focused row, the focused cell of each row, the scroll position and the
+sort state are kept, and a hidden column can still be sorted by.
+A row whose focused cell the order hides passes the focus to the nearest
+shown cell by index, a selectable one first, so the keys keep reaching a cell
+the user can see.
+
 Cells are measured once, when their row is built.  A text cell the table
 made measures itself again when its text changes.  A widget passed as a cell
 whose width changes later needs :meth:`TableLayout.invalidate_widths`.
@@ -977,15 +1006,18 @@ handling are passed with a ``scrollbar_`` prefix, such as
 ``scrollbar_attr``, so a table's scrollbar can look like the other scrollbars
 of an application.
 
-:meth:`Table.sort` reorders the rows by the text of a column, or by a
-``key`` that receives each :class:`TableRow`, and keeps the focus on the same
-row.  :attr:`Table.sort_column` and :attr:`Table.sort_reverse` record the last
+:meth:`Table.sort` reorders the rows by the text of a column, given by its
+index or its key, or by a ``key`` that receives each :class:`TableRow`, and
+keeps the focus on the same row.  :attr:`Table.sort_column` and
+:attr:`Table.sort_reverse` record the last
 sort.  A table built with ``sortable=True`` also offers its header for sorting:
 
 * A click on a column label, or :kbd:`enter` on the focused label, sends
   ``"header activated"`` with the column index.  The table does not sort by
-  itself; the handler calls :meth:`Table.sort`, and toggles the direction with
-  ``table.sort(column, reverse=table.sort_column == column and not table.sort_reverse)``.
+  itself; the handler calls :meth:`Table.sort`, and toggles the direction with::
+
+      table.sort(column, reverse=table.sort_column == column and not table.sort_reverse)
+
 * :kbd:`up` at the first row focuses the header, :kbd:`left` and
   :kbd:`right` move over the labels, and :kbd:`down` goes back to the rows.
   :attr:`Table.header_column` reads and sets the focused label.

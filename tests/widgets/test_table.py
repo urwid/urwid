@@ -71,15 +71,109 @@ class TableLayoutTest(unittest.TestCase):
             Column(priority=1.0),
             Column(priority="1"),
             Column(priority=None),
+            Column(key=1),
+            Column(key=True),
+            Column(key=1.0),
+            Column(key=1j),
+            Column(key=[]),
+            Column(key="a"),
         ):
             with (
                 self.subTest("the index is named", column=invalid),
                 self.assertRaisesRegex(urwid.TableError, "column 1"),
             ):
-                TableLayout([Column(), invalid])
+                TableLayout([Column(key="a") if invalid.key == "a" else Column(), invalid])
 
         with self.subTest("a given width of 0 ignores min_width"):
             self.assertEqual((0, 1), TableLayout([Column(width=0, min_width=0), Column()]).widths(5))
+
+    def test_column_index(self) -> None:
+        """A column is found by its index, its key, or the text of its label; anything else is an IndexError."""
+        layout = TableLayout([Column("Name"), Column("Size", key="bytes"), Column("Last change", key="mtime")])
+        for column, index in ((0, 0), (2, 2), ("name", 0), ("bytes", 1), ("mtime", 2)):
+            with self.subTest(column=column):
+                self.assertEqual(index, layout.column_index(column))
+        for column in (-1, 3, True, False, 1.0, "size", "last change", "Name", [], None):
+            with self.subTest(column=column), self.assertRaises(IndexError):
+                layout.column_index(column)
+        for order in ((True,), (1.0,)):
+            with self.subTest("a bool or a float in the order", order=order), self.assertRaises(IndexError):
+                layout.column_order = order
+        self.assertEqual((0, 1, 2), layout.column_order)
+
+    def test_generated_keys(self) -> None:
+        """A column without a key is found by its label in lower case, while that text names it alone."""
+        cases: tuple[tuple[str, list[urwid.TableColumn], dict[Hashable, int | None]], ...] = (
+            # (label, columns, {key: index, or None for no column})
+            ("plain labels", [Column("Name"), Column("Size")], {"name": 0, "size": 1, "Name": None}),
+            ("markup", [Column(("bold", "Name")), Column(["a ", ("b", "Size")])], {"name": 0, "a size": 1}),
+            ("spaces and upper case", [Column("  Last Change ")], {"last change": 0, "  last change ": None}),
+            ("an explicit key wins", [Column("Name"), Column("Other", key="name")], {"name": 1, "other": None}),
+            ("repeated labels", [Column("A"), Column("a"), Column("B")], {"a": None, "b": 2}),
+            ("empty and bytes labels", [Column(""), Column(b"Raw"), Column("x")], {"": None, "raw": None, "x": 2}),
+        )
+        for label, columns, keys in cases:
+            layout = TableLayout(columns)
+            for key, index in keys.items():
+                with self.subTest(label, key=key):
+                    if index is None:
+                        with self.assertRaises(IndexError):
+                            layout.column_index(key)
+                    else:
+                        self.assertEqual(index, layout.column_index(key))
+            self.assertEqual([column.key for column in columns], [column.key for column in layout.columns])
+
+    def test_column_order(self) -> None:
+        """The order shows, hides and reorders the columns; widths stay by index, one divider between shown ones."""
+        columns = [Column("A"), Column("B", align=urwid.RIGHT), Column("C"), Column("D", width=0)]
+        cases: tuple[tuple[str, tuple[Hashable, ...], tuple[int, ...], int, list[str]], ...] = (
+            # (label, order, widths, natural width, the two rows at the natural width or 3 columns when it is 0)
+            ("default", (0, 1, 2, 3), (2, 2, 3, 0), 9, ["a  bb ccc", "aa  b c  "]),
+            ("reordered", (2, "a", "b"), (2, 2, 3, 0), 9, ["ccc a  bb", "c   aa  b"]),
+            ("hidden", (0, 2), (2, 0, 3, 0), 6, ["a  ccc", "aa c  "]),
+            ("hidden and reordered", ("c", 0), (2, 0, 3, 0), 6, ["ccc a ", "c   aa"]),
+            ("empty", (), (0, 0, 0, 0), 0, ["   ", "   "]),
+            ("with a given width of 0", (3, 1), (0, 2, 0, 0), 2, ["bb", " b"]),
+        )
+        for label, order, widths, natural, rendered in cases:
+            with self.subTest(label):
+                layout = TableLayout(columns)
+                pile = urwid.Pile([layout.row(["a", "bb", "ccc", "d"]), layout.row(["aa", "b", "c", "dd"])])
+                layout.column_order = order
+                self.assertEqual(tuple(layout.column_index(column) for column in order), layout.column_order)
+                self.assertEqual(widths, layout.widths(12))
+                self.assertEqual(natural, layout.natural_width())
+                self.assertEqual(rendered, render_text(pile, (natural or 3,)))
+
+    def test_column_order_errors(self) -> None:
+        """A rejected order leaves the order as it was."""
+        layout = TableLayout([Column("A"), Column("B", key="b")])
+        layout.column_order = (1,)
+        cases: tuple[tuple[typing.Any, type[Exception]], ...] = (
+            ((0, 0), urwid.TableError),
+            ((0, "b", 1), urwid.TableError),
+            ("ab", urwid.TableError),
+            (b"ab", urwid.TableError),
+            ((0, "c"), IndexError),
+            ((2,), IndexError),
+            ((0, -1), IndexError),
+        )
+        for order, error in cases:
+            with self.subTest(order=order), self.assertRaises(error):
+                layout.column_order = order
+            self.assertEqual((1,), layout.column_order)
+
+    def test_column_order_reaches_every_row(self) -> None:
+        """Rows built before and after a change, and a row released and added back, follow the new order."""
+        table = urwid.Table([Column("A"), Column("B")], [["a", "b"], ["c", "d"]], header=False)
+        self.assertEqual(["a b", "c d"], render_text(table, (3,)))
+        removed = table.body.pop(1)
+        free = table.layout.row(["g", "h"])
+        table.layout.column_order = (1, 0)
+        table.body.append(["e", "f"])
+        table.body.append(removed)
+        self.assertEqual(["b a", "f e", "d c"], render_text(table, (3,)))
+        self.assertEqual(["h g"], render_text(free, (3,)))
 
     def test_rows_share_widths(self) -> None:
         """Rows built through one layout line up, and a wider row widens every row."""
@@ -265,6 +359,13 @@ class TableLayoutTest(unittest.TestCase):
                     self.assertEqual(widths, layout.widths(maxcol))
             self.assertIsNotNone(row)
 
+        with self.subTest("equal priorities go rightmost on screen first"):
+            layout = TableLayout([Column(min_width=4)] * 3, dividechars=1)
+            row = layout.row(packed)
+            layout.column_order = (2, 0, 1)
+            self.assertEqual((4, 0, 4), layout.widths(13))
+            self.assertEqual((0, 0, 4), layout.widths(8))
+
     def test_priority_strict_order(self) -> None:
         """A hidden column stays hidden when hiding a later one leaves room for it."""
         layout = TableLayout(
@@ -286,6 +387,18 @@ class TableLayoutTest(unittest.TestCase):
                 self.assertEqual(default.widths(maxcol), lowest.widths(maxcol))
         self.assertEqual((0, 4, 0), lowest.widths(8))
         self.assertEqual(2, len(rows))
+
+        with self.subTest("in a column order"):
+            ordered = TableLayout(
+                [Column(min_width=4), Column(width=0, priority=-5), Column(min_width=4, priority=-1), Column()]
+            )
+            row = ordered.row(["aaaa", "", "bbbb", "cccc"])
+            ordered.column_order = (3, 1, 0, 2)
+            for maxcol in range(16):
+                with self.subTest(maxcol=maxcol):
+                    self.assertEqual(0, ordered.widths(maxcol)[1])
+            self.assertEqual((4, 0, 0, 4), ordered.widths(9))
+            self.assertIsNotNone(row)
 
     def test_hidden_column_removes_divider(self) -> None:
         """A column of given width 0 has no divider, and neither has a column hidden for lack of room."""
@@ -347,6 +460,14 @@ class TableLayoutTest(unittest.TestCase):
                 self.assertEqual(["a         x", "b         y"], render_text(pile, (11,)))
                 self.assertIsNotNone(off_screen)
 
+        with self.subTest("a column left out of the order"):
+            layout = TableLayout([Column(), Column()])
+            row = layout.row(["a", "x"])
+            layout.column_order = (1,)
+            typing.cast("urwid.Text", row.cells[0]).set_text("wide")
+            layout.column_order = (0, 1)
+            self.assertEqual(["wide x"], render_text(row, (6,)))
+
     def test_shared_table_text_updates_all_columns(self) -> None:
         """A generated text cell reused in another column keeps both widths current."""
         layout = TableLayout([Column(), Column()])
@@ -407,6 +528,8 @@ class TableLayoutTest(unittest.TestCase):
         self.assertEqual([b"a x     ", b"b y     "], old.text)
         wider = layout.row(["ccc", "z"])
         self.assertEqual(["a   x   ", "b   y   "], render_text(pile, (8,)))
+        layout.column_order = (1, 0)
+        self.assertEqual(["x a     ", "y b     "], render_text(pile, (8,)))
         del wider
 
     def test_allocation_cache_bounded(self) -> None:
@@ -548,6 +671,32 @@ class TableTest(unittest.TestCase):
         self.assertEqual(["Name     N", "r0       0", "r1       1"], render_text(table, (10, 3)))
         self.assertEqual((10, 5), table.pack(()))
         self.assertEqual(render_text(table, (10,)), render_text(table, ()))
+
+        with self.subTest("in a column order"):
+            table.footer = ["sum", "9"]
+            table.layout.column_order = (1, 0)
+            expected = ["  N Name  ", "  0 r0    ", "  1 r1    ", "  2 r2    ", "123 longer", "  9 sum   "]
+            self.assertEqual(expected, render_text(table, (10,)))
+            self.assertEqual((10, 6), table.pack(()))
+
+    def test_column_order_keeps_focus_and_view(self) -> None:
+        """A change of the order keeps the focused row and cell and the scroll position, and sends no signal."""
+        table = urwid.Table(
+            [Column("A", width=2), Column("B", width=2)],
+            [[urwid.Edit("", f"a{i}"), urwid.Edit("", f"b{i}", edit_pos=0)] for i in range(10)],
+        )
+        size = (10, 4)
+        table.focus_position = 7
+        table.focus.focus_position = 1
+        self.assertEqual(["A  B      ", "a6 b6     ", "a7 b7     ", "a8 b8     "], render_text(table, size, focus=True))
+        self.assertEqual((3, 2), table.get_cursor_coords(size))
+        events: list[tuple[int | None, int | None]] = []
+        urwid.connect_signal(table, "focus changed", lambda _w, old, new: events.append((old, new)))
+        table.layout.column_order = (1, 0)
+        self.assertEqual(["B  A      ", "b6 a6     ", "b7 a7     ", "b8 a8     "], render_text(table, size, focus=True))
+        self.assertEqual([7, 1], table.get_focus_path())
+        self.assertEqual((0, 2), table.get_cursor_coords(size))
+        self.assertEqual([], events)
 
     def test_no_header(self) -> None:
         """Without a header the rows start at the top."""
@@ -1223,6 +1372,29 @@ class TableTest(unittest.TestCase):
                 self.assertEqual(table.focus_position, focused.index)
         self.assertEqual([(1, 0), (0, 2), (2, 1), (1, 2)], events)
 
+        for label, columns in (
+            ("by an explicit key", [Column("Name"), Column("Bytes", key="size")]),
+            ("by a key from the label", [Column("Name"), Column("Size")]),
+        ):
+            with self.subTest(label):
+                keyed = urwid.Table(columns, [["b", "2"], ["a", "10"], ["c", "1"]], sortable=True)
+                keyed.sort("size")
+                self.assertEqual(["c", "a", "b"], self.names(keyed))
+                self.assertEqual(1, keyed.sort_column)
+                keyed.sort("size", key=lambda row: int(row.cells[1].text))
+                self.assertEqual(["c", "b", "a"], self.names(keyed))
+                self.assertEqual([columns[0].label, f"{columns[1].label} ^"], self.labels(keyed))
+
+    def test_sort_hidden_column(self) -> None:
+        """A column left out of the order sorts, and shows its mark once it is shown again."""
+        table = self.make_unsorted()
+        table.layout.column_order = (0,)
+        table.sort(1)
+        self.assertEqual(["c", "a", "b"], self.names(table))
+        self.assertEqual(1, table.sort_column)
+        table.layout.column_order = (1, 0)
+        self.assertEqual(["N ^ Name  ", "  1 c     ", " 10 a     ", "  2 b     "], render_text(table, (10,)))
+
     def test_sort_errors(self) -> None:
         """A sort that cannot be made leaves the rows, the state and the mark as they were."""
         table = self.make_unsorted()
@@ -1239,6 +1411,7 @@ class TableTest(unittest.TestCase):
             ("column out of range", {"column": 2}, IndexError),
             ("negative column", {"column": -1}, IndexError),
             ("bool column", {"column": True}, IndexError),
+            ("unknown key", {"column": "size"}, IndexError),
             ("span row and widget cell", {"column": 0}, urwid.TableError),
             ("widget cell", {"column": 0, "key": None}, urwid.TableError),
             ("raising key", {"column": 0, "key": failing}, ZeroDivisionError),
@@ -1251,6 +1424,13 @@ class TableTest(unittest.TestCase):
         del table.body[3]
         with self.assertRaisesRegex(urwid.TableError, "row 3: column 0 has no text"):
             table.sort(0)
+
+        for column in (True, 1.0):
+            with self.subTest("a bool or a float names no column", column=column):
+                keyed = urwid.Table([Column("A"), Column("B")], [["a", "b"]], sortable=True)
+                with self.assertRaises(IndexError):
+                    keyed.sort(column)
+                self.assertIsNone(keyed.sort_column)
 
     def test_sort_state_seen_by_handlers(self) -> None:
         """A "modified" or "focus changed" handler reads the new state and mark; a raising one keeps them."""
@@ -1373,6 +1553,45 @@ class TableTest(unittest.TestCase):
                 self.assertEqual(expected_activated, activated)
                 self.assertEqual(0, table.focus_position)
 
+        for label, columns in (
+            ("set by a key from the label", [Column("A"), Column("B")]),
+            ("set by an explicit key", [Column("A"), Column("Other", key="b")]),
+        ):
+            with self.subTest(label):
+                keyed = urwid.Table(columns, [["a", "b"]], sortable=True)
+                keyed.header_column = "b"
+                self.assertEqual(1, keyed.header_column)
+                self.assertEqual((2, 0), keyed.get_cursor_coords((10, 2)))
+        for column in (True, 1.0):
+            with self.subTest("a bool or a float names no column", column=column):
+                keyed = urwid.Table([Column("A"), Column("B")], [["a", "b"]], sortable=True)
+                with self.assertRaises(IndexError):
+                    keyed.header_column = column
+                self.assertIsNone(keyed.header_column)
+
+    def test_header_in_column_order(self) -> None:
+        """Clicks, left and right and the cursor follow the order on screen, and send column indexes."""
+        table = urwid.Table(
+            [Column("A", width=3), Column("B", width=3), Column("C", width=3)],
+            [["a", "b", "c"]],
+            sortable=True,
+        )
+        table.layout.column_order = (2, 0)
+        activated: list[int] = []
+        urwid.connect_signal(table, "header activated", lambda _w, column: (activated.append(column), True)[1])
+        size = (10, 2)
+        self.assertTrue(click(table, size, 0, 0))
+        self.assertEqual((2, [2]), (table.header_column, activated))
+        self.assertEqual((0, 0), table.get_cursor_coords(size))
+        self.assertEqual([], press(table, size, "right"))
+        self.assertEqual(0, table.header_column)
+        self.assertEqual((4, 0), table.get_cursor_coords(size))
+        self.assertEqual(["right"], press(table, size, "right"))
+        self.assertEqual([], press(table, size, "left"))
+        self.assertEqual(2, table.header_column)
+        self.assertTrue(click(table, size, 4, 0))
+        self.assertEqual((0, [2, 0]), (table.header_column, activated))
+
     def test_header_activate_unhandled(self) -> None:
         """Activate on the header is returned when no handler consumes it."""
         table = self.make(sortable=True)
@@ -1456,6 +1675,13 @@ class TableTest(unittest.TestCase):
                 table.header_column = value
         self.assertIsNone(table.header_column)
 
+        ordered = urwid.Table([Column("A"), Column("B", width=0), Column("C")], [["a", "b", "c"]], sortable=True)
+        ordered.layout.column_order = (0, 1)
+        for value in (2, "c", "b", "x"):
+            with self.subTest("by key and column order", value=value), self.assertRaises(IndexError):
+                ordered.header_column = value
+        self.assertIsNone(ordered.header_column)
+
     def test_header_column_hidden_by_size(self) -> None:
         """A narrower size shows the focus on the visible column on the left, and the wider size restores it."""
         table = urwid.Table(
@@ -1498,6 +1724,22 @@ class TableTest(unittest.TestCase):
             self.assertEqual((0, 0), first.get_cursor_coords((11, 2)))
             self.assertEqual([], press(first, (7, 2), "right"))
             self.assertEqual(2, first.header_column)
+
+        with self.subTest("the stored column hidden by the column order"):
+            ordered = urwid.Table(
+                [Column("A", width=3, priority=-1), Column("B", width=3), Column("C", width=3)],
+                [["a", "b", "c"]],
+                sortable=True,
+            )
+            ordered.layout.column_order = (2, 0, 1)
+            ordered.header_column = 0
+            self.assertEqual((4, 0), ordered.get_cursor_coords((11, 2)))
+            # column 0 hidden for lack of room: the focus shows on column 2, on its left on screen
+            self.assertEqual((0, 0), ordered.get_cursor_coords((7, 2)))
+            # a column out of the order counts as right of the last one
+            ordered.layout.column_order = (1, 2)
+            self.assertEqual((4, 0), ordered.get_cursor_coords((11, 2)))
+            self.assertEqual(0, ordered.header_column)
 
         with self.subTest("header dropped"):
             dropped = self.make(sortable=True, header_drop=3)
@@ -1646,15 +1888,132 @@ class TableContainerTest(unittest.TestCase):
         self.assertTrue(table)
 
     def test_invalid_cell_position(self) -> None:
-        """An invalid cell position raises IndexError and leaves the cell focus unchanged."""
-        table = self.make()
-        for label, position in (("past the end", 2), ("negative", -1), ("not an int", "x")):
+        """An invalid cell position raises as Columns does and leaves the cell focus unchanged, in any order."""
+
+        class Index:
+            def __index__(self) -> int:
+                return 0
+
+        cases: tuple[tuple[str, typing.Any, type[Exception]], ...] = (
+            ("past the end", 2, IndexError),
+            ("negative", -1, IndexError),
+            ("not an int", "x", IndexError),
+            ("a digit string", "0", IndexError),
+            ("None", None, IndexError),
+            ("an object with __index__", Index(), IndexError),
+            ("a float", 1.0, TypeError),
+        )
+        for order in ((0, 1), (1, 0)):
+            table = self.make()
+            table.layout.column_order = order
+            row = table.body[0]
+            for label, position, error in cases:
+                with self.subTest(label, order=order):
+                    with self.assertRaises(error):
+                        row.focus_position = position
+                    if error is IndexError:
+                        with self.assertRaises(IndexError):
+                            table.set_focus_path([0, position])
+                    self.assertEqual(0, row.focus_position)
+            with self.subTest("True is column 1", order=order):
+                row.focus_position = True
+                self.assertEqual(1, row.focus_position)
+        with self.subTest("a layout without columns"), self.assertRaises(IndexError):
+            _ = TableLayout([]).row([]).focus_position
+
+    def test_positions_in_column_order(self) -> None:
+        """Positions, contents and focus paths stay column indexes in any order."""
+        table = urwid.Table(
+            [Column("A", attr="col"), Column("B"), Column("C")],
+            [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
+            header=False,
+        )
+        row = table.body[0]
+        cells = row.cells
+        table.layout.column_order = (2, 0)
+        self.assertEqual(["c a"], render_text(table, (3,)))
+        for rendered in (False, True):
+            with self.subTest(rendered=rendered):
+                if rendered:
+                    table.render((20, 3), focus=True)
+                self.assertEqual([0, 1, 2], list(row))
+                self.assertEqual(list(cells), [cell.base_widget for cell, _options in row.contents])
+                self.assertIs(cells[2], row[2])
+                row.focus_position = 2
+                self.assertEqual(2, row.focus_position)
+                self.assertIs(cells[2], row.focus)
+                table.set_focus_path([0, 0])
+                self.assertEqual([0, 0], table.get_focus_path())
+                self.assertIs(cells[0], table.get_focus_widgets()[-1].base_widget)
+
+    def test_span_row_in_column_order(self) -> None:
+        """A span row keeps its one position and draws across the shown columns in any order."""
+        table = urwid.Table([Column("A"), Column("B")], [["a", "b"]], header=False)
+        span = table.layout.row([urwid.Edit("", "spanning")], span=True)
+        table.body.append(span)
+        table.layout.column_order = (1, 0)
+        self.assertEqual(["b a     ", "spanning"], render_text(table, (8,)))
+        self.assertEqual([0], list(span))
+        self.assertIs(span.cells[0], span.contents[0][0])
+        span.focus_position = 0
+        self.assertEqual(0, span.focus_position)
+
+    def test_focus_leaves_column_the_order_hides(self) -> None:
+        """A focused cell the order hides passes the focus to the nearest shown one, a selectable one first."""
+        cases: tuple[tuple[str, list[urwid.TableColumn], list[typing.Any], int, tuple[int, ...], int], ...] = (
+            # (label, columns, cells, focus before, order, focus after)
+            ("to the right", [Column()] * 3, ["edit"] * 3, 0, (1, 2), 1),
+            ("the left one of two at the same distance", [Column()] * 3, ["edit"] * 3, 1, (2, 0), 0),
+            ("a selectable cell first", [Column()] * 3, ["edit", "text", "edit"], 2, (0, 1), 0),
+            ("no selectable cell shown", [Column()] * 3, ["edit", "text", "edit"], 0, (1,), 1),
+            ("not to a column of given width 0", [Column(), Column(width=0), Column()], ["edit"] * 3, 0, (1, 2), 2),
+            ("nothing shown", [Column()] * 3, ["edit"] * 3, 1, (), 1),
+            ("only a column of given width 0 shown", [Column(), Column(width=0)], ["edit"] * 2, 0, (1,), 0),
+        )
+        for label, columns, kinds, before, order, after in cases:
             with self.subTest(label):
-                with self.assertRaises(IndexError):
-                    table.body[0].focus_position = position
-                with self.assertRaises(IndexError):
-                    table.set_focus_path([0, position])
-                self.assertEqual(0, table.body[0].focus_position)
+                layout = TableLayout(columns)
+                row = layout.row([urwid.Edit("", "e") if kind == "edit" else "t" for kind in kinds])
+                row.focus_position = before
+                layout.column_order = order
+                self.assertEqual(after, row.focus_position)
+
+        with self.subTest("every row of the layout, drawn or not, the header and footer of a table as well"):
+            table = urwid.Table(
+                [Column("A"), Column("B"), Column("C")],
+                [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")] for _ in range(20)],
+                footer=["x", "y", "z"],
+            )
+            rows = list(table.body)
+            for row in rows:
+                row.focus_position = 2
+            table.render((20, 3))
+            table.layout.column_order = (0, 1)
+            table.layout.column_order = (0, 1, 2)
+            self.assertEqual([1] * 20, [row.focus_position for row in rows])
+
+        with self.subTest("the keys reach the cell that took the focus, which keeps it when shown again"):
+            table = urwid.Table(
+                [Column("A"), Column("B"), Column("C")],
+                [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
+            )
+            table.layout.column_order = (1, 2)
+            self.assertEqual([], press(table, (12, 2), "z"))
+            self.assertEqual(["a", "bz", "c"], [cell.edit_text for cell in table.body[0].cells])
+            table.layout.column_order = (0, 1, 2)
+            self.assertEqual(1, table.body[0].focus_position)
+
+    def test_repeated_widget_keeps_focus_column(self) -> None:
+        """The focus follows the column, not the widget, when a row holds one widget in two columns."""
+        edit = urwid.Edit("", "x")
+        layout = TableLayout([Column(), Column(), Column()])
+        row = layout.row([edit, "y", edit])
+        row.focus_position = 2
+        for order, rendered in (((2, 1, 0), ["x y x"]), ((1, 2, 0), ["y x x"])):
+            with self.subTest(order=order):
+                layout.column_order = order
+                self.assertEqual(rendered, render_text(row, (5,)))
+                self.assertEqual(2, row.focus_position)
 
 
 class TableSelectNavigationTest(unittest.TestCase):
@@ -1732,6 +2091,29 @@ class TableSelectNavigationTest(unittest.TestCase):
                 self.assertEqual([], press(table, size, "tab"))
                 self.assertEqual(2, table.focus._w.focus_position)
 
+        with self.subTest("column order"):
+            # SelectableText leaves left and right to the row, where an Edit would move its cursor
+            table = urwid.Table(
+                [Column("A"), Column("B"), Column("C")],
+                [[SelectableText("a"), SelectableText("b"), SelectableText("c")]],
+                select_navigation=True,
+            )
+            table.layout.column_order = (2, 0)
+            row = table.body[0]
+            row.focus_position = 2
+            size = (10, 3)
+            for key, returned, column in (
+                ("tab", [], 0),
+                ("shift tab", [], 2),
+                ("right", [], 0),
+                ("right", ["right"], 0),
+                ("left", [], 2),
+            ):
+                self.assertEqual(returned, press(table, size, key))
+                self.assertEqual(column, row.focus_position)
+            table.layout.column_order = (0, 1, 2)
+            self.assertEqual(2, row.focus_position)
+
     def test_entered_from_parent(self) -> None:
         """A parent with select navigation enters the table at its first or last selectable cell."""
 
@@ -1772,6 +2154,35 @@ class TableSelectNavigationTest(unittest.TestCase):
                 self.assertIs(table, pile.focus)
                 self.assertEqual(expected, cell_focus(table))
                 self.assertEqual(expected_events, events)
+
+        for rendered in (False, True):
+            with self.subTest("column order, no render after the change", rendered=rendered):
+                table = urwid.Table(
+                    [Column("A"), Column("B"), Column("C")],
+                    [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
+                    select_navigation=True,
+                )
+                if rendered:
+                    table.render((20, 2), focus=True)
+                table.layout.column_order = (2, 0)
+                row = table.body[0]
+                table.enter_selectable()
+                self.assertEqual(2, row.focus_position)
+                table.enter_selectable(reverse=True)
+                self.assertEqual(0, row.focus_position)
+        for order, first, last in (((1, 0, 2), 0, 2), ((0, 2, 1), 0, 2), ((2, 1, 0), 2, 0)):
+            with self.subTest("a column of given width 0", order=order):
+                table = urwid.Table(
+                    [Column("A"), Column("B", width=0), Column("C")],
+                    [[urwid.Edit("", "a"), urwid.Edit("", "b"), urwid.Edit("", "c")]],
+                    select_navigation=True,
+                )
+                table.layout.column_order = order
+                row = table.body[0]
+                table.enter_selectable()
+                self.assertEqual(first, row.focus_position)
+                table.enter_selectable(reverse=True)
+                self.assertEqual(last, row.focus_position)
 
 
 class TableOptionsTest(unittest.TestCase):

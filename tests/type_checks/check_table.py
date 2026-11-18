@@ -62,6 +62,18 @@ if typing.TYPE_CHECKING:
         assert_type(shared.row(["label", "value"], data=1), urwid.TableRow)
         urwid.Pile([shared.row(["a", "b"])])
 
+    def column_order() -> None:
+        """Name the columns by index or key and reorder them."""
+        keyed = TableLayout([urwid.TableColumn("Name", key="name"), urwid.TableColumn("Size")])
+        assert_type(keyed.column_index("size"), int)
+        assert_type(keyed.column_order, tuple[int, ...])
+        keyed.column_order = (1, "name")
+        keyed.column_order = []
+        table = urwid.Table(keyed.columns, sortable=True)
+        table.sort("size")
+        table.sort("size", key=lambda row: str(row.data))
+        table.header_column = "name"
+
     def sorting(table: urwid.Table) -> None:
         """Type the sort call, its state and the header focus."""
         table.sort(0)
