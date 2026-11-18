@@ -1496,6 +1496,8 @@ class PrivateMode(enum.StrEnum):
     ALTERNATE_SCREEN_BUFFER = "1049"
     # Reports presses only, without modifiers; a Terminal uses it only while no other tracking mode is on.
     MOUSE_X10 = "9"
+    NUMERIC_KEYPAD = "66"  # DECNKM: the keypad in application mode when set
+    BACKARROW_KEY = "67"  # DECBKM: the backarrow key sends BS when set, DEL when reset
     MOUSE_REPORTING = "1000"
     # The program answers a press with CSI T and the terminal highlights the drag; urwid implements none of it.
     MOUSE_HIGHLIGHT_TRACKING = "1001"

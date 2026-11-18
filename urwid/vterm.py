@@ -863,6 +863,8 @@ class Terminal(Widget):
             sent = chr(ord(char) - ord("@"))
         elif self.term_modes.keys_decckm and sent in KEY_TRANSLATIONS_DECCKM:
             sent = KEY_TRANSLATIONS_DECCKM[sent]
+        elif sent == "backspace" and self.term_modes.backarrow_sends_backspace:
+            sent = "\b"
         elif sent in KEY_TRANSLATIONS:
             sent = KEY_TRANSLATIONS[sent]
         elif len(sent) > 1 and (sent.isascii() or " " in sent):
