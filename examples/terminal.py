@@ -31,7 +31,6 @@ import urwid
 
 def main() -> None:
     """Run the terminal emulation widget demo."""
-    urwid.set_encoding("utf8")
     term = urwid.Terminal(None, encoding="utf-8")
 
     size_widget = urwid.Text("")
