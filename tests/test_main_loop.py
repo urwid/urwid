@@ -265,6 +265,8 @@ class TestMainLoop(unittest.TestCase):
                 evt.set()
 
             if data == b"false":
+                # the watch is removed when this returns, before the loop takes the alarm
+                evl.set_alarm_in(0, stop_screen_cb)
                 return False
             if data == b"true":
                 return True
@@ -273,16 +275,13 @@ class TestMainLoop(unittest.TestCase):
             return object()
 
         def pipe_writer(fd: int) -> None:
+            # each write waits for the callback of the previous one, so no two writes arrive in one read
             os.write(fd, b"something")
-            if evt.wait(0.1):
+            for data in (b"true", b"null", b"false"):
+                if not evt.wait(5):
+                    return
                 evt.clear()
-                os.write(fd, b"true")
-            if evt.wait(0.1):
-                evt.clear()
-                os.write(fd, b"null")
-            if evt.wait(0.1):
-                evt.clear()
-                os.write(fd, b"false")
+                os.write(fd, data)
 
         with (
             ClosingScreenIO() as (screen_input, screen_output),
@@ -300,7 +299,7 @@ class TestMainLoop(unittest.TestCase):
                 screen=urwid.display.raw.Screen(input=screen_input, output=screen_output),
                 handle_mouse=False,  # Less external calls - better
             )
-            evl.set_alarm_in(1, stop_screen_cb)
+            evl.set_alarm_in(5, stop_screen_cb)  # guard: a write never handled
             pipe_fd = evl.watch_pipe(pipe_cb)
             executor.submit(pipe_writer, pipe_fd)
 
@@ -523,12 +522,14 @@ class TestMainLoop(unittest.TestCase):
 
         async def pipe_cb(data: bytes) -> bool | None:
             outcome.append(data)
+            # the watch is removed when this returns, in the same step of the task, before the loop takes the alarm
+            evl.set_alarm_in(0, stop_screen_cb)
             return False
 
         with dummy_raw_main_loop(event_loop=urwid.AsyncioEventLoop()) as evl:
             pipe_fd = evl.watch_pipe(pipe_cb)
             os.write(pipe_fd, b"hi")
-            evl.set_alarm_in(0.05, stop_screen_cb)
+            evl.set_alarm_in(5, stop_screen_cb)  # guard: the callback never runs
             evl.run()
 
         self.assertEqual([b"hi"], outcome)
@@ -1524,7 +1525,7 @@ class TestCallFromThread(unittest.TestCase):
         loop = external_loop()
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
             loop.set_alarm_in(0, lambda *_args: executor.submit(work))
-            loop.set_alarm_in(1, stop_screen_cb)
+            loop.set_alarm_in(5, stop_screen_cb)  # guard: the worker's last call never arrives
             loop.run()
 
         loop_thread = threading.get_ident()
