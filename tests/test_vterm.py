@@ -1114,7 +1114,24 @@ class TermTest(unittest.TestCase):
         """Answer each terminal query on the PTY."""
         for label, query, answer in (
             ("CPR reports the 1-based cursor position", r"\e[3;5H\e[6n", b"\x1b[3;5R"),
+            (
+                "CPR in origin mode counts the row from the top margin, as CUP does",
+                r"\e[3;7r\e[?6h\e[2;4H\e[6n",
+                b"\x1b[2;4R",
+            ),
             ("DSR reports the terminal OK", r"\e[5n", b"\x1b[0n"),
+            ("DECXCPR reports the cursor position on page 1", r"\e[3;5H\e[?6n", b"\x1b[?3;5;1R"),
+            (
+                "DECXCPR in origin mode counts the row from the top margin",
+                r"\e[3;7r\e[?6h\e[2;4H\e[?6n",
+                b"\x1b[?2;4;1R",
+            ),
+            (
+                "the DEC DSR forms report the terminal OK, no printer, unlocked keys and the keyboard",
+                r"\e[?5n\e[?15n\e[?25n\e[?26n",
+                b"\x1b[?0n\x1b[?13n\x1b[?20n\x1b[?27;1;0;0n",
+            ),
+            ("the DEC DSR forms of the other reports are not answered", r"\e[?53n\e[15n\e[25n\e[26n", b""),
             ("DA reports a VT220 with ANSI colour", r"\e[c", b"\x1b[?62;22c"),
             ("DA with a private marker is not answered", r"\e[?c", b""),
             ("DECID reports a VT220", r"\eZ", b"\x1b[?62;22c"),
@@ -1210,9 +1227,9 @@ class TermTest(unittest.TestCase):
                 self.assertEqual(["size", "report"] if answer else ["size"], order)
 
     def test_save_restore_cursor_esc_keeps_attributes(self) -> None:
-        """Restore the attributes saved by DECSC or mode 1048 together with the cursor position."""
+        """Restore the attributes saved by DECSC, SCOSC or mode 1048 together with the cursor position."""
         red = urwid.AttrSpec("dark red", "default")
-        for save, restore in ((r"\e7", r"\e8"), (r"\e[?1048h", r"\e[?1048l")):
+        for save, restore in ((r"\e7", r"\e8"), (r"\e[s", r"\e[u"), (r"\e[?1048h", r"\e[?1048l")):
             with self.subTest(save=save):
                 self.restart()
                 self.write(rf"\e[31mab{save}\e[0m\e[2;1Hcd{restore}e")
@@ -1223,6 +1240,36 @@ class TermTest(unittest.TestCase):
                     ],
                     raw=True,
                 )
+
+    def test_save_restore_cursor_keeps_origin_mode_and_pending_wrap(self) -> None:
+        """Restore origin mode and a pending autowrap with the cursor saved by DECSC or SCOSC, as xterm does."""
+        for save, restore in ((r"\e7", r"\e8"), (r"\e[s", r"\e[u")):
+            with self.subTest(save=save):
+                self.restart(10, 8)
+                # saved in origin mode inside the region rows 3 to 7, restored after origin mode was reset
+                self.write(rf"\e[3;7r\e[?6h\e[2;2H{save}\e[?6l\e[1;1H{restore}\e[?6$p\e[6n")
+                self.read()
+                self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?6;1$y\x1b[2;2R")
+                self.restart(10, 8)
+                # saved with the cursor waiting to wrap at the last column: the next character starts the next row
+                self.write(rf"\e[1;10Hx{save}\e[3;3H{restore}y")
+                self.expect([[*[(None, None, b" ")] * 9, (None, None, b"x")], [(None, None, b"y")]], raw=True)
+
+    def test_saved_origin_mode_is_kept_per_screen(self) -> None:
+        """Keep origin mode saved by DECSC with the screen it was saved on, as the position is kept."""
+        self.restart(10, 8)
+        self.write(r"\e[3;7r\e[?6h\e[2;2H\e7\e[?6l\e[?47h\e8\e[?6$p\e[?47l\e8\e[?6$p\e[6n")
+        self.read()
+        self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?6;2$y\x1b[?6;1$y\x1b[2;2R")
+
+    def test_restore_cursor_without_a_saved_one_resets_it(self) -> None:
+        """Move home and reset the attributes, the charsets and origin mode at DECRC or SCORC with nothing saved."""
+        for restore in (r"\e8", r"\e[u"):
+            with self.subTest(restore=restore):
+                self.restart(10, 8)
+                self.write(f"\\e[3;7r\\e[5;5H\\e[1;31m\x0e\\e[?6h{restore}q\\e[?6$p")
+                self.expect([[(None, None, b"q")]], raw=True)
+                self.assertEqual(bytes(self.pty.from_widget), b"\x1b[?6;2$y")
 
     def test_charset_designation(self) -> None:
         """Draw with the DEC special graphics set while it is designated as G0."""
